@@ -1,0 +1,33 @@
+version: 2
+updates:
+    - package-ecosystem: "gomod"
+      directories:
+          - "/api"
+      schedule:
+          interval: "weekly"
+      labels:
+          - "dependencies"
+      commit-message:
+          prefix: "build"
+          include: "scope"
+
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      labels:
+          - "dependencies"
+      commit-message:
+          prefix: "build"
+          include: "scope"
+    
+    - package-ecosystem: "docker"
+      directories:
+          - "/cache"
+      schedule:
+          interval: "weekly"
+      labels:
+          - "dependencies"
+      commit-message:
+          prefix: "build"
+          include: "scope"
