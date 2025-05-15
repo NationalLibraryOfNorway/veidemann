@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package veidemann.api.log.v1;
+
+import "commons/v1/resources.proto";
+import "log/v1/resources.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/log";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.log.v1";
+option java_outer_classname = "LogService";
+
+// Service for crawl/page-log
+service Log {
+    // List crawl logs
+    rpc ListCrawlLogs (CrawlLogListRequest) returns (stream CrawlLog) {}
+
+    // List page logs
+    rpc ListPageLogs (PageLogListRequest) returns (stream PageLog) {}
+
+    // Write crawl logs
+    rpc WriteCrawlLog (stream WriteCrawlLogRequest) returns (google.protobuf.Empty) {}
+
+    // Write page log
+    rpc WritePageLog (stream WritePageLogRequest) returns (google.protobuf.Empty) {}
+}
+
+// Specification of which entities to get.
+message CrawlLogListRequest {
+    // Select objects by one or more id's
+    repeated string warc_id = 2;
+    CrawlLog query_template = 5;
+    veidemann.api.commons.v1.FieldMask query_mask = 6;
+    veidemann.api.commons.v1.FieldMask returned_fields_mask = 7;
+    string order_by_path = 8;
+    bool order_descending = 9;
+    bool watch = 13;
+    int32 page_size = 14;
+    int32 offset = 15;
+}
+
+message PageLogListRequest {
+    // Select objects by one or more id's
+    repeated string warc_id = 2;
+    PageLog query_template = 5;
+    veidemann.api.commons.v1.FieldMask query_mask = 6;
+    veidemann.api.commons.v1.FieldMask returned_fields_mask = 7;
+    string order_by_path = 8;
+    bool order_descending = 9;
+    bool watch = 13;
+    int32 page_size = 14;
+    int32 offset = 15;
+}
+
+message WritePageLogRequest {
+    oneof value {
+        CrawlLog crawlLog = 1;
+        PageLog.Resource resource = 2;
+        string outlink = 3;
+    }
+}
+
+message WriteCrawlLogRequest {
+    veidemann.api.log.v1.CrawlLog crawlLog = 1;
+}

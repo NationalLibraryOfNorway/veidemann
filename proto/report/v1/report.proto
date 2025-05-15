@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package veidemann.api.report.v1;
+
+import "commons/v1/resources.proto";
+import "frontier/v1/resources.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/report";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.report.v1";
+option java_outer_classname = "ReportService";
+
+// Service for crawler reports.
+service Report {
+    // Execute a query against the database
+    rpc ExecuteDbQuery (ExecuteDbQueryRequest) returns (stream ExecuteDbQueryReply) {}
+
+    // List a set of crawl executions
+    rpc ListExecutions (CrawlExecutionsListRequest) returns (stream veidemann.api.frontier.v1.CrawlExecutionStatus) {}
+
+    // List a set of job executions
+    rpc ListJobExecutions (JobExecutionsListRequest) returns (stream veidemann.api.frontier.v1.JobExecutionStatus) {}
+}
+
+message ExecuteDbQueryRequest {
+    // The query to execute
+    string query = 1;
+    // Maximum number of rows to return. A limit of -1 indicates no limit. If unset or zero, use default limit.
+    int32 limit = 14;
+}
+
+message ExecuteDbQueryReply {
+    string record = 1;
+}
+
+message CrawlExecutionsListRequest {
+    // Select objects by one or more id's
+    repeated string id = 1;
+    repeated veidemann.api.frontier.v1.CrawlExecutionStatus.State state = 2;
+    google.protobuf.Timestamp start_time_from = 3;
+    google.protobuf.Timestamp start_time_to = 4;
+    bool has_error = 5;
+    veidemann.api.frontier.v1.CrawlExecutionStatus query_template = 6;
+    veidemann.api.commons.v1.FieldMask query_mask = 7;
+    veidemann.api.commons.v1.FieldMask returned_fields_mask = 8;
+    string order_by_path = 9;
+    bool order_descending = 10;
+    bool watch = 13;
+    int32 page_size = 14;
+    int32 offset = 15;
+}
+
+message JobExecutionsListRequest {
+    // Select objects by one or more id's
+    repeated string id = 1;
+    repeated veidemann.api.frontier.v1.JobExecutionStatus.State state = 2;
+    google.protobuf.Timestamp start_time_from = 3;
+    google.protobuf.Timestamp start_time_to = 4;
+    veidemann.api.frontier.v1.JobExecutionStatus query_template = 6;
+    veidemann.api.commons.v1.FieldMask query_mask = 7;
+    veidemann.api.commons.v1.FieldMask returned_fields_mask = 8;
+    string order_by_path = 9;
+    bool order_descending = 10;
+    bool watch = 13;
+    int32 page_size = 14;
+    int32 offset = 15;
+}

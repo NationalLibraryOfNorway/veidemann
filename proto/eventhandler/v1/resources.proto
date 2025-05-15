@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package veidemann.api.eventhandler.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/eventhandler";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.eventhandler.v1";
+option java_outer_classname = "EventHandlerResources";
+
+message EventObject {
+    enum State {
+        NEW = 0;
+        OPEN = 1;
+        CLOSED = 2;
+    }
+
+    enum Severity {
+        INFO = 0;
+        WARN = 1;
+        ERROR = 2;
+    }
+
+    string id = 1;
+    string type = 2;
+    string source = 3;
+    State state = 4;
+    string assignee = 5;
+    repeated Data data = 6;
+    Severity severity = 7;
+    repeated string label = 8;
+    repeated Activity activity = 9;
+}
+
+message EventRef {
+    // The id of the EventObject to get
+    string id = 1;
+}
+
+message Activity {
+    enum ChangeType {
+        CREATED = 0;
+        VALUE_CHANGED = 1;
+        ARRAY_ADD = 2;
+        ARRAY_DEL = 3;
+    }
+    message Change {
+        ChangeType type = 1;
+        string field = 2;
+        string old_val = 3;
+        string new_val = 4;
+    }
+    string modified_by = 1;
+    google.protobuf.Timestamp modified_time = 2;
+    repeated Change description = 3;
+    string comment = 4;
+}
+
+message Data {
+    string key = 1;
+    string value = 2;
+}

@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package veidemann.api.eventhandler.v1;
+
+import "eventhandler/v1/resources.proto";
+import "commons/v1/resources.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/eventhandler";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.eventhandler.v1";
+option java_outer_classname = "EventHandlerService";
+
+// Service for working with events.
+service EventHandler {
+    // Get an event object by ID
+    rpc GetEventObject (veidemann.api.eventhandler.v1.EventRef) returns (veidemann.api.eventhandler.v1.EventObject) {}
+    // List a set of event objects
+    rpc ListEventObjects (veidemann.api.eventhandler.v1.ListRequest) returns (stream veidemann.api.eventhandler.v1.EventObject) {}
+    // Count event objects
+    rpc CountEventObjects (veidemann.api.eventhandler.v1.ListRequest) returns (veidemann.api.eventhandler.v1.ListCountResponse) {}
+    // Save an event object
+    rpc SaveEventObject (veidemann.api.eventhandler.v1.SaveRequest) returns (veidemann.api.eventhandler.v1.EventObject) {}
+    // Update event objects
+    rpc UpdateEventObjects (veidemann.api.eventhandler.v1.UpdateRequest) returns (veidemann.api.eventhandler.v1.UpdateResponse) {}
+    // Delete an event object
+    rpc DeleteEventObject (veidemann.api.eventhandler.v1.EventObject) returns (veidemann.api.eventhandler.v1.DeleteResponse) {}
+
+    rpc ListLabels (ListLabelRequest) returns (ListLabelResponse);
+}
+
+message ListRequest {
+    // Select objects by one or more id's
+    repeated string id = 1;
+    veidemann.api.eventhandler.v1.EventObject query_template = 2;
+    veidemann.api.commons.v1.FieldMask query_mask = 3;
+    veidemann.api.commons.v1.FieldMask returned_fields_mask = 4;
+    int32 page_size = 7;
+    int32 offset = 8;
+}
+
+message UpdateRequest {
+    ListRequest list_request = 1;
+    veidemann.api.commons.v1.FieldMask update_mask = 3;
+    veidemann.api.eventhandler.v1.EventObject update_template = 4;
+    string comment = 5;
+}
+
+message SaveRequest {
+    veidemann.api.eventhandler.v1.EventObject object = 1;
+    string comment = 2;
+}
+
+message UpdateResponse {
+    int64 updated = 1;
+}
+
+message ListCountResponse {
+    int64 count = 1;
+    bool approximate = 2;
+}
+
+message DeleteResponse {
+    bool deleted = 1;
+}
+
+message ListLabelRequest {
+    string text = 1;
+}
+
+message ListLabelResponse {
+    repeated string label = 1;
+}

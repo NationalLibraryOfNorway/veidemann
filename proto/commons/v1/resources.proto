@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package veidemann.api.commons.v1;
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/commons";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.commons.v1";
+option java_outer_classname = "CommonResources";
+
+message Error {
+    int32 code = 1;
+    string msg = 2;
+    string detail = 3;
+}
+
+message FieldMask {
+    repeated string paths = 1;
+}
+
+message ParsedUri {
+    // The entire uri
+    string href = 1;
+    // The scheme (protocol) part of the uri
+    string scheme = 2;
+    // The hostname of the uri
+    string host = 3;
+    // The port number of the uri
+    int32 port = 4;
+    // The username part of the uri
+    string username = 5;
+    // The password part of the uri
+    string password = 6;
+    // The path part of the uri
+    string path = 7;
+    // The query (search) part of the uri
+    string query = 8;
+    // The fragment (hash) part of the uri
+    string fragment = 9;
+}
+
+message ExtractedText {
+    string warc_id = 1;
+    string text = 2;
+    int64 sentence_count = 3;
+    int64 word_count = 4;
+    int64 long_word_count = 5;
+    int64 character_count = 6;
+    int64 lix = 7;
+    string language = 8;
+}

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package veidemann.api.report.v1;
+
+import "frontier/v1/resources.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/report";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.report.v1";
+option java_outer_classname = "ReportResources";
+
+message StatusDetail {
+    string id = 1;
+    veidemann.api.frontier.v1.CrawlExecutionStatus.State state = 2;
+    string jobId = 3;
+    string seed = 4;
+    google.protobuf.Timestamp start_time = 5;
+    google.protobuf.Timestamp end_time = 6;
+    int64 documents_crawled = 7;
+    int64 bytes_crawled = 8;
+    int64 uris_crawled = 9;
+    int64 documents_failed = 10;
+    int64 documents_out_of_scope = 11;
+    int64 documents_retried = 12;
+    int64 documents_denied = 13;
+    int64 queue_size = 14;
+    string current_uri = 20;
+}

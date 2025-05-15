@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package veidemann.api.log.v1;
+
+import "commons/v1/resources.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/log";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.log.v1";
+option java_outer_classname = "LogResources";
+
+message CrawlLog {
+    string warc_id = 1;
+    google.protobuf.Timestamp time_stamp = 2;
+    int32 status_code = 4;
+    int64 size = 5;
+    string requested_uri = 6;
+    string response_uri = 7;
+
+    /**
+     * Get the discoveryPath,
+     *  R - Redirect
+     *  E - Embed
+     *  X - Speculative embed (aggressive/Javascript link extraction)
+     *  L - Link
+     *  P - Prerequisite (as for DNS or robots.txt before another URI)
+     */
+    string discovery_path = 8;
+    string referrer = 9;
+    string content_type = 10;
+    google.protobuf.Timestamp fetch_time_stamp = 11;
+    int64 fetch_time_ms = 12;
+    string block_digest = 13;
+    string payload_digest = 14;
+    string storage_ref = 15;
+    string record_type = 16;
+    string warc_refers_to = 17;
+    string ip_address = 18;
+    string execution_id = 19;
+    int32 retries = 20; // Number of times this uri has been retried. Zero means success on first attempt.
+    veidemann.api.commons.v1.Error error = 21; // Contains the error reason if fetch failed
+    string job_execution_id = 22;
+    string collection_final_name = 23;
+    string method = 24; // The HTTP method (GET, POST, HEAD, ...)
+}
+
+// Log for each page including discovered resources and links
+message PageLog {
+    // A resource used to complete a page. It might be embedded images, javascripts, stylesheets etc.
+    message Resource {
+        string uri = 1;
+        bool from_cache = 2;
+        bool renderable = 3;
+        string resource_type = 4;
+        string content_type = 5;
+        int32 status_code = 6;
+        string discovery_path = 7;
+        string warc_id = 8;
+        string referrer = 9;
+        veidemann.api.commons.v1.Error error = 10; // Contains the error reason if fetch failed
+        string method = 11; // The HTTP method (GET, POST, HEAD, ...)
+    }
+    string warc_id = 1;
+    string uri = 2;
+    string execution_id = 3;
+    string referrer = 4;
+    string job_execution_id = 5;
+    string collection_final_name = 6;
+    string method = 7; // The HTTP method (GET, POST, HEAD, ...)
+    repeated Resource resource = 10;
+    repeated string outlink = 11;
+}
