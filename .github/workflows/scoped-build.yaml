@@ -1,0 +1,79 @@
+name: Scoped Build
+
+on:
+  workflow_call:
+    inputs:
+      PATH:
+        required: true
+        type: string
+        description: "The path to the component to build"
+      IMAGE_NAME:
+        required: true
+        type: string
+        description: "The name of the image to build"
+    secrets:
+      VAULT_URL:
+        required: true
+      VAULT_SECRET_PATH:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
+      HTTPS_PROXY:
+        required: false
+      HTTP_PROXY:
+        required: false
+      NO_PROXY:
+        required: false
+
+jobs:
+  scoped-build:
+    runs-on: self-hosted-linux
+    steps:
+
+    - name: Import secrets from Vault
+      uses: hashicorp/vault-action@v3
+      with:
+        url: ${{ secrets.VAULT_URL }}
+        method: approle
+        roleId: ${{ secrets.VAULT_ROLE_ID }}
+        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        secrets: |
+          ${{ secrets.VAULT_SECRET_PATH }} * | HARBOR_ ;
+
+    - name: Log in to the container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.HARBOR_ADDRESS }}
+        username: ${{ env.HARBOR_USERNAME }}
+        password: ${{ env.HARBOR_PASSWORD }}
+
+    - name: Extract semver from scoped tag
+      if: startsWith(github.ref, format('refs/tags/{0}/', inputs.PATH))
+      run: |
+        TAG=${GITHUB_REF#refs/tags/${{ inputs.PATH }}/}
+        echo "SEMVER_TAG=$TAG" >> $GITHUB_ENV
+
+    - name: Set up build metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.HARBOR_ADDRESS }}/${{ inputs.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          ${{ env.SEMVER_TAG != ''  && startsWith(env.SEMVER_TAG, 'v') && format('type=semver,pattern={{version}},value={0}', env.SEMVER_TAG) || '' }}
+
+    - name: Build and push container image
+      uses: docker/build-push-action@v5
+      with:
+        push: true
+        context: ${{ inputs.PATH }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}
+          HTTP_PROXY=${{ secrets.HTTP_PROXY }}
+          NO_PROXY=${{ secrets.NO_PROXY }}
+          VERSION=${{ steps.meta.outputs.version }}

@@ -1,0 +1,25 @@
+name: Veidemann Cache
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'cache/*'
+    paths:
+      - 'cache/**'
+
+jobs:
+  build-cache:
+    uses: .github/workflows/scoped-build.yaml
+    with:
+      PATH: cache
+      IMAGE_NAME: nettarkivet/veidemann-cache
+    secrets:
+      HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+      HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+      NO_PROXY: ${{ secrets.NO_PROXY }}
+      VAULT_URL: ${{ secrets.VAULT_URL }}
+      VAULT_SECRET_PATH: ${{ secrets.VAULT_SECRET_PATH }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}

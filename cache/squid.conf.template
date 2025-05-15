@@ -1,0 +1,48 @@
+dns_nameservers ${DNS_IP}
+
+# SSL-Bump (see https://wiki.squid-cache.org/ConfigExamples/Intercept/SslBumpExplicit)
+http_port 3128 ssl-bump \
+ tls-cert=/ca-certificates/tls.crt \
+ tls-key=/ca-certificates/tls.key \
+ generate-host-certificates=on dynamic_cert_mem_cache_size=4MB \
+ options=NO_SSLv3,NO_TLSv1,NO_TLSv1_1,NO_TLSv1_2,NO_TICKET
+
+sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 4MB
+acl step1 at_step SslBump1
+ssl_bump peek step1
+ssl_bump bump all
+sslproxy_cert_error allow all
+
+maximum_object_size 64 MB
+offline_mode on
+
+# Refresh patterns
+refresh_pattern .               4320    100%    4320 store-stale override-expire override-lastmod ignore-private ignore-reload ignore-no-store
+
+# Logging configuration
+# ---------------------
+debug_options ALL,1
+log_mime_hdrs off
+logfile_daemon /usr/local/sbin/loghelper
+
+# Cache settings
+# --------------------
+store_id_program /usr/local/sbin/storeid -t 20
+store_id_extras "%{veidemann_jeid}>h"
+store_id_children 20 startup=5 idle=5 concurrency=20
+
+cache_miss_revalidate off
+negative_ttl 100 day
+request_entities on
+
+# Manipulate headers
+# ----------------------
+request_header_access veidemann_eid deny all
+request_header_access veidemann_jeid deny all
+
+# Ensure that X-Cache header always contains 'from veidemann_cache' after HIT/MISS
+visible_hostname veidemann_cache
+
+# Example cache dir config
+# Cache size should be no more than 80% of volume space (/var/spool/squid) size
+# cache_dir aufs /var/spool/squid 750 16 256 # Size: 750MB, First level dirs: 16, Second level dirs: 256
