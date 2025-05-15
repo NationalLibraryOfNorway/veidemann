@@ -32,6 +32,9 @@ jobs:
     runs-on: self-hosted-linux
     steps:
 
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Import secrets from Vault
       uses: hashicorp/vault-action@v3
       with:
@@ -65,13 +68,12 @@ jobs:
           type=ref,event=pr
           ${{ env.TAG != '' && !startsWith(env.TAG, 'v') && 'type=ref,event=tag' || '' }}
           ${{ env.TAG != '' && startsWith(env.TAG, 'v') && format('type=semver,pattern={{version}},value={0}', env.TAG) || '' }}
-
+  
     - name: Build and push container image
       uses: docker/build-push-action@v5
       with:
         push: true
         context: ${{ inputs.PATH }}
-        file: ${{ inputs.PATH }}/Dockerfile
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
