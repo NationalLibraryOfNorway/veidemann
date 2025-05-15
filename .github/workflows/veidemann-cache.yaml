@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-cache:
-    uses: ./.github/workflows/scoped-build.yaml@main
+    uses: ./.github/workflows/scoped-build.yaml
     with:
       PATH: cache
       IMAGE_NAME: nettarkivet/veidemann-cache
