@@ -1,0 +1,18 @@
+<h4 id='{{.Get "def" | anchorize}}' class="funcdef">
+    {{ if (findRE "^.*\\(.*\\)$" (.Get "def") ) }}
+    <span class="funcdef-class">
+        {{- .Get "def" | replaceRE "^((?:[^\\.\\(]*\\.)*)(?:[^\\(]*).*$" "$1"  | safeHTML -}}
+    </span><span class="funcdef-function">
+        {{- .Get "def" | replaceRE "^(?:(?:[^\\.\\(]*\\.)*)([^\\(]*).*$" "$1"  | safeHTML -}}
+    </span>(<span class="funcdef-params">
+        {{- .Get "def" | replaceRE "^[^\\(]*\\((.*)\\)$" "$1"  | safeHTML -}}
+    </span>)
+    {{ else }}
+    <span class="funcdef-function">
+        {{- .Get "def" | safeHTML -}}
+    </span>
+    {{ end }}
+    <span class="anchor" data-clipboard-text='{{.Page.Permalink}}#{{.Get "def" | anchorize}}'><i
+            class="fas fa-link fa-lg"></i></span>
+</h4>
+<div class="funcdef-body">{{ .Inner | .Page.RenderString }}</div>

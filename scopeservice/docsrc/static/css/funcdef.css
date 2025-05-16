@@ -1,0 +1,24 @@
+.funcdef {
+    font-family: "Consolas", menlo, monospace;
+    line-height: 1;
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+}
+
+.funcdef-class {
+    font-weight: 100;
+}
+
+.funcdef-function {
+    font-weight: 700;
+}
+
+.funcdef-params {
+    font-weight: 100;
+    font-size: 80%;
+    font-style: italic;
+}
+
+.funcdef-body {
+    margin-left: 50px
+}

@@ -1,0 +1,32 @@
+baseURL = "https://nlnwa.github.io/veidemann-scopeservice"
+languageCode = "en-us"
+defaultContentLanguage = "en"
+title = "Veidemann Scope Service"
+theme = "learn"
+publishdir = "../docs"
+
+[params]
+    # Change default color scheme with a variant one. Can be "red", "blue", "green".
+    themeVariant = "green"
+    disableLandingPageButton = false
+    # Set this to true to disable copy-to-clipboard button for inline code.
+    disableInlineCopyToClipBoard = true
+    # Hide Next and Previous page buttons normally displayed full height beside content
+    disableNextPrev = true
+    # Provide a list of custom css files to load relative from the `static/` folder in the site root.
+    custom_css = ["css/funcdef.css"]
+
+    landingPageURL = "/veidemann-scopeservice"
+    landingPageName = "<i class='fas fa-home'></i> Overview"
+
+[markup]
+    defaultMarkdownHandler = "goldmark"
+
+[[menu.shortcuts]]
+    name = "<i class='fab fa-github'></i> Github repo"
+    identifier = "ds"
+    url = "https://github.com/nlnwa/veidemann-scopeservice"
+    weight = 10
+
+[outputs]
+    home = [ "HTML", "RSS", "JSON"]
