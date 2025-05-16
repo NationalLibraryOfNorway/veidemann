@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package veidemann.api.commons.v2;
+
+option go_package = "github.com/nlnwa/veidemann-api/go/commons/v2;commons";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.commons.v2";
+option java_outer_classname = "CommonResources";
+
+message Error {
+    int32 code = 1;
+    string msg = 2;
+    string detail = 3;
+}
+
+message FieldMask {
+    repeated string paths = 1;
+}
+
+message ParsedUrl {
+    // The entire uri
+    string href = 1;
+    // The scheme (protocol) part of the uri
+    string scheme = 2;
+    // The hostname of the uri
+    string host = 3;
+    // The port number of the uri
+    int32 port = 4;
+    // The username part of the uri
+    string username = 5;
+    // The password part of the uri
+    string password = 6;
+    // The path part of the uri
+    string path = 7;
+    // The query (search) part of the uri
+    string query = 8;
+    // The fragment (hash) part of the uri
+    string fragment = 9;
+}

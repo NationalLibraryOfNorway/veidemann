@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package veidemann.api.robotsevaluator.v2;
+
+option go_package = "github.com/nlnwa/veidemann-api/go/robotsevaluator/v2;robotsevaluator";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.robotsevaluator.v2";
+option java_outer_classname = "RobotsEvaluatorService";
+
+import "config/v2/resources.proto";
+
+// Service for checking robots.txt rules.
+service RobotsEvaluator {
+    rpc isAllowed (IsAllowedRequest) returns (IsAllowedReply) {}
+}
+
+message IsAllowedRequest {
+    string uri = 1;
+    string user_agent = 2;
+    veidemann.api.config.v2.ConfigObject politeness = 3;
+}
+
+message IsAllowedReply {
+    message OtherField {
+        string name = 1;
+        string value = 2;
+    }
+    bool is_allowed = 1;
+    float crawl_delay = 2;
+    float cache_delay = 3;
+    repeated string sitemap = 4;
+    repeated OtherField other_fields = 5;
+}

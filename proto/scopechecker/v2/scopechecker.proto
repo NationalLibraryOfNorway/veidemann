@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package veidemann.api.scopechecker.v2;
+
+import "frontier/v2/resources.proto";
+import "commons/v2/resources.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/scopechecker/v2;scopechecker";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.scopechecker.v2";
+option java_outer_classname = "ScopeChecker";
+
+// Service for URI scope check.
+service ScopesCheckerService {
+    // Check if URI is in scope for this crawl
+    rpc ScopeCheck (veidemann.api.scopechecker.v2.ScopeCheckRequest) returns (veidemann.api.scopechecker.v2.ScopeCheckResponse) {
+    }
+}
+
+message ScopeCheckRequest {
+    // The uri to validate.
+    // The type QueuedUri includes all the context needed to do scope check
+    veidemann.api.frontier.v2.QueuedUri queued_uri = 1;
+    // Name of script. Used for logging.
+    string scope_script_name = 2;
+    // The Script to evaluate.
+    string scope_script = 3;
+    // Turn on debug messages
+    bool debug = 4;
+}
+
+message ScopeCheckResponse {
+    enum Evaluation {
+        INCLUDE = 0;
+        EXCLUDE = 1;
+    }
+
+    // The outcome of the scope evaluation
+    Evaluation evaluation = 1;
+
+    // Heritrix status code indicating reason for exclude.
+    // Most relevant reasons are:
+    //   *    -5 RUNTIME_EXCEPTION           Unexpected runtime exception.
+    //   *    -7 ILLEGAL_URI                 URI recognized as unsupported or illegal.
+    //   * -4000 CHAFF_DETECTION             Chaff detection of traps/content with negligible value applied.
+    //   * -4001 TOO_MANY_HOPS               The URI is too many link hops away from the seed.
+    //   * -4002 TOO_MANY_TRANSITIVE_HOPS    The URI is too many embed/transitive hops away from the last URI in scope.
+    //   * -5001 BLOCKED                     Blocked from fetch by user setting.
+    //   * -5002 BLOCKED_BY_CUSTOM_PROCESSOR Blocked by a custom processor.
+    int32 exclude_reason = 2;
+
+    // URI canonicalized for checking against already included list.
+    // Examples of canonicalization could be:
+    // * Removing well known session id's (e.g. jsessionid) from query parameters.
+    // * Canonicalize according to the rules described for Google Safe Browsing (https://developers.google.com/safe-browsing/v4/urls-hashing)
+    veidemann.api.commons.v2.ParsedUri include_check_uri = 3;
+
+    // Error is present if script had errors
+    veidemann.api.commons.v2.Error error = 4;
+
+    // If script outputs anything to the console (e.g. if debug is turned on in the request or script contains print() statements),
+    // this field will contain the output
+    string console = 5;
+}

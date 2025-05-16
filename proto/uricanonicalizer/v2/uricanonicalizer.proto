@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package veidemann.api.uricanonicalizer.v2;
+
+import "commons/v2/resources.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/uricanonicalizer/v2;uricanonicalizer";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.uricanonicalizer.v2";
+option java_outer_classname = "UriCanonicalizer";
+
+// Service for URI canonicalization.
+service UriCanonicalizerService {
+    // Canonicalize URI for crawling.
+    // Examples of canonicalization could be:
+    // * Remove port numbers for well known schemes (i.e. http://example.com:80 => http://example.com)
+    // * Normalize slash for empty path (i.e. http://example.com => http://example.com/)
+    // * Normalize path (i.e. http://example.com/a//b/./c => http://example.com/a/b/c)
+    rpc Canonicalize (CanonicalizeRequest) returns (CanonicalizeResponse) {}
+}
+
+message CanonicalizeRequest {
+    string uri = 1;
+}
+
+message CanonicalizeResponse {
+    veidemann.api.commons.v2.ParsedUri uri = 1;
+}

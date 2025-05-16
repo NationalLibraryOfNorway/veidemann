@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package veidemann.api.config.v2;
+
+import "config/v2/resources.proto";
+import "commons/v2/resources.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/config/v2;config";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.config.v2";
+option java_outer_classname = "ConfigService";
+
+// Service for working with config.
+service Config {
+    // Get a config object by ID
+    rpc GetConfigObject (veidemann.api.config.v2.ConfigRef) returns (veidemann.api.config.v2.ConfigObject) {}
+    // List a set of config objects
+    rpc ListConfigObjects (veidemann.api.config.v2.ListRequest) returns (stream veidemann.api.config.v2.ConfigObject) {}
+    // Count config objects
+    rpc CountConfigObjects (veidemann.api.config.v2.ListRequest) returns (veidemann.api.config.v2.ListCountResponse) {}
+    // Save a config object
+    rpc SaveConfigObject (veidemann.api.config.v2.ConfigObject) returns (veidemann.api.config.v2.ConfigObject) {}
+    // Update config objects
+    rpc UpdateConfigObjects (veidemann.api.config.v2.UpdateRequest) returns (veidemann.api.config.v2.UpdateResponse) {}
+    // Delete a config object
+    rpc DeleteConfigObject (veidemann.api.config.v2.ConfigObject) returns (veidemann.api.config.v2.DeleteResponse) {}
+
+    rpc GetLabelKeys (veidemann.api.config.v2.GetLabelKeysRequest) returns (veidemann.api.config.v2.LabelKeysResponse) {}
+
+    rpc GetLogConfig (google.protobuf.Empty) returns (LogLevels) {}
+
+    rpc SaveLogConfig (LogLevels) returns (LogLevels) {}
+
+    rpc GetScriptAnnotations (veidemann.api.config.v2.GetScriptAnnotationsRequest) returns (veidemann.api.config.v2.GetScriptAnnotationsResponse) {}
+}
+
+message GetScriptAnnotationsRequest {
+    // A job configuration referencing scripts from which to extract annotations (required).
+    veidemann.api.config.v2.ConfigRef job = 1;
+    // A seed which could contain overrides for the annotations (optional).
+    // Also the seed's entity is considered.
+    veidemann.api.config.v2.ConfigRef seed = 2;
+}
+
+message GetScriptAnnotationsResponse {
+    repeated veidemann.api.config.v2.Annotation annotation = 1;
+}
+
+message GetLabelKeysRequest {
+    veidemann.api.config.v2.Kind kind = 1;
+}
+
+// Specification of which entities to get.
+message ListRequest {
+    veidemann.api.config.v2.Kind kind = 1;
+    // Select objects by one or more id's
+    repeated string id = 2;
+    // Select objects by name
+    // The name query is a case insensitive regular expresion search on name.
+    // <pre>
+    // Examples:
+    //   "foo"       - matches all names containing the phrase foo
+    //   "^foo$"     - matches the exact name foo
+    //   "foo.*bar$" - matches names containing foo followed by zero or more tokens and ends with bar
+    // </pre>
+    string name_regex = 3;
+    // Select objects by label
+    // A string representing a label query. The query matches if at least one label matches the query.
+    // If there are multiple queries, then each query must match at least one label.
+    // Label quries are case insensitive. The basic format is <code>key:value</code> where both key and value must match.
+    // If value ends with <code>&ast;</code> then the key must match and value must match up until the <code>&ast;</code>.
+    // If value is empty, all labels matching the key will match.
+    // If key is empty, then the matching is done on the value for all keys.
+    // If key is empty, then the <code>:</code> might be ommitted.
+    // <pre>
+    // Examples:
+    //   "foo:bar"  - matches exactly labels with key=foo and value=bar
+    //   "foo:"     - matches all labels with key=foo
+    //   ":bar"     - matches all labels with value=bar
+    //   "bar"      - matches all labels with value=bar
+    //   "foo:ba*"  - matches labels with key=foo and value starting with ba (e.g. matches bar, but not ber)
+    //   ":ba*"     - matches labels with any key and value starting with ba (e.g. matches bar, but not ber)
+    //   "ba*"      - matches labels with any key and value starting with ba (e.g. matches bar, but not ber)
+    //   ":"        - matches every label
+    //   ""         - matches every label
+    // </pre>
+    repeated string label_selector = 4;
+    veidemann.api.config.v2.ConfigObject query_template = 5;
+    veidemann.api.commons.v2.FieldMask query_mask = 6;
+    veidemann.api.commons.v2.FieldMask returned_fields_mask = 7;
+    string order_by_path = 8;
+    bool order_descending = 9;
+    int32 page_size = 14;
+    int32 offset = 15;
+}
+
+message UpdateRequest {
+    ListRequest list_request = 1;
+    veidemann.api.commons.v2.FieldMask update_mask = 3;
+    veidemann.api.config.v2.    ConfigObject update_template = 4;
+}
+
+message UpdateResponse {
+    int64 updated = 1;
+}
+
+message ListCountResponse {
+    int64 count = 1;
+    bool approximate = 2;
+}
+
+message DeleteResponse {
+    bool deleted = 1;
+}
+
+message LabelKeysResponse {
+    repeated string key = 1;
+}
