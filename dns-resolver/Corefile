@@ -1,0 +1,21 @@
+.:1053 {
+    resolve :8443
+    prometheus :9153
+    debug
+    errors
+    loop
+    log
+    metadata
+    forward . 8.8.8.8 1.1.1.1 9.9.9.9 {
+        # except IGNORED_NAMES...
+        # force_tcp
+        # prefer_udp
+        # expire DURATION
+        # max_fails INTEGER
+        # tls CERT KEY CA
+        # tls_servername NAME
+        # policy random|round_robin|sequential
+        # health_check DURATION [no_rec]
+        # max_concurrent MAX
+    }
+}
