@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package veidemann.api.frontier.v2;
+
+import "commons/v2/resources.proto";
+import "config/v2/resources.proto";
+import "frontier/v2/resources.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/frontier/v2;frontier";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.frontier.v2";
+option java_outer_classname = "FrontierService";
+
+// Service for controlling frontier.
+service Frontier {
+    // Request a URI from the Frontiers queue.
+    // Used by a Harvester to fetch a new page. If no URI is ready for harvesting, Frontier should return
+    // gRPC status NOT_FOUND. Harvester should then retry the request after a reasonable backoff time.
+    rpc GetNextPage (google.protobuf.Empty) returns (PageHarvestSpec) {}
+
+    // Inform Frontier that a page fetch was finished.
+    // Contains metrics, outlinks and error as a stream of messages. Client closes stream when finished.
+    rpc PageCompleted (stream PageHarvest) returns (google.protobuf.Empty) {}
+
+    // The number of busy CrawlHostGroups which essentially is the number of web pages currently downloading
+    rpc BusyCrawlHostGroupCount (google.protobuf.Empty) returns (CountResponse) {}
+
+    // Total number of queued URI's
+    rpc QueueCountTotal (google.protobuf.Empty) returns (CountResponse) {}
+
+    // Number of queued URI's for a CrawlHostGroup
+    rpc QueueCountForCrawlHostGroup (veidemann.api.frontier.v2.CrawlHostGroup) returns (CountResponse) {}
+}
+
+// Message sent from Harvester to return the harvest result.
+// When the fetch is done, a stream of PageHarvest objects are returned:
+// The first object contains metrics.
+// Subsequent objects contain outlinks until all outlinks are sent.
+// Finally the client should complete the request.
+message PageHarvest {
+    message Metrics {
+        // The number of uri's downloaded. The requested uri + embedded resources
+        int32 uri_count = 1;
+        // Byte count for the resources downloaded. Includes embedded resources
+        int64 bytes_downloaded = 2;
+    }
+
+    oneof msg {
+        // Collected metrics for the page fetched
+        Metrics metrics = 2;
+        // The outlinks found in the harvested page
+        veidemann.api.frontier.v2.QueuedUri outlink = 3;
+        // If the overall page fetch failed. Should not be used for a singel uri failure
+        veidemann.api.commons.v2.Error error = 4;
+    }
+
+    // Session token from the PageHarvestSpec.
+    string session_token = 5;
+}
+
+// A specification of the page to fetch.
+message PageHarvestSpec {
+    // The URI to fetch
+    veidemann.api.frontier.v2.QueuedUri queued_uri = 1;
+    // The configuration for the fetch
+    veidemann.api.config.v2.ConfigObject crawl_config = 2;
+    // Session token for this request.
+    // The Harvester is responsible for setting the same session token in all responses to this request.
+    string session_token = 3;
+}
+
+message CountResponse {
+    int64 count = 1;
+}

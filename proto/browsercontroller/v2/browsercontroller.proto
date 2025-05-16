@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package veidemann.api.browsercontroller.v2;
+
+import "config/v2/resources.proto";
+import "log/v2/resources.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/browsercontroller/v2;browsercontroller";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.browsercontroller.v2";
+option java_outer_classname = "BrowserControllerService";
+
+// Service for used by recorder proxy to comunicate with browser controller.
+service BrowserController {
+    rpc do (stream DoRequest) returns (stream DoReply) {}
+}
+
+message RegisterNew {
+    int32 proxy_id = 1;
+    string uri = 2;
+    string method = 3; // The HTTP method (GET, POST, HEAD, ...)
+    string request_id = 4; // The browsers internal request id.
+}
+
+message NotifyActivity {
+    enum Activity {
+        DATA_RECEIVED = 0;
+        ALL_DATA_RECEIVED = 1;
+    }
+    Activity activity = 1;
+}
+
+message Completed {
+    veidemann.api.log.v2.CrawlLog crawl_log = 1;
+    bool cached = 2;
+}
+
+message DoRequest {
+    oneof action {
+        RegisterNew new = 1;
+        NotifyActivity notify = 2;
+        Completed completed = 3;
+    }
+}
+
+message NewReply {
+    string crawl_execution_id = 1;
+    string job_execution_id = 2;
+    veidemann.api.config.v2.ConfigRef collection_ref = 4;
+    veidemann.api.config.v2.BrowserScript replacement_script = 5;
+}
+
+message DoReply {
+    oneof action {
+        NewReply new = 1;
+        string cancel = 4; // Roll back the request. The message should contain the reason for canceling the request.
+    }
+}

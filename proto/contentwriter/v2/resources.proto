@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package veidemann.api.contentwriter.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/contentwriter/v1;contentwriter";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.contentwriter.v1";
+option java_outer_classname = "ContentWriterResources";
+
+enum RecordType {
+    WARCINFO = 0;
+    RESPONSE = 1;
+    RESOURCE = 2;
+    REQUEST = 3;
+    METADATA = 4;
+    REVISIT = 5;
+    CONVERSION = 6;
+    CONTINUATION = 7;
+}
+
+message CrawledContent {
+    string digest = 1;
+    string warc_id = 2;
+    string target_uri = 3;
+    google.protobuf.Timestamp date = 4;
+}
+
+message StorageRef {
+    string warc_id = 1;
+    RecordType record_type = 2;
+    string storage_ref = 3;
+}

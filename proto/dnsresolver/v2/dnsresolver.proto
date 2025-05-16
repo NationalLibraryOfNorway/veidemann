@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package veidemann.api.dnsresolver.v2;
+
+import "commons/v2/resources.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/dnsresolver/v2;dnsresolver";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.dnsresolver.v2";
+option java_outer_classname = "DnsResolverService";
+
+// Service for resolving, caching and logging dns requests.
+service DnsResolver {
+    rpc resolve (ResolveRequest) returns (ResolveReply) {}
+}
+
+message ResolveRequest {
+    string host = 1;
+}
+
+message ResolveReply {
+    string host = 1;
+    string textual_ip = 2;
+    bytes raw_ip = 3;
+    veidemann.api.commons.v2.Error error = 4;
+}

@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package veidemann.api.contentwriter.v1;
+
+import "config/v1/resources.proto";
+import "contentwriter/v1/resources.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/contentwriter/v1;contentwriter";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.contentwriter.v1";
+option java_outer_classname = "ContentWriterService";
+
+// Service for writing archival data to persistent storage.
+service ContentWriter {
+    rpc write (stream WriteRequest) returns (WriteReply) {}
+}
+
+message Data {
+    int32 record_num = 1;
+    bytes data = 2;
+}
+
+message WriteRequestMeta {
+    message RecordMeta {
+        int32 record_num = 1;
+        RecordType type = 2;
+        string record_content_type = 3;
+        string block_digest = 4;
+        string payload_digest = 5;
+        int64 size = 6;
+        veidemann.api.config.v1.Collection.SubCollectionType sub_collection = 7;
+        repeated string warc_concurrent_to = 8;
+    }
+
+    string execution_id = 1;
+    string target_uri = 2;
+    map<int32, RecordMeta> record_meta = 3;
+
+    google.protobuf.Timestamp fetch_time_stamp = 4;
+    string ip_address = 5;
+    veidemann.api.config.v1.ConfigRef collection_ref = 7;
+}
+
+message WriteRequest {
+    oneof value {
+        WriteRequestMeta meta = 1;
+        Data protocol_header = 2; // Send protocol headers for the payload, e.g. http headers.
+        Data payload = 3; // Send part of the payload for the request. Repeat until complete payload is sent.
+        string cancel = 4; // Roll back the request. The message should contain the reason for canceling the request.
+    }
+}
+
+message WriteResponseMeta {
+    message RecordMeta {
+        int32 record_num = 1;
+        RecordType type = 2;
+        string warc_id = 3;
+        string storage_ref = 4;
+        string block_digest = 5;
+        string payload_digest = 6;
+        // If the stored record was detected as a revisit, this field contains the id of the revisited record.
+        string revisit_reference_id = 7;
+        string collection_final_name = 8;
+    }
+
+    map<int32, RecordMeta> record_meta = 1;
+}
+
+message WriteReply {
+    WriteResponseMeta meta = 1;
+}

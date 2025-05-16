@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package veidemann.api.controller.v2;
+
+import "controller/v2/resources.proto";
+import "frontier/v2/frontier.proto";
+import "frontier/v2/resources.proto";
+import "config/v2/resources.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/nlnwa/veidemann-api/go/controller/v2;controller";
+option java_multiple_files = true;
+option java_package = "no.nb.nna.veidemann.api.controller.v2";
+option java_outer_classname = "ControllerService";
+
+// Service for communicating with controller.
+service Controller {
+    rpc GetRolesForActiveUser (google.protobuf.Empty) returns (RoleList) {}
+
+    rpc PauseCrawler (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+    rpc UnPauseCrawler (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+    rpc Status (google.protobuf.Empty) returns (CrawlerStatus) {}
+}
+
+message RoleList {
+    repeated config.v2.Role role = 1;
+}
+
+enum RunStatus {
+    RUNNING = 0;
+    PAUSED = 1;
+    PAUSE_REQUESTED = 2;
+}
+
+message CrawlerStatus {
+    RunStatus runStatus = 1;
+    // The number of busy CrawlHostGroups which essentially is the number of web pages currently downloading
+    int64 busyHostCount = 2;
+}
