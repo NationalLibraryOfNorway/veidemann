@@ -1,4 +1,4 @@
-name: Scoped Build
+name: Build and publish container image
 
 on:
   workflow_call:
