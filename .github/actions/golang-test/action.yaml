@@ -1,0 +1,18 @@
+name: Golang Test
+description: Test Golang code
+
+inputs:
+  working_directory:
+    required: true
+    description: "The path to the component to test"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - run: go test -v ./...
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}

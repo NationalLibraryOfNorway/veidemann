@@ -1,0 +1,19 @@
+name: Golang Lint
+description: Lint Golang code
+
+inputs:
+  working-directory:
+    required: true
+    description: "The path to the component to test"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        working-directory: ${{ inputs.working-directory }}
