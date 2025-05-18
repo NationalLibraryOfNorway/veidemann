@@ -1,0 +1,23 @@
+apiVersion: skaffold/v4beta4
+kind: Config
+metadata:
+  name: veidemann
+
+build:
+  local:
+    push: false
+
+  artifacts:
+    - image: nettarkivet/olricd
+      docker:
+        dockerfile: olricd/Dockerfile
+      context: olricd
+
+deploy:
+  kubeContext: minikube
+  kubectl: {}
+
+manifests:
+  kustomize:
+    paths:
+      - deploy/k8s
