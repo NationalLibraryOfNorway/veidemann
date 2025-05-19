@@ -1,0 +1,9 @@
+<mat-drawer-container class="container">
+  <mat-drawer mode="side" [opened]="true">
+    <app-report-navigation-list></app-report-navigation-list>
+  </mat-drawer>
+
+  <mat-drawer-content>
+    <router-outlet></router-outlet>
+  </mat-drawer-content>
+</mat-drawer-container>

@@ -1,0 +1,15 @@
+table {
+  width: 100%;
+}
+
+.mat-mdc-header-cell {
+  text-align: left;
+}
+
+.mat-mdc-cell.requestedUri {
+  word-break: break-word;
+}
+
+.mat-mdc-cell.discoveryPath {
+  word-break: break-word;
+}

@@ -1,0 +1,131 @@
+<form [formGroup]="form">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>schedule</mat-icon>
+      <mat-card-title>
+        <span *ngIf="configObject" i18n="@@scheduleDetailsCardTitle">Schedule</span>
+      </mat-card-title>
+      <mat-card-subtitle>
+        <span *ngIf="!configObject.id" i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content fxLayout="row wrap" fxLayoutGap="24px">
+      <div fxFlex fxLayout="column">
+        <app-meta formControlName="meta"></app-meta>
+        <mat-form-field *ngIf="!showSave">
+          <mat-label i18n="@@configIdLabel">Id</mat-label>
+          <input matInput
+                 formControlName="id"
+                 readonly>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex fxLayout="column" fxLayoutAlign="space-evenly">
+        <div formGroupName="cronExpression" class="cron-expression">
+          <h3 mat-subheader i18n="@@scheduleFormCronExpressionHeader">CRON expression</h3>
+          <div fxLayout="row wrap" fxLayoutGap="12px">
+            <mat-form-field data-testid="cronMinute">
+              <mat-label i18n="@@scheduleCronExpressionMinuteLabel">
+                Minute
+              </mat-label>
+              <input matInput formControlName="minute">
+              <mat-hint>0-59</mat-hint>
+            </mat-form-field>
+            <mat-form-field data-testid="cronHour">
+              <mat-label i18n="@@scheduleCronExpressionHourLabel">
+                Hour
+              </mat-label>
+              <input matInput formControlName="hour">
+              <mat-hint>0-23</mat-hint>
+            </mat-form-field>
+            <mat-form-field data-testid="cronDayOfMonth">
+              <mat-label i18n="@@scheduleCronExpressionDomLabel">
+                Day of month
+              </mat-label>
+              <input matInput formControlName="dom">
+              <mat-hint>1-31</mat-hint>
+            </mat-form-field>
+            <mat-form-field data-testid="cronMonth">
+              <mat-label i18n="@@scheduleCronExpressionMonthLabel">
+                Month
+              </mat-label>
+              <input matInput formControlName="month">
+              <mat-hint>1-12</mat-hint>
+            </mat-form-field>
+            <mat-form-field data-testid="cronDayOfWeek">
+              <mat-label i18n="@@scheduleCronExpressionDowLabel">
+                Day of week
+              </mat-label>
+              <input matInput formControlName="dow">
+              <mat-hint>0-6</mat-hint>
+            </mat-form-field>
+          </div>
+          <mat-error *ngIf="form.dirty && !form.disabled && !cronExpression.valid"
+                     i18n="@@scheduleFormCronExpressionRequiredError">
+            CRON expression required
+          </mat-error>
+        </div>
+
+        <div>
+          <h3 mat-subheader i18n="@@scheduleDetailsValidFromToHeader">Time limit</h3>
+          <div fxLayout="row wrap" fxLayoutGap="24px">
+            <mat-form-field data-testid="validFrom">
+              <mat-label i18n="@@scheduleDetailsValidFromInputLabel">
+                Valid from
+              </mat-label>
+              <input matInput [matDatepicker]="validFromDatepicker" formControlName="validFrom"
+                     data-testid="validFromInput">
+              <mat-datepicker-toggle matSuffix [for]="validFromDatepicker"
+                                     data-testid="validFromToggle"></mat-datepicker-toggle>
+              <mat-datepicker #validFromDatepicker></mat-datepicker>
+              <mat-error *ngIf="!validFrom.valid">{{validFrom.errors | json}}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field data-testid="validTo">
+              <mat-label i18n="@@scheduleDetailsValidToInputLabel">
+                Valid to
+              </mat-label>
+              <input matInput [matDatepicker]="validToDatepicker" formControlName="validTo"
+                     data-testid="validToInput">
+              <mat-datepicker-toggle matSuffix [for]="validToDatepicker"
+                                     data-testid="validToToggle"></mat-datepicker-toggle>
+              <mat-datepicker #validToDatepicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions *ngIf="canEdit">
+      <button mat-raised-button color="accent"
+              [disabled]="!canSave"
+              *ngIf="showSave"
+              (click)="onSave()"
+              i18n="@@commonButtonSave">
+        SAVE
+      </button>
+      <button mat-raised-button color="accent"
+              *ngIf="!showSave"
+              [disabled]="!canUpdate"
+              (click)="onUpdate()"
+              i18n="@@commonButtonSave">
+        UPDATE
+      </button>
+      <button mat-button
+              [disabled]="!canRevert"
+              (click)="onRevert()"
+              i18n="@@commonButtonRevert">
+        REVERT
+      </button>
+      <span fxFlex></span>
+      <button mat-button
+              *ngIf="!showSave && canDelete"
+              (click)="onDelete()"
+              i18n="@@commonButtonDelete">
+        DELETE
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</form>
+
+

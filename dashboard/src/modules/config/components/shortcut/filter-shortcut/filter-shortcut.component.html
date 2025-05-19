@@ -1,0 +1,165 @@
+<mat-nav-list *ngIf="ability$ | async as ability">
+  <ng-container [ngSwitch]="configObject.kind">
+    <ng-container *ngSwitchCase="Kind.CRAWLENTITY">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.SEED])"
+         [routerLink]="['../../seed']"
+         [queryParams]="{entity_id: configObject.id}">
+        <mat-icon matListItemIcon>link</mat-icon>
+        Go to seed list
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.SEED">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', 'reports')"
+         [routerLink]="['/report/crawlexecution/']"
+         [queryParams]="{seed_id: configObject.id}"
+         matTooltip="Show crawlexecutions for the seed"
+         i18n-matTooltip="@@seedListShowCrawlExecutionsActionButtonTooltip">
+        <mat-icon matListItemIcon>hdr_weak</mat-icon>
+        Show crawlexecutions
+      </a>
+      <ng-container *ngIf="configObject.seed.jobRefList.length">
+        <a mat-list-item
+           *ngIf="ability.can('read', Kind[Kind.SEED])"
+           [routerLink]="['../../seed']"
+           [queryParams]="getJobRefListQueryParams(configObject)"
+           matTooltip="Show seeds with the same crawljob"
+           i18n-matTooltip="@@seedListFilterSeedsByCrawljobActionButtonTooltip">
+          <mat-icon matListItemIcon>work</mat-icon>
+          Filter by crawljob
+        </a>
+      </ng-container>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.SEED])"
+         [routerLink]="['../../seed']"
+         [queryParams]="{entity_id: configObject.seed.entityRef.id}"
+         matTooltip="Show seeds with the same entity"
+         i18n-matTooltip="@@seedListFilterSeedByEntityActionButtonTooltip">
+        <mat-icon matListItemIcon>business</mat-icon>
+        Filter by entity
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.CRAWLJOB">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', 'reports')"
+         [routerLink]="['/report/jobexecution']"
+         [queryParams]="{job_id: configObject.id}"
+         matTooltip="Go to jobexecutions for the crawljob"
+         i18n-matTooltip="@@crawljobListJobExecutionShortcutActionButtonTooltip">
+        <mat-icon matListItemIcon>hdr_strong</mat-icon>
+        Show jobexecutions
+      </a>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.SEED])"
+         [routerLink]="['../../seed']"
+         [queryParams]="{crawl_job_id: configObject.id}"
+         matTooltip="Show seeds with reference to the crawljob"
+         i18n-matTooltip="@@crawljobListFilterSeedsWithCrawljobActionButtonTooltip">
+        <mat-icon matListItemIcon>link</mat-icon>
+        Show seeds
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.CRAWLSCHEDULECONFIG">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.CRAWLJOB])"
+         [routerLink]="['../../crawljobs']"
+         [queryParams]="{schedule_id: configObject.id}"
+         matTooltip="Show crawljobs with reference to the schedule"
+         i18n-matTooltip="@@scheduleListShowCrawljobsWithScheduleActionButtonTooltip">
+        <mat-icon matListItemIcon>work</mat-icon>
+        Show crawljobs
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.CRAWLCONFIG">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.CRAWLJOB])"
+         [routerLink]="['../../crawljobs']"
+         [queryParams]="{crawl_config_id: configObject.id}"
+         matTooltip="Show crawljobs with reference to the crawlconfig"
+         i18n-matTooltip="@@crawlConfigListFilterCrawljobsWithCrawlconfigActionButtonTooltip">
+        <mat-icon matListItemIcon>work</mat-icon>
+        Show crawljobs
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.COLLECTION">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.CRAWLCONFIG])"
+         [routerLink]="['../../crawlconfig']"
+         [queryParams]="{collection_id: configObject.id}"
+         matTooltip="Show crawlconfigs with reference to the collection"
+         i18n-matTooltip="@@collectionListShowCrawlConfigsWitchCollectionRefActionButtonTooltip">
+        <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+        Show crawlconfigs
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.BROWSERCONFIG">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.CRAWLCONFIG])"
+         [routerLink]="['../../crawlconfig']"
+         [queryParams]="{browser_config_id: configObject.id}"
+         matTooltip="Show crawlconfigs with reference to the browserconfig"
+         i18n-matTooltip="@@browserConfigListFilterCrawljobsWithBrowserconfigActionButtonTooltip">
+        <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+        Show crawlconfigs
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.BROWSERSCRIPT">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.BROWSERCONFIG])"
+         [routerLink]="['../../browserconfig']"
+         [queryParams]="{script_id: configObject.id}"
+         matTooltip="Show browserconfigs with reference to the browserscript"
+         i18n-matTooltip="@@browserscriptListFikterBrowserconfigsWithBrowserscriptActionButtonTooltip">
+        <mat-icon matListItemIcon>web</mat-icon>
+        Show browserconfigs
+      </a>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="Kind.POLITENESSCONFIG">
+      <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+      <a mat-list-item
+         *ngIf="ability.can('read', Kind[Kind.CRAWLCONFIG])"
+         [routerLink]="['../../crawlconfig']"
+         [queryParams]="{politeness_id: configObject.id}"
+         matTooltip="Show crawlconfigs with reference to the politeness"
+         i18n-matTooltip="@@politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
+        <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+        Show crawlconfigs
+      </a>
+    </ng-container>
+  </ng-container>
+</mat-nav-list>

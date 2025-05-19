@@ -1,0 +1,8 @@
+<div class="container" *ngIf="item$ | async as pageLog">
+  <div fxLayout="row">
+    <app-page-log-shortcuts [pageLog]="pageLog"></app-page-log-shortcuts>
+    <div class="content-padding" fxFlex>
+      <app-page-log-status [pageLog]="pageLog"></app-page-log-status>
+    </div>
+  </div>
+</div>

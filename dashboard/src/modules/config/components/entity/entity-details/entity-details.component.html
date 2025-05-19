@@ -1,0 +1,51 @@
+<form [formGroup]="form">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>business</mat-icon>
+      <mat-card-title>
+        <ng-container i18n="@@entityDetailsCardTitle">Entity</ng-container>
+      </mat-card-title>
+      <mat-card-subtitle>
+        <ng-container *ngIf="showSave"
+                      i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)
+        </ng-container>
+
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content fxLayout="column">
+      <app-meta formControlName="meta"></app-meta>
+      <mat-form-field *ngIf="!showSave">
+        <mat-label i18n="configIdLabel">
+          Id
+        </mat-label>
+        <input matInput formControlName="id" readonly>
+      </mat-form-field>
+    </mat-card-content>
+
+    <mat-card-actions *ngIf="canEdit">
+      <button mat-raised-button color="accent"
+              *ngIf="showSave"
+              [disabled]="!canSave"
+              (click)="onSave()"
+              i18n="@@commonButtonSave">SAVE
+      </button>
+      <button mat-raised-button color="accent"
+              *ngIf="!showSave"
+              [disabled]="!canUpdate"
+              (click)="onUpdate()"
+              i18n="@@commonButtonUpdate">UPDATE
+      </button>
+      <button mat-button
+              (click)="onRevert()"
+              [disabled]="!canRevert"
+              i18n="@@commonButtonRevert">REVERT
+      </button>
+      <span fxFlex></span>
+      <button mat-button
+              *ngIf="!showSave && canDelete"
+              (click)="onDelete()"
+              i18n="@@commonButtonDelete">DELETE
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</form>

@@ -1,0 +1,8 @@
+**
+!*.json
+!yarn.lock
+!.yarnrc
+!src/
+!nginx/
+!LICENSE
+!.browserslistrc

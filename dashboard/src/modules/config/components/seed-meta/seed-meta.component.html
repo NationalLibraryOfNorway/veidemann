@@ -1,0 +1,139 @@
+<div [formGroup]="form" fxLayout="column">
+
+  <mat-form-field data-testid="name">
+    <mat-label i18n="@@seedMetaUrlInputLabel">
+      URL
+    </mat-label>
+    <textarea matInput
+              formControlName="name"
+              cdkTextareaAutosize
+              cdkAutosizeMinRows="1"
+              cdkAutosizeMaxRows="10"
+              #autosize="cdkTextareaAutosize">
+    </textarea>
+    <button *ngIf="isSingleUrl"
+            mat-icon-button matSuffix
+            matTooltip="Open URL in a new tab"
+            i18n-matTooltip="@@seedMetaGoToUrlButtonTooltip"
+            (click)="goToUrl(name.value)">
+      <mat-icon>open_in_browser</mat-icon>
+    </button>
+    <mat-error
+      *ngIf="name.hasError('required')"
+      i18n="@@seedMetaUrlRequiredError">
+      The field is required
+    </mat-error>
+
+    <mat-error *ngIf="name.hasError('seedExistsOnEntity')" i18n="@@seedMetaUrlAlreadyExistOnEntityError">
+      URL with the same domain already exists for this entity
+    </mat-error>
+
+    <mat-error *ngIf="name.hasError('seedExists')" i18n="@@seedMetaUrlAlreadyExistsError">
+      URL with the same domain already exists for another entity
+    </mat-error>
+
+    <mat-error *ngIf="name.hasError('invalidUrl')">
+      Contains invalid URL(s): {{name.errors.invalidUrl.join(', ')}}
+    </mat-error>
+
+    <mat-progress-bar matHint mode="indeterminate" *ngIf="this.name.pending"></mat-progress-bar>
+  </mat-form-field>
+
+  <mat-action-list *ngIf="name.hasError('seedExistsOnEntity')" dense data-testid="seedExistsOnEntityList">
+    <button mat-list-item
+            *ngIf="name.errors.seedExistsOnEntity?.length > 1"
+            (click)="onRemoveExistingUrls(name.errors.seedExistsOnEntity)">
+      <mat-icon matListItemIcon>remove_circle</mat-icon>
+      <span i18n="@@seedMetaRemoveAlreadyExistingSeedsButton">Remove all from list</span>
+    </button>
+
+    <button mat-list-item
+            *ngFor="let seed of name.errors.seedExistsOnEntity"
+            (click)="onRemoveExistingUrl(seed)"
+            matTooltip="Remove url from list" i18n-matTooltip="@@seedMetaRemoveSeedFromListTooltip">
+      <mat-icon matListItemIcon>remove_circle_outline</mat-icon>
+      {{seed.meta.name}}
+    </button>
+  </mat-action-list>
+
+  <mat-list *ngIf="name.hasError('seedExists') && entityRef.id" data-testid="seedExistsList">
+    <mat-list-item *ngIf="name.errors.seedExists.length">
+      <button mat-stroked-button data-testid="moveAllExistingSeedsToCurrentEntity"
+              (click)="onMoveSeedsToCurrentEntity(name.errors.seedExists)">
+        <mat-icon matListItemIcon>swap_vert</mat-icon>
+        <span i18n="@@seedMetaMoveAllExistingSeedsToEntityButton">Move all to this entity</span>
+      </button>
+    </mat-list-item>
+
+    <mat-list-item *ngFor="let seed of name.errors.seedExists">
+      <div fxLayout="row">
+      <a matTooltip="Go to entity with existing seed"
+         matListItemTitle
+         i18n-matTooltip="@@seedMetaGoToEntityWithExistingSeedButtonTooltip"
+         [routerLink]="['config','seed']"
+         [queryParams]="{entity_id: seed.seed.entityRef.id}">
+        {{seed.meta.name}}
+      </a>
+        <button mat-icon-button
+                (click)="onMoveSeedToCurrentEntity(seed)"
+                matTooltip="Move seed to this entity"
+                i18n-matTooltip="@@seedMetaMoveExistingSeedToEntityButtonTooltip"
+                data-testid="seedExistsListMoveSeedToEntityButton">
+          <mat-icon>swap_horiz</mat-icon>
+        </button>
+
+      <button mat-icon-button (click)="onRemoveExistingUrl(seed.meta.name)"
+              matTooltip="Remove URL from the list"
+              i18n-matTooltip="@@seedMetaRemoveExistingSeedFromTheListButtonTooltip">
+        <mat-icon>remove_circle_outline</mat-icon>
+      </button>
+  </div>
+    </mat-list-item>
+  </mat-list>
+
+  <mat-form-field>
+    <mat-label i18n="@@metaDescriptionInputLabel">
+      Description
+    </mat-label>
+    <textarea matInput formControlName="description" matTextareaAutosize></textarea>
+  </mat-form-field>
+
+  <app-labels [removable]="editable" formControlName="labelList"></app-labels>
+  <app-annotation [removable]="editable" formControlName="annotationList"></app-annotation>
+
+  <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
+    <mat-form-field fxFlex *ngIf="created.value">
+      <input matInput
+             readonly="true"
+             formControlName="created"
+             placeholder="Created"
+             i18n-placeholder="@@metaCreatedInputPlaceholder">
+    </mat-form-field>
+
+    <mat-form-field fxFlex *ngIf="createdBy.value">
+      <input matInput
+             readonly="true"
+             formControlName="createdBy"
+             placeholder="Created by"
+             i18n-placeholder="@@metaCreatedByInputPlaceholder">
+    </mat-form-field>
+  </div>
+
+  <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
+    <mat-form-field fxFlex *ngIf="lastModified.value">
+      <input matInput
+             readonly="true"
+             formControlName=lastModified
+             placeholder="Last modified"
+             i18n-placeholder="@@metaLastModifiedInputPlaceholder">
+    </mat-form-field>
+
+    <mat-form-field fxFlex *ngIf="lastModifiedBy.value">
+      <input matInput
+             readonly="true"
+             formControlName="lastModifiedBy"
+             placeholder="Last modified by"
+             i18n-placeholder="@@metaLastModifiedByInputPlaceholder">
+    </mat-form-field>
+  </div>
+</div>

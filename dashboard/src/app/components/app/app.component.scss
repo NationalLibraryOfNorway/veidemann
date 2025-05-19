@@ -1,0 +1,39 @@
+.container {
+  height: 100%;
+}
+
+.title {
+  text-decoration: none;
+  color: inherit;
+}
+
+.header--button__margin {
+  margin-right: 1rem;
+}
+
+.module-loader {
+  z-index: 1000;
+  position: absolute;
+  margin: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.main-toolbar {
+  min-height: 48px;
+}
+
+main {
+  overflow: hidden;
+}
+
+.veidemann_logo {
+  height: auto;
+  width: auto;
+  max-height: 64px;
+  max-width: 250px;
+
+  line-height: 64px;
+  vertical-align: middle;
+}

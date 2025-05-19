@@ -1,0 +1,9 @@
+@use '@angular/material' as mat;
+@import 'light_theme.scss';
+@import 'dark_theme.scss';
+
+$dark-focused: rgba(black, 0.12);
+$highlight: mat.m2-get-color-from-palette(map-get($light-theme, background), 'hover');
+
+
+

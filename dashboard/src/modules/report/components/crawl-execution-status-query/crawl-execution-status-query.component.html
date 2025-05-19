@@ -1,0 +1,76 @@
+<form [formGroup]="form" fxLayout="column">
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterStateLabel">
+      State
+    </mat-label>
+    <mat-select multiple formControlName="stateList">
+      <mat-option *ngFor="let state of crawlExecutionStates"
+                  [value]="state.toString(10)">{{ CrawlExecutionState[state] }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterCrawlJobLabel">
+      CrawlJob
+    </mat-label>
+    <mat-select formControlName="jobId">
+      <mat-option [value]=""></mat-option>
+      <mat-option *ngFor="let job of crawlJobOptions"
+                  [value]="job.id">{{ job.meta.name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterJobExecutionIdLabel">
+      JobExecution ID
+    </mat-label>
+    <input matInput formControlName="jobExecutionId">
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
+      Seed ID
+    </mat-label>
+    <input matInput formControlName="seedId">
+  </mat-form-field>
+
+  <mat-label i18n="@@crawlExecutionReportFilterStartTimeFromLabel">
+    From:
+  </mat-label>
+  <mat-form-field>
+    <input matInput [matDatepicker]="startTimeFromDatePicker" formControlName="startTimeFrom">
+    <mat-datepicker-toggle matSuffix [for]="startTimeFromDatePicker"></mat-datepicker-toggle>
+    <mat-datepicker #startTimeFromDatePicker></mat-datepicker>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput [matTimepicker]="startTimeFromTimepicker" formControlName="startTimeFrom">
+    <mat-timepicker-toggle matSuffix [for]="startTimeFromTimepicker"></mat-timepicker-toggle>
+    <mat-timepicker #startTimeFromTimepicker></mat-timepicker>
+  </mat-form-field>
+
+  <mat-label i18n="@@crawlExecutionReportFilterStartDateToLabel">
+    To:
+  </mat-label>
+  <mat-form-field>
+    <input matInput [matDatepicker]="startTimeToDatePicker" formControlName="startTimeTo">
+    <mat-datepicker-toggle matSuffix [for]="startTimeToDatePicker"></mat-datepicker-toggle>
+    <mat-datepicker #startTimeToDatePicker></mat-datepicker>
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput [matTimepicker]="startTimeToTimepicker" formControlName="startTimeTo">
+    <mat-timepicker-toggle matSuffix [for]="startTimeToTimepicker"></mat-timepicker-toggle>
+    <mat-timepicker #startTimeToTimepicker></mat-timepicker>
+  </mat-form-field>
+
+  <mat-checkbox labelPosition="after" formControlName="hasError"
+                i18n-placeholder="@@crawlExecutionReportFilterHasErrorLabel">
+    Failed
+  </mat-checkbox>
+
+  <mat-checkbox labelPosition="after" formControlName="watch"
+                i18n-placeholder="@@crawlExecutionReportFilterHasErrorLabel">
+    Watch
+  </mat-checkbox>
+</form>

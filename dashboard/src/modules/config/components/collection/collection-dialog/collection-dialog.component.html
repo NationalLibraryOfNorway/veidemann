@@ -1,0 +1,133 @@
+<h2 mat-dialog-title>
+  <ng-container i18n="@@collectionDetailsCardTitle">Collection</ng-container>
+</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" fxLayoutGap="16px">
+    <app-collection-meta formControlName="meta"></app-collection-meta>
+    <mat-form-field>
+      <mat-label i18n="@@collectionDedupPolicyDropdownLabel">
+        Deduplication policy
+      </mat-label>
+      <mat-select formControlName="collectionDedupPolicy">
+        <mat-option *ngFor="let policy of rotationPolicies" [value]="policy">
+          {{RotationPolicy[policy]}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label i18n="@@collectionFileRotationPolicyDropdownLabel">
+        File rotation policy
+      </mat-label>
+      <mat-select formControlName="fileRotationPolicy">
+        <mat-option *ngFor="let policy of rotationPolicies" [value]="policy">
+          {{RotationPolicy[policy]}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <app-filesize-input [placeholder]="'File size'" formControlName="fileSize">
+    </app-filesize-input>
+    <mat-error *ngIf="!validFileSize" i18n="@@collectionMissingFileSizeError">
+      Not specifying any file size will generate an immense amount of WARC's
+    </mat-error>
+
+    <mat-checkbox formControlName="compress"
+                  labelPosition="after"
+                  i18n="@@collectionFormCompressLabel"
+                  color="accent">
+      Compress
+    </mat-checkbox>
+
+    <fieldset class="mat-elevation-z1" formArrayName="subCollectionsList">
+      <legend mat-card-subtitle i18n="@@collectionFormSubCollectionTitle">Subcollections</legend>
+
+      <div *ngFor="let subCollectionsList of subCollectionControlArray.controls; let i=index"
+           [formGroupName]="i"
+           fxLayout="row"
+           fxLayoutGap="16px">
+        <mat-form-field [hideRequiredMarker]="subCollectionNameInput.value.length >= 2" fxFlex
+                        data-testid="subCollectionName">
+          <mat-label i18n="@@collectionFormSubCollectionNameLabel">
+            Name
+          </mat-label>
+          <input matInput #subCollectionNameInput formControlName="name">
+          <mat-hint *ngIf="subCollectionNameInput.value.length < 2" i18n="@@subCollectionNameInputLengthHint">
+            Minimum 2 characters
+          </mat-hint>
+
+          <mat-error
+            *ngIf="getSubCollectionName(i).hasError('required')"
+            i18n="@@collectionMetaSubcollectionNameRequiredError">
+            The field is required
+          </mat-error>
+
+          <mat-error
+            *ngIf="getSubCollectionName(i).hasError('pattern')"
+            i18n="@@collectionMetaSubcollectionNamePatternError">
+            Invalid name. (Valid characters are A-Å a-å 0-9 _)
+          </mat-error>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label i18n="@@collectionSubCollectionTypeDropdownLabel">
+            Subcollection type
+          </mat-label>
+          <mat-select formControlName="type">
+            <mat-option *ngFor="let type of subCollectionTypes" [value]="type">
+              {{SubCollectionType[type]}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-button
+                (click)="onRemoveSubCollection(i)"
+                *ngIf="canEdit">
+          <mat-icon>remove_circle</mat-icon>&nbsp;
+          <span i18n="@@collectionFormRemoveSubcollectionButton">REMOVE</span>
+        </button>
+      </div>
+
+      <button mat-stroked-button (click)="onAddSubCollection()" *ngIf="canEdit">
+        <mat-icon>add_circle</mat-icon>&nbsp;
+        <span i18n="@@collectionFormAddSubcollectionButton">ADD SUBCOLLECTION</span>
+      </button>
+    </fieldset>
+  </form>
+
+</mat-dialog-content>
+<mat-dialog-actions *ngIf="canEdit">
+  <button mat-raised-button
+          *ngIf="showSave"
+          [disabled]="!canSave"
+          [color]="validFileSize ? 'accent' : 'warn'"
+          [matTooltip]="validFileSize ? null : 'Save config knowing the consequences of not setting file size'"
+          [mat-dialog-close]="onDialogClose()"
+          i18n="@@commonButtonSave"
+          i18n-matTooltip="@@collectionSaveConfigWithoutFileSizeTooltip">
+    SAVE
+  </button>
+  <button mat-raised-button [color]="validFileSize ? 'accent' : 'warn'"
+          *ngIf="!showSave"
+          [disabled]="!canUpdate"
+          [color]="validFileSize ? 'accent' : 'warn'"
+          [matTooltip]="validFileSize ? null : 'Update config knowing the consequences of not setting file size'"
+          [mat-dialog-close]="onDialogClose()"
+          i18n="@@commonButtonUpdate"
+          i18n-matTooltip="@@collectionUpdateConfigWithoutFileSizeTooltip">
+    UPDATE
+  </button>
+  <button mat-button
+          (click)="onRevert()"
+          [disabled]="!canRevert"
+          i18n="@@commonButtonRevert">
+    REVERT
+  </button>
+  <span fxFlex></span>
+  <button mat-button
+          mat-dialog-close
+          i18n="@@commonButtonCancel">CANCEL
+  </button>
+</mat-dialog-actions>
+
+
+

@@ -1,0 +1,12 @@
+<div fxLayout="column">
+  <mat-label><b>Robots policy: </b>{{RobotsPolicy[configObject.politenessConfig.robotsPolicy]}}</mat-label>
+  <textarea *ngIf="configObject.politenessConfig.robotsPolicy === RobotsPolicy.CUSTOM_ROBOTS"
+            [value]="configObject.politenessConfig.customRobots">
+  </textarea>
+  <mat-label><b>Minimum robots validity: </b>
+    {{configObject.politenessConfig.minimumRobotsValidityDurationS | durationFormat: 's'}}
+  </mat-label>
+  <mat-checkbox [(ngModel)]="configObject.politenessConfig.useHostname" labelPosition="before" disabled="true">
+    Use hostname
+  </mat-checkbox>
+</div>

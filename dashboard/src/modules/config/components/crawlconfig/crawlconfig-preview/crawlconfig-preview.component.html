@@ -1,0 +1,5 @@
+<p><b>DNS TTL:</b> {{configObject.crawlConfig.minimumDnsTtlS | durationFormat : 's'}}</p>
+<p><b>Priority weight:</b> {{configObject.crawlConfig.priorityWeight}}</p>
+<mat-checkbox [(ngModel)]="configObject.crawlConfig.extra.createScreenshot" labelPosition="before" disabled="true">
+  Create screenshot
+</mat-checkbox>

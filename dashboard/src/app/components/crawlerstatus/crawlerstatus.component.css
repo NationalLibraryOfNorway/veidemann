@@ -1,0 +1,15 @@
+.crawlerRunning {
+  color: forestgreen;
+}
+
+.crawlerPaused {
+  color: darkred;
+}
+
+.crawlerPausing {
+  color: darkorange;
+}
+
+.mat-mdc-card {
+  text-align: center;
+}

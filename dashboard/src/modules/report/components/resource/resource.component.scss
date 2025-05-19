@@ -1,0 +1,60 @@
+@use '@angular/material' as mat;
+@import "src/styles/theme";
+
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.mat-column-resourceType {
+  width: 10%
+}
+
+tr.resource-detail-row {
+  height: 0 !important;
+}
+
+tr.resource-row:not(.resource-expanded-row):hover {
+  background: whitesmoke;
+}
+
+tr.resource-row:not(.resource-expanded-row):active {
+  background: #efefef;
+}
+
+tr.resource-row.row-error td {
+  color: mat.m2-get-color-from-palette($veidemann-dashboard-warn);;
+}
+
+.resource-row td {
+  border-bottom-width: 0;
+}
+
+.resource-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.resource-diagram {
+  min-width: 80px;
+  border: 2px solid black;
+  padding: 8px;
+  font-weight: lighter;
+  margin: 8px 0;
+  height: 104px;
+}
+
+.resource-symbol {
+  font-weight: bold;
+  font-size: 40px;
+  line-height: normal;
+}
+
+.resource-description {
+  padding: 16px;
+}
+
+.resource-description-attribution {
+  opacity: 0.5;
+}
+
