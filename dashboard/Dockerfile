@@ -1,23 +1,18 @@
-FROM node:20-alpine as build
+FROM node:22-bookworm-slim AS build
 
 ARG VERSION
 
 WORKDIR /usr/src/app
 
-COPY package.json yarn.lock ./
-
-RUN yarn install --non-interactive --frozen-lockfile
-
 COPY . .
 
+RUN npm ci --quiet --legacy-peer-deps
 RUN sed -i "s/version: ''/version: '${VERSION}'/" src/environments/*.ts
+RUN npx ng build --configuration production
 
-RUN yarn ng build --configuration production
 
-
-FROM nginx:stable-alpine
+FROM nginx:stable-alpine-slim
 LABEL maintainer="nettarkivet@nb.no"
 
 COPY --from=build /usr/src/app/dist /usr/share/nginx
-
 COPY --from=build /usr/src/app/nginx/default.conf /etc/nginx/conf.d/

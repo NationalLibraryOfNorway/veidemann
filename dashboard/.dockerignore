@@ -1,7 +1,6 @@
 **
 !*.json
-!yarn.lock
-!.yarnrc
+!package-lock.json
 !src/
 !nginx/
 !LICENSE
