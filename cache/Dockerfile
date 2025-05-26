@@ -18,7 +18,7 @@ RUN certtool --generate-privkey --outfile tls.key \
     && certtool --generate-self-signed --load-privkey tls.key --template cert.cfg --outfile tls.crt
 
 
-FROM docker.io/debian:bookworm-20250428-slim
+FROM docker.io/debian:bookworm-20250520-slim
 
 ENV TZ=UTC
 ENV SERVICE_NAME="veidemann-cache"
