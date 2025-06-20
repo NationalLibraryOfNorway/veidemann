@@ -70,7 +70,7 @@ jobs:
           ${{ env.TAG != '' && startsWith(env.TAG, 'v') && format('type=semver,pattern={{version}},value={0}', env.TAG) || '' }}
   
     - name: Build and push container image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         push: true
         context: ${{ inputs.PATH }}
