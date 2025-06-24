@@ -1,4 +1,4 @@
-name: Veidemann OOS Handler
+name: OOS Handler
 
 on:
   push:
