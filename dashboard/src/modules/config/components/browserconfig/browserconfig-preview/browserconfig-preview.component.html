@@ -3,16 +3,20 @@
   <mat-label><b>Window width: </b> {{configObject.browserConfig.windowWidth}}</mat-label>
   <mat-label><b>Window height: </b> {{configObject.browserConfig.windowHeight}}</mat-label>
   <mat-label><b>Page load timeout: </b>
-    {{configObject.browserConfig.pageLoadTimeoutMs | durationFormat: 'ms'}}
-  </mat-label>
-  <mat-label><b>Max inactivity time: </b>
-    {{configObject.browserConfig.maxInactivityTimeMs | durationFormat: 'ms'}}
-  </mat-label>
-  <mat-label *ngIf="configObject.browserConfig.scriptSelectorList.length"><b>Script selector</b></mat-label>
-  <mat-chip-listbox>
-    <mat-chip-option *ngFor="let scriptSelector of configObject.browserConfig.scriptSelectorList">
+  {{configObject.browserConfig.pageLoadTimeoutMs | durationFormat: 'ms'}}
+</mat-label>
+<mat-label><b>Max inactivity time: </b>
+{{configObject.browserConfig.maxInactivityTimeMs | durationFormat: 'ms'}}
+</mat-label>
+@if (configObject.browserConfig.scriptSelectorList.length) {
+  <mat-label><b>Script selector</b></mat-label>
+}
+<mat-chip-listbox>
+  @for (scriptSelector of configObject.browserConfig.scriptSelectorList; track scriptSelector) {
+    <mat-chip-option>
       {{scriptSelector}}
     </mat-chip-option>
-  </mat-chip-listbox>
-  <app-shortcut-list [configObject]="configObject"></app-shortcut-list>
+  }
+</mat-chip-listbox>
+<app-shortcut-list [configObject]="configObject"></app-shortcut-list>
 </div>

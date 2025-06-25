@@ -1,28 +1,32 @@
-<ng-container *ngIf="ability$ | async as ability">
+@if (ability$ | async; as ability) {
   <mat-nav-list>
-    <a mat-list-item
-       *ngIf="ability.can('read', 'jobexecution')"
-       [routerLink]="['/report' ,'jobexecution']" [routerLinkActive]="['is-active']">
-      <mat-icon matListItemIcon>hdr_strong</mat-icon>
-      <span i18n="@@reportNavigationLinkJobExecution">JobExecution</span>
-    </a>
-    <a mat-list-item
-       *ngIf="ability.can('read', 'crawlexecution')"
-       [routerLink]="['crawlexecution']" [routerLinkActive]="['is-active']">
-      <mat-icon matListItemIcon>hdr_weak</mat-icon>
-      <span i18n="@@reportNavigationLinkCrawlExecution">CrawlExecution</span>
-    </a>
-    <a mat-list-item
-       *ngIf="ability.can('read', 'pagelog')"
-       [routerLink]="['pagelog']" [routerLinkActive]="['is-active']">
-      <mat-icon matListItemIcon>art_track</mat-icon>
-      <span i18n="@@reportNavigationLinkPageLog">PageLog</span>
-    </a>
-    <a mat-list-item
-       *ngIf="ability.can('read', 'crawllog')"
-       [routerLink]="['crawllog']" [routerLinkActive]="['is-active']">
-      <mat-icon matListItemIcon>event_note</mat-icon>
-      <span i18n="@@reportNavigationLinkCrawlLog">CrawlLog</span>
-    </a>
+    @if (ability.can('read', 'jobexecution')) {
+      <a mat-list-item
+        [routerLink]="['/report' ,'jobexecution']" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>hdr_strong</mat-icon>
+        <span i18n="@@reportNavigationLinkJobExecution">JobExecution</span>
+      </a>
+    }
+    @if (ability.can('read', 'crawlexecution')) {
+      <a mat-list-item
+        [routerLink]="['crawlexecution']" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>hdr_weak</mat-icon>
+        <span i18n="@@reportNavigationLinkCrawlExecution">CrawlExecution</span>
+      </a>
+    }
+    @if (ability.can('read', 'pagelog')) {
+      <a mat-list-item
+        [routerLink]="['pagelog']" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>art_track</mat-icon>
+        <span i18n="@@reportNavigationLinkPageLog">PageLog</span>
+      </a>
+    }
+    @if (ability.can('read', 'crawllog')) {
+      <a mat-list-item
+        [routerLink]="['crawllog']" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>event_note</mat-icon>
+        <span i18n="@@reportNavigationLinkCrawlLog">CrawlLog</span>
+      </a>
+    }
   </mat-nav-list>
-</ng-container>
+}

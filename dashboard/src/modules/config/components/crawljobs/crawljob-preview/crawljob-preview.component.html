@@ -1,7 +1,9 @@
 <p><b>Max duration: </b>{{configObject.crawlJob.limits.maxDurationS |durationFormat: 's'}}</p>
 <p><b>Max bytes: </b>{{configObject.crawlJob.limits.maxBytes |filesize}}</p>
-<ng-container *ngIf="this.configObject.id | getScriptAnnotations | async as scriptAnnotations">
-  <mat-label *ngIf="scriptAnnotations.length > 0"><b>Script annotations</b></mat-label>
+@if (this.configObject.id | getScriptAnnotations | async; as scriptAnnotations) {
+  @if (scriptAnnotations.length > 0) {
+    <mat-label><b>Script annotations</b></mat-label>
+  }
   <app-script-annotation
-    [annotations]="scriptAnnotations"></app-script-annotation>
-</ng-container>
+  [annotations]="scriptAnnotations"></app-script-annotation>
+}

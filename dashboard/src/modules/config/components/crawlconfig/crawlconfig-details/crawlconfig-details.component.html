@@ -6,21 +6,25 @@
         <span i18n="@@crawlconfigDetailsCardTitle">Crawlconfig</span>
       </mat-card-title>
       <mat-card-subtitle>
-      <span *ngIf="showSave"
-            i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        @if (showSave) {
+          <span
+          i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        }
       </mat-card-subtitle>
     </mat-card-header>
     <mat-card-content fxLayout="row wrap" fxLayoutGap="24px">
       <div fxFlex fxLayout="column">
         <app-meta formControlName="meta"></app-meta>
-        <mat-form-field *ngIf="!showSave">
-          <mat-label i18n="@@configIdLabel">
+        @if (!showSave) {
+          <mat-form-field>
+            <mat-label i18n="@@configIdLabel">
             Id
           </mat-label>
-          <input matInput
-                 formControlName="id"
-                 readonly>
-        </mat-form-field>
+            <input matInput
+              formControlName="id"
+              readonly>
+          </mat-form-field>
+        }
       </div>
 
       <div fxFlex fxLayout="column">
@@ -29,13 +33,17 @@
             Collection
           </mat-label>
           <mat-select formControlName="collectionRefId" required>
-            <mat-option *ngFor="let option of collections"
-                        [value]="option.id">{{option.meta.name}}</mat-option>
+            @for (option of collections; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
           </mat-select>
-          <mat-error *ngIf="collectionRefId.hasError('required')"
-                     i18n="@@crawlConfigCollectionRequiredError">
+          @if (collectionRefId.hasError('required')) {
+            <mat-error
+              i18n="@@crawlConfigCollectionRequiredError">
             Please choose a collection
           </mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field>
@@ -43,13 +51,17 @@
             BrowserConfig
           </mat-label>
           <mat-select formControlName="browserConfigRefId" required>
-            <mat-option *ngFor="let option of browserConfigs"
-                        [value]="option.id">{{option.meta.name}}</mat-option>
+            @for (option of browserConfigs; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
           </mat-select>
-          <mat-error *ngIf="browserConfigRefId.hasError('required')"
-                     i18n="@@crawlConfigBrowserConfigRequiredError">
+          @if (browserConfigRefId.hasError('required')) {
+            <mat-error
+              i18n="@@crawlConfigBrowserConfigRequiredError">
             Please choose a browserconfig
           </mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field>
@@ -57,13 +69,17 @@
             PolitenessConfig
           </mat-label>
           <mat-select formControlName="politenessRefId" required>
-            <mat-option *ngFor="let option of politenessConfigs"
-                        [value]="option.id">{{option.meta.name}}</mat-option>
+            @for (option of politenessConfigs; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
           </mat-select>
-          <mat-error *ngIf="politenessRefId.hasError('required')"
-                     i18n="@@crawlConfigPolitenessconfigRequiredError">
+          @if (politenessRefId.hasError('required')) {
+            <mat-error
+              i18n="@@crawlConfigPolitenessconfigRequiredError">
             Please choose a politenessconfig
           </mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field data-testid="minimumDnsTtlS">
@@ -71,10 +87,12 @@
             DNS TTL
           </mat-label>
           <input matInput formControlName="minimumDnsTtlS">
-          <mat-error *ngIf="!minDnsTtlSeconds.valid"
-                     i18n="@@crawlconfigFormMinDNSTTLValidationError">
+          @if (!minDnsTtlSeconds.valid) {
+            <mat-error
+              i18n="@@crawlconfigFormMinDNSTTLValidationError">
             Must be a number or empty
           </mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field data-testid="priorityWeight">
@@ -82,51 +100,58 @@
             Priority weight
           </mat-label>
           <input matInput
-                 formControlName="priorityWeight">
-          <mat-error *ngIf="!priorityWeight.valid" i18n="@@crawlconfigFormPriorityWeightValidationError">
+            formControlName="priorityWeight">
+          @if (!priorityWeight.valid) {
+            <mat-error i18n="@@crawlconfigFormPriorityWeightValidationError">
             Must be a number or empty
           </mat-error>
+          }
         </mat-form-field>
 
         <ng-container formGroupName="extra">
           <mat-checkbox formControlName="createScreenshot"
-                        labelPosition="after"
-                        i18n="@@crawlconfigFormCreateScreenshotLabel"
-                        color="accent">
+            labelPosition="after"
+            i18n="@@crawlconfigFormCreateScreenshotLabel"
+            color="accent">
             Create screenshot
           </mat-checkbox>
         </ng-container>
       </div>
     </mat-card-content>
-    <mat-card-actions *ngIf="canEdit">
-      <button mat-raised-button color="accent"
-              [disabled]="!canSave"
-              *ngIf="showSave"
-              (click)="onSave()"
-              i18n="@@commonButtonSave">
+    @if (canEdit) {
+      <mat-card-actions>
+        @if (showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canSave"
+            (click)="onSave()"
+            i18n="@@commonButtonSave">
         SAVE
       </button>
-      <button mat-raised-button color="accent"
-              *ngIf="!showSave"
-              [disabled]="!canUpdate"
-              (click)="onUpdate()"
-              i18n="@@commonButtonSave">
+        }
+        @if (!showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canUpdate"
+            (click)="onUpdate()"
+            i18n="@@commonButtonSave">
         UPDATE
       </button>
-      <button mat-button
-              (click)="onRevert()"
-              [disabled]="!form.dirty"
-              i18n="@@commonButtonRevert">
+        }
+        <button mat-button
+          (click)="onRevert()"
+          [disabled]="!form.dirty"
+          i18n="@@commonButtonRevert">
         REVERT
       </button>
-      <span fxFlex></span>
-      <button mat-button
-              *ngIf="!showSave && canDelete"
-              (click)="onDelete()"
-              i18n="@@commonButtonDelete">
+        <span fxFlex></span>
+        @if (!showSave && canDelete) {
+          <button mat-button
+            (click)="onDelete()"
+            i18n="@@commonButtonDelete">
         DELETE
       </button>
-    </mat-card-actions>
+        }
+      </mat-card-actions>
+    }
   </mat-card>
 </form>
 

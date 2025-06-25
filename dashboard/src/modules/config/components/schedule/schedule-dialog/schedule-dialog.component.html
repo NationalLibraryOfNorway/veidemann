@@ -45,10 +45,12 @@
             <mat-hint>0-7</mat-hint>
           </mat-form-field>
         </div>
-        <mat-error *ngIf="form.dirty && !form.disabled && !cronExpression.valid"
-                   i18n="@@scheduleFormCronExpressionRequiredError">
+        @if (form.dirty && !form.disabled && !cronExpression.valid) {
+          <mat-error
+            i18n="@@scheduleFormCronExpressionRequiredError">
           CRON expression required
         </mat-error>
+        }
       </div>
 
       <div>
@@ -77,26 +79,30 @@
   </form>
 </mat-dialog-content>
 
-<mat-dialog-actions *ngIf="canEdit">
-  <button mat-raised-button color="accent"
-          *ngIf="showSave"
-          [disabled]="!canSave"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">SAVE
+@if (canEdit) {
+  <mat-dialog-actions>
+    @if (showSave) {
+      <button mat-raised-button color="accent"
+        [disabled]="!canSave"
+        [mat-dialog-close]="onDialogClose()"
+        i18n="@@commonButtonSave">SAVE
   </button>
-  <button mat-raised-button color="accent"
-          *ngIf="!showSave"
-          [disabled]="!canUpdate"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonUpdate">UPDATE
+    }
+    @if (!showSave) {
+      <button mat-raised-button color="accent"
+        [disabled]="!canUpdate"
+        [mat-dialog-close]="onDialogClose()"
+        i18n="@@commonButtonUpdate">UPDATE
   </button>
-  <button mat-button
-          (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">REVERT
+    }
+    <button mat-button
+      (click)="onRevert()"
+      [disabled]="!canRevert"
+      i18n="@@commonButtonRevert">REVERT
   </button>
-  <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
   </button>
-</mat-dialog-actions>
+  </mat-dialog-actions>
+}

@@ -4,26 +4,36 @@
 <p><strong>Updated:</strong> {{configObject.meta.lastModified | date: 'medium'}} by {{configObject.meta.lastModifiedBy}}
 </p>
 <p><strong>ID:</strong> {{configObject.id}}
-  <button mat-icon-button (click)="copyIdToClipboard()">
-    <mat-icon matTooltip="copy ID to clipboard"
-              i18n-matTooltip="@@copyIdButtonTooltip"
-              matSuffix>content_copy
-    </mat-icon>
-  </button>
+<button mat-icon-button (click)="copyIdToClipboard()">
+  <mat-icon matTooltip="copy ID to clipboard"
+    i18n-matTooltip="@@copyIdButtonTooltip"
+    matSuffix>content_copy
+  </mat-icon>
+</button>
 </p>
-<p *ngIf="configObject.meta.labelList.length">
-  <mat-label>Labels</mat-label>
-  <mat-chip-listbox [selectable]="false">
-    <mat-chip-option *ngFor="let label of configObject.meta.labelList">
-      {{label.key}}:{{label.value}}
-    </mat-chip-option>
-  </mat-chip-listbox>
-</p>
-<p *ngIf="configObject.meta.annotationList.length && canShowAnnotation">
-  <mat-label>Annotations</mat-label>
-  <mat-chip-listbox [selectable]=false *ngIf="canShowAnnotation">
-    <mat-chip-option  color="primary"  *ngFor="let annotation of configObject.meta.annotationList">
-      {{annotation.key}}:{{annotation.value}}
-    </mat-chip-option>
-  </mat-chip-listbox>
-</p>
+@if (configObject.meta.labelList.length) {
+  <p>
+    <mat-label>Labels</mat-label>
+    <mat-chip-listbox [selectable]="false">
+      @for (label of configObject.meta.labelList; track label) {
+        <mat-chip-option>
+          {{label.key}}:{{label.value}}
+        </mat-chip-option>
+      }
+    </mat-chip-listbox>
+  </p>
+}
+@if (configObject.meta.annotationList.length && canShowAnnotation) {
+  <p>
+    <mat-label>Annotations</mat-label>
+    @if (canShowAnnotation) {
+      <mat-chip-listbox [selectable]=false>
+        @for (annotation of configObject.meta.annotationList; track annotation) {
+          <mat-chip-option  color="primary" >
+            {{annotation.key}}:{{annotation.value}}
+          </mat-chip-option>
+        }
+      </mat-chip-listbox>
+    }
+  </p>
+}

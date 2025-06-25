@@ -13,46 +13,55 @@
         <mat-option value="group" i18n="@@roleMappingDetailsTypeOptionGroup">Group</mat-option>
       </mat-select>
     </mat-form-field>
-    <mat-form-field fxFlex *ngIf="selectedType === 'email'">
-      <mat-label i18n="@@roleMappingDetailsEmailInputLabel">
+    @if (selectedType === 'email') {
+      <mat-form-field fxFlex>
+        <mat-label i18n="@@roleMappingDetailsEmailInputLabel">
         Email
       </mat-label>
-      <input matInput formControlName="email">
-    </mat-form-field>
-    <mat-form-field fxFlex *ngIf="selectedType === 'group'">
-      <mat-label i18n="@@roleMappingDetailsGroupInputLabel">
+        <input matInput formControlName="email">
+      </mat-form-field>
+    }
+    @if (selectedType === 'group') {
+      <mat-form-field fxFlex>
+        <mat-label i18n="@@roleMappingDetailsGroupInputLabel">
         Group
       </mat-label>
-      <input matInput formControlName="group">
-    </mat-form-field>
+        <input matInput formControlName="group">
+      </mat-form-field>
+    }
     <mat-form-field fxFlex>
       <mat-label i18n="@@rolemappingDetailsRoleDropdownLabel">
         Role
       </mat-label>
       <mat-select formControlName="roleList" multiple>
-        <mat-option *ngFor="let role of roles" [value]="role">{{Role[role]}}</mat-option>
+        @for (role of roles; track role) {
+          <mat-option [value]="role">{{Role[role]}}</mat-option>
+        }
       </mat-select>
-      <mat-error *ngIf="! roleList.valid" i18n="@@roleMappingDetailsRoleRequiredError">
+      @if (! roleList.valid) {
+        <mat-error i18n="@@roleMappingDetailsRoleRequiredError">
         A user must be assigned at least one role.
       </mat-error>
+      }
     </mat-form-field>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions>
-  <button mat-raised-button color="accent"
-          *ngIf="showSave"
-          [disabled]="!canSave"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">SAVE
+  @if (showSave) {
+    <button mat-raised-button color="accent"
+      [disabled]="!canSave"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">SAVE
+  </button>
+  }
+  <button mat-button
+    (click)="onRevert()"
+    [disabled]="!canRevert"
+    i18n="@@commonButtonRevert">REVERT
   </button>
   <button mat-button
-          (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">REVERT
-  </button>
-  <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    mat-dialog-close
+    i18n="@@commonButtonCancel">CANCEL
   </button>
 </mat-dialog-actions>

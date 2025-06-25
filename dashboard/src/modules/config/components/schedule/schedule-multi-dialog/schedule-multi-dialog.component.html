@@ -4,14 +4,14 @@
     <div fxLayout="row wrap" fxLayoutGap="24px">
       <div fxFlex fxLayout="column" fxLayoutGap="16px">
         <app-label-multi [configObject]="configObject"
-                         [allSelected]="allSelected"
-                         (update)="onUpdateLabels($event)">
+          [allSelected]="allSelected"
+          (update)="onUpdateLabels($event)">
         </app-label-multi>
       </div>
       <div fxFlex fxLayout="column" fxLayoutGap="16px">
         <div fxLayout="row" fxLayoutGap="24px">
           <div (click)="validFrom.disabled ? validFrom.enable() : null"
-               i18n-matTooltip="@@scheduleMassUpdateValidFromDisabledTooltip"
+            i18n-matTooltip="@@scheduleMassUpdateValidFromDisabledTooltip"
                [matTooltip]="validFrom.disabled ?
                         ' The value for this field is not equal for all the selected configs.'
                         + 'Click the field and set desired state to override all, '
@@ -27,7 +27,7 @@
             </mat-form-field>
           </div>
           <div (click)="validTo.disabled ? validTo.enable() : null"
-               i18n-matTooltip="@@scheduleMassUpdateValidToDisabledTooltip"
+            i18n-matTooltip="@@scheduleMassUpdateValidToDisabledTooltip"
                [matTooltip]="validFrom.disabled ?
                         ' The value for this field is not equal for all the selected configs.'
                         + 'Click the field and set desired state to override all, '
@@ -43,8 +43,8 @@
             </mat-form-field>
           </div>
           <button mat-icon-button (click)="onRemoveValidFromTo()"
-                  [matTooltip]="'Remove valid from / valid to for all the selected configurations'"
-                  i18n-matTooltip="@@scheduleMassUpdateRemoveValidFromToButtonTooltip">
+            [matTooltip]="'Remove valid from / valid to for all the selected configurations'"
+            i18n-matTooltip="@@scheduleMassUpdateRemoveValidFromToButtonTooltip">
             <mat-icon>delete</mat-icon>
           </button>
         </div>
@@ -53,19 +53,21 @@
   </mat-dialog-content>
 </form>
 
-<mat-dialog-actions *ngIf="canEdit">
-  <button mat-raised-button color="accent"
-          [disabled]="!canUpdate"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">UPDATE
+@if (canEdit) {
+  <mat-dialog-actions>
+    <button mat-raised-button color="accent"
+      [disabled]="!canUpdate"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">UPDATE
   </button>
-  <button mat-button
-          (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">REVERT
+    <button mat-button
+      (click)="onRevert()"
+      [disabled]="!canRevert"
+      i18n="@@commonButtonRevert">REVERT
   </button>
-  <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
   </button>
-</mat-dialog-actions>
+  </mat-dialog-actions>
+}

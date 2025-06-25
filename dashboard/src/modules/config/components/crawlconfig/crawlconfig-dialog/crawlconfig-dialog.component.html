@@ -11,13 +11,17 @@
           Collection
         </mat-label>
         <mat-select formControlName="collectionRefId" required>
-          <mat-option *ngFor="let option of collections"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
+          @for (option of collections; track option) {
+            <mat-option
+            [value]="option.id">{{option.meta.name}}</mat-option>
+          }
         </mat-select>
-        <mat-error *ngIf="collectionRefId.hasError('required')"
-                   i18n="@@crawlConfigCollectionRequiredError">
+        @if (collectionRefId.hasError('required')) {
+          <mat-error
+            i18n="@@crawlConfigCollectionRequiredError">
           Please choose a collection
         </mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field>
@@ -25,13 +29,17 @@
           BrowserConfig
         </mat-label>
         <mat-select formControlName="browserConfigRefId" required>
-          <mat-option *ngFor="let option of browserConfigs"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
+          @for (option of browserConfigs; track option) {
+            <mat-option
+            [value]="option.id">{{option.meta.name}}</mat-option>
+          }
         </mat-select>
-        <mat-error *ngIf="browserConfigRefId.hasError('required')"
-                   i18n="@@crawlConfigBrowserConfigRequiredError">
+        @if (browserConfigRefId.hasError('required')) {
+          <mat-error
+            i18n="@@crawlConfigBrowserConfigRequiredError">
           Please choose a browserconfig
         </mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field>
@@ -39,13 +47,17 @@
           PolitenessConfig
         </mat-label>
         <mat-select formControlName="politenessRefId" required>
-          <mat-option *ngFor="let option of politenessConfigs"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
+          @for (option of politenessConfigs; track option) {
+            <mat-option
+            [value]="option.id">{{option.meta.name}}</mat-option>
+          }
         </mat-select>
-        <mat-error *ngIf="politenessRefId.hasError('required')"
-                   i18n="@@crawlConfigPolitenessconfigRequiredError">
+        @if (politenessRefId.hasError('required')) {
+          <mat-error
+            i18n="@@crawlConfigPolitenessconfigRequiredError">
           Please choose a politenessconfig
         </mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field data-testid="minimumDnsTtlS">
@@ -53,10 +65,12 @@
           DNS TTL
         </mat-label>
         <input matInput formControlName="minimumDnsTtlS">
-        <mat-error *ngIf="!minDnsTtlSeconds.valid"
-                   i18n="@@crawlconfigFormMinDNSTTLValidationError">
+        @if (!minDnsTtlSeconds.valid) {
+          <mat-error
+            i18n="@@crawlconfigFormMinDNSTTLValidationError">
           Must be a number or empty
         </mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field data-testid="priorityWeight">
@@ -64,17 +78,19 @@
           Priority weight
         </mat-label>
         <input matInput
-               formControlName="priorityWeight">
-        <mat-error *ngIf="!priorityWeight.valid" i18n="@@crawlconfigFormPriorityWeightValidationError">
+          formControlName="priorityWeight">
+        @if (!priorityWeight.valid) {
+          <mat-error i18n="@@crawlconfigFormPriorityWeightValidationError">
           Must be a number or empty
         </mat-error>
+        }
       </mat-form-field>
 
       <ng-container formGroupName="extra">
         <mat-checkbox formControlName="createScreenshot"
-                      labelPosition="after"
-                      i18n="@@crawlconfigFormCreateScreenshotLabel"
-                      color="accent">
+          labelPosition="after"
+          i18n="@@crawlconfigFormCreateScreenshotLabel"
+          color="accent">
           Create screenshot
         </mat-checkbox>
       </ng-container>
@@ -82,25 +98,27 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions>
-  <button mat-raised-button color="accent"
-          *ngIf="showSave"
-          [disabled]="!canSave"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">SAVE
+  @if (showSave) {
+    <button mat-raised-button color="accent"
+      [disabled]="!canSave"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">SAVE
   </button>
-  <button mat-raised-button color="accent"
-          *ngIf="!showSave"
-          [disabled]="!canUpdate"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonUpdate">UPDATE
+  }
+  @if (!showSave) {
+    <button mat-raised-button color="accent"
+      [disabled]="!canUpdate"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonUpdate">UPDATE
+  </button>
+  }
+  <button mat-button
+    (click)="onRevert()"
+    [disabled]="!form.dirty"
+    i18n="@@commonButtonRevert">REVERT
   </button>
   <button mat-button
-          (click)="onRevert()"
-          [disabled]="!form.dirty"
-          i18n="@@commonButtonRevert">REVERT
-  </button>
-  <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    mat-dialog-close
+    i18n="@@commonButtonCancel">CANCEL
   </button>
 </mat-dialog-actions>

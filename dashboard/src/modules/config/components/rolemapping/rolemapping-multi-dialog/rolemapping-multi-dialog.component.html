@@ -8,28 +8,32 @@
         Role
       </mat-label>
       <mat-select formControlName="roleList" multiple>
-        <mat-option *ngFor="let role of roles" [value]="role">{{Role[role]}}</mat-option>
+        @for (role of roles; track role) {
+          <mat-option [value]="role">{{Role[role]}}</mat-option>
+        }
       </mat-select>
-      <mat-error *ngIf="!roleList.valid" i18n="@@roleMappingDetailsRoleRequiredError">
+      @if (!roleList.valid) {
+        <mat-error i18n="@@roleMappingDetailsRoleRequiredError">
         A user must be assigned at least one role.
       </mat-error>
+      }
     </mat-form-field>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions>
   <button mat-raised-button color="accent"
-          [disabled]="!canUpdate"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">UPDATE
+    [disabled]="!canUpdate"
+    [mat-dialog-close]="onDialogClose()"
+    i18n="@@commonButtonSave">UPDATE
   </button>
   <button mat-button
-          (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">
+    (click)="onRevert()"
+    [disabled]="!canRevert"
+    i18n="@@commonButtonRevert">
     REVERT
   </button>
   <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    mat-dialog-close
+    i18n="@@commonButtonCancel">CANCEL
   </button>
 </mat-dialog-actions>

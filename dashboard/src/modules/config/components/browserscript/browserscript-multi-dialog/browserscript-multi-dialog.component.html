@@ -3,24 +3,26 @@
 
   <mat-dialog-content>
     <app-label-multi [configObject]="configObject"
-                     [allSelected]="allSelected"
-                     (update)="onUpdateLabels($event)">
+      [allSelected]="allSelected"
+      (update)="onUpdateLabels($event)">
     </app-label-multi>
   </mat-dialog-content>
 </form>
-<mat-dialog-actions *ngIf="canEdit">
-  <button mat-raised-button color="accent"
-          [disabled]="!canUpdate"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">UPDATE
+@if (canEdit) {
+  <mat-dialog-actions>
+    <button mat-raised-button color="accent"
+      [disabled]="!canUpdate"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">UPDATE
   </button>
-  <button mat-button
-          (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">REVERT
+    <button mat-button
+      (click)="onRevert()"
+      [disabled]="!canRevert"
+      i18n="@@commonButtonRevert">REVERT
   </button>
-  <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
   </button>
-</mat-dialog-actions>
+  </mat-dialog-actions>
+}

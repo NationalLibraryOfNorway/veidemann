@@ -1,43 +1,45 @@
-<mat-nav-list *ngIf="ability$ | async as ability">
-  <div mat-subheader i18n="@@actionShortcutListTitle">
+@if (ability$ | async; as ability) {
+  <mat-nav-list>
+    <div mat-subheader i18n="@@actionShortcutListTitle">
     Actions
   </div>
-  <ng-container [ngSwitch]="configObject.kind">
-
-    <ng-container *ngSwitchCase="Kind.CRAWLENTITY">
+    @switch (configObject.kind) {
+      @case (Kind.CRAWLENTITY) {
+        @if (ability.can('create', Kind[Kind.SEED])) {
+          <a mat-list-item
+            (click)="onCreateSeed()"
+            matTooltip="Create a new seed with reference to the entity"
+            i18n-matTooltip="@@crawlEntityListCreateSeedActionButtonTooltip">
+            <mat-icon matListItemIcon>add_circle</mat-icon>
+            Create Seed
+          </a>
+        }
+      }
+      @case (Kind.SEED) {
+        @if (ability.can('runCrawl', Kind[Kind.SEED])) {
+          <a mat-list-item
+            (click)="onRunCrawl()">
+            <mat-icon matListItemIcon>play_arrow</mat-icon>
+            Crawl seed
+          </a>
+        }
+      }
+      @case (Kind.CRAWLJOB) {
+        @if (ability.can('runCrawl', Kind[Kind.CRAWLJOB])) {
+          <a mat-list-item
+            (click)="onRunCrawl()">
+            <mat-icon matListItemIcon>play_arrow</mat-icon>
+            Run crawljob
+          </a>
+        }
+      }
+    }
+    @if (ability.can('create', Kind[this.configObject.kind])) {
       <a mat-list-item
-         *ngIf="ability.can('create', Kind[Kind.SEED])"
-         (click)="onCreateSeed()"
-         matTooltip="Create a new seed with reference to the entity"
-         i18n-matTooltip="@@crawlEntityListCreateSeedActionButtonTooltip">
-        <mat-icon matListItemIcon>add_circle</mat-icon>
-        Create Seed
+        (click)="onClone()">
+        <mat-icon matListItemIcon>file_copy</mat-icon>
+        Clone
       </a>
-    </ng-container>
-
-    <ng-container *ngSwitchCase="Kind.SEED">
-      <a mat-list-item
-         *ngIf="ability.can('runCrawl', Kind[Kind.SEED])"
-         (click)="onRunCrawl()">
-        <mat-icon matListItemIcon>play_arrow</mat-icon>
-        Crawl seed
-      </a>
-    </ng-container>
-
-    <ng-container *ngSwitchCase="Kind.CRAWLJOB">
-      <a mat-list-item
-         *ngIf="ability.can('runCrawl', Kind[Kind.CRAWLJOB])"
-         (click)="onRunCrawl()">
-        <mat-icon matListItemIcon>play_arrow</mat-icon>
-        Run crawljob
-      </a>
-    </ng-container>
-
-  </ng-container>
-  <a mat-list-item
-     *ngIf="ability.can('create', Kind[this.configObject.kind])"
-     (click)="onClone()">
-    <mat-icon matListItemIcon>file_copy</mat-icon>
-    Clone
-  </a>
-</mat-nav-list>
+    }
+  </mat-nav-list>
+}

@@ -5,51 +5,57 @@
     </h2>
     <span fxFlex></span>
     <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
-                      formControlName="disabled"
-                      color="warn"
-                      mat-dialog-title>
+      formControlName="disabled"
+      color="warn"
+      mat-dialog-title>
       Deactivated
     </mat-slide-toggle>
   </div>
 
   <mat-dialog-content>
     <app-seed-meta formControlName="meta"
-                   [entityRef]="entityRef.value"
-                   (move)="move.emit($event)"></app-seed-meta>
+      [entityRef]="entityRef.value"
+    (move)="move.emit($event)"></app-seed-meta>
     <div fxLayoutGap="16px">
       <mat-form-field>
         <mat-label i18n="seedDetailsFormCrawlJobLabel">
           CrawlJob
         </mat-label>
         <mat-select multiple formControlName="jobRefListId">
-          <mat-option *ngFor="let crawlJob of crawlJobs"
-                      [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+          @for (crawlJob of crawlJobs; track crawlJob) {
+            <mat-option
+            [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+          }
         </mat-select>
       </mat-form-field>
     </div>
   </mat-dialog-content>
 </form>
 
-<mat-dialog-actions *ngIf="canEdit">
-  <button mat-raised-button color="accent"
-          *ngIf="!showSave"
-          [disabled]="!canUpdate"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">UPDATE
+@if (canEdit) {
+  <mat-dialog-actions>
+    @if (!showSave) {
+      <button mat-raised-button color="accent"
+        [disabled]="!canUpdate"
+        [mat-dialog-close]="onDialogClose()"
+        i18n="@@commonButtonSave">UPDATE
   </button>
-  <button mat-raised-button color="primary"
-          *ngIf="showSave"
-          [disabled]="!canSave"
-          [mat-dialog-close]="onDialogClose()"
-          i18n="@@commonButtonSave">SAVE
+    }
+    @if (showSave) {
+      <button mat-raised-button color="primary"
+        [disabled]="!canSave"
+        [mat-dialog-close]="onDialogClose()"
+        i18n="@@commonButtonSave">SAVE
   </button>
-  <button mat-button
-          (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">REVERT
+    }
+    <button mat-button
+      (click)="onRevert()"
+      [disabled]="!canRevert"
+      i18n="@@commonButtonRevert">REVERT
   </button>
-  <button mat-button
-          mat-dialog-close
-          i18n="@@commonButtonCancel">CANCEL
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
   </button>
-</mat-dialog-actions>
+  </mat-dialog-actions>
+}

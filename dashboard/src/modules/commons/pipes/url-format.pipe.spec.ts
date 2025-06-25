@@ -26,7 +26,7 @@ describe('UrlFormatPipe', () => {
   };
 
   it('should return a link without stripping queryparams', () => {
-    const domSanitizer = TestBed.get(DomSanitizer);
+    const domSanitizer = TestBed.inject(DomSanitizer);
     const pipe = new UrlFormatPipe(domSanitizer);
     const safeResourceUrl = pipe.transform(testcase.url, false);
     // TODO: Runs, but too fragile locator. Does not have access to DOM
@@ -35,7 +35,7 @@ describe('UrlFormatPipe', () => {
   });
 
   it('should return a link with stripping queryparams', () => {
-    const domSanitizer = TestBed.get(DomSanitizer);
+    const domSanitizer = TestBed.inject(DomSanitizer);
     const pipe = new UrlFormatPipe(domSanitizer);
     const safeResourceUrl = pipe.transform(testcase.url, true);
     const expected = domSanitizer.bypassSecurityTrustHtml('<a class="formattedUri" href="' + testcase.url + '" target="_blank">' + testcase.formattedUrl + '</a> ');

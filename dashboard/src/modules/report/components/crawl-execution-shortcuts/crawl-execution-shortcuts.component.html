@@ -1,51 +1,50 @@
-<ng-container *ngIf="ability$ | async as ability">
+@if (ability$ | async; as ability) {
   <mat-nav-list>
     <div mat-subheader>Shortcuts</div>
-
-    <a mat-list-item
-       *ngIf="ability.can('read', Kind[Kind.SEED])"
-       [routerLink]="['/config', 'seed', crawlExecutionStatus.seedId]"
-       i18n="@@reportListActionButtonGoToSeed">
+    @if (ability.can('read', Kind[Kind.SEED])) {
+      <a mat-list-item
+        [routerLink]="['/config', 'seed', crawlExecutionStatus.seedId]"
+        i18n="@@reportListActionButtonGoToSeed">
       <mat-icon matListItemIcon>link</mat-icon>
       Go to seed
     </a>
-
-    <a mat-list-item
-       *ngIf="ability.can('read', Kind[Kind.CRAWLJOB])"
-       [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]"
-       i18n="@@reportListActionButtonGoToCrawljob">
+    }
+    @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+      <a mat-list-item
+        [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]"
+        i18n="@@reportListActionButtonGoToCrawljob">
       <mat-icon matListItemIcon>work</mat-icon>
       Go to crawljob
     </a>
+    }
   </mat-nav-list>
   <mat-nav-list>
     <div mat-subheader>Filters</div>
-
-    <a mat-list-item
-       *ngIf="ability.can('read','pagelog')"
-       [routerLink]="['/report/pagelog']"
-       [queryParams]="{execution_id: crawlExecutionStatus.id}"
-       i18n="@@reportListActionButtonGoToPagelog">
+    @if (ability.can('read','pagelog')) {
+      <a mat-list-item
+        [routerLink]="['/report/pagelog']"
+        [queryParams]="{execution_id: crawlExecutionStatus.id}"
+        i18n="@@reportListActionButtonGoToPagelog">
       <mat-icon matListItemIcon>art_track</mat-icon>
       Show pagelog
     </a>
-
-    <a mat-list-item
-       *ngIf="ability.can('read','crawllog')"
-       [routerLink]="['/report/crawllog']"
-       [queryParams]="{execution_id: crawlExecutionStatus.id}"
-       i18n="@@reportListActionButtonGoToCrawlog">
+    }
+    @if (ability.can('read','crawllog')) {
+      <a mat-list-item
+        [routerLink]="['/report/crawllog']"
+        [queryParams]="{execution_id: crawlExecutionStatus.id}"
+        i18n="@@reportListActionButtonGoToCrawlog">
       <mat-icon matListItemIcon>event_note</mat-icon>
       Show crawllog
     </a>
-
-    <ng-container *ngIf="canAbort(crawlExecutionStatus.state) && ability.can('abort','crawlexecution')">
+    }
+    @if (canAbort(crawlExecutionStatus.state) && ability.can('abort','crawlexecution')) {
       <a mat-list-item
-         (click)="onAbortCrawlExecution(crawlExecutionStatus)"
-         i18n="@@reportListActionButtonAbortCrawlExecution">
+        (click)="onAbortCrawlExecution(crawlExecutionStatus)"
+        i18n="@@reportListActionButtonAbortCrawlExecution">
         <mat-icon matListItemIcon>cancel</mat-icon>
         Abort crawl
       </a>
-    </ng-container>
+    }
   </mat-nav-list>
-</ng-container>
+}

@@ -7,7 +7,7 @@
     <th mat-header-cell *matHeaderCellDef>URI</th>
     <td mat-cell *matCellDef="let row">
       <span [innerHTML]="row.uri | urlFormat"
-            (click)="$event.stopPropagation()"></span>
+      (click)="$event.stopPropagation()"></span>
     </td>
   </ng-container>
   <ng-container matColumnDef="discoveryPath">
@@ -29,12 +29,12 @@
           <ng-container matColumnDef="resourceValue">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let resource">
-              <ng-container *ngIf="resource.key==='URI'">
+              @if (resource.key==='URI') {
                 <span [innerHTML]="resource.value | urlFormat"></span>
-              </ng-container>
-              <ng-container *ngIf="resource.key!=='URI'">
+              }
+              @if (resource.key!=='URI') {
                 {{resource.value}}
-              </ng-container>
+              }
             </td>
           </ng-container>
 
@@ -47,9 +47,9 @@
 
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
   <tr mat-row *matRowDef="let resource; columns: displayedColumns;"
-      class="resource-row" [class.expanded-row]="expandedResource === resource"
-      (click)="expandedResource = expandedResource === resource ? null : resource"
-      [class.row-error]="hasError(resource)">
+    class="resource-row" [class.expanded-row]="expandedResource === resource"
+    (click)="expandedResource = expandedResource === resource ? null : resource"
+    [class.row-error]="hasError(resource)">
   </tr>
   <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="resource-detail-row"></tr>
 </table>

@@ -15,7 +15,7 @@ describe('LabelService', () => {
   }));
 
   it('should be created', () => {
-    const service: LabelService = TestBed.get(LabelService);
+    const service: LabelService = TestBed.inject(LabelService);
     expect(service).toBeTruthy();
   });
 });

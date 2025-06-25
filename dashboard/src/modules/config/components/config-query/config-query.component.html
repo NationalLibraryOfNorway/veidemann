@@ -1,106 +1,120 @@
 <div class="content-padding">
   <ng-keyboard-shortcuts [shortcuts]="shortcuts"></ng-keyboard-shortcuts>
-  <mat-form-field class="search-form" *ngIf="query?.kind">
-    <mat-label i18n="@@configQuerySearchInputLabel">
+  @if (query?.kind) {
+    <mat-form-field class="search-form">
+      <mat-label i18n="@@configQuerySearchInputLabel">
       Search
     </mat-label>
-    <input matInput
-           #search
-           [(ngModel)]="term"
-           (keyup.enter)="onSearch(term)">
-    <button mat-icon-button matSuffix *ngIf="term" (click)="term = ''; onSearch(term);">
-      <mat-icon>close</mat-icon>
-    </button>
-  </mat-form-field>
+      <input matInput
+        #search
+        [(ngModel)]="term"
+        (keyup.enter)="onSearch(term)">
+      @if (term) {
+        <button mat-icon-button matSuffix (click)="term = ''; onSearch(term);">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+  }
 
-  <form [formGroup]="form" [ngSwitch]="query?.kind" fxLayout="column" fxLayoutGap="16px">
-    <ng-container *ngSwitchCase="Kind.CRAWLJOB">
-      <mat-form-field>
-        <mat-label i18n="@@configQueryScheduleDropdownLabel">Schedule</mat-label>
-        <mat-select formControlName="scheduleId">
-          <mat-option [value]=""></mat-option>
-          <mat-option *ngFor="let option of options.crawlScheduleConfigs"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label i18n="@@configQueryCrawlConfigDropdownLabel">CrawlConfig</mat-label>
-        <mat-select formControlName="crawlConfigId">
-          <mat-option [value]=""></mat-option>
-          <mat-option *ngFor="let option of options.crawlConfigs"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-radio-group fxLayout="column" fxLayoutGap="16px" formControlName="disabled">
-        <mat-radio-button [value]="null">Show all</mat-radio-button>
-        <mat-radio-button [value]="true">Show disabled</mat-radio-button>
-        <mat-radio-button [value]="false">Show enabled</mat-radio-button>
-      </mat-radio-group>
-    </ng-container>
-
-    <ng-container *ngSwitchCase="Kind.SEED">
-      <mat-form-field>
-        <mat-label i18n-placeholder="@@configQueryCrawlJobDropdownLabel">
-          CrawlJob
-        </mat-label>
-        <mat-select multiple formControlName="crawlJobIdList">
-          <mat-option *ngFor="let crawlJob of options.crawlJobs"
-                      [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label i18n="@@configQueryEntityIdInputLabel">
+  <form [formGroup]="form" fxLayout="column" fxLayoutGap="16px">
+    @switch (query?.kind) {
+      @case (Kind.CRAWLJOB) {
+        <mat-form-field>
+          <mat-label i18n="@@configQueryScheduleDropdownLabel">Schedule</mat-label>
+          <mat-select formControlName="scheduleId">
+            <mat-option [value]=""></mat-option>
+            @for (option of options.crawlScheduleConfigs; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label i18n="@@configQueryCrawlConfigDropdownLabel">CrawlConfig</mat-label>
+          <mat-select formControlName="crawlConfigId">
+            <mat-option [value]=""></mat-option>
+            @for (option of options.crawlConfigs; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-radio-group fxLayout="column" fxLayoutGap="16px" formControlName="disabled">
+          <mat-radio-button [value]="null">Show all</mat-radio-button>
+          <mat-radio-button [value]="true">Show disabled</mat-radio-button>
+          <mat-radio-button [value]="false">Show enabled</mat-radio-button>
+        </mat-radio-group>
+      }
+      @case (Kind.SEED) {
+        <mat-form-field>
+          <mat-label i18n-placeholder="@@configQueryCrawlJobDropdownLabel">
+            CrawlJob
+          </mat-label>
+          <mat-select multiple formControlName="crawlJobIdList">
+            @for (crawlJob of options.crawlJobs; track crawlJob) {
+              <mat-option
+              [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label i18n="@@configQueryEntityIdInputLabel">
           Entity Id
         </mat-label>
-        <input matInput formControlName="entityId">
-      </mat-form-field>
-
-      <mat-radio-group fxLayout="column" fxLayoutGap="16px" formControlName="disabled">
-        <mat-radio-button [value]="null">Show all</mat-radio-button>
-        <mat-radio-button [value]="true">Show disabled</mat-radio-button>
-        <mat-radio-button [value]="false">Show enabled</mat-radio-button>
-      </mat-radio-group>
-
-    </ng-container>
-
-    <ng-container *ngSwitchCase="Kind.CRAWLCONFIG">
-      <mat-form-field>
-        <mat-label i18n="@@configQueryCollectionDropdownLabel">Collection</mat-label>
-        <mat-select formControlName="collectionId">
-          <mat-option value=""></mat-option>
-          <mat-option *ngFor="let option of options.collections"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label i18n="@@configQueryBrowserConfigDropdownLabel">BrowserConfig</mat-label>
-        <mat-select formControlName="browserConfigId">
-          <mat-option value=""></mat-option>
-          <mat-option *ngFor="let option of options.browserConfigs"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label i18n="@@configQueryPolitenessDropdownLabel">Politeness</mat-label>
-        <mat-select formControlName="politenessId">
-          <mat-option value=""></mat-option>
-          <mat-option *ngFor="let option of options.politenessConfigs"
-                      [value]="option.id">{{option.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </ng-container>
-
-    <ng-container *ngSwitchCase="Kind.BROWSERCONFIG">
-      <mat-form-field>
-        <mat-label i18n="@@configQueryBrowserScriptDropdownLabel">
+          <input matInput formControlName="entityId">
+        </mat-form-field>
+        <mat-radio-group fxLayout="column" fxLayoutGap="16px" formControlName="disabled">
+          <mat-radio-button [value]="null">Show all</mat-radio-button>
+          <mat-radio-button [value]="true">Show disabled</mat-radio-button>
+          <mat-radio-button [value]="false">Show enabled</mat-radio-button>
+        </mat-radio-group>
+      }
+      @case (Kind.CRAWLCONFIG) {
+        <mat-form-field>
+          <mat-label i18n="@@configQueryCollectionDropdownLabel">Collection</mat-label>
+          <mat-select formControlName="collectionId">
+            <mat-option value=""></mat-option>
+            @for (option of options.collections; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label i18n="@@configQueryBrowserConfigDropdownLabel">BrowserConfig</mat-label>
+          <mat-select formControlName="browserConfigId">
+            <mat-option value=""></mat-option>
+            @for (option of options.browserConfigs; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label i18n="@@configQueryPolitenessDropdownLabel">Politeness</mat-label>
+          <mat-select formControlName="politenessId">
+            <mat-option value=""></mat-option>
+            @for (option of options.politenessConfigs; track option) {
+              <mat-option
+              [value]="option.id">{{option.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+      @case (Kind.BROWSERCONFIG) {
+        <mat-form-field>
+          <mat-label i18n="@@configQueryBrowserScriptDropdownLabel">
           BrowserScript
         </mat-label>
-        <mat-select multiple formControlName="scriptIdList">
-          <mat-option *ngFor="let browserScript of options.browserScripts"
-                      [value]="browserScript.id">{{browserScript.meta.name}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </ng-container>
+          <mat-select multiple formControlName="scriptIdList">
+            @for (browserScript of options.browserScripts; track browserScript) {
+              <mat-option
+              [value]="browserScript.id">{{browserScript.meta.name}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    }
   </form>
 </div>

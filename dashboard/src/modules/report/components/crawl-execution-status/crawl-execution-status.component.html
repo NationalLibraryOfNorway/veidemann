@@ -3,7 +3,7 @@
     <mat-icon mat-card-avatar>hdr_weak</mat-icon>
     <mat-card-title>
       <a [routerLink]="['/config', 'seed', crawlExecutionStatus.seedId]">
-        {{crawlExecutionStatus.seedId | getSeedNamePipe | async}}</a>
+      {{crawlExecutionStatus.seedId | getSeedNamePipe | async}}</a>
     </mat-card-title>
     <mat-card-subtitle>{{crawlExecutionStatus.id}}</mat-card-subtitle>
   </mat-card-header>
@@ -103,12 +103,14 @@
         <tr mat-row *matRowDef="let row; columns: crawlExecStatisticsDisplayedColumns"></tr>
       </table>
 
-      <div class="content-padding" *ngIf="crawlExecutionStatus.error as error">
-        <h2>Error</h2>
-        <h3>{{error.code}}: {{ExtraStatusCodes[error.code]}}</h3>
-        <h4 class="monospace">{{error.msg}}</h4>
-        <p class="monospace">{{error.detail}}</p>
-      </div>
+      @if (crawlExecutionStatus.error; as error) {
+        <div class="content-padding">
+          <h2>Error</h2>
+          <h3>{{error.code}}: {{ExtraStatusCodes[error.code]}}</h3>
+          <h4 class="monospace">{{error.msg}}</h4>
+          <p class="monospace">{{error.detail}}</p>
+        </div>
+      }
     </div>
   </mat-card-content>
 </mat-card>

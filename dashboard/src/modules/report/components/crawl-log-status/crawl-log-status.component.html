@@ -99,12 +99,14 @@
         <tr mat-row *matRowDef="let row; columns: crawlLogIdsDisplayedColumns"></tr>
       </table>
 
-      <div class="content-padding" *ngIf="crawlLog.error as error">
-        <h2>Error</h2>
-        <h3>{{error.code}}: {{ExtraStatusCodes[error.code]}}</h3>
-        <h4 class="monospace">{{error.msg}}</h4>
-        <p class="monospace">{{error.detail}}</p>
-      </div>
+      @if (crawlLog.error; as error) {
+        <div class="content-padding">
+          <h2>Error</h2>
+          <h3>{{error.code}}: {{ExtraStatusCodes[error.code]}}</h3>
+          <h4 class="monospace">{{error.msg}}</h4>
+          <p class="monospace">{{error.detail}}</p>
+        </div>
+      }
     </div>
   </mat-card-content>
 </mat-card>

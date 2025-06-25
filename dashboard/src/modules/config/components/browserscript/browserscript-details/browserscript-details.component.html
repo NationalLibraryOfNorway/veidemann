@@ -6,8 +6,10 @@
         <span i18n="@@browserscriptDetailsCardTitle">Browserscript</span>
       </mat-card-title>
       <mat-card-subtitle>
-        <span *ngIf="showSave"
-              i18n="@@commonConfigDetailsCardSubtitle"> New (unsaved)</span>
+        @if (showSave) {
+          <span
+          i18n="@@commonConfigDetailsCardSubtitle"> New (unsaved)</span>
+        }
       </mat-card-subtitle>
     </mat-card-header>
 
@@ -15,14 +17,16 @@
     <mat-card-content fxLayout="row" fxLayoutGap="24px">
       <div fxFlex fxLayout="column">
         <app-meta formControlName="meta"></app-meta>
-        <mat-form-field *ngIf="!showSave">
-          <mat-label i18n="configIdLabel">
+        @if (!showSave) {
+          <mat-form-field>
+            <mat-label i18n="configIdLabel">
             Id
           </mat-label>
-          <input matInput
-                 formControlName="id"
-                 readonly>
-        </mat-form-field>
+            <input matInput
+              formControlName="id"
+              readonly>
+          </mat-form-field>
+        }
       </div>
       <div fxFlex fxLayout="column">
         <mat-form-field>
@@ -30,7 +34,9 @@
             Script type
           </mat-label>
           <mat-select formControlName="browserScriptType">
-            <mat-option *ngFor="let type of browserScriptTypes" [value]="type">{{BrowserScriptType[type]}}</mat-option>
+            @for (type of browserScriptTypes; track type) {
+              <mat-option [value]="type">{{BrowserScriptType[type]}}</mat-option>
+            }
           </mat-select>
         </mat-form-field>
         <mat-form-field>
@@ -38,85 +44,99 @@
             URL regexp
           </mat-label>
           <mat-chip-grid #chipList>
-            <mat-chip-row *ngFor="let regex of urlRegexpList"
-                          [removable]="removable"
-                          (removed)="onRemoveRegex(regex)"
-                          (click)="onClickRegex(regex)">
-              {{regex}}
-              <mat-icon matChipRemove *ngIf="removable">cancel</mat-icon>
-            </mat-chip-row>
+            @for (regex of urlRegexpList; track regex) {
+              <mat-chip-row
+                [removable]="removable"
+                (removed)="onRemoveRegex(regex)"
+                (click)="onClickRegex(regex)">
+                {{regex}}
+                @if (removable) {
+                  <mat-icon matChipRemove>cancel</mat-icon>
+                }
+              </mat-chip-row>
+            }
             <input matInput
-                   [formControl]="control"
-                   [matChipInputFor]="chipList"
-                   [matChipInputSeparatorKeyCodes]="labelInputSeparators"
-                   (matChipInputTokenEnd)="onSaveRegexp($event);">
+              [formControl]="control"
+              [matChipInputFor]="chipList"
+              [matChipInputSeparatorKeyCodes]="labelInputSeparators"
+              (matChipInputTokenEnd)="onSaveRegexp($event);">
           </mat-chip-grid>
         </mat-form-field>
-        <form [formGroup]="regexpForm" fxFlex *ngIf="regexpForm.enabled">
-          <mat-card appearance="outlined" class="label-form">
-            <mat-card-header>
-              <mat-icon mat-card-avatar>edit</mat-icon>
-              <mat-card-title i18n="@@browserscriptRegexpEditFormTitle">Edit the expression</mat-card-title>
-            </mat-card-header>
-            <mat-card-content fxLayout="row" fxLayoutGap="16px">
-              <mat-form-field fxFlex>
-                <mat-label i18n="@@browserscriptRegexpEditFormInputLabel">
+        @if (regexpForm.enabled) {
+          <form [formGroup]="regexpForm" fxFlex>
+            <mat-card appearance="outlined" class="label-form">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>edit</mat-icon>
+                <mat-card-title i18n="@@browserscriptRegexpEditFormTitle">Edit the expression</mat-card-title>
+              </mat-card-header>
+              <mat-card-content fxLayout="row" fxLayoutGap="16px">
+                <mat-form-field fxFlex>
+                  <mat-label i18n="@@browserscriptRegexpEditFormInputLabel">
                   Regexp
                 </mat-label>
-                <input #regexpEdit matInput formControlName="regexp">
-              </mat-form-field>
-            </mat-card-content>
-
-            <mat-card-actions>
-              <button mat-raised-button color="accent" *ngIf="canUpdateRegex"
-                      (click)="onUpdateRegexp(regexpEdit.value)" i18n="@@commonButtonOk">
+                  <input #regexpEdit matInput formControlName="regexp">
+                </mat-form-field>
+              </mat-card-content>
+              <mat-card-actions>
+                @if (canUpdateRegex) {
+                  <button mat-raised-button color="accent"
+                    (click)="onUpdateRegexp(regexpEdit.value)" i18n="@@commonButtonOk">
                 OK
               </button>
-              <button i18n="@@commonButtonCancel" mat-button (click)="onAbort()">
+                }
+                <button i18n="@@commonButtonCancel" mat-button (click)="onAbort()">
                 CANCEL
               </button>
-            </mat-card-actions>
-          </mat-card>
-        </form>
+              </mat-card-actions>
+            </mat-card>
+          </form>
+        }
         <ngx-monaco-editor class="editor"
-                           fxFlex
-                           formControlName="script"
-                           [options]="editorOptions"
-                           (init)="initEditor($event)">
+          fxFlex
+          formControlName="script"
+          [options]="editorOptions"
+          (init)="initEditor($event)">
         </ngx-monaco-editor>
-        <mat-error *ngIf="!script.valid">{{script.errors?.monaco?.value}}</mat-error>
+        @if (!script.valid) {
+          <mat-error>{{script.errors?.monaco?.value}}</mat-error>
+        }
       </div>
     </mat-card-content>
 
 
-    <mat-card-actions *ngIf="canEdit">
-      <button mat-raised-button color="accent"
-              [disabled]="!canSave"
-              *ngIf="showSave"
-              (click)="onSave()"
-              i18n="@@commonButtonSave">
+    @if (canEdit) {
+      <mat-card-actions>
+        @if (showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canSave"
+            (click)="onSave()"
+            i18n="@@commonButtonSave">
         SAVE
       </button>
-      <button mat-raised-button color="accent"
-              *ngIf="!showSave"
-              [disabled]="!canUpdate"
-              (click)="onUpdate()"
-              i18n="@@commonButtonSave">
+        }
+        @if (!showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canUpdate"
+            (click)="onUpdate()"
+            i18n="@@commonButtonSave">
         UPDATE
       </button>
-      <button mat-button
-              (click)="onRevert()"
-              [disabled]="!form.dirty"
-              i18n="@@commonButtonRevert">
+        }
+        <button mat-button
+          (click)="onRevert()"
+          [disabled]="!form.dirty"
+          i18n="@@commonButtonRevert">
         REVERT
       </button>
-      <span fxFlex></span>
-      <button mat-button
-              *ngIf="!showSave && canDelete"
-              (click)="onDelete()"
-              i18n="@@commonButtonDelete">
+        <span fxFlex></span>
+        @if (!showSave && canDelete) {
+          <button mat-button
+            (click)="onDelete()"
+            i18n="@@commonButtonDelete">
         DELETE
       </button>
-    </mat-card-actions>
+        }
+      </mat-card-actions>
+    }
   </mat-card>
 </form>

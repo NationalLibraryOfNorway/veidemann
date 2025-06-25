@@ -4,8 +4,10 @@
       State
     </mat-label>
     <mat-select multiple formControlName="stateList">
-      <mat-option *ngFor="let state of jobExecutionStates"
-                  [value]="state.toString(10)">{{JobExecutionState[state]}}</mat-option>
+      @for (state of jobExecutionStates; track state) {
+        <mat-option
+        [value]="state.toString(10)">{{JobExecutionState[state]}}</mat-option>
+      }
     </mat-select>
   </mat-form-field>
 
@@ -15,8 +17,10 @@
     </mat-label>
     <mat-select formControlName="jobId">
       <mat-option [value]=""></mat-option>
-      <mat-option *ngFor="let job of crawlJobOptions"
-                  [value]="job.id">{{job.meta.name}}</mat-option>
+      @for (job of crawlJobOptions; track job) {
+        <mat-option
+        [value]="job.id">{{job.meta.name}}</mat-option>
+      }
     </mat-select>
   </mat-form-field>
 
@@ -49,7 +53,7 @@
   </mat-form-field>
 
   <mat-checkbox labelPosition="after" formControlName="watch"
-                i18n-placeholder="@@crawlExecutionReportFilterHasErrorLabel">
+    i18n-placeholder="@@crawlExecutionReportFilterHasErrorLabel">
     Watch
   </mat-checkbox>
 </form>

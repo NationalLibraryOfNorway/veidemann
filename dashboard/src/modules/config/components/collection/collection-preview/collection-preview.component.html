@@ -11,11 +11,13 @@
       <th>Name</th>
       <th>Type</th>
     </tr>
-    <tr *ngFor="let subCollection of configObject.collection.subCollectionsList">
-      <ng-container *ngIf="subCollection">
-        <td>{{subCollection.name}}</td>
-        <td>{{SubCollectionType[subCollection.type]}}</td>
-      </ng-container>
-    </tr>
+    @for (subCollection of configObject.collection.subCollectionsList; track subCollection) {
+      <tr>
+        @if (subCollection) {
+          <td>{{subCollection.name}}</td>
+          <td>{{SubCollectionType[subCollection.type]}}</td>
+        }
+      </tr>
+    }
   </table>
 </div>
