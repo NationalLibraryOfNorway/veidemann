@@ -50,7 +50,9 @@ import {PageLogShortcutsComponent} from './components/page-log-shortcuts/page-lo
 import {CrawlLogShortcutsComponent} from './components/crawl-log-shortcuts/crawl-log-shortcuts.component';
 import {CrawlExecutionFetchPipe} from './pipe/crawlexecution-fetch.pipe';
 import {NgxEchartsModule} from 'ngx-echarts';
-
+import * as echarts from 'echarts/core';
+import {PieChart} from 'echarts/charts'
+echarts.use([PieChart]);
 
 
 @NgModule({
@@ -101,10 +103,7 @@ import {NgxEchartsModule} from 'ngx-echarts';
   imports: [
     CommonsModule,
     ReportRoutingModule,
-    NgxEchartsModule.forRoot({
-      echarts: () => import('echarts'),
-    }),
-  ],
+    NgxEchartsModule.forRoot({ echarts })],
   exports: [
     JobNamePipe,
     SeedNamePipe
