@@ -1,18 +1,8 @@
 @use '@angular/material' as mat;
-@import './theme';
+@use './theme' as theme;
 
 @include mat.elevation-classes();
-@include mat.app-background();
-
-@include mat.all-component-typographies($veidemann-dashboard-typography);
-
-// Apply the dark theme by default
-@include mat.all-component-themes($dark-theme);
-
-// Apply the light theme only when the user prefers light themes.
-@media (prefers-color-scheme: light) {
-  @include mat.all-component-colors($light-theme);
-}
+@include theme.veidemann-theme();
 
 html, body, app-root, mat-sidenav-container {
   margin: 0;
@@ -21,11 +11,10 @@ html, body, app-root, mat-sidenav-container {
 }
 
 html, body {
-  margin: 0;
   padding: 0;
+  margin: 0;
 }
 
-// increase font size for tooltip
 .mat-mdc-tooltip {
   font-size: 0.8rem !important;
 }
@@ -34,28 +23,23 @@ html, body {
   padding: 16px;
 }
 
-.list-container__margin {
-  margin-bottom: 16px;
+.action-button.mat-mat-fab,
+.action-button-secondary.mat-mat-fab {
+  position: fixed;
+  right: 1rem;
+  z-index: 100;
 }
 
-// floating action button
-.action-button.mat-mdc-fab {
-  position: fixed;
+.action-button.mat-mat-fab {
   bottom: 1rem;
-  right: 1rem;
-  z-index: 100;
 }
 
-.action-button-secondary.mat-mdc-fab {
-  position: fixed;
+.action-button-secondary.mat-mat-fab {
   bottom: 5.5rem;
-  right: 1rem;
-  z-index: 100;
 }
 
 .content-padding {
   padding: 16px;
-  // padding: 0.5rem 1rem 1.5rem 0.8rem;
 }
 
 .container {
@@ -69,36 +53,32 @@ html, body {
 .no-scroll {
   overflow: hidden;
 }
-
-.monospace {
-  font-family: monospace;
-}
-
-.tooltip-overflow {
-  word-wrap: break-word;
-  white-space: unset;
-  overflow: hidden;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-}
-
-.formattedUri {
-  text-decoration: none;
-  color: #64a5da
-}
-
-.formattedUri:hover {
-  text-decoration: underline;
-}
-
-tr.item-row.row-disabled td a.formattedUri {
-  color: mat.m2-get-color-from-palette($veidemann-dashboard-warn);
-}
-
-tr.resource-row.row-error td a.formattedUri {
-  color: mat.m2-get-color-from-palette($veidemann-dashboard-warn);
-}
-
-.disabledJob .mat-list-item-content {
-  color: mat.m2-get-color-from-palette($veidemann-dashboard-warn)
-}
+//
+//.monospace {
+//  font-family: monospace;
+//}
+//
+//.tooltip-overflow {
+//  word-wrap: break-word;
+//  white-space: unset;
+//  overflow: hidden;
+//  overflow-wrap: break-word;
+//}
+//
+//.formattedUri {
+//  text-decoration: none;
+//  color: #64a5da;
+//}
+//
+//.formattedUri:hover {
+//  text-decoration: underline;
+//}
+//
+//tr.item-row.row-disabled td a.formattedUri,
+//tr.resource-row.row-error td a.formattedUri {
+//  color: light.m2-get-color-from-palette(light.$veidemann-dashboard-warn);
+//}
+//
+//.disabledJob .mat-list-item-content {
+//  color: light.m2-get-color-from-palette(light.$veidemann-dashboard-warn);
+//}

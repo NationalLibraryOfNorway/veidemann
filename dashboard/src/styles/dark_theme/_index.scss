@@ -1,0 +1,28 @@
+@use '@angular/material' as mat;
+
+//$veidemann-dashboard-primary-dark: mat.m2-define-palette(mat.$m2-blue-gray-palette, 800);
+//$veidemann-dashboard-accent-dark: mat.m2-define-palette(mat.$m2-orange-palette);
+//$veidemann-dashboard-warn-dark: mat.m2-define-palette(mat.$m2-red-palette);
+//
+//$veidemann-dashboard-typography-dark: mat.m2-define-typography-config(
+//  $font-family: 'Lato',
+//);
+//
+//$dark-theme: mat.m2-define-dark-theme((
+//  color: (
+//    primary: $veidemann-dashboard-primary-dark,
+//    accent: $veidemann-dashboard-accent-dark,
+//    warn: $veidemann-dashboard-warn-dark
+//  ),
+//  typography: $veidemann-dashboard-typography-dark,
+//  density: 0,
+//));
+//
+//// Eksporter symboler
+//@forward "@angular/material" show m2-get-color-from-palette;
+////@forward "." show
+////$veidemann-dashboard-primary-dark,
+////$veidemann-dashboard-accent-dark,
+////$veidemann-dashboard-warn-dark,
+////$veidemann-dashboard-typography-dark,
+////$dark-theme;

@@ -1,7 +1,7 @@
-@use 'sass:map';
+//@use 'sass:map';
 @use '@angular/material' as mat;
-@import "src/styles/theme";
-
+//@use "src/styles/theme" as theme;
+//@use "src/styles/light_theme" as light;
 table {
   width: 100%;
 }
@@ -22,14 +22,14 @@ table {
 //}
 
 // set different text color when row is disabled
-tr.item-row.row-disabled td {
-  color: mat.m2-get-color-from-palette($veidemann-dashboard-warn);
-}
+//tr.item-row.row-disabled td {
+//  color: mat.m2-get-color-from-palette(light.$veidemann-dashboard-warn);
+//}
 
-tr.item-row:hover {
-  cursor: pointer;
-  background-color: $dark-focused;
-}
+//tr.item-row:hover {
+//  cursor: pointer;
+//  background-color: theme.$dark-focused;
+//}
 
 tr.preview-row {
   height: 0 !important;
@@ -84,8 +84,8 @@ tr.item-row.row-selected td {
 }
 
 // highlight row when navigating with keyboard
-tr.item-row.highlight {
-  background-color: $dark-focused !important;
-}
-
+//tr.item-row.highlight {
+//  background-color: theme.$dark-focused !important;
+//}
+//
 

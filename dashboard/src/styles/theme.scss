@@ -1,9 +1,44 @@
 @use '@angular/material' as mat;
-@import 'light_theme.scss';
-@import 'dark_theme.scss';
+@use './theme-colors' as theme-colors;
+//@use "sass:map";
+//@use './light_theme';
+//@use './dark_theme';
 
-$dark-focused: rgba(black, 0.12);
-$highlight: mat.m2-get-color-from-palette(map-get($light-theme, background), 'hover');
+//$dark-focused: rgba(black, 0.12);
+//$highlight: mat.m2-get-color-from-palette(map.get(light_theme.$light-theme, background), 'hover');
+//
 
+@mixin highlight ($theme) {
+  $highlight: mat.get-theme-color($theme, surface-container-high);
 
+  .is-active {
+    background-color: $highlight;
+  }
+}
+
+$veidemann-typography: (
+  plain-family: Lato,
+  brand-family: Sans-Serif,
+  regular-weight: 300,
+  medium-weight: 500,
+  bold-weight: 900,
+);
+
+$veidemann-dashboard-theme: mat.define-theme((
+  color: (
+    primary: theme-colors.$primary-palette,
+    tertiary: theme-colors.$tertiary-palette,
+  ),
+  typography: $veidemann-typography,
+));
+
+@mixin veidemann-theme() {
+  html {
+    color-scheme: light dark;
+    @include mat.theme($veidemann-dashboard-theme);
+    @include highlight($veidemann-dashboard-theme);
+  }
+
+  @include mat.all-component-typographies($veidemann-typography);
+}
 

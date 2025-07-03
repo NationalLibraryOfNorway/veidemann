@@ -1,16 +1,17 @@
-@import "src/styles/theme";
+//@use "src/styles/theme" as theme;
+//@use 'sass:color';
 
 // cast shade on rows when hovered
-tr.item-row:nth-child(2n+1):hover {
-  background-color: $dark-focused;
-}
+//tr.item-row:nth-child(2n+1):hover {
+//  background-color: theme.$dark-focused;
+//}
 
 // odd numbered rows (taking preview rows into account, eg. "4n") have brighter background color
-tr.item-row:nth-child(2n+1) {
-  background-color: lighten($dark-focused, 80%);
-}
+//tr.item-row:nth-child(2n+1) {
+//  background-color: lighten(theme.$dark-focused, 80%);
+//}
 
 // preview rows have same background color as sibling
-tr.item-row:nth-child(2n+1) + tr.preview-row {
-  background-color: lighten($dark-focused, 80%);
-}
+//tr.item-row:nth-child(2n+1) + tr.preview-row {
+//  background-color: lighten(theme.$dark-focused, 80%);
+//}
