@@ -1,5 +1,5 @@
 @use '@angular/material' as mat;
-@use "src/styles/light_theme" as light;
+@use '../../../../styles/theme' as theme;
 
 table {
   width: 100%;
@@ -22,9 +22,9 @@ tr.resource-row:not(.resource-expanded-row):active {
   background: #efefef;
 }
 
-//tr.resource-row.row-error td {
-//  color: mat.m2-get-color-from-palette(light.$veidemann-dashboard-warn);;
-//}
+tr.resource-row.row-error td {
+  color: mat.get-theme-color(theme.$veidemann-dashboard-theme, error);
+}
 
 .resource-row td {
   border-bottom-width: 0;

@@ -29,27 +29,27 @@
     @if (canEdit) {
       <mat-card-actions>
         @if (showSave) {
-          <button mat-raised-button color="accent"
+          <button matButton="filled" class="btn-tertiary"
             [disabled]="!canSave"
             (click)="onSave()"
             i18n="@@commonButtonSave">SAVE
       </button>
         }
         @if (!showSave) {
-          <button mat-raised-button color="accent"
+          <button matButton="filled" class="btn-tertiary"
             [disabled]="!canUpdate"
             (click)="onUpdate()"
             i18n="@@commonButtonUpdate">UPDATE
       </button>
         }
-        <button mat-button
+        <button matButton
           (click)="onRevert()"
           [disabled]="!canRevert"
           i18n="@@commonButtonRevert">REVERT
       </button>
         <span fxFlex></span>
         @if (!showSave && canDelete) {
-          <button mat-button
+          <button matButton
             (click)="onDelete()"
             i18n="@@commonButtonDelete">DELETE
       </button>

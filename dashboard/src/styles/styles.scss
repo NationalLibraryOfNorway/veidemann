@@ -48,37 +48,31 @@ html, body {
 
 .scroll {
   overflow-y: auto;
+  padding: 1rem;
 }
 
 .no-scroll {
   overflow: hidden;
 }
-//
-//.monospace {
-//  font-family: monospace;
-//}
-//
-//.tooltip-overflow {
-//  word-wrap: break-word;
-//  white-space: unset;
-//  overflow: hidden;
-//  overflow-wrap: break-word;
-//}
-//
-//.formattedUri {
-//  text-decoration: none;
-//  color: #64a5da;
-//}
-//
-//.formattedUri:hover {
-//  text-decoration: underline;
-//}
-//
-//tr.item-row.row-disabled td a.formattedUri,
-//tr.resource-row.row-error td a.formattedUri {
-//  color: light.m2-get-color-from-palette(light.$veidemann-dashboard-warn);
-//}
-//
-//.disabledJob .mat-list-item-content {
-//  color: light.m2-get-color-from-palette(light.$veidemann-dashboard-warn);
-//}
+
+.monospace {
+  font-family: monospace;
+}
+
+.tooltip-overflow {
+  word-wrap: break-word;
+  white-space: unset;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.formattedUri {
+  text-decoration: none;
+  color: #64a5da;
+}
+
+.formattedUri:hover {
+  text-decoration: underline;
+}
+
+
