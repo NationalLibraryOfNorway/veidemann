@@ -29,9 +29,9 @@ import {MatTreeModule} from '@angular/material/tree';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTimepickerModule} from "@angular/material/timepicker";
-import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from "@angular/material/core";
-import {DayjsDateAdapter, MAT_DAYJS_DATE_ADAPTER_OPTIONS, MAT_DAYJS_DATE_FORMATS} from "../dayjs-date-adapter";
 import {MAT_FORM_FIELD_DEFAULT_OPTIONS} from "@angular/material/form-field";
+import {DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
+import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from "@angular/material/core";
 import {LocaleService} from "../core/services";
 
 const modules = [
@@ -71,14 +71,9 @@ const modules = [
   imports: modules,
   exports: modules,
   providers: [
-    {
-      provide: DateAdapter,
-      useClass: DayjsDateAdapter,
-      deps: [MAT_DATE_LOCALE, MAT_DAYJS_DATE_ADAPTER_OPTIONS]
-    },
-    {provide: MAT_DAYJS_DATE_ADAPTER_OPTIONS, useValue: {useUtc: false, strict: true}},
+    {provide: DateAdapter, useClass: DateFnsAdapter,deps: [MAT_DATE_LOCALE]},
     {provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: {floatLabel: 'auto'}},
-    {provide: MAT_DATE_FORMATS, useValue: MAT_DAYJS_DATE_FORMATS},
+    {provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS},
     {
       provide: MAT_DATE_LOCALE,
       useFactory: (localeService: LocaleService) => localeService.getLocale(),

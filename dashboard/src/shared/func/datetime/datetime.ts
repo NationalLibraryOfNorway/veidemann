@@ -1,40 +1,36 @@
 import * as timestamp_pb from 'google-protobuf/google/protobuf/timestamp_pb.js';
-
-import dayjs from 'dayjs';
-import duration, {Duration, DurationUnitType} from 'dayjs/plugin/duration';
-import utc from 'dayjs/plugin/utc';
-dayjs.extend(duration);
-dayjs.extend(utc);
+import {
+  addMilliseconds,
+  endOfDay,
+  formatDuration as formatFnsDuration,
+  isValid,
+  parseISO,
+  set,
+  startOfDay,
+  differenceInMilliseconds,
+} from 'date-fns';
+import { enUS } from 'date-fns/locale';
 
 export class DateTime {
-
-  static dateToUtc(dateString: string, startOfDay: boolean): string {
-    const date = dayjs(dateString);
-    if (date.isValid()) {
-      const utc = dayjs.utc()
-        .year(date.get('year'))
-        .month(date.get('month'))
-        .date(date.get('date'));
-      if (startOfDay) {
-        return utc.startOf('day').toISOString();
-      } else {
-        return utc.endOf('day').toISOString();
-      }
+  static dateToUtc(dateString: string, startOfDayFlag: boolean): string | null {
+    const date = parseISO(dateString);
+    if (isValid(date)) {
+      const baseDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+      return (startOfDayFlag ? startOfDay(baseDate) : endOfDay(baseDate)).toISOString();
     } else {
       return null;
     }
   }
 
-  /*
-   *  Convert endOf startOf times from backend to 12pm to avoid that datepicker sets next day based on users timezone
-   */
-  static adjustTime(timestamp) {
-    return dayjs.utc(timestamp).set('hour', 12).set('minute', 0).set('second', 0);
+  static adjustTime(timestamp: string): Date {
+    const date = parseISO(timestamp);
+    if (!isValid(date)) return null;
+    return set(new Date(date.toISOString()), { hours: 12, minutes: 0, seconds: 0 });
   }
 }
 
-export function isValidDate(d: Date) {
-  return d.toString() !== 'Invalid Date';
+export function isValidDate(d: Date): boolean {
+  return isValid(d);
 }
 
 export function fromTimestampProto(proto: any): string {
@@ -46,14 +42,12 @@ export function fromTimestampProto(proto: any): string {
   }
 }
 
-/* eslint-disable no-bitwise */
 export function toTimestampProto(timestamp: string): any {
   if (timestamp) {
     const date = new Date(timestamp);
     const timestampProto = new timestamp_pb.Timestamp();
     const seconds = date.getTime() / 1000;
     timestampProto.setSeconds(~(~seconds));
-
     return timestampProto;
   } else {
     return undefined;
@@ -61,31 +55,44 @@ export function toTimestampProto(timestamp: string): any {
 }
 
 export function durationBetweenDates(startTime: string, endTime: string): string {
-  const start = dayjs(startTime);
-  const end = endTime === '' ? dayjs() : dayjs(endTime);
-  const diff = end.diff(start)
-  return formatDuration(dayjs.duration(diff));
+  const start = parseISO(startTime);
+  const end = endTime === '' ? new Date() : parseISO(endTime);
+  const diffMs = differenceInMilliseconds(end, start);
+  return formatDuration(diffMs);
 }
 
-export function formatDuration(d: Duration): string {
-  const formatted = d.format("D[days]:H[hours]:m[min]:s[s]");
-  const trimmed = formatted
-    .replace(/(?:^|:)(0\w*(?:\[.*?\])?)+/g, "") // Remove leading `0` in each unit, but avoid leading zeros
-    .replace(/^:+|:+$/g, "")  // Remove any leading or trailing colons
-  return trimmed;
+export function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}days`);
+  if (hours > 0) parts.push(`${hours}hours`);
+  if (minutes > 0) parts.push(`${minutes}min`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+  return parts.join(':');
 }
 
-const timeUnitMap: { [key: string]: DurationUnitType } = {
-  ms: 'millisecond',
-  s: 'second',
-  m: 'minute',
-  h: 'hour',
-  d: 'day',
-  w: 'week',
-  M: 'month',
-  y: 'year',
+const timeUnitMap: { [key: string]: number } = {
+  ms: 1,
+  s: 1000,
+  m: 60000,
+  h: 3600000,
+  d: 86400000,
+  w: 604800000,
+  M: 2629800000, // average month
+  y: 31557600000, // average year
+};
+
+export function timeToDuration(time: number, unit: string): string {
+  const ms = time * (timeUnitMap[unit] || 1);
+  return formatDuration(ms);
 }
 
-export function timeToDuration(time: number, unit: string) {
-  return formatDuration(dayjs.duration(time, timeUnitMap[unit]));
+export function guessTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 }

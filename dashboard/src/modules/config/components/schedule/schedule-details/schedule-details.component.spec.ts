@@ -18,8 +18,9 @@ import {
   MatDatepickerToggleHarness
 } from '@angular/material/datepicker/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import dayjs from 'dayjs';
 import {MAT_DATE_LOCALE} from "@angular/material/core";
+import { endOfMonth, format, formatISO, startOfMonth } from 'date-fns';
+import { nb } from 'date-fns/locale';
 
 const exampleCrawlSchedule: ConfigObject = {
   id: 'configObject_id',
@@ -401,8 +402,8 @@ describe('ScheduleDetailsComponent', () => {
     fixture.detectChanges();
 
     // Calculate the expected date and timestamp reliably
-    const expectedDate = dayjs().locale('nb').startOf('month');
-    const expected = expectedDate.format('l');
+    const expectedDate = startOfMonth(new Date());
+    const expected = format(expectedDate, 'P', { locale: nb });
 
     expect(await validFrom.getValue()).toEqual(expected);
     expect(component.canUpdate).toBeTruthy();
@@ -410,7 +411,7 @@ describe('ScheduleDetailsComponent', () => {
     fixture.detectChanges();
     component.onUpdate();
 
-    const expectedTimestamp = expectedDate.format('YYYY-MM-DD') + 'T00:00:00.000Z';
+    const expectedTimestamp = formatISO(expectedDate, { representation: 'date' }) + 'T00:00:00.000Z';
     expect(update.crawlScheduleConfig.validFrom).toBe(expectedTimestamp);
   });
 
@@ -453,11 +454,11 @@ describe('ScheduleDetailsComponent', () => {
     await daysInMonth[daysInMonth.length -1].select();
     await validToToggle.closeCalendar();
     fixture.detectChanges();
-    const expectedToDate = dayjs().locale('nb').endOf('month').format('D.M.YYYY');
+    const expectedToDate = format(endOfMonth(new Date()), 'd.M.yyyy', { locale: nb });
     expect(await validTo.getValue()).toEqual(expectedToDate);
     expect(component.canUpdate).toBeTruthy();
     component.onUpdate();
-    const expectedTimestamp = dayjs().locale('nb').endOf('month').format('YYYY-MM-DD') + 'T23:59:59.999Z';
+    const expectedTimestamp = format(endOfMonth(new Date()), 'yyyy-MM-dd') + 'T23:59:59.999Z';
     expect(update.crawlScheduleConfig.validTo).toBe(expectedTimestamp);
   });
 

@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, forwardRef, Input, OnDestroy, OnInit, Output} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, forwardRef, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -8,33 +8,30 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
-import {UnitOfTime} from '../../../../shared/models/duration/unit-time.model';
-import {Duration} from '../../../../shared/models/duration/duration.model';
-import {takeUntil} from 'rxjs/operators';
-import {Subject} from 'rxjs';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
-dayjs.extend(duration);
+import { UnitOfTime } from '../../../../shared/models/duration/unit-time.model';
+import { Duration } from '../../../../shared/models/duration/duration.model';
+import { takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { NUMBER_OR_EMPTY_STRING } from '../../../../shared/validation/patterns';
 
 @Component({
-    selector: 'app-duration-picker',
-    templateUrl: './duration-picker.component.html',
-    styleUrls: ['./duration-picker.component.scss'],
-    providers: [
-        {
-            provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => DurationPickerComponent),
-            multi: true
-        },
-        {
-            provide: NG_VALIDATORS,
-            useExisting: forwardRef(() => DurationPickerComponent),
-            multi: true
-        }
-    ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+  selector: 'app-duration-picker',
+  templateUrl: './duration-picker.component.html',
+  styleUrls: ['./duration-picker.component.scss'],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => DurationPickerComponent),
+      multi: true
+    },
+    {
+      provide: NG_VALIDATORS,
+      useExisting: forwardRef(() => DurationPickerComponent),
+      multi: true
+    }
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 
 export class DurationPickerComponent implements ControlValueAccessor, OnInit, AfterViewInit, OnDestroy {
@@ -153,24 +150,29 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
   }
 
   secondsToDuration(seconds: number): Duration {
-    const s = dayjs.duration(seconds, 'seconds');
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
     return new Duration({
-      days: s.days(),
-      hours: s.hours(),
-      minutes: s.minutes(),
-      seconds: s.seconds(),
-      milliseconds: null,
+      days,
+      hours,
+      minutes,
+      seconds: secs,
     });
   }
 
   msToDuration(milliseconds: number): Duration {
-    const ms = dayjs.duration(milliseconds);
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const ms = milliseconds % 1000;
+
     return new Duration({
-      days: null,
-      hours: null,
-      minutes: ms.minutes(),
-      seconds: ms.seconds(),
-      milliseconds: ms.milliseconds(),
+      minutes,
+      seconds,
+      milliseconds: ms,
     });
   }
 
@@ -185,7 +187,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
 
   durationToSeconds(duration: Duration): number {
     const seconds = (
-        duration.days * (24 * 3600)) +
+      duration.days * (24 * 3600)) +
       (duration.hours * 3600) +
       (duration.minutes * 60) +
       duration.seconds;
@@ -200,7 +202,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
   }
 
   validate(ctrl): ValidationErrors | null {
-    return this.form.valid ? null : {invalidForm: {valid: false, message: 'Feltene kan kun inneholde positive tall'}};
+    return this.form.valid ? null : { invalidForm: { valid: false, message: 'Feltene kan kun inneholde positive tall' } };
   }
 
 

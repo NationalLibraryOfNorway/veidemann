@@ -5,9 +5,10 @@ import localeNb from '@angular/common/locales/nb';
 
 registerLocaleData(localeNb, 'nb', localeNbExtra);
 
-import('dayjs/locale/nb')
-const defaultLocale = 'en';
-const supportedLocales: string[] = ['nb', 'en'];
+import { nb } from 'date-fns/locale'
+
+const defaultLocale = 'en'
+const supportedLocales: string[] = [nb.code, 'en'];
 
 function normalizeLocale(browserLocale: string) {
   if (!browserLocale) return defaultLocale;

@@ -22,11 +22,8 @@ import {CalendarOptions, EventClickArg} from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import dayjs from 'dayjs'
-import timezone from 'dayjs/plugin/timezone'
-import isBetween from 'dayjs/plugin/isBetween'
-dayjs.extend(timezone)
-dayjs.extend(isBetween)
+import {guessTimeZone} from '../../../shared/func/datetime/datetime';
+import { endOfYear, isAfter, isBefore, parseISO, startOfYear } from 'date-fns';
 
 interface ScheduledJob {
   crawlJobName: string;
@@ -193,7 +190,7 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
       endDate: new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + 1, 1),
       utc: true,
       iterator: true,
-      tz: dayjs.tz.guess(),
+      tz: guessTimeZone(),
     };
 
     const prevOptions = {
@@ -201,7 +198,7 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
       endDate: this.viewDate,
       iterator: true,
       utc: true,
-      tz: dayjs.tz.guess(),
+      tz: guessTimeZone(),
     };
 
     const schedule = [];
@@ -316,9 +313,9 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
   }
 
   private isDateInRange(startDate: string, validRange: ScheduleValidRange) {
-    const eventStart = dayjs(startDate);
-    const validFrom = validRange.validFrom ? dayjs(validRange.validFrom) : dayjs().startOf('year');
-    const validTo = validRange.validTo ? dayjs(validRange.validTo) : dayjs().endOf('year');
-    return dayjs(eventStart).isBetween(validFrom, validTo);
+    const eventStart = parseISO(startDate);
+    const validFrom = validRange.validFrom ? parseISO(validRange.validFrom) : startOfYear(new Date());
+    const validTo = validRange.validTo ? parseISO(validRange.validTo) : endOfYear(new Date());
+    return isAfter(eventStart, validFrom) && isBefore(eventStart, validTo);
   }
 }
