@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use "src/styles/theme" as theme;
+@use "theme" as theme;
 
 table {
   width: 100%;

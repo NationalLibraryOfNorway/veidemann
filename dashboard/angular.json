@@ -48,7 +48,7 @@
             "browser": "src/main.ts",
             "stylePreprocessorOptions": {
               "includePaths": [
-                "."
+                "src/styles"
               ]
             }
           },
@@ -130,6 +130,11 @@
             "styles": [
               "src/styles.scss"
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
+              ]
+            },
             "assets": [
               "src/assets",
               {
