@@ -5,6 +5,7 @@
     "types": [
       "jasmine",
       "node",
+      "@angular/localize"
     ]
   },
   "files": [
