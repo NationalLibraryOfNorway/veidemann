@@ -37,7 +37,7 @@
               }
             ],
             "styles": [
-              "src/styles/styles.scss"
+              "src/styles.scss"
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [
@@ -128,8 +128,7 @@
             "tsConfig": "tsconfig.spec.json",
             "scripts": [],
             "styles": [
-              "src/styles/styles.scss",
-              "src/styles/theme.scss"
+              "src/styles.scss"
             ],
             "assets": [
               "src/assets",
