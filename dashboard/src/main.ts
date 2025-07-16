@@ -1,7 +1,7 @@
 /// <reference types="@angular/localize" />
 
 import {enableProdMode} from '@angular/core';
-import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
+import {platformBrowser} from '@angular/platform-browser';
 
 import {AppModule} from './app/app.module';
 import {environment} from './environments/environment';
@@ -16,7 +16,7 @@ fetch('assets/config.json')
   .then(async response => {
     const config = await response.json();
 
-    return platformBrowserDynamic([{provide: AppConfig, useValue: config}])
+    return platformBrowser([{provide: AppConfig, useValue: config}])
       .bootstrapModule(AppModule)
       .catch(err => console.error(err));
   });
