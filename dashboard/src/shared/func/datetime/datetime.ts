@@ -92,7 +92,3 @@ export function timeToDuration(time: number, unit: string): string {
   const ms = time * (timeUnitMap[unit] || 1);
   return formatDuration(ms);
 }
-
-export function guessTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-}

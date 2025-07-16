@@ -13,7 +13,7 @@ import {ConfigObject, Kind} from '../../../shared/models';
 import {ConfigApiService, ErrorService} from '../../../modules/core/services';
 import {createListRequest} from '../../../modules/config/func/query';
 import {takeUntil, toArray} from 'rxjs/operators';
-import * as cronParser from 'cron-parser';
+import { parseCronExpression } from 'cron-schedule';
 import {MatDialog} from '@angular/material/dialog';
 import {ScheduleEventDialogComponent} from '../schedule-event-dialog/schedule-event-dialog.component';
 import {colorScales} from './colors';
@@ -22,7 +22,6 @@ import {CalendarOptions, EventClickArg} from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import {guessTimeZone} from '../../../shared/func/datetime/datetime';
 import { endOfYear, isAfter, isBefore, parseISO, startOfYear } from 'date-fns';
 
 interface ScheduledJob {
@@ -183,69 +182,41 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
     return scheduledJobs;
   }
 
-  private getScheduleFromCron(cron: string, validRange: ScheduleValidRange, duration: number): { start: string, end: string }[] {
+  private getScheduleFromCron(cronExpression: string, validRange: ScheduleValidRange, durationS: number): { start: string, end: string }[] {
     const checkRange = validRange.validFrom || validRange.validTo ? true : false;
-    const options = {
-      startDate: new Date(this.viewDate.getFullYear(), this.viewDate.getMonth(), 1),
-      endDate: new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + 1, 1),
-      utc: true,
-      iterator: true,
-      tz: guessTimeZone(),
-    };
-
-    const prevOptions = {
-      startDate: new Date(this.viewDate.getFullYear(), this.viewDate.getMonth(), 1),
-      endDate: this.viewDate,
-      iterator: true,
-      utc: true,
-      tz: guessTimeZone(),
-    };
-
-    const schedule = [];
+    const cron = parseCronExpression(cronExpression);
+    const schedule: { start: string, end: string }[] = [];
     try {
-      const interval = cronParser.parseExpression(cron, options);
-      while (true) {
-        try {
-          const obj = interval.next();
+      let startDate = new Date(this.viewDate.getFullYear(), this.viewDate.getMonth(), 1);
+      let endDate = new Date(this.viewDate.getFullYear(), this.viewDate.getMonth() + 1, 1);
+      for (const nextDate of cron.getNextDatesIterator(startDate, endDate)) {
           if (checkRange) {
-            // @ts-ignore
-            if (this.isDateInRange(obj.value.toISOString(), validRange)) {
+            if (this.isDateInRange(nextDate, validRange)) {
               schedule.push({
-                // @ts-ignore
-                start: obj.value.toISOString(),
-                // @ts-ignore
-                end: this.addDuration(obj.value, duration),
+                start: nextDate.toISOString(),
+                end: this.addDurationS(nextDate, durationS).toISOString(),
               });
             }
           } else {
             schedule.push({
-              // @ts-ignore
-              start: obj.value.toISOString(),
-              // @ts-ignore
-              end: this.addDuration(obj.value, duration),
+              start: nextDate.toISOString(),
+              end: this.addDurationS(nextDate, durationS).toISOString(),
             });
           }
-        } catch (e) {
-          break;
-        }
+
       }
-    } catch (error) {
-      this.errorService.dispatch(error);
-    }
-    try {
-      const interval2 = cronParser.parseExpression(cron, prevOptions);
 
-      while (true) {
-        try {
-          const obj = interval2.prev();
+      startDate = new Date(this.viewDate.getFullYear(), this.viewDate.getMonth(), 1);
+      endDate = this.viewDate;
+      for (const prevDate of cron.getPrevDatesIterator(startDate, endDate)) {
           if (checkRange) {
             // @ts-ignore
-            if (this.isDateInRange(obj.value.toISOString(), validRange)) {
+            if (this.isDateInRange(prevDate, validRange)) {
               schedule.push({
                 // @ts-ignore
                 start: obj.value.toISOString(),
                 // @ts-ignore
-                end: this.addDuration(obj.value, duration),
+                end: this.addDuration(prevDate, duration),
               });
             }
           } else {
@@ -256,9 +227,6 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
               end: this.addDuration(obj.value, duration),
             });
           }
-        } catch (e) {
-          break;
-        }
       }
     } catch (err) {
       this.errorService.dispatch(err);
@@ -278,11 +246,9 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
     this.dialog.open(ScheduleEventDialogComponent, {data});
   }
 
-  private addDuration(timestamp: any, duration) {
-    const date = new Date(timestamp);
-    date.setSeconds(date.getSeconds() + duration);
-    return date.toISOString();
-
+  private addDurationS(date: Date, durationS: number): Date {
+    date.setSeconds(date.getSeconds() + durationS);
+    return date
   }
 
   private onToday() {
@@ -312,10 +278,9 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
     this.calendar.getApi().gotoDate(cal.date);
   }
 
-  private isDateInRange(startDate: string, validRange: ScheduleValidRange) {
-    const eventStart = parseISO(startDate);
+  private isDateInRange(startDate: Date, validRange: ScheduleValidRange) {
     const validFrom = validRange.validFrom ? parseISO(validRange.validFrom) : startOfYear(new Date());
     const validTo = validRange.validTo ? parseISO(validRange.validTo) : endOfYear(new Date());
-    return isAfter(eventStart, validFrom) && isBefore(eventStart, validTo);
+    return isAfter(startDate, validFrom) && isBefore(startDate, validTo);
   }
 }
