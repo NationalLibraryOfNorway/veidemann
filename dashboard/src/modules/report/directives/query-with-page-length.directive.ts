@@ -7,13 +7,13 @@ import {Page, Watch} from '../../../shared/func';
 
 @Directive()
 export abstract class QueryWithPageLengthDirective<S extends Page & Watch, T extends ListItem> extends QueryDirective<S, T> {
-  protected constructor(protected service: Searcher<S, T>,
+  protected constructor(protected override service: Searcher<S, T>,
                         protected baseList: BaseList<T>,
-                        protected dataSource: ListDataSource<T>) {
+                        protected override dataSource: ListDataSource<T>) {
     super(service, baseList, dataSource);
   }
 
-  onInit(): void {
+  override onInit(): void {
     this.query$.pipe(
       tap(query => {
         if (query.watch) {

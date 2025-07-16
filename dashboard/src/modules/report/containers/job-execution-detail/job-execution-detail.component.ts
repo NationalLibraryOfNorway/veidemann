@@ -19,17 +19,17 @@ import {MatDialog} from '@angular/material/dialog';
 export class JobExecutionDetailComponent extends DetailDirective<JobExecutionStatus> implements OnInit {
   readonly JobExecutionState = JobExecutionState;
 
-  protected query$: Observable<Detail>;
+  declare protected query$: Observable<Detail>;
 
-  constructor(protected route: ActivatedRoute,
-              protected service: JobExecutionService,
+  constructor(protected override route: ActivatedRoute,
+              protected override service: JobExecutionService,
               protected controllerApiService: ControllerApiService,
               protected dialog: MatDialog,
               protected snackBarService: SnackBarService) {
     super(route, service);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
 
     const item$: Observable<JobExecutionStatus> = this.query$.pipe(

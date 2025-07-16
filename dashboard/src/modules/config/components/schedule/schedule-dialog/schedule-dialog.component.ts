@@ -14,8 +14,8 @@ import {ScheduleDetailsComponent} from '..';
 })
 export class ScheduleDialogComponent extends ScheduleDetailsComponent implements OnInit {
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<ScheduleDialogComponent>) {
     super(fb, authService);

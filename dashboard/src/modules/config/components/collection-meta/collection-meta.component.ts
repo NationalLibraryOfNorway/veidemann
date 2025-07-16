@@ -19,17 +19,17 @@ import {first, map, tap} from 'rxjs/operators';
 })
 export class CollectionMetaComponent extends MetaComponent {
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected datePipe: DatePipe,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override datePipe: DatePipe,
               private cdr: ChangeDetectorRef) {
     super(fb, datePipe);
   }
 
-  protected createForm() {
+  protected override createForm() {
     super.createForm();
   }
 
-  protected updateForm(meta: Meta) {
+  protected override updateForm(meta: Meta) {
     this.name.clearValidators();
     this.name.setValidators(
       Validators.compose([
@@ -41,7 +41,7 @@ export class CollectionMetaComponent extends MetaComponent {
     super.updateForm(meta);
   }
 
-  validate(control: AbstractControl): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
+  override validate(control: AbstractControl): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
     return (this.name.pending
         ? this.name.statusChanges.pipe(
           map(state => state === 'VALID' ? null : this.name.errors),

@@ -14,7 +14,7 @@ import {ConfigObject} from '../../../../../shared/models/config';
 })
 export class RoleMappingDialogComponent extends RoleMappingDetailsComponent implements OnInit {
 
-  constructor(protected fb: UntypedFormBuilder,
+  constructor(protected override fb: UntypedFormBuilder,
               protected authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<RoleMappingDialogComponent>) {

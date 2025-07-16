@@ -12,12 +12,12 @@
   }
   @if (fileSize.hasError('invalidUnit')) {
     <mat-error i18n="@@fileSizeInputInvalidUnitError">
-    {{fileSize.errors.invalidUnit.unit}} doesn't appear to be a valid unit
+    {{fileSize.errors['invalidUnit'].unit}} doesn't appear to be a valid unit
   </mat-error>
   }
   @if (fileSize.hasError('invalidSize')) {
     <mat-error i18n="@@fileSizeInputInvalidSizeError">
-    Can't interpret {{fileSize.errors.invalidSize.size}}
+    Can't interpret {{fileSize.errors['invalidSize'].size}}
   </mat-error>
   }
 </form>

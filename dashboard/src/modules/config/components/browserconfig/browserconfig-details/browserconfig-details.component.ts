@@ -99,7 +99,7 @@ export class BrowserConfigDetailsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       if (!this.configObject) {
         this.form.reset();
       } else {

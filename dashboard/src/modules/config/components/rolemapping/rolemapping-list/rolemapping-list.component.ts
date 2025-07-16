@@ -19,7 +19,7 @@ import {BASE_LIST} from '../../../../../shared/directives';
 })
 
 export class RoleMappingListComponent extends BaseListComponent<ConfigObject> {
-  displayedColumns = ['select', 'email', 'group', 'role'];
+  override displayedColumns = ['select', 'email', 'group', 'role'];
 
   constructor() {
     super();

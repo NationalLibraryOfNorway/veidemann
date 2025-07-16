@@ -19,11 +19,11 @@ export class JobExecutionStatusQueryComponent extends QueryComponent<JobExecutio
   @Input()
   crawlJobOptions: ConfigObject[];
 
-  constructor(protected fb: UntypedFormBuilder) {
+  constructor(protected override fb: UntypedFormBuilder) {
     super(fb);
   }
 
-  protected createForm(): void {
+  protected override createForm(): void {
     this.form = this.fb.group({
       stateList: null,
       jobId: '',

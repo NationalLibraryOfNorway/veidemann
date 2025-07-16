@@ -11,11 +11,11 @@ import {QueryComponent} from '../../../commons/components';
 })
 export class CrawlLogQueryComponent extends QueryComponent<CrawlLogQuery> {
 
-  constructor(protected fb: UntypedFormBuilder) {
+  constructor(protected override fb: UntypedFormBuilder) {
     super(fb);
   }
 
-  protected createForm(): void {
+  protected override createForm(): void {
     this.form = this.fb.group({
       jobExecutionId: '',
       executionId: '',

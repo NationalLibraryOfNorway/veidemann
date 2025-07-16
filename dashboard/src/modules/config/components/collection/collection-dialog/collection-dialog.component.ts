@@ -15,8 +15,8 @@ import {ConfigObject} from '../../../../../shared/models/config';
 })
 export class CollectionDialogComponent extends CollectionDetailsComponent implements OnInit {
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<CollectionDialogComponent>) {
     super(fb, authService);

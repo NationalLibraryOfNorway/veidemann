@@ -29,7 +29,7 @@ export class CrawlExecutionPreviewComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.crawlExecutionStatus) {
+    if (changes['crawlExecutionStatus']) {
       if (this.crawlExecutionStatus) {
         this.setDocumentsChartOptions();
       }

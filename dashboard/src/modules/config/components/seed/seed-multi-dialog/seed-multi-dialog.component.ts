@@ -21,8 +21,8 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<SeedMultiDialogComponent>) {
     super(fb, authService);
@@ -44,7 +44,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     return this.form.get('commonJobRefListId');
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
@@ -52,7 +52,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     );
   }
 
-  get canRevert(): boolean {
+  override get canRevert(): boolean {
     return this.form.dirty || this.shouldAddLabel !== undefined || this.shouldAddCrawlJob !== undefined;
   }
 
@@ -60,7 +60,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     this.updateForm();
   }
 
-  onRevert() {
+  override onRevert() {
     this.shouldAddCrawlJob = this.shouldAddLabel = undefined;
     this.labelMulti.onRevert();
     super.onRevert();
@@ -71,7 +71,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     this.updateJobRefListId.patchValue([]);
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: [[]],
       disabled: {value: '', disabled: true},
@@ -80,7 +80,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     if (this.configObject.seed.disabled !== undefined) {
       this.disabled.enable();
     } else {
@@ -109,7 +109,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
   /**
    * NB: Disabled values in form must be copied from model and not the view model (form.value)
    */
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const formModel = this.form.value;
     const pathList: string[] = [];
     const updateTemplate = new ConfigObject({kind: Kind.SEED});

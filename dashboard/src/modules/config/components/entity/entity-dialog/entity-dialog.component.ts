@@ -13,8 +13,8 @@ import {ConfigObject} from '../../../../../shared/models/config';
     standalone: false
 })
 export class EntityDialogComponent extends EntityDetailsComponent implements OnInit {
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<EntityDialogComponent>) {
     super(fb, authService);

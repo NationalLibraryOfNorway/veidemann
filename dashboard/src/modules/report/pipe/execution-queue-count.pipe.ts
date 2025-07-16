@@ -1,6 +1,6 @@
 import {Pipe, PipeTransform} from '@angular/core';
 import {ControllerApiService} from '../../core/services';
-import {Observable} from 'rxjs';
+import {Observable, of} from 'rxjs';
 import {ExecutionId} from '../../../shared/models/controller/controller.model';
 import {CrawlExecutionState, CrawlExecutionStatus} from '../../../shared/models/report';
 import {first, map} from 'rxjs/operators';
@@ -21,5 +21,6 @@ export class ExecutionQueueCountPipe implements PipeTransform {
         first(),
         map(countResponse => countResponse.count));
     }
+    return of(0);
   }
 }

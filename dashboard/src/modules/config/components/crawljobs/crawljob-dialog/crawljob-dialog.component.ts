@@ -14,8 +14,8 @@ import {BrowserScriptType, ConfigObject} from '../../../../../shared/models/conf
 })
 export class CrawlJobDialogComponent extends CrawlJobDetailsComponent implements OnInit {
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<CrawlJobDialogComponent>) {
     super(fb, authService);

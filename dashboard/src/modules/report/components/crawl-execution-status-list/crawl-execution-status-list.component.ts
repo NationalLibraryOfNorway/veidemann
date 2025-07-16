@@ -32,14 +32,14 @@ export class CrawlExecutionStatusListComponent extends BaseListComponent<CrawlEx
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly crawlExecutionStates = crawlExecutionStates;
 
-  multiSelect = false;
+  override multiSelect = false;
 
   @Input()
-  sortActive = 'startTime';
+  override sortActive = 'startTime';
 
-  displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'queueCount', 'startTime', 'endTime', 'extra', 'action'];
+  override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'queueCount', 'startTime', 'endTime', 'extra', 'action'];
 
-  constructor(protected cdr: ChangeDetectorRef) {
+  constructor(protected override cdr: ChangeDetectorRef) {
     super(cdr);
   }
 }

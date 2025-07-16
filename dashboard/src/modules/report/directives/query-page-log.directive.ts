@@ -11,12 +11,12 @@ import {distinctUntilChanged, filter, map, switchMap, takeUntil} from 'rxjs/oper
     standalone: false
 })
 export class QueryPageLogDirective extends QueryDirective<PageLogQuery, PageLog> {
-  constructor(protected service: PageLogService,
+  constructor(protected override service: PageLogService,
               @Inject(BASE_LIST) protected baseList: BaseList<PageLog>) {
     super(service, baseList, new ListDataSource<PageLog>());
   }
 
-  onInit(): void {
+  override onInit(): void {
     super.onInit();
 
     // fake counting

@@ -18,7 +18,7 @@ import {MatDialog} from '@angular/material/dialog';
 })
 export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutionStatus> implements OnInit {
 
-  constructor(protected route: ActivatedRoute,
+  constructor(protected override route: ActivatedRoute,
               protected crawlExecutionService: CrawlExecutionService,
               protected controllerApiService: ControllerApiService,
               protected dialog: MatDialog,
@@ -26,7 +26,7 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
     super(route, crawlExecutionService);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
 
     const item$: Observable<CrawlExecutionStatus> = this.query$.pipe(

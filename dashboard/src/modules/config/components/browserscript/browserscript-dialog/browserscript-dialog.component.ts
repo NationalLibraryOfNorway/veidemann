@@ -15,12 +15,12 @@ import {MonacoEditorLoaderService} from '@materia-ui/ngx-monaco-editor';
 })
 export class BrowserScriptDialogComponent extends BrowserScriptDetailsComponent implements OnInit {
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<BrowserScriptDialogComponent>,
-              protected cdr: ChangeDetectorRef,
-              protected mls: MonacoEditorLoaderService) {
+              protected override cdr: ChangeDetectorRef,
+              protected override mls: MonacoEditorLoaderService) {
     super(fb, authService, cdr, mls);
     this.createForm();
     this.configObject = this.data.configObject;

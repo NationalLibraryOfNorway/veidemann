@@ -39,7 +39,7 @@ export abstract class QueryComponent<T> implements AfterViewInit, OnChanges, OnD
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.query) {
+    if (changes['query']) {
       if (this.query) {
         this.updateForm();
       } else {

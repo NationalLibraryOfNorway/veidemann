@@ -1,5 +1,5 @@
 import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {CrawlExecutionState, ExtraStatusCodes, JobExecutionState, JobExecutionStatus} from 'src/shared/models';
+import {CrawlExecutionState, ExtraStatusCodes, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates} from '../../../../shared/func';
 import {Router} from '@angular/router';
 import {JobexecutionTotalQueuePipe} from '../../pipe';
@@ -56,7 +56,7 @@ export class JobExecutionPreviewComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.jobExecutionStatus) {
+    if (changes['jobExecutionStatus']) {
       if (this.jobExecutionStatus) {
         this.setDocumentsChartOptions();
         this.setExecutionStatesChartOptions();

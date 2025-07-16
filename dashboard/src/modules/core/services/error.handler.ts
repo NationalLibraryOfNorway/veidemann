@@ -16,7 +16,7 @@ export class ApplicationErrorHandler extends ErrorHandler {
     super();
   }
 
-  handleError(error: any): void {
+  override handleError(error: any): void {
     console.warn('error handler', error);
     if (error.code) {
       this.handleGrpcError(error);

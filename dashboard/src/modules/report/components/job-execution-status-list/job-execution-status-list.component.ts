@@ -34,14 +34,14 @@ export class JobExecutionStatusListComponent extends BaseListComponent<JobExecut
   expandedJobExecutionStatus: JobExecutionStatus | null;
 
   @Input()
-  multiSelect = false;
+  override multiSelect = false;
 
   @Input()
-  sortActive = 'startTime';
+  override sortActive = 'startTime';
 
-  displayedColumns: string[] = ['jobId', 'state', 'desiredState', 'startTime', 'endTime', 'extra', 'action'];
+  override displayedColumns: string[] = ['jobId', 'state', 'desiredState', 'startTime', 'endTime', 'extra', 'action'];
 
-  constructor(protected cdr: ChangeDetectorRef) {
+  constructor(protected override cdr: ChangeDetectorRef) {
     super(cdr);
   }
 }

@@ -14,12 +14,12 @@ import {map, mergeMap} from 'rxjs/operators';
 })
 export class PageLogDetailComponent extends DetailDirective<PageLog> implements OnInit {
 
-  constructor(protected route: ActivatedRoute,
-              protected service: PageLogService) {
+  constructor(protected override route: ActivatedRoute,
+              protected override service: PageLogService) {
     super(route, service);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
 
     const item$: Observable<PageLog> = this.query$.pipe(

@@ -50,7 +50,7 @@ export class ConfigurationsComponent implements OnInit, OnDestroy, AfterViewInit
   sortActive$: Observable<string>;
 
   // checked (selected by checkbox) configObjects
-  private selectedConfigs: ConfigObject[];
+  protected selectedConfigs: ConfigObject[];
 
   isAllSelected = false;
 

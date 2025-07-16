@@ -34,11 +34,11 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
 
   @ViewChild('search') searchElement: ElementRef;
 
-  constructor(protected fb: UntypedFormBuilder) {
+  constructor(protected override fb: UntypedFormBuilder) {
     super(fb);
   }
 
-  ngAfterViewInit() {
+  override ngAfterViewInit() {
     super.ngAfterViewInit();
     this.shortcuts.push(
       {
@@ -53,7 +53,7 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
     );
   }
 
-  onQuery(query: ConfigQuery) {
+  override onQuery(query: ConfigQuery) {
     super.onQuery({term: this.term, ...query});
   }
 
@@ -61,7 +61,7 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
     this.onQuery({...this.form.value, term});
   }
 
-  protected createForm(): void {
+  protected override createForm(): void {
     this.form = this.fb.group({
       entityId: '',
       scheduleId: '',
@@ -75,7 +75,7 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
     });
   }
 
-  protected updateForm(): void {
+  protected override updateForm(): void {
     this.term = this.query.term;
     super.updateForm();
   }

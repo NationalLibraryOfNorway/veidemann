@@ -11,13 +11,13 @@ import {JobExecutionService, JobExecutionStatusQuery} from '../services';
 })
 export class QueryJobExecutionStatusDirective extends QueryWithPageLengthDirective<JobExecutionStatusQuery, JobExecutionStatus> {
 
-  constructor(protected service: JobExecutionService,
-              @Host() @Inject(BASE_LIST) protected baseList: BaseList<JobExecutionStatus>,
-              protected dataSource: ListDataSource<JobExecutionStatus>) {
+  constructor(protected override service: JobExecutionService,
+              @Host() @Inject(BASE_LIST) protected override baseList: BaseList<JobExecutionStatus>,
+              protected override dataSource: ListDataSource<JobExecutionStatus>) {
     super(service, baseList, dataSource);
   }
 
-  protected onQuery() {
+  protected override onQuery() {
     if (this.query.watch) {
       this.subject.next(this.query);
     } else {

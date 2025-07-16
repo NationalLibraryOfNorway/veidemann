@@ -14,12 +14,12 @@ import {map, mergeMap} from 'rxjs/operators';
 })
 export class CrawlLogDetailComponent extends DetailDirective<CrawlLog> implements OnInit {
 
-  constructor(protected route: ActivatedRoute,
+  constructor(protected override route: ActivatedRoute,
               protected crawlLogService: CrawlLogService) {
     super(route, crawlLogService);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
 
     const item$: Observable<CrawlLog> = this.query$.pipe(

@@ -237,7 +237,7 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
 
   private onEventClick(event: EventClickArg) {
     const data = {
-      id: event.event.extendedProps.crawlJobId,
+      id: event.event.extendedProps['crawlJobId'],
       start: event.event.startStr,
       end: event.event.endStr,
       name: event.event.title

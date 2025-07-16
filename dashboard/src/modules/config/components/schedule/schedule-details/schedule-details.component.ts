@@ -90,7 +90,7 @@ export class ScheduleDetailsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       if (this.configObject) {
         this.updateForm();
       } else {

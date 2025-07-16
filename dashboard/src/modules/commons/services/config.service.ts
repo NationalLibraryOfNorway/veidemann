@@ -274,5 +274,6 @@ export class ConfigService
       }
       return this.configApiService.getScriptAnnotations(request);
     }
+    throw new Error('Job ID is required to get script annotations');
   }
 }

@@ -98,7 +98,7 @@
           (init)="initEditor($event)">
         </ngx-monaco-editor>
         @if (!script.valid) {
-          <mat-error>{{script.errors?.monaco?.value}}</mat-error>
+          <mat-error>{{script?.errors['monaco']?.value}}</mat-error>
         }
       </div>
     </mat-card-content>

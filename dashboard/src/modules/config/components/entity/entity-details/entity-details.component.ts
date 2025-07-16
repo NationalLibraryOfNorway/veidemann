@@ -60,7 +60,7 @@ export class EntityDetailsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       if (this.configObject) {
         this.updateForm();
       } else {

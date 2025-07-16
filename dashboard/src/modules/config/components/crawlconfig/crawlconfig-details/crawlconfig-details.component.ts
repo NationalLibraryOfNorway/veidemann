@@ -96,7 +96,7 @@ export class CrawlConfigDetailsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       if (!this.configObject) {
         this.form.reset();
       } else {

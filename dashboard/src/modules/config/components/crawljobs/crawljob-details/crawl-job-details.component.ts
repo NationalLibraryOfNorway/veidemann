@@ -105,7 +105,7 @@ export class CrawlJobDetailsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       this.form.reset();
       if (this.configObject) {
         this.updateForm();

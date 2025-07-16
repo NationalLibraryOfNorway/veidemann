@@ -9,7 +9,7 @@ import {
   DECIMAL_NUMBER_OR_EMPTY_STRING,
   NUMBER_OR_EMPTY_STRING
 } from '../../../../../shared/validation/patterns';
-import {UnitOfTime} from 'src/shared/models/duration/unit-time.model';
+import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 
 @Component({
     selector: 'app-crawlhostgroupconfig-details',
@@ -110,7 +110,7 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
 
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       if (!this.configObject) {
         console.log('changes cfg obj: ', this.configObject);
         this.form.reset();

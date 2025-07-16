@@ -22,8 +22,8 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<PolitenessConfigMultiDialogComponent>) {
     super(fb, authService);
@@ -32,7 +32,7 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
     this.allSelected = this.data.allSelected;
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
@@ -40,7 +40,7 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
     );
   }
 
-  get canRevert(): boolean {
+  override get canRevert(): boolean {
     return this.form.dirty
       || (this.robotsPolicy.enabled && this.configObject.politenessConfig.robotsPolicy === undefined)
       || (this.shouldAddLabel !== undefined);
@@ -67,13 +67,13 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
     this.shouldAddLabel = add;
   }
 
-  onRevert() {
+  override onRevert() {
     this.shouldAddLabel = undefined;
     this.labelMulti.onRevert();
     super.onRevert();
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: {value: [], disabled: false},
       robotsPolicy: '',
@@ -83,7 +83,7 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     if (this.configObject.politenessConfig.useHostname !== null && !this.allSelected) {
       this.useHostname.enable();
     } else {
@@ -107,7 +107,7 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
     }
   }
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const pathList: string[] = [];
 
     const formModel = this.form.value;

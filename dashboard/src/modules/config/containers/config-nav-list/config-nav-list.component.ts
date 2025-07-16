@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {ConfigOptions, ConfigPath} from '../../func';
-import {Kind} from 'src/shared/models';
+import {Kind} from '../../../../shared/models';
 import {AuthService} from '../../../core/services/auth';
 import {NavigationListComponent} from '../../../commons/components';
 import {ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
@@ -28,7 +28,7 @@ export class ConfigNavListComponent extends NavigationListComponent {
   @Input()
   options: ConfigOptions;
 
-  constructor(protected authService: AuthService, private router: Router, private abilityService: AbilityService<any>) {
+  constructor(protected override authService: AuthService, private router: Router, private abilityService: AbilityService<any>) {
     super(authService);
     this.ability$ = this.abilityService.ability$;
   }

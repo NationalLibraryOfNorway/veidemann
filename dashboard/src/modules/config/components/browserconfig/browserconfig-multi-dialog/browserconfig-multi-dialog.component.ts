@@ -17,7 +17,7 @@ import {LabelMultiComponent} from '../../label/label-multi/label-multi.component
 })
 
 export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsComponent implements OnInit {
-  readonly Kind = Kind;
+  override readonly Kind = Kind;
 
   allSelected = false;
 
@@ -27,8 +27,8 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<BrowserConfigMultiDialogComponent>) {
     super(fb, authService);
@@ -37,7 +37,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
     this.allSelected = this.data.allSelected;
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
       || ((this.shouldAddBrowserScript !== undefined && this.scriptRefIdList.value.length)
@@ -46,7 +46,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
       ));
   }
 
-  get canRevert(): boolean {
+  override get canRevert(): boolean {
     return this.form.dirty
       || (this.shouldAddLabel !== undefined)
       || (this.shouldAddBrowserScript !== undefined)
@@ -75,7 +75,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
     this.scriptRefIdList.patchValue([]);
   }
 
-  onRevert() {
+  override onRevert() {
     super.onRevert();
     this.shouldAddLabel = undefined;
     this.shouldAddBrowserScript = undefined;
@@ -90,7 +90,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
     this.shouldAddLabel = add;
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: {value: [], disabled: false},
       userAgent: '',
@@ -105,7 +105,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
       userAgent: this.configObject.browserConfig.userAgent || '',
@@ -126,7 +126,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
   }
 
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const pathList: string[] = [];
     const formModel = this.form.value;
 

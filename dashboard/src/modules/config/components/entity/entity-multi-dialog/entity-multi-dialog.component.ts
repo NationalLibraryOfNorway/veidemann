@@ -19,8 +19,8 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<EntityMultiDialogComponent>) {
     super(fb, authService);
@@ -32,13 +32,13 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
     return this.form.get('labelList');
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty || (this.shouldAddLabel !== undefined && this.labelList.value.length)
     );
   }
 
-  get canRevert(): boolean {
+  override get canRevert(): boolean {
     return this.form.dirty || this.shouldAddLabel !== undefined;
   }
 
@@ -46,13 +46,13 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
     this.updateForm();
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: {value: [], disabled: false}
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     this.form.setValue({
       labelList: this.configObject.meta.labelList
     });
@@ -63,7 +63,7 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
     }
   }
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const pathList: string[] = [];
 
     const formModel = this.form.value;
@@ -84,7 +84,7 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
     return {updateTemplate, pathList};
   }
 
-  onRevert() {
+  override onRevert() {
     this.shouldAddLabel = undefined;
     this.labelMulti.onRevert();
     super.onRevert();

@@ -60,7 +60,7 @@ export class ConfigComponent implements OnInit {
     );
 
     this.options$ = this.route.data.pipe(
-      map(data => data.options),
+      map(data => data['options']),
       tap(options => this.optionsService.next(options))
     );
   }

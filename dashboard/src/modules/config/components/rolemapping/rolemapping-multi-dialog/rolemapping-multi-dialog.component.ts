@@ -16,7 +16,7 @@ export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent
 
   allSelected = false;
 
-  constructor(protected fb: UntypedFormBuilder,
+  constructor(protected override fb: UntypedFormBuilder,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<RoleMappingMultiDialogComponent>) {
     super(fb);
@@ -28,13 +28,13 @@ export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent
     this.updateForm();
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       roleList: [[], [Validators.required, CustomValidators.nonEmpty]]
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     this.form.patchValue({
       roleList: this.configObject.roleMapping.roleList,
     });
@@ -42,7 +42,7 @@ export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent
     this.form.markAsUntouched();
   }
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const formModel = this.form.value;
     const pathList: string[] = [];
 

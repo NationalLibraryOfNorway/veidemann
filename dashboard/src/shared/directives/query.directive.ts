@@ -37,7 +37,7 @@ export abstract class QueryDirective<S, T extends ListItem> implements OnChanges
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.query && this.query) {
+    if (changes['query'] && this.query) {
       this.onQuery();
     }
   }

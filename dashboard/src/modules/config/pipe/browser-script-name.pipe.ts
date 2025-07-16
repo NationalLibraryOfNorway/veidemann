@@ -25,6 +25,7 @@ export class BrowserScriptNamePipe implements PipeTransform {
           const found = options.scopeScripts.find(_ => _.id === id);
           return found ? found.meta.name : '';
         }
+        return '';
       }));
   }
 }

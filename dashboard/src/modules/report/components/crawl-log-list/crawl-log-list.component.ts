@@ -32,15 +32,15 @@ import {animate, state, style, transition, trigger} from '@angular/animations';
 export class CrawlLogListComponent extends BaseListComponent<CrawlLog> {
 
   @Input()
-  multiSelect = false;
+  override multiSelect = false;
 
   @Input()
-  sortActive = 'timestamp';
+  override sortActive = 'timestamp';
 
-  displayedColumns: string[] =
+  override displayedColumns: string[] =
     ['requestedUri', 'timestamp', 'statusCode', 'discoveryPath', 'contentType', 'extra', 'action'];
 
-  constructor(protected cdr: ChangeDetectorRef) {
+  constructor(protected override cdr: ChangeDetectorRef) {
     super(cdr);
   }
 }

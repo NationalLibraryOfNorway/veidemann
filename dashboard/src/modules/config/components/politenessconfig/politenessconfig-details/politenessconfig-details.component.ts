@@ -85,7 +85,7 @@ export class PolitenessConfigDetailsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       if (this.configObject) {
         this.updateForm();
       } else {

@@ -13,7 +13,7 @@ import {AbilityService} from '@casl/angular';
 export class ReportNavigationListComponent extends NavigationListComponent {
   readonly ability$: Observable<any>;
 
-  constructor(protected authService: AuthService,
+  constructor(protected override authService: AuthService,
               private abilityService: AbilityService<any>) {
     super(authService);
     this.ability$ = this.abilityService.ability$;

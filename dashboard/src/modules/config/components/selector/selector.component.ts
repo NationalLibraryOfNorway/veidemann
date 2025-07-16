@@ -16,21 +16,21 @@ import {LabelComponent} from '../label/label.component';
 export class SelectorComponent extends LabelComponent implements OnInit {
 
   @Input()
-  placeholderText = 'New selector...';
-  labelText = 'Script selector';
+  override placeholderText = 'New selector...';
+  override labelText = 'Script selector';
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected cdr: ChangeDetectorRef,
-              protected labelService: LabelService) {
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override cdr: ChangeDetectorRef,
+              protected override labelService: LabelService) {
     super(fb, cdr, labelService);
   }
 
   // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
-  ngOnInit(): void {
+  override ngOnInit(): void {
     // prevent fetching label by not calling super();
   }
 
-  protected save(value: string): void {
+  protected override save(value: string): void {
     let key = '';
     value = value.trim();
 
@@ -54,7 +54,7 @@ export class SelectorComponent extends LabelComponent implements OnInit {
     this.labels.push(new Label({key, value}));
   }
 
-  protected createForm(): void {
+  protected override createForm(): void {
     this.labelForm = this.fb.group({
       key: '',
       value: ''

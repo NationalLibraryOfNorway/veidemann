@@ -11,11 +11,11 @@ import {UntypedFormBuilder} from '@angular/forms';
 })
 export class PageLogQueryComponent extends QueryComponent<PageLogQuery> {
 
-  constructor(protected fb: UntypedFormBuilder) {
+  constructor(protected override fb: UntypedFormBuilder) {
     super(fb);
   }
 
-  protected createForm(): void {
+  protected override createForm(): void {
     this.form = this.fb.group({
       jobExecutionId: '',
       executionId: '',

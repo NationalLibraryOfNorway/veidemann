@@ -54,7 +54,7 @@ export class PageLogStatusComponent implements OnChanges {
   hasChild = (_: number, node: UriFlatNode) => node.expandable;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.pageLog && this.pageLog && this.pageLog.outlink) {
+    if (changes['pageLog'] && this.pageLog && this.pageLog.outlink) {
       this.treeDataSource.data = this.groupOutlinks(this.pageLog.outlink);
       this.dataSource = new MatTableDataSource<PageLog>([this.pageLog]);
     }

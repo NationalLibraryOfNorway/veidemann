@@ -21,8 +21,8 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<CrawlJobMultiDialogComponent>) {
     super(fb, authService);
@@ -37,14 +37,14 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     return this.form.get('labelList');
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
     );
   }
 
-  get canRevert(): boolean {
+  override get canRevert(): boolean {
     return this.form.dirty
       || this.shouldAddLabel !== undefined;
   }
@@ -57,7 +57,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     return this.prepareSave();
   }
 
-  onRevert() {
+  override onRevert() {
     this.shouldAddLabel = undefined;
     this.labelMulti.onRevert();
     super.onRevert();
@@ -70,7 +70,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     this.shouldAddLabel = add;
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: {value: [], disabled: false},
       scheduleRef: this.fb.group({
@@ -93,7 +93,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     if (this.configObject.crawlJob.disabled !== undefined) {
       this.disabled.enable();
     } else {
@@ -122,7 +122,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     }
   }
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const pathList: string[] = [];
 
     const formModel = this.form.value;

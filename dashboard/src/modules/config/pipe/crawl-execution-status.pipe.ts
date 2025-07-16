@@ -20,6 +20,8 @@ export class CrawlExecutionStatusPipe implements PipeTransform {
       return this.reportService.getLastSeedStatus(configObject.id, pageSize);
     } else if (configObject && !pageSize) {
       return this.reportService.getLastSeedStatus(configObject.id);
+    } else {
+      throw new Error('Invalid configObject or pageSize');
     }
   }
 }

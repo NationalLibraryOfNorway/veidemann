@@ -41,7 +41,7 @@ export class CrawlHostGroupConfigIpValidation {
    * if the input address is ipv6 the groups gets split on ':'
    * for ipv4 groups are split on '.'
    */
-  static isInRange(ipFrom: string, ipTo: string, isIpv6: boolean) {
+  static isInRange(ipFrom: string, ipTo: string, isIpv6: boolean): boolean {
 
     let ipFromArray;
     let ipToArray;
@@ -57,6 +57,8 @@ export class CrawlHostGroupConfigIpValidation {
       ipToArray = ipTo.split('.');
       return ipFromArray[0] === ipToArray[0];
     }
+
+    return false;
   }
 
   /**
@@ -106,6 +108,8 @@ export class CrawlHostGroupConfigIpValidation {
         }
       }
     }
+
+    return false;
   }
 
   static getIpVersion(ip: string): string {
@@ -115,5 +119,7 @@ export class CrawlHostGroupConfigIpValidation {
     if (ip.includes('.')) {
       return 'v4';
     }
+
+    throw new Error('Invalid IP address format');
   }
 }

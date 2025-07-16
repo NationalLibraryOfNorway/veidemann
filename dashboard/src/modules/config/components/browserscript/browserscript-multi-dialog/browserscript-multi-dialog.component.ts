@@ -21,12 +21,12 @@ export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsCompo
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<BrowserScriptMultiDialogComponent>,
-              protected cdr: ChangeDetectorRef,
-              protected mls: MonacoEditorLoaderService) {
+              protected override cdr: ChangeDetectorRef,
+              protected override mls: MonacoEditorLoaderService) {
     super(fb, authService, cdr, mls);
     this.configObject = this.data.configObject;
     this.allSelected = this.data.allSelected;
@@ -36,7 +36,7 @@ export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsCompo
     return this.form.get('labelList');
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (this.form.dirty || (this.shouldAddLabel !== undefined && this.labelList.value.length));
   }
 
@@ -55,19 +55,19 @@ export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsCompo
     this.shouldAddLabel = add;
   }
 
-  onRevert() {
+  override onRevert() {
     this.shouldAddLabel = undefined;
     this.labelMulti.onRevert();
     super.onRevert();
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: {value: [], disabled: false}
     });
   }
 
-  protected updateForm(): void {
+  protected override updateForm(): void {
     this.form.setValue({
       labelList: this.configObject.meta.labelList
     });
@@ -78,7 +78,7 @@ export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsCompo
     }
   }
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const formModel = this.form.value;
     const pathList: string[] = [];
     const updateTemplate = new ConfigObject({

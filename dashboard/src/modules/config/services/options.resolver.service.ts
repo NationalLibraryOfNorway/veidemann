@@ -24,7 +24,7 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
   }
 
   resolve(route: ActivatedRouteSnapshot): Observable<ConfigOptions> | Promise<ConfigOptions> | ConfigOptions {
-    const kind: Kind = ConfigPath[route.paramMap.get('kind')] || route.data.kind;
+    const kind: Kind = ConfigPath[route.paramMap.get('kind')] || route.data['kind'];
 
     switch (kind) {
       case Kind.CRAWLJOB:

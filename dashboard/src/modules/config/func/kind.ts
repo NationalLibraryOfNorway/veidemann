@@ -63,6 +63,8 @@ export function dialogByKind(kind: Kind): ComponentType<any> {
       return RoleMappingDialogComponent;
     case Kind.COLLECTION:
       return CollectionDialogComponent;
+    default:
+      throw new Error(`No dialog found for kind: ${kind}`);
   }
 }
 
@@ -88,6 +90,8 @@ export function multiDialogByKind(kind: Kind): ComponentType<any> {
       return CrawlHostGroupConfigMultiDialogComponent;
     case Kind.ROLEMAPPING:
       return RoleMappingMultiDialogComponent;
+    default:
+      throw new Error(`No multi dialog found for kind: ${kind}`);
   }
 }
 

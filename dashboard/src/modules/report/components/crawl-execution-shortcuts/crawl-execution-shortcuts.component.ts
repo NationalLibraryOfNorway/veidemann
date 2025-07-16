@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CrawlExecutionState, CrawlExecutionStatus, Kind} from 'src/shared/models';
+import {CrawlExecutionState, CrawlExecutionStatus, Kind} from '../../../../shared/models';
 import {Observable, Subject} from 'rxjs';
 import {AbilityService} from '@casl/angular';
 

@@ -11,12 +11,12 @@ import {map, switchMap, takeUntil} from 'rxjs/operators';
     standalone: false
 })
 export class QueryCrawlLogDirective extends QueryDirective<CrawlLogQuery, CrawlLog> {
-  constructor(protected service: CrawlLogService,
+  constructor(protected override service: CrawlLogService,
               @Inject(BASE_LIST) protected baseList: BaseList<CrawlLog>) {
     super(service, baseList, new ListDataSource<CrawlLog>());
   }
 
-  onInit(): void {
+  override onInit(): void {
     super.onInit();
 
     // fake counting

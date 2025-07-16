@@ -107,7 +107,7 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.configObject) {
+    if (changes['configObject']) {
       this.entityIdReadonly = true;
       if (this.configObject) {
         this.updateForm();

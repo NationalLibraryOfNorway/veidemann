@@ -29,11 +29,11 @@ import {animate, state, style, transition, trigger} from '@angular/animations';
 })
 
 export class ConfigListComponent extends BaseListComponent<ConfigObject> {
-  constructor(protected cdr: ChangeDetectorRef) {
+  constructor(protected override cdr: ChangeDetectorRef) {
     super(cdr);
   }
 
-  isDisabled(config: ConfigObject): boolean {
+  override isDisabled(config: ConfigObject): boolean {
     return config?.crawlJob?.disabled || config?.seed?.disabled;
   }
 }

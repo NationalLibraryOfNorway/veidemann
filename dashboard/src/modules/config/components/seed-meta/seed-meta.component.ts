@@ -52,8 +52,8 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
 
   private asyncUrlValidator: (entityRef: ConfigRef) => (control: AbstractControl) => Observable<ValidationErrors | null>;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected datePipe: DatePipe,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override datePipe: DatePipe,
               private cdr: ChangeDetectorRef,
               private configApiService: ConfigApiService) {
     super(fb, datePipe);
@@ -73,11 +73,11 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
     return true;
   }
 
-  protected createForm(): void {
+  protected override createForm(): void {
     super.createForm();
   }
 
-  updateForm(meta: Meta): void {
+  override updateForm(meta: Meta): void {
     this.name.clearValidators();
     this.name.clearAsyncValidators();
     this.name.setValidators(Validators.compose([Validators.required, validUrlValidator]));
@@ -145,7 +145,7 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
     window.open(url, '_blank');
   }
 
-  validate(control: AbstractControl): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
+  override validate(control: AbstractControl): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
     return (this.name.pending
         ? this.name.statusChanges.pipe(
           map(state => state === 'VALID' ? null : this.name.errors),

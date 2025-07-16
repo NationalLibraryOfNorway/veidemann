@@ -23,11 +23,11 @@ import {BASE_LIST} from '../../../../shared/directives';
 export class PageLogListComponent extends BaseListComponent<PageLog> {
 
   @Input()
-  multiSelect = false;
+  override multiSelect = false;
 
-  displayedColumns: string[] = ['uri', 'nrOfResources', 'nrOfOutlinks', 'extra', 'action'];
+  override displayedColumns: string[] = ['uri', 'nrOfResources', 'nrOfOutlinks', 'extra', 'action'];
 
-  constructor(protected cdr: ChangeDetectorRef) {
+  constructor(protected override cdr: ChangeDetectorRef) {
     super(cdr);
   }
 }

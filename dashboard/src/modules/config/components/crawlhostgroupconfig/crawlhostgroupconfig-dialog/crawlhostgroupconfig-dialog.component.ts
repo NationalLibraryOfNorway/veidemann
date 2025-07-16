@@ -14,8 +14,8 @@ import {CrawlHostGroupConfigDetailsComponent} from '..';
 })
 export class CrawlHostGroupConfigDialogComponent extends CrawlHostGroupConfigDetailsComponent implements OnInit {
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<CrawlHostGroupConfigDialogComponent>) {
     super(fb, authService);

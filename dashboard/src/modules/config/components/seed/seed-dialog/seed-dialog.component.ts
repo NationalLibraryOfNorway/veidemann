@@ -13,10 +13,10 @@ import {ConfigDialogData} from '../../../func';
     standalone: false
 })
 export class SeedDialogComponent extends SeedDetailsComponent implements OnInit {
-  crawlJobs: ConfigObject[];
+  declare crawlJobs: ConfigObject[];
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) private data: ConfigDialogData,
               public dialogRef: MatDialogRef<SeedDialogComponent>) {
     super(fb, authService);

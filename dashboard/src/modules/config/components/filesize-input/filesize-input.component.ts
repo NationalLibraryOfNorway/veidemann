@@ -5,6 +5,7 @@ import {
   NG_VALIDATORS,
   NG_VALUE_ACCESSOR,
   UntypedFormBuilder,
+  UntypedFormGroup,
   ValidationErrors,
   Validators
 } from '@angular/forms';
@@ -60,7 +61,7 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
 
   @Input() placeholder: string;
 
-  form;
+  form: UntypedFormGroup;
   ngUnsubscribe: Subject<void> = new Subject<void>();
 
   // ControlValueAccessor callbacks
@@ -129,11 +130,11 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
-  parsableUnit(unit) {
+  parsableUnit(unit: string): boolean {
     return unit.match(/\D*/).pop() === unit;
   }
 
-  validAmount(amount) {
+  validAmount(amount): boolean {
     return !isNaN(parseFloat(amount)) && isFinite(amount);
   }
 
@@ -142,7 +143,7 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
     const amount = Number(parsed[1].replace(',', '.'));
     const unit = parsed[2];
 
-    const validUnit = (sourceUnit) => {
+    const validUnit = (sourceUnit: string) => {
       return sourceUnit === unit;
     };
 
@@ -160,6 +161,8 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
       }
     }
     this.fileSize.setErrors({invalidUnit: {valid: false, unit}});
+
+    return 0;
   }
 
   validate(ctrl): ValidationErrors | null {

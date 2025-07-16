@@ -21,8 +21,8 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
+  constructor(protected override fb: UntypedFormBuilder,
+              protected override authService: AuthService,
               @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
               public dialogRef: MatDialogRef<CrawlConfigMultiDialogComponent>) {
     super(fb, authService);
@@ -37,7 +37,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
     return this.form.get('labelList');
   }
 
-  get canUpdate(): boolean {
+  override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
@@ -53,7 +53,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
     this.updateForm();
   }
 
-  onRevert() {
+  override onRevert() {
     this.shouldAddLabel = undefined;
     this.labelMulti.onRevert();
     super.onRevert();
@@ -66,7 +66,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
     this.shouldAddLabel = add;
   }
 
-  protected createForm() {
+  protected override createForm() {
     this.form = this.fb.group({
       labelList: {value: [], disabled: false},
       collectionRefId: '',
@@ -80,7 +80,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
     });
   }
 
-  protected updateForm() {
+  protected override updateForm() {
     if (this.configObject.crawlConfig.extra.createScreenshot !== null && !this.allSelected) {
       this.createScreenshot.enable();
     } else {
@@ -102,7 +102,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
     }
   }
 
-  protected prepareSave(): any {
+  protected override prepareSave(): any {
     const pathList: string[] = [];
 
     const formModel = this.form.value;

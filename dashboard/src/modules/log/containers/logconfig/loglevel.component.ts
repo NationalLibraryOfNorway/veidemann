@@ -32,7 +32,7 @@ export class LoglevelComponent implements OnInit, OnDestroy {
               private cdr: ChangeDetectorRef,
               private route: ActivatedRoute) {
     this.createForm();
-    this.levelOptions = route.snapshot.data.levels;
+    this.levelOptions = route.snapshot.data['levels'];
   }
 
   get canSave(): boolean {
