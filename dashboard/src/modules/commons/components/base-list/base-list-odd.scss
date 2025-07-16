@@ -8,10 +8,10 @@ tr.item-row:nth-child(2n+1):hover {
 
 // odd numbered rows (taking preview rows into account, eg. "4n") have brighter background color
 tr.item-row:nth-child(2n+1) {
-  background-color: lighten(theme.$dark-focused, 80%);
+  background-color: color.adjust(theme.$dark-focused, $lightness: 80%);
 }
 
 // preview rows have same background color as sibling
 tr.item-row:nth-child(2n+1) + tr.preview-row {
-  background-color: lighten(theme.$dark-focused, 80%);
+  background-color: color.adjust(theme.$dark-focused, $lightness: 80%);
 }
