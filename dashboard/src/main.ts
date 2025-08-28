@@ -1,22 +1,7 @@
 /// <reference types="@angular/localize" />
 
-import {enableProdMode} from '@angular/core';
-import {platformBrowser} from '@angular/platform-browser';
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { App } from './app/app';
 
-import {AppModule} from './app/app.module';
-import {environment} from './environments/environment';
-import {AppConfig} from './modules/core/models';
-
-if (environment.production) {
-  enableProdMode();
-}
-
-// load dynamic configuration pre bootstrap
-fetch('assets/config.json')
-  .then(async response => {
-    const config = await response.json();
-
-    return platformBrowser([{provide: AppConfig, useValue: config}])
-      .bootstrapModule(AppModule)
-      .catch(err => console.error(err));
-  });
+bootstrapApplication(App, appConfig).catch(err => console.error(err));

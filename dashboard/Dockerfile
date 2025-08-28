@@ -8,7 +8,7 @@ COPY . .
 
 RUN npm ci --quiet --legacy-peer-deps
 RUN sed -i "s/version: ''/version: '${VERSION}'/" src/environments/*.ts
-RUN npx ng build --configuration production
+RUN npm run build
 
 
 FROM nginx:stable-alpine-slim
