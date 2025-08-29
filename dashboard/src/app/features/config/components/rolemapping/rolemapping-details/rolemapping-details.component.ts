@@ -1,14 +1,31 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {CustomValidators} from '../../../../shared/validation';
-import {ConfigObject, Kind, Meta, Role, RoleMapping} from '../../../../shared/models';
+import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
+import {CustomValidators} from '../../../../../shared/validation';
+import {ConfigObject, Kind, Meta, Role, RoleMapping} from '../../../../../shared/models';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInput} from '@angular/material/input';
 
 
 @Component({
-    selector: 'app-rolemapping-details',
-    templateUrl: './rolemapping-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-rolemapping-details',
+  templateUrl: './rolemapping-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatSelectModule,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 
 export class RoleMappingDetailsComponent implements OnChanges {

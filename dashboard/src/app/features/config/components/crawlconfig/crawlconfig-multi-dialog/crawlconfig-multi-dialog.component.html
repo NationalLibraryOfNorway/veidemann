@@ -6,8 +6,8 @@
 
       <div fxFlex>
         <app-label-multi [configObject]="configObject"
-          [allSelected]="allSelected"
-        (update)="onUpdateLabels($event)"></app-label-multi>
+                         [allSelected]="allSelected"
+                         (update)="onUpdateLabels($event)"></app-label-multi>
       </div>
 
       <div fxFlex fxLayout="column">
@@ -18,7 +18,8 @@
           <mat-select formControlName="collectionRefId">
             @for (option of collections; track option) {
               <mat-option
-              [value]="option.id">{{option.meta.name}}</mat-option>
+                [value]="option.id">{{ option.meta.name }}
+              </mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -30,7 +31,8 @@
           <mat-select formControlName="browserConfigRefId">
             @for (option of browserConfigs; track option) {
               <mat-option
-              [value]="option.id">{{option.meta.name}}</mat-option>
+                [value]="option.id">{{ option.meta.name }}
+              </mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -42,7 +44,8 @@
           <mat-select formControlName="politenessRefId">
             @for (option of politenessConfigs; track option) {
               <mat-option
-              [value]="option.id">{{option.meta.name}}</mat-option>
+                [value]="option.id">{{ option.meta.name }}
+              </mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -55,8 +58,8 @@
           @if (!minDnsTtlSeconds.valid) {
             <mat-error
               i18n="@@crawlconfigFormMinDNSTTLValidationError">
-            Must be a number or empty
-          </mat-error>
+              Must be a number or empty
+            </mat-error>
           }
         </mat-form-field>
         <mat-form-field>
@@ -66,17 +69,17 @@
           <input matInput formControlName="priorityWeight">
           @if (!priorityWeight.valid) {
             <mat-error i18n="@@crawlconfigFormPriorityWeightValidationError">
-            Must be a number or empty
-          </mat-error>
+              Must be a number or empty
+            </mat-error>
           }
         </mat-form-field>
 
         <div formGroupName="extra" (click)="createScreenshot.disabled ? createScreenshot.enable() : null">
           <mat-checkbox formControlName="createScreenshot"
-            labelPosition="after"
-            i18n="@@crawlconfigFormCreateScreenshotLabel"
-            i18n-matTooltip="@@crawlconfigFormDisabledCreateScreenshotExplanation"
-            color="accent"
+                        labelPosition="after"
+                        i18n="@@crawlconfigFormCreateScreenshotLabel"
+                        i18n-matTooltip="@@crawlconfigFormDisabledCreateScreenshotExplanation"
+                        color="accent"
                         [matTooltip]="createScreenshot.disabled ?
                         'Setting is not equal for all selected configurations.'
                          +'Click here and set desired state to override all, '
@@ -92,18 +95,18 @@
 @if (canEdit) {
   <mat-dialog-actions>
     <button mat-raised-button color="accent"
-      [disabled]="!canUpdate"
-      [mat-dialog-close]="onDialogClose()"
-      i18n="@@commonButtonSave">UPDATE
-  </button>
+            [disabled]="!canUpdate"
+            [mat-dialog-close]="onDialogClose()"
+            i18n="@@commonButtonSave">UPDATE
+    </button>
     <button mat-button
-      (click)="onRevert()"
-      [disabled]="!canRevert"
-      i18n="@@commonButtonRevert">REVERT
-  </button>
+            (click)="onRevert()"
+            [disabled]="!canRevert"
+            i18n="@@commonButtonRevert">REVERT
+    </button>
     <button mat-button
-      mat-dialog-close
-      i18n="@@commonButtonCancel">CANCEL
-  </button>
+            mat-dialog-close
+            i18n="@@commonButtonCancel">CANCEL
+    </button>
   </mat-dialog-actions>
 }

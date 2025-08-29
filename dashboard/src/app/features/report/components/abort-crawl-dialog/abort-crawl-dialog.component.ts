@@ -1,14 +1,23 @@
 import {Component, Inject} from '@angular/core';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ExecutionId} from '../../../shared/models/controller/controller.model';
-import {CrawlExecutionStatus, JobExecutionStatus} from '../../../shared/models/report';
-import {Kind} from '../../../shared/models/config';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {ExecutionId} from '../../../../shared/models/controller/controller.model';
+import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/models/report';
+import {Kind} from '../../../../shared/models/config';
+import {JobNamePipe, SeedNamePipe} from '../../pipe';
+import {AsyncPipe, DatePipe} from '@angular/common';
 
 @Component({
-    selector: 'app-abort-crawl-dialog',
-    templateUrl: './abort-crawl-dialog.component.html',
-    styleUrls: ['./abort-crawl-dialog.component.css'],
-    standalone: true
+  selector: 'app-abort-crawl-dialog',
+  templateUrl: './abort-crawl-dialog.component.html',
+  styleUrls: ['./abort-crawl-dialog.component.css'],
+  imports: [
+    AsyncPipe,
+    DatePipe,
+    JobNamePipe,
+    MatDialogModule,
+    SeedNamePipe
+  ],
+  standalone: true
 })
 export class AbortCrawlDialogComponent {
   readonly Kind = Kind;

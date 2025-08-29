@@ -1,20 +1,33 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { ActivatedRoute, RouteConfigLoadEnd, RouteConfigLoadStart, Router } from '@angular/router';
-import { MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
-import { AbilityService } from "@casl/angular";
-
+import {AfterViewInit, ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {
-  AuthService,
-  GuardService,
-  ControllerApiService,
-  ErrorService,
-  SnackBarService
-} from '../../core';
-import { AboutDialogComponent } from './about-dialog/about-dialog.component';
-import { ShortcutEventOutput, ShortcutInput } from 'ng-keyboard-shortcuts';
-import { ScheduleOverviewComponent } from './schedule-overview/schedule-overview.component';
+  ActivatedRoute,
+  RouteConfigLoadEnd,
+  RouteConfigLoadStart,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet
+} from '@angular/router';
+import {MatDialog} from '@angular/material/dialog';
+import {Observable} from 'rxjs';
+import {filter, map} from 'rxjs/operators';
+import {AbilityService} from "@casl/angular";
+
+import {AuthService, ControllerApiService, ErrorService, GuardService, SnackBarService} from '../../core';
+import {AboutDialogComponent} from './about-dialog/about-dialog.component';
+import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
+import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
+import {AsyncPipe} from '@angular/common';
+import {MatToolbar} from '@angular/material/toolbar';
+import {TimeComponent} from './time/time.component';
+import {MatMenuModule} from '@angular/material/menu';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatIcon} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {MatTabsModule} from '@angular/material/tabs';
+import {DialogComponent} from './dialog/dialog.component';
+import {MatTooltip} from '@angular/material/tooltip';
+import {MatProgressSpinner} from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app',
@@ -22,6 +35,23 @@ import { ScheduleOverviewComponent } from './schedule-overview/schedule-overview
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    KeyboardShortcutsModule,
+    MatButtonModule,
+    MatIcon,
+    MatMenuModule,
+    MatTabsModule,
+    MatToolbar,
+    TimeComponent,
+    RouterLink,
+    RouterLinkActive,
+    MatTooltip,
+    MatProgressSpinner,
+    RouterOutlet,
+    DialogComponent
+  ]
 })
 export class AppComponent implements OnInit, AfterViewInit {
   readonly ability$: Observable<any>;

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
-import {ActivatedRoute, NavigationStart, Router, RouterEvent} from '@angular/router';
+import {ActivatedRoute, NavigationStart, Router} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
 import {combineLatest, merge, Observable, of, Subject} from 'rxjs';
@@ -15,16 +15,36 @@ import {
   RotationPolicy,
   Seed,
   SubCollectionType
-} from '../../../shared/models';
-import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../core';
-import {DeleteDialogComponent, Parcel} from '../../components';
+} from '../../../../shared/models';
+import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {
+  BrowserConfigDetailsComponent,
+  BrowserScriptDetailsComponent,
+  CollectionDetailsComponent,
+  CrawlConfigDetailsComponent,
+  CrawlExecutionStatusComponent,
+  CrawlHostGroupConfigDetailsComponent,
+  CrawlJobDetailsComponent,
+  DeleteDialogComponent,
+  EntityDetailsComponent,
+  JobStatusComponent,
+  Parcel,
+  PolitenessConfigDetailsComponent,
+  RoleMappingDetailsComponent,
+  ScheduleDetailsComponent,
+  SeedDetailsComponent
+} from '../../components';
 import {KindService, OptionsService} from '../../services';
 import {RunCrawlDialogComponent} from '../../components/run-crawl-dialog/run-crawl-dialog.component';
-import {ConfigService} from '../../../commons/services';
-import {ConfigQuery} from '../../../shared/func';
+import {ConfigService} from '../../../../shared/services';
+import {ConfigQuery} from '../../../../shared/func';
 import {ConfigDialogData, dialogByKind} from '../../func';
 import {RouterExtraService} from '../../services/router-extra.service';
-import {Location} from '@angular/common';
+import {AsyncPipe, Location} from '@angular/common';
+import {ShortcutComponent} from '../../components/shortcut/shortcut.component';
+import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
+import {FlexLayoutModule} from '@angular/flex-layout';
+
 
 export interface ConfigOptions {
   rotationPolicies?: RotationPolicy[];
@@ -43,11 +63,31 @@ export interface ConfigOptions {
 }
 
 @Component({
-    selector: 'app-configuration',
-    templateUrl: './configuration.component.html',
-    styleUrls: ['./configuration.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-configuration',
+  templateUrl: './configuration.component.html',
+  styleUrls: ['./configuration.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    BrowserScriptDetailsComponent,
+    BrowserConfigDetailsComponent,
+    CollectionDetailsComponent,
+    CrawlConfigDetailsComponent,
+    CrawlExecutionStatusComponent,
+    CrawlExecutionStatusPipe,
+    CrawlHostGroupConfigDetailsComponent,
+    CrawlJobDetailsComponent,
+    EntityDetailsComponent,
+    FlexLayoutModule,
+    JobExecutionStatusPipe,
+    JobStatusComponent,
+    PolitenessConfigDetailsComponent,
+    ScheduleDetailsComponent,
+    SeedDetailsComponent,
+    ShortcutComponent,
+    RoleMappingDetailsComponent
+  ],
+  standalone: true
 })
 export class ConfigurationComponent implements OnDestroy {
   readonly Kind = Kind;
@@ -162,7 +202,7 @@ export class ConfigurationComponent implements OnDestroy {
       }
 
       this.router.events.pipe(
-        filter(event=> event instanceof NavigationStart),
+        filter(event => event instanceof NavigationStart),
         tap(() => this.dialog.closeAll())
       ).subscribe();
 

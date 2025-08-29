@@ -8,19 +8,46 @@ import {
   Output,
   SimpleChanges
 } from '@angular/core';
-import {AbstractControl, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {BrowserScript, BrowserScriptType, ConfigObject, Kind, Meta} from '../../../../shared/models';
+import {
+  AbstractControl,
+  ReactiveFormsModule,
+  UntypedFormBuilder,
+  UntypedFormControl,
+  UntypedFormGroup
+} from '@angular/forms';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {MatChipInputEvent} from '@angular/material/chips';
-import {NgxEditorModel, NgxMonacoEditorConfig} from 'ngx-monaco-editor-v2';
+import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
+import {BrowserScript, BrowserScriptType, ConfigObject, Kind, Meta} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInput} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
+import {EditorComponent} from 'ngx-monaco-editor-v2';
 
 @Component({
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    selector: 'app-browserscript-details',
-    templateUrl: './browserscript-details.component.html',
-    styleUrls: ['./browserscript-details.component.scss'],
-    standalone: true
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-browserscript-details',
+  templateUrl: './browserscript-details.component.html',
+  styleUrls: ['./browserscript-details.component.scss'],
+  imports: [
+    EditorComponent,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MetaComponent,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatSelectModule,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class BrowserScriptDetailsComponent implements OnChanges {
   readonly BrowserScriptType = BrowserScriptType;

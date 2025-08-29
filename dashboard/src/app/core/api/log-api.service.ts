@@ -1,17 +1,12 @@
 import {Injectable} from '@angular/core';
-import {
-  CrawlLogListRequest,
-  CrawlLogProto,
-  LogPromiseClient,
-  PageLogListRequest,
-  PageLogProto,
-} from '../../../../api';
 import {AuthService} from '../auth';
 import {ErrorService} from '../error.service';
 import {EMPTY, Observable, Observer} from 'rxjs';
-import {CrawlLog, PageLog} from '../../../../shared/models';
 import {catchError, map} from 'rxjs/operators';
-import {AppConfig} from '../../models';
+import {CrawlLogListRequest, CrawlLogProto, LogPromiseClient, PageLogListRequest, PageLogProto} from '../../../api';
+import {AppConfig} from '../../app.config';
+import {CrawlLog, PageLog} from '../../shared/models';
+
 
 @Injectable({
   providedIn: 'root'

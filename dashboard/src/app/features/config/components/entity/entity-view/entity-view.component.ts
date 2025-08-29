@@ -1,11 +1,21 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {ConfigObject, Label} from '../../../../shared/models';
+import {ConfigObject, Label} from '../../../../../shared/models';
+import {MatNavList} from '@angular/material/list';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatIcon} from '@angular/material/icon';
+import {RouterLink} from '@angular/router';
 
 @Component({
-    selector: 'app-entity-view',
-    templateUrl: './entity-view.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-entity-view',
+  templateUrl: './entity-view.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatChipsModule,
+    MatIcon,
+    MatNavList,
+    RouterLink
+  ],
+  standalone: true
 })
 
 export class EntityViewComponent {

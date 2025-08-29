@@ -1,14 +1,29 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
-import {ConfigObject, ConfigRef, CrawlConfig, Kind, Meta} from '../../../../shared/models';
-import {AuthService} from '../../../../core/auth';
+import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
+import {DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
+import {ConfigObject, ConfigRef, CrawlConfig, Kind, Meta} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core/auth';
+import {MatCardModule} from '@angular/material/card';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatIcon} from '@angular/material/icon';
+import {MatCheckbox} from '@angular/material/checkbox';
 
 @Component({
-    selector: 'app-crawlconfig-details',
-    templateUrl: './crawlconfig-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-crawlconfig-details',
+  templateUrl: './crawlconfig-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatCardModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MetaComponent,
+    ReactiveFormsModule,
+    MatIcon,
+    MatCheckbox,
+  ],
+  standalone: true
 })
 export class CrawlConfigDetailsComponent implements OnChanges {
   readonly Kind = Kind;
@@ -164,7 +179,10 @@ export class CrawlConfigDetailsComponent implements OnChanges {
     });
 
     const crawlConfig = new CrawlConfig();
-    crawlConfig.collectionRef = formModel.collectionRefId ? new ConfigRef({id: formModel.collectionRefId, kind: Kind.COLLECTION}) : null;
+    crawlConfig.collectionRef = formModel.collectionRefId ? new ConfigRef({
+      id: formModel.collectionRefId,
+      kind: Kind.COLLECTION
+    }) : null;
     crawlConfig.browserConfigRef = formModel.browserConfigRefId ? new ConfigRef({
       id: formModel.browserConfigRefId,
       kind: Kind.BROWSERCONFIG

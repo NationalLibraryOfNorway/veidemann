@@ -1,18 +1,31 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, forwardRef, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  forwardRef,
+  Input,
+  OnDestroy,
+  OnInit,
+  Output
+} from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
-  UntypedFormBuilder,
-  UntypedFormGroup, NG_VALIDATORS,
+  NG_VALIDATORS,
   NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  UntypedFormBuilder,
+  UntypedFormGroup,
   ValidationErrors,
   Validators
 } from '@angular/forms';
-import { UnitOfTime } from '../../../shared/models/duration/unit-time.model';
-import { Duration } from '../../../shared/models/duration/duration.model';
-import { takeUntil } from 'rxjs/operators';
-import { Subject } from 'rxjs';
-import { NUMBER_OR_EMPTY_STRING } from '../../../shared/validation/patterns';
+import {UnitOfTime} from '../../../../shared/models/duration/unit-time.model';
+import {Duration} from '../../../../shared/models/duration/duration.model';
+import {takeUntil} from 'rxjs/operators';
+import {Subject} from 'rxjs';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
+import {MatFormFieldModule} from '@angular/material/form-field';
 
 @Component({
   selector: 'app-duration-picker',
@@ -31,6 +44,10 @@ import { NUMBER_OR_EMPTY_STRING } from '../../../shared/validation/patterns';
     }
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatFormFieldModule,
+    ReactiveFormsModule
+  ],
   standalone: true
 })
 
@@ -187,7 +204,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
 
   durationToSeconds(duration: Duration): number {
     const seconds = (
-      duration.days * (24 * 3600)) +
+        duration.days * (24 * 3600)) +
       (duration.hours * 3600) +
       (duration.minutes * 60) +
       duration.seconds;
@@ -202,7 +219,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
   }
 
   validate(ctrl): ValidationErrors | null {
-    return this.form.valid ? null : { invalidForm: { valid: false, message: 'Feltene kan kun inneholde positive tall' } };
+    return this.form.valid ? null : {invalidForm: {valid: false, message: 'Feltene kan kun inneholde positive tall'}};
   }
 
 

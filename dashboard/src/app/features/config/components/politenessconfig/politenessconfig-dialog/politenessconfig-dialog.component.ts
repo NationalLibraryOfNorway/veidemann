@@ -1,16 +1,30 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {PolitenessConfigDetailsComponent} from '..';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../shared/models/config';
+import {ConfigObject} from '../../../../../shared/models/config';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {MatCheckbox} from '@angular/material/checkbox';
+import {MetaComponent} from '../../meta/meta.component';
 
 @Component({
-    selector: 'app-politenessconfig-dialog',
-    templateUrl: './politenessconfig-dialog.component.html',
-    styleUrls: ['./politenessconfig-dialog.component.css'],
-    standalone: true
+  selector: 'app-politenessconfig-dialog',
+  templateUrl: './politenessconfig-dialog.component.html',
+  styleUrls: ['./politenessconfig-dialog.component.css'],
+  imports: [
+    DurationPickerComponent,
+    MatCheckbox,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MetaComponent,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class PolitenessConfigDialogComponent extends PolitenessConfigDetailsComponent implements OnInit {
 

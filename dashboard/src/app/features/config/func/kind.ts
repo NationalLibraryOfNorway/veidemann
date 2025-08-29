@@ -1,4 +1,4 @@
-import {ConfigObject, Kind} from '../../shared/models';
+import {ConfigObject, Kind} from '../../../shared/models';
 import {EntityDialogComponent} from '../components';
 import {SeedDialogComponent} from '../components/seed/seed-dialog/seed-dialog.component';
 import {ComponentType} from '@angular/cdk/overlay';

@@ -1,16 +1,20 @@
 import {Component, Inject, OnInit, ViewChild} from '@angular/core';
 import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
 import {EntityDetailsComponent} from '..';
-import {ConfigObject, Kind, Label} from '../../../../shared/models/config';
+import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
 
 @Component({
-    selector: 'app-entity-multi-dialog',
-    templateUrl: './entity-multi-dialog.component.html',
-    standalone: true
+  selector: 'app-entity-multi-dialog',
+  templateUrl: './entity-multi-dialog.component.html',
+  imports: [
+    LabelMultiComponent,
+    MatDialogModule
+  ],
+  standalone: true
 })
 export class EntityMultiDialogComponent extends EntityDetailsComponent implements OnInit {
 

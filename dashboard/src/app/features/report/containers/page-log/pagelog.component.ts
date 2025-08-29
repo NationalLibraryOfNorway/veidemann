@@ -2,29 +2,48 @@ import {Component, OnInit} from '@angular/core';
 import {UntypedFormBuilder} from '@angular/forms';
 import {combineLatest, Observable, of} from 'rxjs';
 import {ListDataSource, ListItem} from '../../../../shared/models';
-import {ActivatedRoute, Router} from '@angular/router';
+import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
 import {debounceTime, distinctUntilChanged, map, share, shareReplay} from 'rxjs/operators';
 import {ErrorService} from '../../../../core';
 import {SortDirection} from '@angular/material/sort';
 import {PageEvent} from '@angular/material/paginator';
 import {Sort} from '../../../../shared/func';
-import {BASE_LIST} from '../../../../shared/directives';
+import {ActionDirective, BASE_LIST} from '../../../../shared/directives';
 import {PageLogListComponent} from '../../components';
 import {AbilityService} from '@casl/angular';
+import {AsyncPipe} from '@angular/common';
+import {MatProgressBar} from '@angular/material/progress-bar';
+import {PageLogQueryComponent} from '../../components/page-log-query/page-log-query.component';
+import {MatIcon} from '@angular/material/icon';
+import {QueryPageLogDirective} from '../../directives';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatMenuItem} from '@angular/material/menu';
 
 @Component({
-    selector: 'app-pagelog',
-    templateUrl: './pagelog.component.html',
-    styleUrls: ['./pagelog.component.css'],
-    providers: [
-        ListDataSource,
-        {
-            provide: BASE_LIST,
-            useClass: PageLogListComponent,
-        }
-    ],
-    standalone: true
+  selector: 'app-pagelog',
+  templateUrl: './pagelog.component.html',
+  styleUrls: ['./pagelog.component.css'],
+  providers: [
+    ListDataSource,
+    {
+      provide: BASE_LIST,
+      useClass: PageLogListComponent,
+    }
+  ],
+  imports: [
+    AsyncPipe,
+    ActionDirective,
+    FlexLayoutModule,
+    MatIcon,
+    MatMenuItem,
+    MatProgressBar,
+    PageLogQueryComponent,
+    PageLogListComponent,
+    RouterLink,
+    QueryPageLogDirective
+  ],
+  standalone: true
 })
 export class PageLogComponent implements OnInit {
   readonly ability$: Observable<any>;

@@ -1,17 +1,30 @@
 import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
-import {ExtraStatusCodes} from '../../../shared/models/report';
-import {CrawlLog} from '../../../shared/models/log';
-import {MatTableDataSource} from '@angular/material/table';
+import {ExtraStatusCodes} from '../../../../shared/models/report';
+import {CrawlLog} from '../../../../shared/models/log';
+import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {DatePipe} from '@angular/common';
 import {FileSizePipe} from 'ngx-filesize';
+import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
+import {RouterLink} from '@angular/router';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
-    selector: 'app-crawl-log-status',
-    templateUrl: './crawl-log-status.component.html',
-    styleUrls: ['./crawl-log-status.component.css'],
-    providers: [DatePipe, FileSizePipe],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-crawl-log-status',
+  templateUrl: './crawl-log-status.component.html',
+  styleUrls: ['./crawl-log-status.component.css'],
+  providers: [DatePipe, FileSizePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    MatCardModule,
+    MatIcon,
+    MatTableModule,
+    RouterLink,
+    UrlFormatPipe,
+  ],
+  standalone: true
 })
 export class CrawlLogStatusComponent implements OnInit{
   readonly ExtraStatusCodes = ExtraStatusCodes;

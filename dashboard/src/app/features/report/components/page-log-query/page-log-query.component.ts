@@ -1,20 +1,24 @@
-import { Component } from '@angular/core';
-import { ReactiveFormsModule, UntypedFormBuilder } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { QueryComponent } from '../../../../shared/components';
-import { PageLogQuery } from '../../services';
+import {Component} from '@angular/core';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {QueryComponent} from '../../../../shared/components';
+import {PageLogQuery} from '../../services';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
-    selector: 'app-page-log-query',
-    templateUrl: './page-log-query.component.html',
-    styleUrls: ['./page-log-query.component.css'],
-    standalone: true,
-    imports: [
-      ReactiveFormsModule,
-      MatFormFieldModule,
-      MatCheckboxModule,
-    ]
+  selector: 'app-page-log-query',
+  templateUrl: './page-log-query.component.html',
+  styleUrls: ['./page-log-query.component.css'],
+  standalone: true,
+  imports: [
+    FlexLayoutModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatCheckboxModule,
+    ReactiveFormsModule,
+  ]
 })
 export class PageLogQueryComponent extends QueryComponent<PageLogQuery> {
 

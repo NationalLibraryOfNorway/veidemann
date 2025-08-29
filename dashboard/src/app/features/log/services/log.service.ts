@@ -4,9 +4,10 @@ import {map} from 'rxjs/operators';
 import {Empty} from 'google-protobuf/google/protobuf/empty_pb';
 import {OAuthService} from 'angular-oauth2-oidc';
 
-import {LogLevels} from '../../shared/models';
-import {ConfigPromiseClient} from '../../../api';
-import {AppConfig} from '../../core/models';
+import {LogLevels} from '../../../shared/models';
+import {ConfigPromiseClient} from '../../../../api';
+import {AppConfig} from '../../../app.config';
+
 
 @Injectable()
 export class LogService {

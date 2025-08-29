@@ -1,29 +1,54 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, OnInit, ViewChild} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Input,
+  OnInit,
+  ViewChild
+} from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
+  NG_VALUE_ACCESSOR, ReactiveFormsModule,
   UntypedFormBuilder,
   UntypedFormControl,
-  UntypedFormGroup,
-  NG_VALUE_ACCESSOR,
   Validators
 } from '@angular/forms';
 import {Annotation, Label} from '../../../../shared/models';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {map, startWith} from 'rxjs/operators';
-import {MatChipInputEvent} from '@angular/material/chips';
+import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {NO_COLON} from '../../../../shared/validation/patterns';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {AuthService} from '../../../../core';
 import {AbilityService} from "@casl/angular";
+import {AsyncPipe} from '@angular/common';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIcon} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatCardModule} from '@angular/material/card';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
-    selector: 'app-annotation',
-    templateUrl: './annotation.component.html',
-    styleUrls: ['./annotation.component.css'],
-    providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: AnnotationComponent, multi: true }],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-annotation',
+  templateUrl: './annotation.component.html',
+  styleUrls: ['./annotation.component.css'],
+  providers: [{provide: NG_VALUE_ACCESSOR, useExisting: AnnotationComponent, multi: true}],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInputModule,
+    ReactiveFormsModule,
+  ],
+  standalone: true
 })
 export class AnnotationComponent implements ControlValueAccessor, OnInit {
   readonly ability$: Observable<any>;

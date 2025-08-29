@@ -1,13 +1,21 @@
-import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
-import {Annotation} from '../../../../shared/models/config';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {Annotation} from '../../../../../shared/models/config';
 import {Observable} from "rxjs";
 import {AbilityService} from "@casl/angular";
+import {AsyncPipe} from '@angular/common';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatChipsModule} from '@angular/material/chips';
 
 @Component({
-    selector: 'app-script-annotation',
-    templateUrl: './script-annotation.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-script-annotation',
+  templateUrl: './script-annotation.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    MatChipsModule
+  ],
+  standalone: true
 })
 export class ScriptAnnotationComponent {
 readonly ability$: Observable<any>;

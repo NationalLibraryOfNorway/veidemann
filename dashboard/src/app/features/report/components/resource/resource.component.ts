@@ -4,6 +4,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { Resource } from '../../../../shared/models';
 import { UrlFormatPipe } from '../../../../shared/pipes/url-format.pipe';
+import {MatInput} from '@angular/material/input';
 
 @Component({
     selector: 'app-resource',
@@ -21,6 +22,7 @@ import { UrlFormatPipe } from '../../../../shared/pipes/url-format.pipe';
     imports: [
       MatFormFieldModule,
       UrlFormatPipe,
+      MatInput,
       MatTableModule,
     ]
 })

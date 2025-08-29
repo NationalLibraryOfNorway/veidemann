@@ -1,16 +1,33 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
-import {ConfigObject, Kind, Label, Meta, PolitenessConfig, RobotsPolicy} from '../../../../shared/models';
-import {UnitOfTime} from '../../../../shared/models/duration/unit-time.model';
+import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
+import {ConfigObject, Kind, Meta, PolitenessConfig, RobotsPolicy} from '../../../../../shared/models';
+import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatSelectModule} from '@angular/material/select';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {MatCheckbox} from '@angular/material/checkbox';
 
 
 @Component({
-    selector: 'app-politenessconfig-details',
-    templateUrl: './politenessconfig-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-politenessconfig-details',
+  templateUrl: './politenessconfig-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatCardModule,
+    MatIcon,
+    MatFormFieldModule,
+    ReactiveFormsModule,
+    MetaComponent,
+    MatSelectModule,
+    DurationPickerComponent,
+    MatCheckbox,
+  ],
+  standalone: true
 })
 
 export class PolitenessConfigDetailsComponent implements OnChanges {

@@ -1,12 +1,22 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {ConfigObject, Kind} from '../../../../shared/models/config';
+import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {ConfigObject, Kind} from '../../../../../shared/models/config';
 import {Observable} from "rxjs";
 import {AbilityService} from "@casl/angular";
+import {AsyncPipe} from '@angular/common';
+import {MatListModule} from '@angular/material/list';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
 
 @Component({
-    selector: 'app-action-shortcut',
-    templateUrl: './action-shortcut.component.html',
-    standalone: true
+  selector: 'app-action-shortcut',
+  templateUrl: './action-shortcut.component.html',
+  imports: [
+    AsyncPipe,
+    MatIcon,
+    MatListModule,
+    MatTooltip
+  ],
+  standalone: true
 })
 export class ActionShortcutComponent {
   readonly Kind = Kind;

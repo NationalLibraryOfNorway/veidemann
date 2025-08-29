@@ -4,18 +4,34 @@ import {
   ExtraStatusCodes,
   JobExecutionState,
   JobExecutionStatus
-} from '../../../shared/models/report';
-import {MatTableDataSource} from '@angular/material/table';
+} from '../../../../shared/models/report';
+import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {FileSizePipe} from 'ngx-filesize';
-import {JobexecutionTotalQueuePipe} from '../../pipe';
+import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
+import {RouterLink} from '@angular/router';
+import {AsyncPipe, DatePipe} from '@angular/common';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
 
 @Component({
-    selector: 'app-job-execution-status',
-    templateUrl: './job-execution-status.component.html',
-    styleUrls: ['./job-execution-status.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    providers: [FileSizePipe, JobexecutionTotalQueuePipe],
-    standalone: true
+  selector: 'app-job-execution-status',
+  templateUrl: './job-execution-status.component.html',
+  styleUrls: ['./job-execution-status.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [FileSizePipe, JobexecutionTotalQueuePipe],
+  imports: [
+    AsyncPipe,
+    DatePipe,
+    FlexLayoutModule,
+    JobexecutionTotalQueuePipe,
+    JobNamePipe,
+    MatCardModule,
+    MatIcon,
+    MatTableModule,
+    RouterLink,
+  ],
+  standalone: true
 })
 
 export class JobExecutionStatusComponent implements OnInit {

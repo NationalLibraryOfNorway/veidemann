@@ -2,7 +2,8 @@ import {Injectable} from '@angular/core';
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {OAuthService} from 'angular-oauth2-oidc';
-import {AppConfig} from '../../../../app/app.config';
+import {AppConfig} from '../../app.config';
+
 
 @Injectable({
   providedIn: 'root'

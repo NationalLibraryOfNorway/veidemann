@@ -1,7 +1,7 @@
 import {Pipe, PipeTransform} from '@angular/core';
-import {ConfigRef, Kind} from '../../shared/models/config';
+import {ConfigRef, Kind} from '../../../shared/models/config';
 import {Observable} from 'rxjs';
-import {ConfigService} from '../../commons/services';
+import {ConfigService} from '../../../shared/services';
 import {first, map} from 'rxjs/operators';
 
 @Pipe({

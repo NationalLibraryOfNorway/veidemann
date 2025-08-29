@@ -1,17 +1,34 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
-import {UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
+import {ReactiveFormsModule, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {takeUntil} from 'rxjs/operators';
 import {Subject} from 'rxjs';
 import {ActivatedRoute} from '@angular/router';
-import { Level, LogLevel, LogLevels } from '../shared/models';
-import { LogService } from './services';
-import { AuthService, SnackBarService } from '../services';
+import {Level, LogLevel, LogLevels} from '../../shared/models';
+import {LogService} from './services';
+import {MatCardModule} from '@angular/material/card';
+import {AuthService, SnackBarService} from '../../core';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIcon} from '@angular/material/icon';
+import {MatSelectModule} from '@angular/material/select';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInput} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
-    templateUrl: './log.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  templateUrl: './log.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatSelectModule,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class LoglevelComponent implements OnInit, OnDestroy {
   readonly Level = Level;

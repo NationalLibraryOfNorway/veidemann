@@ -1,14 +1,19 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {interval, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+import {AsyncPipe, DatePipe} from '@angular/common';
 
 
 @Component({
-    selector: 'app-time',
-    template: `<span class="time">{{time$ | async | date: 'long': 'UTC'}}</span>`,
-    styleUrls: ['./time.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-time',
+  template: `<span class="time">{{ time$ | async | date: 'long': 'UTC' }}</span>`,
+  styleUrls: ['./time.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    DatePipe
+  ],
+  standalone: true
 })
 export class TimeComponent {
   time$: Observable<Date>;

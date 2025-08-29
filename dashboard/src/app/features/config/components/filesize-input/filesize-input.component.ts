@@ -3,7 +3,7 @@ import {
   AbstractControl,
   ControlValueAccessor,
   NG_VALIDATORS,
-  NG_VALUE_ACCESSOR,
+  NG_VALUE_ACCESSOR, ReactiveFormsModule,
   UntypedFormBuilder,
   UntypedFormGroup,
   ValidationErrors,
@@ -11,7 +11,8 @@ import {
 } from '@angular/forms';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
-import {FILESIZE_PATTERN} from '../../../shared/validation';
+import {FILESIZE_PATTERN} from '../../../../shared/validation';
+import {MatFormFieldModule} from '@angular/material/form-field';
 
 
 const incrementBases = {
@@ -34,22 +35,26 @@ const incrementBases = {
 };
 
 @Component({
-    selector: 'app-filesize-input',
-    templateUrl: './filesize-input.component.html',
-    providers: [
-        {
-            provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => FilesizeInputComponent),
-            multi: true
-        },
-        {
-            provide: NG_VALIDATORS,
-            useExisting: forwardRef(() => FilesizeInputComponent),
-            multi: true
-        }
-    ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-filesize-input',
+  templateUrl: './filesize-input.component.html',
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => FilesizeInputComponent),
+      multi: true
+    },
+    {
+      provide: NG_VALIDATORS,
+      useExisting: forwardRef(() => FilesizeInputComponent),
+      multi: true
+    }
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatFormFieldModule,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 
 export class FilesizeInputComponent implements ControlValueAccessor, AfterViewInit, OnDestroy {

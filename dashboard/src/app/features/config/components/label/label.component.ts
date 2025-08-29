@@ -10,28 +10,52 @@ import {
 import {
   AbstractControl,
   ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
   UntypedFormBuilder,
   UntypedFormControl,
   UntypedFormGroup,
-  NG_VALUE_ACCESSOR,
   Validators
 } from '@angular/forms';
 import {BehaviorSubject, combineLatest, Observable, Subject} from 'rxjs';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {NO_COLON} from '../../../shared/validation/patterns';
-import {Label} from '../../../shared/models';
+import {NO_COLON} from '../../../../shared/validation/patterns';
+import {Label} from '../../../../shared/models';
 import {map, startWith, switchMap} from 'rxjs/operators';
-import {MatChipInputEvent} from '@angular/material/chips';
+import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {LabelService} from '../../services/label.service';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
+import {AsyncPipe} from '@angular/common';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInput} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
-    selector: 'app-labels',
-    templateUrl: './label.component.html',
-    styleUrls: ['./label.component.scss'],
-    providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: LabelComponent, multi: true }],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-labels',
+  templateUrl: './label.component.html',
+  styleUrls: ['./label.component.scss'],
+  providers: [{provide: NG_VALUE_ACCESSOR, useExisting: LabelComponent, multi: true}],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    CdkDrag,
+    CdkDropList,
+    FlexLayoutModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 
 export class LabelComponent implements ControlValueAccessor, OnInit {

@@ -1,5 +1,5 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
-import {ActivatedRoute, NavigationStart, Params, Router} from '@angular/router';
+import {ActivatedRoute, NavigationStart, Params, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
 import {BehaviorSubject, combineLatest, Observable, of, Subject} from 'rxjs';
@@ -17,26 +17,85 @@ import {
   tap
 } from 'rxjs/operators';
 
-import {ConfigObject, ConfigRef, Kind, Seed} from '../../../shared/models';
-import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../core';
-import {DeleteDialogComponent, DeleteMultiDialogComponent, Parcel, RunCrawlDialogComponent} from '../../components';
+import {ConfigObject, ConfigRef, Kind, Seed} from '../../../../shared/models';
+import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {
+  ConfigListComponent,
+  ConfigQueryComponent,
+  DeleteDialogComponent,
+  DeleteMultiDialogComponent,
+  EntityViewComponent,
+  Parcel,
+  RoleMappingDetailsComponent,
+  RoleMappingListComponent,
+  RunCrawlDialogComponent
+} from '../../components';
 import {PageEvent} from '@angular/material/paginator';
 import {SortDirection} from '@angular/material/sort';
-import {ConfigService} from '../../../commons/services';
-import {ConfigQuery, distinctUntilArrayChanged, Sort} from '../../../shared/func';
+import {ConfigService} from '../../../../shared/services';
+import {ConfigQuery, distinctUntilArrayChanged, Sort} from '../../../../shared/func';
 import {KindService, OptionsService} from '../../services';
 import {ConfigDialogData, ConfigOptions, dialogByKind, multiDialogByKind} from '../../func';
-import {ReferrerError} from '../../../shared/error';
-import {ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
-import {RunCrawlRequest} from '../../../shared/models/controller/controller.model';
+import {ReferrerError} from '../../../../shared/error';
+import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
+import {RunCrawlRequest} from '../../../../shared/models/controller/controller.model';
 import {AbilityService} from '@casl/angular';
+import {AsyncPipe} from '@angular/common';
+import {MatProgressBar} from '@angular/material/progress-bar';
+import {MatListModule} from '@angular/material/list';
+import {MatIcon} from '@angular/material/icon';
+import {ConfigQueryDirective} from '../../directives';
+import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {MatMenuItem} from '@angular/material/menu';
+import {MatTooltip} from '@angular/material/tooltip';
+import {
+  BrowserConfigNamePipe,
+  CollectionNamePipe,
+  CrawlConfigNamePipe,
+  CrawlScheduleNamePipe,
+  JobExecutionStatePipe,
+  JobExecutionStatusPipe,
+  PolitenessConfigNamePipe
+} from '../../pipe';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
+
 
 @Component({
-    selector: 'app-configurations',
-    templateUrl: './configurations.component.html',
-    styleUrls: ['./configurations.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-configurations',
+  templateUrl: './configurations.component.html',
+  styleUrls: ['./configurations.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    ConfigQueryDirective,
+    ConfigListComponent,
+    ConfigQueryComponent,
+    EntityViewComponent,
+    FlexLayoutModule,
+    KeyboardShortcutsModule,
+    MatListModule,
+    MatIcon,
+    MatProgressBar,
+    RoleMappingListComponent,
+    RoleMappingDetailsComponent,
+    FilterDirective,
+    RouterLink,
+    ActionDirective,
+    MatMenuItem,
+    MatTooltip,
+    CollectionNamePipe,
+    ShortcutDirective,
+    BrowserConfigNamePipe,
+    PolitenessConfigNamePipe,
+    JobExecutionStatusPipe,
+    JobExecutionStatePipe,
+    CrawlScheduleNamePipe,
+    CrawlConfigNamePipe,
+    MatButtonModule,
+    ExtraDirective,
+  ],
+  standalone: true
 })
 export class ConfigurationsComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly Kind = Kind;

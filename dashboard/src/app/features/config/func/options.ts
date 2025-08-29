@@ -4,7 +4,7 @@ import {
   RobotsPolicy, Role,
   RotationPolicy,
   SubCollectionType
-} from '../../shared/models/config';
+} from '../../../shared/models/config';
 
 export interface ConfigOptions {
   rotationPolicies?: RotationPolicy[];

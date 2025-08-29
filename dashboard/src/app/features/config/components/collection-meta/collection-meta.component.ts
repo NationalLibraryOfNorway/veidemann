@@ -1,21 +1,37 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef} from '@angular/core';
 import {MetaComponent} from '../meta/meta.component';
 import {DatePipe} from '@angular/common';
-import {UntypedFormBuilder, Validators, NG_VALUE_ACCESSOR, AbstractControl, ValidationErrors} from '@angular/forms';
-import {Meta} from '../../../shared/models';
-import {VALID_COLLECTION_NAME} from '../../../shared/validation/patterns';
+import {
+  AbstractControl,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  UntypedFormBuilder,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
+import {Meta} from '../../../../shared/models';
+import {VALID_COLLECTION_NAME} from '../../../../shared/validation/patterns';
 import {Observable, of} from 'rxjs';
 import {first, map, tap} from 'rxjs/operators';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {LabelComponent} from '../label/label.component';
+import {AnnotationComponent} from '../annotation/annotation.component';
 
 @Component({
-    selector: 'app-collection-meta',
-    templateUrl: './collection-meta.component.html',
-    styleUrls: ['./collection-meta.component.css'],
-    providers: [
-        { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => CollectionMetaComponent), multi: true },
-    ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-collection-meta',
+  templateUrl: './collection-meta.component.html',
+  styleUrls: ['./collection-meta.component.css'],
+  providers: [
+    {provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => CollectionMetaComponent), multi: true},
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatFormFieldModule,
+    ReactiveFormsModule,
+    LabelComponent,
+    AnnotationComponent
+  ],
+  standalone: true
 })
 export class CollectionMetaComponent extends MetaComponent {
 

@@ -1,12 +1,20 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {JobExecutionState, JobExecutionStatus} from '../../../shared/models/report';
+import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models/report';
+import {DatePipe} from '@angular/common';
+import {MatExpansionModule} from '@angular/material/expansion';
+import {MatTableModule} from '@angular/material/table';
 
 @Component({
-    selector: 'app-config-job-execution-status',
-    templateUrl: './job-status.component.html',
-    styleUrls: ['./job-status.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-config-job-execution-status',
+  templateUrl: './job-status.component.html',
+  styleUrls: ['./job-status.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    DatePipe,
+    MatExpansionModule,
+    MatTableModule
+  ],
+  standalone: true
 })
 export class JobStatusComponent {
   readonly JobExecutionState = JobExecutionState;

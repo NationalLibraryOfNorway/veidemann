@@ -1,26 +1,28 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
-import { combineLatest, Observable, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map, share, shareReplay, startWith } from 'rxjs/operators';
+import {combineLatest, Observable, Subject} from 'rxjs';
+import {debounceTime, distinctUntilChanged, map, share, shareReplay, startWith} from 'rxjs/operators';
 
-import { MatDialog } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
-import { PageEvent } from '@angular/material/paginator';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { SortDirection } from '@angular/material/sort';
-import { BrowserModule } from '@angular/platform-browser';
-import { AbilityService } from '@casl/angular';
-import { ControllerApiService, ErrorService, SnackBarService } from '../../../../core';
-import { BASE_LIST, ShortcutDirective } from '../../../../shared/directives';
-import { distinctUntilArrayChanged, isValidDate, Sort } from '../../../../shared/func';
-import { ConfigObject, Kind, ListDataSource } from '../../../../shared/models';
-import { CrawlExecutionState, CrawlExecutionStatus } from '../../../../shared/models/report';
-import { CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent } from '../../components';
-import { AbortCrawlDialogComponent } from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
-import { CrawlExecutionService, CrawlExecutionStatusQuery } from '../../services';
-import { CommonModule } from '@angular/common';
-import { QueryCrawlExecutionStatusDirective } from '../../directives';
+import {MatDialog} from '@angular/material/dialog';
+import {MatIconModule} from '@angular/material/icon';
+import {PageEvent} from '@angular/material/paginator';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {SortDirection} from '@angular/material/sort';
+import {AbilityService} from '@casl/angular';
+import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {ActionDirective, BASE_LIST, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {distinctUntilArrayChanged, isValidDate, Sort} from '../../../../shared/func';
+import {ConfigObject, Kind, ListDataSource} from '../../../../shared/models';
+import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models/report';
+import {CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent} from '../../components';
+import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
+import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
+import {CommonModule} from '@angular/common';
+import {QueryCrawlExecutionStatusDirective} from '../../directives';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatMenuModule} from '@angular/material/menu';
+import {MatTooltip} from '@angular/material/tooltip';
 
 
 @Component({
@@ -33,16 +35,21 @@ import { QueryCrawlExecutionStatusDirective } from '../../directives';
             useClass: CrawlExecutionStatusListComponent,
         }],
     standalone: true,
-    imports: [
-      CommonModule,
-      RouterModule,
-      MatIconModule,
-      MatProgressBarModule,
-      ShortcutDirective,
-      CrawlExecutionStatusListComponent,
-      CrawlExecutionStatusQueryComponent,
-      QueryCrawlExecutionStatusDirective,
-    ]
+  imports: [
+    ActionDirective,
+    CommonModule,
+    CrawlExecutionStatusListComponent,
+    CrawlExecutionStatusQueryComponent,
+    FilterDirective,
+    FlexLayoutModule,
+    MatIconModule,
+    MatMenuModule,
+    MatProgressBarModule,
+    MatTooltip,
+    RouterModule,
+    ShortcutDirective,
+    QueryCrawlExecutionStatusDirective
+  ]
 })
 export class CrawlExecutionComponent implements OnInit {
   readonly CrawlExecutionState = CrawlExecutionState;

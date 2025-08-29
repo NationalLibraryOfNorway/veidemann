@@ -1,26 +1,28 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs';
-import { map, mergeMap } from 'rxjs/operators';
-import { CrawlLog } from '../../../../shared/models';
-import { CrawlLogStatusComponent } from '../../components';
-import { CrawlLogShortcutsComponent } from '../../components/crawl-log-shortcuts/crawl-log-shortcuts.component';
-import { DetailDirective } from '../../directives';
-import { CrawlLogService } from '../../services';
+import {CommonModule} from '@angular/common';
+import {Component, OnInit} from '@angular/core';
+import {MatIconModule} from '@angular/material/icon';
+import {ActivatedRoute} from '@angular/router';
+import {Observable} from 'rxjs';
+import {map, mergeMap} from 'rxjs/operators';
+import {CrawlLog} from '../../../../shared/models';
+import {CrawlLogStatusComponent} from '../../components';
+import {CrawlLogShortcutsComponent} from '../../components/crawl-log-shortcuts/crawl-log-shortcuts.component';
+import {DetailDirective} from '../../directives';
+import {CrawlLogService} from '../../services';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
-    selector: 'app-crawl-log-detail',
-    templateUrl: './crawl-log-detail.component.html',
-    styleUrls: ['./crawl-log-detail.component.css'],
-    standalone: true,
-    imports: [
-      CommonModule,
-      MatIconModule,
-      CrawlLogStatusComponent,
-      CrawlLogShortcutsComponent,
-    ]
+  selector: 'app-crawl-log-detail',
+  templateUrl: './crawl-log-detail.component.html',
+  styleUrls: ['./crawl-log-detail.component.css'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    CrawlLogShortcutsComponent,
+    CrawlLogStatusComponent,
+    FlexLayoutModule,
+    MatIconModule
+  ]
 })
 export class CrawlLogDetailComponent extends DetailDirective<CrawlLog> implements OnInit {
 

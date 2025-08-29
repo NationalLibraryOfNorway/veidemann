@@ -1,6 +1,10 @@
 import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes} from '../../../shared/models/report';
-import {durationBetweenDates} from '../../../shared/func';
+import {CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
+import {durationBetweenDates} from '../../../../shared/func';
+import {MatCardModule} from '@angular/material/card';
+import {NgxFilesizeModule} from 'ngx-filesize';
+import {NgxEchartsDirective} from 'ngx-echarts';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 export enum CrawlExecutionStatusColors {
   CRAWLED = '#009E73',
@@ -11,10 +15,16 @@ export enum CrawlExecutionStatusColors {
 }
 
 @Component({
-    selector: 'app-crawl-execution-preview',
-    templateUrl: './crawl-execution-preview.component.html',
-    styleUrls: ['./crawl-execution-preview.component.css'],
-    standalone: true
+  selector: 'app-crawl-execution-preview',
+  templateUrl: './crawl-execution-preview.component.html',
+  styleUrls: ['./crawl-execution-preview.component.css'],
+  imports: [
+    FlexLayoutModule,
+    MatCardModule,
+    NgxEchartsDirective,
+    NgxFilesizeModule
+  ],
+  standalone: true
 })
 export class CrawlExecutionPreviewComponent implements OnChanges {
   readonly CrawlExecutionState = CrawlExecutionState;

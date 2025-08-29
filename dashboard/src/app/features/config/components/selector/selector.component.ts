@@ -1,17 +1,41 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
-import {UntypedFormBuilder, NG_VALUE_ACCESSOR} from '@angular/forms';
-import {Label} from '../../../shared/models';
+import {UntypedFormBuilder, NG_VALUE_ACCESSOR, ReactiveFormsModule} from '@angular/forms';
+import {Label} from '../../../../shared/models';
 import {LabelService} from '../../services/label.service';
 import {LabelComponent} from '../label/label.component';
+import {AsyncPipe} from '@angular/common';
+import {CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIcon} from '@angular/material/icon';
+import {MatInput} from '@angular/material/input';
 
 
 @Component({
-    selector: 'app-selector',
-    templateUrl: '../label/label.component.html',
-    styleUrls: ['../label/label.component.scss'],
-    providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: SelectorComponent, multi: true }],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-selector',
+  templateUrl: '../label/label.component.html',
+  styleUrls: ['../label/label.component.scss'],
+  providers: [{provide: NG_VALUE_ACCESSOR, useExisting: SelectorComponent, multi: true}],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    CdkDrag,
+    CdkDropList,
+    FlexLayoutModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class SelectorComponent extends LabelComponent implements OnInit {
 

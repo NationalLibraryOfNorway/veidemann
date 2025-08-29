@@ -1,15 +1,36 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
-import {ConfigObject} from '../../../../shared/models/config';
-import {ActivatedRoute, Params, Router} from '@angular/router';
-import {CrawlExecutionState} from '../../../../shared/models';
-import {AuthService, SnackBarService} from '../../../../core';
+import {ConfigObject} from '../../../../../shared/models/config';
+import {ActivatedRoute, Params, Router, RouterLink} from '@angular/router';
+import {CrawlExecutionState} from '../../../../../shared/models';
+import {AuthService, SnackBarService} from '../../../../../core';
+import {CrawlExecutionStatusPipe, ScriptAnnotationsPipe} from '../../../pipe';
+import {ToArrayPipe} from '../../../pipe/to-array.pipe';
+import {AsyncPipe, DatePipe} from '@angular/common';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {JobNamePipe} from '../../../../report/pipe';
+import {MatTabsModule} from '@angular/material/tabs';
+import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
+import {MatTooltip} from '@angular/material/tooltip';
 
 
 @Component({
-    selector: 'app-seed-preview',
-    templateUrl: './seed-preview.component.html',
-    styleUrls: ['./seed-preview.component.css'],
-    standalone: true
+  selector: 'app-seed-preview',
+  templateUrl: './seed-preview.component.html',
+  styleUrls: ['./seed-preview.component.css'],
+  imports: [
+    AsyncPipe,
+    CrawlExecutionStatusPipe,
+    DatePipe,
+    FlexLayoutModule,
+    JobNamePipe,
+    MatTabsModule,
+    MatTooltip,
+    RouterLink,
+    ScriptAnnotationComponent,
+    ScriptAnnotationsPipe,
+    ToArrayPipe,
+  ],
+  standalone: true
 })
 export class SeedPreviewComponent {
   readonly CrawlExecutionState = CrawlExecutionState;

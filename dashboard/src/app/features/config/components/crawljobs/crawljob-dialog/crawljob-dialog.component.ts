@@ -1,16 +1,32 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {CrawlJobDetailsComponent} from '..';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {BrowserScriptType, ConfigObject} from '../../../../shared/models/config';
+import {ConfigObject} from '../../../../../shared/models/config';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
+import {MatSelectModule} from '@angular/material/select';
 
 @Component({
-    selector: 'app-crawljob-dialog',
-    templateUrl: './crawljob-dialog.component.html',
-    styleUrls: ['./crawljob-dialog.component.css'],
-    standalone: true
+  selector: 'app-crawljob-dialog',
+  templateUrl: './crawljob-dialog.component.html',
+  styleUrls: ['./crawljob-dialog.component.css'],
+  imports: [
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MetaComponent,
+    ReactiveFormsModule,
+    DurationPickerComponent,
+    FilesizeInputComponent
+  ],
+  standalone: true
 })
 export class CrawlJobDialogComponent extends CrawlJobDetailsComponent implements OnInit {
 

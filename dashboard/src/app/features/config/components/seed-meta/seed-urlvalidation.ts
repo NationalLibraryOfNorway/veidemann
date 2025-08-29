@@ -1,5 +1,5 @@
-import {isValidUrl} from '../../../shared/validation/patterns';
 import {AbstractControl, ValidationErrors} from '@angular/forms';
+import {isValidUrl} from '../../../../shared/validation/patterns';
 
 export function validUrlValidator(control: AbstractControl): ValidationErrors | null {
   const input: string = control.value;

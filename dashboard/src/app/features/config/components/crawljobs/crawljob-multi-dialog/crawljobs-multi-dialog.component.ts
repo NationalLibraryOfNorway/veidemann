@@ -1,18 +1,35 @@
 import {Component, Inject, OnInit, ViewChild} from '@angular/core';
 import {CrawlJobDetailsComponent} from '..';
-import {UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label} from '../../../../shared/models/config';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
+import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTooltip} from '@angular/material/tooltip';
 
 @Component({
-    selector: 'app-crawljobs-multi-dialog',
-    templateUrl: './crawljobs-multi-dialog.component.html',
-    styleUrls: ['./crawljobs-multi-dialog.component.css'],
-    standalone: true
+  selector: 'app-crawljobs-multi-dialog',
+  templateUrl: './crawljobs-multi-dialog.component.html',
+  styleUrls: ['./crawljobs-multi-dialog.component.css'],
+  imports: [
+    DurationPickerComponent,
+    FilesizeInputComponent,
+    LabelMultiComponent,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MatTooltip,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent implements OnInit {
 

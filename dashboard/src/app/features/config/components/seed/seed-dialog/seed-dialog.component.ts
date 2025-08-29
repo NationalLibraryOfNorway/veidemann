@@ -1,16 +1,32 @@
 import {ChangeDetectionStrategy, Component, Inject, OnInit} from '@angular/core';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {ConfigObject} from '../../../../shared/models';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {ConfigObject} from '../../../../../shared/models';
 import {SeedDetailsComponent} from '..';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
+import {MatSlideToggle} from '@angular/material/slide-toggle';
+import {SeedMetaComponent} from '../../seed-meta/seed-meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
-    selector: 'app-entity-dialog',
-    templateUrl: './seed-dialog.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-entity-dialog',
+  templateUrl: './seed-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatSlideToggle,
+    ReactiveFormsModule,
+    SeedMetaComponent
+  ],
+  standalone: true
 })
 export class SeedDialogComponent extends SeedDetailsComponent implements OnInit {
   declare crawlJobs: ConfigObject[];

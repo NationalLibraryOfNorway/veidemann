@@ -7,13 +7,13 @@ import {
   ViewChild,
   ViewEncapsulation
 } from '@angular/core';
-import {FullCalendarComponent} from '@fullcalendar/angular';
+import {FullCalendarComponent, FullCalendarModule} from '@fullcalendar/angular';
 import {forkJoin, Subject} from 'rxjs';
-import {ConfigObject, Kind} from '../../../shared/models';;
+import {ConfigObject, Kind} from '../../../shared/models';
 import {createListRequest} from '../../config/func/query';
 import {takeUntil, toArray} from 'rxjs/operators';
 import { parseCronExpression } from 'cron-schedule';
-import {MatDialog} from '@angular/material/dialog';
+import {MatDialog, MatDialogModule} from '@angular/material/dialog';
 import {ScheduleEventDialogComponent} from '../schedule-event-dialog/schedule-event-dialog.component';
 import {colorScales} from './colors';
 import {DateClickArg} from '@fullcalendar/interaction';
@@ -39,13 +39,17 @@ interface ScheduleValidRange {
 }
 
 @Component({
-    selector: 'app-schedule-overview',
-    templateUrl: './schedule-overview.component.html',
-    styleUrls: ['./schedule-overview.component.css'],
-    providers: [ConfigApiService],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    encapsulation: ViewEncapsulation.Emulated,
-    standalone: true,
+  selector: 'app-schedule-overview',
+  templateUrl: './schedule-overview.component.html',
+  styleUrls: ['./schedule-overview.component.css'],
+  providers: [ConfigApiService],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.Emulated,
+  standalone: true,
+  imports: [
+    FullCalendarModule,
+    MatDialogModule
+  ]
 })
 export class ScheduleOverviewComponent implements OnInit, OnDestroy {
   private crawlJobs: ConfigObject[];

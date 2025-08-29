@@ -8,16 +8,18 @@ import {map, mergeMap} from 'rxjs/operators';
 import { PageLogStatusComponent } from '../../components';
 import { PageLogShortcutsComponent } from '../../components/page-log-shortcuts/page-log-shortcuts.component';
 import { CommonModule } from '@angular/common';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
     selector: 'app-crawl-log-detail',
     templateUrl: './page-log-detail.component.html',
     styleUrls: ['./page-log-detail.component.scss'],
-    imports: [
-      PageLogStatusComponent,
-      PageLogShortcutsComponent,
-      CommonModule,
-    ],
+  imports: [
+    PageLogStatusComponent,
+    PageLogShortcutsComponent,
+    CommonModule,
+    FlexLayoutModule,
+  ],
     standalone: true
 })
 export class PageLogDetailComponent extends DetailDirective<PageLog> implements OnInit {

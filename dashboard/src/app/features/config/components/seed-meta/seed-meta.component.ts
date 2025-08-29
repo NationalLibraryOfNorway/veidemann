@@ -12,19 +12,32 @@ import {DatePipe} from '@angular/common';
 import {
   AbstractControl,
   AsyncValidator,
-  UntypedFormBuilder,
   NG_ASYNC_VALIDATORS,
   NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  UntypedFormBuilder,
   ValidationErrors,
   Validators
 } from '@angular/forms';
-import {SeedUrlValidator} from '../../../shared/validation/existing-url-validation';
+import {SeedUrlValidator} from '../../../../shared/validation/existing-url-validation';
 import {MetaComponent} from '../meta/meta.component';
-import {ConfigApiService} from '../../../core';
+import {ConfigApiService} from '../../../../core';
 import {Observable, of} from 'rxjs';
 import {first, map, tap} from 'rxjs/operators';
-import {ConfigObject, ConfigRef, Meta} from '../../../shared/models';
+import {ConfigObject, ConfigRef, Meta} from '../../../../shared/models';
 import {validUrlValidator} from './seed-urlvalidation';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {CdkTextareaAutosize} from '@angular/cdk/text-field';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {MatInput} from '@angular/material/input';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatButtonModule} from '@angular/material/button';
+import {MatProgressBar} from '@angular/material/progress-bar';
+import {MatListModule} from '@angular/material/list';
+import {RouterLink} from '@angular/router';
+import {LabelComponent} from '../label/label.component';
+import {AnnotationComponent} from '../annotation/annotation.component';
 
 export interface Parcel {
   seed: ConfigObject | ConfigObject[];
@@ -32,15 +45,31 @@ export interface Parcel {
 }
 
 @Component({
-    selector: 'app-seed-meta',
-    templateUrl: './seed-meta.component.html',
-    styleUrls: ['./seed-meta.component.css'],
-    providers: [
-        { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SeedMetaComponent), multi: true },
-        { provide: NG_ASYNC_VALIDATORS, useExisting: forwardRef(() => SeedMetaComponent), multi: true }
-    ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-seed-meta',
+  templateUrl: './seed-meta.component.html',
+  styleUrls: ['./seed-meta.component.css'],
+  providers: [
+    {provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SeedMetaComponent), multi: true},
+    {provide: NG_ASYNC_VALIDATORS, useExisting: forwardRef(() => SeedMetaComponent), multi: true}
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CdkTextareaAutosize,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatListModule,
+    MatProgressBar,
+    MatTooltip,
+    ReactiveFormsModule,
+    RouterLink,
+    LabelComponent,
+    AnnotationComponent,
+
+  ],
+  standalone: true
 })
 export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
 

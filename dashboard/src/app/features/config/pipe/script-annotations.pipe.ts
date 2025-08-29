@@ -1,6 +1,6 @@
 import {Pipe, PipeTransform} from '@angular/core';
-import {ConfigService} from '../../commons/services';
-import {Annotation} from '../../shared/models/config';
+import {ConfigService} from '../../../shared/services';
+import {Annotation} from '../../../shared/models/config';
 import {Observable, of} from 'rxjs';
 
 

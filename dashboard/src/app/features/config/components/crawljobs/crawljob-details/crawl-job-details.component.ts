@@ -1,16 +1,41 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {FormBuilder, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
-import {ConfigObject, ConfigRef, CrawlJob, Kind, Meta} from '../../../../shared/models';
-import {UnitOfTime} from '../../../../shared/models/duration/unit-time.model';
+import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
+import {ConfigObject, ConfigRef, CrawlJob, Kind, Meta} from '../../../../../shared/models';
+import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MetaComponent} from '../../meta/meta.component';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
+import {ScriptAnnotationsPipe} from '../../../pipe';
+import {AsyncPipe} from '@angular/common';
+import {MatSelectModule} from '@angular/material/select';
+import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
 
 
 @Component({
-    selector: 'app-crawljob-details',
-    templateUrl: './crawl-job-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-crawljob-details',
+  templateUrl: './crawl-job-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    DurationPickerComponent,
+    FilesizeInputComponent,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MetaComponent,
+    ReactiveFormsModule,
+    ScriptAnnotationComponent,
+    ScriptAnnotationsPipe
+  ],
+  standalone: true
 })
 export class CrawlJobDetailsComponent implements OnChanges {
   readonly Kind = Kind;

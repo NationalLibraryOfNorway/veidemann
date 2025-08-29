@@ -1,16 +1,31 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {BrowserConfigDetailsComponent} from '..';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {AuthService} from '../../../../../core';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../shared/models/config';
+import {ConfigObject} from '../../../../../shared/models';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {MatSelectModule} from '@angular/material/select';
+import {SelectorComponent} from '../../selector/selector.component';
+
 
 @Component({
-    selector: 'app-browserconfig-dialog',
-    templateUrl: './browserconfig-dialog.component.html',
-    styleUrls: ['./browserconfig-dialog.component.css'],
-    standalone: true
+  selector: 'app-browserconfig-dialog',
+  templateUrl: './browserconfig-dialog.component.html',
+  styleUrls: ['./browserconfig-dialog.component.css'],
+  imports: [
+    MatDialogModule,
+    MetaComponent,
+    MatFormFieldModule,
+    DurationPickerComponent,
+    ReactiveFormsModule,
+    MatSelectModule,
+    SelectorComponent,
+  ],
+  standalone: true
 })
 export class BrowserConfigDialogComponent extends BrowserConfigDetailsComponent implements OnInit {
 

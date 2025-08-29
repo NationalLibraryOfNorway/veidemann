@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {ActivatedRoute, ParamMap} from '@angular/router';
+import {ActivatedRoute, ParamMap, RouterOutlet} from '@angular/router';
 
 import {Observable} from 'rxjs';
 
@@ -15,6 +15,9 @@ import {
 import {KindService, OptionsService} from './services';
 import {map, tap} from 'rxjs/operators';
 import {ConfigPath} from './func';
+import {MatDrawerContainer, MatSidenavModule} from '@angular/material/sidenav';
+import {ConfigNavListComponent} from './containers';
+import {AsyncPipe} from '@angular/common';
 
 export interface ConfigOptions {
   rotationPolicies?: RotationPolicy[];
@@ -33,10 +36,16 @@ export interface ConfigOptions {
 }
 
 @Component({
-    templateUrl: './config.component.html',
-    styleUrls: ['./config.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  templateUrl: './config.html',
+  styleUrls: ['./config.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    ConfigNavListComponent,
+    MatSidenavModule,
+    RouterOutlet
+  ],
+  standalone: true
 })
 export class ConfigComponent implements OnInit {
   readonly Kind = Kind;

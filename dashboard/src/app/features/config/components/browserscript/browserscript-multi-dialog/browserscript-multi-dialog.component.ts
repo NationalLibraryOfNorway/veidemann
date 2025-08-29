@@ -1,17 +1,22 @@
 import {ChangeDetectorRef, Component, Inject, OnInit, ViewChild} from '@angular/core';
 import {BrowserScriptDetailsComponent} from '..';
-import {AbstractControl, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label} from '../../../../shared/models/config';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
+import { AuthService } from '../../../../../core/auth';
+import {ConfigObject, Kind, Label} from '../../../../../shared/models';
 
 @Component({
-    selector: 'app-browserscript-multi-dialog',
-    templateUrl: './browserscript-multi-dialog.component.html',
-    styleUrls: ['./browserscript-multi-dialog.component.css'],
-    standalone: true
+  selector: 'app-browserscript-multi-dialog',
+  templateUrl: './browserscript-multi-dialog.component.html',
+  styleUrls: ['./browserscript-multi-dialog.component.css'],
+  imports: [
+    ReactiveFormsModule,
+    MatDialogModule,
+    LabelMultiComponent
+  ],
+  standalone: true
 })
 export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsComponent implements OnInit {
 

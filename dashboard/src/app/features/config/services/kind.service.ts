@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {Kind} from '../../shared/models/config';
+import {Kind} from '../../../shared/models/config';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {LabelService} from './label.service';
 

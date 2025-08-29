@@ -1,18 +1,33 @@
 import {Component, Inject, OnInit, ViewChild} from '@angular/core';
 import {PolitenessConfigDetailsComponent} from '..';
-import {AbstractControl, UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label, RobotsPolicy} from '../../../../shared/models/config';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
+import {ConfigObject, Kind, Label, RobotsPolicy} from '../../../../../shared/models/config';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTooltip} from '@angular/material/tooltip';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {MatCheckbox} from '@angular/material/checkbox';
 
 @Component({
-    selector: 'app-politenessconfig-multi-dialog',
-    templateUrl: './politenessconfig-multi-dialog.component.html',
-    styleUrls: ['./politenessconfig-multi-dialog.component.css'],
-    standalone: true
+  selector: 'app-politenessconfig-multi-dialog',
+  templateUrl: './politenessconfig-multi-dialog.component.html',
+  styleUrls: ['./politenessconfig-multi-dialog.component.css'],
+  imports: [
+    DurationPickerComponent,
+    LabelMultiComponent,
+    MatCheckbox,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatTooltip,
+    ReactiveFormsModule,
+  ],
+  standalone: true
 })
 export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetailsComponent implements OnInit {
 

@@ -1,10 +1,16 @@
 import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {CrawlExecutionState, ExtraStatusCodes, JobExecutionState, JobExecutionStatus} from '../../../shared/models';
-import {durationBetweenDates} from '../../../shared/func';
+import {CrawlExecutionState, ExtraStatusCodes, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
+import {durationBetweenDates} from '../../../../shared/func';
 import {Router} from '@angular/router';
 import {JobexecutionTotalQueuePipe} from '../../pipe';
 import {Observable, Subject} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
+import {NgxFilesizeModule} from 'ngx-filesize';
+import {AsyncPipe} from '@angular/common';
+import {NgxEchartsDirective} from 'ngx-echarts';
+import {MatCardModule} from '@angular/material/card';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 export enum JobExecutionStatusColor {
   ABORTED_MANUAL = '#924900',
@@ -26,11 +32,19 @@ export enum JobExecutionStatusColor {
 }
 
 @Component({
-    selector: 'app-job-execution-preview',
-    templateUrl: './job-execution-preview.component.html',
-    styleUrls: ['./job-execution-preview.component.css'],
-    providers: [JobexecutionTotalQueuePipe],
-    standalone: true
+  selector: 'app-job-execution-preview',
+  templateUrl: './job-execution-preview.component.html',
+  styleUrls: ['./job-execution-preview.component.css'],
+  providers: [JobexecutionTotalQueuePipe],
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    NgxEchartsDirective,
+    NgxFilesizeModule
+  ],
+  standalone: true
 })
 
 

@@ -1,16 +1,29 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {CrawlConfigDetailsComponent} from '..';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogContent, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../shared/models/config';
+import {ConfigObject} from '../../../../../shared/models/config';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatCheckbox} from '@angular/material/checkbox';
 
 @Component({
-    selector: 'app-crawlconfig-dialog',
-    templateUrl: './crawlconfig-dialog.component.html',
-    styleUrls: ['./crawlconfig-dialog.component.css'],
-    standalone: true
+  selector: 'app-crawlconfig-dialog',
+  templateUrl: './crawlconfig-dialog.component.html',
+  styleUrls: ['./crawlconfig-dialog.component.css'],
+  imports: [
+    MatCheckbox,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MetaComponent,
+    ReactiveFormsModule,
+
+  ],
+  standalone: true
 })
 export class CrawlConfigDialogComponent extends CrawlConfigDetailsComponent implements OnInit {
 

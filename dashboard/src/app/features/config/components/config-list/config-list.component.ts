@@ -1,15 +1,15 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef} from '@angular/core';
-import {BaseListComponent} from '../../../commons/components';
-import {ConfigObject} from '../../../shared/models/config';
-import {BASE_LIST} from '../../../shared/directives';
+import {ConfigObject} from '../../../../shared/models/config';
+import {BASE_LIST} from '../../../../shared/directives';
 import {animate, state, style, transition, trigger} from '@angular/animations';
+import {BaseListComponent} from '../../../../shared/components';
 
 @Component({
     selector: 'app-config-list',
-    templateUrl: '../../../commons/components/base-list/base-list.html',
+    templateUrl: '../../../../shared/components/base-list/base-list.html',
     styleUrls: [
-        '../../../commons/components/base-list/base-list.scss',
-        '../../../commons/components/base-list/base-list-odd-preview.scss',
+        '../../../../shared/components/base-list/base-list.scss',
+        '../../../../shared/components/base-list/base-list-odd-preview.scss',
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     providers: [
@@ -25,7 +25,7 @@ import {animate, state, style, transition, trigger} from '@angular/animations';
             transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
         ]),
     ],
-    standalone: true
+    standalone: true,
 })
 
 export class ConfigListComponent extends BaseListComponent<ConfigObject> {

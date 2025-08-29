@@ -1,11 +1,14 @@
 import {Component, EventEmitter, Inject, Output} from '@angular/core';
-import {MAT_DIALOG_DATA} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../shared/models/config';
+import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
+import {ConfigObject, Kind} from '../../../../shared/models/config';
 
 @Component({
-    selector: 'app-delete-dialog',
-    templateUrl: 'delete-dialog.component.html',
-    standalone: true
+  selector: 'app-delete-dialog',
+  templateUrl: 'delete-dialog.component.html',
+  imports: [
+    MatDialogModule
+  ],
+  standalone: true
 })
 export class DeleteDialogComponent {
   readonly Kind = Kind;

@@ -8,20 +8,54 @@ import {
   Output,
   SimpleChanges
 } from '@angular/core';
-import {AbstractControl, UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
+import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 
 
-import {AuthService} from '../../../../core/auth';
-import {ConfigObject, ConfigRef, Kind, Meta} from '../../../../shared/models';
+import {AuthService} from '../../../../../core/auth';
+import {ConfigObject, ConfigRef, Kind, Meta} from '../../../../../shared/models';
 import {Subject} from 'rxjs';
-import {Parcel} from '../..';
-import {configRefIdRequired} from '../../../../shared/validation/configref';
+import {Parcel, ScriptAnnotationComponent, SeedMetaComponent} from '../..';
+import {configRefIdRequired} from '../../../../../shared/validation/configref';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatTooltip} from '@angular/material/tooltip';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatButtonModule} from '@angular/material/button';
+import {MatSelectModule} from '@angular/material/select';
+import {ScriptAnnotationsPipe} from '../../../pipe';
+import {AsyncPipe} from '@angular/common';
+import {JobNamePipe} from '../../../../report/pipe';
+import {MatTableModule} from '@angular/material/table';
+import {MatTab, MatTabGroup} from '@angular/material/tabs';
+import {MatInput} from '@angular/material/input';
 
 @Component({
-    selector: 'app-seed-details',
-    templateUrl: './seed-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-seed-details',
+  templateUrl: './seed-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    JobNamePipe,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MatTableModule,
+    MatTab,
+    MatTabGroup,
+    MatTooltip,
+    ReactiveFormsModule,
+    ScriptAnnotationComponent,
+    ScriptAnnotationsPipe,
+    SeedMetaComponent,
+  ],
+  standalone: true
 })
 export class SeedDetailsComponent implements OnChanges, OnDestroy {
 

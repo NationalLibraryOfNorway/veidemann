@@ -2,7 +2,7 @@ import {Pipe, PipeTransform} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {ConfigObject} from '../../shared/models/config';
+import {ConfigObject} from '../../../shared/models/config';
 import {OptionsService} from '../services/options.service';
 
 

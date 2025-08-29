@@ -1,12 +1,12 @@
-import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
-import { AppComponent } from "./features/app/app.component";
-import { initError } from "./app.config";
+import {CommonModule} from "@angular/common";
+import {Component} from "@angular/core";
+import {initError} from "./app.config";
+import {RouterOutlet} from '@angular/router';
 
 @Component({
   standalone: true,
   selector: 'app-root',
-  imports: [CommonModule, AppComponent],
+  imports: [CommonModule, RouterOutlet],
   template: `
   @defer (when appReady()) {
     <router-outlet />

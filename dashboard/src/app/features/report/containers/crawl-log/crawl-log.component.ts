@@ -12,8 +12,13 @@ import { ErrorService } from '../../../../core';
 import { Sort } from '../../../../shared/func';
 import { CrawlLogListComponent } from '../../components';
 import { CrawlLogQueryComponent } from '../../components/crawl-log-query/crawl-log-query.component';
-import { QueryPageLogDirective } from '../../directives';
+import {QueryCrawlLogDirective, QueryPageLogDirective} from '../../directives';
 import { CrawlLogQuery, CrawlLogService } from '../../services';
+import {FlexLayoutModule, FlexModule} from '@angular/flex-layout';
+import {ActionDirective, ShortcutDirective} from '../../../../shared/directives';
+import {MatTooltip} from '@angular/material/tooltip';
+import {MatListModule} from '@angular/material/list';
+import {MatMenuItem} from '@angular/material/menu';
 
 @Component({
   selector: 'app-crawl-log',
@@ -22,14 +27,18 @@ import { CrawlLogQuery, CrawlLogService } from '../../services';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    ActionDirective,
     BrowserModule,
-    MatIconModule,
-    MatProgressBarModule,
-    RouterModule,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
-    QueryPageLogDirective,
-
+    FlexLayoutModule,
+    MatIconModule,
+    MatMenuItem,
+    MatProgressBarModule,
+    MatTooltip,
+    QueryCrawlLogDirective,
+    RouterModule,
+    ShortcutDirective,
   ]
 })
 export class CrawlLogComponent implements OnInit {

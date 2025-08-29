@@ -1,16 +1,34 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
-import {BrowserConfig, ConfigObject, ConfigRef, Kind, Label, Meta} from '../../../../shared/models';
-import {UnitOfTime} from '../../../../shared/models/duration/unit-time.model';
+import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
+import {BrowserConfig, ConfigObject, ConfigRef, Kind, Label, Meta} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
+import { UnitOfTime } from '../../../../../shared/models/duration/unit-time.model';
+import {MatCardModule} from '@angular/material/card';
+import {MatIconModule} from '@angular/material/icon';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {MatSelectModule} from '@angular/material/select';
+import {SelectorComponent} from '../../selector/selector.component';
+import {MetaComponent} from '../../meta/meta.component';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInputModule} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
-    selector: 'app-browserconfig-details',
-    templateUrl: './browserconfig-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-browserconfig-details',
+  templateUrl: './browserconfig-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    [MatCardModule, MatIconModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
+    DurationPickerComponent,
+    SelectorComponent,
+    MetaComponent,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class BrowserConfigDetailsComponent implements OnChanges {
   readonly Kind = Kind;

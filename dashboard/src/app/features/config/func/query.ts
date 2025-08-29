@@ -1,5 +1,5 @@
-import {ConfigObject, Kind} from '../../shared/models';
-import {FieldMask, ListRequest} from '../../../api';
+import {ConfigObject, Kind} from '../../../shared/models';
+import {FieldMask, ListRequest} from '../../../../api';
 
 export function createListRequest(kind: Kind, queryTemplate?: Partial<ConfigObject>, queryMask?: FieldMask) {
   const listRequest = new ListRequest();

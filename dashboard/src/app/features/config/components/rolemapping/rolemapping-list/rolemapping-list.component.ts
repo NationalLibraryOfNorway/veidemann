@@ -1,21 +1,36 @@
 import {ChangeDetectionStrategy, Component, forwardRef} from '@angular/core';
-import {ConfigObject, Role} from '../../../../shared/models';
-import {BaseListComponent} from '../../../../commons/components/base-list/base-list';
-import {BASE_LIST} from '../../../../shared/directives';
+import {ConfigObject, Role} from '../../../../../shared/models';
+import {BaseListComponent} from '../../../../../shared/components';
+import {BASE_LIST} from '../../../../../shared/directives';
+import {MatTableModule} from '@angular/material/table';
+import {MatCheckbox} from '@angular/material/checkbox';
+import {AsyncPipe, NgClass} from '@angular/common';
+import {MatPaginator} from '@angular/material/paginator';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 
 @Component({
-    selector: 'app-rolemapping-list',
-    templateUrl: './rolemapping-list.component.html',
-    styleUrls: ['../../../../commons/components/base-list/base-list.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    providers: [
-        {
-            provide: BASE_LIST,
-            useExisting: forwardRef(() => RoleMappingListComponent)
-        }
-    ],
-    standalone: true
+  selector: 'app-rolemapping-list',
+  templateUrl: './rolemapping-list.component.html',
+  styleUrls: ['../../../../../shared/components/base-list/base-list.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [
+    {
+      provide: BASE_LIST,
+      useExisting: forwardRef(() => RoleMappingListComponent)
+    }
+  ],
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCheckbox,
+    MatPaginator,
+    MatTableModule,
+    NgClass,
+  ],
+  standalone: true
 })
 
 export class RoleMappingListComponent extends BaseListComponent<ConfigObject> {

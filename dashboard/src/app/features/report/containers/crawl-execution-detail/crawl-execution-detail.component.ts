@@ -11,6 +11,7 @@ import { CrawlExecutionService } from '../../services';
 import { CrawlExecutionShortcutsComponent } from '../../components/crawl-execution-shortcuts/crawl-execution-shortcuts.component';
 import { CrawlExecutionStatusComponent } from '../../components';
 import { CommonModule } from '@angular/common';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
     selector: 'app-crawl-execution',
@@ -19,6 +20,7 @@ import { CommonModule } from '@angular/common';
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
     imports: [
+      FlexLayoutModule,
       CommonModule,
       CrawlExecutionStatusComponent,
       CrawlExecutionShortcutsComponent,

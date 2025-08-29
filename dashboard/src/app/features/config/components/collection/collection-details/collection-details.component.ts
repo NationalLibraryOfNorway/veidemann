@@ -7,18 +7,46 @@ import {
   RotationPolicy,
   SubCollection,
   SubCollectionType
-} from '../../../../shared/models';
-import {AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {VALID_COLLECTION_NAME} from '../../../../shared/validation/patterns';
+} from '../../../../../shared/models';
+import {
+  AbstractControl,
+  ReactiveFormsModule,
+  UntypedFormArray,
+  UntypedFormBuilder,
+  UntypedFormGroup,
+  Validators
+} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {VALID_COLLECTION_NAME} from '../../../../../shared/validation/patterns';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {CollectionMetaComponent} from '../../collection-meta/collection-meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
+import {MatCheckbox} from '@angular/material/checkbox';
+import {MatButtonModule} from '@angular/material/button';
+import {MatTooltip} from '@angular/material/tooltip';
 
 
 @Component({
-    selector: 'app-collection-details',
-    templateUrl: './collection-details.component.html',
-    styleUrls: ['./collection-details.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-collection-details',
+  templateUrl: './collection-details.component.html',
+  styleUrls: ['./collection-details.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatCardModule,
+    ReactiveFormsModule,
+    MatIcon,
+    CollectionMetaComponent,
+    MatFormFieldModule,
+    MatSelectModule,
+    FilesizeInputComponent,
+    MatCheckbox,
+    MatTooltip,
+    MatButtonModule,
+  ],
+  standalone: true
 })
 export class CollectionDetailsComponent implements OnChanges {
 

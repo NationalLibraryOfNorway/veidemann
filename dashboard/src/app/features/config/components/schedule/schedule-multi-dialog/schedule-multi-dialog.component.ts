@@ -1,18 +1,37 @@
 import {Component, Inject, OnInit, ViewChild} from '@angular/core';
 import {ScheduleDetailsComponent} from '..';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label} from '../../../../shared/models/config';
-import {DateTime} from '../../../../shared/func';
+import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
+import {DateTime} from '../../../../../shared/func';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatTooltip} from '@angular/material/tooltip';
+import {MatInput} from '@angular/material/input';
+import {MatDatepickerModule} from '@angular/material/datepicker';
+import {MatIcon} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
-    selector: 'app-schedule-multi-dialog',
-    templateUrl: './schedule-multi-dialog.component.html',
-    styleUrls: ['./schedule-multi-dialog.component.css'],
-    standalone: true
+  selector: 'app-schedule-multi-dialog',
+  templateUrl: './schedule-multi-dialog.component.html',
+  styleUrls: ['./schedule-multi-dialog.component.css'],
+  imports: [
+    LabelMultiComponent,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatTooltip,
+    ReactiveFormsModule,
+    FlexLayoutModule
+  ],
+  standalone: true
 })
 export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent implements OnInit {
 

@@ -3,14 +3,28 @@ import {RunStatus} from '../../../shared/models/controller';
 import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
 import {Observable} from "rxjs";
 import {AbilityService} from "@casl/angular";
+import {AsyncPipe} from '@angular/common';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatTooltip} from '@angular/material/tooltip';
 
 
 @Component({
-    selector: 'app-crawlerstatus',
-    templateUrl: './crawlerstatus.component.html',
-    styleUrls: ['./crawlerstatus.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-crawlerstatus',
+  templateUrl: './crawlerstatus.component.html',
+  styleUrls: ['./crawlerstatus.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIcon,
+    MatTooltip,
+  ],
+  standalone: true
 })
 export class CrawlerStatusComponent {
   readonly RunStatus = RunStatus;

@@ -1,18 +1,31 @@
 import {Component, Inject, OnInit, ViewChild} from '@angular/core';
 import {CrawlConfigDetailsComponent} from '..';
-import {UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, ConfigRef, Kind, Label} from '../../../../shared/models/config';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
+import {ConfigObject, ConfigRef, Kind, Label} from '../../../../../shared/models/config';
+import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatCheckbox} from '@angular/material/checkbox';
+import {MatTooltip} from '@angular/material/tooltip';
 
 @Component({
-    selector: 'app-crawlconfig-multi-dialog',
-    templateUrl: './crawlconfig-multi-dialog.component.html',
-    styleUrls: ['./crawlconfig-multi-dialog.component.css'],
-    standalone: true
+  selector: 'app-crawlconfig-multi-dialog',
+  templateUrl: './crawlconfig-multi-dialog.component.html',
+  styleUrls: ['./crawlconfig-multi-dialog.component.css'],
+  imports: [
+    LabelMultiComponent,
+    MatCheckbox,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatTooltip,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent implements OnInit {
 

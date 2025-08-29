@@ -1,7 +1,7 @@
 import {Pipe, PipeTransform} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {JobExecutionState, JobExecutionStatus} from '../../shared/models/report';
+import {JobExecutionState, JobExecutionStatus} from '../../../shared/models/report';
 
 
 @Pipe({

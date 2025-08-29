@@ -1,5 +1,5 @@
 @use '@angular/material' as mat;
-@use '../../../../styles/theme' as theme;
+@use '../../../../../styles/theme.scss' as theme;
 
 table {
   width: 100%;

@@ -1,13 +1,24 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {ConfigObject, Kind, Meta} from '../../../../shared/models';
+import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {ConfigObject, Kind, Meta} from '../../../../../shared/models';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
 
 @Component({
-    selector: 'app-entity-details',
-    templateUrl: './entity-details.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-entity-details',
+  templateUrl: './entity-details.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatCardModule,
+    MatFormFieldModule,
+    MatIcon,
+    MetaComponent,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 
 export class EntityDetailsComponent implements OnChanges {

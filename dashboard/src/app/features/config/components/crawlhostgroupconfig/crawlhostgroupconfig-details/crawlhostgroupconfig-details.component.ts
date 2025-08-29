@@ -1,22 +1,38 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {CrawlHostGroupConfigIpValidation} from './crawlhostgroupconfig-ipvalidation';
-import {ConfigObject, CrawlHostGroupConfig, Kind, Meta} from '../../../../shared/models';
-import {IpRange} from '../../../../shared/models/config/ip-range.model';
 import {
-  ANY_DECIMAL_NUMBER_OR_EMPTY_STRING,
-  DECIMAL_NUMBER_OR_EMPTY_STRING,
-  NUMBER_OR_EMPTY_STRING
-} from '../../../../shared/validation/patterns';
-import {UnitOfTime} from '../../../../shared/models/duration/unit-time.model';
+  AbstractControl,
+  ReactiveFormsModule,
+  UntypedFormArray,
+  UntypedFormBuilder,
+  UntypedFormGroup,
+  Validators
+} from '@angular/forms';
+import {AuthService} from '../../../../../core/auth';
+import {CrawlHostGroupConfigIpValidation} from './crawlhostgroupconfig-ipvalidation';
+import {ConfigObject, CrawlHostGroupConfig, Kind, Meta} from '../../../../../shared/models';
+import {IpRange} from '../../../../../shared/models/config/ip-range.model';
+import {ANY_DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
+import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatCardModule} from '@angular/material/card';
+import {MetaComponent} from '../../meta/meta.component';
+import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {MatIcon} from '@angular/material/icon';
 
 @Component({
-    selector: 'app-crawlhostgroupconfig-details',
-    templateUrl: './crawlhostgroupconfig-details.component.html',
-    styleUrls: ['./crawlhostgroupconfig-details.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-crawlhostgroupconfig-details',
+  templateUrl: './crawlhostgroupconfig-details.component.html',
+  styleUrls: ['./crawlhostgroupconfig-details.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatCardModule,
+    MatFormFieldModule,
+    MatIcon,
+    DurationPickerComponent,
+    MetaComponent,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
   readonly UnitOfTime = UnitOfTime;

@@ -7,25 +7,35 @@ import {
   FormBuilder,
   NG_VALIDATORS,
   NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
   ValidationErrors,
   Validator,
   Validators
 } from '@angular/forms';
 import {Subject} from 'rxjs';
-import {Meta} from '../../../shared/models';
+import {Meta} from '../../../../shared/models';
 import {takeUntil} from 'rxjs/operators';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {LabelComponent} from '../label/label.component';
+import {AnnotationComponent} from '../annotation/annotation.component';
 
 
 @Component({
-    selector: 'app-meta',
-    templateUrl: './meta.component.html',
-    styleUrls: ['./meta.component.css'],
-    providers: [
-        { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MetaComponent), multi: true },
-        { provide: NG_VALIDATORS, useExisting: forwardRef(() => MetaComponent), multi: true },
-    ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-meta',
+  templateUrl: './meta.component.html',
+  styleUrls: ['./meta.component.css'],
+  providers: [
+    {provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MetaComponent), multi: true},
+    {provide: NG_VALIDATORS, useExisting: forwardRef(() => MetaComponent), multi: true},
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    AnnotationComponent,
+    LabelComponent,
+    MatFormFieldModule,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 
 export class MetaComponent implements AfterViewInit, OnInit, OnDestroy, ControlValueAccessor, Validator {

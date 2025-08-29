@@ -1,33 +1,47 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
-import { SortDirection } from '@angular/material/sort';
-import { ActivatedRoute, Router } from '@angular/router';
-import { AbilityService } from '@casl/angular';
-import { combineLatest, Observable, of, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map, share, shareReplay, startWith } from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {MatDialog} from '@angular/material/dialog';
+import {PageEvent} from '@angular/material/paginator';
+import {SortDirection} from '@angular/material/sort';
+import {ActivatedRoute, Router, RouterLink} from '@angular/router';
+import {AbilityService} from '@casl/angular';
+import {combineLatest, Observable, of, Subject} from 'rxjs';
+import {debounceTime, distinctUntilChanged, map, share, shareReplay, startWith} from 'rxjs/operators';
 import {MatIconModule} from '@angular/material/icon';
 
-import { ControllerApiService, ErrorService, SnackBarService } from '../../../../core';
-import { distinctUntilArrayChanged, isValidDate, Sort } from '../../../../shared/func';
-import {
-  ConfigObject,
-  JobExecutionState, jobExecutionStates, JobExecutionStatus,
-  Kind
-} from '../../../../shared/models';
-import { AbortCrawlDialogComponent } from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
-import { JobExecutionService, JobExecutionStatusQuery } from '../../services';
+import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {distinctUntilArrayChanged, isValidDate, Sort} from '../../../../shared/func';
+import {ConfigObject, JobExecutionState, jobExecutionStates, JobExecutionStatus, Kind} from '../../../../shared/models';
+import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
+import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
+import {AsyncPipe} from '@angular/common';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {JobExecutionStatusListComponent, JobExecutionStatusQueryComponent} from '../../components';
+import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {QueryJobExecutionStatusDirective} from '../../directives';
+import {MatMenuItem} from '@angular/material/menu';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 
 @Component({
-    selector: 'app-job-execution',
-    templateUrl: './job-execution.component.html',
-    styleUrls: ['./job-execution.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true,
-    imports: [
-      MatIconModule,
-    ]
+  selector: 'app-job-execution',
+  templateUrl: './job-execution.component.html',
+  styleUrls: ['./job-execution.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [
+    ActionDirective,
+    AsyncPipe,
+    FilterDirective,
+    FlexLayoutModule,
+    JobExecutionStatusQueryComponent,
+    JobExecutionStatusListComponent,
+    MatIconModule,
+    MatMenuItem,
+    MatProgressBarModule,
+    QueryJobExecutionStatusDirective,
+    RouterLink,
+    ShortcutDirective,
+  ]
 })
 export class JobExecutionComponent implements OnInit {
   readonly jobExecutionStates = jobExecutionStates;

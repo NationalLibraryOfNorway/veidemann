@@ -1,12 +1,7 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 
-import {
-  ConfigObject,
-  CrawlScheduleConfig,
-  Kind,
-  Meta,
-} from '../../../../shared/models';
+import {ConfigObject, CrawlScheduleConfig, Kind, Meta,} from '../../../../../shared/models';
 
 
 import {
@@ -15,10 +10,20 @@ import {
   VALID_CRON_HOUR_PATTERN,
   VALID_CRON_MINUTE_PATTERN,
   VALID_CRON_MONTH_PATTERN
-} from '../../../../shared/validation';
+} from '../../../../../shared/validation';
 
-import { AuthService } from '../../../../core/auth';
-import { DateTime } from '../../../../shared/func';
+import {AuthService} from '../../../../../core/auth';
+import {DateTime} from '../../../../../shared/func';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInput} from '@angular/material/input';
+import {MatListSubheaderCssMatStyler} from '@angular/material/list';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatDatepickerModule} from '@angular/material/datepicker';
+import {JsonPipe} from '@angular/common';
+import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
@@ -26,6 +31,19 @@ import { DateTime } from '../../../../shared/func';
   templateUrl: './schedule-details.component.html',
   styleUrls: ['./schedule-details.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    JsonPipe,
+    MatButtonModule,
+    MatCardModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatListSubheaderCssMatStyler,
+    MetaComponent,
+    ReactiveFormsModule
+  ],
   standalone: true
 })
 export class ScheduleDetailsComponent implements OnChanges {
@@ -44,12 +62,12 @@ export class ScheduleDetailsComponent implements OnChanges {
   form: UntypedFormGroup;
 
   constructor(protected fb: UntypedFormBuilder,
-    protected authService: AuthService) {
+              protected authService: AuthService) {
     this.createForm();
   }
 
   protected static setCronExpression(cronExpression): string {
-    const { minute, hour, dom, month, dow } = cronExpression;
+    const {minute, hour, dom, month, dow} = cronExpression;
     return minute + ' ' + hour + ' ' + dom + ' ' + month + ' ' + dow;
   }
 
@@ -164,7 +182,7 @@ export class ScheduleDetailsComponent implements OnChanges {
   protected prepareSave(): ConfigObject {
     const formModel = this.form.value;
 
-    const configObject = new ConfigObject({ kind: Kind.CRAWLSCHEDULECONFIG });
+    const configObject = new ConfigObject({kind: Kind.CRAWLSCHEDULECONFIG});
     if (this.configObject.id !== '') {
       configObject.id = this.configObject.id;
     }

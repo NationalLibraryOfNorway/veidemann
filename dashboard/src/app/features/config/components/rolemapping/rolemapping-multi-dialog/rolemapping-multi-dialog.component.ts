@@ -1,16 +1,26 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {RoleMappingDetailsComponent} from '..';
-import {UntypedFormBuilder, Validators} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {CustomValidators} from '../../../../shared/validation';
-import {ConfigObject, Kind} from '../../../../shared/models/config';
+import {CustomValidators} from '../../../../../shared/validation';
+import {ConfigObject, Kind} from '../../../../../shared/models/config';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
-    selector: 'app-rolemapping-multi-dialog',
-    templateUrl: './rolemapping-multi-dialog.component.html',
-    styleUrls: ['./rolemapping-multi-dialog.component.css'],
-    standalone: true
+  selector: 'app-rolemapping-multi-dialog',
+  templateUrl: './rolemapping-multi-dialog.component.html',
+  styleUrls: ['./rolemapping-multi-dialog.component.css'],
+  imports: [
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    ReactiveFormsModule,
+  ],
+  standalone: true
 })
 export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent implements OnInit {
 

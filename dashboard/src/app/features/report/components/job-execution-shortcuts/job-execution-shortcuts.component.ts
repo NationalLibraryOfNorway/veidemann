@@ -1,13 +1,23 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {JobExecutionState, JobExecutionStatus, Kind} from '../../../shared/models';
+import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {JobExecutionState, JobExecutionStatus, Kind} from '../../../../shared/models';
 import {Observable} from 'rxjs';
 import {AbilityService} from '@casl/angular';
+import {AsyncPipe} from '@angular/common';
+import {RouterLink} from '@angular/router';
+import {MatIcon} from '@angular/material/icon';
+import {MatListModule} from '@angular/material/list';
 
 @Component({
-    selector: 'app-job-execution-shortcuts',
-    templateUrl: './job-execution-shortcuts.component.html',
-    styleUrls: ['./job-execution-shortcuts.component.css'],
-    standalone: true
+  selector: 'app-job-execution-shortcuts',
+  templateUrl: './job-execution-shortcuts.component.html',
+  styleUrls: ['./job-execution-shortcuts.component.css'],
+  imports: [
+    AsyncPipe,
+    MatListModule,
+    MatIcon,
+    RouterLink
+  ],
+  standalone: true
 })
 export class JobExecutionShortcutsComponent {
   readonly Kind = Kind;

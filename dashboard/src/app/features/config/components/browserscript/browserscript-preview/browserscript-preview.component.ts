@@ -1,12 +1,25 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
-import {BrowserScriptType, ConfigObject} from '../../../../shared/models/config';
+import { BrowserScriptType, ConfigObject } from '../../../../../shared/models';
+import { MatChipsModule } from '@angular/material/chips';
+import {MatLabel} from '@angular/material/form-field';
+import {EditorComponent} from 'ngx-monaco-editor-v2';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {FormsModule} from '@angular/forms';
+
 
 @Component({
-    selector: 'app-browserscript-preview',
-    templateUrl: './browserscript-preview.component.html',
-    styleUrls: ['./browserscript-preview.component.css'],
-    standalone: true,
-    changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-browserscript-preview',
+  templateUrl: './browserscript-preview.component.html',
+  styleUrls: ['./browserscript-preview.component.css'],
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    EditorComponent,
+    FlexLayoutModule,
+    FormsModule,
+    MatChipsModule,
+    MatLabel
+  ]
 })
 export class BrowserscriptPreviewComponent implements OnInit {
   readonly BrowserScriptType = BrowserScriptType;

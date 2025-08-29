@@ -1,13 +1,16 @@
-import { FlatTreeControl } from '@angular/cdk/tree';
-import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree';
-import { RouterModule } from '@angular/router';
-import { PageLog } from '../../../../shared/models';
-import { UrlFormatPipe } from '../../../../shared/pipes/url-format.pipe';
-import { ResourceComponent } from '../resource/resource.component';
+import {FlatTreeControl} from '@angular/cdk/tree';
+import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import {MatExpansionModule} from '@angular/material/expansion';
+import {MatIconModule} from '@angular/material/icon';
+import {MatTableDataSource, MatTableModule} from '@angular/material/table';
+import {MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule} from '@angular/material/tree';
+import {RouterModule} from '@angular/router';
+import {PageLog} from '../../../../shared/models';
+import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
+import {ResourceComponent} from '../resource/resource.component';
+import {MatCardModule} from '@angular/material/card';
+import {MatButtonModule} from '@angular/material/button';
+import {FlexLayoutServerModule} from '@angular/flex-layout/server';
 
 interface UriNode {
   name: string;
@@ -23,20 +26,23 @@ interface UriFlatNode {
 }
 
 @Component({
-    selector: 'app-page-log-status',
-    templateUrl: './page-log-status.component.html',
-    styleUrls: ['./page-log-status.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true,
-    imports: [
-      RouterModule,
-      MatIconModule,
-      MatTreeModule,
-      MatExpansionModule,
-      ResourceComponent,
-      UrlFormatPipe,
-      MatTableModule,
-    ]
+  selector: 'app-page-log-status',
+  templateUrl: './page-log-status.component.html',
+  styleUrls: ['./page-log-status.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [
+    RouterModule,
+    MatIconModule,
+    MatTreeModule,
+    MatExpansionModule,
+    ResourceComponent,
+    UrlFormatPipe,
+    MatTableModule,
+    MatCardModule,
+    MatButtonModule,
+    FlexLayoutServerModule
+  ]
 })
 export class PageLogStatusComponent implements OnChanges {
 

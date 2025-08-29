@@ -1,18 +1,34 @@
 import {Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {ConfigObject, Label} from '../../../../shared/models/config';
+import {ConfigObject, Label} from '../../../../../shared/models/config';
 import {ENTER} from '@angular/cdk/keycodes';
-import {MatChipInputEvent} from '@angular/material/chips';
+import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {combineLatest, Observable, Subject} from 'rxjs';
-import {CdkDragDrop} from '@angular/cdk/drag-drop';
+import {CdkDrag, CdkDragDrop, CdkDropList} from '@angular/cdk/drag-drop';
 import {map, startWith, switchMap} from 'rxjs/operators';
 import {LabelService} from '../../../services/label.service';
-import {UntypedFormControl} from '@angular/forms';
+import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
+import {MatButtonToggleModule} from '@angular/material/button-toggle';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIcon} from '@angular/material/icon';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {AsyncPipe} from '@angular/common';
 
 @Component({
-    selector: 'app-label-multi',
-    templateUrl: './label-multi.component.html',
-    styleUrls: ['./label-multi.component.css'],
-    standalone: true
+  selector: 'app-label-multi',
+  templateUrl: './label-multi.component.html',
+  styleUrls: ['./label-multi.component.css'],
+  imports: [
+    AsyncPipe,
+    CdkDrag,
+    CdkDropList,
+    MatAutocompleteModule,
+    MatButtonToggleModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIcon,
+    ReactiveFormsModule,
+  ],
+  standalone: true
 })
 export class LabelMultiComponent implements OnInit {
   @Input()

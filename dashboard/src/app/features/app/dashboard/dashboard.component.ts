@@ -6,12 +6,20 @@ import {AbilityService} from "@casl/angular";
 import { ControllerApiService, ErrorService } from '../../../core';
 import { CrawlerStatus } from '../../../shared/models/controller/controller.model';
 import { CrawlerStatusDialogComponent } from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
+import {AsyncPipe} from '@angular/common';
+import {CrawlerStatusComponent} from '../crawlerstatus/crawlerstatus.component';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
-    selector: 'app-dashboard',
-    templateUrl: './dashboard.component.html',
-    styleUrls: ['./dashboard.component.css'],
-    standalone: true
+  selector: 'app-dashboard',
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css'],
+  imports: [
+    AsyncPipe,
+    FlexLayoutModule,
+    CrawlerStatusComponent
+  ],
+  standalone: true
 })
 export class DashboardComponent implements OnInit {
   readonly ability$: Observable<any>;

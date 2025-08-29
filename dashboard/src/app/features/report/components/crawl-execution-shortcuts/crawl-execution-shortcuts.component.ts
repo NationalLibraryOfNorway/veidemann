@@ -1,13 +1,23 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {CrawlExecutionState, CrawlExecutionStatus, Kind} from '../../../shared/models';
+import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {CrawlExecutionState, CrawlExecutionStatus, Kind} from '../../../../shared/models';
 import {Observable, Subject} from 'rxjs';
 import {AbilityService} from '@casl/angular';
+import {AsyncPipe} from '@angular/common';
+import {MatListModule} from '@angular/material/list';
+import {RouterLink} from '@angular/router';
+import {MatIcon} from '@angular/material/icon';
 
 @Component({
-    selector: 'app-crawl-execution-shortcuts',
-    templateUrl: './crawl-execution-shortcuts.component.html',
-    styleUrls: ['./crawl-execution-shortcuts.component.css'],
-    standalone: true
+  selector: 'app-crawl-execution-shortcuts',
+  templateUrl: './crawl-execution-shortcuts.component.html',
+  styleUrls: ['./crawl-execution-shortcuts.component.css'],
+  imports: [
+    AsyncPipe,
+    MatIcon,
+    MatListModule,
+    RouterLink,
+  ],
+  standalone: true
 })
 export class CrawlExecutionShortcutsComponent {
   readonly Kind = Kind;

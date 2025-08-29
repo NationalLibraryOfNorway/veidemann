@@ -1,16 +1,40 @@
 import {ChangeDetectorRef, Component, Inject, OnInit} from '@angular/core';
 import {BrowserScriptDetailsComponent} from '..';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
+
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../shared/models/config';
+import {AuthService} from '../../../../../core';
+import {ConfigObject} from '../../../../../shared/models';
+import {MetaComponent} from '../../meta/meta.component';
+import {MatSelectModule} from '@angular/material/select';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatIcon} from '@angular/material/icon';
+import {MatCardModule} from '@angular/material/card';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatInput} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
+import {EditorComponent} from 'ngx-monaco-editor-v2';
+
 
 @Component({
-    selector: 'app-browserscript-dialog',
-    templateUrl: './browserscript-dialog.component.html',
-    styleUrls: ['./browserscript-dialog.component.css'],
-    standalone: true
+  selector: 'app-browserscript-dialog',
+  templateUrl: './browserscript-dialog.component.html',
+  styleUrls: ['./browserscript-dialog.component.css'],
+  imports: [
+    EditorComponent,
+    FlexLayoutModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatDialogModule,
+    MatInput,
+    MatIcon,
+    MatSelectModule,
+    MetaComponent,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class BrowserScriptDialogComponent extends BrowserScriptDetailsComponent implements OnInit {
 

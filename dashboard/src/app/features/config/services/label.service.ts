@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {Observable, of} from 'rxjs';
-import {GetLabelKeysRequest} from '../../../api';
-import {ConfigApiService} from '../../core';
-import {Kind} from '../../shared/models';
+import {GetLabelKeysRequest} from '../../../../api';
+import {ConfigApiService} from '../../../core';
+import {Kind} from '../../../shared/models';
 
 @Injectable()
 export class LabelService {

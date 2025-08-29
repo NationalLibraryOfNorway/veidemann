@@ -3,6 +3,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { FileSizePipe } from 'ngx-filesize';
 import { CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes } from '../../../../shared/models/report';
+import {RouterLink} from '@angular/router';
+import {JobNamePipe, SeedNamePipe} from '../../pipe';
+import {AsyncPipe, DatePipe} from '@angular/common';
+import {MatIcon} from '@angular/material/icon';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @Component({
     selector: 'app-crawl-execution-status',
@@ -11,10 +16,17 @@ import { CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes } from '../
     providers: [FileSizePipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
-    imports: [
-      MatCardModule,
-      MatTableModule,
-    ]
+  imports: [
+    AsyncPipe,
+    DatePipe,
+    FlexLayoutModule,
+    JobNamePipe,
+    MatCardModule,
+    MatIcon,
+    MatTableModule,
+    RouterLink,
+    SeedNamePipe
+  ]
 })
 export class CrawlExecutionStatusComponent implements OnInit{
   readonly CrawlExecutionState = CrawlExecutionState;

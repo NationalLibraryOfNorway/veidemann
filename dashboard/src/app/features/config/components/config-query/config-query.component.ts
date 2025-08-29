@@ -7,21 +7,40 @@ import {
   OnChanges,
   ViewChild
 } from '@angular/core';
-import {UntypedFormBuilder} from '@angular/forms';
+import {FormsModule, ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 
-import {Kind} from '../../../shared/models';
-import {ConfigQuery} from '../../../shared/func';
+import {Kind} from '../../../../shared/models';
+import {ConfigQuery} from '../../../../shared/func';
 import {ConfigOptions} from '../../func';
-import {QueryComponent} from '../../../commons/components';
-import {ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
+import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
+import {QueryComponent} from '../../../../shared/components';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInput} from '@angular/material/input';
+import {MatIcon} from '@angular/material/icon';
+import {MatSelectModule} from '@angular/material/select';
+import {FlexLayoutModule} from '@angular/flex-layout';
+import {MatButtonModule} from '@angular/material/button';
+import {MatRadioModule} from '@angular/material/radio';
 
 
 @Component({
-    selector: 'app-config-query',
-    styleUrls: ['config-query.component.scss'],
-    templateUrl: './config-query.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true
+  selector: 'app-config-query',
+  styleUrls: ['config-query.component.scss'],
+  templateUrl: './config-query.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexLayoutModule,
+    FormsModule,
+    KeyboardShortcutsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIcon,
+    MatInput,
+    MatRadioModule,
+    MatSelectModule,
+    ReactiveFormsModule
+  ],
+  standalone: true
 })
 export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements OnChanges, AfterViewInit {
   readonly Kind = Kind;
