@@ -2,7 +2,7 @@ import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatPaginatorModule} from '@angular/material/paginator';
-import {BaseListComponent} from '../../../../shared/components';
+import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {BASE_LIST} from '../../../../shared/directives';
 import {ListDataSource, PageLog} from '../../../../shared/models';
 import {MatIconModule} from '@angular/material/icon';
@@ -40,6 +40,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatSortModule,
     MatTableModule,
     UrlFormatPipe,
+    ...BASE_LIST_IMPORTS,
   ]
 })
 export class PageLogListComponent extends BaseListComponent<PageLog> {

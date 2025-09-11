@@ -13,7 +13,7 @@ import {MatMenuModule} from '@angular/material/menu';
 import {MatIcon} from '@angular/material/icon';
 import {BASE_LIST} from '../../../../shared/directives';
 import {JobExecutionState, JobExecutionStatus, ListDataSource} from '../../../../shared/models';
-import {BaseListComponent} from '../../../../shared/components';
+import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {MatButtonModule} from '@angular/material/button';
 import {JobExecutionPreviewComponent} from '../job-execution-preview/job-execution-preview.component';
 import {MatPaginatorModule} from '@angular/material/paginator';
@@ -55,6 +55,7 @@ import {MatPaginatorModule} from '@angular/material/paginator';
     MatSortModule,
     MatTableModule,
     NgTemplateOutlet,
+    ...BASE_LIST_IMPORTS,
   ],
   standalone: true
 })

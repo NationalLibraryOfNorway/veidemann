@@ -4,7 +4,7 @@ import {CrawlLog} from '../../../../shared/models';
 import {ListDataSource} from '../../../../shared/models';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {BaseListComponent} from '../../../../shared/components';
+import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {BASE_LIST} from '../../../../shared/directives';
 import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
@@ -55,6 +55,7 @@ import {MatPaginatorModule} from '@angular/material/paginator';
     MatTooltip,
     NgTemplateOutlet,
     UrlFormatPipe,
+    ...BASE_LIST_IMPORTS,
   ],
   standalone: true
 })

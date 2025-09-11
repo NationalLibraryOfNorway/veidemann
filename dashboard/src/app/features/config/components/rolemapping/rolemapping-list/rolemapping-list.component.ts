@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component, forwardRef} from '@angular/core';
 import {ConfigObject, Role} from '../../../../../shared/models';
-import {BaseListComponent} from '../../../../../shared/components';
+import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../../shared/components';
 import {BASE_LIST} from '../../../../../shared/directives';
 import {MatTableModule} from '@angular/material/table';
 import {MatCheckbox} from '@angular/material/checkbox';
@@ -29,6 +29,7 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
     MatPaginator,
     MatTableModule,
     NgClass,
+    ...BASE_LIST_IMPORTS
   ],
   standalone: true
 })

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
-import {BaseListComponent} from '../../../../shared/components';
+import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {
   CrawlExecutionState,
   crawlExecutionStates,
@@ -62,6 +62,7 @@ import {CrawlExecutionPreviewComponent} from '../crawl-execution-preview/crawl-e
     NgTemplateOutlet,
     SeedNamePipe,
     UrlFormatPipe,
+    ...BASE_LIST_IMPORTS
   ]
 })
 export class CrawlExecutionStatusListComponent extends BaseListComponent<CrawlExecutionStatus> {

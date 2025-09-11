@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef} from 
 import {ConfigObject} from '../../../../shared/models/config';
 import {BASE_LIST} from '../../../../shared/directives';
 import {animate, state, style, transition, trigger} from '@angular/animations';
-import {BaseListComponent} from '../../../../shared/components';
+import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 
 @Component({
     selector: 'app-config-list',
@@ -25,6 +25,7 @@ import {BaseListComponent} from '../../../../shared/components';
             transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
         ]),
     ],
+    imports: [...BASE_LIST_IMPORTS],
     standalone: true,
 })
 
