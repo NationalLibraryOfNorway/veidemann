@@ -21,7 +21,7 @@ import {AsyncPipe} from '@angular/common';
 import {MatToolbar} from '@angular/material/toolbar';
 import {TimeComponent} from './time/time.component';
 import {MatMenuModule} from '@angular/material/menu';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTabsModule} from '@angular/material/tabs';

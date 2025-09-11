@@ -10,7 +10,7 @@ import {SeedMetaComponent} from '../../seed-meta/seed-meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-entity-dialog',

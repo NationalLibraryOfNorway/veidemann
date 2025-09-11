@@ -11,7 +11,7 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MetaComponent} from '../../meta/meta.component';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 

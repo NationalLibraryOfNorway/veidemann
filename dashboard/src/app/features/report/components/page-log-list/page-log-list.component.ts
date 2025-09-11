@@ -10,7 +10,7 @@ import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 
 @Component({

@@ -58,7 +58,7 @@ import {
   PolitenessConfigNamePipe
 } from '../../pipe';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 
 @Component({

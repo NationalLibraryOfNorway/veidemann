@@ -6,7 +6,7 @@ import {animate, state, style, transition, trigger} from '@angular/animations';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
 import {BaseListComponent} from '../../../../shared/components';
 import {BASE_LIST} from '../../../../shared/directives';
-import {FlexModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
@@ -44,7 +44,7 @@ import {MatPaginatorModule} from '@angular/material/paginator';
     AsyncPipe,
     CrawlLogPreviewComponent,
     DatePipe,
-    FlexModule,
+    FlexLayoutModule,
     KeyboardShortcutsModule,
     MatButtonModule,
     MatIcon,

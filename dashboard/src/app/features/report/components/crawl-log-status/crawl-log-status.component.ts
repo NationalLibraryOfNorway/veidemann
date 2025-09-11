@@ -8,7 +8,7 @@ import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {RouterLink} from '@angular/router';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-status',

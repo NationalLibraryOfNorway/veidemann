@@ -20,7 +20,7 @@ import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
 import {MatListSubheaderCssMatStyler} from '@angular/material/list';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';

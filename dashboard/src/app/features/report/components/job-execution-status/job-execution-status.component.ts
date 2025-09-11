@@ -10,7 +10,7 @@ import {FileSizePipe} from 'ngx-filesize';
 import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
 import {RouterLink} from '@angular/router';
 import {AsyncPipe, DatePipe} from '@angular/common';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 

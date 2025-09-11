@@ -31,7 +31,7 @@ import {CdkTextareaAutosize} from '@angular/cdk/text-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInput} from '@angular/material/input';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatListModule} from '@angular/material/list';

@@ -4,7 +4,7 @@ import {NgxFilesizeModule} from 'ngx-filesize';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe';
 import {MatCardModule} from '@angular/material/card';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-preview',

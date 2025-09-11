@@ -20,7 +20,7 @@ import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abo
 import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
 import {CommonModule} from '@angular/common';
 import {QueryCrawlExecutionStatusDirective} from '../../directives';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatTooltip} from '@angular/material/tooltip';
 

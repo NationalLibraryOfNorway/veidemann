@@ -4,7 +4,7 @@ import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {QueryComponent} from '../../../../shared/components';
 import {PageLogQuery} from '../../services';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatInputModule} from '@angular/material/input';
 
 @Component({

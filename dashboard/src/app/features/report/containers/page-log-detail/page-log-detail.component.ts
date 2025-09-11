@@ -8,7 +8,7 @@ import {map, mergeMap} from 'rxjs/operators';
 import { PageLogStatusComponent } from '../../components';
 import { PageLogShortcutsComponent } from '../../components/page-log-shortcuts/page-log-shortcuts.component';
 import { CommonModule } from '@angular/common';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
     selector: 'app-crawl-log-detail',

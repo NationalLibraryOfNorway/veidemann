@@ -18,7 +18,7 @@ import {Parcel, ScriptAnnotationComponent, SeedMetaComponent} from '../..';
 import {configRefIdRequired} from '../../../../../shared/validation/configref';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatFormFieldModule} from '@angular/material/form-field';

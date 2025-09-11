@@ -3,7 +3,7 @@ import {Annotation} from '../../../../../shared/models/config';
 import {Observable} from "rxjs";
 import {AbilityService} from "@casl/angular";
 import {AsyncPipe} from '@angular/common';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatChipsModule} from '@angular/material/chips';
 
 @Component({

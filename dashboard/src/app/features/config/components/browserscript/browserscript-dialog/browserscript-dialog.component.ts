@@ -11,7 +11,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatIcon} from '@angular/material/icon';
 import {MatCardModule} from '@angular/material/card';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {EditorComponent} from 'ngx-monaco-editor-v2';

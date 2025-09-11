@@ -43,7 +43,7 @@ import {RouterExtraService} from '../../services/router-extra.service';
 import {AsyncPipe, Location} from '@angular/common';
 import {ShortcutComponent} from '../../components/shortcut/shortcut.component';
 import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 
 export interface ConfigOptions {

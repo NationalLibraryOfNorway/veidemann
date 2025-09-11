@@ -17,7 +17,7 @@ import {MatProgressBar} from '@angular/material/progress-bar';
 import {PageLogQueryComponent} from '../../components/page-log-query/page-log-query.component';
 import {MatIcon} from '@angular/material/icon';
 import {QueryPageLogDirective} from '../../directives';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
 
 @Component({

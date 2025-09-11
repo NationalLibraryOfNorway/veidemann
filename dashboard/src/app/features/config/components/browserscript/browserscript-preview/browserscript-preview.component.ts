@@ -3,7 +3,7 @@ import { BrowserScriptType, ConfigObject } from '../../../../../shared/models';
 import { MatChipsModule } from '@angular/material/chips';
 import {MatLabel} from '@angular/material/form-field';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {FormsModule} from '@angular/forms';
 
 

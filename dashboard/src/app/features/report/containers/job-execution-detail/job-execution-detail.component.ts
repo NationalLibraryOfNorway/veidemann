@@ -14,7 +14,7 @@ import {
   JobExecutionShortcutsComponent
 } from '../../components/job-execution-shortcuts/job-execution-shortcuts.component';
 import {CommonModule} from '@angular/common';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-detail',

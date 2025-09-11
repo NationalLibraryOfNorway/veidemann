@@ -7,7 +7,7 @@ import {AsyncPipe} from '@angular/common';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatTooltip} from '@angular/material/tooltip';
 
 

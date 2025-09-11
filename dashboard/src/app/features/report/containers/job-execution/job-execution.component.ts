@@ -19,7 +19,7 @@ import {JobExecutionStatusListComponent, JobExecutionStatusQueryComponent} from 
 import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
 import {QueryJobExecutionStatusDirective} from '../../directives';
 import {MatMenuItem} from '@angular/material/menu';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 
 @Component({

@@ -7,7 +7,7 @@ import {RouterLink} from '@angular/router';
 import {JobNamePipe, SeedNamePipe} from '../../pipe';
 import {AsyncPipe, DatePipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
     selector: 'app-crawl-execution-status',

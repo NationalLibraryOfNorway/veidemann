@@ -10,7 +10,7 @@ import {AsyncPipe} from '@angular/common';
 import {NgxEchartsDirective} from 'ngx-echarts';
 import {MatCardModule} from '@angular/material/card';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 export enum JobExecutionStatusColor {
   ABORTED_MANUAL = '#924900',

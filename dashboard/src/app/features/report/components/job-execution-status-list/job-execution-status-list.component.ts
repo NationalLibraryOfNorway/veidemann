@@ -4,7 +4,7 @@ import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input
 
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
 import {JobExecutionFetchPipe, JobNamePipe} from '../../pipe';
 import {MatTableModule} from '@angular/material/table';

@@ -5,7 +5,7 @@ import {LabelService} from '../../services/label.service';
 import {LabelComponent} from '../label/label.component';
 import {AsyncPipe} from '@angular/common';
 import {CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';

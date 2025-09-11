@@ -4,7 +4,7 @@ import {durationBetweenDates} from '../../../../shared/func';
 import {MatCardModule} from '@angular/material/card';
 import {NgxFilesizeModule} from 'ngx-filesize';
 import {NgxEchartsDirective} from 'ngx-echarts';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 export enum CrawlExecutionStatusColors {
   CRAWLED = '#009E73',

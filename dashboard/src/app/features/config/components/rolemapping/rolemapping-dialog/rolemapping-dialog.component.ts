@@ -7,7 +7,7 @@ import {ConfigDialogData} from '../../../func';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 

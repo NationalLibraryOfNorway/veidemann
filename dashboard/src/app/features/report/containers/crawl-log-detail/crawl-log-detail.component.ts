@@ -9,7 +9,7 @@ import {CrawlLogStatusComponent} from '../../components';
 import {CrawlLogShortcutsComponent} from '../../components/crawl-log-shortcuts/crawl-log-shortcuts.component';
 import {DetailDirective} from '../../directives';
 import {CrawlLogService} from '../../services';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-detail',

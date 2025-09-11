@@ -13,7 +13,7 @@ import {MatInput} from '@angular/material/input';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-schedule-multi-dialog',

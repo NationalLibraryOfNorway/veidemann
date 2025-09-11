@@ -10,7 +10,7 @@ import {MatDatepickerModule} from '@angular/material/datepicker';
 import {MatTimepickerModule} from '@angular/material/timepicker';
 import {MatInputModule} from '@angular/material/input';
 import {MatCheckboxModule} from '@angular/material/checkbox';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
     selector: 'app-crawl-execution-status-query',

@@ -8,7 +8,7 @@ import { CrawlerStatus } from '../../../shared/models/controller/controller.mode
 import { CrawlerStatusDialogComponent } from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
 import {AsyncPipe} from '@angular/common';
 import {CrawlerStatusComponent} from '../crawlerstatus/crawlerstatus.component';
-import {FlexLayoutModule} from '@angular/flex-layout';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-dashboard',

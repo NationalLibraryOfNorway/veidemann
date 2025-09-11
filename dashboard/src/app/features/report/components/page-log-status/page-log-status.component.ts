@@ -1,4 +1,3 @@
-import {FlatTreeControl} from '@angular/cdk/tree';
 import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {MatIconModule} from '@angular/material/icon';
@@ -10,7 +9,9 @@ import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {ResourceComponent} from '../resource/resource.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutServerModule} from '@angular/flex-layout/server';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlatTreeControl} from '@angular/cdk/tree';
+
 
 interface UriNode {
   name: string;
@@ -41,7 +42,7 @@ interface UriFlatNode {
     MatTableModule,
     MatCardModule,
     MatButtonModule,
-    FlexLayoutServerModule
+    FlexLayoutModule
   ]
 })
 export class PageLogStatusComponent implements OnChanges {
