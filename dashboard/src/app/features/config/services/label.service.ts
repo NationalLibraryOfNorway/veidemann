@@ -4,7 +4,9 @@ import {GetLabelKeysRequest} from '../../../../api';
 import {ConfigApiService} from '../../../core';
 import {Kind} from '../../../shared/models';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class LabelService {
 
   private _kind: Kind;

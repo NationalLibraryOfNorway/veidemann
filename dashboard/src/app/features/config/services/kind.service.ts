@@ -3,7 +3,10 @@ import {Kind} from '../../../shared/models/config';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {LabelService} from './label.service';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
+
 export class KindService {
   private kind: BehaviorSubject<Kind>;
   kind$: Observable<Kind>;

@@ -3,7 +3,9 @@ import {BehaviorSubject, Observable} from 'rxjs';
 import {ConfigOptions} from '../func';
 
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class OptionsService {
 
   private _options: BehaviorSubject<ConfigOptions>;

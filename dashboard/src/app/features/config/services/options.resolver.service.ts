@@ -17,7 +17,9 @@ import {ConfigOptions, ConfigPath} from '../func';
 import {createListRequest} from '../func/query';
 import {FieldMask} from '../../../../api';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class OptionsResolver implements Resolve<ConfigOptions> {
 
   constructor(private backendService: ConfigApiService) {

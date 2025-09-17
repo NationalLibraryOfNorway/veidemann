@@ -21,7 +21,9 @@ import {ConfigQuery, escapeRegex} from '../func';
 import {Getter, Searcher} from '../directives';
 
 
-@Injectable()
+@Injectable({
+  providedIn: "root"
+})
 export class ConfigService
   extends LoadingService
   implements Searcher<ConfigQuery, ConfigObject>, Getter<ConfigObject> {
