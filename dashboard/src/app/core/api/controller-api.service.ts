@@ -1,4 +1,4 @@
-import {Inject, Injectable} from '@angular/core';
+import {Injectable} from '@angular/core';
 
 import {EMPTY, from, Observable} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
@@ -28,18 +28,28 @@ export class ControllerApiService {
 
   constructor(private authService: AuthService,
               private appConfig: AppConfig,
-              private errorHandler: ApplicationErrorHandler) {
-    this.controllerPromiseClient = new ControllerPromiseClient(appConfig.grpcWebUrl, null, null);
+              private errorHandler: ApplicationErrorHandler) {}
+
+  private getClient(): ControllerPromiseClient {
+    if (!this.controllerPromiseClient) {
+      if (!this.appConfig.grpcWebUrl) {
+        throw new Error('grpcWebUrl is not configured yet');
+      }
+      this.controllerPromiseClient = new ControllerPromiseClient(this.appConfig.grpcWebUrl, null, null);
+    }
+    return this.controllerPromiseClient;
   }
 
-  getOpenIdConnectIssuer(): Promise<string> {
-    return this.controllerPromiseClient.getOpenIdConnectIssuer(new Empty())
-      .then(response => response.getOpenIdConnectIssuer());
+  async getOpenIdConnectIssuer(): Promise<string> {
+    const response = await this.getClient()
+      .getOpenIdConnectIssuer(new Empty());
+    return response.getOpenIdConnectIssuer();
   }
 
-  getRolesForActiveUser(): Promise<Role[]> {
-    return this.controllerPromiseClient.getRolesForActiveUser(new Empty(), this.authService.metadata)
-      .then(roleList => roleList.getRoleList());
+  async getRolesForActiveUser(): Promise<Role[]> {
+    const roleList = await this.getClient()
+      .getRolesForActiveUser(new Empty(), this.authService.metadata);
+    return roleList.getRoleList();
   }
 
   getCrawlerStatus(): Observable<CrawlerStatus> {
