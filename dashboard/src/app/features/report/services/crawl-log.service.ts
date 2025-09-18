@@ -14,7 +14,9 @@ export interface CrawlLogQuery extends Page, Sort, Watch {
 }
 
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class CrawlLogService extends LoadingService
   implements Getter<CrawlLog>, Searcher<CrawlLogQuery, CrawlLog> {
 

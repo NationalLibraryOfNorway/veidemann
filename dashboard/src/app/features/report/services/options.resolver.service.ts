@@ -11,7 +11,9 @@ export interface ConfigOptions {
   crawlJobs?: ConfigObject[];
 }
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class OptionsResolver implements Resolve<ConfigOptions> {
 
 

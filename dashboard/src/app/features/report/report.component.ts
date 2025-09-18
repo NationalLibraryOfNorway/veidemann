@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { BrowserModule } from '@angular/platform-browser';
-import { RouterModule } from '@angular/router';
-import { ReportNavigationListComponent } from './containers/';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {MatSidenavModule} from '@angular/material/sidenav';
+import {RouterModule} from '@angular/router';
+import {ReportNavigationListComponent} from './containers/';
 
 @Component({
     selector: 'app-report',
@@ -12,7 +11,6 @@ import { ReportNavigationListComponent } from './containers/';
     standalone: true,
     imports: [
       RouterModule,
-      BrowserModule,
       MatSidenavModule,
       ReportNavigationListComponent,
     ],

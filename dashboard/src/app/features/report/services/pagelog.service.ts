@@ -17,7 +17,9 @@ export interface PageLogQuery extends Page, Sort, Watch {
   // orderDescending: boolean;
 }
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class PageLogService extends LoadingService implements Getter<PageLog> {
   private readonly cache: Map<string, ConfigObject>;
 

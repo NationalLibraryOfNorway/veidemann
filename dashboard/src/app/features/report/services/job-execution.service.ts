@@ -16,7 +16,9 @@ export interface JobExecutionStatusQuery extends Page, Sort, Watch {
   startTimeFrom: string;
 }
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class JobExecutionService extends LoadingService
   implements Searcher<JobExecutionStatusQuery, JobExecutionStatus>, Getter<JobExecutionStatus> {
 

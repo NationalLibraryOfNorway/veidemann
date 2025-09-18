@@ -19,7 +19,9 @@ export interface CrawlExecutionStatusQuery extends Page, Sort, Watch {
   startTimeFrom: string;
 }
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class CrawlExecutionService extends LoadingService
   implements Searcher<CrawlExecutionStatusQuery, CrawlExecutionStatus>, Getter<CrawlExecutionStatus> {
   private readonly cache: Map<string, Observable<ConfigObject>>;
