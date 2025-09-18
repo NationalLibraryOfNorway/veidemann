@@ -1,9 +1,8 @@
-import { DataSource, SelectionModel } from '@angular/cdk/collections';
+import {DataSource, SelectionModel} from '@angular/cdk/collections';
 import {
   AfterViewInit,
   ChangeDetectorRef,
-  ContentChildren,
-  Directive,
+  ContentChildren, Directive,
   EventEmitter,
   Input,
   Optional,
@@ -11,16 +10,42 @@ import {
   TemplateRef,
   ViewChild
 } from '@angular/core';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSort, Sort, SortDirection } from '@angular/material/sort';
-import { ShortcutEventOutput, ShortcutInput } from 'ng-keyboard-shortcuts';
-import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
-import { first, map, shareReplay } from 'rxjs/operators';
-import { Kind, ListItem } from '../../../shared/models';
-import { ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective } from '../../directives';
+import {MatPaginator, MatPaginatorModule, PageEvent} from '@angular/material/paginator';
+import {MatSort, MatSortModule, Sort, SortDirection} from '@angular/material/sort';
+import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
+import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {first, map, shareReplay} from 'rxjs/operators';
+import {Kind, ListItem} from '../../../shared/models';
+import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../directives';
+import {AsyncPipe, NgTemplateOutlet} from '@angular/common';
+import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {MatTableModule} from '@angular/material/table';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {UrlFormatPipe} from '../../pipes/url-format.pipe';
+import {MatIconModule} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {MatMenuModule} from '@angular/material/menu';
+import {PreviewComponent} from '../../../features/config/components/preview/preview.component';
 
+export const BASE_LIST_IMPORTS = [
+  AsyncPipe,
+  FlexLayoutModule,
+  KeyboardShortcutsModule,
+  MatButtonModule,
+  MatCheckboxModule,
+  MatIconModule,
+  MatMenuModule,
+  MatPaginatorModule,
+  MatSortModule,
+  MatTableModule,
+  MatTooltipModule,
+  NgTemplateOutlet,
+  PreviewComponent,
+  UrlFormatPipe
+  ];
 
-@Directive()
+ @Directive()
 // eslint-disable-next-line @angular-eslint/directive-class-suffix
 export abstract class BaseListComponent<T extends ListItem> implements AfterViewInit {
   readonly Kind = Kind;
