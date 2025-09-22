@@ -9,7 +9,9 @@ import {ConfigPromiseClient} from '../../../../api';
 import {AppConfig} from '../../../app.config';
 
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class LogService {
   private configPromiseClient: ConfigPromiseClient;
 
