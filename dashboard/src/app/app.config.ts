@@ -13,6 +13,7 @@ import { KeyboardShortcutsModule } from 'ng-keyboard-shortcuts';
 import { routes } from './app.routes';
 import { ApplicationErrorHandler, AuthService, ControllerApiService, LocaleService } from './core';
 import { firstValueFrom } from 'rxjs';
+import {NGX_ECHARTS_CONFIG} from 'ngx-echarts';
 
 @Injectable({
   providedIn: 'root'
@@ -52,6 +53,12 @@ export const appConfig: ApplicationConfig = {
       provide: MAT_DATE_LOCALE,
       useFactory: (localeService: LocaleService) => localeService.getLocale(),
       deps: [LocaleService]
+    },
+    {
+      provide: NGX_ECHARTS_CONFIG,
+      useValue: {
+        echarts: () => import('echarts'),
+      },
     },
     { provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE] },
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { floatLabel: 'auto' } },
