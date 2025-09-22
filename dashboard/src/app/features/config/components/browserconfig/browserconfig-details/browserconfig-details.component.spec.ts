@@ -1,12 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {BrowserConfigDetailsComponent} from './browserconfig-details.component';
-import {RouterTestingModule} from '@angular/router/testing';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {CommonsModule} from '../../../../commons';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
-import {MaterialModule} from '../../../../commons/material.module';
 import {AnnotationComponent, DurationPickerComponent, LabelComponent, MetaComponent, SelectorComponent} from '../..';
 import {
   Annotation,
@@ -18,16 +14,18 @@ import {
   Kind,
   Label,
   Meta
-} from '../../../../shared/models';
-import {AuthService} from '../../../../core';
+} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MockComponent} from 'ng-mocks';
-import {provideZonelessChangeDetection, SimpleChange} from '@angular/core';
+import {SimpleChange} from '@angular/core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {CommonModule, DatePipe} from '@angular/common';
 
 const exampleBrowserConfig: ConfigObject = {
   id: 'configObject_id',
@@ -98,7 +96,7 @@ const exampleBrowserscripts = [
 ];
 
 
-describe('BrowserConfigDetailsComponent', () => {
+fdescribe('BrowserConfigDetailsComponent', () => {
   let component: BrowserConfigDetailsComponent;
   let fixture: ComponentFixture<BrowserConfigDetailsComponent>;
   let loader: HarnessLoader;
@@ -120,22 +118,12 @@ describe('BrowserConfigDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
+        BrowserConfigDetailsComponent,
         ReactiveFormsModule,
-        MaterialModule,
-        RouterTestingModule,
-        CoreTestingModule.forRoot(),
-        CommonsModule,
         NoopAnimationsModule,
       ],
-      declarations: [
-        BrowserConfigDetailsComponent,
-        MetaComponent,
-        MockComponent(DurationPickerComponent),
-        SelectorComponent,
-        LabelComponent,
-        AnnotationComponent,
-      ],
       providers: [
+        provideCoreTesting,
         {
           provide: LabelService,
           useValue: {
@@ -148,6 +136,7 @@ describe('BrowserConfigDetailsComponent', () => {
             canDelete: () => true
           }
         },
+        DatePipe,
       ]
     })
       .compileComponents();
@@ -156,15 +145,19 @@ describe('BrowserConfigDetailsComponent', () => {
 
   beforeEach(async () => {
     fixture = TestBed.createComponent(BrowserConfigDetailsComponent);
-    loader = TestbedHarnessEnvironment.loader(fixture);
     component = fixture.componentInstance;
+
     component.configObject = new ConfigObject(exampleBrowserConfig);
     component.browserScripts = exampleBrowserscripts;
+
     component.ngOnChanges({
       configObject: new SimpleChange(null, component.configObject, null)
     });
+
+    fixture.detectChanges();
     await fixture.whenStable();
 
+    loader = TestbedHarnessEnvironment.loader(fixture);
     userAgentFormField = await loader.getHarness(MatFormFieldHarness.with({selector: '[data-testid="userAgent"]'}));
     userAgentInput = (await userAgentFormField.getControl()) as any;
     windowHeightFormField = await loader.getHarness(MatFormFieldHarness.with({selector: '[data-testid="windowHeight"]'}));

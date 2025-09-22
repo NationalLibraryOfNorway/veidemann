@@ -3,9 +3,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {AnnotationComponent} from './annotation.component';
 import {UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../core';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import { provideZonelessChangeDetection } from '@angular/core';
-
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('AnnotationComponent', () => {
   let component: AnnotationComponent;
@@ -13,9 +11,9 @@ describe('AnnotationComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot()],
       providers: [
         UntypedFormBuilder,
+        ...provideCoreTesting,
         {
           provide: AuthService,
           useValue: {

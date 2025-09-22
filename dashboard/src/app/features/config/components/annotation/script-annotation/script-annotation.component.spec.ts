@@ -1,8 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {UntypedFormBuilder} from '@angular/forms';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {ScriptAnnotationComponent} from './script-annotation.component';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('ScriptAnnotationComponent', () => {
   let component: ScriptAnnotationComponent;
@@ -10,9 +10,9 @@ describe('ScriptAnnotationComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot()],
       providers: [
         UntypedFormBuilder,
+        ...provideCoreTesting
       ],
       declarations: [ScriptAnnotationComponent]
     })

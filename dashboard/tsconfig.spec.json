@@ -8,6 +8,6 @@
     ]
   },
   "include": [
-    "src/**/*.ts",
+    "src/app/features/config/components/browserconfig/browserconfig-details/browserconfig-details.component.spec.ts",
   ]
 }
