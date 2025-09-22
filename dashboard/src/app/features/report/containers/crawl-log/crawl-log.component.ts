@@ -3,7 +3,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
-import {BrowserModule} from '@angular/platform-browser';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 import {AbilityService} from '@casl/angular';
 import {combineLatest, Observable} from 'rxjs';
@@ -18,6 +17,7 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {ActionDirective, ShortcutDirective} from '../../../../shared/directives';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatMenuItem} from '@angular/material/menu';
+import {AsyncPipe} from '@angular/common';
 
 @Component({
   selector: 'app-crawl-log',
@@ -27,7 +27,6 @@ import {MatMenuItem} from '@angular/material/menu';
   standalone: true,
   imports: [
     ActionDirective,
-    BrowserModule,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
     FlexLayoutModule,
@@ -38,6 +37,7 @@ import {MatMenuItem} from '@angular/material/menu';
     QueryCrawlLogDirective,
     RouterModule,
     ShortcutDirective,
+    AsyncPipe,
   ]
 })
 export class CrawlLogComponent implements OnInit {
