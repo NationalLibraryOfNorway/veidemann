@@ -2,10 +2,9 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {PolitenessConfigDialogComponent} from './politenessconfig-dialog.component';
 import {UntypedFormBuilder} from '@angular/forms';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {
   AnnotationComponent,
   DurationPickerComponent,
@@ -13,11 +12,10 @@ import {
   MetaComponent,
   SelectorComponent
 } from '../..';
-import {CommonsModule} from '../../../../commons';
 import {LabelService} from '../../../services';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {of} from 'rxjs';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
 
 describe('PolitenessConfigDialogComponent', () => {
   let component: PolitenessConfigDialogComponent;
@@ -31,7 +29,7 @@ describe('PolitenessConfigDialogComponent', () => {
   };
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot(), MatDialogModule, CommonsModule, NoopAnimationsModule],
+      imports: [MatDialogModule, NoopAnimationsModule],
       declarations: [PolitenessConfigDialogComponent,
         DurationPickerComponent,
         SelectorComponent,

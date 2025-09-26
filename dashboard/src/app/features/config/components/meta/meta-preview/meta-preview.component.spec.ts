@@ -1,8 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {MetaPreviewComponent} from './meta-preview.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {ConfigObject} from '../../../../shared/models/config';
+import {ConfigObject} from '../../../../../shared/models/config';
 import {MatIconModule} from '@angular/material/icon';
 
 describe('MetaPreviewComponent', () => {
@@ -11,7 +10,7 @@ describe('MetaPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatIconModule, CoreTestingModule.forRoot()],
+      imports: [MatIconModule],
       declarations: [MetaPreviewComponent],
       providers: []
     })

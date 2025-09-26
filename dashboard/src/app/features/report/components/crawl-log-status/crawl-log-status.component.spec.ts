@@ -3,8 +3,7 @@ import { provideRouter, RouterModule } from '@angular/router';
 import { provideZonelessChangeDetection } from '@angular/core';
 
 import {CrawlLogStatusComponent} from './crawl-log-status.component';
-import {CommonsModule} from '../../../commons';
-import {CrawlLog} from '../../../shared/models';
+import {CrawlLog} from '../../../../shared/models';
 
 describe('CrawlLogStatusComponent', () => {
   let component: CrawlLogStatusComponent;
@@ -14,7 +13,6 @@ describe('CrawlLogStatusComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterModule,
-        CommonsModule
       ],
       providers: [
         provideZonelessChangeDetection(),

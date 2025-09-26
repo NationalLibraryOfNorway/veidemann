@@ -3,7 +3,6 @@ import {BrowserConfigDetailsComponent} from './browserconfig-details.component';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
-import {AnnotationComponent, DurationPickerComponent, LabelComponent, MetaComponent, SelectorComponent} from '../..';
 import {
   Annotation,
   BrowserConfig,
@@ -17,7 +16,6 @@ import {
 } from '../../../../../shared/models';
 import {AuthService} from '../../../../../core';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MockComponent} from 'ng-mocks';
 import {SimpleChange} from '@angular/core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -25,7 +23,8 @@ import {MatSelectHarness} from '@angular/material/select/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
-import {CommonModule, DatePipe} from '@angular/common';
+import {DatePipe} from '@angular/common';
+import {MatInputModule} from '@angular/material/input';
 
 const exampleBrowserConfig: ConfigObject = {
   id: 'configObject_id',
@@ -96,7 +95,7 @@ const exampleBrowserscripts = [
 ];
 
 
-fdescribe('BrowserConfigDetailsComponent', () => {
+describe('BrowserConfigDetailsComponent', () => {
   let component: BrowserConfigDetailsComponent;
   let fixture: ComponentFixture<BrowserConfigDetailsComponent>;
   let loader: HarnessLoader;
@@ -120,6 +119,7 @@ fdescribe('BrowserConfigDetailsComponent', () => {
       imports: [
         BrowserConfigDetailsComponent,
         ReactiveFormsModule,
+        MatInputModule,
         NoopAnimationsModule,
       ],
       providers: [

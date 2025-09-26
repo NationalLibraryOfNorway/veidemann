@@ -1,6 +1,7 @@
 <form [formGroup]="form" fxFlex>
   <div class="duration" fxLayout="row" fxLayoutGap="24px">
     @if (showDays) {
+
       <mat-form-field>
         <mat-label i18n="@@durationPickerDaysLabel">Days</mat-label>
         <input type="number" matInput formControlName="days" min="0">

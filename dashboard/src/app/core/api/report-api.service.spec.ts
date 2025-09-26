@@ -1,13 +1,13 @@
 import {inject, TestBed} from '@angular/core/testing';
-import {CoreTestingModule} from '../core.testing.module';
 import { HttpClient } from '@angular/common/http';
 import {ReportApiService} from './report-api.service';
+import {provideCoreTesting} from '../core.testing.module';
 
 describe('ReportApiService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot()],
       providers: [
+        ...provideCoreTesting,
         ReportApiService,
         {provide: HttpClient, useValue: {}}
       ]

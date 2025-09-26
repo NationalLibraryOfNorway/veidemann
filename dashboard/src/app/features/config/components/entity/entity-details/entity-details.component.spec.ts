@@ -4,15 +4,14 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
 import {AnnotationComponent, LabelComponent, MetaComponent} from '../..';
-import {Annotation, ConfigObject, CrawlEntity, Kind, Label, Meta} from '../../../../shared/models';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {AuthService} from '../../../../core';
+import {Annotation, ConfigObject, CrawlEntity, Kind, Label, Meta} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core';
 import {RouterTestingModule} from '@angular/router/testing';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
-import {CommonsModule} from '../../../../commons';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 const exampleCrawlEntity: ConfigObject = {
   id: 'configObject_id',
@@ -45,10 +44,7 @@ describe('EntityDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonsModule,
-        RouterTestingModule,
         NoopAnimationsModule,
-        CoreTestingModule.forRoot()
       ],
       declarations: [
         EntityDetailsComponent,
@@ -57,6 +53,7 @@ describe('EntityDetailsComponent', () => {
         AnnotationComponent
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: AuthService,
           useValue: {

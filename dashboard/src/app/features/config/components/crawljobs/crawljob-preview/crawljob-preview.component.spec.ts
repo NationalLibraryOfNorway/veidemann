@@ -1,10 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawljobPreviewComponent} from './crawljob-preview.component';
-import {ConfigurationsModule} from '../../../configurations.module';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {AuthService} from '../../../../core';
-import {CommonsModule} from '../../../../commons';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 
 describe('CrawljobPreviewComponent', () => {
   let component: CrawljobPreviewComponent;
@@ -12,11 +8,7 @@ describe('CrawljobPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        CommonsModule,
-        ConfigurationsModule,
-        CoreTestingModule.forRoot()
-      ],
+      imports: [],
       declarations: [CrawljobPreviewComponent],
     })
       .compileComponents();

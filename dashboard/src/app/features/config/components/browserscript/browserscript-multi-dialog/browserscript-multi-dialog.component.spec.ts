@@ -1,12 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {BrowserScriptMultiDialogComponent} from './browserscript-multi-dialog.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {CommonsModule} from '../../../../commons';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {LabelService} from '../../../services';
-import {AuthService} from '../../../../core';
+import {ConfigObject, Kind} from '../../../../../shared/models';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('BrowserScriptMultiDialogComponent', () => {
   let component: BrowserScriptMultiDialogComponent;
@@ -18,16 +14,11 @@ describe('BrowserScriptMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        CoreTestingModule.forRoot(),
-        CommonsModule
-      ],
-      declarations: [BrowserScriptMultiDialogComponent, LabelMultiComponent],
+      imports: [BrowserScriptMultiDialogComponent],
       providers: [
-        {provide: LabelService, useValue: {}},
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}},
-        {provide: AuthService, useValue: {canUpdate: () => true}}
       ]
     })
       .compileComponents();

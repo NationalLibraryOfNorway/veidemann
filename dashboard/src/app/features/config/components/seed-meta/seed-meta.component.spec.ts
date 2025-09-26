@@ -1,24 +1,21 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {SeedMetaComponent} from './seed-meta.component';
-import {ConfigApiService} from '../../../core';
+
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelService} from '../../services';
 import {of} from 'rxjs';
 import {AnnotationComponent, LabelComponent} from '..';
-import {CoreTestingModule} from '../../../core/core.testing.module';
-import {CommonsModule} from '../../../commons';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MaterialModule} from '../../../commons/material.module';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {expect} from '@angular/flex-layout/_private-utils/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
-import {ConfigObject, ConfigRef, Kind, Meta, Seed} from '../../../shared/models';
+import {ConfigObject, ConfigRef, Kind, Meta, Seed} from '../../../../shared/models';
 import {MatActionListHarness, MatListHarness} from '@angular/material/list/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {RouterTestingModule} from '@angular/router/testing';
+import { ConfigApiService } from '../../../../core';
 
 const exampleMatchingSeeds: ConfigObject[] = [
   {
@@ -103,11 +100,7 @@ describe('SeedMetaComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         ReactiveFormsModule,
-        MaterialModule,
-        CommonsModule,
-        CoreTestingModule.forRoot(),
         NoopAnimationsModule,
-        RouterTestingModule,
       ],
       declarations: [
         SeedMetaComponent,

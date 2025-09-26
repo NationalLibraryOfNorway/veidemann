@@ -2,7 +2,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {AbortCrawlDialogComponent} from './abort-crawl-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {CommonsModule} from '../../../commons';
 import { provideZonelessChangeDetection } from '@angular/core';
 
 describe('AbortCrawlDialogComponent', () => {
@@ -11,7 +10,7 @@ describe('AbortCrawlDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule],
+      imports: [],
       declarations: [AbortCrawlDialogComponent],
       providers: [
         provideZonelessChangeDetection(),

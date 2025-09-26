@@ -26,6 +26,7 @@ import {takeUntil} from 'rxjs/operators';
 import {Subject} from 'rxjs';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
 import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-duration-picker',
@@ -46,6 +47,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatFormFieldModule,
+    MatInputModule,
     ReactiveFormsModule
   ],
   standalone: true

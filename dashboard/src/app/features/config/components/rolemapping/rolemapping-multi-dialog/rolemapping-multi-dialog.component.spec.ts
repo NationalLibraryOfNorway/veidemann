@@ -3,9 +3,8 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {RoleMappingMultiDialogComponent} from './rolemapping-multi-dialog.component';
 import {UntypedFormBuilder} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {CommonsModule} from '../../../../commons';
 import {ConfigDialogData} from '../../../func';
 import { provideZonelessChangeDetection } from '@angular/core';
 
@@ -20,7 +19,7 @@ describe('RoleMappingMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, NoopAnimationsModule],
+      imports: [NoopAnimationsModule],
       declarations: [RoleMappingMultiDialogComponent],
       providers: [
         provideZonelessChangeDetection(),

@@ -40,6 +40,7 @@ export interface ConfigDialogData {
 }
 
 export function dialogByKind(kind: Kind): ComponentType<any> {
+  console.log('dialogByKind', kind);
   switch (kind) {
     case Kind.CRAWLENTITY:
       return EntityDialogComponent;

@@ -2,8 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {LabelMultiComponent} from './label-multi.component';
 import {LabelService} from '../../../services';
-import {ConfigObject} from '../../../../shared/models/config';
-import {MaterialModule} from '../../../../commons/material.module';
+import {ConfigObject} from '../../../../../shared/models/config';
 import { provideZonelessChangeDetection } from '@angular/core';
 
 describe('LabelMultiComponent', () => {
@@ -12,7 +11,7 @@ describe('LabelMultiComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MaterialModule],
+      imports: [],
       declarations: [LabelMultiComponent],
       providers: [
         provideZonelessChangeDetection(),

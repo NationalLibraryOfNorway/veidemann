@@ -5,11 +5,10 @@ import {DatePipe} from '@angular/common';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelService} from '../../services';
 import {of} from 'rxjs';
-import {CoreTestingModule} from '../../../core/core.testing.module';
-import {CommonsModule} from '../../../commons';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
-import {AuthService} from '../../../core';
+import {AuthService} from '../../../../core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('MetaComponent', () => {
   let component: MetaComponent;
@@ -19,12 +18,11 @@ describe('MetaComponent', () => {
     TestBed.configureTestingModule({
       declarations: [MetaComponent, LabelComponent, AnnotationComponent],
       imports: [
-        CoreTestingModule.forRoot(),
-        CommonsModule,
         NoopAnimationsModule
       ],
       providers: [
         DatePipe,
+        ...provideCoreTesting,
         {
           provide: AuthService,
           useValue: {

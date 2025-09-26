@@ -2,18 +2,14 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {BrowserScriptDialogComponent} from './browserscript-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {CommonsModule} from '../../../../commons';
-import {MetaComponent} from '../../meta/meta.component';
-import {LabelComponent} from '../../label/label.component';
 import {LabelService} from '../../../services';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {of} from 'rxjs';
-import {AnnotationComponent} from '../../annotation/annotation.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
 import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('BrowserScriptDialogComponent', () => {
   let component: BrowserScriptDialogComponent;
@@ -27,12 +23,12 @@ describe('BrowserScriptDialogComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CoreTestingModule.forRoot(),
-        CommonsModule,
         NoopAnimationsModule,
+        BrowserScriptDialogComponent,
         MonacoEditorModule.forRoot()
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {
@@ -54,7 +50,6 @@ describe('BrowserScriptDialogComponent', () => {
           useValue: {}
         }
       ],
-      declarations: [BrowserScriptDialogComponent, MetaComponent, LabelComponent, AnnotationComponent]
     })
       .compileComponents();
   });

@@ -1,20 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CrawlHostGroupConfigDetailsComponent } from './crawlhostgroupconfig-details.component';
 import { SimpleChange } from '@angular/core';
-import { Annotation, ConfigObject, CrawlHostGroupConfig, Kind, Label, Meta } from '../../../../shared/models';
-import { CommonsModule } from '../../../../commons';
+import { Annotation, ConfigObject, CrawlHostGroupConfig, Kind, Label, Meta } from '../../../../../shared/models';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CoreTestingModule } from '../../../../core/core.testing.module';
 import { LabelService } from '../../../services';
 import { of } from 'rxjs';
 import { AnnotationComponent, DurationPickerComponent, LabelComponent, MetaComponent } from '../..';
-import { AuthService } from '../../../../core';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { By } from '@angular/platform-browser';
 import { MatFormFieldHarness } from '@angular/material/form-field/testing';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 const exampleCrawlHostGroupConfig: ConfigObject = {
   id: 'configObject_id',
@@ -64,10 +62,7 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonsModule,
-        RouterTestingModule,
         NoopAnimationsModule,
-        CoreTestingModule.forRoot()
       ],
       declarations: [
         CrawlHostGroupConfigDetailsComponent,
@@ -77,6 +72,7 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
         DurationPickerComponent,
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {

@@ -2,15 +2,13 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {ScheduleMultiDialogComponent} from './schedule-multi-dialog.component';
 import {UntypedFormBuilder} from '@angular/forms';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {CommonsModule} from '../../../../commons';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
 import {LabelService} from '../../../services';
 import {ConfigDialogData} from '../../../func';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
 
 describe('ScheduleMultiDialogComponent', () => {
   let component: ScheduleMultiDialogComponent;
@@ -23,7 +21,7 @@ describe('ScheduleMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot(), CommonsModule, NoopAnimationsModule],
+      imports: [NoopAnimationsModule],
       providers: [UntypedFormBuilder,
         {provide: MatDialogRef, useValue: {}},
         {provide: LabelService, useValue: {}},

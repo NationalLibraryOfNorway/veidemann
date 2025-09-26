@@ -1,12 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawlJobDetailsComponent} from './crawl-job-details.component';
-import {CommonsModule} from '../../../../commons';
-import {RouterTestingModule} from '@angular/router/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
-import {ConfigService} from '../../../../commons/services';
 import {
   AnnotationComponent,
   DurationPickerComponent,
@@ -26,18 +22,19 @@ import {
   Kind,
   Label,
   Meta
-} from '../../../../shared/models';
-import {AuthService} from '../../../../core';
+} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
-import {CrawlLimitsConfig} from '../../../../shared/models/config/crawljob.model';
+import {CrawlLimitsConfig} from '../../../../../shared/models/config/crawljob.model';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
 import {MatSlideToggleHarness} from '@angular/material/slide-toggle/testing';
-import {ExtraConfig} from '../../../../shared/models/config/crawlconfig.model';
+import {ExtraConfig} from '../../../../../shared/models/config/crawlconfig.model';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {MockComponent, MockPipe} from 'ng-mocks';
 import {ScriptAnnotationsPipe} from '../../../pipe';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 
 const exampleCrawlConfigs: ConfigObject[] = [
@@ -157,10 +154,7 @@ describe('CrawljobDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonsModule,
-        RouterTestingModule,
         NoopAnimationsModule,
-        CoreTestingModule.forRoot()
       ],
       declarations: [
         CrawlJobDetailsComponent,
@@ -173,6 +167,7 @@ describe('CrawljobDetailsComponent', () => {
         MockPipe(ScriptAnnotationsPipe)
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: AuthService,
           useValue: {

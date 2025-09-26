@@ -1,10 +1,9 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlJobDialogComponent} from './crawljob-dialog.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {
   AnnotationComponent,
@@ -13,10 +12,10 @@ import {
   LabelComponent,
   MetaComponent
 } from '../..';
-import {CommonsModule} from '../../../../commons';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlJobDialogComponent', () => {
   let component: CrawlJobDialogComponent;
@@ -29,7 +28,7 @@ describe('CrawlJobDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, NoopAnimationsModule, CoreTestingModule.forRoot()],
+      imports: [NoopAnimationsModule],
       declarations: [
         MetaComponent,
         CrawlJobDialogComponent,
@@ -38,6 +37,7 @@ describe('CrawlJobDialogComponent', () => {
         LabelComponent,
         AnnotationComponent],
       providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {

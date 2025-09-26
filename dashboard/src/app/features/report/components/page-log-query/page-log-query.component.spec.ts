@@ -2,7 +2,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {PageLogQueryComponent} from './page-log-query.component';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {CommonsModule} from '../../../commons';
 import { provideZonelessChangeDetection } from '@angular/core';
 
 describe('PageLogQueryComponent', () => {
@@ -11,7 +10,7 @@ describe('PageLogQueryComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, NoopAnimationsModule],
+      imports: [NoopAnimationsModule],
       declarations: [PageLogQueryComponent],
       providers: [
         provideZonelessChangeDetection() // Use zoneless change detection for better performance in tests

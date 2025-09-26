@@ -1,18 +1,18 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {BrowserConfigDialogComponent} from './browserconfig-dialog.component';
-import {UntypedFormBuilder, ReactiveFormsModule} from '@angular/forms';
+import {ReactiveFormsModule} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {AnnotationComponent, DurationPickerComponent, LabelComponent, MetaComponent, SelectorComponent} from '../..';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {DatePipe} from '@angular/common';
-import {CommonsModule} from '../../../../commons';
 import {ConfigDialogData} from '../../../func';
 import {LabelService} from '../../../services';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {of} from 'rxjs';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {MatInputModule} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
 
 describe('BrowserConfigDialogComponent', () => {
   let component: BrowserConfigDialogComponent;
@@ -29,11 +29,16 @@ describe('BrowserConfigDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot(),
-        CommonsModule,
+      imports: [
         NoopAnimationsModule,
-        MatDialogModule, ReactiveFormsModule],
-      providers: [UntypedFormBuilder, DatePipe,
+        BrowserConfigDialogComponent,
+        MatButtonModule,
+        MatDialogModule,
+        MatInputModule,
+        ReactiveFormsModule
+      ],
+      providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {
@@ -54,13 +59,9 @@ describe('BrowserConfigDialogComponent', () => {
             close: () => {
             }
           }
-        }],
-      declarations: [BrowserConfigDialogComponent,
-        MetaComponent,
-        DurationPickerComponent,
-        SelectorComponent,
-        LabelComponent,
-        AnnotationComponent]
+        },
+        DatePipe,
+      ],
     })
       .compileComponents();
   });
@@ -68,6 +69,8 @@ describe('BrowserConfigDialogComponent', () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(BrowserConfigDialogComponent);
     component = fixture.componentInstance;
+
+    fixture.detectChanges();
     await fixture.whenStable();
   });
 

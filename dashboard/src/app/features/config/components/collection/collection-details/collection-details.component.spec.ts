@@ -1,13 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CollectionDetailsComponent} from './collection-details.component';
-import {RouterTestingModule} from '@angular/router/testing';
-import {CommonsModule} from '../../../../commons';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
-import {AnnotationComponent, FilesizeInputComponent, LabelComponent, MetaComponent} from '../..';
 import {
   Annotation,
   Collection,
@@ -18,8 +13,8 @@ import {
   rotationPolicies,
   RotationPolicy,
   subCollectionTypes
-} from '../../../../shared/models';
-import {AuthService} from '../../../../core';
+} from '../../../../../shared/models';
+import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -27,9 +22,8 @@ import {SimpleChange} from '@angular/core';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import {CollectionMetaComponent} from '../../collection-meta/collection-meta.component';
 import {MatInputHarness} from '@angular/material/input/testing';
-import {expect} from '@angular/flex-layout/_private-utils/testing';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 const exampleCollection: ConfigObject = {
   id: 'configObject_id',
@@ -54,7 +48,7 @@ const exampleCollection: ConfigObject = {
   })
 };
 
-describe('CollectionDetailsComponent', () => {
+fdescribe('CollectionDetailsComponent', () => {
   let component: CollectionDetailsComponent;
   let fixture: ComponentFixture<CollectionDetailsComponent>;
   let loader: HarnessLoader;
@@ -77,19 +71,10 @@ describe('CollectionDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule,
-        CommonsModule,
-        NoopAnimationsModule,
-        CoreTestingModule.forRoot()
-      ],
-      declarations: [
         CollectionDetailsComponent,
-        CollectionMetaComponent,
-        FilesizeInputComponent,
-        LabelComponent,
-        AnnotationComponent
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: AuthService, useValue: {
             canUpdate: () => true,

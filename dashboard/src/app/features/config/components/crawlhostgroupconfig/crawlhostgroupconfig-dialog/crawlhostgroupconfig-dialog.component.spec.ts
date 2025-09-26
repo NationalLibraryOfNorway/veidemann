@@ -1,19 +1,18 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlHostGroupConfigDialogComponent} from './crawlhostgroupconfig-dialog.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {CommonsModule} from '../../../../commons';
 import {MetaComponent} from '../../meta/meta.component';
 import {LabelComponent} from '../../label/label.component';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {AnnotationComponent} from '../../annotation/annotation.component';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlHostGroupConfigDialogComponent', () => {
   let component: CrawlHostGroupConfigDialogComponent;
@@ -26,8 +25,9 @@ describe('CrawlHostGroupConfigDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot(), CommonsModule, NoopAnimationsModule],
+      imports: [NoopAnimationsModule],
       providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {

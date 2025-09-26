@@ -15,6 +15,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-browserconfig-multi-dialog',
@@ -33,7 +34,7 @@ import {MatIconModule} from '@angular/material/icon';
     MatButtonToggleModule,
     SelectorComponent,
     MatIconModule,
-
+    MatInputModule,
   ],
   standalone: true
 })

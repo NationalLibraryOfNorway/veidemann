@@ -9,20 +9,16 @@ import {
   Kind,
   Label,
   Meta
-} from '../../../../shared/models';
-import {CommonsModule} from '../../../../commons';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
+} from '../../../../../shared/models';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
-import {AnnotationComponent, LabelComponent, MetaComponent} from '../..';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
-import {MockComponent} from 'ng-mocks';
-import { provideRouter } from '@angular/router';
+import {provideRouter} from '@angular/router';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 
 const exampleBrowserScript: ConfigObject = {
@@ -57,34 +53,20 @@ describe('BrowserScriptDetailsComponent', () => {
   let deleteButton: MatButtonHarness;
 
   let scriptTypeSelect: MatSelectHarness;
-  // let urlRegexList: MatChipListHarness;
-
 
   // Async beforeEach needed when using external template
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonsModule,
-        NoopAnimationsModule,
-        CoreTestingModule.forRoot(),
+        BrowserScriptDetailsComponent,
         MonacoEditorModule.forRoot()
       ],
       declarations: [
-        BrowserScriptDetailsComponent,
-        MetaComponent,
-        LabelComponent,
-        AnnotationComponent,
-       //  MockComponent(MonacoEditorComponent)
       ],
       providers: [
+        ...provideCoreTesting,
+
         provideRouter([]),
-        // {
-        //   provide: AuthService,
-        //   useValue: {
-        //     canUpdate: () => true,
-        //     canDelete: () => true,
-        //   }
-        // },
         {
           provide: LabelService,
           useValue: {

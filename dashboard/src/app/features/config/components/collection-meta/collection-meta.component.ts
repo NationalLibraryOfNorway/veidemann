@@ -16,6 +16,7 @@ import {first, map, tap} from 'rxjs/operators';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-collection-meta',
@@ -23,10 +24,12 @@ import {AnnotationComponent} from '../annotation/annotation.component';
   styleUrls: ['./collection-meta.component.css'],
   providers: [
     {provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => CollectionMetaComponent), multi: true},
+    DatePipe
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatFormFieldModule,
+    MatInputModule,
     ReactiveFormsModule,
     LabelComponent,
     AnnotationComponent

@@ -5,19 +5,16 @@ import {HarnessLoader} from '@angular/cdk/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {ReactiveFormsModule, Validators} from '@angular/forms';
-import {MaterialModule} from '../../../commons/material.module';
 import {RouterTestingModule} from '@angular/router/testing';
-import {CommonsModule} from '../../../commons';
-import {CoreTestingModule} from '../../../core/core.testing.module';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
 import {LabelService} from '../../services';
 import {of} from 'rxjs';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {AuthService} from '../../../core';
-import {expect} from '@angular/flex-layout/_private-utils/testing';
-import {VALID_COLLECTION_NAME} from '../../../shared/validation/patterns';
+import {AuthService} from '../../../../core';
+import {VALID_COLLECTION_NAME} from '../../../../shared/validation/patterns';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CollectionMetaComponent', () => {
   let component: CollectionMetaComponent;
@@ -31,10 +28,6 @@ describe('CollectionMetaComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         ReactiveFormsModule,
-        MaterialModule,
-        RouterTestingModule,
-        CommonsModule,
-        CoreTestingModule.forRoot(),
         NoopAnimationsModule
       ],
       declarations: [
@@ -43,6 +36,7 @@ describe('CollectionMetaComponent', () => {
         AnnotationComponent
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {

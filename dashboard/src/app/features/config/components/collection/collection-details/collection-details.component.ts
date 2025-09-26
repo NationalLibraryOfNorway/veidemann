@@ -27,6 +27,7 @@ import {FilesizeInputComponent} from '../../filesize-input/filesize-input.compon
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
+import {MatInputModule} from '@angular/material/input';
 
 
 @Component({
@@ -40,6 +41,7 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatIcon,
     CollectionMetaComponent,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     FilesizeInputComponent,
     MatCheckbox,

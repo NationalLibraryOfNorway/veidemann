@@ -1,10 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 
-import { BrowserscriptPreviewComponent } from './browserscript-preview.component';
-import { CommonsModule } from '../../../../commons';
-import { ConfigObject, Kind } from '../../../../shared/models';
-import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
+import {BrowserscriptPreviewComponent} from './browserscript-preview.component';
+import {ConfigObject, Kind} from '../../../../../shared/models';
+import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('BrowserscriptPreviewComponent', () => {
   let component: BrowserscriptPreviewComponent;
@@ -13,12 +12,11 @@ describe('BrowserscriptPreviewComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonsModule,
+        BrowserscriptPreviewComponent,
         MonacoEditorModule.forRoot()
       ],
-      declarations: [BrowserscriptPreviewComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting
       ]
     })
       .compileComponents();

@@ -1,7 +1,7 @@
 import {TestBed} from '@angular/core/testing';
 
 import {LabelService} from './label.service';
-import {ConfigApiService} from '../../core';
+import {ConfigApiService} from '../../../core';
 import { provideZonelessChangeDetection } from '@angular/core';
 
 describe('LabelService', () => {

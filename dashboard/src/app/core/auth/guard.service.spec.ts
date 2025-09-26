@@ -1,12 +1,14 @@
 import {inject, TestBed} from '@angular/core/testing';
-import {CoreTestingModule} from '../core.testing.module';
 import {GuardService} from './guard.service';
+import {provideCoreTesting} from '../core.testing.module';
 
 describe('GuardService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot()],
-      providers: [GuardService]
+      providers: [
+        ...provideCoreTesting,
+        GuardService
+      ]
     });
   });
 

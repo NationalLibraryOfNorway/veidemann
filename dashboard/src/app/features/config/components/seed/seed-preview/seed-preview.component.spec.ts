@@ -1,9 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {SeedPreviewComponent} from './seed-preview.component';
-import {RouterTestingModule} from '@angular/router/testing';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {CommonsModule} from '../../../../commons';
 
 describe('SeedPreviewComponent', () => {
   let component: SeedPreviewComponent;
@@ -11,7 +8,7 @@ describe('SeedPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot(), RouterTestingModule, CommonsModule],
+      imports: [],
       declarations: [SeedPreviewComponent]
     })
       .compileComponents();

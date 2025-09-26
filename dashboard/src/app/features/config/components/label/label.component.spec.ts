@@ -2,7 +2,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {LabelComponent} from './label.component';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MaterialModule} from '../../../commons/material.module';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {DragDropModule} from '@angular/cdk/drag-drop';
 import {LabelService} from '../../services/label.service';
@@ -16,7 +15,7 @@ describe('LabelsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       declarations: [LabelComponent],
-      imports: [MaterialModule, FormsModule, ReactiveFormsModule, DragDropModule, NoopAnimationsModule],
+      imports: [FormsModule, ReactiveFormsModule, DragDropModule, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
         {

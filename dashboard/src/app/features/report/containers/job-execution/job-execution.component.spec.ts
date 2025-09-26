@@ -1,10 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-
 import {JobExecutionComponent} from './job-execution.component';
-import {RouterTestingModule} from '@angular/router/testing';
 import {JobExecutionService} from '../../services';
-
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute} from '@angular/router';
 import {of} from 'rxjs';
@@ -30,10 +26,7 @@ describe('JobExecutionComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        CoreTestingModule.forRoot(),
-        RouterTestingModule
-      ],
+      imports: [],
       declarations: [JobExecutionComponent],
       providers: [
         {provide: ActivatedRoute, useValue: fakeActivatedRoute},

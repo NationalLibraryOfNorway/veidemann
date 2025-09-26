@@ -18,6 +18,7 @@ import {takeUntil} from 'rxjs/operators';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
+import {MatInputModule} from '@angular/material/input';
 
 
 @Component({
@@ -25,6 +26,7 @@ import {AnnotationComponent} from '../annotation/annotation.component';
   templateUrl: './meta.component.html',
   styleUrls: ['./meta.component.css'],
   providers: [
+    {provide: DatePipe},
     {provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MetaComponent), multi: true},
     {provide: NG_VALIDATORS, useExisting: forwardRef(() => MetaComponent), multi: true},
   ],
@@ -33,6 +35,7 @@ import {AnnotationComponent} from '../annotation/annotation.component';
     AnnotationComponent,
     LabelComponent,
     MatFormFieldModule,
+    MatInputModule,
     ReactiveFormsModule
   ],
   standalone: true

@@ -1,10 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {BrowserconfigPreviewComponent} from './browserconfig-preview.component';
-import {CommonsModule} from '../../../../commons';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {ShortcutListComponent} from '../../shortcut/shortcut-list/shortcut-list.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
+import {ConfigObject, Kind} from '../../../../../shared/models';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('BrowserconfigPreviewComponent', () => {
   let component: BrowserconfigPreviewComponent;
@@ -12,9 +10,11 @@ describe('BrowserconfigPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, CoreTestingModule.forRoot()],
-      declarations: [BrowserconfigPreviewComponent, ShortcutListComponent],
-      providers: []
+      imports:[BrowserconfigPreviewComponent],
+      declarations: [],
+      providers: [
+        ...provideCoreTesting
+      ]
     })
       .compileComponents();
   });

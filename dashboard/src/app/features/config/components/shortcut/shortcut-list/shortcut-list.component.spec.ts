@@ -1,13 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {ShortcutListComponent} from './shortcut-list.component';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {CommonsModule} from '../../../../commons';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {EntityNamePipe} from '../../../pipe';
-import {ConfigService} from '../../../../commons/services';
 import {of} from 'rxjs';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ConfigService} from '../../../../../shared/services';
 
 describe('ShortcutListComponent', () => {
   let component: ShortcutListComponent;
@@ -16,7 +13,7 @@ describe('ShortcutListComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       declarations: [ShortcutListComponent, EntityNamePipe],
-      imports: [CoreTestingModule.forRoot(), RouterTestingModule, CommonsModule],
+      imports: [],
       providers: [
         {
           provide: ConfigService, useValue: {

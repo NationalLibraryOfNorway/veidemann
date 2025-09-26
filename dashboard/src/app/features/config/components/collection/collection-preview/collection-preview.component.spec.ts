@@ -1,9 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-
 import {CollectionPreviewComponent} from './collection-preview.component';
-import {CommonsModule} from '../../../../commons';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CollectionPreviewComponent', () => {
   let component: CollectionPreviewComponent;
@@ -11,9 +10,9 @@ describe('CollectionPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule],
       declarations: [CollectionPreviewComponent],
       providers: [
+        ...provideCoreTesting,
         provideZonelessChangeDetection()
       ]
     })

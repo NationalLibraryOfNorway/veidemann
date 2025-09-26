@@ -24,6 +24,8 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
+import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
+import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, MatNativeDateModule} from '@angular/material/core';
 
 
 @Component({
@@ -42,7 +44,13 @@ import {MatButtonModule} from '@angular/material/button';
     MatInput,
     MatListSubheaderCssMatStyler,
     MetaComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MatNativeDateModule,
+  ],
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'nb' },
+    { provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE] },
+    { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS }
   ],
   standalone: true
 })

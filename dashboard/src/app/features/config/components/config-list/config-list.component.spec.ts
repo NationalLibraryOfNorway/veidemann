@@ -2,10 +2,9 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {ConfigListComponent} from './config-list.component';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {MaterialModule} from '../../../commons/material.module';
-import {CommonsModule} from '../../../commons';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('ConfigListComponent', () => {
   let component: ConfigListComponent;
@@ -16,11 +15,10 @@ describe('ConfigListComponent', () => {
       declarations: [ConfigListComponent],
       imports: [
         KeyboardShortcutsModule,
-        MaterialModule,
-        CommonsModule,
         NoopAnimationsModule
       ],
       providers: [
+        ...provideCoreTesting,
         provideZonelessChangeDetection(),
       ]
     })

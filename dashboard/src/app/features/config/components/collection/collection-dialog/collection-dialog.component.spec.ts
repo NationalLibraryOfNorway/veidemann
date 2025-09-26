@@ -2,18 +2,17 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CollectionDialogComponent} from './collection-dialog.component';
 import {UntypedFormBuilder} from '@angular/forms';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
 import {MatIconModule} from '@angular/material/icon';
-import {CommonsModule} from '../../../../commons';
-import {AnnotationComponent, FilesizeInputComponent, LabelComponent, MetaComponent} from '../..';
+import {AnnotationComponent, FilesizeInputComponent, LabelComponent} from '../..';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
 import {CollectionMetaComponent} from '../../collection-meta/collection-meta.component';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CollectionDialogComponent', () => {
   let component: CollectionDialogComponent;
@@ -30,9 +29,10 @@ describe('CollectionDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, CoreTestingModule.forRoot(), MatDialogModule, MatIconModule, NoopAnimationsModule],
+      imports: [MatDialogModule, MatIconModule, NoopAnimationsModule],
       declarations: [CollectionDialogComponent, CollectionMetaComponent, FilesizeInputComponent, LabelComponent, AnnotationComponent],
       providers: [UntypedFormBuilder,
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {

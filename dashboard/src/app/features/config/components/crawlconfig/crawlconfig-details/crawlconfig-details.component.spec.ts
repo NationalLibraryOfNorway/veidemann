@@ -1,25 +1,22 @@
 import {CrawlConfigDetailsComponent} from './crawlconfig-details.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
-import {Annotation, ConfigObject, ConfigRef, CrawlConfig, Kind, Label, Meta} from '../../../../shared/models';
+import {Annotation, ConfigObject, ConfigRef, CrawlConfig, Kind, Label, Meta} from '../../../../../shared/models';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {CommonsModule} from '../../../../commons';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {MetaComponent} from '../../meta/meta.component';
 import {LabelComponent} from '../../label/label.component';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
 import {AnnotationComponent} from '../../annotation/annotation.component';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
-import {ExtraConfig} from '../../../../shared/models/config/crawlconfig.model';
+import {ExtraConfig} from '../../../../../shared/models/config/crawlconfig.model';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MaterialModule} from '../../../../commons/material.module';
-import {RouterTestingModule} from '@angular/router/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 const exampleCrawlConfig: ConfigObject = {
   id: 'configObject_id',
@@ -67,10 +64,6 @@ describe('CrawlConfigDetailsComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         ReactiveFormsModule,
-        MaterialModule,
-        RouterTestingModule,
-        CoreTestingModule.forRoot(),
-        CommonsModule,
         NoopAnimationsModule
       ],
       declarations: [
@@ -80,6 +73,7 @@ describe('CrawlConfigDetailsComponent', () => {
         AnnotationComponent
       ],
       providers: [
+        ...provideCoreTesting,
         {
           provide: LabelService,
           useValue: {

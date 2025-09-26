@@ -1,7 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {AnnotationComponent} from './annotation.component';
-import {UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 
@@ -11,8 +10,10 @@ describe('AnnotationComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [
+        AnnotationComponent
+      ],
       providers: [
-        UntypedFormBuilder,
         ...provideCoreTesting,
         {
           provide: AuthService,
@@ -30,7 +31,7 @@ describe('AnnotationComponent', () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(AnnotationComponent);
     component = fixture.componentInstance;
-    await fixture.whenStable();
+    fixture.detectChanges();
   });
 
   it('should create', () => {

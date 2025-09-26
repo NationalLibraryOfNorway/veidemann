@@ -1,15 +1,11 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {BrowserConfigMultiDialogComponent} from './browserconfig-multi-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {DurationPickerComponent} from '../..';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
 import {LabelService} from '../../../services';
-import {CommonsModule} from '../../../../commons';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {AuthService} from '../../../../core';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('BrowserConfigMultiDialogComponent', () => {
   let component: BrowserConfigMultiDialogComponent;
@@ -26,10 +22,11 @@ describe('BrowserConfigMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, NoopAnimationsModule],
-      declarations: [BrowserConfigMultiDialogComponent, DurationPickerComponent, LabelMultiComponent],
+      imports: [
+        BrowserConfigMultiDialogComponent,
+      ],
       providers: [
-        provideZonelessChangeDetection(),
+        ...provideCoreTesting,
         {provide: LabelService, useValue: {}},
         {
           provide: AuthService,

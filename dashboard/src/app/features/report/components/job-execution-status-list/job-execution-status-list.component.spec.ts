@@ -3,7 +3,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 
 import {JobExecutionStatusListComponent} from './job-execution-status-list.component';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {CommonsModule} from '../../../commons';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 describe('JobExecutionStatusListComponent', () => {
@@ -12,7 +11,7 @@ describe('JobExecutionStatusListComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [KeyboardShortcutsModule, CommonsModule, NoopAnimationsModule],
+      imports: [KeyboardShortcutsModule, NoopAnimationsModule],
       declarations: [JobExecutionStatusListComponent],
       providers: [
         provideZonelessChangeDetection(),

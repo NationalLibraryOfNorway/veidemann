@@ -1,8 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {FilterShortcutComponent} from './filter-shortcut.component';
-import {ConfigObject, Kind} from '../../../../shared/models';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {MatListModule} from '@angular/material/list';
 
 describe('FilterShortcutComponent', () => {
@@ -11,7 +10,7 @@ describe('FilterShortcutComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CoreTestingModule.forRoot(), MatListModule],
+      imports: [MatListModule],
       declarations: [FilterShortcutComponent],
       providers: []
     })

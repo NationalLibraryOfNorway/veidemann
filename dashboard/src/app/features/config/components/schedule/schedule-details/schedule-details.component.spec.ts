@@ -1,26 +1,29 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ScheduleDetailsComponent } from './schedule-details.component';
-import { Annotation, ConfigObject, CrawlScheduleConfig, Kind, Label, Meta } from '../../../../shared/models';
-import { CommonsModule } from '../../../../commons';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CoreTestingModule } from '../../../../core/core.testing.module';
-import { LabelService } from '../../../services';
-import { of } from 'rxjs';
-import { AnnotationComponent, LabelComponent, MetaComponent } from '../..';
-import { AuthService } from '../../../../core';
-import { HarnessLoader } from '@angular/cdk/testing';
-import { MatButtonHarness } from '@angular/material/button/testing';
-import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
-import { SimpleChange } from '@angular/core';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {ScheduleDetailsComponent} from './schedule-details.component';
+import {Annotation, ConfigObject, CrawlScheduleConfig, Kind, Label, Meta} from '../../../../../shared/models';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {LabelService} from '../../../services';
+import {of} from 'rxjs';
+import {AuthService} from '../../../../../core';
+import {HarnessLoader} from '@angular/cdk/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {SimpleChange} from '@angular/core';
 import {
   MatCalendarHarness,
   MatDatepickerInputHarness,
   MatDatepickerToggleHarness
 } from '@angular/material/datepicker/testing';
-import { MatFormFieldHarness } from '@angular/material/form-field/testing';
-import { MAT_DATE_LOCALE } from "@angular/material/core";
-import { endOfMonth, format, formatISO, startOfMonth } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import {MatFormFieldHarness} from '@angular/material/form-field/testing';
+import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from "@angular/material/core";
+import {endOfMonth, format, formatISO, startOfMonth} from 'date-fns';
+import {nb} from 'date-fns/locale';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
+import {ReactiveFormsModule} from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
 
 const exampleCrawlSchedule: ConfigObject = {
   id: 'configObject_id',
@@ -33,8 +36,8 @@ const exampleCrawlSchedule: ConfigObject = {
     lastModified: '01.01.2021',
     lastModifiedBy: 'test',
     description: 'This is an example CrawlSchedule',
-    labelList: [new Label({ key: 'test', value: 'label' })],
-    annotationList: [new Annotation({ key: 'test', value: 'annotation' })]
+    labelList: [new Label({key: 'test', value: 'label'})],
+    annotationList: [new Annotation({key: 'test', value: 'annotation'})]
   }),
   crawlScheduleConfig: new CrawlScheduleConfig({
     cronExpression: '0 6 * * *',
@@ -43,7 +46,7 @@ const exampleCrawlSchedule: ConfigObject = {
   })
 };
 
-fdescribe('ScheduleDetailsComponent', () => {
+describe('ScheduleDetailsComponent', () => {
   let component: ScheduleDetailsComponent;
   let fixture: ComponentFixture<ScheduleDetailsComponent>;
   let loader: HarnessLoader;
@@ -74,17 +77,24 @@ fdescribe('ScheduleDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonsModule,
-        NoopAnimationsModule,
-        CoreTestingModule.forRoot(),
-      ],
-      declarations: [
         ScheduleDetailsComponent,
-        MetaComponent,
-        LabelComponent,
-        AnnotationComponent
+        ReactiveFormsModule,
+        NoopAnimationsModule,
+        MatDatepickerModule,
+        MatFormFieldModule,
+        MatInputModule,
       ],
       providers: [
+        provideCoreTesting,
+        {
+          provide: DateAdapter,
+          useClass: DateFnsAdapter,
+          deps: [MAT_DATE_LOCALE]
+        },
+        {
+          provide: MAT_DATE_FORMATS,
+          useValue: MAT_DATE_FNS_FORMATS
+        },
         {
           provide: MAT_DATE_LOCALE,
           useValue: 'nb',
@@ -109,41 +119,44 @@ fdescribe('ScheduleDetailsComponent', () => {
 
   beforeEach(async () => {
     fixture = TestBed.createComponent(ScheduleDetailsComponent);
-    loader = TestbedHarnessEnvironment.loader(fixture);
     component = fixture.componentInstance;
+
     component.configObject = new ConfigObject(exampleCrawlSchedule);
+
     component.ngOnChanges({
       configObject: new SimpleChange(null, component.configObject, true)
     });
 
+    fixture.detectChanges();
     await fixture.whenStable();
 
+    loader = TestbedHarnessEnvironment.loader(fixture);
     validFromFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="validFrom"]' }));
+      .with({selector: '[data-testid="validFrom"]'}));
     validFrom = await loader.getHarness<MatDatepickerInputHarness>(MatDatepickerInputHarness
-      .with({ selector: '[data-testid="validFromInput"]' }));
+      .with({selector: '[data-testid="validFromInput"]'}));
     validFromToggle = await loader.getHarness<MatDatepickerToggleHarness>(MatDatepickerToggleHarness
-      .with({ selector: '[data-testid="validFromToggle"]' }));
+      .with({selector: '[data-testid="validFromToggle"]'}));
     validToFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="validTo"]' }));
+      .with({selector: '[data-testid="validTo"]'}));
     validTo = await loader.getHarness<MatDatepickerInputHarness>(MatDatepickerInputHarness
-      .with({ selector: '[data-testid="validToInput"]' }));
+      .with({selector: '[data-testid="validToInput"]'}));
     validToToggle = await loader.getHarness<MatDatepickerToggleHarness>(MatDatepickerToggleHarness
-      .with({ selector: '[data-testid="validToToggle"]' }));
+      .with({selector: '[data-testid="validToToggle"]'}));
     cronMinuteFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="cronMinute"]' }));
+      .with({selector: '[data-testid="cronMinute"]'}));
     cronMinuteInput = (await cronMinuteFormField.getControl()) as any;
     cronHourFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="cronHour"]' }));
+      .with({selector: '[data-testid="cronHour"]'}));
     cronHourInput = (await cronHourFormField.getControl()) as any;
     cronDomFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="cronDayOfMonth"]' }));
+      .with({selector: '[data-testid="cronDayOfMonth"]'}));
     cronDomInput = (await cronDomFormField.getControl()) as any;
     cronMonthFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="cronMonth"]' }));
+      .with({selector: '[data-testid="cronMonth"]'}));
     cronMonthInput = (await cronMonthFormField.getControl()) as any;
     cronDowFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({ selector: '[data-testid="cronDayOfWeek"]' }));
+      .with({selector: '[data-testid="cronDayOfWeek"]'}));
     cronDowInput = (await cronDowFormField.getControl()) as any;
   });
 
@@ -158,7 +171,7 @@ fdescribe('ScheduleDetailsComponent', () => {
     });
     console.log("Has calendar", await validFromToggle.hasCalendar())
     console.log("Opening calendar", await validFromToggle.openCalendar());
-    return
+
 
     await validFromToggle.openCalendar();
     const fromCal = await validFromToggle.getCalendar();
@@ -169,7 +182,7 @@ fdescribe('ScheduleDetailsComponent', () => {
 
     // Calculate the expected date and timestamp reliably
     const expectedDate = startOfMonth(new Date());
-    const expected = format(expectedDate, 'P', { locale: nb });
+    const expected = format(expectedDate, 'P', {locale: nb});
 
     expect(await validFrom.getValue()).toEqual(expected);
     expect(component.canUpdate).toBeTruthy();
@@ -177,11 +190,11 @@ fdescribe('ScheduleDetailsComponent', () => {
     await fixture.whenStable();
     component.onUpdate();
 
-    const expectedTimestamp = formatISO(expectedDate, { representation: 'date' }) + 'T00:00:00.000Z';
+    const expectedTimestamp = formatISO(expectedDate, {representation: 'date'}) + 'T00:00:00.000Z';
     expect(update.crawlScheduleConfig.validFrom).toBe(expectedTimestamp);
   });
 
-  xit('setting valid from date in input sets timestamp to start of day', async () => {
+  it('setting valid from date in input sets timestamp to start of day', async () => {
     let update: ConfigObject | undefined;
     component.update.subscribe((config: ConfigObject) => {
       update = config;
@@ -208,7 +221,7 @@ fdescribe('ScheduleDetailsComponent', () => {
     expect(update.crawlScheduleConfig.validFrom).toBe('2022-01-01T00:00:00.000Z');
   });
 
-  xit('setting valid to date in calendar sets timestamp to end of day', async () => {
+  it('setting valid to date in calendar sets timestamp to end of day', async () => {
     let update: ConfigObject | undefined;
     component.update.subscribe((config: ConfigObject) => {
       update = config;
@@ -220,7 +233,7 @@ fdescribe('ScheduleDetailsComponent', () => {
     await daysInMonth[daysInMonth.length - 1].select();
     await validToToggle.closeCalendar();
     await fixture.whenStable();
-    const expectedToDate = format(endOfMonth(new Date()), 'd.M.yyyy', { locale: nb });
+    const expectedToDate = format(endOfMonth(new Date()), 'd.M.yyyy', {locale: nb});
     expect(await validTo.getValue()).toEqual(expectedToDate);
     expect(component.canUpdate).toBeTruthy();
     component.onUpdate();
@@ -228,7 +241,7 @@ fdescribe('ScheduleDetailsComponent', () => {
     expect(update.crawlScheduleConfig.validTo).toBe(expectedTimestamp);
   });
 
-  xit('setting valid to date in input sets timestamp to end of day', async () => {
+  it('setting valid to date in input sets timestamp to end of day', async () => {
     let update: ConfigObject | undefined;
     component.update.subscribe((config: ConfigObject) => {
       update = config;
@@ -255,7 +268,7 @@ fdescribe('ScheduleDetailsComponent', () => {
     expect(update.crawlScheduleConfig.validTo).toBe('2022-01-01T23:59:59.999Z');
   });
 
-  xdescribe('Creating a new CrawlSchedule', async () => {
+  describe('Creating a new CrawlSchedule', async () => {
 
     beforeEach(async () => {
       component.configObject.id = '';
@@ -263,7 +276,7 @@ fdescribe('ScheduleDetailsComponent', () => {
         configObject: new SimpleChange(null, component.configObject, null)
       });
       await fixture.whenStable();
-      saveButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'SAVE' }));
+      saveButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'SAVE'}));
     });
 
     it('show save button when creating a new config if form is valid', async () => {
@@ -272,13 +285,13 @@ fdescribe('ScheduleDetailsComponent', () => {
     });
   });
 
-  xdescribe('Updating a CrawlSchedule', async () => {
+  describe('Updating a CrawlSchedule', async () => {
 
     beforeEach(async () => {
       await fixture.whenStable();
-      updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'UPDATE' }));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'DELETE' }));
-      revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'REVERT' }));
+      updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
+      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
+      revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
     });
 
     it('update button should be active if form is updated and valid', async () => {
@@ -309,9 +322,9 @@ fdescribe('ScheduleDetailsComponent', () => {
     it('clicking revert buttons reverts form back to initial values', async () => {
       expect(await revertButton.isDisabled()).toBeTruthy();
       await validFromToggle.openCalendar();
-      return
+
       const cal: MatCalendarHarness = await validFromToggle.getCalendar();
-      await cal.selectCell({ today: true });
+      await cal.selectCell({today: true});
       await validFromToggle.closeCalendar();
       const fromDate = await validFrom.getValue();
       expect(fromDate).not.toBe('');

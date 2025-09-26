@@ -1,12 +1,9 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {JobExecutionPreviewComponent} from './job-execution-preview.component';
-import {JobExecutionStatus} from '../../../shared/models';
-import {RouterTestingModule} from '@angular/router/testing';
+import {JobExecutionStatus} from '../../../../shared/models';
 import {ActivatedRoute} from '@angular/router';
-import {CommonsModule} from '../../../commons';
 import {NGX_ECHARTS_CONFIG, NgxEchartsModule} from 'ngx-echarts';
-import {CoreTestingModule} from '../../../core/core.testing.module';
 
 describe('JobExecutionPreviewComponent', () => {
   let component: JobExecutionPreviewComponent;
@@ -15,7 +12,7 @@ describe('JobExecutionPreviewComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       declarations: [JobExecutionPreviewComponent],
-      imports: [CoreTestingModule.forRoot(), CommonsModule, NgxEchartsModule, RouterTestingModule],
+      imports: [NgxEchartsModule],
       providers: [
         {provide: NGX_ECHARTS_CONFIG, useValue: {}},
         {provide: ActivatedRoute, useValue: {}}

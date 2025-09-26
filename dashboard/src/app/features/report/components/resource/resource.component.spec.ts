@@ -1,7 +1,5 @@
 import {ResourceComponent} from './resource.component';
-import {CoreTestingModule} from '../../../core/core.testing.module';
-import {Resource} from '../../../shared/models';
-import {CommonsModule} from '../../../commons';
+import {Resource} from '../../../../shared/models';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 
@@ -11,10 +9,7 @@ describe('ResourceComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        CoreTestingModule.forRoot(),
-        CommonsModule,
-      ],
+      imports: [],
       declarations: [ResourceComponent],
       providers: [provideZonelessChangeDetection()]
     });

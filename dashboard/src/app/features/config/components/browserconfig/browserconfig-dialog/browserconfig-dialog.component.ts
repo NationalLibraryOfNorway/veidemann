@@ -10,6 +10,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
 import {SelectorComponent} from '../../selector/selector.component';
+import {MatInputModule} from '@angular/material/input';
 
 
 @Component({
@@ -19,6 +20,7 @@ import {SelectorComponent} from '../../selector/selector.component';
   imports: [
     MatDialogModule,
     MetaComponent,
+    MatInputModule,
     MatFormFieldModule,
     DurationPickerComponent,
     ReactiveFormsModule,

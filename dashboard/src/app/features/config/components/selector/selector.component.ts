@@ -12,7 +12,7 @@ import {MatCardModule} from '@angular/material/card';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
-import {MatInput} from '@angular/material/input';
+import {MatInput, MatInputModule} from '@angular/material/input';
 
 
 @Component({
@@ -32,7 +32,7 @@ import {MatInput} from '@angular/material/input';
     MatChipsModule,
     MatFormFieldModule,
     MatIcon,
-    MatInput,
+    MatInputModule,
     ReactiveFormsModule
   ],
   standalone: true

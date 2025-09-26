@@ -1,10 +1,10 @@
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ErrorDialogComponent} from './error-dialog.component';
-import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {provideZonelessChangeDetection} from '@angular/core';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 describe('ErrorDialogComponent', () => {
-    let fixture: ComponentFixture<ErrorDialogComponent>;
+  let fixture: ComponentFixture<ErrorDialogComponent>;
   let component: ErrorDialogComponent;
 
 
@@ -18,14 +18,13 @@ describe('ErrorDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatDialogModule],
-      declarations: [ErrorDialogComponent],
+      imports: [ErrorDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         {provide: MatDialogRef, useValue: {}},
         {provide: MAT_DIALOG_DATA, useValue: EXPECTED_DIALOG},
       ]
-  });
+    });
 
     fixture = TestBed.createComponent(ErrorDialogComponent);
     component = fixture.componentInstance;

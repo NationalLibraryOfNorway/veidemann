@@ -1,18 +1,17 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlJobMultiDialogComponent} from './crawljobs-multi-dialog.component';
-import {CoreTestingModule} from '../../../../core/core.testing.module';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind} from '../../../../../shared/models';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
 import {UntypedFormBuilder} from '@angular/forms';
-import {CommonsModule} from '../../../../commons';
 import {LabelService} from '../../../services';
-import {AuthService} from '../../../../core';
+import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlJobMultiDialogComponent', () => {
   let component: CrawlJobMultiDialogComponent;
@@ -25,12 +24,13 @@ describe('CrawlJobMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonsModule, NoopAnimationsModule, CoreTestingModule.forRoot()],
+      imports: [NoopAnimationsModule],
       declarations: [CrawlJobMultiDialogComponent,
         FilesizeInputComponent,
         DurationPickerComponent,
         LabelMultiComponent],
       providers: [
+        ...provideCoreTesting,
         UntypedFormBuilder,
         {provide: LabelService, useValue: {}},
         {provide: AuthService, useValue: {canUpdate: () => true}},
