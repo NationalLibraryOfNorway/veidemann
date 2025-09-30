@@ -45,7 +45,6 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatIconModule,
     MatMenuModule,
     MatProgressBarModule,
-    MatTooltip,
     RouterModule,
     ShortcutDirective,
     QueryCrawlExecutionStatusDirective

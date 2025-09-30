@@ -33,7 +33,6 @@ import {AsyncPipe} from '@angular/common';
     MatIconModule,
     MatMenuItem,
     MatProgressBarModule,
-    MatTooltip,
     QueryCrawlLogDirective,
     RouterModule,
     ShortcutDirective,
