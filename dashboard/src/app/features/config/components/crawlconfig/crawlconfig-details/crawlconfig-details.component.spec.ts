@@ -1,20 +1,12 @@
 import {CrawlConfigDetailsComponent} from './crawlconfig-details.component';
 import {Annotation, ConfigObject, ConfigRef, CrawlConfig, Kind, Label, Meta} from '../../../../../shared/models';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {MetaComponent} from '../../meta/meta.component';
-import {LabelComponent} from '../../label/label.component';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {AnnotationComponent} from '../../annotation/annotation.component';
-import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {ExtraConfig} from '../../../../../shared/models/config/crawlconfig.model';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import {ReactiveFormsModule} from '@angular/forms';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
@@ -63,29 +55,10 @@ describe('CrawlConfigDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        ReactiveFormsModule,
-        NoopAnimationsModule
-      ],
-      declarations: [
-        CrawlConfigDetailsComponent,
-        MetaComponent,
-        LabelComponent,
-        AnnotationComponent
+        CrawlConfigDetailsComponent
       ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {
-          provide: AuthService, useValue: {
-            canUpdate: () => true,
-            canDelete: () => true
-          }
-        },
       ]
     })
       .compileComponents();

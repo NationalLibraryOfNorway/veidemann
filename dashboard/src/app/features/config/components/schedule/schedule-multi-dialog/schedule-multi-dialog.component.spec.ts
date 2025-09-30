@@ -1,14 +1,13 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {ScheduleMultiDialogComponent} from './schedule-multi-dialog.component';
-import {UntypedFormBuilder} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {LabelService} from '../../../services';
 import {ConfigDialogData} from '../../../func';
-import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
+import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
+import {nb} from 'date-fns/locale';
 
 describe('ScheduleMultiDialogComponent', () => {
   let component: ScheduleMultiDialogComponent;
@@ -21,18 +20,25 @@ describe('ScheduleMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      providers: [UntypedFormBuilder,
+      imports: [ScheduleMultiDialogComponent],
+      providers: [
+        ...provideCoreTesting,
         {provide: MatDialogRef, useValue: {}},
-        {provide: LabelService, useValue: {}},
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {
-          provide: AuthService, useValue: {
-            canUpdate: () => true
-          }
-        }
+          provide: DateAdapter,
+          useClass: DateFnsAdapter,
+          deps: [MAT_DATE_LOCALE]
+        },
+        {
+          provide: MAT_DATE_FORMATS,
+          useValue: MAT_DATE_FNS_FORMATS
+        },
+        {
+          provide: MAT_DATE_LOCALE,
+          useValue: nb,
+        },
       ],
-      declarations: [ScheduleMultiDialogComponent, LabelMultiComponent]
     })
       .compileComponents();
   });

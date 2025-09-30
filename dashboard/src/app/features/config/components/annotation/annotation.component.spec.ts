@@ -23,7 +23,6 @@ describe('AnnotationComponent', () => {
           }
         }
       ],
-      declarations: [AnnotationComponent]
     })
       .compileComponents();
   });

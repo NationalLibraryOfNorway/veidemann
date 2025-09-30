@@ -1,7 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
 import {PreviewComponent} from './preview.component';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
+import {of} from 'rxjs';
 
 describe('PreviewComponent', () => {
   let component: PreviewComponent;
@@ -9,10 +10,10 @@ describe('PreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [PreviewComponent],
+      imports: [PreviewComponent],
       providers: [
-        provideZonelessChangeDetection(),
-        provideRouter([])
+        ...provideCoreTesting,
+        { provide: ActivatedRoute, useValue: { snapshot: {}, params: of({}), queryParams: of({}) } }
       ]
     })
       .compileComponents();

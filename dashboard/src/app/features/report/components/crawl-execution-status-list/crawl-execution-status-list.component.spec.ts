@@ -1,9 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlExecutionStatusListComponent} from './crawl-execution-status-list.component';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CrawlExecutionStatusListComponent', () => {
   let component: CrawlExecutionStatusListComponent;
@@ -11,11 +9,10 @@ describe('CrawlExecutionStatusListComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [KeyboardShortcutsModule, NoopAnimationsModule],
+      imports: [CrawlExecutionStatusListComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
       ],
-      declarations: [CrawlExecutionStatusListComponent]
     })
       .compileComponents();
   });

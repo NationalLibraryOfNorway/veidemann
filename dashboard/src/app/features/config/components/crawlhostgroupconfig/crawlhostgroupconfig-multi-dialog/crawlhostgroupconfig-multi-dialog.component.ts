@@ -9,6 +9,7 @@ import {LabelMultiComponent} from '../../label/label-multi/label-multi.component
 import {ANY_DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-multi-dialog',
@@ -19,6 +20,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
     LabelMultiComponent,
     MatFormFieldModule,
     MatDialogModule,
+    MatInputModule,
     ReactiveFormsModule
   ],
   standalone: true

@@ -1,11 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {PolitenessconfigPreviewComponent} from './politenessconfig-preview.component';
-import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {MatLabel} from '@angular/material/form-field';
-import {MatChipListbox} from '@angular/material/chips';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('PolitenessconfigPreviewComponent', () => {
   let component: PolitenessconfigPreviewComponent;
@@ -13,10 +10,9 @@ describe('PolitenessconfigPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatLabel, MatChipListbox],
-      declarations: [PolitenessconfigPreviewComponent, DurationFormatPipe],
+      imports: [PolitenessconfigPreviewComponent],
       providers: [
-        provideZonelessChangeDetection(),
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

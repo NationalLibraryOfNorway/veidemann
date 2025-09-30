@@ -1,16 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {PolitenessConfigMultiDialogComponent} from './politenessconfig-multi-dialog.component';
-import {UntypedFormBuilder} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {DurationPickerComponent} from '../..';
-import {MatLabel} from '@angular/material/form-field';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {LabelService} from '../../../services';
-import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('PolitenessConfigMultiDialogComponent', () => {
   let component: PolitenessConfigMultiDialogComponent;
@@ -25,11 +19,9 @@ describe('PolitenessConfigMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatDialogModule, NoopAnimationsModule, MatLabel],
-      declarations: [PolitenessConfigMultiDialogComponent, DurationPickerComponent, LabelMultiComponent],
-      providers: [UntypedFormBuilder,
-        {provide: LabelService, useValue: {}},
-        {provide: AuthService, useValue: {canUpdate: () => true}},
+      imports: [PolitenessConfigMultiDialogComponent],
+      providers: [
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ]

@@ -4,13 +4,7 @@ import {CrawlConfigDialogComponent} from './crawlconfig-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {MetaComponent} from '../../meta/meta.component';
-import {LabelComponent} from '../../label/label.component';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {AnnotationComponent} from '../../annotation/annotation.component';
-import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlConfigDialogComponent', () => {
   let component: CrawlConfigDialogComponent;
@@ -23,16 +17,9 @@ describe('CrawlConfigDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      declarations: [CrawlConfigDialogComponent, MetaComponent, LabelComponent, AnnotationComponent],
+      imports: [CrawlConfigDialogComponent],
       providers: [
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {provide: AuthService, useValue: {canUpdate: () => true}},
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ]

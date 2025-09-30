@@ -2,8 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {SchedulePreviewComponent} from './schedule-preview.component';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {MatLabel} from '@angular/material/form-field';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('SchedulePreviewComponent', () => {
   let component: SchedulePreviewComponent;
@@ -11,10 +10,9 @@ describe('SchedulePreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatLabel],
-      declarations: [SchedulePreviewComponent],
+      imports: [SchedulePreviewComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

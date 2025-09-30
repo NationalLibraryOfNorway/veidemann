@@ -1,14 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {MetaComponent} from './meta.component';
-import {DatePipe} from '@angular/common';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelService} from '../../services';
-import {of} from 'rxjs';
 import {LabelComponent} from '../label/label.component';
-import {AnnotationComponent} from '../annotation/annotation.component';
-import {AuthService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
+import {of} from 'rxjs';
 
 describe('MetaComponent', () => {
   let component: MetaComponent;
@@ -16,25 +12,12 @@ describe('MetaComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [MetaComponent, LabelComponent, AnnotationComponent],
       imports: [
-        NoopAnimationsModule
+        LabelComponent
       ],
       providers: [
-        DatePipe,
         ...provideCoreTesting,
-        {
-          provide: AuthService,
-          useValue: {
-            canUpdate: () => true,
-          }
-        },
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
+        { provide: ActivatedRoute, useValue: { snapshot: {}, params: of({}), queryParams: of({}) } }
       ]
     })
       .compileComponents();

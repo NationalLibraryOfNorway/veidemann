@@ -11,6 +11,7 @@ import {MetaComponent} from '../../meta/meta.component';
 import {MatSelectModule} from '@angular/material/select';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatCheckbox} from '@angular/material/checkbox';
+import {MatInputModule} from '@angular/material/input';
 
 
 @Component({
@@ -26,6 +27,7 @@ import {MatCheckbox} from '@angular/material/checkbox';
     MatSelectModule,
     DurationPickerComponent,
     MatCheckbox,
+    MatInputModule,
   ],
   standalone: true
 })

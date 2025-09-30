@@ -1,21 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {PolitenessConfigDialogComponent} from './politenessconfig-dialog.component';
-import {UntypedFormBuilder} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {
-  AnnotationComponent,
-  DurationPickerComponent,
-  LabelComponent,
-  MetaComponent,
-  SelectorComponent
-} from '../..';
-import {LabelService} from '../../../services';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {of} from 'rxjs';
-import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('PolitenessConfigDialogComponent', () => {
   let component: PolitenessConfigDialogComponent;
@@ -29,21 +18,9 @@ describe('PolitenessConfigDialogComponent', () => {
   };
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatDialogModule, NoopAnimationsModule],
-      declarations: [PolitenessConfigDialogComponent,
-        DurationPickerComponent,
-        SelectorComponent,
-        LabelComponent,
-        MetaComponent,
-        AnnotationComponent],
-      providers: [UntypedFormBuilder,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {provide: AuthService, useValue: {canUpdate: () => true}},
+      imports: [PolitenessConfigDialogComponent],
+      providers: [
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ]

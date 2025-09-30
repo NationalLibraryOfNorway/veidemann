@@ -5,6 +5,7 @@ import {ConfigObject, Kind} from '../../../../../shared/models';
 import {EntityNamePipe} from '../../../pipe';
 import {of} from 'rxjs';
 import {ConfigService} from '../../../../../shared/services';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('ShortcutListComponent', () => {
   let component: ShortcutListComponent;
@@ -12,14 +13,9 @@ describe('ShortcutListComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [ShortcutListComponent, EntityNamePipe],
-      imports: [],
+      imports: [ShortcutListComponent],
       providers: [
-        {
-          provide: ConfigService, useValue: {
-            get: () => of(null)
-          }
-        }
+        ...provideCoreTesting
       ]
     })
       .compileComponents();

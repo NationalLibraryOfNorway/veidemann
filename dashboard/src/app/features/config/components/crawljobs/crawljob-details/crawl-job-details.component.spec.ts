@@ -1,16 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawlJobDetailsComponent} from './crawl-job-details.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {
-  AnnotationComponent,
-  DurationPickerComponent,
-  FilesizeInputComponent,
-  LabelComponent,
-  MetaComponent,
-  ScriptAnnotationComponent
-} from '../..';
+import {ScriptAnnotationComponent} from '../..';
 import {
   Annotation,
   BrowserScript,
@@ -23,7 +13,6 @@ import {
   Label,
   Meta
 } from '../../../../../shared/models';
-import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {CrawlLimitsConfig} from '../../../../../shared/models/config/crawljob.model';
@@ -154,33 +143,14 @@ describe('CrawljobDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
+        CrawlJobDetailsComponent,
       ],
       declarations: [
-        CrawlJobDetailsComponent,
-        FilesizeInputComponent,
-        DurationPickerComponent,
-        MetaComponent,
-        LabelComponent,
-        AnnotationComponent,
         MockComponent(ScriptAnnotationComponent),
         MockPipe(ScriptAnnotationsPipe)
       ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: AuthService,
-          useValue: {
-            canUpdate: () => true,
-            canDelete: () => true
-          }
-        },
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
       ]
     })
       .compileComponents();

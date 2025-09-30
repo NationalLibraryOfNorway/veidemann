@@ -25,7 +25,7 @@ import {MatDatepickerModule} from '@angular/material/datepicker';
 import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
-import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, MatNativeDateModule} from '@angular/material/core';
+import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
 
 
 @Component({
@@ -45,13 +45,12 @@ import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, MatNativeDateModule} fro
     MatListSubheaderCssMatStyler,
     MetaComponent,
     ReactiveFormsModule,
-    MatNativeDateModule,
   ],
-  providers: [
-    { provide: MAT_DATE_LOCALE, useValue: 'nb' },
-    { provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE] },
-    { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS }
-  ],
+  // providers: [
+  //   { provide: MAT_DATE_LOCALE, useValue: 'nb' },
+  //   { provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE] },
+  //   { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS }
+  // ],
   standalone: true
 })
 export class ScheduleDetailsComponent implements OnChanges {

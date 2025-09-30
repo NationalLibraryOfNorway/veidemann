@@ -23,20 +23,12 @@ describe('CrawlHostGroupConfigMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      providers: [UntypedFormBuilder,
+      imports: [CrawlHostGroupConfigMultiDialogComponent],
+      providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {provide: AuthService, useValue: {canUpdate: () => true}},
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ],
-      declarations: [CrawlHostGroupConfigMultiDialogComponent, LabelMultiComponent, DurationPickerComponent]
     })
       .compileComponents();
   });

@@ -1,8 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawlhostgroupconfigPreviewComponent} from './crawlhostgroupconfig-preview.component';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlhostgroupconfigPreviewComponent', () => {
   let component: CrawlhostgroupconfigPreviewComponent;
@@ -10,10 +9,9 @@ describe('CrawlhostgroupconfigPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [],
-      declarations: [CrawlhostgroupconfigPreviewComponent, DurationFormatPipe],
+      imports: [CrawlhostgroupconfigPreviewComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

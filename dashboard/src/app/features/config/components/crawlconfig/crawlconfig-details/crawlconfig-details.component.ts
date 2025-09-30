@@ -9,6 +9,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatIcon} from '@angular/material/icon';
 import {MatCheckbox} from '@angular/material/checkbox';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-crawlconfig-details',
@@ -17,6 +18,7 @@ import {MatCheckbox} from '@angular/material/checkbox';
   imports: [
     MatCardModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MetaComponent,
     ReactiveFormsModule,

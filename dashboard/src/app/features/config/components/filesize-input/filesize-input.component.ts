@@ -13,6 +13,7 @@ import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 import {FILESIZE_PATTERN} from '../../../../shared/validation';
 import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
 
 
 const incrementBases = {
@@ -51,6 +52,7 @@ const incrementBases = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    MatInputModule,
     MatFormFieldModule,
     ReactiveFormsModule
   ],

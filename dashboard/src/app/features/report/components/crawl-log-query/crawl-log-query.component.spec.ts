@@ -1,9 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlLogQueryComponent} from './crawl-log-query.component';
-import {UntypedFormBuilder, ReactiveFormsModule} from '@angular/forms';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CrawlLogQueryComponent', () => {
   let component: CrawlLogQueryComponent;
@@ -11,11 +9,10 @@ describe('CrawlLogQueryComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, ReactiveFormsModule],
-      declarations: [CrawlLogQueryComponent],
+      imports: [CrawlLogQueryComponent],
       providers: [
-        provideZonelessChangeDetection(),
-        UntypedFormBuilder]
+        ...provideCoreTesting,
+      ]
     })
       .compileComponents();
   });

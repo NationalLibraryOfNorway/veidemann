@@ -15,6 +15,7 @@ import {ScriptAnnotationsPipe} from '../../../pipe';
 import {AsyncPipe} from '@angular/common';
 import {MatSelectModule} from '@angular/material/select';
 import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
+import {MatInputModule} from '@angular/material/input';
 
 
 @Component({
@@ -28,6 +29,7 @@ import {ScriptAnnotationComponent} from '../../annotation/script-annotation/scri
     MatCardModule,
     MatFormFieldModule,
     MatIcon,
+    MatInputModule,
     MatSelectModule,
     MatSlideToggleModule,
     MetaComponent,

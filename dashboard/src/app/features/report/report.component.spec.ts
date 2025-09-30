@@ -1,8 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-
 import {ReportComponent} from './report.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ReportNavigationListComponent} from './containers/report-navigation-list/report-navigation-list.component';
+import {provideCoreTesting} from '../../core/core.testing.module';
 
 
 describe('ReportComponent', () => {
@@ -11,8 +9,10 @@ describe('ReportComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [ReportComponent, ReportNavigationListComponent],
-      imports: [NoopAnimationsModule]
+      imports: [ReportComponent],
+      providers: [
+        ...provideCoreTesting,
+      ]
     })
       .compileComponents();
   });

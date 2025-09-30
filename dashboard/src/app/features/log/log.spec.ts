@@ -1,10 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {LoglevelComponent} from './log';
 import {of} from 'rxjs';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { LogService } from './services';
-import { LogLevel } from '../../shared/models';
-import { AuthService } from '../../core';
+import {LogService} from './services';
+import {LogLevel, Level} from '../../shared/models';
+import {provideCoreTesting} from '../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
 
 
 describe('LoglevelComponent', () => {
@@ -14,21 +14,29 @@ describe('LoglevelComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
+        LoglevelComponent,
       ],
       providers: [
+        ...provideCoreTesting,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              data: {
+                levels: [Level.TRACE, Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR]
+              }
+            },
+            params: of({}),
+            queryParams: of({})
+          }
+        },
         {
           provide: LogService, useValue: {
             getLogConfig: () => of({logLevelList: [new LogLevel()]})
           }
-        },
-        {
-          provide: AuthService, useValue: {
-            canUpdate: () => true
-          }
-        },
+        }
       ],
-      declarations: [LoglevelComponent]
+
     })
       .compileComponents();
   });

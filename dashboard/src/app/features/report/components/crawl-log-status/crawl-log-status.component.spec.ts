@@ -1,9 +1,9 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import { provideRouter, RouterModule } from '@angular/router';
-import { provideZonelessChangeDetection } from '@angular/core';
 
 import {CrawlLogStatusComponent} from './crawl-log-status.component';
 import {CrawlLog} from '../../../../shared/models';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
 
 describe('CrawlLogStatusComponent', () => {
   let component: CrawlLogStatusComponent;
@@ -12,13 +12,13 @@ describe('CrawlLogStatusComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        RouterModule,
+        CrawlLogStatusComponent,
       ],
       providers: [
-        provideZonelessChangeDetection(),
-        provideRouter([])
+        ...provideCoreTesting,
+        {provide: ActivatedRoute, useValue: {}}
       ],
-      declarations: [CrawlLogStatusComponent]
+
     })
       .compileComponents();
   });

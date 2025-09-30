@@ -1,8 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {PolitenessConfigDetailsComponent} from './politenessconfig-details.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
 import {
   Annotation,
   ConfigObject,
@@ -13,8 +10,6 @@ import {
   robotsPolicies,
   RobotsPolicy
 } from '../../../../../shared/models';
-import {AnnotationComponent, DurationPickerComponent, LabelComponent, MetaComponent} from '../..';
-import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
@@ -23,7 +18,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {By} from '@angular/platform-browser';
-import { provideCoreTesting } from '../../../../../core/core.testing.module';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 
 const examplePolitenessConfig: ConfigObject = {
@@ -65,29 +60,10 @@ describe('PolitenessConfigDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
-      ],
-      declarations: [
         PolitenessConfigDetailsComponent,
-        MetaComponent,
-        DurationPickerComponent,
-        LabelComponent,
-        AnnotationComponent],
-
+      ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {
-          provide: AuthService, useValue: {
-            canUpdate: () => true,
-            canDelete: () => true
-          }
-        },
       ]
     })
       .compileComponents();

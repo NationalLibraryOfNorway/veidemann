@@ -48,7 +48,7 @@ const exampleCollection: ConfigObject = {
   })
 };
 
-fdescribe('CollectionDetailsComponent', () => {
+describe('CollectionDetailsComponent', () => {
   let component: CollectionDetailsComponent;
   let fixture: ComponentFixture<CollectionDetailsComponent>;
   let loader: HarnessLoader;

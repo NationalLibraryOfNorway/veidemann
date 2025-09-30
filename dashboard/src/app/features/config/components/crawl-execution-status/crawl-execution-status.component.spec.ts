@@ -2,9 +2,9 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlExecutionStatusComponent} from './crawl-execution-status.component';
 import {CrawlExecutionStatus} from '../../../../shared/models';
-import {MatExpansionPanel} from '@angular/material/expansion';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
+import {of} from 'rxjs';
 
 describe('CrawlExecutionStatusComponent', () => {
   let component: CrawlExecutionStatusComponent;
@@ -12,11 +12,10 @@ describe('CrawlExecutionStatusComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      declarations: [CrawlExecutionStatusComponent],
+      imports: [CrawlExecutionStatusComponent],
       providers: [
-        MatExpansionPanel,
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
+        { provide: ActivatedRoute, useValue: { snapshot: {}, params: of({}), queryParams: of({}) } }
       ]
     })
       .compileComponents();

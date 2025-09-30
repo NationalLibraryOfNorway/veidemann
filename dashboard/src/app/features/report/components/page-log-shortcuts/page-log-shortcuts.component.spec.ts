@@ -1,5 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {PageLogShortcutsComponent} from './page-log-shortcuts.component';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('PageLogShortcutsComponent', () => {
   let component: PageLogShortcutsComponent;
@@ -7,8 +8,8 @@ describe('PageLogShortcutsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [PageLogShortcutsComponent],
-      imports: []
+      imports: [PageLogShortcutsComponent],
+      providers:[...provideCoreTesting]
     })
       .compileComponents();
   });

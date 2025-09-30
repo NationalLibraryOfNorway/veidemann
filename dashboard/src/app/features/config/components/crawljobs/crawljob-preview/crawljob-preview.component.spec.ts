@@ -1,6 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawljobPreviewComponent} from './crawljob-preview.component';
 import {ConfigObject, Kind} from '../../../../../shared/models';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawljobPreviewComponent', () => {
   let component: CrawljobPreviewComponent;
@@ -8,8 +9,10 @@ describe('CrawljobPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [],
-      declarations: [CrawljobPreviewComponent],
+      imports: [CrawljobPreviewComponent],
+      providers: [
+        ...provideCoreTesting,
+      ]
     })
       .compileComponents();
   });

@@ -1,9 +1,8 @@
 import {ComponentFixture, TestBed,} from '@angular/core/testing';
 
 import {RunCrawlDialogComponent} from './run-crawl-dialog.component';
-import {MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, CrawlJob, Kind, Meta} from '../../../../shared/models';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MatButtonHarness} from '@angular/material/button/testing';
@@ -85,13 +84,7 @@ describe('RunCrawlDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        MatDialogModule,
-        NoopAnimationsModule
-      ],
-      declarations: [
-        RunCrawlDialogComponent
-      ],
+      imports: [RunCrawlDialogComponent],
       providers: [
         ...provideCoreTesting,
         {provide: MatDialog, useValue: {}},

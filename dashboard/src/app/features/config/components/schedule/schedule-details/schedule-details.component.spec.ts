@@ -1,10 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ScheduleDetailsComponent} from './schedule-details.component';
 import {Annotation, ConfigObject, CrawlScheduleConfig, Kind, Label, Meta} from '../../../../../shared/models';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {AuthService} from '../../../../../core';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -20,10 +16,7 @@ import {endOfMonth, format, formatISO, startOfMonth} from 'date-fns';
 import {nb} from 'date-fns/locale';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
-import {ReactiveFormsModule} from '@angular/forms';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import {MatInputModule} from '@angular/material/input';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 const exampleCrawlSchedule: ConfigObject = {
   id: 'configObject_id',
@@ -76,16 +69,9 @@ describe('ScheduleDetailsComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        ScheduleDetailsComponent,
-        ReactiveFormsModule,
-        NoopAnimationsModule,
-        MatDatepickerModule,
-        MatFormFieldModule,
-        MatInputModule,
-      ],
+      imports: [ScheduleDetailsComponent, NoopAnimationsModule],
       providers: [
-        provideCoreTesting,
+        ...provideCoreTesting,
         {
           provide: DateAdapter,
           useClass: DateFnsAdapter,
@@ -97,21 +83,8 @@ describe('ScheduleDetailsComponent', () => {
         },
         {
           provide: MAT_DATE_LOCALE,
-          useValue: 'nb',
+          useValue: nb,
         },
-        {
-          provide: AuthService,
-          useValue: {
-            canUpdate: () => true,
-            canDelete: () => true,
-          }
-        },
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
       ]
     })
       .compileComponents();
@@ -169,9 +142,6 @@ describe('ScheduleDetailsComponent', () => {
     component.update.subscribe((config: ConfigObject) => {
       update = config;
     });
-    console.log("Has calendar", await validFromToggle.hasCalendar())
-    console.log("Opening calendar", await validFromToggle.openCalendar());
-
 
     await validFromToggle.openCalendar();
     const fromCal = await validFromToggle.getCalendar();
@@ -233,7 +203,7 @@ describe('ScheduleDetailsComponent', () => {
     await daysInMonth[daysInMonth.length - 1].select();
     await validToToggle.closeCalendar();
     await fixture.whenStable();
-    const expectedToDate = format(endOfMonth(new Date()), 'd.M.yyyy', {locale: nb});
+    const expectedToDate = format(endOfMonth(new Date()), 'dd.MM.yyyy', {locale: nb});
     expect(await validTo.getValue()).toEqual(expectedToDate);
     expect(component.canUpdate).toBeTruthy();
     component.onUpdate();
@@ -328,8 +298,6 @@ describe('ScheduleDetailsComponent', () => {
       await validFromToggle.closeCalendar();
       const fromDate = await validFrom.getValue();
       expect(fromDate).not.toBe('');
-
-      console.log('wtf')
 
       await fixture.whenStable();
       expect(component.canRevert).toBeTruthy();

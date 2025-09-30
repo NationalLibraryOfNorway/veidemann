@@ -1,12 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {LabelComponent} from './label.component';
-import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {DragDropModule} from '@angular/cdk/drag-drop';
-import {LabelService} from '../../services/label.service';
-import {of} from 'rxjs';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('LabelsComponent', () => {
   let component: LabelComponent;
@@ -14,16 +9,9 @@ describe('LabelsComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [LabelComponent],
-      imports: [FormsModule, ReactiveFormsModule, DragDropModule, NoopAnimationsModule],
+      imports: [LabelComponent],
       providers: [
-        provideZonelessChangeDetection(),
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

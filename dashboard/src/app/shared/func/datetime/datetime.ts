@@ -9,17 +9,29 @@ import {
 } from 'date-fns';
 
 export class DateTime {
-  static dateToUtc(dateString: string, startOfDayFlag: boolean): string | null {
-    if (!dateString) return null;
 
-    const date = parseISO(dateString);
-    if (isValid(date)) {
-      const baseDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-      return (startOfDayFlag ? startOfDay(baseDate) : endOfDay(baseDate)).toISOString();
+  static dateToUtc(value: string | Date, startOfDay: boolean): string | null {
+    if (!value) return null;
+
+    let d: Date;
+    if (value instanceof Date) {
+      d = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
+    } else if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(value.trim())) {
+      const [day, month, year] = value.split('.').map(n => +n);
+      d = new Date(Date.UTC(year, month - 1, day));
+      if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) return null;
     } else {
-      return null;
+      d = parseISO(value);
+      if (isNaN(d.getTime())) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      }
     }
+
+    d.setUTCHours(startOfDay ? 0 : 23, startOfDay ? 0 : 59, startOfDay ? 0 : 59, startOfDay ? 0 : 999);
+    return d.toISOString();
   }
+
 
   static adjustTime(timestamp: string): Date | null {
     // TODO debug

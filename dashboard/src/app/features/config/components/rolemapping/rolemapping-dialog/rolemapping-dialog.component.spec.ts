@@ -1,12 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {RoleMappingDialogComponent} from './rolemapping-dialog.component';
-import {UntypedFormBuilder} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {MatError} from '@angular/material/form-field';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ConfigDialogData} from '../../../func';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('RoleMappingDialogComponent', () => {
   let component: RoleMappingDialogComponent;
@@ -20,9 +18,9 @@ describe('RoleMappingDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [MatDialogModule, MatError, NoopAnimationsModule],
-      declarations: [RoleMappingDialogComponent],
-      providers: [UntypedFormBuilder,
+      imports: [RoleMappingDialogComponent],
+      providers: [
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ]

@@ -1,17 +1,12 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CrawlHostGroupConfigDetailsComponent } from './crawlhostgroupconfig-details.component';
-import { SimpleChange } from '@angular/core';
-import { Annotation, ConfigObject, CrawlHostGroupConfig, Kind, Label, Meta } from '../../../../../shared/models';
-import { RouterTestingModule } from '@angular/router/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { LabelService } from '../../../services';
-import { of } from 'rxjs';
-import { AnnotationComponent, DurationPickerComponent, LabelComponent, MetaComponent } from '../..';
-import { HarnessLoader } from '@angular/cdk/testing';
-import { MatButtonHarness } from '@angular/material/button/testing';
-import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
-import { By } from '@angular/platform-browser';
-import { MatFormFieldHarness } from '@angular/material/form-field/testing';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {CrawlHostGroupConfigDetailsComponent} from './crawlhostgroupconfig-details.component';
+import {SimpleChange} from '@angular/core';
+import {Annotation, ConfigObject, CrawlHostGroupConfig, Kind, Label, Meta} from '../../../../../shared/models';
+import {HarnessLoader} from '@angular/cdk/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {By} from '@angular/platform-browser';
+import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 const exampleCrawlHostGroupConfig: ConfigObject = {
@@ -62,23 +57,10 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
-      ],
-      declarations: [
         CrawlHostGroupConfigDetailsComponent,
-        MetaComponent,
-        LabelComponent,
-        AnnotationComponent,
-        DurationPickerComponent,
       ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
       ]
     })
       .compileComponents();
@@ -174,7 +156,6 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
       ipRangeToFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
         .with({ selector: '[data-testid="ipRangeTo"]' }));
       ipRangeToInput = await ipRangeToFormField.getControl();
-      console.debug('ipRangeFromInput', ipRangeFromInput);
 
       expect(await ipRangeFromInput.getValue()).toEqual('');
       expect(await ipRangeToInput.getValue()).toEqual('');

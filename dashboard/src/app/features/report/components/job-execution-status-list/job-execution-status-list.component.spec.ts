@@ -1,9 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
 
 import {JobExecutionStatusListComponent} from './job-execution-status-list.component';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('JobExecutionStatusListComponent', () => {
   let component: JobExecutionStatusListComponent;
@@ -11,10 +9,9 @@ describe('JobExecutionStatusListComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [KeyboardShortcutsModule, NoopAnimationsModule],
-      declarations: [JobExecutionStatusListComponent],
+      imports: [JobExecutionStatusListComponent],
       providers: [
-        provideZonelessChangeDetection(),
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

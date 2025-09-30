@@ -2,6 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {SeedMetaPreviewComponent} from './seed-meta-preview.component';
 import {ConfigObject, Kind} from '../../../../../shared/models';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('SeedMetaPreviewComponent', () => {
   let component: SeedMetaPreviewComponent;
@@ -9,9 +10,10 @@ describe('SeedMetaPreviewComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [],
-      declarations: [SeedMetaPreviewComponent],
-      providers: []
+      imports: [SeedMetaPreviewComponent],
+      providers: [
+        ...provideCoreTesting
+      ]
     })
       .compileComponents();
   });

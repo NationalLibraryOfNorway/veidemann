@@ -1,7 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {JobStatusComponent} from './job-status.component';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('JobStatusComponent', () => {
   let component: JobStatusComponent;
@@ -9,9 +9,9 @@ describe('JobStatusComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [JobStatusComponent],
+      imports: [JobStatusComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting
       ]
     })
       .compileComponents();

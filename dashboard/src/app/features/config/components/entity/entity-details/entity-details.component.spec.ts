@@ -1,12 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {EntityDetailsComponent} from './entity-details.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {AnnotationComponent, LabelComponent, MetaComponent} from '../..';
 import {Annotation, ConfigObject, CrawlEntity, Kind, Label, Meta} from '../../../../../shared/models';
-import {AuthService} from '../../../../../core';
-import {RouterTestingModule} from '@angular/router/testing';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -44,29 +38,10 @@ describe('EntityDetailsComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
-      ],
-      declarations: [
         EntityDetailsComponent,
-        MetaComponent,
-        LabelComponent,
-        AnnotationComponent
       ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: AuthService,
-          useValue: {
-            canUpdate: () => true,
-            canDelete: () => true,
-          }
-        },
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
       ]
     })
       .compileComponents();

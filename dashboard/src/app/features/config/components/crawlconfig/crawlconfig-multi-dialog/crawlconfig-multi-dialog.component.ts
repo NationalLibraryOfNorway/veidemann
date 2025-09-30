@@ -11,6 +11,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatTooltip} from '@angular/material/tooltip';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-crawlconfig-multi-dialog',
@@ -21,6 +22,7 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatCheckbox,
     MatDialogModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatTooltip,
     ReactiveFormsModule

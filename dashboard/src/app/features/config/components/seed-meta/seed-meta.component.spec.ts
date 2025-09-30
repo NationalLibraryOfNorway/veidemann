@@ -16,6 +16,8 @@ import {MatActionListHarness, MatListHarness} from '@angular/material/list/testi
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {RouterTestingModule} from '@angular/router/testing';
 import { ConfigApiService } from '../../../../core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
 
 const exampleMatchingSeeds: ConfigObject[] = [
   {
@@ -99,21 +101,11 @@ describe('SeedMetaComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        ReactiveFormsModule,
-        NoopAnimationsModule,
-      ],
-      declarations: [
         SeedMetaComponent,
-        LabelComponent,
-        AnnotationComponent
       ],
       providers: [
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
+        ...provideCoreTesting,
+        { provide: ActivatedRoute, useValue: { snapshot: {}, params: of({}), queryParams: of({}) } },
         {
           provide: ConfigApiService,
           useValue: configApiServiceSpy,

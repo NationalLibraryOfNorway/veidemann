@@ -49,6 +49,7 @@ export interface Parcel {
   templateUrl: './seed-meta.component.html',
   styleUrls: ['./seed-meta.component.css'],
   providers: [
+    DatePipe,
     {provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SeedMetaComponent), multi: true},
     {provide: NG_ASYNC_VALIDATORS, useExisting: forwardRef(() => SeedMetaComponent), multi: true}
   ],

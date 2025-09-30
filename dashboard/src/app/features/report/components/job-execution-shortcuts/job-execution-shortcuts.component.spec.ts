@@ -2,6 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {JobExecutionShortcutsComponent} from './job-execution-shortcuts.component';
 import {JobExecutionStatus} from '../../../../shared/models';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('JobExecutionShortcutsComponent', () => {
   let component: JobExecutionShortcutsComponent;
@@ -9,8 +10,10 @@ describe('JobExecutionShortcutsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [JobExecutionShortcutsComponent],
-      imports: []
+      imports: [JobExecutionShortcutsComponent],
+      providers: [
+        ...provideCoreTesting,
+      ]
     })
       .compileComponents();
   });

@@ -13,6 +13,9 @@ import {AnnotationComponent} from '../../annotation/annotation.component';
 import {AuthService} from '../../../../../core';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {
+  CrawlHostGroupConfigDetailsComponent
+} from '../crawlhostgroupconfig-details/crawlhostgroupconfig-details.component';
 
 describe('CrawlHostGroupConfigDialogComponent', () => {
   let component: CrawlHostGroupConfigDialogComponent;
@@ -25,20 +28,12 @@ describe('CrawlHostGroupConfigDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
+      imports: [CrawlHostGroupConfigDialogComponent],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {provide: AuthService, useValue: {canUpdate: () => true}},
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}},
       ],
-      declarations: [CrawlHostGroupConfigDialogComponent, MetaComponent, LabelComponent, AnnotationComponent, DurationPickerComponent]
     })
       .compileComponents();
   });

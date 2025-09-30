@@ -1,7 +1,6 @@
-import { TestBed } from '@angular/core/testing';
-import {LabelService} from './label.service';
+import {TestBed} from '@angular/core/testing';
 import {OptionsService} from './options.service';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../core/core.testing.module';
 
 describe('OptionsService', () => {
 
@@ -10,9 +9,7 @@ describe('OptionsService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideZonelessChangeDetection(),
-        OptionsService,
-        LabelService,
+        ...provideCoreTesting
       ],
     });
 

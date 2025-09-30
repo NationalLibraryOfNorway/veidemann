@@ -4,11 +4,7 @@ import {CollectionMetaComponent} from './collection-meta.component';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
-import {ReactiveFormsModule, Validators} from '@angular/forms';
-import {RouterTestingModule} from '@angular/router/testing';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelComponent} from '../label/label.component';
-import {AnnotationComponent} from '../annotation/annotation.component';
+import {Validators} from '@angular/forms';
 import {LabelService} from '../../services';
 import {of} from 'rxjs';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -27,13 +23,7 @@ describe('CollectionMetaComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        ReactiveFormsModule,
-        NoopAnimationsModule
-      ],
-      declarations: [
         CollectionMetaComponent,
-        LabelComponent,
-        AnnotationComponent
       ],
       providers: [
         ...provideCoreTesting,

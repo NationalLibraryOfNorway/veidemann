@@ -4,17 +4,6 @@ import {CrawlJobDialogComponent} from './crawljob-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {
-  AnnotationComponent,
-  DurationPickerComponent,
-  FilesizeInputComponent,
-  LabelComponent,
-  MetaComponent
-} from '../..';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {AuthService} from '../../../../../core';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlJobDialogComponent', () => {
@@ -28,28 +17,9 @@ describe('CrawlJobDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      declarations: [
-        MetaComponent,
-        CrawlJobDialogComponent,
-        FilesizeInputComponent,
-        DurationPickerComponent,
-        LabelComponent,
-        AnnotationComponent],
+      imports: [CrawlJobDialogComponent],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {
-          provide: AuthService,
-          useValue: {
-            canUpdate: () => true,
-          }
-        },
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ]

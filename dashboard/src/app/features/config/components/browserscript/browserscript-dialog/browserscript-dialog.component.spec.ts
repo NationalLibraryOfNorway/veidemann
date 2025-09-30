@@ -23,24 +23,11 @@ describe('BrowserScriptDialogComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
         BrowserScriptDialogComponent,
         MonacoEditorModule.forRoot()
       ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {
-          provide: AuthService,
-          useValue: {
-            canUpdate: () => true
-          }
-        },
         {
           provide: MAT_DIALOG_DATA,
           useValue: MY_CONF

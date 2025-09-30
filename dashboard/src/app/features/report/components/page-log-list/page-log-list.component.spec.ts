@@ -1,8 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {PageLogListComponent} from './page-log-list.component';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 
 describe('PageLogListComponent', () => {
@@ -12,12 +10,10 @@ describe('PageLogListComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        KeyboardShortcutsModule,
-        NoopAnimationsModule
+        PageLogListComponent,
       ],
-      declarations: [PageLogListComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

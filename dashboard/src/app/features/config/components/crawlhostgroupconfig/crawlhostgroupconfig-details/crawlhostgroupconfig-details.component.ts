@@ -18,6 +18,7 @@ import {MatCardModule} from '@angular/material/card';
 import {MetaComponent} from '../../meta/meta.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatIcon} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-details',
@@ -27,6 +28,7 @@ import {MatIcon} from '@angular/material/icon';
   imports: [
     MatCardModule,
     MatFormFieldModule,
+    MatInputModule,
     MatIcon,
     DurationPickerComponent,
     MetaComponent,

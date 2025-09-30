@@ -1,9 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlLogListComponent} from './crawl-log-list.component';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CrawlLogListComponent', () => {
   let component: CrawlLogListComponent;
@@ -11,14 +9,11 @@ describe('CrawlLogListComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        KeyboardShortcutsModule,
-        NoopAnimationsModule
-      ],
+      imports: [CrawlLogListComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
       ],
-      declarations: [CrawlLogListComponent]
+      declarations: []
     })
       .compileComponents();
   });

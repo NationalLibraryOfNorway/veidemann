@@ -1,14 +1,11 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {SeedMultiDialogComponent} from './seed-multi-dialog.component';
-import {AuthService} from '../../../../../core/auth';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind, Meta} from '../../../../../shared/models/config';
 import {ConfigDialogData} from '../../../func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
 import {By} from '@angular/platform-browser';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {LabelService} from '../../../services';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 
 describe('SeedMultiDialogComponent', () => {
@@ -42,11 +39,9 @@ describe('SeedMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      declarations: [SeedMultiDialogComponent, LabelMultiComponent],
+      imports: [SeedMultiDialogComponent],
       providers: [
-        {provide: LabelService, useValue: {}},
-        {provide: AuthService, useValue: {canUpdate: () => true}},
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}}
       ]

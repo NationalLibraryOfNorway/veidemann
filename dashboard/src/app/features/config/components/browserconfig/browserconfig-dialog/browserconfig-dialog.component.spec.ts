@@ -30,28 +30,10 @@ describe('BrowserConfigDialogComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
         BrowserConfigDialogComponent,
-        MatButtonModule,
-        MatDialogModule,
-        MatInputModule,
-        ReactiveFormsModule
       ],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        },
-        {
-          provide: AuthService,
-          useValue: {
-            isAdmin: () => true,
-            canUpdate: () => true,
-          }
-        },
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {
           provide: MatDialogRef,
@@ -60,7 +42,6 @@ describe('BrowserConfigDialogComponent', () => {
             }
           }
         },
-        DatePipe,
       ],
     })
       .compileComponents();

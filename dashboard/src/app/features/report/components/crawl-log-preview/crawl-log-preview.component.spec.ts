@@ -1,7 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlLogPreviewComponent} from './crawl-log-preview.component';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CrawlLogPreviewComponent', () => {
   let component: CrawlLogPreviewComponent;
@@ -9,9 +9,9 @@ describe('CrawlLogPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [CrawlLogPreviewComponent],
+      imports: [CrawlLogPreviewComponent],
       providers: [
-        provideZonelessChangeDetection()
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

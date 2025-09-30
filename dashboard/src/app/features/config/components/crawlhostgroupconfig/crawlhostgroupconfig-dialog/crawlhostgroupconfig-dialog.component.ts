@@ -9,6 +9,7 @@ import {MetaComponent} from '../../meta/meta.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-dialog',
@@ -19,6 +20,7 @@ import {MatIcon} from '@angular/material/icon';
     MatDialogModule,
     MatFormFieldModule,
     MatIcon,
+    MatInputModule,
     MetaComponent,
     ReactiveFormsModule
   ],

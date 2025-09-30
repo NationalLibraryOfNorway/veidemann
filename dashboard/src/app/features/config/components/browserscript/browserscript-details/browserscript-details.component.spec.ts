@@ -61,18 +61,8 @@ describe('BrowserScriptDetailsComponent', () => {
         BrowserScriptDetailsComponent,
         MonacoEditorModule.forRoot()
       ],
-      declarations: [
-      ],
       providers: [
         ...provideCoreTesting,
-
-        provideRouter([]),
-        {
-          provide: LabelService,
-          useValue: {
-            getLabelKeys: () => of([])
-          }
-        }
       ]
     })
       .compileComponents();

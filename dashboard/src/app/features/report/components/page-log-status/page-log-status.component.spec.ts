@@ -1,5 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {PageLogStatusComponent} from './page-log-status.component';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('PageLogStatusComponent', () => {
   let component: PageLogStatusComponent;
@@ -7,9 +8,8 @@ describe('PageLogStatusComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [],
-      declarations: [PageLogStatusComponent],
-      providers: []
+      imports: [PageLogStatusComponent],
+      providers: [...provideCoreTesting]
     })
       .compileComponents();
   });

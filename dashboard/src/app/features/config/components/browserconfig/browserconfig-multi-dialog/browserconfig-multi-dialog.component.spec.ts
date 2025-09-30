@@ -27,14 +27,6 @@ describe('BrowserConfigMultiDialogComponent', () => {
       ],
       providers: [
         ...provideCoreTesting,
-        {provide: LabelService, useValue: {}},
-        {
-          provide: AuthService,
-          useValue: {
-            isAdmin: () => true,
-            canUpdate: () => true,
-          }
-        },
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {
           provide: MatDialogRef,

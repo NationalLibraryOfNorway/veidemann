@@ -4,10 +4,7 @@ import {CrawlConfigMultiDialogComponent} from './crawlconfig-multi-dialog.compon
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {LabelService} from '../../../services';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {AuthService} from '../../../../../core';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlConfigMultiDialogComponent', () => {
   let component: CrawlConfigMultiDialogComponent;
@@ -20,11 +17,9 @@ describe('CrawlConfigMultiDialogComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      declarations: [CrawlConfigMultiDialogComponent, LabelMultiComponent],
+      imports: [CrawlConfigMultiDialogComponent],
       providers: [
-        {provide: LabelService, useValue: {}},
-        {provide: AuthService, useValue: {canUpdate: () => true}},
+        ...provideCoreTesting,
         {provide: MAT_DIALOG_DATA, useValue: MY_CONF},
         {provide: MatDialogRef, useValue: {}},
       ]

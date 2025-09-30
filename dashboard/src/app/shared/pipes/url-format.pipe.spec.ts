@@ -1,7 +1,7 @@
-import { provideZonelessChangeDetection } from '@angular/core';
 import {UrlFormatPipe} from './url-format.pipe';
 import {TestBed} from '@angular/core/testing';
-import {BrowserModule, DomSanitizer} from '@angular/platform-browser';
+import {DomSanitizer} from '@angular/platform-browser';
+import {provideCoreTesting} from '../../core/core.testing.module';
 
 describe('UrlFormatPipe', () => {
 
@@ -9,10 +9,8 @@ describe('UrlFormatPipe', () => {
 
   beforeEach((() => {
     TestBed.configureTestingModule({
-      imports: [BrowserModule],
-      declarations: [UrlFormatPipe],
       providers: [
-        provideZonelessChangeDetection(),
+        ...provideCoreTesting,
         UrlFormatPipe
       ]
     });

@@ -1,16 +1,14 @@
 import {KindService} from './kind.service';
-import {LabelService} from './label.service';
-import { provideZonelessChangeDetection } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import {TestBed} from '@angular/core/testing';
+import {provideCoreTesting} from '../../../core/core.testing.module';
 
 describe('KindService', () => {
-    let service: KindService;
+  let service: KindService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideZonelessChangeDetection(),
-        {provide: LabelService, useValue: {}}
+        ...provideCoreTesting,
       ],
     });
 

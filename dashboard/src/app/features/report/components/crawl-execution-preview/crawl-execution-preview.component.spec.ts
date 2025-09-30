@@ -2,8 +2,8 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlExecutionPreviewComponent} from './crawl-execution-preview.component';
 import {CrawlExecutionStatus} from '../../../../shared/models';
-import {NgxFilesizeModule} from 'ngx-filesize';
-import {NGX_ECHARTS_CONFIG, NgxEchartsModule} from 'ngx-echarts';
+import {NGX_ECHARTS_CONFIG} from 'ngx-echarts';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CrawlExecutionPreviewComponent', () => {
   let component: CrawlExecutionPreviewComponent;
@@ -11,9 +11,9 @@ describe('CrawlExecutionPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [CrawlExecutionPreviewComponent],
-      imports: [NgxFilesizeModule, NgxEchartsModule],
+      imports: [CrawlExecutionPreviewComponent],
       providers: [
+        ...provideCoreTesting,
         {
           provide: NGX_ECHARTS_CONFIG,
           useValue: {}

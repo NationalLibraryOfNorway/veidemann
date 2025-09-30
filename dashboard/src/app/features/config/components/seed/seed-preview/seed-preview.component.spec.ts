@@ -1,6 +1,9 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {SeedPreviewComponent} from './seed-preview.component';
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {ActivatedRoute} from '@angular/router';
+import {of} from 'rxjs';
 
 describe('SeedPreviewComponent', () => {
   let component: SeedPreviewComponent;
@@ -8,8 +11,11 @@ describe('SeedPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [],
-      declarations: [SeedPreviewComponent]
+      imports: [SeedPreviewComponent],
+      providers: [
+        ...provideCoreTesting,
+        { provide: ActivatedRoute, useValue: { snapshot: {}, params: of({}), queryParams: of({}) } }
+      ]
     })
       .compileComponents();
   });

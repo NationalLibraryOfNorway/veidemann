@@ -1,8 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {CrawlExecutionShortcutsComponent} from './crawl-execution-shortcuts.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CrawlExecutionStatus} from '../../../../shared/models';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('CrawlExecutionShortcutsComponent', () => {
   let component: CrawlExecutionShortcutsComponent;
@@ -10,8 +10,10 @@ describe('CrawlExecutionShortcutsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [CrawlExecutionShortcutsComponent],
-      imports: [NoopAnimationsModule]
+      imports: [CrawlExecutionShortcutsComponent],
+      providers: [
+        ...provideCoreTesting,
+      ]
     })
       .compileComponents();
   });

@@ -1,10 +1,7 @@
 import {CrawlconfigPreviewComponent} from './crawlconfig-preview.component';
-import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import { provideZonelessChangeDetection } from '@angular/core';
-
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlconfigPreviewComponent', () => {
   let component: CrawlconfigPreviewComponent;
@@ -12,10 +9,9 @@ describe('CrawlconfigPreviewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
-      declarations: [CrawlconfigPreviewComponent, DurationFormatPipe],
+      imports: [CrawlconfigPreviewComponent],
       providers: [
-        provideZonelessChangeDetection()  // Ensure change detection is zoneless
+        ...provideCoreTesting,
       ]
     })
       .compileComponents();

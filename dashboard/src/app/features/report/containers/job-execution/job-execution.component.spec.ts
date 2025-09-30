@@ -4,7 +4,8 @@ import {JobExecutionService} from '../../services';
 import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute} from '@angular/router';
 import {of} from 'rxjs';
-import { ControllerApiService } from '../../../../core';
+import {ControllerApiService} from '../../../../core';
+import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('JobExecutionComponent', () => {
   let component: JobExecutionComponent;
@@ -26,9 +27,10 @@ describe('JobExecutionComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [],
-      declarations: [JobExecutionComponent],
+      imports: [JobExecutionComponent],
+      declarations: [],
       providers: [
+        ...provideCoreTesting,
         {provide: ActivatedRoute, useValue: fakeActivatedRoute},
         {provide: MatDialog, useValue: {}},
         {provide: JobExecutionService, useValue: {}},
