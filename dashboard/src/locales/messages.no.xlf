@@ -1,0 +1,2503 @@
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en-US" trgLang="no">
+  <file id="ngi18n" original="ng.template">
+    <unit id="1287518954549055324">
+      <notes>
+        <note category="description">configListActionButtonCloneConfig</note>
+      </notes>
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">file_copy</pc> Clone </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">file_copy</pc> Clone </target>
+      </segment>
+    </unit>
+    <unit id="2433999855674989295">
+      <notes>
+        <note category="description">@snackBarMessage.multipleSaved</note>
+      </notes>
+      <segment state="initial">
+        <source> configurations saved</source>
+        <target> configurations saved</target>
+      </segment>
+    </unit>
+    <unit id="3433034063961050574">
+      <notes>
+        <note category="description">browserConfigDropdownLabel</note>
+      </notes>
+      <segment state="initial">
+        <source> BrowserConfig </source>
+        <target> BrowserConfig </target>
+      </segment>
+    </unit>
+    <unit id="3547560171638659643">
+      <segment state="initial">
+        <source>Politeness</source>
+        <target>Politeness</target>
+      </segment>
+    </unit>
+    <unit id="4526871813005638461">
+      <notes>
+        <note category="description">@snackBarMessage.loggedOut</note>
+      </notes>
+      <segment state="initial">
+        <source>You are now logged out</source>
+        <target>You are now logged out</target>
+      </segment>
+    </unit>
+    <unit id="4675308506928673670">
+      <notes>
+        <note category="description">configIdLabel</note>
+      </notes>
+      <segment state="initial">
+        <source> Id </source>
+        <target> Id </target>
+      </segment>
+    </unit>
+    <unit id="4902817035128594900">
+      <notes>
+        <note category="description">baseListDescriptionHeader</note>
+      </notes>
+      <segment state="initial">
+        <source>Description</source>
+        <target>Description</target>
+      </segment>
+    </unit>
+    <unit id="4949487095028934138">
+      <notes>
+        <note category="description">seedDetailsFormCrawlJobLabel</note>
+      </notes>
+      <segment state="initial">
+        <source> CrawlJob </source>
+        <target> CrawlJob </target>
+      </segment>
+    </unit>
+    <unit id="5324685890635848181">
+      <notes>
+        <note category="description">@snackBarMessage.reverted</note>
+      </notes>
+      <segment state="initial">
+        <source>Reverted</source>
+        <target>Reverted</target>
+      </segment>
+    </unit>
+    <unit id="6333335057236774263">
+      <notes>
+        <note category="description">@snackBarMessage.saved</note>
+      </notes>
+      <segment state="initial">
+        <source>Saved</source>
+        <target>Saved</target>
+      </segment>
+    </unit>
+    <unit id="6381490568322624964">
+      <notes>
+        <note category="description">@snackBarMessage.deleted</note>
+      </notes>
+      <segment state="initial">
+        <source>Deleted</source>
+        <target>Deleted</target>
+      </segment>
+    </unit>
+    <unit id="6684379158870460386">
+      <notes>
+        <note category="description">@snackBarMessage.multipleDeleted</note>
+      </notes>
+      <segment state="initial">
+        <source> configurations deleted</source>
+        <target> configurations deleted</target>
+      </segment>
+    </unit>
+    <unit id="6797056880835186759">
+      <notes>
+        <note category="description">@snackBarMessage.multipleUpdated</note>
+      </notes>
+      <segment state="initial">
+        <source> configurations updated</source>
+        <target> configurations updated</target>
+      </segment>
+    </unit>
+    <unit id="7239750919884229270">
+      <notes>
+        <note category="description">@snackBarMessage.updated</note>
+      </notes>
+      <segment state="initial">
+        <source>Updated</source>
+        <target>Updated</target>
+      </segment>
+    </unit>
+    <unit id="7433154405787842487">
+      <notes>
+        <note category="description">crawlhostgroupconfigFormRetryDelayLabel</note>
+      </notes>
+      <segment state="initial">
+        <source> Retry delay </source>
+        <target> Retry delay </target>
+      </segment>
+    </unit>
+    <unit id="7611449477696597552">
+      <notes>
+        <note category="description">crawlhostgroupconfigFormRetryDelayLabel</note>
+      </notes>
+      <segment state="initial">
+        <source>Retry delay</source>
+        <target>Retry delay</target>
+      </segment>
+    </unit>
+    <unit id="8917377906642856022">
+      <notes>
+        <note category="description">seedDetailsEditEntityIdButtonTooltip</note>
+      </notes>
+      <segment state="initial">
+        <source>Move seed to another entity</source>
+        <target>Move seed to another entity</target>
+      </segment>
+    </unit>
+    <unit id="8922266607947200372">
+      <notes>
+        <note category="description">@snackBarMessage.multipleMoved</note>
+      </notes>
+      <segment state="initial">
+        <source> configurations moved</source>
+        <target> configurations moved</target>
+      </segment>
+    </unit>
+    <unit id="actionShortcutListTitle">
+      <segment state="initial">
+        <source> Actions </source>
+        <target> Actions </target>
+      </segment>
+    </unit>
+    <unit id="annotationChipListPlaceholder">
+      <segment state="initial">
+        <source>New annotation...</source>
+        <target>New annotation...</target>
+      </segment>
+    </unit>
+    <unit id="annotationEditCardTitle">
+      <segment state="initial">
+        <source>Edit annotation</source>
+        <target>Edit annotation</target>
+      </segment>
+    </unit>
+    <unit id="annotationFormAddNewKeyPlaceholder">
+      <segment state="initial">
+        <source>Key</source>
+        <target>Key</target>
+      </segment>
+    </unit>
+    <unit id="annotationFormAddNewValuePlaceholder">
+      <segment state="initial">
+        <source>Value</source>
+        <target>Value</target>
+      </segment>
+    </unit>
+    <unit id="annotationKeyEmptyError">
+      <segment state="initial">
+        <source> Can&apos;t be empty or contain a colon. </source>
+        <target> Can&apos;t be empty or contain a colon. </target>
+      </segment>
+    </unit>
+    <unit id="annotationListInputLabel">
+      <segment state="initial">
+        <source>Annotation</source>
+        <target>Annotation</target>
+      </segment>
+    </unit>
+    <unit id="annotationValueEmptyError">
+      <segment state="initial">
+        <source> Can&apos;t be empty. </source>
+        <target> Can&apos;t be empty. </target>
+      </segment>
+    </unit>
+    <unit id="appLoadingText">
+      <segment state="initial">
+        <source>Initializing...</source>
+        <target>Initializing...</target>
+      </segment>
+    </unit>
+    <unit id="appModuleInitFailedMessage">
+      <segment state="initial">
+        <source>Initialization failed</source>
+        <target>Initialization failed</target>
+      </segment>
+    </unit>
+    <unit id="appModuleLoadingText">
+      <segment state="initial">
+        <source>Loading module...</source>
+        <target>Loading module...</target>
+      </segment>
+    </unit>
+    <unit id="baseListAllConfigurationsSelectedInfoText">
+      <segment state="initial">
+        <source> All <pc id="0" equivStart="START_BOLD_TEXT" equivEnd="CLOSE_BOLD_TEXT" type="fmt" dispStart="&lt;b&gt;" dispEnd="&lt;/b&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{(length$ | async) || &apos;&apos;}}"/></pc> rows in database selected </source>
+        <target> All <pc id="0" equivStart="START_BOLD_TEXT" equivEnd="CLOSE_BOLD_TEXT" type="fmt" dispStart="&lt;b&gt;" dispEnd="&lt;/b&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{(length$ | async) || &apos;&apos;}}"/></pc> rows in database selected </target>
+      </segment>
+    </unit>
+    <unit id="baseListConfigsInPageSelectedMessage">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{selection.selected.length}}"/></pc> rows selected </source>
+        <target><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{selection.selected.length}}"/></pc> rows selected </target>
+      </segment>
+    </unit>
+    <unit id="baseListNameHeader">
+      <segment state="initial">
+        <source>Name</source>
+        <target>Name</target>
+      </segment>
+    </unit>
+    <unit id="baseListRemoveSelectionButton">
+      <segment state="initial">
+        <source>Remove selection</source>
+        <target>Remove selection</target>
+      </segment>
+    </unit>
+    <unit id="baseListSelectAllConfigInDBButton">
+      <segment state="initial">
+        <source>Select all rows in database</source>
+        <target>Select all rows in database</target>
+      </segment>
+    </unit>
+    <unit id="browserconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>BrowserConfig</source>
+        <target>BrowserConfig</target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormBrowserscriptsDropdownLabel">
+      <segment state="initial">
+        <source> BrowserScripts </source>
+        <target> BrowserScripts </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormPageLoadTimeoutLabel">
+      <segment state="initial">
+        <source>Page load timeout</source>
+        <target>Page load timeout</target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormPageLoadTimeoutRequiredError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormSleepAfterPageLoadLabel">
+      <segment state="initial">
+        <source>Max inactivity time</source>
+        <target>Max inactivity time</target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormSleepAfterPageLoadRequiredError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormUserAgentLabel">
+      <segment state="initial">
+        <source> User agent </source>
+        <target> User agent </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormUserAgentRequiredError">
+      <segment state="initial">
+        <source> Must contain at least 2 characters. </source>
+        <target> Must contain at least 2 characters. </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormWindowHeightLabel">
+      <segment state="initial">
+        <source> Window height </source>
+        <target> Window height </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormWindowHeightRequiredError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormWindowWidthLabel">
+      <segment state="initial">
+        <source> Window width </source>
+        <target> Window width </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormWindowWidthRequiredError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="browserConfigListFilterCrawljobsWithBrowserconfigActionButtonTooltip">
+      <segment state="initial">
+        <source>Show crawlconfigs with reference to the browserconfig</source>
+        <target>Show crawlconfigs with reference to the browserconfig</target>
+      </segment>
+    </unit>
+    <unit id="browserConfigMultiAddBrowserScriptsButtonToggleTooltip">
+      <segment state="initial">
+        <source>Add browserscripts to all selected configurations</source>
+        <target>Add browserscripts to all selected configurations</target>
+      </segment>
+    </unit>
+    <unit id="browserConfigMultiAddScriptSelectorButtonToggleTooltip">
+      <segment state="initial">
+        <source>Add script selectors to all the selected configurations</source>
+        <target>Add script selectors to all the selected configurations</target>
+      </segment>
+    </unit>
+    <unit id="browserConfigMultiRemoveBrowserScriptsButtonToggleTooltip">
+      <segment state="initial">
+        <source>Remove browserscripts from the selected configurations</source>
+        <target>Remove browserscripts from the selected configurations</target>
+      </segment>
+    </unit>
+    <unit id="browserConfigMultiRemoveScriptSelectorButtonToggleTooltip">
+      <segment state="initial">
+        <source>Remove script selectors from all the selected configurations</source>
+        <target>Remove script selectors from all the selected configurations</target>
+      </segment>
+    </unit>
+    <unit id="browserscriptDetailsCardTitle">
+      <segment state="initial">
+        <source>Browserscript</source>
+        <target>Browserscript</target>
+      </segment>
+    </unit>
+    <unit id="browserScriptFormBrowserScriptTypeDropdownLabel">
+      <segment state="initial">
+        <source> Script type </source>
+        <target> Script type </target>
+      </segment>
+    </unit>
+    <unit id="browserscriptFormScriptRequiredError">
+      <segment state="initial">
+        <source> Script is required. </source>
+        <target> Script is required. </target>
+      </segment>
+    </unit>
+    <unit id="browserscriptListFikterBrowserconfigsWithBrowserscriptActionButtonTooltip">
+      <segment state="initial">
+        <source>Show browserconfigs with reference to the browserscript</source>
+        <target>Show browserconfigs with reference to the browserscript</target>
+      </segment>
+    </unit>
+    <unit id="browserscriptListFilterBrowserconfigsWithBrowserscriptActionButtonTooltip">
+      <segment state="initial">
+        <source>Show browserconfigs with reference to the browserscript</source>
+        <target>Show browserconfigs with reference to the browserscript</target>
+      </segment>
+    </unit>
+    <unit id="browserscriptRegexpEditFormInputLabel">
+      <segment state="initial">
+        <source> Regexp </source>
+        <target> Regexp </target>
+      </segment>
+    </unit>
+    <unit id="browserscriptRegexpEditFormTitle">
+      <segment state="initial">
+        <source>Edit the expression</source>
+        <target>Edit the expression</target>
+      </segment>
+    </unit>
+    <unit id="browserscriptUrlRegexpInputLabel">
+      <segment state="initial">
+        <source> URL regexp </source>
+        <target> URL regexp </target>
+      </segment>
+    </unit>
+    <unit id="collectionDedupPolicyDropdownLabel">
+      <segment state="initial">
+        <source> Deduplication policy </source>
+        <target> Deduplication policy </target>
+      </segment>
+    </unit>
+    <unit id="collectionDetailsCardTitle">
+      <segment state="initial">
+        <source>Collection</source>
+        <target>Collection</target>
+      </segment>
+    </unit>
+    <unit id="collectionDropdownLabel">
+      <segment state="initial">
+        <source> Collection </source>
+        <target> Collection </target>
+      </segment>
+    </unit>
+    <unit id="collectionFileRotationPolicyDropdownLabel">
+      <segment state="initial">
+        <source> File rotation policy </source>
+        <target> File rotation policy </target>
+      </segment>
+    </unit>
+    <unit id="collectionFormAddSubcollectionButton">
+      <segment state="initial">
+        <source>ADD SUBCOLLECTION</source>
+        <target>ADD SUBCOLLECTION</target>
+      </segment>
+    </unit>
+    <unit id="collectionFormCompressLabel">
+      <segment state="initial">
+        <source> Compress </source>
+        <target> Compress </target>
+      </segment>
+    </unit>
+    <unit id="collectionFormRemoveSubcollectionButton">
+      <segment state="initial">
+        <source>REMOVE</source>
+        <target>REMOVE</target>
+      </segment>
+    </unit>
+    <unit id="collectionFormSubCollectionNameLabel">
+      <segment state="initial">
+        <source> Name </source>
+        <target> Name </target>
+      </segment>
+    </unit>
+    <unit id="collectionFormSubCollectionTitle">
+      <segment state="initial">
+        <source>Subcollections</source>
+        <target>Subcollections</target>
+      </segment>
+    </unit>
+    <unit id="collectionListShowCrawlConfigsWitchCollectionRefActionButtonTooltip">
+      <segment state="initial">
+        <source>Show crawlconfigs with reference to the collection</source>
+        <target>Show crawlconfigs with reference to the collection</target>
+      </segment>
+    </unit>
+    <unit id="collectionMetaNamePatternError">
+      <segment state="initial">
+        <source> Invalid name. (Valid characters are A-Å a-å 0-9 _) </source>
+        <target> Invalid name. (Valid characters are A-Å a-å 0-9 _) </target>
+      </segment>
+    </unit>
+    <unit id="collectionMetaSubcollectionNamePatternError">
+      <segment state="initial">
+        <source> Invalid name. (Valid characters are A-Å a-å 0-9 _) </source>
+        <target> Invalid name. (Valid characters are A-Å a-å 0-9 _) </target>
+      </segment>
+    </unit>
+    <unit id="collectionMetaSubcollectionNameRequiredError">
+      <segment state="initial">
+        <source> The field is required </source>
+        <target> The field is required </target>
+      </segment>
+    </unit>
+    <unit id="collectionMissingFileSizeError">
+      <segment state="initial">
+        <source> Not specifying any file size will generate an immense amount of WARC&apos;s </source>
+        <target> Not specifying any file size will generate an immense amount of WARC&apos;s </target>
+      </segment>
+    </unit>
+    <unit id="collectionSubCollectionTypeDropdownLabel">
+      <segment state="initial">
+        <source> Subcollection type </source>
+        <target> Subcollection type </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonCancel">
+      <segment state="initial">
+        <source>CANCEL </source>
+        <target>CANCEL </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonDelete">
+      <segment state="initial">
+        <source> DELETE </source>
+        <target> DELETE </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonOk">
+      <segment state="initial">
+        <source>OK </source>
+        <target>OK </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonRevert">
+      <segment state="initial">
+        <source> REVERT </source>
+        <target> REVERT </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonRun">
+      <segment state="initial">
+        <source>RUN </source>
+        <target>RUN </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonSave">
+      <segment state="initial">
+        <source> SAVE </source>
+        <target> SAVE </target>
+      </segment>
+    </unit>
+    <unit id="commonButtonUpdate">
+      <segment state="initial">
+        <source>UPDATE </source>
+        <target>UPDATE </target>
+      </segment>
+    </unit>
+    <unit id="commonConfigDetailsCardSubtitle">
+      <segment state="initial">
+        <source> New (unsaved)</source>
+        <target> New (unsaved)</target>
+      </segment>
+    </unit>
+    <unit id="configIdLabel">
+      <segment state="initial">
+        <source> Id </source>
+        <target> Id </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonCreateSeed">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">add_circle</pc> Create seed </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">add_circle</pc> Create seed </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonEditConfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">edit</pc> Edit </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">edit</pc> Edit </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonFilterBrowserconfigWithBrowserscript">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Show browserconfigs </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Show browserconfigs </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonFilterCrawlconfigswithPoliteness">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonFilterCrawljobsWithBrowserconfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonFilterCrawljobsWithCrawlconfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonFilterSeedsByCrawljob">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Filter list by crawljob </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Filter list by crawljob </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonFilterSeedsWithCrawljob">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Show seeds </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Show seeds </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToBrowserconfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Go to browserconfig </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Go to browserconfig </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToCollection">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">collections_bookmark</pc> Go to collection </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">collections_bookmark</pc> Go to collection </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToCrawlconfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Go to crawlconfig </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Go to crawlconfig </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToJobExecution">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Show jobexecutions </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Show jobexecutions </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToPolitenessconfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">sentiment_very_satisfied</pc> Go to politenessconfig </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">sentiment_very_satisfied</pc> Go to politenessconfig </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToSchedule">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">schedule</pc> Go to schedule </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">schedule</pc> Go to schedule </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonGoToSeedList">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed list </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed list </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonRunCrawl">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">play_arrow</pc> Run crawl </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">play_arrow</pc> Run crawl </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonRunCrawlOfSeedTooltip">
+      <segment state="initial">
+        <source>Start crawling seed: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></source>
+        <target>Start crawling seed: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonShowConfigDetails">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">keyboard_arrow_right</pc> Show details </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">keyboard_arrow_right</pc> Show details </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonShowCrawlConfig">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonShowCrawlExecutions">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Show crawlexecutions </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Show crawlexecutions </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonShowCrawljobsWithSchedule">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </target>
+      </segment>
+    </unit>
+    <unit id="configListActionButtonShowSeedsForEntity">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">business</pc> Show seeds for entity </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">business</pc> Show seeds for entity </target>
+      </segment>
+    </unit>
+    <unit id="configQueryBrowserConfigDropdownLabel">
+      <segment state="initial">
+        <source>BrowserConfig</source>
+        <target>BrowserConfig</target>
+      </segment>
+    </unit>
+    <unit id="configQueryBrowserScriptDropdownLabel">
+      <segment state="initial">
+        <source> BrowserScript </source>
+        <target> BrowserScript </target>
+      </segment>
+    </unit>
+    <unit id="configQueryCollectionDropdownLabel">
+      <segment state="initial">
+        <source>Collection</source>
+        <target>Collection</target>
+      </segment>
+    </unit>
+    <unit id="configQueryCrawlConfigDropdownLabel">
+      <segment state="initial">
+        <source>CrawlConfig</source>
+        <target>CrawlConfig</target>
+      </segment>
+    </unit>
+    <unit id="configQueryEntityIdInputLabel">
+      <segment state="initial">
+        <source> Entity Id </source>
+        <target> Entity Id </target>
+      </segment>
+    </unit>
+    <unit id="configQueryPolitenessDropdownLabel">
+      <segment state="initial">
+        <source>Politeness</source>
+        <target>Politeness</target>
+      </segment>
+    </unit>
+    <unit id="configQueryScheduleDropdownLabel">
+      <segment state="initial">
+        <source>Schedule</source>
+        <target>Schedule</target>
+      </segment>
+    </unit>
+    <unit id="configQuerySearchInputLabel">
+      <segment state="initial">
+        <source> Search </source>
+        <target> Search </target>
+      </segment>
+    </unit>
+    <unit id="configurationDeleteSelectedConfigurationsButtonTooltip">
+      <segment state="initial">
+        <source>Delete selected configurations</source>
+        <target>Delete selected configurations</target>
+      </segment>
+    </unit>
+    <unit id="configurationEditAllConfigurationsInDbButtonTooltip">
+      <segment state="initial">
+        <source>Edit all configurations in database</source>
+        <target>Edit all configurations in database</target>
+      </segment>
+    </unit>
+    <unit id="configurationEditSelectedConfigurationsButtonTooltip">
+      <segment state="initial">
+        <source>Edit selected configurations</source>
+        <target>Edit selected configurations</target>
+      </segment>
+    </unit>
+    <unit id="configurationRunCrawlSelectedSeedsButtonTooltip">
+      <segment state="initial">
+        <source>Start crawl of selected seeds</source>
+        <target>Start crawl of selected seeds</target>
+      </segment>
+    </unit>
+    <unit id="configurationSideBarMenuAddConfigButton">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">add_circle</pc> Create new </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">add_circle</pc> Create new </target>
+      </segment>
+    </unit>
+    <unit id="configurationSideBarMenuAddConfigButtonTooltip">
+      <segment state="initial">
+        <source>Create a new configuration</source>
+        <target>Create a new configuration</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuBrowserconfig">
+      <segment state="initial">
+        <source>BrowserConfig</source>
+        <target>BrowserConfig</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuBrowserscript">
+      <segment state="initial">
+        <source>BrowserScript</source>
+        <target>BrowserScript</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuCollection">
+      <segment state="initial">
+        <source>Collection</source>
+        <target>Collection</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuCrawlconfig">
+      <segment state="initial">
+        <source>CrawlConfig</source>
+        <target>CrawlConfig</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuCrawlhostgroupconfig">
+      <segment state="initial">
+        <source>CrawlHostGroup</source>
+        <target>CrawlHostGroup</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuCrawljobs">
+      <segment state="initial">
+        <source>Crawljobs</source>
+        <target>Crawljobs</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuEntity">
+      <segment state="initial">
+        <source>Entity</source>
+        <target>Entity</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuRolemapping">
+      <segment state="initial">
+        <source>Users</source>
+        <target>Users</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuSchedule">
+      <segment state="initial">
+        <source>Schedule</source>
+        <target>Schedule</target>
+      </segment>
+    </unit>
+    <unit id="configurationSidebarMenuSeed">
+      <segment state="initial">
+        <source>Seed</source>
+        <target>Seed</target>
+      </segment>
+    </unit>
+    <unit id="copyIdButtonTooltip">
+      <segment state="initial">
+        <source>copy ID to clipboard</source>
+        <target>copy ID to clipboard</target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigBrowserConfigRequiredError">
+      <segment state="initial">
+        <source> Please choose a browserconfig </source>
+        <target> Please choose a browserconfig </target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigCollectionRequiredError">
+      <segment state="initial">
+        <source> Please choose a collection </source>
+        <target> Please choose a collection </target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>Crawlconfig</source>
+        <target>Crawlconfig</target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigDropDownLabel">
+      <segment state="initial">
+        <source> CrawlConfig </source>
+        <target> CrawlConfig </target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigFormCreateScreenshotLabel">
+      <segment state="initial">
+        <source> Create screenshot </source>
+        <target> Create screenshot </target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigFormMinDNSTTLValidationError">
+      <segment state="initial">
+        <source> Must be a number or empty </source>
+        <target> Must be a number or empty </target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigFormMinimumDnsTtlInputLabel">
+      <segment state="initial">
+        <source> DNS TTL </source>
+        <target> DNS TTL </target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigFormPriorityWeightInputLabel">
+      <segment state="initial">
+        <source> Priority weight </source>
+        <target> Priority weight </target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigFormPriorityWeightValidationError">
+      <segment state="initial">
+        <source> Must be a number or empty </source>
+        <target> Must be a number or empty </target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigListFilterCrawljobsWithCrawlconfigActionButtonTooltip">
+      <segment state="initial">
+        <source>Show crawljobs with reference to the crawlconfig</source>
+        <target>Show crawljobs with reference to the crawlconfig</target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigListGoToBrowserConfigActionButtonTooltip">
+      <segment state="initial">
+        <source>Go to browserconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getBrowserConfigName | async}}"/></source>
+        <target>Go to browserconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getBrowserConfigName | async}}"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigListGoToCollectionActionButtonTooltip">
+      <segment state="initial">
+        <source>Go to collection: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCollectionName | async}}"/></source>
+        <target>Go to collection: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCollectionName | async}}"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigListGoToPolitenessActionButtonTooltip">
+      <segment state="initial">
+        <source>Go to politenessconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getPolitenessConfigName | async}}"/></source>
+        <target>Go to politenessconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getPolitenessConfigName | async}}"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigPolitenessconfigRequiredError">
+      <segment state="initial">
+        <source> Please choose a politenessconfig </source>
+        <target> Please choose a politenessconfig </target>
+      </segment>
+    </unit>
+    <unit id="crawlEntityListCreateSeedActionButtonTooltip">
+      <segment state="initial">
+        <source>Create a new seed with reference to the entity</source>
+        <target>Create a new seed with reference to the entity</target>
+      </segment>
+    </unit>
+    <unit id="crawlerStatusPauseCrawlerButtonTooltip">
+      <segment state="initial">
+        <source>Pause crawler</source>
+        <target>Pause crawler</target>
+      </segment>
+    </unit>
+    <unit id="crawlerStatusPauseRequestedTitle">
+      <segment state="initial">
+        <source> IS PAUSING </source>
+        <target> IS PAUSING </target>
+      </segment>
+    </unit>
+    <unit id="crawlerStatusUnpauseCrawlerButtonTooltip">
+      <segment state="initial">
+        <source>Unpause crawler</source>
+        <target>Unpause crawler</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterCrawlJobLabel">
+      <segment state="initial">
+        <source> CrawlJob </source>
+        <target> CrawlJob </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterJobExecutionIdLabel">
+      <segment state="initial">
+        <source> JobExecution ID </source>
+        <target> JobExecution ID </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterSeedIdLabel">
+      <segment state="initial">
+        <source> Seed ID </source>
+        <target> Seed ID </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterStartDateToLabel">
+      <segment state="initial">
+        <source> To: </source>
+        <target> To: </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterStartTimeFromLabel">
+      <segment state="initial">
+        <source> From: </source>
+        <target> From: </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterStateLabel">
+      <segment state="initial">
+        <source> State </source>
+        <target> State </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListCrawljobHeaderCell">
+      <segment state="initial">
+        <source>Job </source>
+        <target>Job </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListCreatedTimeHeaderCell">
+      <segment state="initial">
+        <source>Created </source>
+        <target>Created </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListDesiredStateHeaderCell">
+      <segment state="initial">
+        <source>Desired state </source>
+        <target>Desired state </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionREportListDocumentsCrawledHeaderCell">
+      <segment state="initial">
+        <source>Documents crawled </source>
+        <target>Documents crawled </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListEndTimeHeaderCell">
+      <segment state="initial">
+        <source>Ended </source>
+        <target>Ended </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListErrorCodeHeaderCell">
+      <segment state="initial">
+        <source>Error </source>
+        <target>Error </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListLastChangeTimeHeaderCell">
+      <segment state="initial">
+        <source>Last changed </source>
+        <target>Last changed </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListQueueCountHeaderCell">
+      <segment state="initial">
+        <source>Queue </source>
+        <target>Queue </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListSeedHeaderCell">
+      <segment state="initial">
+        <source>Seed </source>
+        <target>Seed </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListStartTimeHeaderCell">
+      <segment state="initial">
+        <source>Started </source>
+        <target>Started </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportListStateHeaderCell">
+      <segment state="initial">
+        <source>State </source>
+        <target>State </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusCrawljobHeaderCell">
+      <segment state="initial">
+        <source> Job </source>
+        <target> Job </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusCreatedHeaderCell">
+      <segment state="initial">
+        <source> Created </source>
+        <target> Created </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusEndTimeHeaderCell">
+      <segment state="initial">
+        <source> Ended </source>
+        <target> Ended </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusJobExecutionHeaderCell">
+      <segment state="initial">
+        <source> Job execution </source>
+        <target> Job execution </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusLastChangedHeaderCell">
+      <segment state="initial">
+        <source> Last changed </source>
+        <target> Last changed </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusStartTimeHeaderCell">
+      <segment state="initial">
+        <source> Started </source>
+        <target> Started </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusStateHeaderCell">
+      <segment state="initial">
+        <source> State </source>
+        <target> State </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportStatusStatisticsHeaderCell">
+      <segment state="initial">
+        <source> Statistics </source>
+        <target> Statistics </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusCrawljobIdHeaderCell">
+      <segment state="initial">
+        <source>Job Id</source>
+        <target>Job Id</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusCreatedHeaderCell">
+      <segment state="initial">
+        <source>Created</source>
+        <target>Created</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusCurrentUrisHeader">
+      <segment state="initial">
+        <source>Current URIs</source>
+        <target>Current URIs</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusEndHeaderCell">
+      <segment state="initial">
+        <source>End</source>
+        <target>End</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusErrorHeader">
+      <segment state="initial">
+        <source>Error</source>
+        <target>Error</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusIdHeaderCell">
+      <segment state="initial">
+        <source>Id</source>
+        <target>Id</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusJobExecutionIdHeaderCell">
+      <segment state="initial">
+        <source>Job Execution Id</source>
+        <target>Job Execution Id</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusLastModifiedHeaderCell">
+      <segment state="initial">
+        <source>Last modified</source>
+        <target>Last modified</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusPanelDescription">
+      <segment state="initial">
+        <source>State</source>
+        <target>State</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusSeedIdHeaderCell">
+      <segment state="initial">
+        <source>Seed Id</source>
+        <target>Seed Id</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStartHeaderCell">
+      <segment state="initial">
+        <source>Start</source>
+        <target>Start</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsBytesCrawledHeaderCell">
+      <segment state="initial">
+        <source>Bytes crawled</source>
+        <target>Bytes crawled</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsDocumentsCrawledHeaderCell">
+      <segment state="initial">
+        <source>Documents crawled</source>
+        <target>Documents crawled</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsDocumentsDeniedHeaderCell">
+      <segment state="initial">
+        <source>Documents denied</source>
+        <target>Documents denied</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsDocumentsFailedHeaderCell">
+      <segment state="initial">
+        <source>Documents failed</source>
+        <target>Documents failed</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsDocumentsRetriedHeaderCell">
+      <segment state="initial">
+        <source>Documents retried</source>
+        <target>Documents retried</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsHeaderCell">
+      <segment state="initial">
+        <source>Statistics</source>
+        <target>Statistics</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsOutOfScopeHeaderCell">
+      <segment state="initial">
+        <source>Documents out of scope</source>
+        <target>Documents out of scope</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionStatusStatisticsUrisCrawledHeaderCell">
+      <segment state="initial">
+        <source>URIs crawled</source>
+        <target>URIs crawled</target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>Crawlhostgroupconfig</source>
+        <target>Crawlhostgroupconfig</target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormAddIpRangeButton">
+      <segment state="initial">
+        <source>ADD IP RANGE</source>
+        <target>ADD IP RANGE</target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormDelayFactorLabel">
+      <segment state="initial">
+        <source> Delay factor </source>
+        <target> Delay factor </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormIpFromHint">
+      <segment state="initial">
+        <source>From</source>
+        <target>From</target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormIpFromLabel">
+      <segment state="initial">
+        <source> IP address </source>
+        <target> IP address </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormIpToHint">
+      <segment state="initial">
+        <source>To</source>
+        <target>To</target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormIpToLabel">
+      <segment state="initial">
+        <source> IP address </source>
+        <target> IP address </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormMaxRetriesLabel">
+      <segment state="initial">
+        <source> Maximum retries </source>
+        <target> Maximum retries </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormMaxRetriesValidationError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormMaxTimeBetweenPageloadLabel">
+      <segment state="initial">
+        <source> Maximum time between page load </source>
+        <target> Maximum time between page load </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormMaxTimeBetweenValidationError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormMinTimeBetweenPageloadLabel">
+      <segment state="initial">
+        <source> Minimum time between page load </source>
+        <target> Minimum time between page load </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormMinTimeBetweenPageloadValidationError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormRetryDelayValidationError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormValidIpFromRequiredError">
+      <segment state="initial">
+        <source> A valid IP address is required. </source>
+        <target> A valid IP address is required. </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormValidIpRangeError">
+      <segment state="initial">
+        <source> The IP range is not valid </source>
+        <target> The IP range is not valid </target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigFormValidIpToRequiredError">
+      <segment state="initial">
+        <source> A valid IP address is required. </source>
+        <target> A valid IP address is required. </target>
+      </segment>
+    </unit>
+    <unit id="crawljobCrawlconfigRequiredError">
+      <segment state="initial">
+        <source> A CrawlConfig is required </source>
+        <target> A CrawlConfig is required </target>
+      </segment>
+    </unit>
+    <unit id="crawljobDetailsCardTitle">
+      <segment state="initial">
+        <source>Crawljob</source>
+        <target>Crawljob</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobDetailsRunCrawljobButtonTooltip">
+      <segment state="initial">
+        <source>Run crawljob</source>
+        <target>Run crawljob</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobDropdownLabel">
+      <segment state="initial">
+        <source> Crawljob </source>
+        <target> Crawljob </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportFilterCrawlJobLabel">
+      <segment state="initial">
+        <source> CrawlJob </source>
+        <target> CrawlJob </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportFilterStartTimeFromLabel">
+      <segment state="initial">
+        <source> From: </source>
+        <target> From: </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportFilterStartTimeToLabel">
+      <segment state="initial">
+        <source> To: </source>
+        <target> To: </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportFilterStateLabel">
+      <segment state="initial">
+        <source> State </source>
+        <target> State </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportJobExecutionErrorsHeader">
+      <segment state="initial">
+        <source>Error</source>
+        <target>Error</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportJobExecutionStateCountHeaderCell">
+      <segment state="initial">
+        <source> Count </source>
+        <target> Count </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportJobExecutionStateHeaderCell">
+      <segment state="initial">
+        <source>State </source>
+        <target>State </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListCrawljobHeaderCell">
+      <segment state="initial">
+        <source>Job </source>
+        <target>Job </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListDesiredStateHeaderCell">
+      <segment state="initial">
+        <source>Desired state </source>
+        <target>Desired state </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListEndTimeHeaderCell">
+      <segment state="initial">
+        <source>End </source>
+        <target>End </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListStartTimeHeaderCell">
+      <segment state="initial">
+        <source>Start </source>
+        <target>Start </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListStateHeaderCell">
+      <segment state="initial">
+        <source>State </source>
+        <target>State </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusCardTitle">
+      <segment state="initial">
+        <source>JobExecution</source>
+        <target>JobExecution</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusCountHeaderCell">
+      <segment state="initial">
+        <source> Count </source>
+        <target> Count </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusCrawlJobHeaderCell">
+      <segment state="initial">
+        <source> Job </source>
+        <target> Job </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusEndTimeHeaderCell">
+      <segment state="initial">
+        <source> End </source>
+        <target> End </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusQueueCountHeaderCell">
+      <segment state="initial">
+        <source> Queue </source>
+        <target> Queue </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusStartTimeHeaderCell">
+      <segment state="initial">
+        <source> Start </source>
+        <target> Start </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportStatusStatisticsHeaderCell">
+      <segment state="initial">
+        <source> Statistics </source>
+        <target> Statistics </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusEndHeaderCell">
+      <segment state="initial">
+        <source>End</source>
+        <target>End</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusPanelDescription">
+      <segment state="initial">
+        <source>State</source>
+        <target>State</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStartHeaderCell">
+      <segment state="initial">
+        <source>Start</source>
+        <target>Start</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsDocumentsCrawledHeaderCell">
+      <segment state="initial">
+        <source>Documents crawled </source>
+        <target>Documents crawled </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsDocumentsDeniedHeaderCell">
+      <segment state="initial">
+        <source>Documents denied </source>
+        <target>Documents denied </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsDocumentsFailedHeaderCell">
+      <segment state="initial">
+        <source>Documents failed </source>
+        <target>Documents failed </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsDocumentsRetriedHeaderCell">
+      <segment state="initial">
+        <source>Documents retried </source>
+        <target>Documents retried </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsExecutionStateMapCountHeaderCell">
+      <segment state="initial">
+        <source>Count </source>
+        <target>Count </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsExecutionStateMapStateHeaderCell">
+      <segment state="initial">
+        <source>State </source>
+        <target>State </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsHeaderCell">
+      <segment state="initial">
+        <source>Statistics </source>
+        <target>Statistics </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsOutOfScopeHeaderCell">
+      <segment state="initial">
+        <source>Documents out of scope </source>
+        <target>Documents out of scope </target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionStatusStatisticsUrisCrawledHeaderCell">
+      <segment state="initial">
+        <source>URIs crawled </source>
+        <target>URIs crawled </target>
+      </segment>
+    </unit>
+    <unit id="crawljobFormMaxDurationLabel">
+      <segment state="initial">
+        <source>Max duration</source>
+        <target>Max duration</target>
+      </segment>
+    </unit>
+    <unit id="crawljobFormMaxDurationRequiredError">
+      <segment state="initial">
+        <source> Invalid max duration. </source>
+        <target> Invalid max duration. </target>
+      </segment>
+    </unit>
+    <unit id="crawljobListCrawlconfigShortcutActionButtonTooltip">
+      <segment state="initial">
+        <source>Go to crawlconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlConfigName | async}}"/></source>
+        <target>Go to crawlconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlConfigName | async}}"/></target>
+      </segment>
+    </unit>
+    <unit id="crawljobListFilterSeedsWithCrawljobActionButtonTooltip">
+      <segment state="initial">
+        <source>Show seeds with reference to the crawljob</source>
+        <target>Show seeds with reference to the crawljob</target>
+      </segment>
+    </unit>
+    <unit id="crawljobListJobExecutionShortcutActionButtonTooltip">
+      <segment state="initial">
+        <source>Go to jobexecutions for the crawljob</source>
+        <target>Go to jobexecutions for the crawljob</target>
+      </segment>
+    </unit>
+    <unit id="crawljobListScheduleShortcutActionButtonTooltip">
+      <segment state="initial">
+        <source>Go to schedule: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlScheduleName | async}}"/></source>
+        <target>Go to schedule: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlScheduleName | async}}"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlJobScopeScriptRefRequiredError">
+      <segment state="initial">
+        <source> A scope script is required </source>
+        <target> A scope script is required </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportListContentTypeHeaderCell">
+      <segment state="initial">
+        <source>Content type </source>
+        <target>Content type </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportListDiscoveryPathHeaderCell">
+      <segment state="initial">
+        <source>Discovery path </source>
+        <target>Discovery path </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportListRequestedUriHeaderCell">
+      <segment state="initial">
+        <source>Requested URI </source>
+        <target>Requested URI </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportListStatusCodeHeaderCell">
+      <segment state="initial">
+        <source>Status code </source>
+        <target>Status code </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportListTimestampHeaderCell">
+      <segment state="initial">
+        <source>Timestamp </source>
+        <target>Timestamp </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusCardTitle">
+      <segment state="initial">
+        <source>CrawlLog</source>
+        <target>CrawlLog</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusCrawlExecIdHeaderCell">
+      <segment state="initial">
+        <source> Crawl execution id </source>
+        <target> Crawl execution id </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusDiscoveryPathHeaderCell">
+      <segment state="initial">
+        <source> Discovery path </source>
+        <target> Discovery path </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusHeaderCell">
+      <segment state="initial">
+        <source>Report</source>
+        <target>Report</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusIdHeaderCell">
+      <segment state="initial">
+        <source> Id </source>
+        <target> Id </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusJobExecIdHeaderCell">
+      <segment state="initial">
+        <source> Job execution id </source>
+        <target> Job execution id </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusReferrerHeaderCell">
+      <segment state="initial">
+        <source> Referrer </source>
+        <target> Referrer </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusRequestUriHeaderCell">
+      <segment state="initial">
+        <source> Requested URI </source>
+        <target> Requested URI </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusResponseUriHeaderCell">
+      <segment state="initial">
+        <source> Response URI </source>
+        <target> Response URI </target>
+      </segment>
+    </unit>
+    <unit id="deleteDialogConfirmationText">
+      <segment state="initial">
+        <source>Are you sure you want to delete </source>
+        <target>Are you sure you want to delete </target>
+      </segment>
+    </unit>
+    <unit id="deleteDialogTitle">
+      <segment state="initial">
+        <source>Delete confirmation</source>
+        <target>Delete confirmation</target>
+      </segment>
+    </unit>
+    <unit id="deleteMultiDialogConfirmationInputHint">
+      <segment state="initial">
+        <source>Confirm number of configurations to delete</source>
+        <target>Confirm number of configurations to delete</target>
+      </segment>
+    </unit>
+    <unit id="deleteMultiDialogConfirmationInputPlaceholder">
+      <segment state="initial">
+        <source>Number of configurations</source>
+        <target>Number of configurations</target>
+      </segment>
+    </unit>
+    <unit id="deleteMultiDialogConfirmationText">
+      <segment state="initial">
+        <source> Are you sure you want to delete <ph id="0" equiv="INTERPOLATION" disp="{{data.numberOfConfigs}}"/> configurations? </source>
+        <target> Are you sure you want to delete <ph id="0" equiv="INTERPOLATION" disp="{{data.numberOfConfigs}}"/> configurations? </target>
+      </segment>
+    </unit>
+    <unit id="deleteMultiDialogTitle">
+      <segment state="initial">
+        <source>Delete confirmation</source>
+        <target>Delete confirmation</target>
+      </segment>
+    </unit>
+    <unit id="disableCrawljobToggleSwitch">
+      <segment state="initial">
+        <source> Deactivated </source>
+        <target> Deactivated </target>
+      </segment>
+    </unit>
+    <unit id="durationPickerDaysLabel">
+      <segment state="initial">
+        <source>Days</source>
+        <target>Days</target>
+      </segment>
+    </unit>
+    <unit id="durationPickerHoursLabel">
+      <segment state="initial">
+        <source>Hours</source>
+        <target>Hours</target>
+      </segment>
+    </unit>
+    <unit id="durationPickerMillisecondsLabel">
+      <segment state="initial">
+        <source>Milliseconds</source>
+        <target>Milliseconds</target>
+      </segment>
+    </unit>
+    <unit id="durationPickerMinutesLabel">
+      <segment state="initial">
+        <source>Minutes</source>
+        <target>Minutes</target>
+      </segment>
+    </unit>
+    <unit id="durationPickerSecondsLabel">
+      <segment state="initial">
+        <source>Seconds</source>
+        <target>Seconds</target>
+      </segment>
+    </unit>
+    <unit id="entityDetailsCardTitle">
+      <segment state="initial">
+        <source>CrawlConfig</source>
+        <target>CrawlConfig</target>
+      </segment>
+    </unit>
+    <unit id="fileSizeInputInvalidPatternError">
+      <segment state="initial">
+        <source> Field doesn&apos;t contain a valid file size </source>
+        <target> Field doesn&apos;t contain a valid file size </target>
+      </segment>
+    </unit>
+    <unit id="fileSizeInputInvalidSizeError">
+      <segment state="initial">
+        <source> Can&apos;t interpret <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidSize&apos;].size}}"/> </source>
+        <target> Can&apos;t interpret <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidSize&apos;].size}}"/> </target>
+      </segment>
+    </unit>
+    <unit id="fileSizeInputInvalidUnitError">
+      <segment state="initial">
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidUnit&apos;].unit}}"/> doesn&apos;t appear to be a valid unit </source>
+        <target> <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidUnit&apos;].unit}}"/> doesn&apos;t appear to be a valid unit </target>
+      </segment>
+    </unit>
+    <unit id="filterShortcutListTitle">
+      <segment state="initial">
+        <source> Filters </source>
+        <target> Filters </target>
+      </segment>
+    </unit>
+    <unit id="ipRangeListHeader">
+      <segment state="initial">
+        <source>IP range</source>
+        <target>IP range</target>
+      </segment>
+    </unit>
+    <unit id="labelEditCardTitle">
+      <segment state="initial">
+        <source>Edit label</source>
+        <target>Edit label</target>
+      </segment>
+    </unit>
+    <unit id="labelFormAddNewKeyPlaceholder">
+      <segment state="initial">
+        <source>Key</source>
+        <target>Key</target>
+      </segment>
+    </unit>
+    <unit id="labelFormAddNewValuePlaceholder">
+      <segment state="initial">
+        <source>Value</source>
+        <target>Value</target>
+      </segment>
+    </unit>
+    <unit id="labelKeyEmptyError">
+      <segment state="initial">
+        <source> Can&apos;t be empty or contain a colon. </source>
+        <target> Can&apos;t be empty or contain a colon. </target>
+      </segment>
+    </unit>
+    <unit id="labelListInputLabel">
+      <segment state="initial">
+        <source><ph id="0" equiv="INTERPOLATION" disp="{{labelText}}"/></source>
+        <target><ph id="0" equiv="INTERPOLATION" disp="{{labelText}}"/></target>
+      </segment>
+    </unit>
+    <unit id="labelMultiInputLabel">
+      <segment state="initial">
+        <source> Label </source>
+        <target> Label </target>
+      </segment>
+    </unit>
+    <unit id="labelsMultiAddLabelToggleButtonTooltip">
+      <segment state="initial">
+        <source>Add labels for the selected configs</source>
+        <target>Add labels for the selected configs</target>
+      </segment>
+    </unit>
+    <unit id="labelsMultiRemoveLabelToggleButtonTooltip">
+      <segment state="initial">
+        <source>Remove labels from the selected configs</source>
+        <target>Remove labels from the selected configs</target>
+      </segment>
+    </unit>
+    <unit id="labelValueEmptyError">
+      <segment state="initial">
+        <source> Can&apos;t be empty. </source>
+        <target> Can&apos;t be empty. </target>
+      </segment>
+    </unit>
+    <unit id="logconfigAddLogconfigButton">
+      <segment state="initial">
+        <source>ADD </source>
+        <target>ADD </target>
+      </segment>
+    </unit>
+    <unit id="logconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>Log level</source>
+        <target>Log level</target>
+      </segment>
+    </unit>
+    <unit id="logconfigFormLevelSelectLabel">
+      <segment state="initial">
+        <source> Level </source>
+        <target> Level </target>
+      </segment>
+    </unit>
+    <unit id="logconfigFormLoggerInputLabel">
+      <segment state="initial">
+        <source> Logger </source>
+        <target> Logger </target>
+      </segment>
+    </unit>
+    <unit id="logconfigLevelRequiredError">
+      <segment state="initial">
+        <source> Field is required </source>
+        <target> Field is required </target>
+      </segment>
+    </unit>
+    <unit id="logconfigLoggerRequiredError">
+      <segment state="initial">
+        <source> Field can&apos;t be empty </source>
+        <target> Field can&apos;t be empty </target>
+      </segment>
+    </unit>
+    <unit id="logconfigRemoveLogconfigButton">
+      <segment state="initial">
+        <source>REMOVE</source>
+        <target>REMOVE</target>
+      </segment>
+    </unit>
+    <unit id="mainMenuConfiguration">
+      <segment state="initial">
+        <source>CONFIGURATION</source>
+        <target>CONFIGURATION</target>
+      </segment>
+    </unit>
+    <unit id="mainMenuLogConfiguration">
+      <segment state="initial">
+        <source>LOG LEVEL</source>
+        <target>LOG LEVEL</target>
+      </segment>
+    </unit>
+    <unit id="mainMenuReport">
+      <segment state="initial">
+        <source>REPORT</source>
+        <target>REPORT</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarLoginButton">
+      <segment state="initial">
+        <source>LOGIN</source>
+        <target>LOGIN</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarLogoutButton">
+      <segment state="initial">
+        <source>LOGOUT</source>
+        <target>LOGOUT</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarScheduledCrawljobsButtonTooltip">
+      <segment state="initial">
+        <source>Click to show overview of scheduled crawljobs</source>
+        <target>Click to show overview of scheduled crawljobs</target>
+      </segment>
+    </unit>
+    <unit id="metaCreatedByInputLabel">
+      <segment state="initial">
+        <source> Created by </source>
+        <target> Created by </target>
+      </segment>
+    </unit>
+    <unit id="metaCreatedByInputPlaceholder">
+      <segment state="initial">
+        <source>Created by</source>
+        <target>Created by</target>
+      </segment>
+    </unit>
+    <unit id="metaCreatedInputLabel">
+      <segment state="initial">
+        <source> Created </source>
+        <target> Created </target>
+      </segment>
+    </unit>
+    <unit id="metaCreatedInputPlaceholder">
+      <segment state="initial">
+        <source> Created </source>
+        <target> Created </target>
+      </segment>
+    </unit>
+    <unit id="metaDescriptionInputLabel">
+      <segment state="initial">
+        <source> Description </source>
+        <target> Description </target>
+      </segment>
+    </unit>
+    <unit id="metaEntityIdInputLabel">
+      <segment state="initial">
+        <source> Entity Id </source>
+        <target> Entity Id </target>
+      </segment>
+    </unit>
+    <unit id="metaIdInputLabel">
+      <segment state="initial">
+        <source> Id </source>
+        <target> Id </target>
+      </segment>
+    </unit>
+    <unit id="metaLastModifiedByInputLabel">
+      <segment state="initial">
+        <source> Last modified by </source>
+        <target> Last modified by </target>
+      </segment>
+    </unit>
+    <unit id="metaLastModifiedByInputPlaceholder">
+      <segment state="initial">
+        <source>Last modified by</source>
+        <target>Last modified by</target>
+      </segment>
+    </unit>
+    <unit id="metaLastModifiedInputLabel">
+      <segment state="initial">
+        <source> Last modified </source>
+        <target> Last modified </target>
+      </segment>
+    </unit>
+    <unit id="metaLastModifiedInputPlaceholder">
+      <segment state="initial">
+        <source>Last modified</source>
+        <target>Last modified</target>
+      </segment>
+    </unit>
+    <unit id="metaNameInputLabel">
+      <segment state="initial">
+        <source> Name </source>
+        <target> Name </target>
+      </segment>
+    </unit>
+    <unit id="metaNameInputLengthHinht">
+      <segment state="initial">
+        <source>Minimum 2 characters</source>
+        <target>Minimum 2 characters</target>
+      </segment>
+    </unit>
+    <unit id="metaNameRequiredError">
+      <segment state="initial">
+        <source> Name is required. </source>
+        <target> Name is required. </target>
+      </segment>
+    </unit>
+    <unit id="PageLogReportListNrOfOutlinksNameHeaderCell">
+      <segment state="initial">
+        <source># Outlinks</source>
+        <target># Outlinks</target>
+      </segment>
+    </unit>
+    <unit id="PageLogReportListNrOfResourcesNameHeaderCell">
+      <segment state="initial">
+        <source># Resources</source>
+        <target># Resources</target>
+      </segment>
+    </unit>
+    <unit id="PageLogReportListWarcIdNameHeaderCell">
+      <segment state="initial">
+        <source>URI</source>
+        <target>URI</target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusCardTitle">
+      <segment state="initial">
+        <source>Pagelog</source>
+        <target>Pagelog</target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusCollectionFinalNameHeaderCell">
+      <segment state="initial">
+        <source> Collection name </source>
+        <target> Collection name </target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusCrawlExecutionIdHeaderCell">
+      <segment state="initial">
+        <source>Crawl execution id</source>
+        <target>Crawl execution id</target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusJobExecutionIdHeaderCell">
+      <segment state="initial">
+        <source>Job execution id</source>
+        <target>Job execution id</target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusMethodHeaderCell">
+      <segment state="initial">
+        <source> Method </source>
+        <target> Method </target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusReferrerHeaderCell">
+      <segment state="initial">
+        <source> Referrer </source>
+        <target> Referrer </target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusUriHeaderCell">
+      <segment state="initial">
+        <source> URI </source>
+        <target> URI </target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportStatusWarcIdHeaderCell">
+      <segment state="initial">
+        <source>WARC id</source>
+        <target>WARC id</target>
+      </segment>
+    </unit>
+    <unit id="pauseCrawlerDialogConfirmationText">
+      <segment state="initial">
+        <source> Are you sure you want to pause the crawler? </source>
+        <target> Are you sure you want to pause the crawler? </target>
+      </segment>
+    </unit>
+    <unit id="pauseCrawlerDialogTitle">
+      <segment state="initial">
+        <source>Confirm action</source>
+        <target>Confirm action</target>
+      </segment>
+    </unit>
+    <unit id="politenessconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>Politenessconfig</source>
+        <target>Politenessconfig</target>
+      </segment>
+    </unit>
+    <unit id="politenessConfigDropdownLabel">
+      <segment state="initial">
+        <source> PolitenessConfig </source>
+        <target> PolitenessConfig </target>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormCustomRobotsPolicyInputPlaceholder">
+      <segment state="initial">
+        <source> robots.txt </source>
+        <target> robots.txt </target>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormMinRobotsValidDurationLabel">
+      <segment state="initial">
+        <source> Minimum robots validity </source>
+        <target> Minimum robots validity </target>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormMinRobotsValidDurationValidationError">
+      <segment state="initial">
+        <source> Must be a number. </source>
+        <target> Must be a number. </target>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormRobotPolicyDropdownLabel">
+      <segment state="initial">
+        <source> Robot policy </source>
+        <target> Robot policy </target>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormUseHostnameLabel">
+      <segment state="initial">
+        <source> Use hostname </source>
+        <target> Use hostname </target>
+      </segment>
+    </unit>
+    <unit id="politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
+      <segment state="initial">
+        <source>Show crawlconfigs with reference to the politeness</source>
+        <target>Show crawlconfigs with reference to the politeness</target>
+      </segment>
+    </unit>
+    <unit id="politenesslconfigFormUseHostnameLabel">
+      <segment state="initial">
+        <source> Use hostname </source>
+        <target> Use hostname </target>
+      </segment>
+    </unit>
+    <unit id="reportCrawlLogQueryExecutiondInputLabel">
+      <segment state="initial">
+        <source> Execution ID </source>
+        <target> Execution ID </target>
+      </segment>
+    </unit>
+    <unit id="reportCrawlLogQueryJobExecutiondInputLabel">
+      <segment state="initial">
+        <source> Job execution ID </source>
+        <target> Job execution ID </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonAbortCrawlExecution">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">cancel</pc> Abort crawl </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">cancel</pc> Abort crawl </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonGoToCrawlExecution">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Go to crawl execution </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Go to crawl execution </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonGoToCrawljob">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Go to crawljob </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Go to crawljob </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonGoToCrawlog">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc> Show crawllog </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc> Show crawllog </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonGoToJobExecution">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Go to job execution </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Go to job execution </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonGoToPagelog">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc> Show pagelog </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc> Show pagelog </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonGoToSeed">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed </target>
+      </segment>
+    </unit>
+    <unit id="reportListActionButtonShowFullReport">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">keyboard_arrow_right</pc> Show full report </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">keyboard_arrow_right</pc> Show full report </target>
+      </segment>
+    </unit>
+    <unit id="reportNavigationLinkCrawlExecution">
+      <segment state="initial">
+        <source>CrawlExecution</source>
+        <target>CrawlExecution</target>
+      </segment>
+    </unit>
+    <unit id="reportNavigationLinkCrawlLog">
+      <segment state="initial">
+        <source>CrawlLog</source>
+        <target>CrawlLog</target>
+      </segment>
+    </unit>
+    <unit id="reportNavigationLinkJobExecution">
+      <segment state="initial">
+        <source>JobExecution</source>
+        <target>JobExecution</target>
+      </segment>
+    </unit>
+    <unit id="reportNavigationLinkPageLog">
+      <segment state="initial">
+        <source>PageLog</source>
+        <target>PageLog</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingDetailsCardTitle">
+      <segment state="initial">
+        <source>Rolemapping</source>
+        <target>Rolemapping</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingDetailsEmailInputLabel">
+      <segment state="initial">
+        <source> Email </source>
+        <target> Email </target>
+      </segment>
+    </unit>
+    <unit id="roleMappingDetailsGroupInputLabel">
+      <segment state="initial">
+        <source> Group </source>
+        <target> Group </target>
+      </segment>
+    </unit>
+    <unit id="rolemappingDetailsRoleDropdownLabel">
+      <segment state="initial">
+        <source> Role </source>
+        <target> Role </target>
+      </segment>
+    </unit>
+    <unit id="roleMappingDetailsRoleRequiredError">
+      <segment state="initial">
+        <source> A user must be assigned at least one role. </source>
+        <target> A user must be assigned at least one role. </target>
+      </segment>
+    </unit>
+    <unit id="roleMappingDetailsTypeOptionEmail">
+      <segment state="initial">
+        <source>Email</source>
+        <target>Email</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingDetailsTypeOptionGroup">
+      <segment state="initial">
+        <source>Group</source>
+        <target>Group</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingListEmailHeaderCell">
+      <segment state="initial">
+        <source>Email</source>
+        <target>Email</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingListGroupHeaderCell">
+      <segment state="initial">
+        <source>Group</source>
+        <target>Group</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingListRoleHeaderCell">
+      <segment state="initial">
+        <source>Role(s)</source>
+        <target>Role(s)</target>
+      </segment>
+    </unit>
+    <unit id="runCrawlActionButtonTooltip">
+      <segment state="initial">
+        <source>Run crawljob: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></source>
+        <target>Run crawljob: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></target>
+      </segment>
+    </unit>
+    <unit id="runCrawlDialogRunConfirmationText">
+      <segment state="initial">
+        <source> Are you sure you want to start the crawljob: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{configObject.meta.name}}"/></pc>? </source>
+        <target> Are you sure you want to start the crawljob: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{configObject.meta.name}}"/></pc>? </target>
+      </segment>
+    </unit>
+    <unit id="runCrawlDialogRunSeedCrawlConfirmationText">
+      <segment state="initial">
+        <source> Are you sure you want to start crawling: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{configObject.meta.name}}"/></pc>? </source>
+        <target> Are you sure you want to start crawling: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{configObject.meta.name}}"/></pc>? </target>
+      </segment>
+    </unit>
+    <unit id="runCrawlDialogRunSeedsCrawlConfirmationText">
+      <segment state="initial">
+        <source> Are you sure you want to start crawling <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{numberOfSeeds}}"/></pc> seeds? </source>
+        <target> Are you sure you want to start crawling <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{numberOfSeeds}}"/></pc> seeds? </target>
+      </segment>
+    </unit>
+    <unit id="runCrawlDialogRunSeedSelectCrawljobText">
+      <segment state="initial">
+        <source> Select a crawljob to harvest the seed: </source>
+        <target> Select a crawljob to harvest the seed: </target>
+      </segment>
+    </unit>
+    <unit id="runCrawlDialogRunSeedsSelectCrawljobText">
+      <segment state="initial">
+        <source> Select a crawljob to harvest the seeds: </source>
+        <target> Select a crawljob to harvest the seeds: </target>
+      </segment>
+    </unit>
+    <unit id="runCrawlDialogTitle">
+      <segment state="initial">
+        <source>Run crawl</source>
+        <target>Run crawl</target>
+      </segment>
+    </unit>
+    <unit id="scheduleCronExpressionDomLabel">
+      <segment state="initial">
+        <source> Day of month </source>
+        <target> Day of month </target>
+      </segment>
+    </unit>
+    <unit id="scheduleCronExpressionDowLabel">
+      <segment state="initial">
+        <source> Day of week </source>
+        <target> Day of week </target>
+      </segment>
+    </unit>
+    <unit id="scheduleCronExpressionHourLabel">
+      <segment state="initial">
+        <source> Hour </source>
+        <target> Hour </target>
+      </segment>
+    </unit>
+    <unit id="scheduleCronExpressionMinuteLabel">
+      <segment state="initial">
+        <source> Minute </source>
+        <target> Minute </target>
+      </segment>
+    </unit>
+    <unit id="scheduleCronExpressionMonthLabel">
+      <segment state="initial">
+        <source> Month </source>
+        <target> Month </target>
+      </segment>
+    </unit>
+    <unit id="scheduleDetailsCardTitle">
+      <segment state="initial">
+        <source>Schedule</source>
+        <target>Schedule</target>
+      </segment>
+    </unit>
+    <unit id="scheduleDetailsValidFromInputLabel">
+      <segment state="initial">
+        <source> Valid from </source>
+        <target> Valid from </target>
+      </segment>
+    </unit>
+    <unit id="scheduleDetailsValidFromToHeader">
+      <segment state="initial">
+        <source>Time limit</source>
+        <target>Time limit</target>
+      </segment>
+    </unit>
+    <unit id="scheduleDetailsValidToInputLabel">
+      <segment state="initial">
+        <source> Valid to </source>
+        <target> Valid to </target>
+      </segment>
+    </unit>
+    <unit id="scheduleDropdownLabel">
+      <segment state="initial">
+        <source> Schedule </source>
+        <target> Schedule </target>
+      </segment>
+    </unit>
+    <unit id="scheduleFormCronExpressionHeader">
+      <segment state="initial">
+        <source>CRON expression</source>
+        <target>CRON expression</target>
+      </segment>
+    </unit>
+    <unit id="scheduleFormCronExpressionRequiredError">
+      <segment state="initial">
+        <source> CRON expression required </source>
+        <target> CRON expression required </target>
+      </segment>
+    </unit>
+    <unit id="scheduleListShowCrawljobsWithScheduleActionButtonTooltip">
+      <segment state="initial">
+        <source>Show crawljobs with reference to the schedule</source>
+        <target>Show crawljobs with reference to the schedule</target>
+      </segment>
+    </unit>
+    <unit id="scopeScriptDropdownLabel">
+      <segment state="initial">
+        <source> Scope script </source>
+        <target> Scope script </target>
+      </segment>
+    </unit>
+    <unit id="seedDetailsCardTitle">
+      <segment state="initial">
+        <source>Seed</source>
+        <target>Seed</target>
+      </segment>
+    </unit>
+    <unit id="seedDetailsCrawlJobDropDownLabel">
+      <segment state="initial">
+        <source> Crawljob </source>
+        <target> Crawljob </target>
+      </segment>
+    </unit>
+    <unit id="seedDetailsFormCrawljobPlaceholder">
+      <segment state="initial">
+        <source>CrawlJob</source>
+        <target>CrawlJob</target>
+      </segment>
+    </unit>
+    <unit id="seedDetailsFormJobRefListLabel">
+      <segment state="initial">
+        <source> Crawljob </source>
+        <target> Crawljob </target>
+      </segment>
+    </unit>
+    <unit id="seedDisabledToggleSwitch">
+      <segment state="initial">
+        <source> Deactivated </source>
+        <target> Deactivated </target>
+      </segment>
+    </unit>
+    <unit id="seedListFilterSeedByEntityActionButtonTooltip">
+      <segment state="initial">
+        <source>Show seeds with the same entity</source>
+        <target>Show seeds with the same entity</target>
+      </segment>
+    </unit>
+    <unit id="seedListFilterSeedsByCrawljobActionButtonTooltip">
+      <segment state="initial">
+        <source>Show seeds with the same crawljob</source>
+        <target>Show seeds with the same crawljob</target>
+      </segment>
+    </unit>
+    <unit id="seedListShowCrawlExecutionsActionButtonTooltip">
+      <segment state="initial">
+        <source>Show crawlexecutions for the seed</source>
+        <target>Show crawlexecutions for the seed</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaGoToEntityWithExistingSeedButtonTooltip">
+      <segment state="initial">
+        <source>Go to entity with existing seed</source>
+        <target>Go to entity with existing seed</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaGoToUrlButtonTooltip">
+      <segment state="initial">
+        <source>Open URL in a new tab</source>
+        <target>Open URL in a new tab</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaMoveAllExistingSeedsToEntityButton">
+      <segment state="initial">
+        <source>Move all to this entity</source>
+        <target>Move all to this entity</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaMoveExistingSeedToEntityButtonTooltip">
+      <segment state="initial">
+        <source>Move seed to this entity</source>
+        <target>Move seed to this entity</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaPreviewUrlTooltip">
+      <segment state="initial">
+        <source>Go to page in new tab</source>
+        <target>Go to page in new tab</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaRemoveAlreadyExistingSeedsButton">
+      <segment state="initial">
+        <source>Remove all from list</source>
+        <target>Remove all from list</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaRemoveExistingSeedFromTheListButtonTooltip">
+      <segment state="initial">
+        <source>Remove URL from the list</source>
+        <target>Remove URL from the list</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaRemoveSeedFromListTooltip">
+      <segment state="initial">
+        <source>Remove url from list</source>
+        <target>Remove url from list</target>
+      </segment>
+    </unit>
+    <unit id="seedMetaUrlAlreadyExistOnEntityError">
+      <segment state="initial">
+        <source> URL with the same domain already exists for this entity </source>
+        <target> URL with the same domain already exists for this entity </target>
+      </segment>
+    </unit>
+    <unit id="seedMetaUrlAlreadyExistsError">
+      <segment state="initial">
+        <source> URL with the same domain already exists for another entity </source>
+        <target> URL with the same domain already exists for another entity </target>
+      </segment>
+    </unit>
+    <unit id="seedMetaUrlInputLabel">
+      <segment state="initial">
+        <source> URL </source>
+        <target> URL </target>
+      </segment>
+    </unit>
+    <unit id="seedMetaUrlRequiredError">
+      <segment state="initial">
+        <source> The field is required </source>
+        <target> The field is required </target>
+      </segment>
+    </unit>
+    <unit id="subCollectionNameInputLengthHint">
+      <segment state="initial">
+        <source> Minimum 2 characters </source>
+        <target> Minimum 2 characters </target>
+      </segment>
+    </unit>
+    <unit id="unpauseCrawlerDialogConfirmationText">
+      <segment state="initial">
+        <source> Are you sure you want to unpause the crawler? </source>
+        <target> Are you sure you want to unpause the crawler? </target>
+      </segment>
+    </unit>
+  </file>
+</xliff>

@@ -114,10 +114,23 @@
           },
           "defaultConfiguration": "development"
         },
+        "i18n": {
+          "sourceLocale": "en",
+          "locales": {
+            "no": {
+              "translation": "src/locales/messages.no.xlf"
+            }
+          }
+        },
         "extract-i18n": {
-          "builder": "@angular/build:extract-i18n",
+          "builder": "ng-extract-i18n-merge:ng-extract-i18n-merge",
           "options": {
-            "buildTarget": "veidemann-dashboard:build"
+            "buildTarget": "veidemann-dashboard:build",
+            "format": "xlf2",
+            "outputPath": "src/locales",
+            "targetFiles": [
+              "messages.no.xlf"
+            ]
           }
         },
         "test": {
