@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {ConfigOptions, ConfigPath} from '../../func';
 import {Kind} from '../../../../shared/models';
-import {AuthService} from '../../../../core/auth';
+import {AuthService} from '../../../../core';
 import {NavigationListComponent} from '../../../../shared/components';
 import {ShortcutInput} from 'ng-keyboard-shortcuts';
 import {Router, RouterLink, RouterLinkActive} from '@angular/router';
@@ -10,6 +10,7 @@ import {AbilityService} from '@casl/angular';
 import {AsyncPipe} from '@angular/common';
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
+import {MatLineModule} from '@angular/material/core';
 
 @Component({
   selector: 'app-config-navigation-list',
@@ -19,6 +20,7 @@ import {MatIcon} from '@angular/material/icon';
   imports: [
     AsyncPipe,
     MatIcon,
+    MatLineModule,
     MatListModule,
     RouterLink,
     RouterLinkActive,

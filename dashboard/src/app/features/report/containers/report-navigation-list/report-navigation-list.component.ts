@@ -5,8 +5,10 @@ import {Observable} from 'rxjs';
 import {AbilityService} from '@casl/angular';
 import {AsyncPipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
-import {MatListItem, MatNavList} from '@angular/material/list';
+import { MatListModule, MatNavList} from '@angular/material/list';
 import {RouterLink, RouterLinkActive} from '@angular/router';
+import {MatLineModule} from '@angular/material/core';
+
 
 @Component({
   selector: 'app-report-navigation-list',
@@ -15,10 +17,11 @@ import {RouterLink, RouterLinkActive} from '@angular/router';
   imports: [
     AsyncPipe,
     MatIcon,
-    MatListItem,
+    MatLineModule,
+    MatListModule,
     MatNavList,
     RouterLink,
-    RouterLinkActive
+    RouterLinkActive,
   ],
   standalone: true
 })

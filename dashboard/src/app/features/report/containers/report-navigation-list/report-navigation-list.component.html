@@ -4,28 +4,28 @@
       <a mat-list-item
         [routerLink]="['/report' ,'jobexecution']" [routerLinkActive]="['is-active']">
         <mat-icon matListItemIcon>hdr_strong</mat-icon>
-        <span i18n="@@reportNavigationLinkJobExecution">JobExecution</span>
+        <div matLine i18n="@@reportNavigationLinkJobExecution">JobExecution</div>
       </a>
     }
     @if (ability.can('read', 'crawlexecution')) {
       <a mat-list-item
         [routerLink]="['crawlexecution']" [routerLinkActive]="['is-active']">
         <mat-icon matListItemIcon>hdr_weak</mat-icon>
-        <span i18n="@@reportNavigationLinkCrawlExecution">CrawlExecution</span>
+        <div matLine i18n="@@reportNavigationLinkCrawlExecution">CrawlExecution</div>
       </a>
     }
     @if (ability.can('read', 'pagelog')) {
       <a mat-list-item
         [routerLink]="['pagelog']" [routerLinkActive]="['is-active']">
         <mat-icon matListItemIcon>art_track</mat-icon>
-        <span i18n="@@reportNavigationLinkPageLog">PageLog</span>
+        <div matLine i18n="@@reportNavigationLinkPageLog">PageLog</div>
       </a>
     }
     @if (ability.can('read', 'crawllog')) {
       <a mat-list-item
         [routerLink]="['crawllog']" [routerLinkActive]="['is-active']">
         <mat-icon matListItemIcon>event_note</mat-icon>
-        <span i18n="@@reportNavigationLinkCrawlLog">CrawlLog</span>
+        <div matLine i18n="@@reportNavigationLinkCrawlLog">CrawlLog</div>
       </a>
     }
   </mat-nav-list>
