@@ -5,14 +5,6 @@
 
 $dark-focused: rgba(black, 0.12);
 
-//@mixin highlight ($theme) {
-//
-//
-//  .is-active {
-//    background-color: $highlight;
-//  }
-//}
-
 @mixin highlight($theme) {
   $highlight: mat.get-theme-color($theme, surface-container-high);
   .is-active {
@@ -116,8 +108,9 @@ $dark-focused: rgba(black, 0.12);
 
   @mixin veidemann-theme() {
     html {
-      color-scheme: light dark;
+      color-scheme: light;
       @include mat.theme($veidemann-dashboard-theme);
+      @include mat.all-component-themes($veidemann-dashboard-theme);
       @include highlight($veidemann-dashboard-theme);
       @include nav-bar-link($veidemann-dashboard-theme);
       @include veidemann-nav-list-style($veidemann-dashboard-theme);
