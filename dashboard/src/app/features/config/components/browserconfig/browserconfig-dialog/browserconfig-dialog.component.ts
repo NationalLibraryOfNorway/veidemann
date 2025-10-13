@@ -11,6 +11,7 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MatInputModule} from '@angular/material/input';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -26,6 +27,7 @@ import {MatInputModule} from '@angular/material/input';
     ReactiveFormsModule,
     MatSelectModule,
     SelectorComponent,
+    LayoutGapDirective
   ],
   standalone: true
 })

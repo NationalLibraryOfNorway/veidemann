@@ -1,17 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { ActivatedRoute } from '@angular/router';
-import { combineLatest, merge, Observable } from 'rxjs';
-import { filter, map, mergeMap, switchMap, takeWhile } from 'rxjs/operators';
-import { ControllerApiService, SnackBarService } from '../../../../core';
-import { CrawlExecutionState, CrawlExecutionStatus } from '../../../../shared/models';
-import { AbortCrawlDialogComponent } from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
-import { DetailDirective } from '../../directives';
-import { CrawlExecutionService } from '../../services';
-import { CrawlExecutionShortcutsComponent } from '../../components/crawl-execution-shortcuts/crawl-execution-shortcuts.component';
-import { CrawlExecutionStatusComponent } from '../../components';
-import { CommonModule } from '@angular/common';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {MatDialog} from '@angular/material/dialog';
+import {ActivatedRoute} from '@angular/router';
+import {combineLatest, merge, Observable} from 'rxjs';
+import {filter, map, mergeMap, switchMap, takeWhile} from 'rxjs/operators';
+import {ControllerApiService, SnackBarService} from '../../../../core';
+import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models';
+import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
+import {DetailDirective} from '../../directives';
+import {CrawlExecutionService} from '../../services';
+import {
+  CrawlExecutionShortcutsComponent
+} from '../../components/crawl-execution-shortcuts/crawl-execution-shortcuts.component';
+import {CrawlExecutionStatusComponent} from '../../components';
+import {CommonModule} from '@angular/common';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
     selector: 'app-crawl-execution',
@@ -20,10 +22,10 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
     imports: [
-      FlexLayoutModule,
       CommonModule,
       CrawlExecutionStatusComponent,
       CrawlExecutionShortcutsComponent,
+      LayoutDirective,
     ],
 })
 export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutionStatus> implements OnInit {

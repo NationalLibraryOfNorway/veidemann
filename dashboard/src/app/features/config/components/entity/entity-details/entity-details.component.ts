@@ -7,12 +7,17 @@ import {MatIcon} from '@angular/material/icon';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-entity-details',
   templateUrl: './entity-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FlexDirective,
+    LayoutDirective,
+    MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
     MatIcon,

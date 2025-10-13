@@ -1,9 +1,9 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
-import { BrowserScriptType, ConfigObject } from '../../../../../shared/models';
-import { MatChipsModule } from '@angular/material/chips';
+import {BrowserScriptType, ConfigObject} from '../../../../../shared/models';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatLabel} from '@angular/material/form-field';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, FlexFillDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {FormsModule} from '@angular/forms';
 
 
@@ -15,8 +15,10 @@ import {FormsModule} from '@angular/forms';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     EditorComponent,
-    FlexLayoutModule,
+    FlexDirective,
+    FlexFillDirective,
     FormsModule,
+    LayoutDirective,
     MatChipsModule,
     MatLabel
   ]
@@ -53,7 +55,6 @@ export class BrowserscriptPreviewComponent implements OnInit {
     //   this.cdr.markForCheck();
     // });
   }
-
 
 
 }

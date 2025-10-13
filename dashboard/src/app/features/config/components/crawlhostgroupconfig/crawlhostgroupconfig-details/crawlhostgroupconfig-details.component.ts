@@ -19,6 +19,9 @@ import {MetaComponent} from '../../meta/meta.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-details',
@@ -26,13 +29,17 @@ import {MatInputModule} from '@angular/material/input';
   styleUrls: ['./crawlhostgroupconfig-details.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatIcon,
     DurationPickerComponent,
     MetaComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective
   ],
   standalone: true
 })

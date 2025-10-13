@@ -13,6 +13,9 @@ import {FilesizeInputComponent} from '../../filesize-input/filesize-input.compon
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatTooltip} from '@angular/material/tooltip';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-crawljobs-multi-dialog',
@@ -21,7 +24,11 @@ import {MatTooltip} from '@angular/material/tooltip';
   imports: [
     DurationPickerComponent,
     FilesizeInputComponent,
+    FlexDirective,
     LabelMultiComponent,
+    LayoutDirective,
+    LayoutGapDirective,
+    MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,

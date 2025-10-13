@@ -9,8 +9,9 @@ import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {ResourceComponent} from '../resource/resource.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {FlatTreeControl} from '@angular/cdk/tree';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 interface UriNode {
@@ -42,7 +43,8 @@ interface UriFlatNode {
     MatTableModule,
     MatCardModule,
     MatButtonModule,
-    FlexLayoutModule
+    LayoutDirective,
+    LayoutGapDirective,
   ]
 })
 export class PageLogStatusComponent implements OnChanges {

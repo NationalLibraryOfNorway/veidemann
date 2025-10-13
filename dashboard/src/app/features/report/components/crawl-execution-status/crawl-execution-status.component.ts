@@ -1,13 +1,14 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { FileSizePipe } from 'ngx-filesize';
-import { CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes } from '../../../../shared/models/report';
+import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
+import {MatCardModule} from '@angular/material/card';
+import {MatTableDataSource, MatTableModule} from '@angular/material/table';
+import {FileSizePipe} from 'ngx-filesize';
+import {CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
 import {RouterLink} from '@angular/router';
 import {JobNamePipe, SeedNamePipe} from '../../pipe';
 import {AsyncPipe, DatePipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
     selector: 'app-crawl-execution-status',
@@ -19,7 +20,8 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
   imports: [
     AsyncPipe,
     DatePipe,
-    FlexLayoutModule,
+    LayoutDirective,
+    LayoutGapDirective,
     JobNamePipe,
     MatCardModule,
     MatIcon,

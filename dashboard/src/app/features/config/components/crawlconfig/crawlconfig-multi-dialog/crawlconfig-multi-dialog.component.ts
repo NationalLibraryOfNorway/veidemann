@@ -12,12 +12,17 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInputModule} from '@angular/material/input';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-crawlconfig-multi-dialog',
   templateUrl: './crawlconfig-multi-dialog.component.html',
   styleUrls: ['./crawlconfig-multi-dialog.component.css'],
   imports: [
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     LabelMultiComponent,
     MatCheckbox,
     MatDialogModule,

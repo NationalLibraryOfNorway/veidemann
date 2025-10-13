@@ -8,17 +8,20 @@ import {ScheduleDetailsComponent} from '..';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutAlignDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatListSubheaderCssMatStyler} from '@angular/material/list';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-schedule-dialog',
   templateUrl: './schedule-dialog.component.html',
   styleUrls: ['./schedule-dialog.component.css'],
   imports: [
-    FlexLayoutModule,
+    LayoutAlignDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatDatepickerModule,
     MatDialogModule,

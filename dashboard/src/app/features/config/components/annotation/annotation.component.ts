@@ -10,7 +10,8 @@ import {
 import {
   AbstractControl,
   ControlValueAccessor,
-  NG_VALUE_ACCESSOR, ReactiveFormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
   UntypedFormBuilder,
   UntypedFormControl,
   Validators
@@ -28,8 +29,9 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatCardModule} from '@angular/material/card';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-annotation',
@@ -39,7 +41,9 @@ import {MatButtonModule} from '@angular/material/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,

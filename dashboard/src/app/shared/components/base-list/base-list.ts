@@ -2,7 +2,8 @@ import {DataSource, SelectionModel} from '@angular/cdk/collections';
 import {
   AfterViewInit,
   ChangeDetectorRef,
-  ContentChildren, Directive,
+  ContentChildren,
+  Directive,
   EventEmitter,
   Input,
   Optional,
@@ -18,7 +19,7 @@ import {first, map, shareReplay} from 'rxjs/operators';
 import {Kind, ListItem} from '../../../shared/models';
 import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../directives';
 import {AsyncPipe, NgTemplateOutlet} from '@angular/common';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatTooltipModule} from '@angular/material/tooltip';
@@ -30,7 +31,8 @@ import {PreviewComponent} from '../../../features/config/components/preview/prev
 
 export const BASE_LIST_IMPORTS = [
   AsyncPipe,
-  FlexLayoutModule,
+  LayoutDirective,
+  FlexDirective,
   KeyboardShortcutsModule,
   MatButtonModule,
   MatCheckboxModule,

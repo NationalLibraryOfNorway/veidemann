@@ -20,9 +20,8 @@ import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abo
 import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
 import {CommonModule} from '@angular/common';
 import {QueryCrawlExecutionStatusDirective} from '../../directives';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatMenuModule} from '@angular/material/menu';
-import {MatTooltip} from '@angular/material/tooltip';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 
 @Component({
@@ -41,7 +40,8 @@ import {MatTooltip} from '@angular/material/tooltip';
     CrawlExecutionStatusListComponent,
     CrawlExecutionStatusQueryComponent,
     FilterDirective,
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutDirective,
     MatIconModule,
     MatMenuModule,
     MatProgressBarModule,

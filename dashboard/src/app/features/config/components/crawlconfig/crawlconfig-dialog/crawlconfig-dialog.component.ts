@@ -2,7 +2,7 @@ import {Component, Inject, OnInit} from '@angular/core';
 import {CrawlConfigDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogContent, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {MetaComponent} from '../../meta/meta.component';
@@ -10,12 +10,16 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-crawlconfig-dialog',
   templateUrl: './crawlconfig-dialog.component.html',
   styleUrls: ['./crawlconfig-dialog.component.css'],
   imports: [
+    LayoutGapDirective,
+    MatButtonModule,
     MatCheckbox,
     MatDialogModule,
     MatFormFieldModule,

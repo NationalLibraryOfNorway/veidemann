@@ -58,7 +58,7 @@ import {
   PolitenessConfigNamePipe
 } from '../../pipe';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 
 @Component({
@@ -72,8 +72,9 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
     ConfigListComponent,
     ConfigQueryComponent,
     EntityViewComponent,
-    FlexLayoutModule,
+    FlexDirective,
     KeyboardShortcutsModule,
+    LayoutDirective,
     MatListModule,
     MatIcon,
     MatProgressBar,

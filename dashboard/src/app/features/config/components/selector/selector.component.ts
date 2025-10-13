@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
-import {UntypedFormBuilder, NG_VALUE_ACCESSOR, ReactiveFormsModule} from '@angular/forms';
+import {NG_VALUE_ACCESSOR, ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {Label} from '../../../../shared/models';
 import {LabelService} from '../../services/label.service';
 import {LabelComponent} from '../label/label.component';
@@ -12,7 +12,7 @@ import {MatCardModule} from '@angular/material/card';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
-import {MatInput, MatInputModule} from '@angular/material/input';
+import {MatInputModule} from '@angular/material/input';
 
 
 @Component({

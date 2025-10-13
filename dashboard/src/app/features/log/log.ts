@@ -10,16 +10,19 @@ import {AuthService, SnackBarService} from '../../core';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatSelectModule} from '@angular/material/select';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
   templateUrl: './log.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,

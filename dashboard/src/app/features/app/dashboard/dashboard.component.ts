@@ -3,12 +3,12 @@ import {Observable, Subject, throwError} from 'rxjs';
 import {catchError} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
 import {AbilityService} from "@casl/angular";
-import { ControllerApiService, ErrorService } from '../../../core';
-import { CrawlerStatus } from '../../../shared/models/controller/controller.model';
-import { CrawlerStatusDialogComponent } from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
+import {ControllerApiService, ErrorService} from '../../../core';
+import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
+import {CrawlerStatusDialogComponent} from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
 import {AsyncPipe} from '@angular/common';
 import {CrawlerStatusComponent} from '../crawlerstatus/crawlerstatus.component';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-dashboard',
@@ -16,8 +16,8 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
   styleUrls: ['./dashboard.component.css'],
   imports: [
     AsyncPipe,
-    FlexLayoutModule,
-    CrawlerStatusComponent
+    CrawlerStatusComponent,
+    LayoutDirective,
   ],
   standalone: true
 })

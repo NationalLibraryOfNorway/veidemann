@@ -10,6 +10,8 @@ import {ANY_DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-multi-dialog',
@@ -18,6 +20,8 @@ import {MatInputModule} from '@angular/material/input';
   imports: [
     DurationPickerComponent,
     LabelMultiComponent,
+    LayoutDirective,
+    MatButtonModule,
     MatFormFieldModule,
     MatDialogModule,
     MatInputModule,

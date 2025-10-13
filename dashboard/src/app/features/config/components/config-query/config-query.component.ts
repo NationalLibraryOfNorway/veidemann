@@ -18,9 +18,10 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
 import {MatIcon} from '@angular/material/icon';
 import {MatSelectModule} from '@angular/material/select';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 import {MatRadioModule} from '@angular/material/radio';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -29,9 +30,10 @@ import {MatRadioModule} from '@angular/material/radio';
   templateUrl: './config-query.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexLayoutModule,
     FormsModule,
     KeyboardShortcutsModule,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIcon,

@@ -13,9 +13,8 @@ import {CrawlLogListComponent} from '../../components';
 import {CrawlLogQueryComponent} from '../../components/crawl-log-query/crawl-log-query.component';
 import {QueryCrawlLogDirective} from '../../directives';
 import {CrawlLogQuery, CrawlLogService} from '../../services';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {ActionDirective, ShortcutDirective} from '../../../../shared/directives';
-import {MatTooltip} from '@angular/material/tooltip';
 import {MatMenuItem} from '@angular/material/menu';
 import {AsyncPipe} from '@angular/common';
 
@@ -29,7 +28,8 @@ import {AsyncPipe} from '@angular/common';
     ActionDirective,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutDirective,
     MatIconModule,
     MatMenuItem,
     MatProgressBarModule,

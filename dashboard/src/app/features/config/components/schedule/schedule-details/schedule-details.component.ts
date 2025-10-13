@@ -20,12 +20,11 @@ import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
 import {MatListSubheaderCssMatStyler} from '@angular/material/list';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutAlignDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
-import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
-import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -34,8 +33,11 @@ import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/
   styleUrls: ['./schedule-details.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexLayoutModule,
+    FlexDirective,
     JsonPipe,
+    LayoutAlignDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatDatepickerModule,
@@ -46,11 +48,6 @@ import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/
     MetaComponent,
     ReactiveFormsModule,
   ],
-  // providers: [
-  //   { provide: MAT_DATE_LOCALE, useValue: 'nb' },
-  //   { provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE] },
-  //   { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS }
-  // ],
   standalone: true
 })
 export class ScheduleDetailsComponent implements OnChanges {

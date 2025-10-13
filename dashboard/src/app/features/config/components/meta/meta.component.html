@@ -19,7 +19,8 @@
     <mat-label i18n="@@metaDescriptionInputLabel">
       Description
     </mat-label>
-    <textarea matInput formControlName="description"matTextareaAutosize></textarea>
+    <textarea matInput formControlName="description"
+              cdkTextareaAutosize></textarea>
   </mat-form-field>
 
   <app-labels [removable]="editable" formControlName="labelList"></app-labels>

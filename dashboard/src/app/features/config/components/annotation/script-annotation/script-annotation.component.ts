@@ -3,7 +3,7 @@ import {Annotation} from '../../../../../shared/models/config';
 import {Observable} from "rxjs";
 import {AbilityService} from "@casl/angular";
 import {AsyncPipe} from '@angular/common';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatChipsModule} from '@angular/material/chips';
 
 @Component({
@@ -12,13 +12,13 @@ import {MatChipsModule} from '@angular/material/chips';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
-    FlexLayoutModule,
-    MatChipsModule
+    MatChipsModule,
+    LayoutDirective,
   ],
   standalone: true
 })
 export class ScriptAnnotationComponent {
-readonly ability$: Observable<any>;
+  readonly ability$: Observable<any>;
   @Input()
   annotations: Annotation[];
 

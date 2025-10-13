@@ -10,14 +10,16 @@ import {SeedMetaComponent} from '../../seed-meta/seed-meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-entity-dialog',
   templateUrl: './seed-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,

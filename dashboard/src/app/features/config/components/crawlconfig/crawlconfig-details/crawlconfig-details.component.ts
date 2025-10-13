@@ -10,12 +10,17 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatIcon} from '@angular/material/icon';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawlconfig-details',
   templateUrl: './crawlconfig-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,

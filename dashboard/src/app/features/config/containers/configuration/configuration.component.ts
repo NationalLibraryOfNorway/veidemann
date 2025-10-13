@@ -43,7 +43,7 @@ import {RouterExtraService} from '../../services/router-extra.service';
 import {AsyncPipe, Location} from '@angular/common';
 import {ShortcutComponent} from '../../components/shortcut/shortcut.component';
 import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
 
 
 export interface ConfigOptions {
@@ -78,9 +78,10 @@ export interface ConfigOptions {
     CrawlHostGroupConfigDetailsComponent,
     CrawlJobDetailsComponent,
     EntityDetailsComponent,
-    FlexLayoutModule,
+    FlexDirective,
     JobExecutionStatusPipe,
     JobStatusComponent,
+    LayoutDirective,
     PolitenessConfigDetailsComponent,
     ScheduleDetailsComponent,
     SeedDetailsComponent,

@@ -1,12 +1,11 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
 
-import {CrawlLog} from '../../../../shared/models';
-import {ListDataSource} from '../../../../shared/models';
+import {CrawlLog, ListDataSource} from '../../../../shared/models';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {BASE_LIST} from '../../../../shared/directives';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
@@ -44,8 +43,9 @@ import {MatPaginatorModule} from '@angular/material/paginator';
     AsyncPipe,
     CrawlLogPreviewComponent,
     DatePipe,
-    FlexLayoutModule,
+    FlexDirective,
     KeyboardShortcutsModule,
+    LayoutDirective,
     MatButtonModule,
     MatIcon,
     MatMenuModule,

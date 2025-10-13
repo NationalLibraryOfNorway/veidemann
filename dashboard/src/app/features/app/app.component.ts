@@ -21,13 +21,13 @@ import {AsyncPipe} from '@angular/common';
 import {MatToolbar} from '@angular/material/toolbar';
 import {TimeComponent} from './time/time.component';
 import {MatMenuModule} from '@angular/material/menu';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTabsModule} from '@angular/material/tabs';
 import {DialogComponent} from './dialog/dialog.component';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatProgressSpinner} from '@angular/material/progress-spinner';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app',
@@ -37,8 +37,9 @@ import {MatProgressSpinner} from '@angular/material/progress-spinner';
   standalone: true,
   imports: [
     AsyncPipe,
-    FlexLayoutModule,
+    FlexDirective,
     KeyboardShortcutsModule,
+    LayoutDirective,
     MatButtonModule,
     MatIcon,
     MatMenuModule,

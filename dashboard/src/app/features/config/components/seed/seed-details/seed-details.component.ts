@@ -18,7 +18,6 @@ import {Parcel, ScriptAnnotationComponent, SeedMetaComponent} from '../..';
 import {configRefIdRequired} from '../../../../../shared/validation/configref';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -30,6 +29,8 @@ import {JobNamePipe} from '../../../../report/pipe';
 import {MatTableModule} from '@angular/material/table';
 import {MatTab, MatTabGroup} from '@angular/material/tabs';
 import {MatInput} from '@angular/material/input';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-seed-details',
@@ -37,8 +38,10 @@ import {MatInput} from '@angular/material/input';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
-    FlexLayoutModule,
+    FlexDirective,
     JobNamePipe,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,

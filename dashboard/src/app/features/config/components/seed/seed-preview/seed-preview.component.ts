@@ -6,7 +6,7 @@ import {AuthService, SnackBarService} from '../../../../../core';
 import {CrawlExecutionStatusPipe, ScriptAnnotationsPipe} from '../../../pipe';
 import {ToArrayPipe} from '../../../pipe/to-array.pipe';
 import {AsyncPipe, DatePipe} from '@angular/common';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
 import {JobNamePipe} from '../../../../report/pipe';
 import {MatTabsModule} from '@angular/material/tabs';
 import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
@@ -21,8 +21,8 @@ import {MatTooltip} from '@angular/material/tooltip';
     AsyncPipe,
     CrawlExecutionStatusPipe,
     DatePipe,
-    FlexLayoutModule,
     JobNamePipe,
+    LayoutDirective,
     MatTabsModule,
     MatTooltip,
     RouterLink,

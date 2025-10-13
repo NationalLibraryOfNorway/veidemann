@@ -4,7 +4,7 @@ import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pi
 import {MatLabel} from '@angular/material/form-field';
 import {MatChipsModule} from '@angular/material/chips';
 import {ShortcutListComponent} from '../../shortcut/shortcut-list/shortcut-list.component';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-browserconfig-preview',
@@ -12,7 +12,7 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
   styleUrls: ['./browserconfig-preview.component.css'],
   imports: [
     DurationFormatPipe,
-    FlexLayoutModule,
+    LayoutDirective,
     MatChipsModule,
     MatLabel,
     ShortcutListComponent

@@ -17,6 +17,8 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
 import {MatInputModule} from '@angular/material/input';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-collection-meta',
@@ -32,7 +34,10 @@ import {MatInputModule} from '@angular/material/input';
     MatInputModule,
     ReactiveFormsModule,
     LabelComponent,
-    AnnotationComponent
+    AnnotationComponent,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
   ],
   standalone: true
 })

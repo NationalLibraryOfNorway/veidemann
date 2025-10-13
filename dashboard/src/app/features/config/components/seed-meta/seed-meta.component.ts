@@ -26,18 +26,19 @@ import {Observable, of} from 'rxjs';
 import {first, map, tap} from 'rxjs/operators';
 import {ConfigObject, ConfigRef, Meta} from '../../../../shared/models';
 import {validUrlValidator} from './seed-urlvalidation';
-import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatFormFieldModule, MatHint} from '@angular/material/form-field';
 import {CdkTextareaAutosize} from '@angular/cdk/text-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInput} from '@angular/material/input';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatListModule} from '@angular/material/list';
 import {RouterLink} from '@angular/router';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 export interface Parcel {
   seed: ConfigObject | ConfigObject[];
@@ -56,7 +57,9 @@ export interface Parcel {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CdkTextareaAutosize,
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIcon,

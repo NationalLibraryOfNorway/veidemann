@@ -5,24 +5,24 @@
       Name
     </mat-label>
     <input matInput
-      #nameInput
-      formControlName="name"
-      required
-      data-testid="name">
+           #nameInput
+           formControlName="name"
+           required
+           data-testid="name">
     @if (nameInput.value.length < 2) {
       <mat-hint i18n="@@metaNameInputLengthHinht">Minimum 2 characters</mat-hint>
     }
     @if (name.hasError('required')) {
       <mat-error
         i18n="@@metaNameRequiredError">
-      Name is required.
-    </mat-error>
+        Name is required.
+      </mat-error>
     }
     @if (name.hasError('pattern')) {
       <mat-error
         i18n="@@collectionMetaNamePatternError">
-      Invalid name. (Valid characters are A-Å a-å 0-9 _)
-    </mat-error>
+        Invalid name. (Valid characters are A-Å a-å 0-9 _)
+      </mat-error>
     }
   </mat-form-field>
 
@@ -30,7 +30,9 @@
     <mat-label i18n="@@metaDescriptionInputLabel">
       Description
     </mat-label>
-    <textarea matInput formControlName="description" matTextareaAutosize></textarea>
+    <textarea matInput formControlName="description" cdkTextareaAutosize
+              #autosize="cdkTextareaAutosize">
+    </textarea>
   </mat-form-field>
 
   <app-labels [removable]="editable" formControlName="labelList"></app-labels>
@@ -41,18 +43,18 @@
       @if (created.value) {
         <mat-form-field fxFlex>
           <mat-label i18n="@@metaCreatedInputPlaceholder">
-          Created
-        </mat-label>
+            Created
+          </mat-label>
           <input matInput
-            formControlName="created">
+                 formControlName="created">
         </mat-form-field>
       }
 
       @if (createdBy.value) {
         <mat-form-field fxFlex>
           <mat-label i18n="@@metaCreatedByInputLabel">
-          Created by
-        </mat-label>
+            Created by
+          </mat-label>
           <input matInput formControlName="createdBy">
         </mat-form-field>
       }
@@ -62,8 +64,8 @@
       @if (lastModified.value) {
         <mat-form-field fxFlex>
           <mat-label i18n="@@metaLastModifiedInputLabel">
-          Last modified
-        </mat-label>
+            Last modified
+          </mat-label>
           <input matInput formControlName="lastModified">
         </mat-form-field>
       }
@@ -71,8 +73,8 @@
       @if (lastModifiedBy.value) {
         <mat-form-field fxFlex>
           <mat-label i18n="@@metaLastModifiedByInputLabel">
-          Last modified by
-        </mat-label>
+            Last modified by
+          </mat-label>
           <input matInput formControlName="lastModifiedBy">
         </mat-form-field>
       }

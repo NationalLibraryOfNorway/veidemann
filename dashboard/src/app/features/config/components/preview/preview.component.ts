@@ -18,6 +18,8 @@ import {
   PolitenessconfigPreviewComponent
 } from '../politenessconfig/politenessconfig-preview/politenessconfig-preview.component';
 import {ShortcutListComponent} from '../shortcut/shortcut-list/shortcut-list.component';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-preview',
@@ -36,7 +38,10 @@ import {ShortcutListComponent} from '../shortcut/shortcut-list/shortcut-list.com
     BrowserconfigPreviewComponent,
     BrowserscriptPreviewComponent,
     PolitenessconfigPreviewComponent,
-    ShortcutListComponent
+    ShortcutListComponent,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective
   ],
   standalone: true
 })

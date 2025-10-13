@@ -5,14 +5,14 @@ import {QueryComponent} from '../../../../shared/components';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-query',
   templateUrl: './crawl-log-query.component.html',
   styleUrls: ['./crawl-log-query.component.css'],
   imports: [
-    FlexLayoutModule,
+    LayoutDirective,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,

@@ -12,6 +12,10 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatTooltip} from '@angular/material/tooltip';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatCheckbox} from '@angular/material/checkbox';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {MatInputModule} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-politenessconfig-multi-dialog',
@@ -19,10 +23,15 @@ import {MatCheckbox} from '@angular/material/checkbox';
   styleUrls: ['./politenessconfig-multi-dialog.component.css'],
   imports: [
     DurationPickerComponent,
+    FlexDirective,
     LabelMultiComponent,
+    LayoutDirective,
+    LayoutGapDirective,
+    MatButtonModule,
     MatCheckbox,
     MatDialogModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatTooltip,
     ReactiveFormsModule,

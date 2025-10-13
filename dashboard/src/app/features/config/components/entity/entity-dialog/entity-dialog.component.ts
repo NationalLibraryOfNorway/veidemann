@@ -6,12 +6,14 @@ import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/
 import {ConfigDialogData} from '../../../func';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {MetaComponent} from '../../meta/meta.component';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-entity-dialog',
   templateUrl: './entity-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    MatButtonModule,
     MatDialogModule,
     MetaComponent,
     ReactiveFormsModule,

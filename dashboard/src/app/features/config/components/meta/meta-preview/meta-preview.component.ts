@@ -4,17 +4,22 @@ import {AuthService, SnackBarService} from '../../../../../core';
 import {DatePipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
 import {MatChipsModule} from '@angular/material/chips';
-import {MatLabel} from '@angular/material/form-field';
+import {MatLabel, MatSuffix} from '@angular/material/form-field';
+import {MatButtonModule} from '@angular/material/button';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-meta-preview',
   templateUrl: './meta-preview.component.html',
   styleUrls: ['./meta-preview.component.css'],
   imports: [
+    DatePipe,
+    MatButtonModule,
     MatChipsModule,
     MatIcon,
     MatLabel,
-    DatePipe
+    MatSuffix,
+    MatTooltipModule,
   ],
   standalone: true
 })

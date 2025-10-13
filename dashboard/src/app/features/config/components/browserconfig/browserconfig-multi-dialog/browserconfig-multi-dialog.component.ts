@@ -16,6 +16,8 @@ import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-browserconfig-multi-dialog',
@@ -35,6 +37,9 @@ import {MatInputModule} from '@angular/material/input';
     SelectorComponent,
     MatIconModule,
     MatInputModule,
+    LayoutDirective,
+    FlexDirective,
+    LayoutGapDirective
   ],
   standalone: true
 })

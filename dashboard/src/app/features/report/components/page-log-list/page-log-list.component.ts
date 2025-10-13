@@ -10,8 +10,8 @@ import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-pagelog-list',
@@ -31,8 +31,9 @@ import {MatButtonModule} from '@angular/material/button';
   standalone: true,
   imports: [
     CommonModule,
-    FlexLayoutModule,
+    FlexDirective,
     KeyboardShortcutsModule,
+    LayoutDirective,
     MatButtonModule,
     MatMenuModule,
     MatIconModule,

@@ -10,9 +10,10 @@ import {FileSizePipe} from 'ngx-filesize';
 import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
 import {RouterLink} from '@angular/router';
 import {AsyncPipe, DatePipe} from '@angular/common';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-job-execution-status',
@@ -23,9 +24,11 @@ import {MatIcon} from '@angular/material/icon';
   imports: [
     AsyncPipe,
     DatePipe,
-    FlexLayoutModule,
+    FlexDirective,
     JobexecutionTotalQueuePipe,
     JobNamePipe,
+    LayoutDirective,
+    LayoutGapDirective,
     MatCardModule,
     MatIcon,
     MatTableModule,

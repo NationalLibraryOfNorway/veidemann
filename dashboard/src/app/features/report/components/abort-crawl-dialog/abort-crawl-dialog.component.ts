@@ -5,6 +5,7 @@ import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/model
 import {Kind} from '../../../../shared/models/config';
 import {JobNamePipe, SeedNamePipe} from '../../pipe';
 import {AsyncPipe, DatePipe} from '@angular/common';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-abort-crawl-dialog',
@@ -14,6 +15,7 @@ import {AsyncPipe, DatePipe} from '@angular/common';
     AsyncPipe,
     DatePipe,
     JobNamePipe,
+    MatButtonModule,
     MatDialogModule,
     SeedNamePipe
   ],

@@ -1,10 +1,8 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
 
 
-
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
 import {JobExecutionFetchPipe, JobNamePipe} from '../../pipe';
 import {MatTableModule} from '@angular/material/table';
@@ -17,6 +15,7 @@ import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/component
 import {MatButtonModule} from '@angular/material/button';
 import {JobExecutionPreviewComponent} from '../job-execution-preview/job-execution-preview.component';
 import {MatPaginatorModule} from '@angular/material/paginator';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-job-execution-status-list',
@@ -43,11 +42,12 @@ import {MatPaginatorModule} from '@angular/material/paginator';
   imports: [
     AsyncPipe,
     DatePipe,
-    FlexLayoutModule,
+    FlexDirective,
     JobExecutionFetchPipe,
     JobExecutionPreviewComponent,
     JobNamePipe,
     KeyboardShortcutsModule,
+    LayoutDirective,
     MatButtonModule,
     MatIcon,
     MatMenuModule,

@@ -4,7 +4,7 @@ import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {QueryComponent} from '../../../../shared/components';
 import {PageLogQuery} from '../../services';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInputModule} from '@angular/material/input';
 
 @Component({
@@ -13,7 +13,7 @@ import {MatInputModule} from '@angular/material/input';
   styleUrls: ['./page-log-query.component.css'],
   standalone: true,
   imports: [
-    FlexLayoutModule,
+    LayoutDirective,
     MatFormFieldModule,
     MatInputModule,
     MatCheckboxModule,

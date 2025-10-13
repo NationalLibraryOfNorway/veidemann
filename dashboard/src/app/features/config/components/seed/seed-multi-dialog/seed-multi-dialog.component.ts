@@ -12,16 +12,19 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatIcon} from '@angular/material/icon';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-seed-multi-dialog',
   templateUrl: './seed-multi-dialog.component.html',
   styleUrls: ['./seed-multi-dialog.component.css'],
   imports: [
-    FlexLayoutModule,
+    FlexDirective,
     LabelMultiComponent,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatButtonToggleModule,
     MatDialogModule,

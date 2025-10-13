@@ -10,6 +10,10 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatCardModule} from '@angular/material/card';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-dialog',
@@ -17,6 +21,11 @@ import {MatInputModule} from '@angular/material/input';
   styleUrls: ['./crawlhostgroupconfig-dialog.component.css'],
   imports: [
     DurationPickerComponent,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
+    MatButtonModule,
+    MatCardModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIcon,

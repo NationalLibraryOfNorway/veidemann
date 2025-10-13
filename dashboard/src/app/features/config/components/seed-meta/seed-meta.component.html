@@ -8,8 +8,7 @@
       formControlName="name"
       cdkTextareaAutosize
       cdkAutosizeMinRows="1"
-      cdkAutosizeMaxRows="10"
-      #autosize="cdkTextareaAutosize">
+      cdkAutosizeMaxRows="10">
     </textarea>
     @if (isSingleUrl) {
       <button
@@ -46,7 +45,7 @@
     }
 
     @if (this.name.pending) {
-      <mat-progress-bar matHint mode="indeterminate"></mat-progress-bar>
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
   </mat-form-field>
 
@@ -113,7 +112,7 @@
     <mat-label i18n="@@metaDescriptionInputLabel">
       Description
     </mat-label>
-    <textarea matInput formControlName="description" matTextareaAutosize></textarea>
+    <textarea matInput formControlName="description" cdkTextareaAutosize></textarea>
   </mat-form-field>
 
   <app-labels [removable]="editable" formControlName="labelList"></app-labels>

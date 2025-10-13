@@ -7,7 +7,6 @@ import {MatCheckbox} from '@angular/material/checkbox';
 import {AsyncPipe, NgClass} from '@angular/common';
 import {MatPaginator} from '@angular/material/paginator';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 
 
 @Component({
@@ -23,7 +22,6 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
   ],
   imports: [
     AsyncPipe,
-    FlexLayoutModule,
     MatButtonModule,
     MatCheckbox,
     MatPaginator,

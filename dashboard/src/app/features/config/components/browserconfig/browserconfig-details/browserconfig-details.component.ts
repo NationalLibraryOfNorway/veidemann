@@ -3,7 +3,7 @@ import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGro
 import {BrowserConfig, ConfigObject, ConfigRef, Kind, Label, Meta} from '../../../../../shared/models';
 import {AuthService} from '../../../../../core';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
-import { UnitOfTime } from '../../../../../shared/models/duration/unit-time.model';
+import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -11,9 +11,10 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MetaComponent} from '../../meta/meta.component';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -21,12 +22,14 @@ import {MatButtonModule} from '@angular/material/button';
   templateUrl: './browserconfig-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexLayoutModule,
     [MatCardModule, MatIconModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
     DurationPickerComponent,
     SelectorComponent,
     MetaComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    LayoutDirective,
+    FlexDirective,
+    LayoutGapDirective
   ],
   standalone: true
 })

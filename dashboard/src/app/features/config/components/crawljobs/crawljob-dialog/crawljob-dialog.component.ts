@@ -11,12 +11,18 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
 import {MatSelectModule} from '@angular/material/select';
+import {FlexDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-crawljob-dialog',
   templateUrl: './crawljob-dialog.component.html',
   styleUrls: ['./crawljob-dialog.component.css'],
   imports: [
+    FlexDirective,
+    LayoutGapDirective,
+    MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,

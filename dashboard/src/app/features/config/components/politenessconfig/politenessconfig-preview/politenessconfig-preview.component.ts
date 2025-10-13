@@ -4,6 +4,7 @@ import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pi
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatLabel} from '@angular/material/form-field';
 import {FormsModule} from '@angular/forms';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-politenessconfig-preview',
@@ -12,6 +13,7 @@ import {FormsModule} from '@angular/forms';
   imports: [
     DurationFormatPipe,
     FormsModule,
+    LayoutDirective,
     MatCheckbox,
     MatLabel
   ],

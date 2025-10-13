@@ -6,12 +6,14 @@ import {ConfigDialogData} from '../../../func';
 import {EntityDetailsComponent} from '..';
 import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
 import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-entity-multi-dialog',
   templateUrl: './entity-multi-dialog.component.html',
   imports: [
     LabelMultiComponent,
+    MatButtonModule,
     MatDialogModule
   ],
   standalone: true

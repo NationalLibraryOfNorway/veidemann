@@ -24,10 +24,11 @@ import {MatIcon} from '@angular/material/icon';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,7 +37,9 @@ import {EditorComponent} from 'ngx-monaco-editor-v2';
   styleUrls: ['./browserscript-details.component.scss'],
   imports: [
     EditorComponent,
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,

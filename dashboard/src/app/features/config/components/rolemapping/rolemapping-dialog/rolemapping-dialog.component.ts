@@ -7,16 +7,18 @@ import {ConfigDialogData} from '../../../func';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
+import {FlexDirective} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-rolemapping-dialog',
   templateUrl: './rolemapping-dialog.component.html',
   styleUrls: ['./rolemapping-dialog.component.css'],
   imports: [
-    FlexLayoutModule,
+    FlexDirective,
+    LayoutGapDirective,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,

@@ -12,6 +12,9 @@ import {MatSelectModule} from '@angular/material/select';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
@@ -19,15 +22,19 @@ import {MatInputModule} from '@angular/material/input';
   templateUrl: './politenessconfig-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatCardModule,
-    MatIcon,
-    MatFormFieldModule,
-    ReactiveFormsModule,
-    MetaComponent,
-    MatSelectModule,
     DurationPickerComponent,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
+    MatButtonModule,
+    MatCardModule,
     MatCheckbox,
+    MatFormFieldModule,
+    MatIcon,
     MatInputModule,
+    MatSelectModule,
+    MetaComponent,
+    ReactiveFormsModule,
   ],
   standalone: true
 })
