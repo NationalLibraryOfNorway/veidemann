@@ -8,6 +8,7 @@ on:
       - 'dashboard/*'
     paths:
       - 'dashboard/**'
+  workflow_dispatch:
 
 jobs:
   build:
