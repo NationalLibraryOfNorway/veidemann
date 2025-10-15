@@ -1,0 +1,186 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "veidemann-dashboard": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "baseHref": "/veidemann/",
+            "outputPath": {
+              "base": "dist/app",
+              "browser": "veidemann"
+            },
+            "index": "src/index.html",
+            "tsConfig": "tsconfig.app.json",
+            "polyfills": [
+              "@angular/localize/init"
+            ],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public",
+                "output": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor",
+                "output": "public/monaco-editor/"
+              }
+            ],
+            "styles": [
+              "src/styles.scss"
+            ],
+            "scripts": [],
+            "allowedCommonJsDependencies": [
+              "google-protobuf/google/protobuf/timestamp_pb.js",
+              "google-protobuf/google/protobuf/empty_pb.js",
+              "ip-address"
+            ],
+            "browser": "src/main.ts",
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
+              ]
+            }
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "3mb",
+                  "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ]
+            },
+            "development": {
+              "extractLicenses": false,
+              "sourceMap": true,
+              "optimization": false,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": [
+                "google-protobuf",
+                "google-protobuf/google/protobuf/any_pb.js",
+                "google-protobuf/google/protobuf/timestamp_pb.js",
+                "google-protobuf/google/protobuf/empty_pb.js",
+                "grpc-web"
+              ]
+            }
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "veidemann-dashboard:build:production"
+            },
+            "development": {
+              "ssl": true,
+              "proxyConfig": "proxy.conf.json",
+              "buildTarget": "veidemann-dashboard:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "i18n": {
+          "sourceLocale": "en",
+          "locales": {
+            "no": {
+              "translation": "src/locales/messages.no.xlf"
+            }
+          }
+        },
+        "extract-i18n": {
+          "builder": "ng-extract-i18n-merge:ng-extract-i18n-merge",
+          "options": {
+            "buildTarget": "veidemann-dashboard:build",
+            "format": "xlf2",
+            "outputPath": "src/locales",
+            "targetFiles": [
+              "messages.no.xlf"
+            ]
+          }
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "sourceMap": false,
+            "karmaConfig": "karma.conf.js",
+            "polyfills": [
+              "@angular/localize/init"
+            ],
+            "tsConfig": "tsconfig.spec.json",
+            "scripts": [],
+            "styles": [
+              "src/styles.scss"
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
+              ]
+            },
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public",
+                "output": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor",
+                "output": "public/monaco-editor/"
+              }
+            ]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": false,
+    "schematicCollections": [
+      "angular-eslint"
+    ]
+  }
+}

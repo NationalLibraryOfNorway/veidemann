@@ -1,0 +1,12 @@
+{
+  "/veidemann/api": {
+    "target": {
+      "host": "veidemann.test",
+      "protocol": "https:",
+      "port": 443
+    },
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  }
+}

@@ -1,0 +1,35 @@
+<form [formGroup]="form" fxFlex>
+  <div class="duration" fxLayout="row" fxLayoutGap="24px">
+    @if (showDays) {
+
+      <mat-form-field>
+        <mat-label i18n="@@durationPickerDaysLabel">Days</mat-label>
+        <input type="number" matInput formControlName="days" min="0">
+      </mat-form-field>
+    }
+    @if (showHours) {
+      <mat-form-field>
+        <mat-label i18n="@@durationPickerHoursLabel">Hours</mat-label>
+        <input type="number" matInput formControlName="hours" min="0">
+      </mat-form-field>
+    }
+    @if (showMinutes) {
+      <mat-form-field>
+        <mat-label i18n="@@durationPickerMinutesLabel">Minutes</mat-label>
+        <input type="number" matInput formControlName="minutes" min="0">
+      </mat-form-field>
+    }
+    @if (showSeconds) {
+      <mat-form-field>
+        <mat-label i18n="@@durationPickerSecondsLabel">Seconds</mat-label>
+        <input type="number" matInput formControlName="seconds" min="0">
+      </mat-form-field>
+    }
+    @if (showMilliseconds) {
+      <mat-form-field>
+        <mat-label i18n="@@durationPickerMillisecondsLabel">Milliseconds</mat-label>
+        <input type="number" matInput formControlName="milliseconds" min="0">
+      </mat-form-field>
+    }
+  </div>
+</form>

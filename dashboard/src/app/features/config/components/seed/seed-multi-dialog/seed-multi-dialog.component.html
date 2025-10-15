@@ -1,0 +1,121 @@
+<form [formGroup]="form">
+  <div fxLayout="row">
+    <h2 mat-dialog-title>Seed - Mass update</h2>
+    <span fxFlex></span>
+    <div (click)="disabled.disabled ? disabled.enable(): null">
+      @if (!allSelected) {
+        <mat-slide-toggle
+          class="disabled-toggle"
+          mat-dialog-title
+          formControlName="disabled"
+          i18n="@@seedDisabledToggleSwitch"
+          i18n-matTooltip="@@seedDisabledToggleSwitchTooltipUpdateSelected"
+                        [matTooltip]="disabled.disabled ?
+                            'Setting is not equal for the selected configurations. '
+                             +'Click here and set desired value to override all, '
+                             + 'or leave untouched to keep the configurations original value.'
+                            : null">
+        Deactivated
+      </mat-slide-toggle>
+      }
+      @if (allSelected) {
+        <mat-slide-toggle
+          class="disabled-toggle"
+          formControlName="disabled"
+          i18n="@@seedDisabledToggleSwitch"
+          i18n-matTooltip="@@seedDisabledToggleSwitchTooltipUpdateAll"
+                        [matTooltip]="disabled.disabled ?
+                        'Field is disabled. Click here and set desired value to use for all seeds in database,'
+                        + 'or leave untouched to keep the configurations original value'
+                        : null">
+        Deactivated
+      </mat-slide-toggle>
+      }
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <div fxLayout="row wrap" fxLayoutGap="24px">
+      <div fxFlex fxLayout="column" fxLayoutGap="16px">
+        <app-label-multi [configObject]="configObject"
+          [allSelected]="allSelected"
+          (update)="onUpdateLabels($event)">
+        </app-label-multi>
+
+        <div fxLayout="column" fxLayoutGap="16px">
+          @if (!allSelected) {
+            <h5>Common crawljob for the selected configs:</h5>
+          }
+          @if (allSelected) {
+            <h5>Crawljobs:</h5>
+          }
+          <div fxLayout="row" fxLayoutGap="16px">
+            <mat-form-field fxFlex>
+              <mat-label i18n="@@seedDetailsFormJobRefListLabel">
+                Crawljob
+              </mat-label>
+              <mat-select  multiple formControlName="commonJobRefListId">
+                @for (crawlJob of crawlJobs; track crawlJob) {
+                  <mat-option
+                  [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-button-toggle-group [value]="shouldAddCrawlJob"
+              (valueChange)="onToggleShouldAddCrawlJob($event)"
+              name="shouldAddCrawlJob">
+              <mat-button-toggle [value]="true" matTooltip="Add crawljobs to the selected configs">
+                <mat-icon>add</mat-icon>
+              </mat-button-toggle>
+              <mat-button-toggle [value]="false" matTooltip="Remove crawljobs from the selected configs">
+                <mat-icon>remove</mat-icon>
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+          @if (shouldAddCrawlJob !== undefined) {
+            <div>
+              @if (shouldAddCrawlJob!==undefined) {
+                <mat-form-field>
+                  <mat-label i18n="@@seedDetailsCrawlJobDropDownLabel">
+                Crawljob
+              </mat-label>
+                  <mat-select  multiple formControlName="updateJobRefListId">
+                    @for (crawlJob of crawlJobs; track crawlJob) {
+                      <mat-option [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+                    }
+                  </mat-select>
+                  @if (shouldAddCrawlJob) {
+                    <mat-hint>Select crawljobs to add</mat-hint>
+                  }
+                  @if (!shouldAddCrawlJob) {
+                    <mat-hint>Select crawljobs to remove</mat-hint>
+                  }
+                </mat-form-field>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+</form>
+@if (canEdit) {
+  <mat-dialog-actions>
+    @if (canUpdate) {
+      <button mat-raised-button color="accent"
+        [disabled]="!canUpdate"
+        [mat-dialog-close]="onDialogClose()"
+        i18n="@@commonButtonSave">UPDATE
+  </button>
+    }
+    <button mat-button
+      [disabled]="!canRevert"
+      (click)="onRevert()"
+      i18n="@@commonButtonRevert">REVERT
+  </button>
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
+  </button>
+  </mat-dialog-actions>
+}

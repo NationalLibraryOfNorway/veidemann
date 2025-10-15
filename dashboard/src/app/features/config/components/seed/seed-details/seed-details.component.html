@@ -1,0 +1,130 @@
+<form [formGroup]="form">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>link</mat-icon>
+      <mat-card-title>
+        <span i18n="@@seedDetailsCardTitle">Seed</span>
+      </mat-card-title>
+      @if (!configObject.id) {
+        <mat-card-subtitle>
+          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        </mat-card-subtitle>
+      }
+      <span fxFlex></span>
+      <div (click)="disabled.disabled ? disabled.enable(): null">
+        <mat-slide-toggle class="disabled-toggle"
+          color="warn"
+          formControlName="disabled"
+          i18n="@@seedDisabledToggleSwitch"
+          i18n-matTooltip="@@seedDisabledToggleSwitchTooltip"
+                          [matTooltip]="disabled.disabled ?
+                            'Disabled state for all of the selected configs are not equal.'
+                             +'Click here and set desired state to override all, '
+                             + 'or leave untouched to keep the configurations original value.'
+                            : null">
+          Deactivated
+        </mat-slide-toggle>
+      </div>
+    </mat-card-header>
+    <mat-card-content fxLayout="column">
+      <div fxLayout="row wrap" fxLayoutGap="24px">
+        <div fxFlex fxLayout="column">
+          <app-seed-meta formControlName="meta"
+            [entityRef]="entityRef.value"
+          (move)="move.emit($event)"></app-seed-meta>
+          @if (configObject.id) {
+            <mat-form-field>
+              <mat-label i18n="@@metaIdInputLabel">
+              Id
+            </mat-label>
+              <input matInput
+                formControlName="id"
+                readonly>
+            </mat-form-field>
+          }
+
+          <mat-form-field formGroupName="entityRef">
+            <mat-label i18n="@@metaEntityIdInputLabel">
+              Entity Id
+            </mat-label>
+            <input matInput formControlName="id"
+              [readonly]="entityIdReadonly">
+            <button mat-icon-button matSuffix
+              matTooltip="Move seed to another entity"
+              i18n-matTooltip="seedDetailsEditEntityIdButtonTooltip"
+              (click)="onEditEntityId()">
+              <mat-icon>swap_horiz</mat-icon>
+            </button>
+            <mat-error>
+              Reference to entity is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div fxFlex fxLayout="column">
+          <mat-form-field>
+            <mat-label i18n="@@crawlJobDropdownLabel">
+              Crawljob
+            </mat-label>
+            <mat-select multiple formControlName="jobRefListId">
+              @for (crawlJob of crawlJobs; track crawlJob) {
+                <mat-option
+                [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          @if (this.configObject.seed.jobRefList) {
+            <div fxLayout="row">
+              <mat-tab-group>
+                @for ( job of configObject.seed.jobRefList; track  job) {
+                  @if (job.id | getScriptAnnotations: configObject.id | async; as scriptAnnotation) {
+                    @if (scriptAnnotation.length > 0) {
+                      <mat-tab label="{{job.id | getJobNamePipe | async}}">
+                        <div fxLayout="column" style="margin-top: 16px; overflow: hidden">
+                          <app-script-annotation
+                            [annotations]=" scriptAnnotation">
+                          </app-script-annotation>
+                        </div>
+                      </mat-tab>
+                    }
+                  }
+                }
+              </mat-tab-group>
+            </div>
+          }
+        </div>
+      </div>
+    </mat-card-content>
+    @if (canEdit) {
+      <mat-card-actions>
+        @if (showSave) {
+          <button mat-raised-button
+            [color]="form.valid ? 'accent' : 'warn'"
+            [disabled]="!canSave"
+            (click)="onSave()"
+            [matTooltip]="!form.valid ? 'Form not valid!.' : ''"
+            i18n="@@commonButtonSave">SAVE
+      </button>
+        }
+        @if (!showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canUpdate"
+            (click)="onUpdate()"
+            i18n="@@commonButtonSave">UPDATE
+      </button>
+        }
+        <button mat-button
+          [disabled]="!canRevert"
+          (click)="onRevert()"
+          i18n="@@commonButtonRevert">REVERT
+      </button>
+        @if (!showSave && canDelete) {
+          <button mat-button
+            (click)="onDelete()"
+            i18n="@@commonButtonDelete">DELETE
+      </button>
+        }
+      </mat-card-actions>
+    }
+  </mat-card>
+</form>

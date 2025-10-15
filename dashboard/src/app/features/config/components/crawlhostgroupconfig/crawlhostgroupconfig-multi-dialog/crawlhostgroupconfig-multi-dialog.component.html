@@ -1,0 +1,93 @@
+<form [formGroup]="form">
+  <h2 mat-dialog-title>CrawlHostGroupConfig - Mass update</h2>
+  <mat-dialog-content>
+    <app-label-multi [configObject]="configObject"
+      [allSelected]="allSelected"
+    (update)="onUpdateLabels($event)"></app-label-multi>
+    <mat-label i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadLabel">
+      Minimum time between page load
+    </mat-label>
+    <app-duration-picker formControlName="minTimeBetweenPageLoadMs"
+      [unit]="UnitOfTime.MILLISECOND"
+      [durationGranularity]="'m:s:ms'">
+    </app-duration-picker>
+    @if (!minTimeBetweenPageloadMs.valid) {
+      <mat-error
+        i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadValidationError">
+      Must be a number.
+    </mat-error>
+    }
+
+    <mat-label i18n="@@crawlhostgroupconfigFormMaxTimeBetweenPageloadLabel">
+      Maximum time between page load
+    </mat-label>
+    <app-duration-picker formControlName="maxTimeBetweenPageLoadMs"
+      [unit]="UnitOfTime.MILLISECOND"
+      [durationGranularity]="'m:s:ms'">
+    </app-duration-picker>
+    @if (!maxTimeBetweenPageloadMs.valid) {
+      <mat-error
+        i18n="@@crawlhostgroupconfigFormMaxTimeBetweenValidationError">
+      Must be a number.
+    </mat-error>
+    }
+
+    <div fxLayout="column">
+      <mat-form-field>
+        <mat-label i18n="@@crawlhostgroupconfigFormDelayFactorLabel">
+          Delay factor
+        </mat-label>
+        <input matInput formControlName="delayFactor">
+        @if (!delayFactor.valid) {
+          <mat-error
+            i18n="@@crawlhostgroupconfigFormMaxTimeBetweenValidationError">
+          Must be a number.
+        </mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label i18n="@@crawlhostgroupconfigFormMaxRetriesLabel">
+          Maximum retries
+        </mat-label>
+        <input matInput formControlName="maxRetries">
+        @if (!maxRetries.valid) {
+          <mat-error
+            i18n="@@crawlhostgroupconfigFormMaxRetriesValidationError">
+          Must be a number.
+        </mat-error>
+        }
+      </mat-form-field>
+
+      <mat-label i18n="crawlhostgroupconfigFormRetryDelayLabel">Retry delay</mat-label>
+      <app-duration-picker formControlName="retryDelaySeconds"
+        [unit]="UnitOfTime.SECOND"
+        [durationGranularity]="'m:s'">
+      </app-duration-picker>
+      @if (!retryDelaySeconds.valid) {
+        <mat-error
+          i18n="@@crawlhostgroupconfigFormRetryDelayValidationError">
+        Must be a number.
+      </mat-error>
+      }
+    </div>
+  </mat-dialog-content>
+</form>
+@if (canEdit) {
+  <mat-dialog-actions>
+    <button mat-raised-button color="accent"
+      [disabled]="!canUpdate"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">UPDATE
+  </button>
+    <button mat-button
+      (click)="onRevert()"
+      [disabled]="!canRevert"
+      i18n="@@commonButtonRevert">REVERT
+  </button>
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
+  </button>
+  </mat-dialog-actions>
+}

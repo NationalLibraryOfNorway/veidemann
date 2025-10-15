@@ -1,0 +1,27 @@
+<form [formGroup]="form" fxLayout="column">
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
+      JobExecution ID
+    </mat-label>
+    <input matInput size="37" formControlName="jobExecutionId">
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
+      Execution ID
+    </mat-label>
+    <input matInput size="37" formControlName="executionId">
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
+      URI
+    </mat-label>
+    <input matInput formControlName="uri">
+  </mat-form-field>
+
+  <mat-checkbox labelPosition="after" formControlName="watch"
+                i18n-placeholder="@@crawlExecutionReportFilterHasErrorLabel">
+    Watch
+  </mat-checkbox>
+</form>

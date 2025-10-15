@@ -1,0 +1,96 @@
+<form [formGroup]="form">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>person</mat-icon>
+      <mat-card-title>
+        @if (configObject) {
+          <span i18n="@@roleMappingDetailsCardTitle">Rolemapping</span>
+        }
+      </mat-card-title>
+      <mat-card-subtitle>
+        @if (!configObject.id) {
+          <span
+          i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        }
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div fxLayout="row wrap" fxLayoutGap="24px">
+        <mat-form-field>
+          <mat-label i18n-placeholder="@@roleMappingDetailsTypeDropdownLabel">
+            Type
+          </mat-label>
+          <mat-select [(value)]="selectedType">
+            <mat-option value="email" i18n="@@roleMappingDetailsTypeOptionEmail">Email</mat-option>
+            <mat-option value="group" i18n="@@roleMappingDetailsTypeOptionGroup">Group</mat-option>
+          </mat-select>
+        </mat-form-field>
+        @if (selectedType === 'email') {
+          <mat-form-field fxFlex>
+            <mat-label i18n="@@roleMappingDetailsEmailInputLabel">
+            Email
+          </mat-label>
+            <input matInput formControlName="email">
+          </mat-form-field>
+        }
+        @if (selectedType === 'group') {
+          <mat-form-field fxFlex>
+            <mat-label i18n="@@roleMappingDetailsGroupInputLabel">
+            Group
+          </mat-label>
+            <input matInput formControlName="group">
+          </mat-form-field>
+        }
+        <mat-form-field fxFlex>
+          <mat-label i18n="@@rolemappingDetailsRoleDropdownLabel">
+            Role
+          </mat-label>
+          <mat-select formControlName="roleList" multiple>
+            @for (role of roles; track role) {
+              <mat-option [value]="role">{{Role[role]}}</mat-option>
+            }
+          </mat-select>
+          @if (! roleList.valid) {
+            <mat-error i18n="@@roleMappingDetailsRoleRequiredError">
+            A user must be assigned at least one role.
+          </mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions>
+      @if (showSave) {
+        <button mat-raised-button color="accent"
+          [disabled]="!canSave"
+          (click)="onSave()"
+          i18n="@@commonButtonSave">
+        SAVE
+      </button>
+      }
+      @if (!showSave) {
+        <button mat-raised-button color="accent"
+          [disabled]="!canUpdate"
+          (click)="onUpdate()"
+          i18n="@@commonButtonSave">
+        UPDATE
+      </button>
+      }
+      <button mat-button
+        (click)="onRevert()"
+        [disabled]="!canRevert"
+        i18n="@@commonButtonRevert">
+        REVERT
+      </button>
+      <span fxFlex></span>
+      @if (!showSave) {
+        <button mat-button
+          (click)="onDelete()"
+          i18n="@@commonButtonDelete">
+        DELETE
+      </button>
+      }
+    </mat-card-actions>
+  </mat-card>
+</form>
+

@@ -1,0 +1,90 @@
+<form [formGroup]="form">
+  <h2 mat-dialog-title>PolitenessConfig - Mass update</h2>
+
+  <mat-dialog-content fxLayout="row" fxLayoutGap="16px">
+    <div fxFlex fxLayout="column" fxLayoutGap="16px">
+      <app-label-multi [configObject]="configObject"
+        [allSelected]="allSelected"
+      (update)="onUpdateLabels($event)"></app-label-multi>
+    </div>
+
+    <div fxFlex fxLayout="column">
+      <div (click)="onEnableRobotsPolicy()">
+        <mat-form-field>
+          <mat-label i18n="@@politenessconfigFormRobotPolicyDropdownLabel">
+            Robot policy
+          </mat-label>
+          <mat-select formControlName="robotsPolicy"
+            i18n-matTooltip='@@politenessconfigFormRobotPolicyDisabledExplanation'
+                      [matTooltip]="robotsPolicy.disabled ?
+                        'Setting is not the same for all selected configurations.'
+                        + 'Click here and set the desired value to override all,'
+                        + 'or leave untouched to retain the original configuration value'
+                        : null">
+            @for (policy of robotsPolicies; track policy) {
+              <mat-option [value]="policy">{{RobotsPolicy[policy]}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+
+      @if (robotsPolicy.value === 'CUSTOM_ROBOTS') {
+        <div class="customRobotTxtInput">
+          <mat-form-field>
+            <mat-label i18n="@@politenessconfigFormCustomRobotsPolicyInputPlaceholder">
+            robots.txt
+          </mat-label>
+            <textarea matInput
+              formControlName="customRobots">
+            </textarea>
+          </mat-form-field>
+        </div>
+      }
+
+      <mat-label i18n="@@politenessconfigFormMinRobotsValidDurationLabel">Minimum robots validity</mat-label>
+      <app-duration-picker formControlName="minimumRobotsValidityDurationS"
+        [unit]="UnitOfTime.SECOND"
+        [durationGranularity]="'d:h:m:s'">
+      </app-duration-picker>
+      @if (!minRobotsValidDurationSec.valid) {
+        <mat-error
+          i18n="@@politenessconfigFormMinRobotsValidDurationValidationError">
+        Must be a number.
+      </mat-error>
+      }
+
+      <div (click)="useHostname.disabled ? useHostname.enable() : null">
+        <mat-checkbox formControlName="useHostname"
+          labelPosition="after"
+          i18n="@@politenesslconfigFormUseHostnameLabel"
+          i18n-matTooltip="@@politenessconfigFormDisabledUseHostnameExplanation"
+          color="accent"
+                      [matTooltip]="useHostname.disabled ?
+                        'Setting is not equal for all selected configurations.'
+                         +'Click here and set desired state to override all, '
+                         + 'or leave untouched to keep the configurations original value.' : null">
+          Use hostname
+        </mat-checkbox>
+      </div>
+    </div>
+  </mat-dialog-content>
+</form>
+@if (canEdit) {
+  <mat-dialog-actions>
+    <button mat-raised-button color="accent"
+      [disabled]="!canUpdate"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">UPDATE
+  </button>
+    <button mat-button
+      (click)="onRevert()"
+      [disabled]="!canRevert"
+      i18n="@@commonButtonRevert">REVERT
+  </button>
+    <button mat-button
+      mat-dialog-close
+      i18n="@@commonButtonCancel">CANCEL
+  </button>
+  </mat-dialog-actions>
+}

@@ -1,0 +1,28 @@
+<h1 mat-dialog-title i18n="@@pauseCrawlerDialogTitle">Confirm action</h1>
+@if (shouldPause) {
+  <p mat-dialog-content
+    i18n="@@pauseCrawlerDialogConfirmationText"
+    >
+  Are you sure you want to pause the crawler?
+</p>
+}
+@if (!shouldPause) {
+  <p mat-dialog-content
+    i18n="@@unpauseCrawlerDialogConfirmationText"
+    >
+  Are you sure you want to unpause the crawler?
+</p>
+}
+
+<div mat-dialog-actions>
+  <button mat-button
+    color="warn"
+    i18n="@@commonButtonOk"
+    [mat-dialog-close]="true">OK
+  </button>
+  <button mat-button
+    i18n="@@commonButtonCancel"
+    [mat-dialog-close]="false">CANCEL
+  </button>
+</div>
+

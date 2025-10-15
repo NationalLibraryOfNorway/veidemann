@@ -1,0 +1,21 @@
+@if (ability$ | async; as ability) {
+  <mat-nav-list>
+    <div mat-subheader>Actions</div>
+    @if (ability.can('read', 'jobexecution')) {
+      <a mat-list-item
+        [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]"
+        i18n="@@reportListActionButtonGoToJobExecution">
+    <mat-icon matListItemIcon>hdr_strong</mat-icon>
+    Go to job execution
+  </a>
+    }
+    @if (ability.can('read', 'crawlexecution')) {
+      <a mat-list-item
+        [routerLink]="['/report', 'crawlexecution', pageLog.executionId]"
+        i18n="@@reportListActionButtonGoToCrawlExecution">
+    <mat-icon matListItemIcon>hdr_weak</mat-icon>
+    Go to crawl execution
+  </a>
+    }
+  </mat-nav-list>
+}

@@ -1,0 +1,58 @@
+<h1 mat-dialog-title i18n="@@runCrawlDialogTitle">Run crawl</h1>
+<div mat-dialog-content>
+  @if (kind === Kind.CRAWLJOB) {
+    <span i18n="@@runCrawlDialogRunConfirmationText" data-testid="run_crawljob_dialog_text">
+      Are you sure you want to start the crawljob:
+      <strong>{{configObject.meta.name}}</strong>?
+    </span>
+  }
+  @if (kind === Kind.SEED) {
+    @if (numberOfSeeds === 1) {
+      <div>
+        <span i18n="@@runCrawlDialogRunSeedCrawlConfirmationText" data-testid="run_seed_dialog_text">
+        Are you sure you want to start crawling:
+        <strong>{{configObject.meta.name}}</strong>?
+      </span>
+        <p i18n="@@runCrawlDialogRunSeedSelectCrawljobText">
+        Select a crawljob to harvest the seed:
+      </p>
+      </div>
+    }
+    @if (numberOfSeeds > 1) {
+      <div>
+        <span i18n="@@runCrawlDialogRunSeedsCrawlConfirmationText" data-testid="run_multiple_seeds_dialog_text">
+        Are you sure you want to start crawling <strong>{{numberOfSeeds}}</strong> seeds?
+      </span>
+        <p i18n="@@runCrawlDialogRunSeedsSelectCrawljobText">
+        Select a crawljob to harvest the seeds:
+      </p>
+      </div>
+    }
+    <mat-form-field>
+      <mat-select placeholder="CrawlJob" i18n-placeholder="@@seedDetailsFormCrawljobPlaceholder"
+        data-testid="run_crawl_dialog_crawljob_select"
+        [(ngModel)]="jobRefId">
+        @for (crawlJob of crawlJobs; track crawlJob) {
+          <mat-option
+          [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+</div>
+
+<div mat-dialog-actions>
+  <button mat-button
+    i18n="@@commonButtonCancel"
+    mat-dialog-close>CANCEL
+  </button>
+  @if (kind === Kind.CRAWLJOB || kind === Kind.SEED && jobRefId) {
+    <button
+      mat-raised-button
+      color="primary"
+      i18n="@@commonButtonRun"
+      data-testid="runCrawlButton"
+      (click)="onRunCrawl()">RUN
+  </button>
+  }
+</div>

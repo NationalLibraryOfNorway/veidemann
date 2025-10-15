@@ -1,0 +1,54 @@
+@if (crawlerStatus) {
+  <div fxLayout="row" fxLayoutGap="16px">
+    @if (ability$ | async; as ability) {
+      <mat-card appearance="outlined">
+        <h2>Crawler status</h2>
+        <mat-card-content>
+          @if (crawlerStatus.runStatus === RunStatus.RUNNING) {
+            <div fxLayout="column">
+              <h1 class="crawlerRunning">RUNNING</h1>
+              @if (ability.can('update', 'crawlerStatus')) {
+                <button mat-raised-button
+                  matTooltip="Pause crawler"
+                  i18n-matTooltip="@@crawlerStatusPauseCrawlerButtonTooltip"
+                  (click)="onPauseCrawler(true)">
+                  PAUSE
+                  <mat-icon>pause</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          @if (crawlerStatus.runStatus === RunStatus.PAUSE_REQUESTED) {
+            <div fxLayout="column">
+              <h1 class="crawlerPausing" i18n="@@crawlerStatusPauseRequestedTitle">
+          IS PAUSING
+        </h1>
+            </div>
+          }
+          @if (crawlerStatus.runStatus === RunStatus.PAUSED) {
+            <div fxLayout="column">
+              <h1 class="crawlerPaused">PAUSED</h1>
+              @if (ability.can('update', 'crawlerStatus')) {
+                <button mat-raised-button
+                  matTooltip="Unpause crawler"
+                  i18n-matTooltip="@@crawlerStatusUnpauseCrawlerButtonTooltip"
+                  (click)="onPauseCrawler(false)">
+                  UNPAUSE
+                  <mat-icon>play_arrow</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <h2>Total queue size</h2>
+        <h1>{{ crawlerStatus.queueSize }}</h1>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <h2>Busy crawlhost groups</h2>
+        <h1>{{ crawlerStatus.busyCrawlHostGroupCount }}</h1>
+      </mat-card>
+    }
+  </div>
+}

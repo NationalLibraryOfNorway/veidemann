@@ -1,0 +1,234 @@
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {MatDialog} from '@angular/material/dialog';
+import {PageEvent} from '@angular/material/paginator';
+import {SortDirection} from '@angular/material/sort';
+import {ActivatedRoute, Router, RouterLink} from '@angular/router';
+import {AbilityService} from '@casl/angular';
+import {combineLatest, Observable, of, Subject} from 'rxjs';
+import {debounceTime, distinctUntilChanged, map, share, shareReplay, startWith} from 'rxjs/operators';
+import {MatIconModule} from '@angular/material/icon';
+
+import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {distinctUntilArrayChanged, isValidDate, Sort} from '../../../../shared/func';
+import {ConfigObject, JobExecutionState, jobExecutionStates, JobExecutionStatus, Kind} from '../../../../shared/models';
+import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
+import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
+import {AsyncPipe} from '@angular/common';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {JobExecutionStatusListComponent, JobExecutionStatusQueryComponent} from '../../components';
+import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {QueryJobExecutionStatusDirective} from '../../directives';
+import {MatMenuItem} from '@angular/material/menu';
+import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
+
+
+@Component({
+  selector: 'app-job-execution',
+  templateUrl: './job-execution.component.html',
+  styleUrls: ['./job-execution.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [
+    ActionDirective,
+    AsyncPipe,
+    FilterDirective,
+    FlexDirective,
+    JobExecutionStatusQueryComponent,
+    JobExecutionStatusListComponent,
+    LayoutDirective,
+    MatIconModule,
+    MatMenuItem,
+    MatProgressBarModule,
+    QueryJobExecutionStatusDirective,
+    RouterLink,
+    ShortcutDirective,
+  ]
+})
+export class JobExecutionComponent implements OnInit {
+  readonly jobExecutionStates = jobExecutionStates;
+  readonly JobExecutionState = JobExecutionState;
+  readonly crawlJobOptions: ConfigObject[];
+  readonly Kind = Kind;
+  readonly ability$: Observable<any>;
+
+  private reload$: Observable<void>;
+  private reload: Subject<void>;
+
+  pageSize$: Observable<number>;
+  pageIndex$: Observable<number>;
+  sortDirection$: Observable<SortDirection>;
+  sortActive$: Observable<string>;
+  query$: Observable<JobExecutionStatusQuery>;
+
+  get loading$(): Observable<boolean> {
+    return this.jobExecutionService.loading$;
+  }
+
+  constructor(private route: ActivatedRoute,
+              private router: Router,
+              private jobExecutionService: JobExecutionService,
+              private errorService: ErrorService,
+              private dialog: MatDialog,
+              private controllerApiService: ControllerApiService,
+              private snackBarService: SnackBarService,
+              private abilityService: AbilityService<any>) {
+
+    this.crawlJobOptions = this.route.snapshot.data['options'].crawlJobs;
+    this.reload = new Subject<void>();
+    this.reload$ = this.reload.asObservable();
+    this.ability$ = this.abilityService.ability$;
+  }
+
+  ngOnInit(): void {
+    const routeParam$ = this.route.queryParamMap.pipe(
+      debounceTime(0), // synchronize
+      map(queryParamMap => ({
+        startTimeTo: queryParamMap.get('start_time_to'), // list request
+        startTimeFrom: queryParamMap.get('start_time_from'), // list request
+        jobId: queryParamMap.get('job_id'), // query template
+        stateList: queryParamMap.getAll('state'), // list request
+        sort: queryParamMap.get('sort'), // list request
+        pageSize: queryParamMap.get('s'), // list request
+        pageIndex: queryParamMap.get('p'), // list request
+        watch: queryParamMap.get('watch'), // list request
+      })),
+      share(),
+    );
+
+    const watch$ = routeParam$.pipe(
+      map(({watch}) => watch),
+      distinctUntilChanged());
+
+    const jobId$ = routeParam$.pipe(
+      map(({jobId}) => jobId),
+      distinctUntilChanged());
+
+    const stateList$: Observable<JobExecutionState[]> = routeParam$.pipe(
+      map(({stateList}) => stateList),
+      distinctUntilArrayChanged);
+
+    const startTimeTo$: Observable<string> = routeParam$.pipe(
+      map(({startTimeTo}) => startTimeTo),
+      map(date => date && isValidDate(new Date(date)) ? date : null),
+      distinctUntilChanged(),
+    );
+
+    const startTimeFrom$: Observable<string> = routeParam$.pipe(
+      map(({startTimeFrom}) => startTimeFrom),
+      map(date => date && isValidDate(new Date(date)) ? date : null),
+      distinctUntilChanged(),
+    );
+
+    const sort$: Observable<Sort> = routeParam$.pipe(
+      map(({sort}) => {
+        if (!sort) {
+          return null;
+        }
+        const parts = sort.split(':');
+        const s = {active: parts[0], direction: parts[1]};
+        return s.direction ? s : null;
+      }),
+      distinctUntilChanged<Sort>((p, q) => p && q ? p.direction === q.direction && p.active === q.active : p === q),
+      shareReplay(1),
+    );
+
+    const pageSize$ = routeParam$.pipe(
+      map(({pageSize}) => parseInt(pageSize, 10) || 25),
+      distinctUntilChanged(),
+      shareReplay(1)
+    );
+
+    const pageIndex$ = routeParam$.pipe(
+      map(({pageIndex}) => parseInt(pageIndex, 10) || 0),
+      distinctUntilChanged(),
+      shareReplay(1),
+    );
+
+    const sortDirection$ = sort$.pipe(
+      map(sort => (sort ? sort.direction : '') as SortDirection));
+
+    const sortActive$ = sort$.pipe(
+      map(sort => sort ? sort.active : ''));
+
+    const init$ = of(null);
+
+    const query$: Observable<JobExecutionStatusQuery> = combineLatest([
+      jobId$, stateList$, sortActive$, sortDirection$, pageIndex$, pageSize$, startTimeFrom$,
+      startTimeTo$, watch$, init$, this.reload$.pipe(startWith(null as string))
+
+    ]).pipe(
+      debounceTime<any>(0),
+      map(([jobId, stateList, active, direction, pageIndex, pageSize, startTimeFrom,
+             startTimeTo, watch]) => ({
+        jobId,
+        stateList,
+        active,
+        direction,
+        pageIndex,
+        pageSize,
+        startTimeFrom,
+        startTimeTo,
+        watch,
+      })),
+      share()
+    );
+
+    this.pageSize$ = pageSize$;
+    this.pageIndex$ = pageIndex$;
+    this.sortActive$ = sortActive$;
+    this.sortDirection$ = sortDirection$;
+    this.query$ = query$;
+  }
+
+  onQueryChange(query: Partial<JobExecutionStatusQuery>) {
+    const queryParams = {
+      state: query.stateList && query.stateList.length ? query.stateList : null,
+      job_id: query.jobId || null,
+      start_time_to: query.startTimeTo || null,
+      start_time_from: query.startTimeFrom || null,
+      watch: query.watch || null,
+    };
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+    })
+      .catch(error => this.errorService.dispatch(error));
+  }
+
+  onSort(sort: Sort) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParamsHandling: 'merge',
+      queryParams: {sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
+    }).catch(error => this.errorService.dispatch(error));
+  }
+
+  onPage(page: PageEvent) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParamsHandling: 'merge',
+      queryParams: {p: page.pageIndex, s: page.pageSize}
+    }).catch(error => this.errorService.dispatch(error));
+  }
+
+  onAbortJobExecution(jobExecutionStatus: JobExecutionStatus) {
+    const dialogRef = this.dialog.open(AbortCrawlDialogComponent, {
+      disableClose: true,
+      autoFocus: true,
+      data: {jobExecutionStatus}
+    });
+    dialogRef.afterClosed()
+      .subscribe(executionId => {
+        if (executionId) {
+          this.controllerApiService.abortJobExecution(executionId).subscribe(jobExecStatus => {
+            if (jobExecStatus.state === JobExecutionState.ABORTED_MANUAL) {
+              this.snackBarService.openSnackBar('Job aborted');
+              this.reload.next(null);
+            }
+          });
+        }
+      });
+  }
+
+}

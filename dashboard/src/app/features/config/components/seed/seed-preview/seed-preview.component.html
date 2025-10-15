@@ -1,0 +1,52 @@
+@if (configObject) {
+  <div fxLayout="column">
+    <table>
+      <thead>
+        <tr>
+          <th [colSpan]="crawlStatusTableHeaders.length">Latest crawls of seed</th>
+        </tr>
+        <tr>
+          @for (column of crawlStatusTableHeaders; track column) {
+            <th style="text-align: left">
+              {{column}}
+            </th>
+          }
+        </tr>
+      </thead>
+      @for (execution of ( configObject | getCrawlExecutionStatus: 3 | toArray| async) ; track execution) {
+        <tr>
+          @if (execution) {
+            <td>
+              <a class="formattedUri" [routerLink]="['/report/crawlexecution/'+execution?.id]"
+                matTooltip="Show crawlexecution report">
+              {{execution.jobId | getJobNamePipe | async}}</a>
+            </td>
+            <td>{{CrawlExecutionState[execution.state]}}</td>
+            <td>{{execution.startTime | date:'medium'}}</td>
+            <td>{{execution.endTime | date: 'medium'}}</td>
+          }
+        </tr>
+      }
+    </table>
+    @if (this.configObject.seed.jobRefList) {
+      <mat-tab-group>
+        @for ( job of configObject.seed.jobRefList; track  job) {
+          @if (job.id | getScriptAnnotations: configObject.id | async; as scriptAnnotation) {
+            @if (scriptAnnotation.length > 0) {
+              <mat-tab label="{{job.id | getJobNamePipe | async}}">
+                <div fxLayout="column" style="margin-top: 16px; overflow: hidden">
+                  <app-script-annotation
+                    [annotations]=" scriptAnnotation">
+                  </app-script-annotation>
+                </div>
+              </mat-tab>
+            }
+          }
+        }
+      </mat-tab-group>
+    }
+  </div>
+}
+
+
+

@@ -1,0 +1,23 @@
+<div fxLayout="column" fxFlex>
+  <p><strong>Script type:</strong> {{BrowserScriptType[configObject.browserScript.browserScriptType]}}</p>
+
+  <ngx-monaco-editor class="editor"
+    fxFlex
+    fxLayout="row"
+    fxFlexFill
+    [(ngModel)]="configObject.browserScript.script"
+    [options]="editorOptions"
+    (onInit)="initEditor($event)">
+  </ngx-monaco-editor>
+
+  @if (configObject.browserScript.urlRegexpList.length) {
+    <mat-label>URL regexp</mat-label>
+    <mat-chip-listbox>
+      @for (regex of configObject.browserScript.urlRegexpList; track regex) {
+        <mat-chip-option color="warn">
+          {{regex}}
+        </mat-chip-option>
+      }
+    </mat-chip-listbox>
+  }
+</div>

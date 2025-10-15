@@ -1,0 +1,201 @@
+<form [formGroup]="form" fxFlex>
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>group_work</mat-icon>
+      <mat-card-title>
+        @if (configObject) {
+          <span i18n="@@crawlhostgroupconfigDetailsCardTitle">Crawlhostgroupconfig</span>
+        }
+      </mat-card-title>
+      <mat-card-subtitle>
+        @if (!configObject.id) {
+          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        }
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content fxLayout="row wrap" fxLayoutGap="24px">
+      <div fxFlex fxLayout="column">
+        <app-meta formControlName="meta"></app-meta>
+        @if (!showSave) {
+          <mat-form-field>
+            <mat-label i18n="@@configIdLabel">
+            Id
+          </mat-label>
+            <input matInput
+              formControlName="id"
+              readonly>
+          </mat-form-field>
+        }
+      </div>
+      <div fxFlex fxLayout="column" fxLayoutGap="16px">
+        <mat-label i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadLabel">
+          Minimum time between page load
+        </mat-label>
+        <app-duration-picker formControlName="minTimeBetweenPageLoadMs"
+          [unit]="UnitOfTime.MILLISECOND"
+          [durationGranularity]="'m:s:ms'">
+        </app-duration-picker>
+        @if (!minTimeBetweenPageloadMs.valid) {
+          <mat-error
+            i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadValidationError">
+          Must be a number.
+        </mat-error>
+        }
+
+        <mat-label i18n="@@crawlhostgroupconfigFormMaxTimeBetweenPageloadLabel">
+          Maximum time between page load
+        </mat-label>
+        <app-duration-picker formControlName="maxTimeBetweenPageLoadMs"
+          [unit]="UnitOfTime.MILLISECOND"
+          [durationGranularity]="'m:s:ms'">
+        </app-duration-picker>
+        @if (!maxTimeBetweenPageloadMs.valid) {
+          <mat-error
+            i18n="@@crawlhostgroupconfigFormMaxTimeBetweenValidationError">
+          Must be a number.
+        </mat-error>
+        }
+
+        <mat-form-field data-testid="delayFactor">
+          <mat-label i18n="@@crawlhostgroupconfigFormDelayFactorLabel">
+            Delay factor
+          </mat-label>
+          <input matInput
+            formControlName="delayFactor">
+          @if (!delayFactor.valid) {
+            <mat-error
+              i18n="@@crawlhostgroupconfigFormMaxTimeBetweenValidationError">
+            Must be a number.
+          </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label i18n="@@crawlhostgroupconfigFormMaxRetriesLabel">
+            Maximum retries
+          </mat-label>
+          <input matInput
+            formControlName="maxRetries">
+          @if (!maxRetries.valid) {
+            <mat-error
+              i18n="@@crawlhostgroupconfigFormMaxRetriesValidationError">
+            Must be a number.
+          </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-label i18n="crawlhostgroupconfigFormRetryDelayLabel">
+          Retry delay
+        </mat-label>
+        <app-duration-picker formControlName="retryDelaySeconds"
+          [unit]="UnitOfTime.SECOND"
+          [durationGranularity]="'m:s'">
+        </app-duration-picker>
+        @if (!retryDelaySeconds.valid) {
+          <mat-error
+            i18n="@@crawlhostgroupconfigFormRetryDelayValidationError">
+          Must be a number.
+        </mat-error>
+        }
+
+        <fieldset class="mat-elevation-z1" formArrayName="ipRangeList">
+          <legend mat-card-subtitle i18n="@@ipRangeListHeader">IP range</legend>
+          @for (ipRange of ipRangeControlArray.controls; track ipRange; let i = $index) {
+            <div fxLayout="column"
+              data-testid="ipRangeList">
+              <div [formGroupName]="i"
+                fxLayout="row"
+                fxLayoutGap="16px">
+                <mat-form-field fxFlex data-testid="ipRangeFrom">
+                  <mat-label i18n="@@crawlhostgroupconfigFormIpFromLabel">
+                  IP address
+                </mat-label>
+                  <input matInput formControlName="ipFrom">
+                  <mat-hint i18n="@@crawlhostgroupconfigFormIpFromHint">From</mat-hint>
+                  @if (!ipFromControl(i).valid) {
+                    <mat-error
+                      i18n="@@crawlhostgroupconfigFormValidIpFromRequiredError">
+                  A valid IP address is required.
+                </mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field fxFlex data-testid="ipRangeTo">
+                  <mat-label i18n="@@crawlhostgroupconfigFormIpToLabel">
+                  IP address
+                </mat-label>
+                  <input matInput formControlName="ipTo">
+                  <mat-hint i18n="@@crawlhostgroupconfigFormIpToHint">To</mat-hint>
+                  @if (!ipToControl(i).valid) {
+                    <mat-error
+                      i18n="@@crawlhostgroupconfigFormValidIpToRequiredError">
+                  A valid IP address is required.
+                </mat-error>
+                  }
+                </mat-form-field>
+                @if (canEdit) {
+                  <button mat-button
+                    (click)="onRemoveIpRange(i)"
+                    data-testid="removeIpRangeButton">
+                    <mat-icon>remove_circle</mat-icon>
+                    <span>REMOVE</span>
+                  </button>
+                }
+              </div>
+              @if (!isValidIpRange(ipFromControl(i).value, ipToControl(i).value)) {
+                <mat-error
+                  i18n="@@crawlhostgroupconfigFormValidIpRangeError"
+                  data-testid="ipRangeInvalidError">
+              The IP range is not valid
+            </mat-error>
+              }
+            </div>
+          }
+
+          @if (canEdit) {
+            <button mat-stroked-button (click)="onAddIpRange()" class="ip-range-add-button"
+              data-testid="addIpRangeButton">
+              <mat-icon>add_circle</mat-icon>
+              <span i18n="@@crawlhostgroupconfigFormAddIpRangeButton">ADD IP RANGE</span>
+            </button>
+          }
+        </fieldset>
+      </div>
+    </mat-card-content>
+
+    @if (canEdit) {
+      <mat-card-actions>
+        @if (showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canSave"
+            (click)="onSave()"
+            i18n="@@commonButtonSave">
+        SAVE
+      </button>
+        }
+        @if (!showSave) {
+          <button mat-raised-button color="accent"
+            [disabled]="!canUpdate"
+            (click)="onUpdate()"
+            i18n="@@commonButtonSave">
+        UPDATE
+      </button>
+        }
+        <button mat-button
+          (click)="onRevert()"
+          [disabled]="!canRevert"
+          i18n="@@commonButtonRevert">
+        REVERT
+      </button>
+        <span fxFlex></span>
+        @if (!showSave && canDelete) {
+          <button mat-button
+            (click)="onDelete()"
+            i18n="@@commonButtonDelete">
+        DELETE
+      </button>
+        }
+      </mat-card-actions>
+    }
+  </mat-card>
+</form>
+

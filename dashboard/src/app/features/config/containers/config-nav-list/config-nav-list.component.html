@@ -1,0 +1,85 @@
+@if (ability$ | async; as ability) {
+  <mat-nav-list>
+    @if (ability.can('read', Kind[Kind.CRAWLENTITY])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.CRAWLENTITY]]"
+        [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>business</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuEntity">Entity</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.SEED])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.SEED]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>link</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuSeed">Seed</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.CRAWLJOB]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>work</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuCrawljobs">Crawljobs</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.CRAWLSCHEDULECONFIG]]"
+        [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>schedule</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuSchedule">Schedule</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.CRAWLCONFIG]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuCrawlconfig">CrawlConfig</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.COLLECTION])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.COLLECTION]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>collections_bookmark</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuCollection">Collection</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.BROWSERCONFIG])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.BROWSERCONFIG]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>web</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuBrowserconfig">BrowserConfig</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.BROWSERSCRIPT])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.BROWSERSCRIPT]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>web_asset</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuBrowserscript">BrowserScript</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.POLITENESSCONFIG])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.POLITENESSCONFIG]]" [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>sentiment_very_satisfied</mat-icon>
+        <div matLine i18n="@@@@configurationSidebarMenuPolitenessconfig">Politeness</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.CRAWLHOSTGROUPCONFIG])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.CRAWLHOSTGROUPCONFIG]]"
+        [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>group_work</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuCrawlhostgroupconfig">CrawlHostGroup</div>
+      </a>
+    }
+    @if (ability.can('read', Kind[Kind.ROLEMAPPING])) {
+      <a mat-list-item
+        [routerLink]="['/config', ConfigPath[Kind.ROLEMAPPING]]"
+        [routerLinkActive]="['is-active']">
+        <mat-icon matListItemIcon>people</mat-icon>
+        <div matLine i18n="@@configurationSidebarMenuRolemapping">Users</div>
+      </a>
+    }
+  </mat-nav-list>
+}

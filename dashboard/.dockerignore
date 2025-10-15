@@ -1,0 +1,7 @@
+**
+!*.json
+!package-lock.json
+!src/
+!nginx/
+!LICENSE
+!.browserslistrc

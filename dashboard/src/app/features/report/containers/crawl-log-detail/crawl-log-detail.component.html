@@ -1,0 +1,10 @@
+@if (item$ | async; as crawlLog) {
+  <div class="container">
+    <div fxLayout="row">
+      <app-crawl-log-shortcuts [crawlLog]="crawlLog"></app-crawl-log-shortcuts>
+      <div class="content-padding" fxFlex>
+        <app-crawl-log-status [crawlLog]="crawlLog"></app-crawl-log-status>
+      </div>
+    </div>
+  </div>
+}

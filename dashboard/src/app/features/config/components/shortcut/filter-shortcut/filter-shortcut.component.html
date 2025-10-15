@@ -1,0 +1,171 @@
+@if (ability$ | async; as ability) {
+  <mat-nav-list>
+    @switch (configObject.kind) {
+      @case (Kind.CRAWLENTITY) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.SEED])) {
+          <a mat-list-item
+            [routerLink]="['../../seed']"
+            [queryParams]="{entity_id: configObject.id}">
+            <mat-icon matListItemIcon>link</mat-icon>
+            Go to seed list
+          </a>
+        }
+      }
+      @case (Kind.SEED) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', 'reports')) {
+          <a mat-list-item
+            [routerLink]="['/report/crawlexecution/']"
+            [queryParams]="{seed_id: configObject.id}"
+            matTooltip="Show crawlexecutions for the seed"
+            i18n-matTooltip="@@seedListShowCrawlExecutionsActionButtonTooltip">
+            <mat-icon matListItemIcon>hdr_weak</mat-icon>
+            Show crawlexecutions
+          </a>
+        }
+        @if (configObject.seed.jobRefList.length) {
+          @if (ability.can('read', Kind[Kind.SEED])) {
+            <a mat-list-item
+              [routerLink]="['../../seed']"
+              [queryParams]="getJobRefListQueryParams(configObject)"
+              matTooltip="Show seeds with the same crawljob"
+              i18n-matTooltip="@@seedListFilterSeedsByCrawljobActionButtonTooltip">
+              <mat-icon matListItemIcon>work</mat-icon>
+              Filter by crawljob
+            </a>
+          }
+        }
+        @if (ability.can('read', Kind[Kind.SEED])) {
+          <a mat-list-item
+            [routerLink]="['../../seed']"
+            [queryParams]="{entity_id: configObject.seed.entityRef.id}"
+            matTooltip="Show seeds with the same entity"
+            i18n-matTooltip="@@seedListFilterSeedByEntityActionButtonTooltip">
+            <mat-icon matListItemIcon>business</mat-icon>
+            Filter by entity
+          </a>
+        }
+      }
+      @case (Kind.CRAWLJOB) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', 'reports')) {
+          <a mat-list-item
+            [routerLink]="['/report/jobexecution']"
+            [queryParams]="{job_id: configObject.id}"
+            matTooltip="Go to jobexecutions for the crawljob"
+            i18n-matTooltip="@@crawljobListJobExecutionShortcutActionButtonTooltip">
+            <mat-icon matListItemIcon>hdr_strong</mat-icon>
+            Show jobexecutions
+          </a>
+        }
+        @if (ability.can('read', Kind[Kind.SEED])) {
+          <a mat-list-item
+            [routerLink]="['../../seed']"
+            [queryParams]="{crawl_job_id: configObject.id}"
+            matTooltip="Show seeds with reference to the crawljob"
+            i18n-matTooltip="@@crawljobListFilterSeedsWithCrawljobActionButtonTooltip">
+            <mat-icon matListItemIcon>link</mat-icon>
+            Show seeds
+          </a>
+        }
+      }
+      @case (Kind.CRAWLSCHEDULECONFIG) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+          <a mat-list-item
+            [routerLink]="['../../crawljobs']"
+            [queryParams]="{schedule_id: configObject.id}"
+            matTooltip="Show crawljobs with reference to the schedule"
+            i18n-matTooltip="@@scheduleListShowCrawljobsWithScheduleActionButtonTooltip">
+            <mat-icon matListItemIcon>work</mat-icon>
+            Show crawljobs
+          </a>
+        }
+      }
+      @case (Kind.CRAWLCONFIG) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+          <a mat-list-item
+            [routerLink]="['../../crawljobs']"
+            [queryParams]="{crawl_config_id: configObject.id}"
+            matTooltip="Show crawljobs with reference to the crawlconfig"
+            i18n-matTooltip="@@crawlConfigListFilterCrawljobsWithCrawlconfigActionButtonTooltip">
+            <mat-icon matListItemIcon>work</mat-icon>
+            Show crawljobs
+          </a>
+        }
+      }
+      @case (Kind.COLLECTION) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-list-item
+            [routerLink]="['../../crawlconfig']"
+            [queryParams]="{collection_id: configObject.id}"
+            matTooltip="Show crawlconfigs with reference to the collection"
+            i18n-matTooltip="@@collectionListShowCrawlConfigsWitchCollectionRefActionButtonTooltip">
+            <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+            Show crawlconfigs
+          </a>
+        }
+      }
+      @case (Kind.BROWSERCONFIG) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-list-item
+            [routerLink]="['../../crawlconfig']"
+            [queryParams]="{browser_config_id: configObject.id}"
+            matTooltip="Show crawlconfigs with reference to the browserconfig"
+            i18n-matTooltip="@@browserConfigListFilterCrawljobsWithBrowserconfigActionButtonTooltip">
+            <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+            Show crawlconfigs
+          </a>
+        }
+      }
+      @case (Kind.BROWSERSCRIPT) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.BROWSERCONFIG])) {
+          <a mat-list-item
+            [routerLink]="['../../browserconfig']"
+            [queryParams]="{script_id: configObject.id}"
+            matTooltip="Show browserconfigs with reference to the browserscript"
+            i18n-matTooltip="@@browserscriptListFikterBrowserconfigsWithBrowserscriptActionButtonTooltip">
+            <mat-icon matListItemIcon>web</mat-icon>
+            Show browserconfigs
+          </a>
+        }
+      }
+      @case (Kind.POLITENESSCONFIG) {
+        <div mat-subheader i18n="@@filterShortcutListTitle">
+        Filters
+      </div>
+        @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-list-item
+            [routerLink]="['../../crawlconfig']"
+            [queryParams]="{politeness_id: configObject.id}"
+            matTooltip="Show crawlconfigs with reference to the politeness"
+            i18n-matTooltip="@@politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
+            <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
+            Show crawlconfigs
+          </a>
+        }
+      }
+    }
+  </mat-nav-list>
+}

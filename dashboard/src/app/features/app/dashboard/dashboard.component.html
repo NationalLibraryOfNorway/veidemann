@@ -1,0 +1,16 @@
+@if (ability$ | async; as ability) {
+  @if (ability.can('read', 'home')) {
+    <div class="container content-padding">
+      <div fxLayout="row wrap" fxLayoutGap="16px">
+        <div fxLayout="column" fxLayoutGap="16px">
+          @if (ability.can('read', 'crawlerStatus')) {
+            <app-crawlerstatus
+              [crawlerStatus]="crawlerStatus$ | async"
+              (changeRunStatus)="onChangeRunStatus($event)">
+            </app-crawlerstatus>
+          }
+        </div>
+      </div>
+    </div>
+  }
+}

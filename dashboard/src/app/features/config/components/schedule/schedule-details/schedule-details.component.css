@@ -1,0 +1,12 @@
+fieldset {
+  border: 0px;
+}
+
+.cron-expression {
+  width: 100%;
+}
+.cron-expression .mat-mdc-form-field {
+  width: 18%;
+}
+
+

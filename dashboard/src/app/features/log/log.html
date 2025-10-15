@@ -1,0 +1,69 @@
+<form [formGroup]="form" class="content-padding">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>notes</mat-icon>
+      <mat-card-title i18n="@@logconfigDetailsCardTitle">Log level</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @for (logLevelItem of logLevelList.controls; track logLevelItem; let i = $index) {
+        <ng-container formArrayName="logLevelList">
+          <div [formGroupName]="i" fxLayout="row" fxLayoutGap="1em">
+            <mat-form-field fxFlex="70">
+              <mat-label i18n="@@logconfigFormLoggerInputLabel">
+              Logger
+            </mat-label>
+              <input matInput formControlName="logger">
+              @if (!logLevelItem.get('logger').valid) {
+                <mat-error i18n="@@logconfigLoggerRequiredError">
+              Field can't be empty
+            </mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field fxFlex>
+              <mat-label i18n="@@logconfigFormLevelSelectLabel">
+              Level
+            </mat-label>
+              <mat-select formControlName="level">
+                @for (level of levelOptions; track level) {
+                  <mat-option [value]="level">{{Level[level]}}</mat-option>
+                }
+              </mat-select>
+              @if (!logLevelItem.get('level').valid) {
+                <mat-error i18n="@@logconfigLevelRequiredError">
+              Field is required
+            </mat-error>
+              }
+            </mat-form-field>
+            @if (canEdit) {
+              <button mat-button (click)="onDelete(i)">
+                <span i18n="@@logconfigRemoveLogconfigButton">REMOVE</span>
+              </button>
+            }
+          </div>
+        </ng-container>
+      }
+
+
+    </mat-card-content>
+    @if (canEdit) {
+      <mat-card-actions>
+        <button mat-raised-button color="accent"
+          [disabled]="!canSave"
+          (click)="onSave()"
+          i18n="@@commonButtonSave">SAVE
+      </button>
+        <button mat-button
+          (click)="onRevert()"
+          [disabled]="!canRevert"
+          i18n="@@commonButtonRevert">REVERT
+      </button>
+        <span fxFlex></span>
+        <button mat-flat-button
+          i18n="@@logconfigAddLogconfigButton"
+          color="primary"
+          (click)="onAdd()">ADD
+      </button>
+      </mat-card-actions>
+    }
+  </mat-card>
+</form>

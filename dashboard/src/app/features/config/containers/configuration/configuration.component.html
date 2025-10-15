@@ -1,0 +1,134 @@
+<div class="container">
+  @if (configObject$ | async; as configObject) {
+    @if (options$ | async; as options) {
+      <div fxLayout="row">
+        <app-shortcut [configObject]="configObject"
+          (runCrawl)="onRunCrawl($event)"
+          (clone)="onClone($event)"
+        (createSeed)="onCreateSeedFromEntity($event)"></app-shortcut>
+        <div class="content-padding" fxFlex>
+          @switch (configObject.kind) {
+            @case (Kind.COLLECTION) {
+              <app-collection-details
+                [configObject]="configObject"
+                [rotationPolicies]="options.rotationPolicies"
+                [subCollectionTypes]="options.subCollectionTypes"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-collection-details>
+            }
+            @case (Kind.CRAWLJOB) {
+              <app-crawljob-details
+                [configObject]="configObject"
+                [crawlConfigs]="options.crawlConfigs"
+                [crawlScheduleConfigs]="options.crawlScheduleConfigs"
+                [scopeScripts]="options.scopeScripts"
+                (runCrawl)="onRunCrawl($event)"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-crawljob-details>
+              <div class="list-container__margin">
+                @if (configObject | getJobStatus | async; as jobExecutionStatus) {
+                  <app-config-job-execution-status
+                  [jobExecutionStatus]="jobExecutionStatus"></app-config-job-execution-status>
+                }
+              </div>
+            }
+            @case (Kind.CRAWLCONFIG) {
+              <app-crawlconfig-details
+                [configObject]="configObject"
+                [browserConfigs]="options.browserConfigs"
+                [collections]="options.collections"
+                [politenessConfigs]="options.politenessConfigs"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-crawlconfig-details>
+            }
+            @case (Kind.CRAWLSCHEDULECONFIG) {
+              <app-schedule-details
+                [configObject]="configObject"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-schedule-details>
+            }
+            @case (Kind.BROWSERCONFIG) {
+              <app-browserconfig-details
+                [configObject]="configObject"
+                [browserScripts]="options.browserScripts"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-browserconfig-details>
+            }
+            @case (Kind.POLITENESSCONFIG) {
+              <app-politenessconfig-details
+                [configObject]="configObject"
+                [robotsPolicies]="options.robotsPolicies"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-politenessconfig-details>
+            }
+            @case (Kind.BROWSERSCRIPT) {
+              <app-browserscript-details
+                [configObject]="configObject"
+                [browserScriptTypes]="options.browserScriptTypes"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-browserscript-details>
+            }
+            @case (Kind.CRAWLHOSTGROUPCONFIG) {
+              <app-crawlhostgroupconfig-details
+                [configObject]="configObject"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-crawlhostgroupconfig-details>
+            }
+            @case (Kind.SEED) {
+              @if ((configObject | getCrawlExecutionStatus | async); as crawlExecutionStatus) {
+                <div
+                  class="list-container__margin">
+                  <app-config-crawl-execution-status
+                  [crawlExecutionStatus]="crawlExecutionStatus"></app-config-crawl-execution-status>
+                </div>
+              }
+              <app-seed-details
+                [configObject]="configObject"
+                [crawlJobs]="options.crawlJobs"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)"
+                (move)="onMoveSeed($event)"
+                (saveMultiple)="onSaveMultipleSeeds($event)"
+                (runCrawl)="onRunCrawl($event)">
+              </app-seed-details>
+            }
+            @case (Kind.CRAWLENTITY) {
+              <app-entity-details
+                [configObject]="configObject"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-entity-details>
+            }
+            @case (Kind.ROLEMAPPING) {
+              <app-rolemapping-details
+                [configObject]="configObject"
+                [roles]="options.roles"
+                (update)="onUpdateConfig($event)"
+                (save)="onSaveConfig($event)"
+                (delete)="onDeleteConfig($event)">
+              </app-rolemapping-details>
+            }
+          }
+        </div>
+      </div>
+    }
+  }
+</div>
