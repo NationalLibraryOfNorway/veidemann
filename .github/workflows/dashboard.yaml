@@ -1,0 +1,25 @@
+name: Veidemann Dashboard
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'dashboard/*'
+    paths:
+      - 'dashboard/**'
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-and-publish.yaml
+    with:
+      PATH: dashboard
+      IMAGE_NAME: nettarkivet/veidemann-dashboard
+    secrets:
+      HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+      HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+      NO_PROXY: ${{ secrets.NO_PROXY }}
+      VAULT_URL: ${{ secrets.NB_VAULT_URL }}
+      VAULT_SECRET_PATH: ${{ secrets.VAULT_SECRET_PATH }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
