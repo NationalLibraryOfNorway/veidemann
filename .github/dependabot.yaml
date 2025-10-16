@@ -1,5 +1,15 @@
 version: 2
 updates:
+    - package-ecosystem: "npm"
+      directory: "/dashboard"
+      schedule:
+          interval: "weekly"
+      labels:
+          - "dependencies"
+      commit-message:
+          prefix: "build"
+          include: "scope"
+
     - package-ecosystem: "gomod"
       directories:
           - "/api"
