@@ -1,0 +1,43 @@
+name: Browser Controller
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'browser-controller/*'
+    paths:
+      - 'browser-controller/**'
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-test
+        with:
+          working_directory: browser-controller
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-lint
+        with:
+          working_directory: browser-controller
+
+  build:
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-publish.yaml
+    with:
+      PATH: browser-controller
+      IMAGE_NAME: nettarkivet/veidemann-browser-controller
+    secrets:
+      HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+      HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+      NO_PROXY: ${{ secrets.NO_PROXY }}
+      VAULT_URL: ${{ secrets.NB_VAULT_URL }}
+      VAULT_SECRET_PATH: ${{ secrets.VAULT_SECRET_PATH }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
