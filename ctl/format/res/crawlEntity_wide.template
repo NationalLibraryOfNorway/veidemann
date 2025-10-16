@@ -1,0 +1,7 @@
+{{- /*gotype: github.com/NationalLibraryOfNorway/veidemann/api/config/v1.ConfigObject*/ -}}
+
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-40.40s %s` "Id" "Name" "Labels"}}
+{{end -}}
+
+{{printLabels .Meta.Label | printf `%36s %-40.40s %s` .Id .Meta.Name}}

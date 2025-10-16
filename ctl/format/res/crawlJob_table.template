@@ -1,0 +1,7 @@
+{{- /*gotype: github.com/NationalLibraryOfNorway/veidemann/api/config/v1.ConfigObject*/ -}}
+
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-15s %8s %14s %12s` "Id" "Name" "Disabled" "MaxBytes" "MaxDuration"}}
+{{end -}}
+
+{{printf `%36s %-15s %8v %14v %12v` .Id .Meta.Name .Spec.CrawlJob.Disabled .Spec.CrawlJob.Limits.MaxBytes .Spec.CrawlJob.Limits.MaxDurationS}}

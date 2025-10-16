@@ -1,0 +1,5 @@
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-25s %-10s %-12s %-12s` "Id" "Name" "WindowSize" "PageTimeout" "MaxInactivity"}}
+{{end -}}
+
+{{printf `%36s %-25s %-4dx%-5d %-12v %-12v` .Id .Meta.Name .Spec.BrowserConfig.WindowWidth .Spec.BrowserConfig.WindowHeight .Spec.BrowserConfig.PageLoadTimeoutMs .Spec.BrowserConfig.MaxInactivityTimeMs}}

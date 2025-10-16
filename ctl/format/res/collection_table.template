@@ -1,0 +1,5 @@
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-20.20s %-18s` "Id" "Name" "Labels"}}
+{{end -}}
+
+{{printf `%36s %-20.20s %18s` .Id .Meta.Name .Meta.Label}}

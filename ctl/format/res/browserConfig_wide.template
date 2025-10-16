@@ -1,0 +1,7 @@
+{{- /*gotype: github.com/NationalLibraryOfNorway/veidemann/api/config/v1.ConfigObject*/ -}}
+
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-15s %18s %11s %12s %12s` "Id" "Name" "UserAgent" "WindowSize" "PageTimeout" "MaxInactivity"}}
+{{end -}}
+
+{{printf `%36s %-15s %18s %4d x%5d %12v %12v` .Id .Meta.Name .Spec.BrowserConfig.UserAgent .Spec.BrowserConfig.WindowWidth .Spec.BrowserConfig.WindowHeight .Spec.BrowserConfig.PageLoadTimeoutMs .Spec.BrowserConfig.MaxInactivityTimeMs}}

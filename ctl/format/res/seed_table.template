@@ -1,0 +1,5 @@
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-40s %-36s %-8s` "Id" "Url" "EntityId" "Disabled"}}
+{{end -}}
+
+{{printf `%36s %-40.40s %36.36s %8v` .Id .Meta.Name .Spec.Seed.EntityRef.Id .Spec.Seed.Disabled}}

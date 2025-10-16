@@ -1,0 +1,5 @@
+{{define "HEADER" -}}
+    {{printf `%-36.36s %15s %8s %8s %-24s %-24s` "Id" "State" "Docs" "Uris" "Start time" "End time"}}
+{{end -}}
+
+{{printf `%36s %15s %8d %8d` .Id .State .DocumentsCrawled .UrisCrawled}} {{time .StartTime}} {{time .EndTime}}

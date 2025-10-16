@@ -1,0 +1,8 @@
+description: |
+  Example template
+
+query: |
+  r.db('veidemann').table('config_crawl_entities')
+
+template: |
+  {{.id}} {{.meta.name}}

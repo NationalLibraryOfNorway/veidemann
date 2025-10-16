@@ -1,0 +1,5 @@
+{{define "HEADER" -}}
+    {{printf `%-36.36s %-15s %-50s %-8s %-4s` "WARC Id" "Path" "RequestedUri" "RecType" "Res"}}
+{{end -}}
+
+{{printf `%36.36s %-15s %-50.50s %-8.8s %4d` .WarcId .DiscoveryPath .RequestedUri .RecordType .StatusCode}}

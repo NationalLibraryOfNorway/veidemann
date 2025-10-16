@@ -1,0 +1,6 @@
+{{define "HEADER" -}}
+   {{inverse}}{{printf `%-36.36s %-36.36s %15s %10s %-24s %-24s` "Id" "JobId" "State" "Docs" "Start time" "End time"}}{{reset}}
+{{end -}}
+
+{{printf `%36s %36s %15s %10d` .Id .JobId .State .DocumentsCrawled}} {{time .StartTime}} {{time .EndTime}}{{with .Error}}
+   {{red}}Error: {{.}}{{end -}}{{reset}}
