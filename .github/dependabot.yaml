@@ -45,7 +45,19 @@ updates:
     
     - package-ecosystem: "docker"
       directories:
+          - "/browser-controller"
           - "/cache"
+          - "/contentwriter"
+          - "/dashboard"
+          - "/dns-resolver"
+          - "/frontier-queue-workers"
+          - "/log-service"
+          - "/metrics"
+          - "/olricd"
+          - "/ooshandler"
+          - "/recorderproxy"
+          - "/robots-evaluator"
+          - "/scopeservice"
       schedule:
           interval: "weekly"
       labels:
