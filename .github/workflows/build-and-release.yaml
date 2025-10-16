@@ -1,0 +1,52 @@
+name: Build and release
+
+on:
+  workflow_call:
+    inputs:
+      PATH:
+        required: true
+        type: string
+        description: "The path to the component to build"
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+        description: "GitHub token for authentication"
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - run: git fetch --force --tags
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Extract scoped tag
+        if: startsWith(github.ref, format('refs/tags/{0}/', inputs.PATH))
+        run: |
+          TAG=${GITHUB_REF#refs/tags/${{ inputs.PATH }}/}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          tags: |
+            type=ref,event=branch
+            ${{ env.TAG != '' && !startsWith(env.TAG, 'v') && 'type=ref,event=tag' || '' }}
+            ${{ env.TAG != '' && startsWith(env.TAG, 'v') && format('type=semver,pattern={{version}},value={0}', env.TAG) || '' }}
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          workdir: ${{ inputs.PATH }}
+          distribution: goreleaser
+          version: latest
+          args: release --clean ${{ ((env.TAG == '') || (github.ref_type == 'branch' && github.ref_name == 'main')) && '--snapshot' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.meta.outputs.version }}
