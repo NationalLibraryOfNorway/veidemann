@@ -1,4 +1,4 @@
-name: Veidemann Cache
+name: Cache
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
 jobs:
 
   test:
-    name: Test Cache Helpers
+    name: Test Helpers
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
