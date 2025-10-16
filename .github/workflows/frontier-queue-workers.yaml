@@ -1,0 +1,43 @@
+name: Frontier Queue Workers
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'frontier-queue-workers/*'
+    paths:
+      - 'frontier-queue-workers/**'
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-test
+        with:
+          working_directory: frontier-queue-workers
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-lint
+        with:
+          working_directory: frontier-queue-workers
+
+  build:
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-publish.yaml
+    with:
+      PATH: frontier-queue-workers
+      IMAGE_NAME: nettarkivet/veidemann-frontier-queue-workers
+    secrets:
+      HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+      HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+      NO_PROXY: ${{ secrets.NO_PROXY }}
+      VAULT_URL: ${{ secrets.NB_VAULT_URL }}
+      VAULT_SECRET_PATH: ${{ secrets.VAULT_SECRET_PATH }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
