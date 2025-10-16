@@ -46,7 +46,7 @@ func (e *Evaluator) IsAllowed(ctx context.Context, req *AllowedRequest) (bool, e
 		if err == nil {
 			return grobotstxt.AgentAllowed(robotsTxt, req.UserAgent, req.Uri), nil
 		}
-		if err != nil && !customIfMissing {
+		if !customIfMissing {
 			return false, fmt.Errorf("failed to fetch robots.txt: %w", err)
 		}
 		fallthrough
