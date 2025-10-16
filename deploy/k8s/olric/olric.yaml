@@ -66,17 +66,19 @@ spec:
               cpu: 200m
           volumeMounts:
             - name: olricd-config-volume
-              mountPath: /etc/olricd
+              mountPath: /etc/olricd/config.yaml
+              readOnly: true
+              subPath: config.yaml
           env:
             - name: OLRICD_CONFIG
-              value: "/etc/olricd/olricd.yaml"
+              value: "/etc/olricd/config.yaml"
       volumes:
         - name: olricd-config-volume
           configMap:
             name: olricd-config
             items:
-              - key: olricd.yaml
-                path: olricd.yaml
+              - key: config.yaml
+                path: config.yaml
 
 ---
 

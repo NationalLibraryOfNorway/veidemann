@@ -7,4 +7,4 @@ resources:
 configMapGenerator:
   - name: olricd-config
     files:
-      - olricd.yaml
+      - config.yaml
