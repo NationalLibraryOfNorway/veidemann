@@ -1,0 +1,37 @@
+name: veidemannctl
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'ctl/*'
+    paths:
+      - 'ctl/**'
+  workflow_dispatch:
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-test
+        with:
+          working_directory: ctl
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-lint
+        with:
+          working_directory: ctl
+
+  build:
+    needs: [test, lint]
+    uses: ./.github/workflows/build-and-release.yaml
+    with:
+      PATH: ctl
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
