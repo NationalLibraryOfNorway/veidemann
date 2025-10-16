@@ -13,6 +13,18 @@ updates:
     - package-ecosystem: "gomod"
       directories:
           - "/api"
+          - "/browser-controller"
+          - "/cache/helpers"
+          - "/contentwriter"
+          - "/ctl"
+          - "/dns-resolver"
+          - "/frontier-queue-workers"
+          - "/log-service"
+          - "/metrics"
+          - "/ooshandler"
+          - "/recorderproxy"
+          - "/robots-evaluator"
+          - "/scopeservice"
       schedule:
           interval: "weekly"
       labels:
