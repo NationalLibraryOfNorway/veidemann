@@ -29,7 +29,7 @@ $(PROTOC):
 	mkdir -p "${PROTOC_DIR}" && \
 	curl -s -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
 	unzip protoc.zip -d "${PROTOC_DIR}" > /dev/null && \
-	rm protoc.zip; \
+	rm protoc.zip
 
 $(PROTOC_GEN_GO):
 	@echo "Installing protoc-gen-go ${PROTOC_GEN_GO_VERSION}..." && \
