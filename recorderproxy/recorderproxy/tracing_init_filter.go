@@ -17,10 +17,11 @@
 package recorderproxy
 
 import (
+	"net/http"
+
 	"github.com/getlantern/proxy/filters"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"net/http"
 )
 
 // TracingInitFilter is a filter which initializes the context with tracing.

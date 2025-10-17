@@ -18,9 +18,10 @@ package logger
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	stdLog "log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (

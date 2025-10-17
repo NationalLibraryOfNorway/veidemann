@@ -18,19 +18,20 @@ package context
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes"
+	"net/http"
+	"net/url"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/NationalLibraryOfNorway/veidemann/api/config"
 	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
+	"github.com/golang/protobuf/ptypes"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"net/url"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 // session variable must be aligned in i386

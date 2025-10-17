@@ -1,0 +1,28 @@
+version: "2"
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+linters:
+  disable:
+    # TODO fix the following linters unless explicitly needed
+    - unused
+    - staticcheck
+    - ineffassign
+    - govet
+    - errcheck
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+severity:
+  default: error
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true

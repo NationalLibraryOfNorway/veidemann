@@ -18,9 +18,10 @@ package logger
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sirupsen/logrus"
 )
 
 func FormatPayload(payload []byte, length, cutLength, runesPerLine int) string {

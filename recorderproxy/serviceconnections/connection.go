@@ -18,6 +18,7 @@ package serviceconnections
 
 import (
 	"context"
+
 	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"

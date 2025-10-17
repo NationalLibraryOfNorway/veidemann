@@ -18,17 +18,18 @@ package recorderproxy
 
 import (
 	"bytes"
-	"github.com/getlantern/proxy/filters"
-	"github.com/golang/protobuf/ptypes"
+	"net/http"
+	"strings"
+
 	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	"github.com/getlantern/proxy/filters"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
-	"net/http"
-	"strings"
 )
 
 // RecorderFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.

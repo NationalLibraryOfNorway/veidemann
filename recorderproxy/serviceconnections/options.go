@@ -17,8 +17,9 @@
 package serviceconnections
 
 import (
-	"google.golang.org/grpc"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 // connectionOptions configure a connection. connectionOptions are set by the ConnectionOption

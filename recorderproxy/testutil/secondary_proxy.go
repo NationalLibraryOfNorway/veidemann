@@ -21,10 +21,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	gerr "github.com/getlantern/errors"
-	"github.com/getlantern/mitm"
-	"github.com/getlantern/proxy"
-	"github.com/getlantern/proxy/filters"
 	"log"
 	"net"
 	"net/http"
@@ -32,6 +28,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	gerr "github.com/getlantern/errors"
+	"github.com/getlantern/mitm"
+	"github.com/getlantern/proxy"
+	"github.com/getlantern/proxy/filters"
 )
 
 var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}

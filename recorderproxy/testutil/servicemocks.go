@@ -20,21 +20,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/"
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api"ntentwriter/"
-	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/a"dnsresolver/"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/test/bufconn"
 	"hash"
 	"io"
 	"net"
@@ -43,6 +28,22 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 const bufSize = 1024 * 1024
@@ -240,7 +241,7 @@ func (s *GrpcServiceMock) clear() {
 	s.Requests = &Requests{}
 }
 
-//Implements DNS service
+// Implements DNS service
 func (s *GrpcServiceMock) Resolve(ctx context.Context, in *dnsresolverV1.ResolveRequest) (*dnsresolverV1.ResolveReply, error) {
 	s.addDnsRequest(in)
 

@@ -18,8 +18,9 @@ package recorderproxy
 
 import (
 	"errors"
-	"github.com/getlantern/proxy/filters"
 	"net/http"
+
+	"github.com/getlantern/proxy/filters"
 )
 
 // NonproxyFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.
