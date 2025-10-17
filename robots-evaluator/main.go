@@ -94,7 +94,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to create Olric cache: %w", err)
 	}
 
-	defer cache.Close(context.Background())
+	defer func() { _ = cache.Close(context.Background()) }()
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,

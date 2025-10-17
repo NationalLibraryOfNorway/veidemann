@@ -106,7 +106,7 @@ func (e *Evaluator) fetchRobotsTxt(ctx context.Context, uri string) (string, err
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("robots.txt returned status code: %d", resp.StatusCode)
