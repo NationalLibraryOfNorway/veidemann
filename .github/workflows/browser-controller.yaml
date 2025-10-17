@@ -8,6 +8,7 @@ on:
       - 'browser-controller/*'
     paths:
       - 'browser-controller/**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,10 +18,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/golang-test
         with:
-          working_directory: browser-controller
+          working-directory: browser-controller
       - uses: ./.github/actions/golang-lint
         with:
-          working_directory: browser-controller
+          working-directory: browser-controller
 
   build:
     needs: test

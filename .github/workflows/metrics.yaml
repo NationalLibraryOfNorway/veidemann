@@ -8,6 +8,7 @@ on:
       - 'metrics/*'
     paths:
       - 'metrics/**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,10 +18,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/golang-test
         with:
-          working_directory: metrics
+          working-directory: metrics
       - uses: ./.github/actions/golang-lint
         with:
-          working_directory: metrics
+          working-directory: metrics
 
   build:
     needs: test

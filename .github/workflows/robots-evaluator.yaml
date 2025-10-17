@@ -8,6 +8,7 @@ on:
       - 'robots-evaluator/*'
     paths:
       - 'robots-evaluator/**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,10 +18,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/golang-test
         with:
-          working_directory: robots-evaluator
+          working-directory: robots-evaluator
       - uses: ./.github/actions/golang-lint
         with:
-          working_directory: robots-evaluator
+          working-directory: robots-evaluator
 
   build:
     needs: test

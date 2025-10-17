@@ -8,6 +8,7 @@ on:
       - 'cache/*'
     paths:
       - 'cache/**'
+  workflow_dispatch:
 
 jobs:
 
@@ -19,7 +20,7 @@ jobs:
       - name: Checkout code
         uses: ./.github/actions/golang-test
         with:
-          working_directory: cache/helpers
+          working-directory: cache/helpers
 
   build:
     needs: test

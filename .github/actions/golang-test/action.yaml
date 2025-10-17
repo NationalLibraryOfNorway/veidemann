@@ -2,7 +2,7 @@ name: Golang Test
 description: Test Golang code
 
 inputs:
-  working_directory:
+  working-directory:
     required: true
     description: "The path to the component to test"
 
@@ -13,6 +13,6 @@ runs:
       with:
         go-version: 'stable'
 
-    - run: go test -v ./...
+    - run: go test ./...
       shell: bash
       working-directory: ${{ inputs.working-directory }}

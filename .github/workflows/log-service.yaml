@@ -8,6 +8,7 @@ on:
       - 'log-service/*'
     paths:
       - 'log-service/**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,10 +18,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/golang-test
         with:
-          working_directory: log-service
+          working-directory: log-service
       - uses: ./.github/actions/golang-lint
         with:
-          working_directory: log-service
+          working-directory: log-service
 
   build:
     needs: test
