@@ -9,7 +9,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	golang.org/x/sync v0.14.0
 	google.golang.org/grpc v1.72.1
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
