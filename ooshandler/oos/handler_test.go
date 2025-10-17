@@ -26,14 +26,12 @@ import (
 )
 
 func TestHandler_Handle(t *testing.T) {
-	testDir := "testoutput"
+	testDir := t.TempDir()
 
-	wd, _ := os.Getwd()
-	baseDir := filepath.Dir(wd)
-	testDir = filepath.Join(baseDir, testDir)
-	_ = os.Mkdir(testDir, 0777)
-	defer os.RemoveAll(testDir)
-	oos := NewHandler(testDir)
+	oos, err := NewHandler(testDir)
+	if err != nil {
+		t.Fatalf("Could not create OOS handler: %v", err)
+	}
 
 	u, _, _ := oos.parseUriAndGroup("http://example1.com")
 	oos.bloomContains(u)
@@ -86,7 +84,7 @@ func TestHandler_Handle(t *testing.T) {
 			if err != nil {
 				t.Errorf("Could not open file '%v'", ff.filename)
 			}
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 
 			i := 0
 			buf := bufio.NewReader(f)
@@ -128,13 +126,16 @@ func TestOosHandler_Import(t *testing.T) {
 	preimport = filepath.Join(baseDir, preimport)
 	fileWithDuplicates = filepath.Join(indata, fileWithDuplicates)
 
-	oos := NewHandler(preimport)
+	oos, err := NewHandler(preimport)
+	if err != nil {
+		t.Fatalf("Could not create OOS handler: %v", err)
+	}
 
 	f, err := os.Open(fileWithDuplicates)
 	if err != nil {
 		t.Errorf("Could not open file '%v'", fileWithDuplicates)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	i := 0
 	dup := 0

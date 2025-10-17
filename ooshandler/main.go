@@ -44,8 +44,11 @@ func main() {
 		slog.Error("Unable to create data directory", "err", err)
 		os.Exit(1)
 	}
-	oosHandler := oos.NewHandler(config.DataDir)
-
+	oosHandler, err := oos.NewHandler(config.DataDir)
+	if err != nil {
+		slog.Error("Unable to create OOS handler", "err", err)
+		os.Exit(1)
+	}
 	oos := oos.NewService(config.ListenPort, oosHandler)
 	err = oos.Start()
 	if err != nil {

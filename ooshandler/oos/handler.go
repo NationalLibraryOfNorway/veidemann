@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -45,22 +46,20 @@ type Handler struct {
 	fileMutexes map[string]*sync.Mutex
 }
 
-func NewHandler(dir string) *Handler {
+func NewHandler(dir string) (*Handler, error) {
 	bf := bloom.NewWithEstimates(maxElements, probCollide)
 	h := &Handler{
 		bf:          bf,
 		dir:         dir,
 		fileMutexes: make(map[string]*sync.Mutex),
 	}
-	h.ImportExisting()
-	return h
+	return h, h.ImportExisting()
 }
 
-func (o *Handler) ImportExisting() {
+func (o *Handler) ImportExisting() error {
 	files, err := os.ReadDir(o.dir)
 	if err != nil {
-		slog.Error("Could not read directory", "err", err)
-		os.Exit(1)
+		return err
 	}
 
 	i := 0
@@ -68,39 +67,49 @@ func (o *Handler) ImportExisting() {
 		if f.IsDir() {
 			continue
 		}
-
-		file := path.Join(o.dir, f.Name())
-		f, err := os.Open(file)
+		file := filepath.Join(o.dir, f.Name())
+		n, err := o.parseFile(file)
 		if err != nil {
-			slog.Error("Could not open file", "file", file, "err", err)
+			slog.Error("Error importing existing URIs", "file", file, "err", err)
+			continue
 		}
-		defer f.Close()
-
-		buf := bufio.NewReader(f)
-		for {
-			l, err := buf.ReadString('\n')
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				slog.Error("Error reading from file", "err", err)
-				break
-			}
-
-			line := strings.Trim(l, "\n")
-			if line == "" {
-				continue
-			}
-			u, _, err := o.parseUriAndGroup(line)
-			if err != nil {
-				slog.Warn("Error parsing uri", "err", err)
-				continue
-			}
-			o.bloomContains(u)
-			i++
-		}
+		i += n
 	}
 	slog.Info("Imported existing URIs", "count", i)
+	return nil
+}
+
+func (o *Handler) parseFile(file string) (uris int, err error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = f.Close() }()
+
+	count := 0
+
+	buf := bufio.NewReader(f)
+	for {
+		l, err := buf.ReadString('\n')
+		if err == io.EOF {
+			return count, nil
+		}
+		if err != nil {
+			return count, err
+		}
+
+		line := strings.Trim(l, "\n")
+		if line == "" {
+			continue
+		}
+		u, _, err := o.parseUriAndGroup(line)
+		if err != nil {
+			slog.Warn("Failed to parse URI  and group", "err", err, "line", line)
+			continue
+		}
+		o.bloomContains(u)
+		count++
+	}
 }
 
 func (o *Handler) Handle(uri string) (exists bool) {
@@ -161,8 +170,8 @@ func (o *Handler) write(uri *url.URL, group string) {
 		slog.Error("Error opening file for writing", "file", file, "err", err)
 		return
 	}
-	defer f.Close()
-	fmt.Fprintf(f, "%s://%s\n", uri.Scheme, uri.Host)
+	defer func() { _ = f.Close() }()
+	_, _ = fmt.Fprintf(f, "%s://%s\n", uri.Scheme, uri.Host)
 }
 
 func (o *Handler) isInFile(uri *url.URL, group string) bool {
@@ -175,7 +184,7 @@ func (o *Handler) isInFile(uri *url.URL, group string) bool {
 		slog.Warn("Error opening file", "file", file, "err", err)
 		return false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var exists bool
 	buf := bufio.NewReader(f)
@@ -199,7 +208,7 @@ func (o *Handler) isInFile(uri *url.URL, group string) bool {
 		if err != nil {
 			slog.Error("Error seeking to end of file", "file", file, "err", err)
 		} else {
-			fmt.Fprintf(f, "%s://%s\n", uri.Scheme, uri.Host)
+			_, _ = fmt.Fprintf(f, "%s://%s\n", uri.Scheme, uri.Host)
 		}
 	}
 
