@@ -14,7 +14,7 @@ require (
 	github.com/prometheus/common v0.42.0
 	github.com/rs/zerolog v1.29.0
 	github.com/scylladb/gocqlx/v2 v2.8.0
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.15.0
 	github.com/testcontainers/testcontainers-go v0.19.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
