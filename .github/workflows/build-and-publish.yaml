@@ -7,21 +7,6 @@ on:
         required: true
         type: string
         description: "The path to the component to build"
-    secrets:
-      VAULT_URL:
-        required: true
-      VAULT_SECRET_PATH:
-        required: true
-      VAULT_ROLE_ID:
-        required: true
-      VAULT_SECRET_ID:
-        required: true
-      HTTPS_PROXY:
-        required: false
-      HTTP_PROXY:
-        required: false
-      NO_PROXY:
-        required: false
 
 jobs:
   scoped-build:
@@ -63,10 +48,4 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}
-          HTTP_PROXY=${{ secrets.HTTP_PROXY }}
-          NO_PROXY=${{ secrets.NO_PROXY }}
-          http_proxy=${{ secrets.HTTP_PROXY }}
-          https_proxy=${{ secrets.HTTPS_PROXY }}
-          no_proxy=${{ secrets.NO_PROXY }}
           VERSION=${{ steps.meta.outputs.version }}

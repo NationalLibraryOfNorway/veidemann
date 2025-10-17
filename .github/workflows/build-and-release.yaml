@@ -7,10 +7,6 @@ on:
         required: true
         type: string
         description: "The path to the component to build"
-    secrets:
-      TOKEN:
-        required: true
-        description: "GitHub token for authentication"
 
 jobs:
   goreleaser:
@@ -48,5 +44,5 @@ jobs:
           version: latest
           args: release --clean ${{ ((env.TAG == '') || (github.ref_type == 'branch' && github.ref_name == 'main')) && '--snapshot' || '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ steps.meta.outputs.version }}
