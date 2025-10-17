@@ -163,7 +163,7 @@ func matchAction(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		if continueEvaluation {
 			return match, nil
 		} else {
-			return match, EndOfComputation
+			return match, errEndOfComputation
 		}
 	} else {
 		return match, nil

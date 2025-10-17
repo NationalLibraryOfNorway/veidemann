@@ -2,6 +2,7 @@ package script
 
 import (
 	"fmt"
+
 	"go.starlark.net/starlark"
 )
 
@@ -20,12 +21,12 @@ func abort(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs 
 	}
 	if match, ok := b.Receiver().(Match); ok {
 		if match {
-			return match, EndOfComputation
+			return match, errEndOfComputation
 		} else {
 			return match, nil
 		}
 	}
-	return starlark.None, EndOfComputation
+	return starlark.None, errEndOfComputation
 }
 
 func param(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

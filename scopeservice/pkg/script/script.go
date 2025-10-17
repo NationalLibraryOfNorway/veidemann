@@ -24,7 +24,7 @@ const (
 	stacktraceKey = "stacktrace"
 )
 
-var EndOfComputation = errors.New("end of computation")
+var errEndOfComputation = errors.New("end of computation")
 
 var scriptLogger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().
 	Timestamp().Logger().Level(zerolog.DebugLevel)
@@ -104,7 +104,7 @@ func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debu
 	if err != nil {
 		evalErr := new(starlark.EvalError)
 		if errors.As(err, &evalErr) {
-			if errors.Is(evalErr, EndOfComputation) {
+			if errors.Is(evalErr, errEndOfComputation) {
 				//	Computation was aborted
 			} else {
 				w := new(wrappedError)
