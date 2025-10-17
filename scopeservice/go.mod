@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.0.2
-	github.com/nlnwa/whatwg-url v0.4.1
+	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -23,7 +23,7 @@ require (
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.13.0 // indirect
+	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
