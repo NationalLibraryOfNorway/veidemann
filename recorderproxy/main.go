@@ -65,7 +65,7 @@ func main() {
 	tracer, closer := tracing.Init("Recorder Proxy")
 	if tracer != nil {
 		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
+		defer func() { _ = closer.Close() }()
 	}
 
 	//err := recorderproxy.SetCA(viper.GetString("ca"), viper.GetString("ca-key"))
