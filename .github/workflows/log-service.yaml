@@ -10,25 +10,20 @@ on:
       - 'log-service/**'
 
 jobs:
-
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/golang-test
         with:
           working_directory: log-service
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
       - uses: ./.github/actions/golang-lint
         with:
           working_directory: log-service
 
   build:
-    needs: [test, lint]
+    needs: test
     uses: ./.github/workflows/build-and-publish.yaml
     with:
       PATH: log-service
