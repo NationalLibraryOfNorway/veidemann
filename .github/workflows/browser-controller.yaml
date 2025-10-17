@@ -1,31 +1,38 @@
-name: Cache
+name: Browser Controller
 
 on:
   push:
     branches:
       - 'main'
     tags:
-      - 'cache/*'
+      - 'browser-controller/*'
     paths:
-      - 'cache/**'
+      - 'browser-controller/**'
 
 jobs:
 
   test:
-    name: Test Helpers
+    name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: ./.github/actions/golang-test
+      - uses: ./.github/actions/golang-test
         with:
-          working_directory: cache/helpers
+          working_directory: browser-controller
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-lint
+        with:
+          working_directory: browser-controller
 
   build:
-    needs: test
+    needs: [test, lint]
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: cache
-      IMAGE_NAME: nettarkivet/veidemann-cache
+      PATH: browser-controller
+      IMAGE_NAME: nettarkivet/veidemann-browser-controller
     secrets:
       HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
       HTTP_PROXY: ${{ secrets.HTTP_PROXY }}

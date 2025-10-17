@@ -1,31 +1,38 @@
-name: Cache
+name: Frontier Queue Workers
 
 on:
   push:
     branches:
       - 'main'
     tags:
-      - 'cache/*'
+      - 'frontier-queue-workers/*'
     paths:
-      - 'cache/**'
+      - 'frontier-queue-workers/**'
 
 jobs:
 
   test:
-    name: Test Helpers
+    name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: ./.github/actions/golang-test
+      - uses: ./.github/actions/golang-test
         with:
-          working_directory: cache/helpers
+          working_directory: frontier-queue-workers
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/golang-lint
+        with:
+          working_directory: frontier-queue-workers
 
   build:
-    needs: test
+    needs: [test, lint]
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: cache
-      IMAGE_NAME: nettarkivet/veidemann-cache
+      PATH: frontier-queue-workers
+      IMAGE_NAME: nettarkivet/veidemann-frontier-queue-workers
     secrets:
       HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
       HTTP_PROXY: ${{ secrets.HTTP_PROXY }}

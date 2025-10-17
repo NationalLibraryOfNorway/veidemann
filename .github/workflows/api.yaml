@@ -1,0 +1,26 @@
+name: Protobuf Code Generation
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'proto/*'
+    paths:
+      - 'proto/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Generate golang code from proto files
+        shell: bash
+        working-directory: api
+        run: make all
+
+      - name: Generate javascript code from proto files
+        shell: bash
+        working-directory: dashboard/src/api
+        run: make all

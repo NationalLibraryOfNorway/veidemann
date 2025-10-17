@@ -9,7 +9,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/rs/zerolog v1.23.0
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.8.1
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	golang.org/x/sync v0.14.0
