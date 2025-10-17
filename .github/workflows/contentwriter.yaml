@@ -25,6 +25,9 @@ jobs:
 
   build:
     needs: test
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
       PATH: contentwriter
