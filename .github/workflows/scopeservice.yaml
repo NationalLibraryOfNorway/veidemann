@@ -28,7 +28,6 @@ jobs:
     uses: ./.github/workflows/build-and-publish.yaml
     with:
       PATH: scopeservice
-      IMAGE_NAME: nettarkivet/veidemann-scopeservice
     secrets:
       HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
       HTTP_PROXY: ${{ secrets.HTTP_PROXY }}

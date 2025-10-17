@@ -28,7 +28,6 @@ jobs:
     uses: ./.github/workflows/build-and-publish.yaml
     with:
       PATH: frontier-queue-workers
-      IMAGE_NAME: nettarkivet/veidemann-frontier-queue-workers
     secrets:
       HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
       HTTP_PROXY: ${{ secrets.HTTP_PROXY }}

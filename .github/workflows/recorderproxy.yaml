@@ -28,7 +28,6 @@ jobs:
     uses: ./.github/workflows/build-and-publish.yaml
     with:
       PATH: recorderproxy
-      IMAGE_NAME: nettarkivet/veidemann-recorderproxy
     secrets:
       HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
       HTTP_PROXY: ${{ secrets.HTTP_PROXY }}

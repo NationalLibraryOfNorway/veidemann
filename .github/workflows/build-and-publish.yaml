@@ -7,10 +7,6 @@ on:
         required: true
         type: string
         description: "The path to the component to build"
-      IMAGE_NAME:
-        required: true
-        type: string
-        description: "The name of the image to build"
     secrets:
       VAULT_URL:
         required: true
@@ -35,22 +31,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Import secrets from Vault
-      uses: hashicorp/vault-action@v3
-      with:
-        url: ${{ secrets.VAULT_URL }}
-        method: approle
-        roleId: ${{ secrets.VAULT_ROLE_ID }}
-        secretId: ${{ secrets.VAULT_SECRET_ID }}
-        secrets: |
-          ${{ secrets.VAULT_SECRET_PATH }}/harbor * | HARBOR_ ;
-
     - name: Log in to the container registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.HARBOR_ADDRESS }}
-        username: ${{ env.HARBOR_USERNAME }}
-        password: ${{ env.HARBOR_PASSWORD }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Extract scoped tag
       if: startsWith(github.ref, format('refs/tags/{0}/', inputs.PATH))
@@ -62,7 +48,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.HARBOR_ADDRESS }}/${{ inputs.IMAGE_NAME }}
+        images: ghcr.io/${{ github.repository }}/${{ inputs.PATH }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
