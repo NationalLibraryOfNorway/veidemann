@@ -1,4 +1,4 @@
-FROM node:25-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 
 ARG VERSION
 
