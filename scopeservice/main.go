@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/script"
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/server"
@@ -52,7 +53,7 @@ func main() {
 	tracer, closer := telemetry.InitTracer("Scope checker")
 	if tracer != nil {
 		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
+		defer func() { _ = closer.Close() }()
 	}
 
 	errc := make(chan error, 1)
