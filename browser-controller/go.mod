@@ -17,7 +17,7 @@ require (
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.67.1
+	github.com/prometheus/common v0.67.2
 	github.com/rs/zerolog v1.34.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.10
@@ -122,10 +122,10 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
