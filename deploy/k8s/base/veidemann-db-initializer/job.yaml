@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: veidemann-db-initializer
+  labels:
+    app.kubernetes.io/name: veidemann-db-initializer
+    app.kubernetes.io/component: db-initializer
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      name: veidemann-db-initializer
+      labels:
+        app.kubernetes.io/name: veidemann-db-initializer
+        app.kubernetes.io/component: db-initializer
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: veidemann-db-initializer
+          image: ghcr.io/nlnwa/veidemann-rethinkdbadapter:0.10.0
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: DB_HOST
+              value: "rethinkdb-proxy"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"

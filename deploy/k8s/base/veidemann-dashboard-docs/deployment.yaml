@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veidemann-dashboard-docs
+  labels:
+    app.kubernetes.io/name: veidemann-dashboard-docs
+    app.kubernetes.io/component: dashboard-docs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: veidemann-dashboard-docs
+      app.kubernetes.io/component: dashboard-docs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: veidemann-dashboard-docs
+        app.kubernetes.io/component: dashboard-docs
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+        - name: veidemann-dashboard-docs
+          image: ghcr.io/nlnwa/veidemann-dashboard-docs:0.19.1
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10

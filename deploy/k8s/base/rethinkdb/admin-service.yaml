@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rethinkdb-admin
+  labels:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: dashboard
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http-admin
+  selector:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: database

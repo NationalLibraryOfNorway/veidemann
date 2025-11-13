@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: veidemann-scopeservice
+  labels:
+    app.kubernetes.io/name: veidemann-scopeservice
+    app.kubernetes.io/component: scopeservice
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: grpc
+      protocol: TCP
+    - name: http-metrics
+      port: 9153
+      protocol: TCP
+      targetPort: http-metrics
+  selector:
+    app.kubernetes.io/name: veidemann-scopeservice
+    app.kubernetes.io/component: scopeservice

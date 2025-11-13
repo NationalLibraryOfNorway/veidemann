@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: veidemann-dns-resolver
+  labels:
+    app.kubernetes.io/name: veidemann-dns-resolver
+    app.kubernetes.io/component: dns-resolver
+    metrics: prometheus
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 8053
+      protocol: TCP
+      targetPort: 8053
+    - name: udp-dns
+      port: 53
+      protocol: UDP
+      targetPort: 53
+    - name: tcp-dns
+      port: 53
+      protocol: TCP
+      targetPort: 53
+    - name: http-metrics
+      port: 9153
+      protocol: TCP
+      targetPort: http-metrics
+  selector:
+    app.kubernetes.io/name: veidemann-dns-resolver
+    app.kubernetes.io/component: dns-resolver

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rethinkdb-cluster
+  labels:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: database
+  annotations:
+    config.linkerd.io/opaque-ports: "29015"
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 29015
+      targetPort: cluster
+  selector:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: database
