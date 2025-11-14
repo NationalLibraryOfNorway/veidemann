@@ -59,13 +59,18 @@ if [[ -n "$RETHINKDB_SEEDS" ]]; then
     add_join "$s"
   done
 
-# 2) Otherwise, if this is a StatefulSet pod with an ordinal > 0, join all earlier ordinals.
-elif [[ -n "$ORDINAL" && "$ORDINAL" != "0" ]]; then
-  echo "StatefulSet pod with ordinal ${ORDINAL}, joining all earlier ordinals"
-  for ((i=0; i<ORDINAL; i++)); do
-    host="${RETHINKDB_STATEFULSET_NAME}-${i}.${RETHINKDB_SERVICE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
-    add_join "$host"
-  done
+# 2) Otherwise, if this is a StatefulSet pod with an ordinal >= 0, join all earlier ordinals.
+elif [[ -n "$ORDINAL" ]]; then
+  if [[ "$ORDINAL" == "0" ]]; then
+    echo "StatefulSet pod ordinal 0: starting without join seeds"
+    # no JOIN_ARGS for -0
+  else
+    echo "StatefulSet pod with ordinal ${ORDINAL}, joining all earlier ordinals"
+    for ((i=0; i<ORDINAL; i++)); do
+      host="${RETHINKDB_STATEFULSET_NAME}-${i}.${RETHINKDB_SERVICE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
+      add_join "$host"
+    done
+  fi
 
 # 3) Otherwise (non-StatefulSet or ordinal-less pod), default to seed 0.
 else
