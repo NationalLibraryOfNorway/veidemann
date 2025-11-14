@@ -20,4 +20,4 @@ RUN chmod u+x /run.sh
 
 EXPOSE 28015 29015 8080
 
-ENTRYPOINT ["tini", "/run.sh"]
+ENTRYPOINT ["/usr/local/bin/tini", "--", "/run.sh"]
