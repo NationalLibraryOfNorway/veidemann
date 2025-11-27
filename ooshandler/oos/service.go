@@ -23,7 +23,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/ooshandler"
+	ooshandlerV1 "github.com/NationalLibraryOfNorway/veidemann/api/ooshandler/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ooshandler/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -31,7 +31,7 @@ import (
 
 // OosService is a service which handles Out of Scope URIs.
 type Service struct {
-	ooshandler.UnimplementedOosHandlerServer
+	ooshandlerV1.UnimplementedOosHandlerServer
 	Port       int
 	ln         net.Listener
 	listenAddr net.Addr
@@ -40,7 +40,7 @@ type Service struct {
 	oosHandler *Handler
 }
 
-func (o *Service) SubmitUri(ctx context.Context, req *ooshandler.SubmitUriRequest) (*emptypb.Empty, error) {
+func (o *Service) SubmitUri(ctx context.Context, req *ooshandlerV1.SubmitUriRequest) (*emptypb.Empty, error) {
 	metrics.OosRequests.Inc()
 	exists := o.oosHandler.Handle(req.GetUri().GetUri())
 	if exists {
@@ -72,7 +72,7 @@ func (o *Service) Start() error {
 
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	ooshandler.RegisterOosHandlerServer(grpcServer, o)
+	ooshandlerV1.RegisterOosHandlerServer(grpcServer, o)
 
 	go func() {
 		err := grpcServer.Serve(ln)
