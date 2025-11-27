@@ -18,18 +18,18 @@ package frontier
 import (
 	"context"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type Client struct {
-	frontier.FrontierClient
+	frontierV1.FrontierClient
 }
 
 func New(conn *grpc.ClientConn) *Client {
 	return &Client{
-		FrontierClient: frontier.NewFrontierClient(conn),
+		FrontierClient: frontierV1.NewFrontierClient(conn),
 	}
 }
 

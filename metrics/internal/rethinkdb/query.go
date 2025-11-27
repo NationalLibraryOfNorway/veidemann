@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -67,7 +67,7 @@ func contains(list []string, item ...string) bool {
 	return true
 }
 
-func (qc *Query) WalkLatestJobExecutionForCrawlJobs(ctx context.Context, fn func(*frontier.JobExecutionStatus)) error {
+		func (qc *Query) WalkLatestJobExecutionForCrawlJobs(ctx context.Context, fn func(*frontierV1.JobExecutionStatus)) error {
 	cursor, err := r.Table("config").Filter(map[string]interface{}{"kind": "crawlJob"}).
 		Map(func(job r.Term) interface{} {
 			return r.Table("job_executions").
@@ -99,7 +99,7 @@ func (qc *Query) WalkLatestJobExecutionForCrawlJobs(ctx context.Context, fn func
 		return err
 	}
 
-	jes := new(frontier.JobExecutionStatus)
+	jes := new(frontierV1.JobExecutionStatus)
 	for cursor.Next(jes) {
 		fn(jes)
 	}

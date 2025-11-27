@@ -3,7 +3,7 @@ package rethinkdb
 import (
 	"testing"
 
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

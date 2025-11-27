@@ -21,7 +21,7 @@ import (
 	"log"
 	"time"
 
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/metrics/internal/frontier"
 	"github.com/NationalLibraryOfNorway/veidemann/metrics/internal/rethinkdb"
 )

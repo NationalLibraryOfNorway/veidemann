@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"time"
 
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6/encoding"
