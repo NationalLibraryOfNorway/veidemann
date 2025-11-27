@@ -19,8 +19,8 @@ package logservice
 import (
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/scylladb/gocqlx/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -32,9 +32,9 @@ type ErrorUDT struct {
 	Detail     string `cql:"detail" json:"detail"`
 }
 
-func (e *ErrorUDT) toProto() *commons.Error {
+func (e *ErrorUDT) toProto() *commonsV1.Error {
 	if e != nil {
-		return &commons.Error{
+		return &commonsV1.Error{
 			Code:   e.Code,
 			Msg:    e.Msg,
 			Detail: e.Detail,

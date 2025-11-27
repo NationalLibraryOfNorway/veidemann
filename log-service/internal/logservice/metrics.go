@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"strings"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/common/version"
 )
 
 const Namespace = "veidemann"

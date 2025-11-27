@@ -19,7 +19,7 @@ package noop_logservice
 import (
 	"io"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 

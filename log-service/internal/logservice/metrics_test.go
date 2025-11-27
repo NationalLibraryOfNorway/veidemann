@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -57,7 +57,7 @@ var (
 		RecordType:          "response",
 		RequestedUri:        "dns:www.example.com",
 		Size:                50,
-		Error: &commons.Error{
+		Error: &commonsV1.Error{
 			Code:   -1,
 			Msg:    "Error",
 			Detail: "Everything went wrong",

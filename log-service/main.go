@@ -27,7 +27,7 @@ import (
 	"syscall"
 	"time"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/logservice"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/noop_logservice"

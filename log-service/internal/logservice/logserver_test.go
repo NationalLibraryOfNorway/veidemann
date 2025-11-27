@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/scylla"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/logservice"
 	"github.com/gocql/gocql"
