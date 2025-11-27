@@ -8,7 +8,7 @@ require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.0
 	github.com/gocql/gocql v1.7.0
 	github.com/google/uuid v1.6.0
-	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e
+	github.com/opentracing-contrib/go-grpc v0.1.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0
