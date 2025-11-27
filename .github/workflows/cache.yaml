@@ -16,7 +16,7 @@ jobs:
     name: Test Helpers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Checkout code
         uses: ./.github/actions/golang-test
         with:
