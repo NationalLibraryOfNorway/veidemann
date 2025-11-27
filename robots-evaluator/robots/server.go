@@ -3,20 +3,20 @@ package robots
 import (
 	"context"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator"
+	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 )
 
 type EvaluatorServer struct {
-	robotsevaluator.UnimplementedRobotsEvaluatorServer
+	robotsevaluatorV1.UnimplementedRobotsEvaluatorServer
 
 	*Evaluator
 }
 
 // Assert that Evaluator implements the RobotsEvaluatorServer interface
-var _ robotsevaluator.RobotsEvaluatorServer = (*EvaluatorServer)(nil)
+var _ robotsevaluatorV1.RobotsEvaluatorServer = (*EvaluatorServer)(nil)
 
 // IsAllowed implements the RobotsEvaluatorServer interface
-func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluator.IsAllowedRequest) (*robotsevaluator.IsAllowedReply, error) {
+func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.IsAllowedRequest) (*robotsevaluatorV1.IsAllowedReply, error) {
 	uri := req.GetUri()
 	userAgent := req.GetUserAgent()
 
@@ -36,7 +36,7 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluator.Is
 		return nil, err
 	}
 
-	return &robotsevaluator.IsAllowedReply{
+	return &robotsevaluatorV1.IsAllowedReply{
 		IsAllowed: ok,
 	}, nil
 }

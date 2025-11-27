@@ -30,7 +30,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator"
+	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/cache"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/robots"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -108,7 +108,7 @@ func run(ctx context.Context) error {
 	}
 
 	server := grpc.NewServer()
-	robotsevaluator.RegisterRobotsEvaluatorServer(server, s)
+	robotsevaluatorV1.RegisterRobotsEvaluatorServer(server, s)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {

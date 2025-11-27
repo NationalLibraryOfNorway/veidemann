@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/cache"
 	"github.com/jimsmart/grobotstxt"
 	whatwgurl "github.com/nlnwa/whatwg-url/url"
@@ -20,7 +20,7 @@ type Evaluator struct {
 }
 
 type AllowedRequest struct {
-	RobotsPolicy       config.PolitenessConfig_RobotsPolicy
+	RobotsPolicy       configV1.PolitenessConfig_RobotsPolicy
 	MinValiditySeconds int32
 	Uri                string
 	CustomRobots       string
@@ -31,16 +31,16 @@ type AllowedRequest struct {
 func (e *Evaluator) IsAllowed(ctx context.Context, req *AllowedRequest) (bool, error) {
 	switch req.RobotsPolicy {
 
-	case config.PolitenessConfig_IGNORE_ROBOTS:
+	case configV1.PolitenessConfig_IGNORE_ROBOTS:
 		return true, nil
 
-	case config.PolitenessConfig_OBEY_ROBOTS,
-		config.PolitenessConfig_OBEY_ROBOTS_CLASSIC,
-		config.PolitenessConfig_CUSTOM_IF_MISSING,
-		config.PolitenessConfig_CUSTOM_IF_MISSING_CLASSIC:
+	case configV1.PolitenessConfig_OBEY_ROBOTS,
+		configV1.PolitenessConfig_OBEY_ROBOTS_CLASSIC,
+		configV1.PolitenessConfig_CUSTOM_IF_MISSING,
+		configV1.PolitenessConfig_CUSTOM_IF_MISSING_CLASSIC:
 
-		customIfMissing := req.RobotsPolicy == config.PolitenessConfig_CUSTOM_IF_MISSING ||
-			req.RobotsPolicy == config.PolitenessConfig_CUSTOM_IF_MISSING_CLASSIC
+		customIfMissing := req.RobotsPolicy == configV1.PolitenessConfig_CUSTOM_IF_MISSING ||
+			req.RobotsPolicy == configV1.PolitenessConfig_CUSTOM_IF_MISSING_CLASSIC
 
 		robotsTxt, err := e.fetchRobotsTxt(ctx, req.Uri)
 		if err == nil {
@@ -51,8 +51,8 @@ func (e *Evaluator) IsAllowed(ctx context.Context, req *AllowedRequest) (bool, e
 		}
 		fallthrough
 
-	case config.PolitenessConfig_CUSTOM_ROBOTS,
-		config.PolitenessConfig_CUSTOM_ROBOTS_CLASSIC:
+	case configV1.PolitenessConfig_CUSTOM_ROBOTS,
+		configV1.PolitenessConfig_CUSTOM_ROBOTS_CLASSIC:
 
 		return grobotstxt.AgentAllowed(req.CustomRobots, req.UserAgent, req.Uri), nil
 
