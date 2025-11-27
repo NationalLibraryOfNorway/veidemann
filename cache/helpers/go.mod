@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/sevlyar/go-daemon v0.1.6
-	k8s.io/apimachinery v0.34.1
+	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.1
 )
 
