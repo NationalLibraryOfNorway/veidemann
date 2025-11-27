@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/go-redis/redis"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
