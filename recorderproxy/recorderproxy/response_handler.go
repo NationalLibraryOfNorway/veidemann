@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -40,7 +40,7 @@ type wrappedResponseBody struct {
 	recNum            int32
 	size              int64
 	blockCrc          hash.Hash
-	recordMeta        *contentwriter.WriteRequestMeta_RecordMeta
+	recordMeta        *contentwriterV1.WriteRequestMeta_RecordMeta
 	replacementReader io.Reader
 	mutex             sync.Mutex
 	eof               bool
@@ -49,7 +49,7 @@ type wrappedResponseBody struct {
 }
 
 func WrapResponseBody(ctx filters.Context, body io.ReadCloser, statusCode int32, contentType string,
-	recordType contentwriter.RecordType, prolog []byte) (*wrappedResponseBody, error) {
+	recordType contentwriterV1.RecordType, prolog []byte) (*wrappedResponseBody, error) {
 
 	b := &wrappedResponseBody{
 		ReadCloser:    body,
@@ -60,7 +60,7 @@ func WrapResponseBody(ctx filters.Context, body io.ReadCloser, statusCode int32,
 	}
 	b.log = context.LogWithContext(ctx, "BODY:resp").WithField("url", b.recordContext.Uri.String())
 
-	b.recordMeta = &contentwriter.WriteRequestMeta_RecordMeta{
+	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
 		RecordNum: b.recNum,
 		Type:      recordType,
 	}

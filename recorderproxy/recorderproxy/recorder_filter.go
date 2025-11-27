@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -103,9 +103,9 @@ func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span,
 	req.Header.Set(constants.HeaderCrawlExecutionId, context2.GetCrawlExecutionId(c))
 	req.Header.Set(constants.HeaderJobExecutionId, context2.GetJobExecutionId(c))
 
-	rc.Meta = &contentwriter.WriteRequest_Meta{
-		Meta: &contentwriter.WriteRequestMeta{
-			RecordMeta:     map[int32]*contentwriter.WriteRequestMeta_RecordMeta{},
+	rc.Meta = &contentwriterV1.WriteRequest_Meta{
+		Meta: &contentwriterV1.WriteRequestMeta{
+			RecordMeta:     map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{},
 			TargetUri:      uri.String(),
 			ExecutionId:    context2.GetCrawlExecutionId(c),
 			IpAddress:      context2.GetIp(c),
@@ -154,7 +154,7 @@ func (f *RecorderFilter) filterResponse(c filters.Context, span opentracing.Span
 
 	contentType := resp.Header.Get("Content-Type")
 	statusCode := int32(resp.StatusCode)
-	bodyWrapper, err := WrapResponseBody(c, resp.Body, statusCode, contentType, contentwriter.RecordType_RESPONSE, prolog.Bytes())
+	bodyWrapper, err := WrapResponseBody(c, resp.Body, statusCode, contentType, contentwriterV1.RecordType_RESPONSE, prolog.Bytes())
 	if err != nil {
 		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
 		return nil, e

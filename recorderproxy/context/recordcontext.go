@@ -24,9 +24,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -58,9 +58,9 @@ type RecordContext struct {
 	Method            string
 	Uri               *url.URL
 	FetchTimesTamp    time.Time
-	Meta              *contentwriter.WriteRequest_Meta
+	Meta              *contentwriterV1.WriteRequest_Meta
 	CrawlLog          *logV1.CrawlLog
-	ReplacementScript *config.BrowserScript
+	ReplacementScript *configV1.BrowserScript
 	closed            bool
 	FoundInCache      bool
 	PrecludedByRobots bool
@@ -165,8 +165,8 @@ func resolveIdsFromHttpHeader(ctx context.Context, req *http.Request) {
 
 	if req.Header.Get(constants.HeaderCollectionId) != "" {
 		cid := req.Header.Get(constants.HeaderCollectionId)
-		SetCollectionRef(ctx, &config.ConfigRef{
-			Kind: config.Kind_collection,
+		SetCollectionRef(ctx, &configV1.ConfigRef{
+			Kind: configV1.Kind_collection,
 			Id:   cid,
 		})
 	}

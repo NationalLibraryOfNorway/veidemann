@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -58,7 +58,7 @@ type wrappedRequestBody struct {
 	recNum        int32
 	size          int64
 	blockCrc      hash.Hash
-	recordMeta    *contentwriter.WriteRequestMeta_RecordMeta
+	recordMeta    *contentwriterV1.WriteRequestMeta_RecordMeta
 	mutex         sync.Mutex
 	eof           bool
 }
@@ -74,9 +74,9 @@ func WrapRequestBody(ctx filters.Context, body io.ReadCloser, contentType string
 		blockCrc:      sha1.New(),
 	}
 
-	b.recordMeta = &contentwriter.WriteRequestMeta_RecordMeta{
+	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
 		RecordNum: b.recNum,
-		Type:      contentwriter.RecordType_REQUEST,
+		Type:      contentwriterV1.RecordType_REQUEST,
 	}
 	b.recordMeta.RecordContentType = constants.RecordContentTypeRequest
 	b.recordContext.Meta.Meta.RecordMeta[b.recNum] = b.recordMeta

@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strconv"
 
-	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/filters"

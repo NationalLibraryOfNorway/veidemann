@@ -28,8 +28,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -43,8 +43,8 @@ import (
 var AlreadyCompleted = errors2.New("already completed")
 
 type BccSession struct {
-	browsercontroller.BrowserController_DoClient
-	msgChan      chan *browsercontroller.DoReply
+	browsercontrollerV1.BrowserController_DoClient
+	msgChan      chan *browsercontrollerV1.DoReply
 	completeChan chan *completeMsg
 	span         opentracing.Span
 	done         chan *doneMsg
@@ -89,7 +89,7 @@ func (rc *RecordContext) getBccSession() (*BccSession, error) {
 
 	b := &BccSession{BrowserController_DoClient: bcc, span: span, bccCtx: bccCtx}
 
-	b.msgChan = make(chan *browsercontroller.DoReply)
+	b.msgChan = make(chan *browsercontrollerV1.DoReply)
 	b.completeChan = make(chan *completeMsg)
 	b.done = make(chan *doneMsg)
 
@@ -198,12 +198,12 @@ func (rc *RecordContext) getBccSession() (*BccSession, error) {
 			if err != nil {
 				l.Warnf("unknown error from browser controller %v, %v, %v\n", doReply, err, serr)
 				rc.Error = fmt.Errorf("unknown error from browser controller: %v", err.Error())
-				b.msgChan <- &browsercontroller.DoReply{Action: &browsercontroller.DoReply_Cancel{Cancel: rc.Error.Error()}}
+				b.msgChan <- &browsercontrollerV1.DoReply{Action: &browsercontrollerV1.DoReply_Cancel{Cancel: rc.Error.Error()}}
 				close(b.msgChan)
 				return
 			}
 			switch doReply.Action.(type) {
-			case *browsercontroller.DoReply_Cancel:
+			case *browsercontrollerV1.DoReply_Cancel:
 				if strings.Contains(doReply.GetCancel(), "robots.txt") {
 					b.msgChan <- doReply
 				} else {
@@ -279,9 +279,9 @@ func (rc *RecordContext) saveCrawlLogUnlocked(b *BccSession, cl *logV1.CrawlLog)
 	cl.FetchTimeMs = fetchDurationMs
 	cl.IpAddress = GetIp(rc.ctx)
 
-	err = b.BrowserController_DoClient.Send(&browsercontroller.DoRequest{
-		Action: &browsercontroller.DoRequest_Completed{
-			Completed: &browsercontroller.Completed{
+	err = b.BrowserController_DoClient.Send(&browsercontrollerV1.DoRequest{
+		Action: &browsercontrollerV1.DoRequest_Completed{
+			Completed: &browsercontrollerV1.Completed{
 				CrawlLog: cl,
 				Cached:   rc.FoundInCache,
 			},
@@ -389,9 +389,9 @@ func (rc *RecordContext) RegisterNewRequest(ctx filters.Context) error {
 		return AlreadyCompleted
 	}
 
-	bccRequest := &browsercontroller.DoRequest{
-		Action: &browsercontroller.DoRequest_New{
-			New: &browsercontroller.RegisterNew{
+	bccRequest := &browsercontrollerV1.DoRequest{
+		Action: &browsercontrollerV1.DoRequest_New{
+			New: &browsercontrollerV1.RegisterNew{
 				ProxyId:          rc.ProxyId,
 				Method:           rc.Method,
 				Uri:              rc.Uri.String(),
@@ -429,13 +429,13 @@ func (rc *RecordContext) RegisterNewRequest(ctx filters.Context) error {
 		return errors.Error(errors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Browser controller closed connection")
 	}
 	switch v := bcReply.Action.(type) {
-	case *browsercontroller.DoReply_Cancel:
+	case *browsercontrollerV1.DoReply_Cancel:
 		if v.Cancel == "Blocked by robots.txt" {
 			rc.PrecludedByRobots = true
 		}
 		b.span.LogKV("event", "ResponseFromNew", "responseType", "Cancel")
 		return errors.Error(errors.PrecludedByRobots, "PRECLUDED_BY_ROBOTS", "Robots.txt rules precluded fetch")
-	case *browsercontroller.DoReply_New:
+	case *browsercontrollerV1.DoReply_New:
 		b.span.LogKV("event", "ResponseFromNew", "responseType", "New",
 			"JobExecutionId", v.New.JobExecutionId,
 			"CrawlExecutionId", v.New.CrawlExecutionId,
@@ -455,14 +455,14 @@ func (rc *RecordContext) RegisterNewRequest(ctx filters.Context) error {
 }
 
 func (rc *RecordContext) NotifyDataReceived() error {
-	return rc.notifyDataReceived(browsercontroller.NotifyActivity_DATA_RECEIVED)
+	return rc.notifyDataReceived(browsercontrollerV1.NotifyActivity_DATA_RECEIVED)
 }
 
 func (rc *RecordContext) NotifyAllDataReceived() error {
-	return rc.notifyDataReceived(browsercontroller.NotifyActivity_ALL_DATA_RECEIVED)
+	return rc.notifyDataReceived(browsercontrollerV1.NotifyActivity_ALL_DATA_RECEIVED)
 }
 
-func (rc *RecordContext) notifyDataReceived(activity browsercontroller.NotifyActivity_Activity) error {
+func (rc *RecordContext) notifyDataReceived(activity browsercontrollerV1.NotifyActivity_Activity) error {
 	b, err := rc.getBccSession()
 	if err != nil {
 		return err
@@ -477,9 +477,9 @@ func (rc *RecordContext) notifyDataReceived(activity browsercontroller.NotifyAct
 		return AlreadyCompleted
 	}
 
-	err = b.Send(&browsercontroller.DoRequest{
-		Action: &browsercontroller.DoRequest_Notify{
-			Notify: &browsercontroller.NotifyActivity{
+	err = b.Send(&browsercontrollerV1.DoRequest{
+		Action: &browsercontrollerV1.DoRequest_Notify{
+			Notify: &browsercontrollerV1.NotifyActivity{
 				Activity: activity,
 			},
 		},
@@ -498,9 +498,9 @@ func RegisterConnectRequest(ctx filters.Context, conn *serviceconnections.Connec
 
 	resolveIdsFromHttpHeader(ctx, req)
 
-	bccRequest := &browsercontroller.DoRequest{
-		Action: &browsercontroller.DoRequest_New{
-			New: &browsercontroller.RegisterNew{
+	bccRequest := &browsercontrollerV1.DoRequest{
+		Action: &browsercontrollerV1.DoRequest_New{
+			New: &browsercontrollerV1.RegisterNew{
 				ProxyId:          proxyId,
 				Method:           "CONNECT",
 				Uri:              uri.String(),
@@ -531,7 +531,7 @@ func RegisterConnectRequest(ctx filters.Context, conn *serviceconnections.Connec
 		l.WithError(err).Errorf("Failed getting register response from browser controller %v", err)
 	} else {
 		switch v := doReply.Action.(type) {
-		case *browsercontroller.DoReply_New:
+		case *browsercontrollerV1.DoReply_New:
 			SetJobExecutionId(ctx, v.New.JobExecutionId)
 			SetCrawlExecutionId(ctx, v.New.CrawlExecutionId)
 			SetCollectionRef(ctx, v.New.CollectionRef)

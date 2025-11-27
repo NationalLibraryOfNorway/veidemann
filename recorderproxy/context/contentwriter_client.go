@@ -20,7 +20,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -28,7 +28,7 @@ import (
 )
 
 type CwcSession struct {
-	contentwriter.ContentWriter_WriteClient
+	contentwriterV1.ContentWriter_WriteClient
 	span      opentracing.Span
 	done      bool
 	canceled  bool
@@ -72,8 +72,8 @@ func (rc *RecordContext) getCwcSession() (*CwcSession, error) {
 			if !c.done {
 				c.done = true
 				l.Info("ContentWriter client session canceled by client")
-				err := rc.cwc.Send(&contentwriter.WriteRequest{
-					Value: &contentwriter.WriteRequest_Cancel{Cancel: "Veidemann recorder proxy lost connection to client"},
+				err := rc.cwc.Send(&contentwriterV1.WriteRequest{
+					Value: &contentwriterV1.WriteRequest_Cancel{Cancel: "Veidemann recorder proxy lost connection to client"},
 				})
 				if err != nil {
 					l.WithError(err).Warn("Error writing to ContentWriter")
@@ -114,7 +114,7 @@ func (rc *RecordContext) CancelContentWriter(msg string) error {
 		cwc.done = true
 		defer cwc.ctxCancel()
 
-		err = cwc.Send(&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_Cancel{Cancel: msg}})
+		err = cwc.Send(&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_Cancel{Cancel: msg}})
 		if err != nil {
 			cwc.span.LogFields(otLog.String("event", "Cancel content writer"), otLog.String("message", msg), otLog.Error(err))
 			l.WithError(err).Info("Error sending ContentWriter cancel")
@@ -146,9 +146,9 @@ func (rc *RecordContext) SendProtocolHeader(recNum int32, p []byte) error {
 		return nil
 	}
 
-	protocolHeaderRequest := &contentwriter.WriteRequest{
-		Value: &contentwriter.WriteRequest_ProtocolHeader{
-			ProtocolHeader: &contentwriter.Data{
+	protocolHeaderRequest := &contentwriterV1.WriteRequest{
+		Value: &contentwriterV1.WriteRequest_ProtocolHeader{
+			ProtocolHeader: &contentwriterV1.Data{
 				RecordNum: recNum,
 				Data:      p,
 			},
@@ -181,9 +181,9 @@ func (rc *RecordContext) SendPayload(recNum int32, p []byte) error {
 		return nil
 	}
 
-	payloadRequest := &contentwriter.WriteRequest{
-		Value: &contentwriter.WriteRequest_Payload{
-			Payload: &contentwriter.Data{
+	payloadRequest := &contentwriterV1.WriteRequest{
+		Value: &contentwriterV1.WriteRequest_Payload{
+			Payload: &contentwriterV1.Data{
 				RecordNum: recNum,
 				Data:      p,
 			},
@@ -200,7 +200,7 @@ func (rc *RecordContext) SendPayload(recNum int32, p []byte) error {
 	return err
 }
 
-func (rc *RecordContext) SendMeta() (reply *contentwriter.WriteReply, err error) {
+func (rc *RecordContext) SendMeta() (reply *contentwriterV1.WriteReply, err error) {
 	l := LogWithContext(rc.ctx, "PROXY:CWC")
 
 	cwc, err := rc.getCwcSession()
@@ -224,7 +224,7 @@ func (rc *RecordContext) SendMeta() (reply *contentwriter.WriteReply, err error)
 		ext.HTTPUrl.Set(sendMetaSpan, rc.Meta.Meta.TargetUri)
 		ext.Component.Set(sendMetaSpan, "contentWriterClient")
 
-		metaRequest := &contentwriter.WriteRequest{
+		metaRequest := &contentwriterV1.WriteRequest{
 			Value: rc.Meta,
 		}
 

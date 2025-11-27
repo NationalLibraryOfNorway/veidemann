@@ -21,7 +21,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/getlantern/proxy/filters"
 )
@@ -105,7 +105,7 @@ func SetJobExecutionId(ctx context.Context, jid string) {
 	setValue(ctx, ctxKeyJobExecutionId, jid)
 }
 
-func SetCollectionRef(ctx context.Context, cid *config.ConfigRef) {
+func SetCollectionRef(ctx context.Context, cid *configV1.ConfigRef) {
 	setValue(ctx, ctxKeyCollectionRef, cid)
 }
 
@@ -153,8 +153,8 @@ func GetJobExecutionId(ctx context.Context) (jid string) {
 	return
 }
 
-func GetCollectionRef(ctx context.Context) (cid *config.ConfigRef) {
-	cid, _ = getValue(ctx, ctxKeyCollectionRef).(*config.ConfigRef)
+func GetCollectionRef(ctx context.Context) (cid *configV1.ConfigRef) {
+	cid, _ = getValue(ctx, ctxKeyCollectionRef).(*configV1.ConfigRef)
 	return
 }
 

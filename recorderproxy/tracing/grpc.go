@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -72,19 +72,19 @@ func (h *sh) HandleRPC(c context.Context, s stats.RPCStats) {
 	case *stats.OutPayload:
 		switch p := v.Payload.(type) {
 		//case *dnsresolver.ResolveRequest:
-		case *contentwriter.WriteRequest:
+		case *contentwriterV1.WriteRequest:
 			switch w := p.GetValue().(type) {
-			case *contentwriter.WriteRequest_Meta:
+			case *contentwriterV1.WriteRequest_Meta:
 				context2.LogWithContext(c, h.service).Debug(w.Meta)
-			case *contentwriter.WriteRequest_Payload:
+			case *contentwriterV1.WriteRequest_Payload:
 				if logrus.IsLevelEnabled(logrus.TraceLevel) {
 					context2.LogWithContext(c, h.service).Tracef("payload[%v]: %v", w.Payload.RecordNum, string(w.Payload.Data))
 				} else {
 					context2.LogWithContext(c, h.service).Debugf("payload[%v]: %v bytes", w.Payload.RecordNum, len(w.Payload.Data))
 				}
-			case *contentwriter.WriteRequest_Cancel:
+			case *contentwriterV1.WriteRequest_Cancel:
 				context2.LogWithContext(c, h.service).Debug(w.Cancel)
-			case *contentwriter.WriteRequest_ProtocolHeader:
+			case *contentwriterV1.WriteRequest_ProtocolHeader:
 				context2.LogWithContext(c, h.service).Debugf("header[%v]: %v", w.ProtocolHeader.RecordNum, string(w.ProtocolHeader.Data))
 			}
 		default:

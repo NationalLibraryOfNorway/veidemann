@@ -30,12 +30,12 @@ import (
 	"testing"
 	"time"
 
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller"
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"
-	"github.com/NationalLibraryOfNorway/veidemann/api/log"
+	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -778,7 +778,7 @@ func (test *test) generateSuccessRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						WarcId:              "warcid_1",
 						StatusCode:          int32(test.wantStatus),
 						Size:                test.wantResponseBlockSize,
@@ -844,7 +844,7 @@ func (test *test) generateClientTimeoutRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     -5011,
 						RequestedUri:   test.url,
 						Method:         "GET",
@@ -852,7 +852,7 @@ func (test *test) generateClientTimeoutRequests() {
 						IpAddress:      "127.0.0.1",
 						ExecutionId:    "eid",
 						JobExecutionId: "jid",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -5011,
 							Msg:    "CANCELED_BY_BROWSER",
 							Detail: "Veidemann recorder proxy lost connection to client",
@@ -891,7 +891,7 @@ func (test *test) generateReplaceRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						WarcId:              "warcid_1",
 						StatusCode:          int32(test.wantStatus),
 						Size:                test.wantResponseBlockSize,
@@ -958,7 +958,7 @@ func (test *test) generateServerTimeoutRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     -404,
 						RequestedUri:   test.url,
 						Method:         "GET",
@@ -966,7 +966,7 @@ func (test *test) generateServerTimeoutRequests() {
 						IpAddress:      "127.0.0.1",
 						ExecutionId:    "eid",
 						JobExecutionId: "jid",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -404,
 							Msg:    "EMPTY_RESPONSE",
 							Detail: "Empty reply from server",
@@ -1017,7 +1017,7 @@ func (test *test) generateBrowserControllerCancelRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     -5011,
 						Method:         "GET",
 						RequestedUri:   test.url,
@@ -1025,7 +1025,7 @@ func (test *test) generateBrowserControllerCancelRequests() {
 						IpAddress:      "127.0.0.1",
 						ExecutionId:    "eid",
 						JobExecutionId: "jid",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -5011,
 							Msg:    "CANCELED_BY_BROWSER",
 							Detail: "canceled by browser controller",
@@ -1055,13 +1055,13 @@ func (test *test) generateBlockedByRobotsTxtRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:   -9998,
 						Method:       "GET",
 						RequestedUri: test.url,
 						RecordType:   "response",
 						IpAddress:    "127.0.0.1",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -9998,
 							Msg:    "PRECLUDED_BY_ROBOTS",
 							Detail: "Robots.txt rules precluded fetch",
@@ -1108,7 +1108,7 @@ func (test *test) generateContentWriterErrorRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     -5,
 						Method:         "GET",
 						RequestedUri:   test.url,
@@ -1116,7 +1116,7 @@ func (test *test) generateContentWriterErrorRequests() {
 						IpAddress:      "127.0.0.1",
 						ExecutionId:    "eid",
 						JobExecutionId: "jid",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -5,
 							Msg:    "Error writing to content writer",
 							Detail: "rpc error: code = InvalidArgument desc = Fake error",
@@ -1174,7 +1174,7 @@ func (test *test) generateCachedRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     int32(test.wantStatus),
 						Size:           test.wantResponseBlockSize,
 						Method:         "GET",
@@ -1219,7 +1219,7 @@ func (test *test) generateConnectionRefusedRequests() {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     -2,
 						Method:         "GET",
 						RequestedUri:   test.url,
@@ -1227,7 +1227,7 @@ func (test *test) generateConnectionRefusedRequests() {
 						IpAddress:      "127.0.0.1",
 						ExecutionId:    "eid",
 						JobExecutionId: "jid",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -2,
 							Msg:    "CONNECT_FAILED",
 							Detail: "connect: connection refused",
@@ -1264,7 +1264,7 @@ func (test *test) generateHandshakeFailureRequests(errorMessage string) {
 		&browsercontrollerV1.DoRequest{
 			Action: &browsercontrollerV1.DoRequest_Completed{
 				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &log.CrawlLog{
+					CrawlLog: &logV1.CrawlLog{
 						StatusCode:     -2,
 						Method:         "GET",
 						RequestedUri:   test.url,
@@ -1272,7 +1272,7 @@ func (test *test) generateHandshakeFailureRequests(errorMessage string) {
 						IpAddress:      "127.0.0.1",
 						ExecutionId:    "eid",
 						JobExecutionId: "jid",
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   -2,
 							Msg:    "CONNECT_FAILED",
 							Detail: errorMessage,
@@ -1468,7 +1468,7 @@ func compareBcDoRequest(t *testing.T, tt test, want *browsercontrollerV1.DoReque
 			}
 			gt.Completed.GetCrawlLog().BlockDigest = ""
 
-			gt.Completed.CrawlLog.FetchTimeMs = 0
+			gt.Completed.GetCrawlLog().FetchTimeMs = 0
 			if proto.Equal(want, got) {
 				ok = true
 			} else {

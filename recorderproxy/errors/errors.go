@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 
 	gerrs "github.com/pkg/errors"
 )
@@ -172,8 +172,8 @@ func WrapInternalError(err error, code ErrorCode, message, detail string) error 
 	}
 }
 
-func AsCommonsError(err error) *commons.Error {
-	return &commons.Error{
+func AsCommonsError(err error) *commonsV1.Error {
+	return &commonsV1.Error{
 		Code:   Code(err).Int32(),
 		Msg:    Message(err),
 		Detail: Detail(err),
