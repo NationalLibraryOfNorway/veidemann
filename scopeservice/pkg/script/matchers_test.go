@@ -6,18 +6,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/api/scopechecker"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	scopecheckerV1 "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1"
 )
 
 type testdata struct {
 	name   string
 	script string
-	qUri   *frontier.QueuedUri
+	qUri   *frontierV1.QueuedUri
 	debug  bool
-	want   *scopechecker.ScopeCheckResponse
+	want   *scopecheckerV1.ScopeCheckResponse
 }
 
 func init() {
@@ -28,15 +28,15 @@ func Test_isSameHost(t *testing.T) {
 	tests := []testdata{
 		{name: "isSameHost1",
 			script: "isSameHost().then(Include, continueEvaluation=True)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:     "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				SeedUri: "http://foo.bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -48,15 +48,15 @@ func Test_isSameHost(t *testing.T) {
 			}},
 		{name: "isSameHost2",
 			script: "isSameHost().then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:     "http://sub.foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				SeedUri: "http://foo.bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://sub.foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "sub.foo.bar",
@@ -64,7 +64,7 @@ func Test_isSameHost(t *testing.T) {
 					Path:   "/aa%20bb/cc",
 					Query:  "foo&jsessionid=1",
 				},
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   -5001,
 					Msg:    "Blocked",
 					Detail: "No scope rules matched",
@@ -73,15 +73,15 @@ func Test_isSameHost(t *testing.T) {
 			}},
 		{name: "isSameHostSub1",
 			script: "isSameHost(True).then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:     "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				SeedUri: "http://foo.bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -93,15 +93,15 @@ func Test_isSameHost(t *testing.T) {
 			}},
 		{name: "isSameHostSub2",
 			script: "isSameHost(True).then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:     "http://sub.foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				SeedUri: "http://foo.bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://sub.foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "sub.foo.bar",
@@ -113,18 +113,18 @@ func Test_isSameHost(t *testing.T) {
 			}},
 		{name: "isSameHostSub3",
 			script: "isSameHost(param('IncludeSubdomain')).then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:     "http://sub.foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				SeedUri: "http://foo.bar",
-				Annotation: []*config.Annotation{
+				Annotation: []*configV1.Annotation{
 					{Key: "IncludeSubdomain", Value: "True"},
 				},
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://sub.foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "sub.foo.bar",
@@ -147,14 +147,14 @@ func Test_isScheme(t *testing.T) {
 	tests := []testdata{
 		{name: "isScheme1",
 			script: "isScheme('http').then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -166,14 +166,14 @@ func Test_isScheme(t *testing.T) {
 			}},
 		{name: "isScheme2",
 			script: "isScheme('https').then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -181,7 +181,7 @@ func Test_isScheme(t *testing.T) {
 					Path:   "/aa%20bb/cc",
 					Query:  "foo&jsessionid=1",
 				},
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   -5001,
 					Msg:    "Blocked",
 					Detail: "No scope rules matched",
@@ -190,17 +190,17 @@ func Test_isScheme(t *testing.T) {
 			}},
 		{name: "isScheme3",
 			script: "isScheme(param('scheme')).then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
-				Annotation: []*config.Annotation{
+				Annotation: []*configV1.Annotation{
 					{Key: "scheme", Value: "http"},
 				},
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -212,17 +212,17 @@ func Test_isScheme(t *testing.T) {
 			}},
 		{name: "isScheme4",
 			script: "isScheme(param('scheme')).then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "HttP://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
-				Annotation: []*config.Annotation{
+				Annotation: []*configV1.Annotation{
 					{Key: "scheme", Value: "hTtp"},
 				},
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -234,14 +234,14 @@ func Test_isScheme(t *testing.T) {
 			}},
 		{name: "isScheme5",
 			script: "isScheme(param('scheme')).then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: RuntimeException.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -250,7 +250,7 @@ func Test_isScheme(t *testing.T) {
 					Query:  "foo&jsessionid=1",
 				},
 				Console: "",
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code: RuntimeException.AsInt32(),
 					Msg:  "error executing scope script",
 					Detail: `Traceback (most recent call last):
@@ -260,14 +260,14 @@ Error in param: no value with name 'scheme'`,
 			}},
 		{name: "isScheme6",
 			script: "isScheme('http').then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -279,17 +279,17 @@ Error in param: no value with name 'scheme'`,
 			}},
 		{name: "isScheme7",
 			script: "isScheme(param('scheme')).then(Blocked)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "file:c|/foo/bar/aa bb/",
-				Annotation: []*config.Annotation{
+				Annotation: []*configV1.Annotation{
 					{Key: "scheme", Value: "hTtp https file ftp"},
 				},
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "file:///c:/foo/bar/aa%20bb/",
 					Scheme: "file",
 					Path:   "/c:/foo/bar/aa%20bb/",
@@ -309,15 +309,15 @@ func Test_isReferrer(t *testing.T) {
 	tests := []testdata{
 		{name: "isReferrer1",
 			script: "isReferrer('http://foo.bar/sitemap.txt').then(Blocked).otherwise(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:      "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				Referrer: "http://foo.bar/",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -329,15 +329,15 @@ func Test_isReferrer(t *testing.T) {
 			}},
 		{name: "isReferrer2",
 			script: "isReferrer('http://foo.bar/sitemap.txt').then(Blocked).otherwise(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:      "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				Referrer: "http://foo.bar/sitemap.txt",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -349,15 +349,15 @@ func Test_isReferrer(t *testing.T) {
 			}},
 		{name: "isReferrer3",
 			script: "isReferrer('http://foo.bar/sitemap.txt http://foo.bar/aa').then(Blocked).otherwise(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:      "http://foo.bar/bb",
 				Referrer: "http://foo.bar/aa",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/bb",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -379,14 +379,14 @@ func Test_isUrl(t *testing.T) {
 	tests := []testdata{
 		{name: "isUrl1",
 			script: "isUrl('http://foo.bar/aa//bb/cc?jsessionid=1&foo#bar').then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa//bb/cc?jsessionid=1&foo#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa/bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -398,14 +398,14 @@ func Test_isUrl(t *testing.T) {
 			}},
 		{name: "isUrl2",
 			script: "isUrl('http://foo.bar/aa//bb/cc?foo&a=c&jsessionid=1&a=b').then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa//bb/cc?jsessionid=1&foo&a=c&a=b#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa/bb/cc?a=c&a=b&foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -417,14 +417,14 @@ func Test_isUrl(t *testing.T) {
 			}},
 		{name: "isUrl3",
 			script: "isUrl('foo.bar/aa/ff/../bb/cc?foo&a=c&jsessionid=1&a=b').then(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa//bb/cc?jsessionid=1&foo&a=c&a=b#bar",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa/bb/cc?a=c&a=b&foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -436,14 +436,14 @@ func Test_isUrl(t *testing.T) {
 			}},
 		{name: "isUrl4",
 			script: "isUrl('foo.bar/aa/ example.com').then(Blocked)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri: "http://foo.bar/aa/",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa/",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -465,15 +465,15 @@ func Test_maxHopsFromSeed(t *testing.T) {
 	tests := []testdata{
 		{name: "maxHopsFromSeed1",
 			script: "maxHopsFromSeed(2).then(TooManyHops)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				DiscoveryPath: "RLERLR",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: TooManyHops.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -485,15 +485,15 @@ func Test_maxHopsFromSeed(t *testing.T) {
 			}},
 		{name: "maxHopsFromSeed2",
 			script: "maxHopsFromSeed(4).then(TooManyHops)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				DiscoveryPath: "RLERLR",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: Blocked.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -501,7 +501,7 @@ func Test_maxHopsFromSeed(t *testing.T) {
 					Path:   "/aa%20bb/cc",
 					Query:  "foo&jsessionid=1",
 				},
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   -5001,
 					Msg:    "Blocked",
 					Detail: "No scope rules matched",
@@ -510,18 +510,18 @@ func Test_maxHopsFromSeed(t *testing.T) {
 			}},
 		{name: "maxHopsFromSeed3",
 			script: "maxHopsFromSeed(param('depth')).then(TooManyHops)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				DiscoveryPath: "RLERLR",
-				Annotation: []*config.Annotation{
+				Annotation: []*configV1.Annotation{
 					{Key: "depth", Value: "2"},
 				},
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: TooManyHops.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -533,19 +533,19 @@ func Test_maxHopsFromSeed(t *testing.T) {
 			}},
 		{name: "maxHopsFromSeed4",
 			script: "maxHopsFromSeed(param('depth'), param('includeRedirects')).then(TooManyHops)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				DiscoveryPath: "RLERLR",
-				Annotation: []*config.Annotation{
+				Annotation: []*configV1.Annotation{
 					{Key: "depth", Value: "3"},
 					{Key: "includeRedirects", Value: "yeS"},
 				},
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: TooManyHops.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -557,15 +557,15 @@ func Test_maxHopsFromSeed(t *testing.T) {
 			}},
 		{name: "maxHopsFromSeed5",
 			script: "maxHopsFromSeed(0).then(TooManyHops)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				DiscoveryPath: "L",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: TooManyHops.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -577,15 +577,15 @@ func Test_maxHopsFromSeed(t *testing.T) {
 			}},
 		{name: "maxHopsFromSeed6",
 			script: "maxHopsFromSeed(1).otherwise(Include)",
-			qUri: &frontier.QueuedUri{
+			qUri: &frontierV1.QueuedUri{
 				Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				DiscoveryPath: "L",
 			},
 			debug: false,
-			want: &scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_INCLUDE,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				ExcludeReason: Include.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -606,7 +606,7 @@ func Test_maxHopsFromSeed(t *testing.T) {
 
 // Helper functions
 
-func verify(t *testing.T, got, want *scopechecker.ScopeCheckResponse) {
+func verify(t *testing.T, got, want *scopecheckerV1.ScopeCheckResponse) {
 	if got.Evaluation != want.Evaluation {
 		t.Errorf("RunScopeScript().Evaluation got = %v, want %v", got.Evaluation, want.Evaluation)
 	}
@@ -626,7 +626,7 @@ func verify(t *testing.T, got, want *scopechecker.ScopeCheckResponse) {
 	}
 }
 
-func formatError(e *commons.Error) string {
+func formatError(e *commonsV1.Error) string {
 	if e == nil {
 		return ""
 	}

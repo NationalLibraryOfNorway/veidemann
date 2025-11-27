@@ -6,9 +6,9 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	"github.com/NationalLibraryOfNorway/veidemann/api/scopechecker"
-	"github.com/NationalLibraryOfNorway/veidemann/api/uricanonicalizer"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	scopecheckerV1 "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1"
+	uricanonicalizerV1 "github.com/NationalLibraryOfNorway/veidemann/api/uricanonicalizer/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/script"
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/telemetry"
 	otgrpc "github.com/opentracing-contrib/go-grpc"
@@ -44,8 +44,8 @@ func (s *GrpcServer) Start() error {
 		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
 	}
 	s.grpcServer = grpc.NewServer(opts...)
-	scopechecker.RegisterScopesCheckerServiceServer(s.grpcServer, &ScopeCheckerService{})
-	uricanonicalizer.RegisterUriCanonicalizerServiceServer(s.grpcServer, &UriCanonicalizerService{})
+	scopecheckerV1.RegisterScopesCheckerServiceServer(s.grpcServer, &ScopeCheckerService{})
+	uricanonicalizerV1.RegisterUriCanonicalizerServiceServer(s.grpcServer, &UriCanonicalizerService{})
 
 	log.Info().Msgf("Scope Service listening on %s", lis.Addr())
 	return s.grpcServer.Serve(lis)
@@ -57,10 +57,10 @@ func (s *GrpcServer) Shutdown() {
 }
 
 type ScopeCheckerService struct {
-	scopechecker.UnimplementedScopesCheckerServiceServer
+	scopecheckerV1.UnimplementedScopesCheckerServiceServer
 }
 
-func (s *ScopeCheckerService) ScopeCheck(_ context.Context, request *scopechecker.ScopeCheckRequest) (*scopechecker.ScopeCheckResponse, error) {
+func (s *ScopeCheckerService) ScopeCheck(_ context.Context, request *scopecheckerV1.ScopeCheckRequest) (*scopecheckerV1.ScopeCheckResponse, error) {
 	telemetry.ScopechecksTotal.Inc()
 	result := script.RunScopeScript(request.ScopeScriptName, request.ScopeScript, request.QueuedUri, request.Debug)
 	telemetry.ScopecheckResponseTotal.With(prometheus.Labels{"code": strconv.Itoa(int(result.ExcludeReason))}).Inc()
@@ -68,15 +68,15 @@ func (s *ScopeCheckerService) ScopeCheck(_ context.Context, request *scopechecke
 }
 
 type UriCanonicalizerService struct {
-	uricanonicalizer.UnimplementedUriCanonicalizerServiceServer
+	uricanonicalizerV1.UnimplementedUriCanonicalizerServiceServer
 }
 
-func (u *UriCanonicalizerService) Canonicalize(_ context.Context, request *uricanonicalizer.CanonicalizeRequest) (*uricanonicalizer.CanonicalizeResponse, error) {
+func (u *UriCanonicalizerService) Canonicalize(_ context.Context, request *uricanonicalizerV1.CanonicalizeRequest) (*uricanonicalizerV1.CanonicalizeResponse, error) {
 	telemetry.CanonicalizationsTotal.Inc()
 	canonicalized, err := script.CrawlCanonicalizationProfile.Parse(request.Uri)
 	if err == nil {
-		return &uricanonicalizer.CanonicalizeResponse{
-			Uri: &commons.ParsedUri{
+		return &uricanonicalizerV1.CanonicalizeResponse{
+			Uri: &commonsV1.ParsedUri{
 				Href:     canonicalized.String(),
 				Scheme:   canonicalized.Scheme(),
 				Host:     canonicalized.Hostname(),
@@ -89,8 +89,8 @@ func (u *UriCanonicalizerService) Canonicalize(_ context.Context, request *urica
 			},
 		}, nil
 	}
-	return &uricanonicalizer.CanonicalizeResponse{
-		Uri: &commons.ParsedUri{
+	return &uricanonicalizerV1.CanonicalizeResponse{
+		Uri: &commonsV1.ParsedUri{
 			Href: request.Uri},
 	}, err
 }

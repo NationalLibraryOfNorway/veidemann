@@ -9,10 +9,10 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/script"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/api/scopechecker"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	scopecheckerV1 "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -28,14 +28,14 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 	tests := []struct {
 		name   string
 		script string
-		qUri   *frontier.QueuedUri
+		qUri   *frontierV1.QueuedUri
 		debug  bool
-		want   *scopechecker.ScopeCheckResponse
+		want   *scopecheckerV1.ScopeCheckResponse
 	}{
-		{"exclude", "test(True).then(ChaffDetection)", qUri, false, &scopechecker.ScopeCheckResponse{
-			Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+		{"exclude", "test(True).then(ChaffDetection)", qUri, false, &scopecheckerV1.ScopeCheckResponse{
+			Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 			ExcludeReason: script.ChaffDetection.AsInt32(),
-			IncludeCheckUri: &commons.ParsedUri{
+			IncludeCheckUri: &commonsV1.ParsedUri{
 				Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 				Scheme: "http",
 				Host:   "foo.bar",
@@ -47,10 +47,10 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 		}},
 		{"missingParam",
 			"test(param(\"foo\"))", qUri, false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.RuntimeException.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -59,7 +59,7 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 					Query:  "foo&jsessionid=1",
 				},
 				Console: "",
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   -5,
 					Msg:    "error executing scope script",
 					Detail: "Traceback (most recent call last):\n  scope_script:1:11: in <toplevel>\nError in param: no value with name 'foo'",
@@ -67,10 +67,10 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 			}},
 		{"badScript",
 			"test(", qUri, false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.RuntimeException.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -79,7 +79,7 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 					Query:  "foo&jsessionid=1",
 				},
 				Console: "",
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   -5,
 					Msg:    "error parsing scope script",
 					Detail: "scope_script:1:6: got end of file, want ')'",
@@ -87,10 +87,10 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 			}},
 		{"withDebug",
 			"test(param(\"testValue\")).then(ChaffDetection)", qUri, true,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.ChaffDetection.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
 					Scheme: "http",
 					Host:   "foo.bar",
@@ -102,14 +102,14 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 			}},
 		{"badUri",
 			"test(True).then(ChaffDetection)", badQUri, true,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.IllegalUri.AsInt32(),
-				IncludeCheckUri: &commons.ParsedUri{
+				IncludeCheckUri: &commonsV1.ParsedUri{
 					Href: "http://%00foo.bar/aa bb/cc?jsessionid=1&foo#bar",
 				},
 				Console: "",
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   -7,
 					Msg:    "error parsing uri",
 					Detail: "Error: The host contains a forbidden domain code point: '\x00'. Url: 'http://%00foo.bar/aa bb/cc?jsessionid=1&foo#bar'",
@@ -118,7 +118,7 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := &scopechecker.ScopeCheckRequest{
+			request := &scopecheckerV1.ScopeCheckRequest{
 				QueuedUri:       tt.qUri,
 				ScopeScriptName: "scope_script",
 				ScopeScript:     tt.script,
@@ -162,47 +162,47 @@ isUrl(param('scope_excludedUris')).then(Blocked)`
 
 	tests := []struct {
 		name  string
-		qUri  *frontier.QueuedUri
+		qUri  *frontierV1.QueuedUri
 		debug bool
-		want  *scopechecker.ScopeCheckResponse
+		want  *scopecheckerV1.ScopeCheckResponse
 	}{
 		{"include",
 			newQUri("http://foo.bar/aa", "http://foo.bar/", "RL"),
 			false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation: scopechecker.ScopeCheckResponse_INCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation: scopecheckerV1.ScopeCheckResponse_INCLUDE,
 			}},
 		{"wrongScheme",
 			newQUri("ftp://foo.bar/aa", "http://foo.bar/", "RL"),
 			false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.Blocked.AsInt32(),
 			}},
 		{"tooManyHops",
 			newQUri("http://foo.bar/aa", "http://foo.bar/", "RLLL"),
 			false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.TooManyHops.AsInt32(),
 			}},
 		{"offHost",
 			newQUri("http://foo2.bar/aa", "http://foo.bar/", "RL"),
 			false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation:    scopechecker.ScopeCheckResponse_EXCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason: script.Blocked.AsInt32(),
 			}},
 		{"altHost",
 			newQUri("http://alt.host.com/aa", "http://foo.bar/", "RL"),
 			false,
-			&scopechecker.ScopeCheckResponse{
-				Evaluation: scopechecker.ScopeCheckResponse_INCLUDE,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation: scopecheckerV1.ScopeCheckResponse_INCLUDE,
 			}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := &scopechecker.ScopeCheckRequest{
+			request := &scopecheckerV1.ScopeCheckRequest{
 				QueuedUri:       tt.qUri,
 				ScopeScriptName: "scope_script",
 				ScopeScript:     defaultScript,
@@ -232,8 +232,8 @@ isUrl(param('scope_excludedUris')).then(Blocked)`
 	}
 }
 
-func newQUri(uri, seed, discoveryPath string) *frontier.QueuedUri {
-	return &frontier.QueuedUri{
+func newQUri(uri, seed, discoveryPath string) *frontierV1.QueuedUri {
+	return &frontierV1.QueuedUri{
 		Id:                  "id1",
 		ExecutionId:         "eid1",
 		DiscoveredTimeStamp: timestamppb.Now(),
@@ -245,7 +245,7 @@ func newQUri(uri, seed, discoveryPath string) *frontier.QueuedUri {
 		Referrer:            "http://foo.bar/",
 		Cookies:             nil,
 		Retries:             0,
-		Annotation: []*config.Annotation{
+		Annotation: []*configV1.Annotation{
 			{Key: "testValue", Value: "True"},
 			{Key: "scope_includeSubdomains", Value: "True"},
 			{Key: "scope_maxHopsFromSeed", Value: "2"},
@@ -257,7 +257,7 @@ func newQUri(uri, seed, discoveryPath string) *frontier.QueuedUri {
 	}
 }
 
-func formatError(e *commons.Error) string {
+func formatError(e *commonsV1.Error) string {
 	if e == nil {
 		return ""
 	}

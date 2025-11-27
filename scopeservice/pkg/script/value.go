@@ -3,19 +3,19 @@ package script
 import (
 	"sort"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/nlnwa/whatwg-url/url"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )
 
 type UrlValue struct {
-	qUri      *frontier.QueuedUri
+	qUri      *frontierV1.QueuedUri
 	parsedUri *url.Url
 }
 
-func Url(u *frontier.QueuedUri) (*UrlValue, error) {
+func Url(u *frontierV1.QueuedUri) (*UrlValue, error) {
 	r := &UrlValue{
 		qUri: u,
 	}
@@ -31,11 +31,11 @@ func (u *UrlValue) String() string {
 	return u.parsedUri.String()
 }
 
-func (u *UrlValue) AsCommonsParsedUri() *commons.ParsedUri {
+func (u *UrlValue) AsCommonsParsedUri() *commonsV1.ParsedUri {
 	if u.parsedUri == nil {
 		return nil
 	}
-	return &commons.ParsedUri{
+	return &commonsV1.ParsedUri{
 		Href:     u.parsedUri.String(),
 		Scheme:   u.parsedUri.Scheme(),
 		Host:     u.parsedUri.Hostname(),

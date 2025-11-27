@@ -8,9 +8,9 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/telemetry"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/api/scopechecker"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	scopecheckerV1 "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"go.starlark.net/starlark"
@@ -30,7 +30,7 @@ var scriptLogger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat:
 	Timestamp().Logger().Level(zerolog.DebugLevel)
 
 // RunScopeScript runs the Scope checking script and returns the Scope status.
-func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debug bool) *scopechecker.ScopeCheckResponse {
+func RunScopeScript(name string, src interface{}, qUri *frontierV1.QueuedUri, debug bool) *scopecheckerV1.ScopeCheckResponse {
 	options := &syntax.FileOptions{
 		Set:            true, // allow the 'set' built-in
 		Recursion:      true, // allow while statements and recursive functions
@@ -42,11 +42,11 @@ func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debu
 	// Parse input URI
 	qUrl, err := Url(qUri)
 	if err != nil {
-		return &scopechecker.ScopeCheckResponse{
-			Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+		return &scopecheckerV1.ScopeCheckResponse{
+			Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 			ExcludeReason:   IllegalUri.AsInt32(),
-			IncludeCheckUri: &commons.ParsedUri{Href: qUri.Uri},
-			Error: &commons.Error{
+			IncludeCheckUri: &commonsV1.ParsedUri{Href: qUri.Uri},
+			Error: &commonsV1.Error{
 				Code:   IllegalUri.AsInt32(),
 				Msg:    "error parsing uri",
 				Detail: err.Error(),
@@ -61,11 +61,11 @@ func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debu
 	t := prometheus.NewTimer(telemetry.CompileScriptSeconds)
 	_, prog, err := starlark.SourceProgramOptions(options, name, src, starlark.StringDict{}.Has)
 	if err != nil {
-		return &scopechecker.ScopeCheckResponse{
-			Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+		return &scopecheckerV1.ScopeCheckResponse{
+			Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 			ExcludeReason:   RuntimeException.AsInt32(),
 			IncludeCheckUri: includeCheckUri,
-			Error: &commons.Error{
+			Error: &commonsV1.Error{
 				Code:   RuntimeException.AsInt32(),
 				Msg:    "error parsing scope script",
 				Detail: err.Error(),
@@ -110,20 +110,20 @@ func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debu
 				w := new(wrappedError)
 				if errors.As(evalErr, &w) {
 					// Script returned Status wrapped as Error
-					e := (*commons.Error)(w)
-					return &scopechecker.ScopeCheckResponse{
-						Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+					e := (*commonsV1.Error)(w)
+					return &scopecheckerV1.ScopeCheckResponse{
+						Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 						ExcludeReason:   e.Code,
 						IncludeCheckUri: includeCheckUri,
 						Error:           e,
 						Console:         consoleLog.String(),
 					}
 				} else {
-					return &scopechecker.ScopeCheckResponse{
-						Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+					return &scopecheckerV1.ScopeCheckResponse{
+						Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 						ExcludeReason:   RuntimeException.AsInt32(),
 						IncludeCheckUri: includeCheckUri,
-						Error: &commons.Error{
+						Error: &commonsV1.Error{
 							Code:   RuntimeException.AsInt32(),
 							Msg:    "error executing scope script",
 							Detail: evalErr.Backtrace(),
@@ -133,11 +133,11 @@ func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debu
 				}
 			}
 		} else {
-			return &scopechecker.ScopeCheckResponse{
-				Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+			return &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason:   RuntimeException.AsInt32(),
 				IncludeCheckUri: includeCheckUri,
-				Error: &commons.Error{
+				Error: &commonsV1.Error{
 					Code:   RuntimeException.AsInt32(),
 					Msg:    "unknown error executing scope script",
 					Detail: err.Error(),
@@ -150,25 +150,25 @@ func RunScopeScript(name string, src interface{}, qUri *frontier.QueuedUri, debu
 	s, ok := thread.Local(resultKey).(Status)
 	if ok {
 		if s == 0 {
-			return &scopechecker.ScopeCheckResponse{
-				Evaluation:      scopechecker.ScopeCheckResponse_INCLUDE,
+			return &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:      scopecheckerV1.ScopeCheckResponse_INCLUDE,
 				IncludeCheckUri: includeCheckUri,
 				Console:         consoleLog.String(),
 			}
 		} else {
-			return &scopechecker.ScopeCheckResponse{
-				Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+			return &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 				ExcludeReason:   s.AsInt32(),
 				IncludeCheckUri: includeCheckUri,
 				Console:         consoleLog.String(),
 			}
 		}
 	} else {
-		return &scopechecker.ScopeCheckResponse{
-			Evaluation:      scopechecker.ScopeCheckResponse_EXCLUDE,
+		return &scopecheckerV1.ScopeCheckResponse{
+			Evaluation:      scopecheckerV1.ScopeCheckResponse_EXCLUDE,
 			ExcludeReason:   Blocked.AsInt32(),
 			IncludeCheckUri: includeCheckUri,
-			Error:           (*commons.Error)(Blocked.asError("No scope rules matched")),
+			Error:           (*commonsV1.Error)(Blocked.asError("No scope rules matched")),
 			Console:         consoleLog.String(),
 		}
 	}

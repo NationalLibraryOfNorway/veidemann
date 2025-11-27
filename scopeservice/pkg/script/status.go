@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	"github.com/NationalLibraryOfNorway/veidemann/api/scopechecker"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	scopecheckerV1 "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1"
 	"go.starlark.net/starlark"
 )
 
@@ -25,7 +25,7 @@ func init() {
 }
 
 var (
-	Include                         = Status(scopechecker.ScopeCheckResponse_INCLUDE)
+	Include                         = Status(scopecheckerV1.ScopeCheckResponse_INCLUDE)
 	RuntimeException         Status = -5
 	IllegalUri               Status = -7
 	ChaffDetection           Status = -4000
@@ -95,7 +95,7 @@ func (s Status) asError(detail string) *wrappedError {
 	}
 }
 
-type wrappedError commons.Error
+type wrappedError commonsV1.Error
 
 func (w *wrappedError) Error() string {
 	return fmt.Sprintf("%d %s: %s", w.Code, w.Msg, w.Detail)
