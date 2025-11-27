@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/script"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
 	"github.com/chromedp/cdproto/page"

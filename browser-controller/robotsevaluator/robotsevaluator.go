@@ -19,8 +19,8 @@ package robotsevaluator
 import (
 	"context"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"

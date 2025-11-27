@@ -20,9 +20,9 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/rs/zerolog/log"
 )

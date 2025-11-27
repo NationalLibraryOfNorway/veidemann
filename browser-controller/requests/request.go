@@ -17,7 +17,7 @@
 package requests
 
 import (
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 )
 
 type Request struct {

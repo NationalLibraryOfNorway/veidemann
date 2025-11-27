@@ -1,7 +1,7 @@
 package database
 
 import (
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"sync"
 	"time"
 )

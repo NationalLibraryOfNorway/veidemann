@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 type ConfigCache interface {

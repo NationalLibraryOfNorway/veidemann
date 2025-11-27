@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller"
+	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

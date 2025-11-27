@@ -22,8 +22,8 @@ import (
 	"io"
 	"strconv"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"

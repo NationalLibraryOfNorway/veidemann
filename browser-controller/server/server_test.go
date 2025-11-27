@@ -30,9 +30,9 @@ import (
 	"testing"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
-	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"

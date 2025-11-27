@@ -19,7 +19,7 @@ package errors
 import (
 	"fmt"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 )
 
 type FetchError interface {

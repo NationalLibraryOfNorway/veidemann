@@ -19,7 +19,7 @@ package logwriter
 import (
 	"context"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/logservice"
 )

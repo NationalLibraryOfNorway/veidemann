@@ -23,28 +23,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller"
+	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
 )
 
 func TestRecv(t *testing.T) {
 	var testErr = fmt.Errorf("error")
-	var testReq = &browsercontroller.DoRequest{}
+	var testReq = &browsercontrollerV1.DoRequest{}
 
 	type args struct {
 		ctx context.Context
-		fn  func() (*browsercontroller.DoRequest, error)
+		fn  func() (*browsercontrollerV1.DoRequest, error)
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *browsercontroller.DoRequest
+		want    *browsercontrollerV1.DoRequest
 		wantErr error
 	}{
 		{
 			"success",
 			args{
 				context.Background(),
-				func() (*browsercontroller.DoRequest, error) {
+				func() (*browsercontrollerV1.DoRequest, error) {
 					return testReq, nil
 				},
 			},
@@ -55,7 +55,7 @@ func TestRecv(t *testing.T) {
 			"error",
 			args{
 				context.Background(),
-				func() (*browsercontroller.DoRequest, error) {
+				func() (*browsercontrollerV1.DoRequest, error) {
 					return nil, testErr
 				},
 			},
@@ -69,7 +69,7 @@ func TestRecv(t *testing.T) {
 					ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
 					return ctx
 				}(),
-				func() (*browsercontroller.DoRequest, error) {
+				func() (*browsercontrollerV1.DoRequest, error) {
 					time.Sleep(200 * time.Millisecond)
 					return testReq, nil
 				},

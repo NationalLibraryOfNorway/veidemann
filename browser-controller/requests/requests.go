@@ -19,7 +19,7 @@ package requests
 import (
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/rs/zerolog/log"
 )
@@ -35,7 +35,7 @@ type RequestRegistry interface {
 	Walk(w func(*Request))
 	InitialRequest() *Request
 	RootRequest() *Request
-	FinalizeResponses(requestedUrl *frontier.QueuedUri)
+	FinalizeResponses(requestedUrl *frontierV1.QueuedUri)
 }
 
 type requestRegistry struct {
@@ -139,7 +139,7 @@ func (r *requestRegistry) Walk(w func(*Request)) {
 	}
 }
 
-func (r *requestRegistry) FinalizeResponses(requestedUrl *frontier.QueuedUri) {
+func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) {
 	urls := make(map[string]*Request)
 	ids := make(map[string]*Request)
 	r.rootRequest = r.requests[0]

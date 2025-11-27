@@ -19,7 +19,7 @@ package testutil
 import (
 	"context"
 
-	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator"
+	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 )
 
 // RobotsEvaluatorMock is a helper structure for mocking robotsevaluator.RobotsEvaluator

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"

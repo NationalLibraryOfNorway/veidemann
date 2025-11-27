@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/mailru/easyjson"
 )
 
