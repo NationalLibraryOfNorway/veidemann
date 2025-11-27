@@ -1,0 +1,148 @@
+apiVersion: v1
+id: bfde69f5-1e4c-4207-a209-263058b9e41f
+kind: browserScript
+meta:
+  annotation:
+    - key: scope_maxHopsFromSeed
+      value: "0"
+    - key: scope_hopsIncludeRedirects
+      value: "False"
+    - key: scope_excludedUris
+      value: "dummy"
+    - key: scope_includeSubdomains
+      value: "True"
+    - key: scope_allowedSchemes
+      value: "https http"
+    - key: scope_altSeeds
+      value: ""
+  description: Default scope check script
+  label:
+    - key: scope
+      value: default
+  name: default-scope.star
+browserScript:
+  browserScriptType: SCOPE_CHECK
+  script: |
+    isScheme(param('scope_allowedSchemes')).otherwise(Blocked)
+    isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeeds')).then(Include, continueEvaluation=True).otherwise(Blocked, continueEvaluation=False)
+    maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')).then(TooManyHops)
+    isUrl(param('scope_excludedUris')).then(Blocked)
+  urlRegexp: [ ]
+
+---
+
+apiVersion: v1
+id: 52aeccf3-77d5-4c18-b55f-6561d582a7fb
+browserScript:
+  browserScriptType: EXTRACT_OUTLINKS
+  script: |
+    (function extractOutlinks(frame) {
+      const framesDone = new Set();
+
+      function isValid(link) {
+      return (link != null
+            && link.attributes.href.value != ""
+            && link.attributes.href.value != "#"
+            && link.protocol != "tel:"
+            && link.protocol != "mailto:"
+           );
+      }
+
+      function compileOutlinks(frame) {
+        framesDone.add(frame);
+        if (frame && frame.document) {
+          let outlinks = Array.from(frame.document.links);
+          for (var i = 0; i < frame.frames.length; i++) {
+            if (frame.frames[i] && !framesDone.has(frame.frames[i])) {
+              try {
+                outlinks = outlinks.concat(compileOutlinks(frame.frames[i]));
+              } catch {}
+            }
+          }
+          return outlinks;
+        }
+        return [];
+      }
+
+      return Array.from(new Set(compileOutlinks(frame).filter(isValid).map(_ => _.href)));
+    })(window);
+  urlRegexp: []
+kind: browserScript
+meta:
+  annotation: []
+  description: Script which extracts outlinks from <a href> tags
+  label:
+    - key: scope
+      value: default
+  name: extract-outlinks.js
+
+---
+
+apiVersion: v1
+id: 75dfe01a-e9cc-4fd2-8aa5-c04878d9f1a1
+browserScript:
+  browserScriptType: ON_LOAD
+  script: |
+    function scroll ({ next, count = 100 } = {}) {
+      let c = count;
+      if (typeof count === 'string') {
+        // if count originates from annotation it is string
+        c = parseInt(count, 10)
+      }
+
+      // height of visible area of window
+      const windowHeight = window.innerHeight
+
+      // height of scrollable area
+      const scrollHeight = document.documentElement.scrollHeight
+
+      // scroll down height of window
+      window.scrollBy(0, windowHeight)
+
+      if (c - 1 > 0 && scrollHeight > window.pageYOffset + windowHeight) {
+        return {
+          waitForData: true,
+          next: 'self',
+          data: {
+            count: c - 1,
+          }
+        }
+      }
+
+      return {
+        next,
+        waitForData: true
+      }
+    }
+
+  urlRegexp: []
+kind: browserScript
+meta:
+  description: Scroll down count pages
+  label:
+    - key: scope
+      value: default
+  annotation:
+    - key: next
+      value: 0ef72ea7-f145-4908-adaa-ebf50890b09c
+  name: scroll.js
+
+---
+
+apiVersion: v1
+id: 0ef72ea7-f145-4908-adaa-ebf50890b09c
+browserScript:
+  browserScriptType: UNDEFINED
+  script: |
+    function scrollTo({ x = 0, y = 0 } = {}) {
+      window.scrollTo(x, y)
+    }
+  urlRegexp: []
+kind: browserScript
+meta:
+  annotation: []
+  description: Scroll to (x, y)
+  label:
+    - key: scope
+      value: default
+  name: scrollTo.js

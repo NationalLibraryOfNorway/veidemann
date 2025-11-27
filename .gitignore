@@ -1,3 +1,16 @@
+# go work files
 go.work
 go.work.sum
-.idea
+
+# Gradle caches
+.gradle/
+
+# Build outputs
+build/
+out/
+bin/
+
+# IDE
+.idea/
+*.iml
+.vscode/

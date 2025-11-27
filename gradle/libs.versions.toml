@@ -1,0 +1,28 @@
+[versions]
+grpc = "1.77.0"
+protobuf = "4.33.1"
+concurrency-limits = "0.5.3"
+jaeger-client = "1.8.1"
+
+[libraries]
+grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
+grpc-stub     = { module = "io.grpc:grpc-stub",     version.ref = "grpc" }
+
+protobuf-java       = { module = "com.google.protobuf:protobuf-java",       version.ref = "protobuf" }
+protobuf-java-util  = { module = "com.google.protobuf:protobuf-java-util",  version.ref = "protobuf" }
+
+typesafe-config = { module = "com.typesafe:config", version = "1.4.5" }
+
+concurrency-limits-core = { module = "com.netflix.concurrency-limits:concurrency-limits-core", version.ref = "concurrency-limits" }
+concurrency-limits-grpc = { module = "com.netflix.concurrency-limits:concurrency-limits-grpc", version.ref = "concurrency-limits" }
+
+jaeger-client = { module = "io.jaegertracing:jaeger-client", version.ref = "jaeger-client" }
+
+slf4j-bom = { module = "org.slf4j:slf4j-bom", version = "2.0.17" }
+log4j-bom = { module = "org.apache.logging.log4j:log4j-bom", version = "2.25.2" }
+grpc-bom = { module = "io.grpc:grpc-bom", version = "1.77.0" }
+junit-bom = { module = "org.junit:junit-bom", version = "5.14.1" }
+mockito-bom = { module = "org.mockito:mockito-bom", version = "5.20.0" }
+
+[plugins]
+protobuf = { id = "com.google.protobuf", version = "0.9.5" }
