@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -108,7 +108,7 @@ func (c *RethinkDbConnection) GetConfigObject(ctx context.Context, ref *configV1
 	return &result, nil
 }
 
-func (c *RethinkDbConnection) HasCrawledContent(ctx context.Context, payloadDigest string) (*contentwriter.CrawledContent, error) {
+func (c *RethinkDbConnection) HasCrawledContent(ctx context.Context, payloadDigest string) (*contentwriterV1.CrawledContent, error) {
 	if payloadDigest == "" {
 		return nil, fmt.Errorf("The required field 'digest' is missing from: 'crawledContent'")
 	}
@@ -122,13 +122,13 @@ func (c *RethinkDbConnection) HasCrawledContent(ctx context.Context, payloadDige
 	if response.IsNil() {
 		return nil, nil
 	} else {
-		var res contentwriter.CrawledContent
+		var res contentwriterV1.CrawledContent
 		err := response.One(&res)
 		return &res, err
 	}
 }
 
-func (c *RethinkDbConnection) WriteCrawledContent(ctx context.Context, crawledContent *contentwriter.CrawledContent) error {
+func (c *RethinkDbConnection) WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error {
 	if crawledContent.Digest == "" {
 		return fmt.Errorf("The required field 'digest' is missing from: 'crawledContent'")
 	}

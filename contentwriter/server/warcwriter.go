@@ -24,8 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
 	"github.com/google/uuid"
@@ -41,8 +41,8 @@ const warcFileScheme = "warcfile"
 
 type warcWriter struct {
 	settings         settings.Settings
-	collectionConfig *config.ConfigObject
-	subCollection    config.Collection_SubCollectionType
+	collectionConfig *configV1.ConfigObject
+	subCollection    configV1.Collection_SubCollectionType
 	filePrefix       string
 	fileWriter       *gowarc.WarcFileWriter
 	dbAdapter        database.DbAdapter
@@ -52,7 +52,7 @@ type warcWriter struct {
 	revisitProfile   string
 }
 
-func newWarcWriter(s settings.Settings, db database.DbAdapter, c *config.ConfigObject, recordMeta *contentwriter.WriteRequestMeta_RecordMeta) *warcWriter {
+func newWarcWriter(s settings.Settings, db database.DbAdapter, c *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
 	collectionConfig := c.GetCollection()
 	ww := &warcWriter{
 		settings:         s,
@@ -73,7 +73,7 @@ func newWarcWriter(s settings.Settings, db database.DbAdapter, c *config.ConfigO
 
 	rotationPolicy := collectionConfig.GetFileRotationPolicy()
 	dedupPolicy := collectionConfig.GetCollectionDedupPolicy()
-	if dedupPolicy != config.Collection_NONE && dedupPolicy < rotationPolicy {
+	if dedupPolicy != configV1.Collection_NONE && dedupPolicy < rotationPolicy {
 		rotationPolicy = dedupPolicy
 	}
 	if d, ok := timeToNextRotation(now(), rotationPolicy); ok {
@@ -95,7 +95,7 @@ func (ww *warcWriter) CollectionName() string {
 	return ww.filePrefix[:len(ww.filePrefix)-1]
 }
 
-func (ww *warcWriter) Write(meta *contentwriter.WriteRequestMeta, record ...gowarc.WarcRecord) (*contentwriter.WriteReply, error) {
+func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...gowarc.WarcRecord) (*contentwriterV1.WriteReply, error) {
 	ww.lock.Lock()
 	defer ww.lock.Unlock()
 	revisitKeys := make([]string, len(record))
@@ -106,9 +106,9 @@ func (ww *warcWriter) Write(meta *contentwriter.WriteRequestMeta, record ...gowa
 	}
 	results := ww.fileWriter.Write(record...)
 
-	reply := &contentwriter.WriteReply{
-		Meta: &contentwriter.WriteResponseMeta{
-			RecordMeta: map[int32]*contentwriter.WriteResponseMeta_RecordMeta{},
+	reply := &contentwriterV1.WriteReply{
+		Meta: &contentwriterV1.WriteResponseMeta{
+			RecordMeta: map[int32]*contentwriterV1.WriteResponseMeta_RecordMeta{},
 		},
 	}
 
@@ -140,7 +140,7 @@ func (ww *warcWriter) Write(meta *contentwriter.WriteRequestMeta, record ...gowa
 			if t, err := time.Parse(time.RFC3339, rec.WarcHeader().Get(gowarc.WarcDate)); err != nil {
 				log.Err(err).Msg("Could not write CrawledContent to DB")
 			} else {
-				cr := &contentwriter.CrawledContent{
+				cr := &contentwriterV1.CrawledContent{
 					Digest:    revisitKey,
 					WarcId:    warcId.String(),
 					TargetUri: meta.GetTargetUri(),
@@ -154,7 +154,7 @@ func (ww *warcWriter) Write(meta *contentwriter.WriteRequestMeta, record ...gowa
 		}
 		storageRef := warcFileScheme + ":" + res.FileName + ":" + strconv.FormatInt(res.FileOffset, 10)
 		collectionFinalName := ww.filePrefix[:len(ww.filePrefix)-1]
-		reply.GetMeta().GetRecordMeta()[recNum] = &contentwriter.WriteResponseMeta_RecordMeta{
+		reply.GetMeta().GetRecordMeta()[recNum] = &contentwriterV1.WriteResponseMeta_RecordMeta{
 			RecordNum:           recNum,
 			Type:                FromGowarcRecordType(record[i].Type()),
 			WarcId:              warcId.String(),
@@ -168,7 +168,7 @@ func (ww *warcWriter) Write(meta *contentwriter.WriteRequestMeta, record ...gowa
 	return reply, err
 }
 
-func (ww *warcWriter) detectRevisit(recordNum int32, record gowarc.WarcRecord, meta *contentwriter.WriteRequestMeta) (gowarc.WarcRecord, string) {
+func (ww *warcWriter) detectRevisit(recordNum int32, record gowarc.WarcRecord, meta *contentwriterV1.WriteRequestMeta) (gowarc.WarcRecord, string) {
 	if record.Type() == gowarc.Response || record.Type() == gowarc.Resource {
 		digest := record.WarcHeader().Get(gowarc.WarcPayloadDigest)
 		if digest == "" {
@@ -198,7 +198,7 @@ func (ww *warcWriter) detectRevisit(recordNum int32, record gowarc.WarcRecord, m
 			}
 
 			newRecordMeta := meta.GetRecordMeta()[recordNum]
-			newRecordMeta.Type = contentwriter.RecordType_REVISIT
+			newRecordMeta.Type = contentwriterV1.RecordType_REVISIT
 			newRecordMeta.BlockDigest = revisit.Block().BlockDigest()
 			if r, ok := revisit.Block().(gowarc.PayloadBlock); ok {
 				newRecordMeta.PayloadDigest = r.PayloadDigest()
@@ -240,7 +240,7 @@ func (ww *warcWriter) initFileWriter() {
 	ww.fileWriter = gowarc.NewWarcFileWriter(opts...)
 }
 
-func (ww *warcWriter) waitForTimer(rotationPolicy config.Collection_RotationPolicy) bool {
+func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPolicy) bool {
 	select {
 	case <-ww.done:
 	case <-ww.timer.C:
@@ -285,17 +285,17 @@ func (ww *warcWriter) Shutdown() {
 	}
 }
 
-func timeToNextRotation(now time.Time, p config.Collection_RotationPolicy) (time.Duration, bool) {
+func timeToNextRotation(now time.Time, p configV1.Collection_RotationPolicy) (time.Duration, bool) {
 	var t2 time.Time
 
 	switch p {
-	case config.Collection_HOURLY:
+	case configV1.Collection_HOURLY:
 		t2 = time.Date(now.Year(), now.Month(), now.Day(), now.Hour()+1, 0, 0, 0, now.Location())
-	case config.Collection_DAILY:
+	case configV1.Collection_DAILY:
 		t2 = time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
-	case config.Collection_MONTHLY:
+	case configV1.Collection_MONTHLY:
 		t2 = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
-	case config.Collection_YEARLY:
+	case configV1.Collection_YEARLY:
 		t2 = time.Date(now.Year()+1, 1, 1, 0, 0, 0, 0, now.Location())
 	default:
 		return 0, false
@@ -305,23 +305,23 @@ func timeToNextRotation(now time.Time, p config.Collection_RotationPolicy) (time
 	return d, true
 }
 
-func createFileRotationKey(now time.Time, p config.Collection_RotationPolicy) string {
+func createFileRotationKey(now time.Time, p configV1.Collection_RotationPolicy) string {
 	switch p {
-	case config.Collection_HOURLY:
+	case configV1.Collection_HOURLY:
 		return now.Format("2006010215")
-	case config.Collection_DAILY:
+	case configV1.Collection_DAILY:
 		return now.Format("20060102")
-	case config.Collection_MONTHLY:
+	case configV1.Collection_MONTHLY:
 		return now.Format("200601")
-	case config.Collection_YEARLY:
+	case configV1.Collection_YEARLY:
 		return now.Format("2006")
 	default:
 		return ""
 	}
 }
 
-func createFilePrefix(collectionName string, subCollection config.Collection_SubCollectionType, ts time.Time, dedupPolicy config.Collection_RotationPolicy) string {
-	if subCollection != config.Collection_UNDEFINED {
+func createFilePrefix(collectionName string, subCollection configV1.Collection_SubCollectionType, ts time.Time, dedupPolicy configV1.Collection_RotationPolicy) string {
+	if subCollection != configV1.Collection_UNDEFINED {
 		collectionName += "_" + subCollection.String()
 	}
 

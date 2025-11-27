@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 var (

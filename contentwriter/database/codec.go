@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6/encoding"
@@ -71,7 +71,7 @@ var decodeCrawledContent = func(encoded interface{}, value reflect.Value) error 
 		return fmt.Errorf("error decoding CrawledContent: %w", err)
 	}
 
-	var co contentwriter.CrawledContent
+	var co contentwriterV1.CrawledContent
 	unmarshaller := protojson.UnmarshalOptions{
 		AllowPartial:   true,
 		DiscardUnknown: true,
@@ -110,7 +110,7 @@ func init() {
 		decodeCrawlExecutionStatus,
 	)
 	encoding.SetTypeEncoding(
-		reflect.TypeOf(&contentwriter.CrawledContent{}),
+		reflect.TypeOf(&contentwriterV1.CrawledContent{}),
 		encodeProtoMessage,
 		decodeCrawledContent,
 	)

@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +44,7 @@ type serverAndClient struct {
 	dbMock     *r.Mock
 	server     *GrpcServer
 	clientConn *grpc.ClientConn
-	client     contentwriter.ContentWriterClient
+	client     contentwriterV1.ContentWriterClient
 }
 
 func newServerAndClient(settings settings.Settings) serverAndClient {
@@ -77,7 +77,7 @@ func newServerAndClient(settings settings.Settings) serverAndClient {
 	serverAndClient.lis = bufconn.Listen(bufSize)
 	server := New("", 0, settings, configCache)
 	server.grpcServer = grpc.NewServer()
-	contentwriter.RegisterContentWriterServer(server.grpcServer, server.service)
+	contentwriterV1.RegisterContentWriterServer(server.grpcServer, server.service)
 	go func() {
 		if err := server.grpcServer.Serve(serverAndClient.lis); err != nil {
 			panic(fmt.Errorf("Server exited with error: %v", err))
@@ -95,7 +95,7 @@ func newServerAndClient(settings settings.Settings) serverAndClient {
 		panic(fmt.Errorf("Failed to dial bufnet: %v", err))
 	}
 	serverAndClient.clientConn = conn
-	serverAndClient.client = contentwriter.NewContentWriterClient(conn)
+	serverAndClient.client = contentwriterV1.NewContentWriterClient(conn)
 
 	return serverAndClient
 }
@@ -105,10 +105,10 @@ func (s serverAndClient) close() {
 	s.server.Shutdown()
 }
 
-type writeRequests []*contentwriter.WriteRequest
+type writeRequests []*contentwriterV1.WriteRequest
 
 var writeReq1 = writeRequests{
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriter.Data{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriterV1.Data{
 		RecordNum: 0,
 		Data: []byte("GET / HTTP/1.0\r\n" +
 			"Host: example.com\r\n" +
@@ -119,7 +119,7 @@ var writeReq1 = writeRequests{
 			"\r\n",
 		),
 	}}},
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriter.Data{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriterV1.Data{
 		RecordNum: 1,
 		Data: []byte("HTTP/1.1 200 OK\r\n" +
 			"Date: Tue, 19 Sep 2016 17:18:40 GMT\r\n" +
@@ -133,17 +133,17 @@ var writeReq1 = writeRequests{
 			"\r\n",
 		),
 	}}},
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_Payload{Payload: &contentwriter.Data{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_Payload{Payload: &contentwriterV1.Data{
 		RecordNum: 1,
 		Data:      []byte("This is the content"),
 	}}},
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_Meta{Meta: &contentwriter.WriteRequestMeta{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_Meta{Meta: &contentwriterV1.WriteRequestMeta{
 		ExecutionId: "eid1",
 		TargetUri:   "http://www.example.com/foo.html",
-		RecordMeta: map[int32]*contentwriter.WriteRequestMeta_RecordMeta{
+		RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
 			0: {
 				RecordNum:         0,
-				Type:              contentwriter.RecordType_REQUEST,
+				Type:              contentwriterV1.RecordType_REQUEST,
 				Size:              270,
 				RecordContentType: "application/http;msgtype=request",
 				BlockDigest:       "sha1:9CA62209A0DE739B1A9DDB119BAFBE63539820FC",
@@ -151,7 +151,7 @@ var writeReq1 = writeRequests{
 			},
 			1: {
 				RecordNum:         1,
-				Type:              contentwriter.RecordType_RESPONSE,
+				Type:              contentwriterV1.RecordType_RESPONSE,
 				Size:              267,
 				RecordContentType: "application/http;msgtype=response",
 				BlockDigest:       "sha1:4126C2DC27F113BEEC37A46276514CD4300DA10D",
@@ -160,12 +160,12 @@ var writeReq1 = writeRequests{
 		},
 		FetchTimeStamp: timestamppb.Now(),
 		IpAddress:      "127.0.0.1",
-		CollectionRef:  &config.ConfigRef{Kind: config.Kind_collection, Id: "c1"},
+		CollectionRef:  &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "c1"},
 	}}},
 }
 
 var writeReq2 = writeRequests{
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriter.Data{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriterV1.Data{
 		RecordNum: 0,
 		Data: []byte("GET / HTTP/1.0\r\n" +
 			"Host: example.com\r\n" +
@@ -176,7 +176,7 @@ var writeReq2 = writeRequests{
 			"\r\n",
 		),
 	}}},
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriter.Data{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_ProtocolHeader{ProtocolHeader: &contentwriterV1.Data{
 		RecordNum: 1,
 		Data: []byte("HTTP/1.1 200 OK\r\n" +
 			"Date: Tue, 19 Sep 2016 17:18:40 GMT\r\n" +
@@ -190,17 +190,17 @@ var writeReq2 = writeRequests{
 			"\r\n",
 		),
 	}}},
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_Payload{Payload: &contentwriter.Data{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_Payload{Payload: &contentwriterV1.Data{
 		RecordNum: 1,
 		Data:      []byte("This is the content"),
 	}}},
-	&contentwriter.WriteRequest{Value: &contentwriter.WriteRequest_Meta{Meta: &contentwriter.WriteRequestMeta{
+	&contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_Meta{Meta: &contentwriterV1.WriteRequestMeta{
 		ExecutionId: "eid1",
 		TargetUri:   "http://www.example.com/foo.html",
-		RecordMeta: map[int32]*contentwriter.WriteRequestMeta_RecordMeta{
+		RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
 			0: {
 				RecordNum:         0,
-				Type:              contentwriter.RecordType_REQUEST,
+				Type:              contentwriterV1.RecordType_REQUEST,
 				Size:              270,
 				RecordContentType: "application/http;msgtype=request",
 				BlockDigest:       "sha1:9CA62209A0DE739B1A9DDB119BAFBE63539820FC",
@@ -208,7 +208,7 @@ var writeReq2 = writeRequests{
 			},
 			1: {
 				RecordNum:         1,
-				Type:              contentwriter.RecordType_RESPONSE,
+				Type:              contentwriterV1.RecordType_RESPONSE,
 				Size:              267,
 				RecordContentType: "application/http;msgtype=response",
 				BlockDigest:       "sha1:4126C2DC27F113BEEC37A46276514CD4300DA10D",
@@ -217,7 +217,7 @@ var writeReq2 = writeRequests{
 		},
 		FetchTimeStamp: timestamppb.Now(),
 		IpAddress:      "127.0.0.1",
-		CollectionRef:  &config.ConfigRef{Kind: config.Kind_collection, Id: "c2"},
+		CollectionRef:  &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "c2"},
 	}}},
 }
 
@@ -263,7 +263,7 @@ func TestContentWriterService_Write(t *testing.T) {
 	fileNamePattern := `c1_2000101002-\d{14}-0001-(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.+).warc`
 
 	assert.Equal(int32(0), reply.Meta.RecordMeta[0].RecordNum)
-	assert.Equal(contentwriter.RecordType_REQUEST, reply.Meta.RecordMeta[0].Type)
+	assert.Equal(contentwriterV1.RecordType_REQUEST, reply.Meta.RecordMeta[0].Type)
 	assert.Regexp(".{8}-.{4}-.{4}-.{4}-.{12}", reply.Meta.RecordMeta[0].WarcId)
 	assert.Equal("sha1:9CA62209A0DE739B1A9DDB119BAFBE63539820FC", reply.Meta.RecordMeta[0].BlockDigest)
 	assert.Equal("sha1:DA39A3EE5E6B4B0D3255BFEF95601890AFD80709", reply.Meta.RecordMeta[0].PayloadDigest)
@@ -272,7 +272,7 @@ func TestContentWriterService_Write(t *testing.T) {
 	assert.Regexp("warcfile:"+fileNamePattern+`:\d\d\d$`, reply.Meta.RecordMeta[0].StorageRef)
 
 	assert.Equal(int32(1), reply.Meta.RecordMeta[1].RecordNum)
-	assert.Equal(contentwriter.RecordType_RESPONSE, reply.Meta.RecordMeta[1].Type)
+	assert.Equal(contentwriterV1.RecordType_RESPONSE, reply.Meta.RecordMeta[1].Type)
 	assert.Regexp(".{8}-.{4}-.{4}-.{4}-.{12}", reply.Meta.RecordMeta[1].WarcId)
 	assert.Equal("sha1:4126C2DC27F113BEEC37A46276514CD4300DA10D", reply.Meta.RecordMeta[1].BlockDigest)
 	assert.Equal("sha1:C37FFB221569C553A2476C22C7DAD429F3492977", reply.Meta.RecordMeta[1].PayloadDigest)
@@ -327,7 +327,7 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 	fileNamePattern := `c2_2000101002-\d{14}-0001-(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.+).warc.gz`
 
 	assert.Equal(int32(0), reply.Meta.RecordMeta[0].RecordNum)
-	assert.Equal(contentwriter.RecordType_REQUEST, reply.Meta.RecordMeta[0].Type)
+	assert.Equal(contentwriterV1.RecordType_REQUEST, reply.Meta.RecordMeta[0].Type)
 	assert.Regexp(".{8}-.{4}-.{4}-.{4}-.{12}", reply.Meta.RecordMeta[0].WarcId)
 	assert.Equal("sha1:9CA62209A0DE739B1A9DDB119BAFBE63539820FC", reply.Meta.RecordMeta[0].BlockDigest)
 	assert.Equal("sha1:DA39A3EE5E6B4B0D3255BFEF95601890AFD80709", reply.Meta.RecordMeta[0].PayloadDigest)
@@ -336,7 +336,7 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 	assert.Regexp("warcfile:"+fileNamePattern+`:\d\d\d$`, reply.Meta.RecordMeta[0].StorageRef)
 
 	assert.Equal(int32(1), reply.Meta.RecordMeta[1].RecordNum)
-	assert.Equal(contentwriter.RecordType_RESPONSE, reply.Meta.RecordMeta[1].Type)
+	assert.Equal(contentwriterV1.RecordType_RESPONSE, reply.Meta.RecordMeta[1].Type)
 	assert.Regexp(".{8}-.{4}-.{4}-.{4}-.{12}", reply.Meta.RecordMeta[1].WarcId)
 	assert.Equal("sha1:4126C2DC27F113BEEC37A46276514CD4300DA10D", reply.Meta.RecordMeta[1].BlockDigest)
 	assert.Equal("sha1:C37FFB221569C553A2476C22C7DAD429F3492977", reply.Meta.RecordMeta[1].PayloadDigest)
@@ -385,7 +385,7 @@ func TestContentWriterService_WriteRevisit(t *testing.T) {
 	fileNamePattern := `c1_2000101002-\d{14}-0001-(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.+).warc`
 
 	assert.Equal(int32(0), reply.Meta.RecordMeta[0].RecordNum)
-	assert.Equal(contentwriter.RecordType_REQUEST, reply.Meta.RecordMeta[0].Type)
+	assert.Equal(contentwriterV1.RecordType_REQUEST, reply.Meta.RecordMeta[0].Type)
 	assert.Regexp(".{8}-.{4}-.{4}-.{4}-.{12}", reply.Meta.RecordMeta[0].WarcId)
 	assert.Equal("sha1:9CA62209A0DE739B1A9DDB119BAFBE63539820FC", reply.Meta.RecordMeta[0].BlockDigest)
 	assert.Equal("sha1:DA39A3EE5E6B4B0D3255BFEF95601890AFD80709", reply.Meta.RecordMeta[0].PayloadDigest)
@@ -394,7 +394,7 @@ func TestContentWriterService_WriteRevisit(t *testing.T) {
 	assert.Regexp(`warcfile:`+fileNamePattern+`:\d\d\d`, reply.Meta.RecordMeta[0].StorageRef)
 
 	assert.Equal(int32(1), reply.Meta.RecordMeta[1].RecordNum)
-	assert.Equal(contentwriter.RecordType_REVISIT, reply.Meta.RecordMeta[1].Type)
+	assert.Equal(contentwriterV1.RecordType_REVISIT, reply.Meta.RecordMeta[1].Type)
 	assert.Regexp(".{8}-.{4}-.{4}-.{4}-.{12}", reply.Meta.RecordMeta[1].WarcId)
 	assert.Equal("sha1:YO5NSCLIZRCG75SP5WBNAMFKWWQLLCCK", reply.Meta.RecordMeta[1].BlockDigest)
 	assert.Equal("sha1:C37FFB221569C553A2476C22C7DAD429F3492977", reply.Meta.RecordMeta[1].PayloadDigest)

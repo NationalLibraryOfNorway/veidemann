@@ -20,8 +20,8 @@ import (
 	"context"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -55,10 +55,10 @@ func (c *MockConnection) GetConfigObject(ctx context.Context, ref *configV1.Conf
 	return c.RethinkDbConnection.GetConfigObject(ctx, ref)
 }
 
-func (c *MockConnection) HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriter.CrawledContent, error) {
+func (c *MockConnection) HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error) {
 	return c.RethinkDbConnection.HasCrawledContent(ctx, revisitKey)
 }
 
-func (c *MockConnection) WriteCrawledContent(ctx context.Context, crawledContent *contentwriter.CrawledContent) error {
+func (c *MockConnection) WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error {
 	return c.RethinkDbConnection.WriteCrawledContent(ctx, crawledContent)
 }

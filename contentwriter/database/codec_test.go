@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6/encoding"
@@ -29,7 +29,7 @@ import (
 func TestEncodeCrawledContent(t *testing.T) {
 	ts := time.Date(2021, 8, 27, 13, 52, 0, 0, time.UTC)
 
-	s := &contentwriter.CrawledContent{
+	s := &contentwriterV1.CrawledContent{
 		Digest:    "digest",
 		WarcId:    "<urn:uuid:fff232109-0d71-467f-b728-de86be386c6f>",
 		TargetUri: "http://www.example.com",
@@ -58,11 +58,11 @@ func TestDecodeCrawledContent(t *testing.T) {
 		"warcId":    "<urn:uuid:fff232109-0d71-467f-b728-de86be386c6f>",
 	}
 
-	var d contentwriter.CrawledContent
+	var d contentwriterV1.CrawledContent
 	err := encoding.Decode(&d, s)
 	assert.NoError(t, err)
 
-	expected := contentwriter.CrawledContent{
+	expected := contentwriterV1.CrawledContent{
 		Digest:    "digest",
 		WarcId:    "<urn:uuid:fff232109-0d71-467f-b728-de86be386c6f>",
 		TargetUri: "http://www.example.com",

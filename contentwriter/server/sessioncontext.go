@@ -22,16 +22,16 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/nlnwa/gowarc"
 )
 
 type writeSessionContext struct {
 	configCache      database.ConfigCache
-	meta             *contentwriter.WriteRequestMeta
-	collectionConfig *config.ConfigObject
+	meta             *contentwriterV1.WriteRequestMeta
+	collectionConfig *configV1.ConfigObject
 	recordOpts       []gowarc.WarcRecordOption
 	records          map[int32]gowarc.WarcRecord
 	recordBuilders   map[int32]gowarc.WarcRecordBuilder
@@ -47,11 +47,11 @@ func newWriteSessionContext(configCache database.ConfigCache, recordOpts []gowar
 	}
 }
 
-func (s *writeSessionContext) setWriteRequestMeta(w *contentwriter.WriteRequestMeta) {
+func (s *writeSessionContext) setWriteRequestMeta(w *contentwriterV1.WriteRequestMeta) {
 	s.meta = w
 }
 
-func (s *writeSessionContext) writeProtocolHeader(header *contentwriter.Data) error {
+func (s *writeSessionContext) writeProtocolHeader(header *contentwriterV1.Data) error {
 	recordBuilder := s.getRecordBuilder(header.RecordNum)
 	if recordBuilder.Size() != 0 {
 		return errors.New("protocol header received twice")
@@ -62,7 +62,7 @@ func (s *writeSessionContext) writeProtocolHeader(header *contentwriter.Data) er
 	return nil
 }
 
-func (s *writeSessionContext) writePayload(payload *contentwriter.Data) error {
+func (s *writeSessionContext) writePayload(payload *contentwriterV1.Data) error {
 	recordBuilder := s.getRecordBuilder(payload.RecordNum)
 	if _, err := recordBuilder.Write(payload.GetData()); err != nil {
 		return fmt.Errorf("failed to write payload for record number %d to the record builder: %w", payload.RecordNum, err)

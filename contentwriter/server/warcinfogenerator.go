@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/nlnwa/gowarc"
 )
 
@@ -29,7 +29,7 @@ func (ww *warcWriter) warcInfoGenerator(recordBuilder gowarc.WarcRecordBuilder) 
 	payload.Set("format", fmt.Sprintf("WARC File Format %d.%d", ww.settings.WarcVersion().Major(), ww.settings.WarcVersion().Minor()))
 	payload.Set("collection", ww.collectionConfig.GetMeta().GetName())
 	payload.Set("description", ww.collectionConfig.GetMeta().GetDescription())
-	if ww.subCollection != config.Collection_UNDEFINED {
+	if ww.subCollection != configV1.Collection_UNDEFINED {
 		payload.Set("subCollection", ww.subCollection.String())
 	}
 	payload.Set("isPartOf", ww.CollectionName())

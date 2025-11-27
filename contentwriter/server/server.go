@@ -21,7 +21,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/telemetry"
@@ -77,7 +77,7 @@ func (s *GrpcServer) Start() error {
 		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
 	}
 	s.grpcServer = grpc.NewServer(opts...)
-	contentwriter.RegisterContentWriterServer(s.grpcServer, s.service)
+	contentwriterV1.RegisterContentWriterServer(s.grpcServer, s.service)
 
 	log.Info().Msgf("ContentWriter Service listening on %s", lis.Addr())
 	return s.grpcServer.Serve(lis)
@@ -90,13 +90,13 @@ func (s *GrpcServer) Shutdown() {
 }
 
 type ContentWriterService struct {
-	contentwriter.UnimplementedContentWriterServer
+	contentwriterV1.UnimplementedContentWriterServer
 	configCache        database.ConfigCache
 	warcWriterRegistry *warcWriterRegistry
 	recordOptions      []gowarc.WarcRecordOption
 }
 
-func (s *ContentWriterService) Write(stream contentwriter.ContentWriter_WriteServer) (err error) {
+func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteServer) (err error) {
 	telemetry.ScopechecksTotal.Inc()
 	//telemetry.ScopecheckResponseTotal.With(prometheus.Labels{"code": strconv.Itoa(int(result.ExcludeReason))}).Inc()
 	ctx := newWriteSessionContext(s.configCache, s.recordOptions)
@@ -117,23 +117,23 @@ func (s *ContentWriterService) Write(stream contentwriter.ContentWriter_WriteSer
 		}
 
 		switch v := request.Value.(type) {
-		case *contentwriter.WriteRequest_Meta:
+		case *contentwriterV1.WriteRequest_Meta:
 			log.Trace().Msgf("Got API request %T for %d records", v, len(v.Meta.RecordMeta))
 			ctx.setWriteRequestMeta(v.Meta)
-		case *contentwriter.WriteRequest_ProtocolHeader:
+		case *contentwriterV1.WriteRequest_ProtocolHeader:
 			log.Trace().Msgf("Got API request %T for record #%d. Size: %d", v, v.ProtocolHeader.RecordNum, len(v.ProtocolHeader.GetData()))
 			if err := ctx.writeProtocolHeader(v.ProtocolHeader); err != nil {
 				return status.Errorf(codes.Unknown, "failed to write protocol header: %v", err)
 			}
-		case *contentwriter.WriteRequest_Payload:
+		case *contentwriterV1.WriteRequest_Payload:
 			log.Trace().Msgf("Got API request %T for record #%d. Size: %d", v, v.Payload.RecordNum, len(v.Payload.GetData()))
 			if err := ctx.writePayload(v.Payload); err != nil {
 				return status.Errorf(codes.Unknown, "failed to write payload: %v", err)
 			}
-		case *contentwriter.WriteRequest_Cancel:
+		case *contentwriterV1.WriteRequest_Cancel:
 			log.Trace().Msgf("Got API request %T", v)
 			log.Debug().Str("reason", v.Cancel).Msg("Write request cancelled")
-			return stream.SendAndClose(new(contentwriter.WriteReply))
+			return stream.SendAndClose(new(contentwriterV1.WriteReply))
 		default:
 			return status.Errorf(codes.InvalidArgument, "invalid write request: %v", v)
 		}

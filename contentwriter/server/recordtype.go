@@ -17,51 +17,51 @@
 package server
 
 import (
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/nlnwa/gowarc"
 )
 
-func ToGowarcRecordType(recordType contentwriter.RecordType) gowarc.RecordType {
+func ToGowarcRecordType(recordType contentwriterV1.RecordType) gowarc.RecordType {
 	switch recordType {
-	case contentwriter.RecordType_WARCINFO:
+	case contentwriterV1.RecordType_WARCINFO:
 		return gowarc.Warcinfo
-	case contentwriter.RecordType_RESPONSE:
+	case contentwriterV1.RecordType_RESPONSE:
 		return gowarc.Response
-	case contentwriter.RecordType_RESOURCE:
+	case contentwriterV1.RecordType_RESOURCE:
 		return gowarc.Resource
-	case contentwriter.RecordType_REQUEST:
+	case contentwriterV1.RecordType_REQUEST:
 		return gowarc.Request
-	case contentwriter.RecordType_METADATA:
+	case contentwriterV1.RecordType_METADATA:
 		return gowarc.Metadata
-	case contentwriter.RecordType_REVISIT:
+	case contentwriterV1.RecordType_REVISIT:
 		return gowarc.Revisit
-	case contentwriter.RecordType_CONVERSION:
+	case contentwriterV1.RecordType_CONVERSION:
 		return gowarc.Conversion
-	case contentwriter.RecordType_CONTINUATION:
+	case contentwriterV1.RecordType_CONTINUATION:
 		return gowarc.Continuation
 	default:
 		return 0
 	}
 }
 
-func FromGowarcRecordType(recordType gowarc.RecordType) contentwriter.RecordType {
+func FromGowarcRecordType(recordType gowarc.RecordType) contentwriterV1.RecordType {
 	switch recordType {
 	case gowarc.Warcinfo:
-		return contentwriter.RecordType_WARCINFO
+		return contentwriterV1.RecordType_WARCINFO
 	case gowarc.Response:
-		return contentwriter.RecordType_RESPONSE
+		return contentwriterV1.RecordType_RESPONSE
 	case gowarc.Resource:
-		return contentwriter.RecordType_RESOURCE
+		return contentwriterV1.RecordType_RESOURCE
 	case gowarc.Request:
-		return contentwriter.RecordType_REQUEST
+		return contentwriterV1.RecordType_REQUEST
 	case gowarc.Metadata:
-		return contentwriter.RecordType_METADATA
+		return contentwriterV1.RecordType_METADATA
 	case gowarc.Revisit:
-		return contentwriter.RecordType_REVISIT
+		return contentwriterV1.RecordType_REVISIT
 	case gowarc.Conversion:
-		return contentwriter.RecordType_CONVERSION
+		return contentwriterV1.RecordType_CONVERSION
 	case gowarc.Continuation:
-		return contentwriter.RecordType_CONTINUATION
+		return contentwriterV1.RecordType_CONTINUATION
 	default:
 		return 0
 	}

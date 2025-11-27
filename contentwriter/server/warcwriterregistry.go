@@ -19,8 +19,8 @@ package server
 import (
 	"sync"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
 )
@@ -36,7 +36,7 @@ func newWarcWriterRegistry(settings settings.Settings, db database.DbAdapter) *w
 	return &warcWriterRegistry{settings: settings, warcWriters: make(map[string]*warcWriter), dbAdapter: db}
 }
 
-func (w *warcWriterRegistry) GetWarcWriter(collectionConf *config.ConfigObject, recordMeta *contentwriter.WriteRequestMeta_RecordMeta) *warcWriter {
+func (w *warcWriterRegistry) GetWarcWriter(collectionConf *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 

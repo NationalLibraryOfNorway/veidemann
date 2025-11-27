@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/nlnwa/gowarc"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func Test_timeToNextRotation(t *testing.T) {
 	ts3 := time.Date(2021, 12, 31, 23, 59, 59, 0, time.Local)
 	type args struct {
 		now time.Time
-		p   config.Collection_RotationPolicy
+		p   configV1.Collection_RotationPolicy
 	}
 	tests := []struct {
 		name   string
@@ -40,21 +40,21 @@ func Test_timeToNextRotation(t *testing.T) {
 		want   time.Duration
 		wantOk bool
 	}{
-		{"none", args{ts1, config.Collection_NONE}, 0, false},
-		{"none", args{ts2, config.Collection_NONE}, 0, false},
-		{"none", args{ts3, config.Collection_NONE}, 0, false},
-		{"hourly", args{ts1, config.Collection_HOURLY}, time.Minute * 60, true},
-		{"hourly", args{ts2, config.Collection_HOURLY}, time.Minute*30 + time.Second*1, true},
-		{"hourly", args{ts3, config.Collection_HOURLY}, time.Second * 1, true},
-		{"daily", args{ts1, config.Collection_DAILY}, time.Hour * 24, true},
-		{"daily", args{ts2, config.Collection_DAILY}, time.Hour*12 + time.Minute*30 + time.Second*1, true},
-		{"daily", args{ts3, config.Collection_DAILY}, time.Second * 1, true},
-		{"monthly", args{ts1, config.Collection_MONTHLY}, time.Hour * 24 * 31, true},
-		{"monthly", args{ts2, config.Collection_MONTHLY}, time.Hour*(24*10+12) + time.Minute*30 + time.Second*1, true},
-		{"monthly", args{ts3, config.Collection_MONTHLY}, time.Second * 1, true},
-		{"yearly", args{ts1, config.Collection_YEARLY}, time.Hour * 24 * 365, true},
-		{"yearly", args{ts2, config.Collection_YEARLY}, time.Hour*(24*(10+31)+12) + time.Minute*30 + time.Second*1, true},
-		{"yearly", args{ts3, config.Collection_YEARLY}, time.Second * 1, true},
+		{"none", args{ts1, configV1.Collection_NONE}, 0, false},
+		{"none", args{ts2, configV1.Collection_NONE}, 0, false},
+		{"none", args{ts3, configV1.Collection_NONE}, 0, false},
+		{"hourly", args{ts1, configV1.Collection_HOURLY}, time.Minute * 60, true},
+		{"hourly", args{ts2, configV1.Collection_HOURLY}, time.Minute*30 + time.Second*1, true},
+		{"hourly", args{ts3, configV1.Collection_HOURLY}, time.Second * 1, true},
+		{"daily", args{ts1, configV1.Collection_DAILY}, time.Hour * 24, true},
+		{"daily", args{ts2, configV1.Collection_DAILY}, time.Hour*12 + time.Minute*30 + time.Second*1, true},
+		{"daily", args{ts3, configV1.Collection_DAILY}, time.Second * 1, true},
+		{"monthly", args{ts1, configV1.Collection_MONTHLY}, time.Hour * 24 * 31, true},
+		{"monthly", args{ts2, configV1.Collection_MONTHLY}, time.Hour*(24*10+12) + time.Minute*30 + time.Second*1, true},
+		{"monthly", args{ts3, configV1.Collection_MONTHLY}, time.Second * 1, true},
+		{"yearly", args{ts1, configV1.Collection_YEARLY}, time.Hour * 24 * 365, true},
+		{"yearly", args{ts2, configV1.Collection_YEARLY}, time.Hour*(24*(10+31)+12) + time.Minute*30 + time.Second*1, true},
+		{"yearly", args{ts3, configV1.Collection_YEARLY}, time.Second * 1, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -75,28 +75,28 @@ func Test_createFileRotationKey(t *testing.T) {
 	ts3 := time.Date(2021, 12, 31, 23, 59, 59, 0, time.Local)
 	type args struct {
 		now time.Time
-		p   config.Collection_RotationPolicy
+		p   configV1.Collection_RotationPolicy
 	}
 	tests := []struct {
 		name string
 		args args
 		want string
 	}{
-		{"none", args{ts1, config.Collection_NONE}, ""},
-		{"none", args{ts2, config.Collection_NONE}, ""},
-		{"none", args{ts3, config.Collection_NONE}, ""},
-		{"hourly", args{ts1, config.Collection_HOURLY}, "2021010100"},
-		{"hourly", args{ts2, config.Collection_HOURLY}, "2021112011"},
-		{"hourly", args{ts3, config.Collection_HOURLY}, "2021123123"},
-		{"daily", args{ts1, config.Collection_DAILY}, "20210101"},
-		{"daily", args{ts2, config.Collection_DAILY}, "20211120"},
-		{"daily", args{ts3, config.Collection_DAILY}, "20211231"},
-		{"monthly", args{ts1, config.Collection_MONTHLY}, "202101"},
-		{"monthly", args{ts2, config.Collection_MONTHLY}, "202111"},
-		{"monthly", args{ts3, config.Collection_MONTHLY}, "202112"},
-		{"yearly", args{ts1, config.Collection_YEARLY}, "2021"},
-		{"yearly", args{ts2, config.Collection_YEARLY}, "2021"},
-		{"yearly", args{ts3, config.Collection_YEARLY}, "2021"},
+		{"none", args{ts1, configV1.Collection_NONE}, ""},
+		{"none", args{ts2, configV1.Collection_NONE}, ""},
+		{"none", args{ts3, configV1.Collection_NONE}, ""},
+		{"hourly", args{ts1, configV1.Collection_HOURLY}, "2021010100"},
+		{"hourly", args{ts2, configV1.Collection_HOURLY}, "2021112011"},
+		{"hourly", args{ts3, configV1.Collection_HOURLY}, "2021123123"},
+		{"daily", args{ts1, configV1.Collection_DAILY}, "20210101"},
+		{"daily", args{ts2, configV1.Collection_DAILY}, "20211120"},
+		{"daily", args{ts3, configV1.Collection_DAILY}, "20211231"},
+		{"monthly", args{ts1, configV1.Collection_MONTHLY}, "202101"},
+		{"monthly", args{ts2, configV1.Collection_MONTHLY}, "202111"},
+		{"monthly", args{ts3, configV1.Collection_MONTHLY}, "202112"},
+		{"yearly", args{ts1, configV1.Collection_YEARLY}, "2021"},
+		{"yearly", args{ts2, configV1.Collection_YEARLY}, "2021"},
+		{"yearly", args{ts3, configV1.Collection_YEARLY}, "2021"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -110,7 +110,7 @@ func Test_createFileRotationKey(t *testing.T) {
 func Test_getFilename(t *testing.T) {
 	ng := &gowarc.PatternNameGenerator{
 		Directory: "",
-		Prefix:    createFilePrefix("foo", config.Collection_UNDEFINED, time.Now(), config.Collection_NONE),
+		Prefix:    createFilePrefix("foo", configV1.Collection_UNDEFINED, time.Now(), configV1.Collection_NONE),
 		Serial:    0,
 	}
 	d1, f1 := ng.NewWarcfileName()
@@ -122,7 +122,7 @@ func Test_getFilename(t *testing.T) {
 
 	ng = &gowarc.PatternNameGenerator{
 		Directory: "",
-		Prefix:    createFilePrefix("foo", config.Collection_UNDEFINED, time.Now(), config.Collection_YEARLY),
+		Prefix:    createFilePrefix("foo", configV1.Collection_UNDEFINED, time.Now(), configV1.Collection_YEARLY),
 		Serial:    0,
 	}
 	d1, f1 = ng.NewWarcfileName()
@@ -134,7 +134,7 @@ func Test_getFilename(t *testing.T) {
 
 	ng = &gowarc.PatternNameGenerator{
 		Directory: "myDir",
-		Prefix:    createFilePrefix("foo", config.Collection_DNS, time.Now(), config.Collection_MONTHLY),
+		Prefix:    createFilePrefix("foo", configV1.Collection_DNS, time.Now(), configV1.Collection_MONTHLY),
 		Serial:    0,
 	}
 	d1, f1 = ng.NewWarcfileName()
@@ -146,7 +146,7 @@ func Test_getFilename(t *testing.T) {
 
 	ng = &gowarc.PatternNameGenerator{
 		Directory: "myDir",
-		Prefix:    createFilePrefix("foo", config.Collection_DNS, time.Now(), config.Collection_DAILY),
+		Prefix:    createFilePrefix("foo", configV1.Collection_DNS, time.Now(), configV1.Collection_DAILY),
 		Serial:    0,
 	}
 	d1, f1 = ng.NewWarcfileName()

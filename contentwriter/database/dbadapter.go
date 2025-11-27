@@ -20,20 +20,20 @@ import (
 	"context"
 	"time"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	"github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 )
 
 type ConfigCache interface {
 	GetConfigObject(context.Context, *configV1.ConfigRef) (*configV1.ConfigObject, error)
-	HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriter.CrawledContent, error)
-	WriteCrawledContent(ctx context.Context, crawledContent *contentwriter.CrawledContent) error
+	HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error)
+	WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error
 }
 
 type DbAdapter interface {
 	GetConfigObject(context.Context, *configV1.ConfigRef) (*configV1.ConfigObject, error)
-	HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriter.CrawledContent, error)
-	WriteCrawledContent(ctx context.Context, crawledContent *contentwriter.CrawledContent) error
+	HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error)
+	WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error
 }
 
 type configCache struct {
@@ -63,10 +63,10 @@ func (cc *configCache) GetConfigObject(ctx context.Context, ref *configV1.Config
 
 	return result, nil
 }
-func (cc *configCache) HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriter.CrawledContent, error) {
+func (cc *configCache) HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error) {
 	return cc.db.HasCrawledContent(ctx, revisitKey)
 }
 
-func (cc *configCache) WriteCrawledContent(ctx context.Context, crawledContent *contentwriter.CrawledContent) error {
+func (cc *configCache) WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error {
 	return cc.db.WriteCrawledContent(ctx, crawledContent)
 }
