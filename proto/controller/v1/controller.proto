@@ -8,7 +8,7 @@ import "frontier/v1/resources.proto";
 import "config/v1/resources.proto";
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/controller";
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/controller/v1";
 option java_multiple_files = true;
 option java_package = "no.nb.nna.veidemann.api.controller.v1";
 option java_outer_classname = "ControllerService";

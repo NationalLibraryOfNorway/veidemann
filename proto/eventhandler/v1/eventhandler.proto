@@ -5,7 +5,7 @@ package veidemann.api.eventhandler.v1;
 import "eventhandler/v1/resources.proto";
 import "commons/v1/resources.proto";
 
-option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/eventhandler";
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/eventhandler/v1";
 option java_multiple_files = true;
 option java_package = "no.nb.nna.veidemann.api.eventhandler.v1";
 option java_outer_classname = "EventHandlerService";

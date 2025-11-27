@@ -5,7 +5,7 @@ package veidemann.api.ooshandler.v1;
 import "frontier/v1/resources.proto";
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/ooshandler";
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/ooshandler/v1";
 option java_multiple_files = true;
 option java_package = "no.nb.nna.veidemann.api.ooshandler.v1";
 option java_outer_classname = "OosHandlerService";

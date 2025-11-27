@@ -5,7 +5,7 @@ package veidemann.api.log.v1;
 import "commons/v1/resources.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/log";
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/log/v1";
 option java_multiple_files = true;
 option java_package = "no.nb.nna.veidemann.api.log.v1";
 option java_outer_classname = "LogResources";

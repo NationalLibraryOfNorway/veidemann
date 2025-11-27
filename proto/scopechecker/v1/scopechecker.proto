@@ -5,7 +5,7 @@ package veidemann.api.scopechecker.v1;
 import "frontier/v1/resources.proto";
 import "commons/v1/resources.proto";
 
-option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker";
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1";
 option java_multiple_files = true;
 option java_package = "no.nb.nna.veidemann.api.scopechecker.v1";
 option java_outer_classname = "ScopeChecker";

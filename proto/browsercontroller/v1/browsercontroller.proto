@@ -5,7 +5,7 @@ package veidemann.api.browsercontroller.v1;
 import "config/v1/resources.proto";
 import "log/v1/resources.proto";
 
-option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller";
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1";
 option java_multiple_files = true;
 option java_package = "no.nb.nna.veidemann.api.browsercontroller.v1";
 option java_outer_classname = "BrowserControllerService";
