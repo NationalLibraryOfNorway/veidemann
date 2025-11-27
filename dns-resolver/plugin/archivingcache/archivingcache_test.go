@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/serviceconnections"
 	util "github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/test"
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/resolve"

@@ -4,7 +4,7 @@ import (
 	"io"
 	"sync"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

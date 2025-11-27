@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/miekg/dns"
 	"google.golang.org/grpc/peer"

@@ -20,8 +20,8 @@ import (
 	"context"
 	"time"
 
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/logservice"
 	"google.golang.org/protobuf/types/known/timestamppb"
