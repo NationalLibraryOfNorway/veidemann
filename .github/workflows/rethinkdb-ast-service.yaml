@@ -1,0 +1,20 @@
+name: Veidemann RethinkDB AST Service
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'rethinkdb-ast-service/*'
+    paths:
+      - 'rethinkdb-ast-service/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-and-publish.yaml
+    with:
+      PATH: rethinkdb-ast-service
