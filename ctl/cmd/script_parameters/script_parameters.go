@@ -17,7 +17,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/spf13/cobra"
 )
@@ -49,13 +49,13 @@ Examples:
 			}
 			defer conn.Close()
 
-			configClient := config.NewConfigClient(conn)
+			configClient := configV1.NewConfigClient(conn)
 
-			request := &config.GetScriptAnnotationsRequest{
-				Job: &config.ConfigRef{Kind: config.Kind_crawlJob, Id: args[0]},
+			request := &configV1.GetScriptAnnotationsRequest{
+				Job: &configV1.ConfigRef{Kind: configV1.Kind_crawlJob, Id: args[0]},
 			}
 			if len(args) == 2 {
-				request.Seed = &config.ConfigRef{Kind: config.Kind_seed, Id: args[1]}
+				request.Seed = &configV1.ConfigRef{Kind: configV1.Kind_seed, Id: args[1]}
 			}
 
 			response, err := configClient.GetScriptAnnotations(context.Background(), request)

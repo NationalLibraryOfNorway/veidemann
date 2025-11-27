@@ -17,7 +17,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/controller"
+	controllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/controller/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/spf13/cobra"
 	empty "google.golang.org/protobuf/types/known/emptypb"
@@ -37,7 +37,7 @@ func NewCmd() *cobra.Command {
 			}
 			defer conn.Close()
 
-			client := controller.NewControllerClient(conn)
+			client := controllerV1.NewControllerClient(conn)
 
 			crawlerStatus, err := client.Status(context.Background(), &empty.Empty{})
 			if err != nil {

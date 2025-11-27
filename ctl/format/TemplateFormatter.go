@@ -25,7 +25,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -184,7 +184,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 			return res
 		},
 		"printLabels": func(v interface{}) string {
-			if labels, ok := v.([]*config.Label); ok {
+			if labels, ok := v.([]*configV1.Label); ok {
 				b := strings.Builder{}
 				// b.WriteString("[")
 				for i, l := range labels {

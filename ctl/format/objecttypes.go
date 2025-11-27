@@ -18,7 +18,7 @@ import (
 	"sort"
 	"strings"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 // GetKind returns the Kind for the given name.

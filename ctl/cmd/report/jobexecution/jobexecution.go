@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"io"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
-	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/apiutil"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"

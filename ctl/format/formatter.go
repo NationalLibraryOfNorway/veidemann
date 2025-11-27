@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/invopop/yaml"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -337,7 +337,7 @@ const jsonFile fileType = "json"
 const yamlFile fileType = "yaml"
 
 // unmarshal unmarshals a file into a channel of ConfigObjects based on the file type
-func unmarshal(r io.Reader, result chan<- *config.ConfigObject, done <-chan struct{}, t fileType) error {
+func unmarshal(r io.Reader, result chan<- *configV1.ConfigObject, done <-chan struct{}, t fileType) error {
 	var err error
 
 	switch t {
@@ -356,7 +356,7 @@ func unmarshal(r io.Reader, result chan<- *config.ConfigObject, done <-chan stru
 }
 
 // Unmarshal unmarshals a file into a channel of ConfigObjects
-func Unmarshal(ctx context.Context, filename string, result chan<- *config.ConfigObject) error {
+func Unmarshal(ctx context.Context, filename string, result chan<- *configV1.ConfigObject) error {
 	var err error
 	var f *os.File
 	var t fileType
@@ -502,7 +502,7 @@ func (yr yamlReader) readJson() ([]byte, error) {
 }
 
 // unmarshalYaml unmarshals a yaml stream into ConfigObjects and sends them to the result channel
-func unmarshalYaml(r io.Reader, result chan<- *config.ConfigObject, done <-chan struct{}) error {
+func unmarshalYaml(r io.Reader, result chan<- *configV1.ConfigObject, done <-chan struct{}) error {
 	yr := newYamlReader(r)
 
 	var b []byte
@@ -516,7 +516,7 @@ func unmarshalYaml(r io.Reader, result chan<- *config.ConfigObject, done <-chan 
 		if err != nil {
 			return err
 		}
-		target := &config.ConfigObject{}
+		target := &configV1.ConfigObject{}
 		err = jsonUnMarshaler.Unmarshal(b, target)
 		if err != nil {
 			return err
@@ -530,7 +530,7 @@ func unmarshalYaml(r io.Reader, result chan<- *config.ConfigObject, done <-chan 
 }
 
 // unmarshalJson unmarshals a json stream into ConfigObjects and sends them to the result channel
-func unmarshalJson(r io.Reader, result chan<- *config.ConfigObject, done <-chan struct{}) error {
+func unmarshalJson(r io.Reader, result chan<- *configV1.ConfigObject, done <-chan struct{}) error {
 	dec := json.NewDecoder(r)
 	var err error
 	var msg json.RawMessage
@@ -543,7 +543,7 @@ func unmarshalJson(r io.Reader, result chan<- *config.ConfigObject, done <-chan 
 		if err != nil {
 			return err
 		}
-		target := &config.ConfigObject{}
+		target := &configV1.ConfigObject{}
 		err = jsonUnMarshaler.Unmarshal(msg, target)
 		if err != nil {
 			return err

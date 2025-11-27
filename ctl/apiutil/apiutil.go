@@ -21,9 +21,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
 	"google.golang.org/protobuf/proto"
@@ -252,7 +251,7 @@ func CompleteName(kind string, name string) ([]string, error) {
 		return nil, err
 	}
 
-	request.ReturnedFieldsMask = &commons.FieldMask{
+	request.ReturnedFieldsMask = &commonsV1.FieldMask{
 		Paths: []string{"meta.name"},
 	}
 

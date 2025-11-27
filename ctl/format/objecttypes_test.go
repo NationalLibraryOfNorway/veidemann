@@ -19,7 +19,7 @@ import (
 
 	"github.com/magiconair/properties/assert"
 
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 func TestGetKind(t *testing.T) {

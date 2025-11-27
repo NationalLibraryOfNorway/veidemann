@@ -17,12 +17,12 @@ import (
 	"reflect"
 	"testing"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"google.golang.org/protobuf/proto"
 
-	api "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	api "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 func TestCreateSelector(t *testing.T) {

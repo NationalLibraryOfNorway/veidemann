@@ -3,7 +3,7 @@ package query
 import (
 	"testing"
 
-	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report"
+	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report/v1"
 	"github.com/stretchr/testify/assert"
 )
 

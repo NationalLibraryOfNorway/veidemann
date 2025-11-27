@@ -17,12 +17,12 @@ package jobexecution
 import (
 	"testing"
 
-	"github.com/NationalLibraryOfNorway/veidemann/api/commons"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier"
-	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report/v1"
 )
 
 func TestCreateJobExecutionsListRequest(t *testing.T) {
@@ -49,7 +49,7 @@ func TestCreateJobExecutionsListRequest(t *testing.T) {
 			options{filters: []string{"jobId=jobId1"}, pageSize: 10},
 			&reportV1.JobExecutionsListRequest{
 				QueryTemplate: &frontierV1.JobExecutionStatus{JobId: "jobId1"},
-				QueryMask:     &commons.FieldMask{Paths: []string{"jobId"}},
+				QueryMask:     &commonsV1.FieldMask{Paths: []string{"jobId"}},
 				PageSize:      10,
 			},
 			false,
@@ -59,7 +59,7 @@ func TestCreateJobExecutionsListRequest(t *testing.T) {
 			options{filters: []string{"jobId=jobId1"}, pageSize: 10, watch: true},
 			&reportV1.JobExecutionsListRequest{
 				QueryTemplate: &frontierV1.JobExecutionStatus{JobId: "jobId1"},
-				QueryMask:     &commons.FieldMask{Paths: []string{"jobId"}},
+				QueryMask:     &commonsV1.FieldMask{Paths: []string{"jobId"}},
 				Watch:         true,
 			},
 			false,

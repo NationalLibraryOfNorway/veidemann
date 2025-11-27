@@ -24,7 +24,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report"
+	reportV1 "github.com/NationalLibraryOfNorway/veidemann/api/report/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/config"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"

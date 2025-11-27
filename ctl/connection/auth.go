@@ -28,7 +28,7 @@ import (
 	"runtime"
 	"time"
 
-	controllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/controller"
+	controllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/controller/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/config"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/rs/zerolog/log"

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"io"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
 	"github.com/spf13/cobra"

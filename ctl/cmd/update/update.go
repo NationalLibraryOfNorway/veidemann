@@ -17,8 +17,8 @@ import (
 	"context"
 	"fmt"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config"
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/apiutil"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"

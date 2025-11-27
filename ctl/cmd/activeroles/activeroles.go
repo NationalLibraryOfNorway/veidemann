@@ -17,7 +17,7 @@ import (
 	"context"
 	"fmt"
 
-	controllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/controller"
+	controllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/controller/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/spf13/cobra"
 	empty "google.golang.org/protobuf/types/known/emptypb"
