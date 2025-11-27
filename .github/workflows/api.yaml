@@ -16,10 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+
       - name: Generate golang code from proto files
         shell: bash
         working-directory: api
-        run: make all
+        run: go generate
 
       - name: Generate javascript code from proto files
         shell: bash
