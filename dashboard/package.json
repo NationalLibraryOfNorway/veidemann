@@ -12,7 +12,8 @@
     "lint": "ng lint",
     "test:chromium": "CHROME_BIN=chromium-browser ng test",
     "build:docker": "docker build --build-arg BASE_HREF=${BASE_HREF:-/} --build-arg VERSION=$(git describe --tags --always) -t ${IMAGE:-veidemann-dashboard} .",
-    "extract-i18n": "ng extract-i18n"
+    "extract-i18n": "ng extract-i18n",
+    "proto:generate": "(cd .. && buf generate --template buf.gen.ts.yaml)"
   },
   "prettier": {
     "overrides": [
@@ -37,8 +38,11 @@
     "@angular/material-date-fns-adapter": "^20.2.5",
     "@angular/platform-browser": "^20.3.9",
     "@angular/router": "^20.0.7",
+    "@bufbuild/protobuf": "^2.10.1",
     "@casl/ability": "^6.7.3",
     "@casl/angular": "^9.0.4",
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-web": "^2.1.1",
     "@fullcalendar/angular": "^6.1.19",
     "@fullcalendar/core": "^6.1.19",
     "@fullcalendar/daygrid": "^6.1.19",
@@ -80,6 +84,7 @@
     "@angular/cli": "^20.3.8",
     "@angular/compiler-cli": "^20.3.2",
     "@angular/language-service": "^20.3.2",
+    "@bufbuild/buf": "^1.61.0",
     "@juggle/resize-observer": "^3.4.0",
     "@types/google-protobuf": "^3.15.12",
     "@types/jasmine": "~5.1.12",
