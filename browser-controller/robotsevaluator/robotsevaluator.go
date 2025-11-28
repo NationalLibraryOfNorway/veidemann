@@ -46,7 +46,7 @@ func (r *robotsEvaluator) Connect() error {
 	if err := r.ClientConn.Connect(); err != nil {
 		return err
 	} else {
-		r.RobotsEvaluatorClient = robotsevaluatorV1.NewRobotsEvaluatorClient(r.ClientConn.Connection())
+		r.RobotsEvaluatorClient = robotsevaluatorV1.NewRobotsEvaluatorClient(r.Connection())
 		return nil
 	}
 }

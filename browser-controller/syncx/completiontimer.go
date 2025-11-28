@@ -24,9 +24,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var IdleTimeout = errors.New("idle timeout")
-var ExceededMaxTime = errors.New("exceeded max time")
-var Cancelled = errors.New("cancelled")
+var ErrIdleTimeout = errors.New("idle timeout")
+var ErrExceededMaxTime = errors.New("exceeded max time")
+var ErrCancelled = errors.New("cancelled")
 
 type CompletionTimer struct {
 	maxIdleTime     time.Duration
@@ -94,7 +94,7 @@ func (t *CompletionTimer) WaitForCompletion() (err error) {
 			if t.lastCheckResult {
 				return
 			} else {
-				return ExceededMaxTime
+				return ErrExceededMaxTime
 			}
 		case <-t.idleTimer.C:
 			t.lastCheckResult = t.check()
@@ -102,7 +102,7 @@ func (t *CompletionTimer) WaitForCompletion() (err error) {
 				return
 			} else {
 				if time.Now().After(t.idleTimeout) {
-					return IdleTimeout
+					return ErrIdleTimeout
 				} else {
 					t.idleTimer = time.NewTimer(time.Until(t.idleTimeout))
 				}
@@ -111,7 +111,7 @@ func (t *CompletionTimer) WaitForCompletion() (err error) {
 			if atomic.LoadInt32(&t.done) == 1 {
 				return
 			} else {
-				return Cancelled
+				return ErrCancelled
 			}
 		}
 	}

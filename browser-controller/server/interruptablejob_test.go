@@ -66,7 +66,9 @@ func TestRecv(t *testing.T) {
 			"timeout",
 			args{
 				func() context.Context {
+					//nolint:govet
 					ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
+
 					return ctx
 				}(),
 				func() (*browsercontrollerV1.DoRequest, error) {

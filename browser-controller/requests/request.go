@@ -38,5 +38,5 @@ type Request struct {
 
 	// True if this request is for the top level request.
 	// It is also true if the request is a redirect from the top level request.
-	rootResource bool
+	// TODO (unused): rootResource bool
 }

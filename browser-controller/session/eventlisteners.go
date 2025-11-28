@@ -60,10 +60,7 @@ func (sess *Session) listenFunc(ctx context.Context) func(ev interface{}) {
 		case *page.EventJavascriptDialogOpening:
 			log.Debug().Msgf("Javascript dialog opening %v", ev.Message)
 			go func() {
-				accept := false
-				if ev.Type == "alert" {
-					accept = true
-				}
+				accept := ev.Type == "alert"
 				if err := chromedp.Run(ctx,
 					page.HandleJavaScriptDialog(accept),
 				); err != nil {

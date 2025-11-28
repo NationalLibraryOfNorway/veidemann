@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
@@ -54,7 +55,7 @@ func (s *screenshotWriter) Connect() error {
 	if err := s.ClientConn.Connect(); err != nil {
 		return err
 	} else {
-		s.ContentWriterClient = contentwriterV1.NewContentWriterClient(s.ClientConn.Connection())
+		s.ContentWriterClient = contentwriterV1.NewContentWriterClient(s.Connection())
 		return nil
 	}
 }
