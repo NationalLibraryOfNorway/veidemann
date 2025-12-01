@@ -8,6 +8,9 @@ on:
       - 'browser-controller/*'
     paths:
       - 'browser-controller/**'
+  pull_request:
+    paths:
+      - 'browser-controller/**'
   workflow_dispatch:
 
 jobs:
@@ -25,6 +28,7 @@ jobs:
 
   build:
     needs: test
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
