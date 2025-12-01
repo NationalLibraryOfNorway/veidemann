@@ -26,12 +26,12 @@ import (
 )
 
 type Registry struct {
-	sessions        []*Session
-	pool            chan int
-	mu              sync.Mutex
-	opts            []Option
-	wg              *sync.WaitGroup
-	createdSessions int32
+	sessions []*Session
+	pool     chan int
+	mu       sync.Mutex
+	opts     []Option
+	wg       *sync.WaitGroup
+	// TODO (unused): createdSessions int32
 }
 
 func NewRegistry(maxSessions int, opts ...Option) (sr *Registry) {

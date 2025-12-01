@@ -56,11 +56,11 @@ func (wg *WaitGroup) Wait() (err error) {
 	}
 	select {
 	case <-wg.ctx.Done():
-		return ExceededMaxTime
+		return ErrExceededMaxTime
 	case <-wg.done:
 		return nil
 	case <-wg.cancel:
-		return Cancelled
+		return ErrCancelled
 	}
 }
 

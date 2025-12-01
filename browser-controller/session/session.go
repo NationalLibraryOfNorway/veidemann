@@ -27,6 +27,16 @@ import (
 	"strings"
 	"time"
 
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
@@ -39,16 +49,6 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/device"
 	"github.com/google/uuid"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/nlnwa/whatwg-url/url"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
@@ -72,20 +72,20 @@ type Session struct {
 	UserAgent         string
 	browserVersion    string
 	Requests          requests.RequestRegistry
-	currentLoading    int32
-	frameWg           *syncx.WaitGroup
-	loadCancel        func()
-	netActivityTimer  *syncx.CompletionTimer
-	timer             *syncx.CompletionTimer
-	RequestedUrl      *frontierV1.QueuedUri
-	CrawlConfig       *configV1.CrawlConfig
-	browserConfig     *configV1.BrowserConfig
-	PolitenessConfig  *configV1.ConfigObject
-	configCache       database.ConfigCache
-	screenShotWriter  screenshotwriter.ScreenshotWriter
-	logWriter         logwriter.LogWriter
-	scripts           *sessionScripts
-	logger            zerolog.Logger
+	// TODO (unused): currentLoading    int32
+	frameWg          *syncx.WaitGroup
+	loadCancel       func()
+	netActivityTimer *syncx.CompletionTimer
+	timer            *syncx.CompletionTimer
+	RequestedUrl     *frontierV1.QueuedUri
+	CrawlConfig      *configV1.CrawlConfig
+	browserConfig    *configV1.BrowserConfig
+	PolitenessConfig *configV1.ConfigObject
+	configCache      database.ConfigCache
+	screenShotWriter screenshotwriter.ScreenshotWriter
+	logWriter        logwriter.LogWriter
+	scripts          *sessionScripts
+	logger           zerolog.Logger
 }
 
 func newDefaultSession(opts ...Option) *Session {
@@ -335,11 +335,11 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	// Wait for frames to finish loading
 	err = sess.frameWg.Wait()
 	switch err {
-	case syncx.Cancelled:
+	case syncx.ErrCancelled:
 		if sess.Requests.InitialRequest().FromCache {
 			return nil, errors.New(-4100, "Already seen", "Initial request was found in cache. Url: "+sess.RequestedUrl.Uri)
 		}
-	case syncx.ExceededMaxTime:
+	case syncx.ErrExceededMaxTime:
 		if sess.Requests.InitialRequest() == nil || sess.Requests.InitialRequest().CrawlLog == nil {
 			return nil, errors.New(-5004, "Runtime exceeded", "Pageload timed out. Url: "+sess.RequestedUrl.Uri)
 		}

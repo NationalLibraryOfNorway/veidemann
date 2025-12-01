@@ -125,7 +125,7 @@ func main() {
 	if tracer, closer, err := tracing.Init("Browser Controller"); err != nil {
 		log.Warn().Err(err).Msg("Failed to initialize tracing")
 	} else {
-		defer closer.Close()
+		defer func() { _ = closer.Close() }()
 		opentracing.SetGlobalTracer(tracer)
 	}
 
@@ -139,7 +139,7 @@ func main() {
 	if err := screenshotWriter.Connect(); err != nil {
 		panic(err)
 	}
-	defer screenshotWriter.Close()
+	defer func() { _ = screenshotWriter.Close() }()
 
 	frontier := frontier.New(
 		serviceconnections.WithConnectTimeout(connectTimeout),
@@ -153,7 +153,7 @@ func main() {
 	if err := frontier.Connect(); err != nil {
 		panic(err)
 	}
-	defer frontier.Close()
+	defer func() { _ = frontier.Close() }()
 
 	robotsEvaluator := robotsevaluator.New(
 		serviceconnections.WithConnectTimeout(connectTimeout),
@@ -163,7 +163,7 @@ func main() {
 	if err := robotsEvaluator.Connect(); err != nil {
 		panic(err)
 	}
-	defer robotsEvaluator.Close()
+	defer func() { _ = robotsEvaluator.Close() }()
 
 	logWriter := logwriter.New(
 		serviceconnections.WithConnectTimeout(connectTimeout),
@@ -173,7 +173,7 @@ func main() {
 	if err := logWriter.Connect(); err != nil {
 		panic(err)
 	}
-	defer logWriter.Close()
+	defer func() { _ = logWriter.Close() }()
 
 	db := database.NewRethinkDbConnection(
 		database.Options{
@@ -190,7 +190,7 @@ func main() {
 	if err := db.Connect(); err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	configCache := database.NewConfigCache(db, viper.GetDuration("db-cache-ttl"))
 
@@ -219,7 +219,7 @@ func main() {
 			browserController.Shutdown()
 		}
 	}()
-	defer metricsServer.Close()
+	defer func() { _ = metricsServer.Close() }()
 
 	go func() {
 		signals := make(chan os.Signal, 2)

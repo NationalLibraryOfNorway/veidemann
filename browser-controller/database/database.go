@@ -29,14 +29,14 @@ import (
 
 // RethinkDbConnection holds the database connection database
 type RethinkDbConnection struct {
-	connectOpts        r.ConnectOpts
-	session            r.QueryExecutor
-	maxRetries         int
-	waitTimeout        time.Duration
-	queryTimeout       time.Duration
-	maxOpenConnections int
-	batchSize          int
-	logger             zerolog.Logger
+	connectOpts  r.ConnectOpts
+	session      r.QueryExecutor
+	maxRetries   int
+	waitTimeout  time.Duration
+	queryTimeout time.Duration
+	// TODO (unused): maxOpenConnections int
+	batchSize int
+	logger    zerolog.Logger
 }
 
 type Options struct {
@@ -120,13 +120,17 @@ func (c *RethinkDbConnection) GetConfigsForSelector(ctx context.Context, kind co
 		_ = res.Close()
 	}()
 
-	var configObject configV1.ConfigObject
 	var configObjects []*configV1.ConfigObject
-	for res.Next(&configObject) {
-		//noinspection GoVetCopyLock
-		aCopy := configObject
-		configObjects = append(configObjects, &aCopy)
+	for {
+		co := &configV1.ConfigObject{} // new message each iteration
+
+		if !res.Next(co) { // decode directly into this instance
+			break
+		}
+
+		configObjects = append(configObjects, co)
 	}
+
 	if err := res.Err(); err != nil {
 		return nil, err
 	}
@@ -143,20 +147,6 @@ func (c *RethinkDbConnection) execRead(ctx context.Context, name string, term *r
 		return term.Run(c.session, runOpts)
 	}
 	return c.execWithRetry(ctx, name, q)
-}
-
-// execWrite executes the given write term with a timeout
-func (c *RethinkDbConnection) execWrite(ctx context.Context, name string, term *r.Term) error {
-	q := func(ctx context.Context) (*r.Cursor, error) {
-		runOpts := r.RunOpts{
-			Context:    ctx,
-			Durability: "soft",
-		}
-		_, err := (*term).RunWrite(c.session, runOpts)
-		return nil, err
-	}
-	_, err := c.execWithRetry(ctx, name, q)
-	return err
 }
 
 // execWithRetry executes given query function repeatedly until successful or max retry limit is reached

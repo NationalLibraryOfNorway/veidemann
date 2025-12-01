@@ -63,7 +63,7 @@ func (f *frontier) Connect() error {
 	if err := f.ClientConn.Connect(); err != nil {
 		return err
 	} else {
-		f.FrontierClient = frontierV1.NewFrontierClient(f.ClientConn.Connection())
+		f.FrontierClient = frontierV1.NewFrontierClient(f.Connection())
 		return nil
 	}
 }

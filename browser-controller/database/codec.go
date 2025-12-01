@@ -35,16 +35,24 @@ var decodeConfigObject = func(encoded interface{}, value reflect.Value) error {
 		return fmt.Errorf("error decoding ConfigObject: %w", err)
 	}
 
-	var co configV1.ConfigObject
+	if !value.CanAddr() {
+		return fmt.Errorf("error decoding ConfigObject: value is not addressable (type %T)", value.Interface())
+	}
+
+	// Get a pointer to the underlying value and assert it’s the right type.
+	msg, ok := value.Addr().Interface().(*configV1.ConfigObject)
+	if !ok {
+		return fmt.Errorf("error decoding ConfigObject: expected *configV1.ConfigObject, got %T", value.Addr().Interface())
+	}
+
 	unmarshaller := protojson.UnmarshalOptions{
 		AllowPartial:   true,
 		DiscardUnknown: true,
 	}
-	if err := unmarshaller.Unmarshal(b, &co); err != nil {
+	if err := unmarshaller.Unmarshal(b, msg); err != nil {
 		return fmt.Errorf("error decoding ConfigObject: %w", err)
 	}
 
-	value.Set(reflect.ValueOf(co))
 	return nil
 }
 
@@ -54,13 +62,24 @@ var decodeCrawlExecutionStatus = func(encoded interface{}, value reflect.Value) 
 		return fmt.Errorf("error decoding CrawlExecutionStatus: %v", err)
 	}
 
-	var co frontierV1.CrawlExecutionStatus
-	err = protojson.Unmarshal(b, &co)
-	if err != nil {
-		return fmt.Errorf("error decoding CrawlExecutionStatus: %v", err)
+	if !value.CanAddr() {
+		return fmt.Errorf("error decoding CrawlExecutionStatus: value is not addressable (type %T)", value.Interface())
 	}
 
-	value.Set(reflect.ValueOf(co))
+	// Get a pointer to the underlying value and assert it’s the right type.
+	msg, ok := value.Addr().Interface().(*frontierV1.CrawlExecutionStatus)
+	if !ok {
+		return fmt.Errorf("error decoding CrawlExecutionStatus: expected *frontierV1.CrawlExecutionStatus, got %T", value.Addr().Interface())
+	}
+
+	unmarshaller := protojson.UnmarshalOptions{
+		AllowPartial:   true,
+		DiscardUnknown: true,
+	}
+	if err := unmarshaller.Unmarshal(b, msg); err != nil {
+		return fmt.Errorf("error decoding CrawlExecutionStatus: %w", err)
+	}
+
 	return nil
 }
 

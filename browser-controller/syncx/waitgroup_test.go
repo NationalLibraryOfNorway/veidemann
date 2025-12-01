@@ -59,8 +59,8 @@ func Test_WaitGroup_Cancel(t *testing.T) {
 	}()
 
 	err := wg.Wait()
-	if err != ExceededMaxTime {
-		t.Errorf("Wanted err: %v. Got: %v", ExceededMaxTime, err)
+	if err != ErrExceededMaxTime {
+		t.Errorf("Wanted err: %v. Got: %v", ErrExceededMaxTime, err)
 	}
 
 	wg = NewWaitGroup(context.Background())
@@ -73,8 +73,8 @@ func Test_WaitGroup_Cancel(t *testing.T) {
 	}()
 
 	err = wg.Wait()
-	if err != Cancelled {
-		t.Errorf("Wanted err: %v. Got: %v", Cancelled, err)
+	if err != ErrCancelled {
+		t.Errorf("Wanted err: %v. Got: %v", ErrCancelled, err)
 	}
 }
 

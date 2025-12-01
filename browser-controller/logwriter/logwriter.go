@@ -47,7 +47,7 @@ func (l *logWriter) Connect() error {
 		return err
 	}
 	l.LogWriter = &logservice.LogWriter{
-		LogClient: logV1.NewLogClient(l.ClientConn.Connection()),
+		LogClient: logV1.NewLogClient(l.Connection()),
 	}
 	return nil
 }

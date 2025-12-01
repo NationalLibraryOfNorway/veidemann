@@ -17,13 +17,13 @@
 package serviceconnections
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // connectionOptions configure a connection. connectionOptions are set by the ConnectionOption
@@ -75,23 +75,22 @@ func defaultConnectionOptions(serviceName string) connectionOptions {
 }
 
 func (opts *connectionOptions) connectService() (*grpc.ClientConn, error) {
-	dialOpts := append(opts.dialOptions,
-		grpc.WithInsecure(),
-		grpc.WithBlock(),
+	dialOpts := append(
+		opts.dialOptions,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), opts.connectTimeout)
-	defer dialCancel()
-	clientConn, err := grpc.DialContext(dialCtx, opts.Addr(), dialOpts...)
+	conn, err := grpc.NewClient(opts.Addr(), dialOpts...)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("failed to connect to %s at %s within %s: %s", opts.serviceName, opts.Addr(),
-				opts.connectTimeout, err)
-		}
-		return nil, err
+		return nil, fmt.Errorf("failed to create gRPC client connection to %s: %w", opts.Addr(), err)
 	}
-	log.Info().Str("address", opts.Addr()).Str("service", opts.serviceName).Msg("Connected")
-	return clientConn, nil
+
+	log.Info().
+		Str("address", opts.Addr()).
+		Str("service", opts.serviceName).
+		Msg("Client")
+
+	return conn, nil
 }
 
 func WithHost(host string) ConnectionOption {
