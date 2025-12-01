@@ -3,7 +3,7 @@ name: Build and release
 on:
   workflow_call:
     inputs:
-      PATH:
+      path:
         required: true
         type: string
         description: "The path to the component to build"
@@ -12,34 +12,34 @@ jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - run: git fetch --force --tags
 
       - uses: actions/setup-go@v6
         with:
           go-version: stable
 
       - name: Extract scoped tag
-        if: startsWith(github.ref, format('refs/tags/{0}/', inputs.PATH))
+        if: startsWith(github.ref, format('refs/tags/{0}/', inputs.path))
         run: |
-          TAG=${GITHUB_REF#refs/tags/${{ inputs.PATH }}/}
+          TAG=${GITHUB_REF#refs/tags/${{ inputs.path }}-}
           echo "TAG=$TAG" >> $GITHUB_ENV
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
+          images: ghcr.io/${{ github.repository }}/${{ inputs.path }}
           tags: |
             type=ref,event=branch
-            ${{ env.TAG != '' && !startsWith(env.TAG, 'v') && 'type=ref,event=tag' || '' }}
-            ${{ env.TAG != '' && startsWith(env.TAG, 'v') && format('type=semver,pattern={{version}},value={0}', env.TAG) || '' }}
+            type=ref,event=pr
+            type=semver,value=${{ env.TAG }},pattern={{version}}  
+            type=raw,value=${{ env.TAG }},enable=${{ !startsWith(env.TAG, 'v') }}
 
       - uses: goreleaser/goreleaser-action@v6
         with:
-          workdir: ${{ inputs.PATH }}
+          workdir: ${{ inputs.path }}
           distribution: goreleaser
           version: latest
           args: release --clean ${{ ((env.TAG == '') || (github.ref_type == 'branch' && github.ref_name == 'main')) && '--snapshot' || '' }}

@@ -5,29 +5,26 @@ on:
     branches:
       - 'main'
     tags:
-      - 'recorderproxy/*'
+      - 'recorderproxy-*'
+    paths:
+      - 'recorderproxy/**'
+  pull_request:
     paths:
       - 'recorderproxy/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-test
-        with:
-          working-directory: recorderproxy
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: recorderproxy
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: recorderproxy
 
-  build:
-    needs: test
+  release:
+    needs: ci
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: recorderproxy
+      path: recorderproxy

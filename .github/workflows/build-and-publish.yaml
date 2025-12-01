@@ -3,10 +3,10 @@ name: Build and publish container image
 on:
   workflow_call:
     inputs:
-      PATH:
+      path:
         required: true
         type: string
-        description: "The path to the component to build"
+        description: "The path of the component to build"
 
 jobs:
   scoped-build:
@@ -15,40 +15,39 @@ jobs:
       packages: write
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-    - name: Checkout code
-      uses: actions/checkout@v5
+      - name: Log in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Log in to the container registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract scoped tag
+        if: startsWith(github.ref, format('refs/tags/{0}/', inputs.path))
+        run: |
+          TAG=${GITHUB_REF#refs/tags/${{ inputs.path }}-}
+          echo "TAG=$TAG" >> $GITHUB_ENV
 
-    - name: Extract scoped tag
-      if: startsWith(github.ref, format('refs/tags/{0}/', inputs.PATH))
-      run: |
-        TAG=${GITHUB_REF#refs/tags/${{ inputs.PATH }}/}
-        echo "TAG=$TAG" >> $GITHUB_ENV
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ inputs.path }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,value=${{ env.TAG }},pattern={{version}}  
+            type=raw,value=${{ env.TAG }},enable=${{ !startsWith(env.TAG, 'v') }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}/${{ inputs.PATH }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          ${{ env.TAG != '' && !startsWith(env.TAG, 'v') && 'type=ref,event=tag' || '' }}
-          ${{ env.TAG != '' && startsWith(env.TAG, 'v') && format('type=semver,pattern={{version}},value={0}', env.TAG) || '' }}
-  
-    - name: Build and push container image
-      uses: docker/build-push-action@v6
-      with:
-        push: true
-        context: ${{ inputs.PATH }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        build-args: |
-          VERSION=${{ steps.meta.outputs.version }}
+      - name: Build and push container image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ${{ inputs.path }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}

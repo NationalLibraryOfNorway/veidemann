@@ -5,15 +5,19 @@ on:
     branches:
       - 'main'
     tags:
-      - 'olricd/*'
+      - 'olricd-*'
     paths:
       - 'olricd/**'
+  pull_request:
+    paths:
+      - 'olricd/**'
+  workflow_dispatch:
 
 jobs:
-  build:
+  release:
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: olricd
+      path: olricd

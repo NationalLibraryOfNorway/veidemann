@@ -1,20 +1,24 @@
-name: Veidemann Dashboard
+name: Dashboard
 
 on:
   push:
     branches:
       - 'main'
     tags:
-      - 'dashboard/*'
+      - 'dashboard-*'
+    paths:
+      - 'dashboard/**'
+  pull_request:
     paths:
       - 'dashboard/**'
   workflow_dispatch:
 
 jobs:
-  build:
+  release:
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: dashboard
+      path: dashboard

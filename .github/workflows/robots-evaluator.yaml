@@ -1,33 +1,30 @@
-name: Robots(.txt) Evaluator
+name: Robots Evaluator
 
 on:
   push:
     branches:
       - 'main'
     tags:
-      - 'robots-evaluator/*'
+      - 'robots-evaluator-*'
+    paths:
+      - 'robots-evaluator/**'
+  pull_request:
     paths:
       - 'robots-evaluator/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-test
-        with:
-          working-directory: robots-evaluator
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: robots-evaluator
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: robots-evaluator
 
-  build:
-    needs: test
+  release:
+    needs: ci
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: robots-evaluator
+      path: robots-evaluator

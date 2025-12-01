@@ -5,26 +5,23 @@ on:
     branches:
       - 'main'
     tags:
-      - 'metrics/*'
+      - 'metrics-*'
+    paths:
+      - 'metrics/**'
+  pull_request:
     paths:
       - 'metrics/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-test
-        with:
-          working-directory: metrics
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: metrics
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: metrics
 
-  build:
-    needs: test
+  release:
+    needs: ci
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

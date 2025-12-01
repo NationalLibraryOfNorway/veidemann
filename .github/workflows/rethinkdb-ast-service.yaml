@@ -5,16 +5,20 @@ on:
     branches:
       - 'main'
     tags:
-      - 'rethinkdb-ast-service/*'
+      - 'rethinkdb-ast-service-*'
+    paths:
+      - 'rethinkdb-ast-service/**'
+  pull_request:
     paths:
       - 'rethinkdb-ast-service/**'
   workflow_dispatch:
 
 jobs:
   build:
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: rethinkdb-ast-service
+      path: rethinkdb-ast-service

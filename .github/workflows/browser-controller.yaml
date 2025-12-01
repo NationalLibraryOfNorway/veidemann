@@ -3,35 +3,28 @@ name: Browser Controller
 on:
   push:
     branches:
-      - 'main'
+      - "main"
     tags:
-      - 'browser-controller/*'
+      - "browser-controller-*"
     paths:
-      - 'browser-controller/**'
+      - "browser-controller/**"
   pull_request:
     paths:
-      - 'browser-controller/**'
+      - "browser-controller/**"
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-test
-        with:
-          working-directory: browser-controller
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: browser-controller
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: browser-controller
 
-  build:
-    needs: test
+  release:
+    needs: ci
     if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish-full-context.yaml
     with:
-      PATH: browser-controller
+      path: browser-controller

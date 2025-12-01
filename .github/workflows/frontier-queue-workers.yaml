@@ -5,29 +5,26 @@ on:
     branches:
       - 'main'
     tags:
-      - 'frontier-queue-workers/*'
+      - 'frontier-queue-workers-*'
+    paths:
+      - 'frontier-queue-workers/**'
+  pull_request:
     paths:
       - 'frontier-queue-workers/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-test
-        with:
-          working-directory: frontier-queue-workers
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: frontier-queue-workers
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: frontier-queue-workers
 
-  build:
-    needs: test
+  release:
+    needs: ci
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: frontier-queue-workers
+      path: frontier-queue-workers

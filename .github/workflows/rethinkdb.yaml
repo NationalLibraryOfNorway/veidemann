@@ -5,26 +5,26 @@ on:
     branches:
       - 'main'
     tags:
-      - 'rethinkdb/*'
+      - 'rethinkdb-*'
+    paths:
+      - 'rethinkdb/**'
+  pull_request:
     paths:
       - 'rethinkdb/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: rethinkdb/probe
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: rethinkdb/probe
 
-  build:
-    needs: test
+  release:
+    needs: ci
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: rethinkdb
+      path: rethinkdb

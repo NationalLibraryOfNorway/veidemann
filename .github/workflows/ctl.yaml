@@ -5,26 +5,22 @@ on:
     branches:
       - 'main'
     tags:
-      - 'ctl/*'
+      - 'ctl-*'
+    paths:
+      - 'ctl/**'
+  pull_request:
     paths:
       - 'ctl/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/golang-test
-        with:
-          working-directory: ctl
-      - uses: ./.github/actions/golang-lint
-        with:
-          working-directory: ctl
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: ctl
 
-  build:
-    needs: test
+  release:
+    needs: ci
     uses: ./.github/workflows/build-and-release.yaml
     with:
       PATH: ctl

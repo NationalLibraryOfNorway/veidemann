@@ -5,28 +5,26 @@ on:
     branches:
       - 'main'
     tags:
-      - 'cache/*'
+      - 'cache-*'
+    paths:
+      - 'cache/**'
+  pull_request:
     paths:
       - 'cache/**'
   workflow_dispatch:
 
 jobs:
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: cache/helpers
 
-  test:
-    name: Test Helpers
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: Checkout code
-        uses: ./.github/actions/golang-test
-        with:
-          working-directory: cache/helpers
-
-  build:
-    needs: test
+  release:
+    needs: ci
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: cache
+      path: cache
