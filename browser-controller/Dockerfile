@@ -2,12 +2,12 @@ FROM golang:1.25 AS build
 
 WORKDIR /build
 
-COPY go.mod .
-COPY go.sum .
+COPY browser-controller/ ./browser-controller/
+COPY getlantern-proxy/ ./getlantern-proxy/
+
+WORKDIR /build/browser-controller
 
 RUN go mod download
-
-COPY . .
 
 # -trimpath remove file system paths from executable
 # -ldflags arguments passed to go tool link:

@@ -1,5 +1,11 @@
 # veidemann-browser-controller
 
+## Build container
+
+Need to use the context of the monorepo root when building the container:
+
+    docker build -f Dockerfile ..
+
 ## Test
 
     go test ./...
