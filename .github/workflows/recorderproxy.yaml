@@ -25,6 +25,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: ./.github/workflows/build-and-publish.yaml
+    uses: ./.github/workflows/build-and-publish-full-context.yaml
     with:
       path: recorderproxy

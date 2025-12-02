@@ -1,33 +1,22 @@
 FROM golang:1.25 AS build
 
 WORKDIR /build
+COPY recorderproxy/ ./recorderproxy/
+COPY getlantern-proxy/ ./getlantern-proxy/
 
-COPY go.mod .
-COPY go.sum .
-
+WORKDIR /build/recorderproxy
 RUN go mod download
+# -trimpath remove file system paths from executable
+# -ldflags arguments passed to go tool link:
+#   -s disable symbol table
+#   -w disable DWARF generation
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o proxy .
 
-COPY . .
 
-RUN go install -v ./...
+FROM gcr.io/distroless/base-debian12
 
+COPY --from=build /build/recorderproxy/proxy /
 
-FROM gcr.io/distroless:base-debian12
+EXPOSE 8080/tcp
 
-COPY --from=build /go/bin/recorderproxy /
-
-EXPOSE 8080
-ENV CACHE_HOST=localhost \
-    CACHE_PORT=9999 \
-    PORT=9900 \
-    PROXY_COUNT=10 \
-    DNS_RESOLVER_HOST=localhost \
-    DNS_RESOLVER_PORT=7777 \
-    CONTENT_WRITER_HOST=localhost \
-    CONTENT_WRITER_PORT=7778 \
-    BROWSER_CONTROLLER_HOST=localhost \
-    BROWSER_CONTROLLER_PORT=7779 \
-    CA="" \
-    CA_KEY=""
-
-ENTRYPOINT ["/recorderproxy"]
+ENTRYPOINT ["/proxy"]
