@@ -117,7 +117,7 @@ func (r *rewriter) rewriteConfig() error {
 			conf = strings.Replace(conf, "${PARENTS}", parents, 1)
 		}
 		// write config
-		if err := os.WriteFile(r.configPath, []byte(conf), 777); err != nil {
+		if err := os.WriteFile(r.configPath, []byte(conf), 0644); err != nil {
 			return fmt.Errorf("failed to write config (%s): %w", r.configPath, err)
 		}
 		r.changes = true
