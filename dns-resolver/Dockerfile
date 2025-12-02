@@ -2,14 +2,13 @@ FROM golang:1.25 AS build
 
 WORKDIR /build
 
-COPY go.mod go.sum ./
+COPY . .
 RUN go mod download
 
-COPY . .
-
+# -trimpath Remove all file system paths from the compiled executable.
 # -s Omit the symbol table and debug information.
 # -w Omit the DWARF symbol table.
-RUN CGO_ENABLED=0 go build -ldflags="-s -w"
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w"
 
 
 FROM gcr.io/distroless/static-debian12:nonroot
@@ -30,8 +29,8 @@ ENV DNS_SERVER=8.8.8.8 \
     LOG_WRITER_HOST=veidemann-log-service \
     LOG_WRITER_PORT=8080
 
-COPY --from=build /build/veidemann-dns-resolver /usr/local/sbin/veidemann-dns-resolver
+COPY --from=build /build/dns-resolver /usr/local/sbin/dns-resolver
 COPY --chown=nonroot:nonroot Corefile.docker /Corefile
 
-ENTRYPOINT ["veidemann-dns-resolver"]
+ENTRYPOINT ["dns-resolver"]
 CMD ["-conf", "/Corefile"]
