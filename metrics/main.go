@@ -105,7 +105,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Str("address", frontierAddress).Msg("Failed to create frontier client")
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	log.Info().Str("address", frontierAddress).Msg("Frontier channel created")
 
