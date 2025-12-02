@@ -34,7 +34,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract scoped tag
-        if: startsWith(github.ref, format('refs/tags/{0}/', inputs.path))
+        if: startsWith(github.ref, format('refs/tags/{0}-', inputs.path))
         run: |
           TAG=${GITHUB_REF#refs/tags/${{ inputs.path }}-}
           echo "TAG=$TAG" >> $GITHUB_ENV
