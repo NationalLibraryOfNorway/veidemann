@@ -1,11 +1,9 @@
-FROM docker.io/golang:1.25.4 as builder
+FROM docker.io/golang:1.25.4 AS builder
 
 WORKDIR /build
 
-COPY go.mod go.sum ./
-RUN go mod download
-
 COPY . .
+RUN go mod download
 
 RUN CGO_ENABLED=0 GOOS=linux go build  -trimpath -ldflags "-s -w"
 
