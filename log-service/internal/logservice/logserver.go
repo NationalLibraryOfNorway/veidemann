@@ -220,7 +220,7 @@ func listResources(q *gocqlx.Queryx, pageId string) ([]*logV1.PageLog_Resource, 
 	var resources []*logV1.PageLog_Resource
 	p := q.BindMap(qb.M{"page_id": pageId})
 	iter := p.Iter()
-	defer iter.Close()
+	defer func() { _ = iter.Close() }()
 	for resource := new(Resource); iter.StructScan(resource); resource = new(Resource) {
 		resources = append(resources, resource.toProto())
 	}
@@ -253,7 +253,7 @@ func listPageLogsByExecutionId(q *gocqlx.Queryx, r *gocqlx.Queryx, req *logV1.Pa
 	// count is the current number of rows processed by fn
 	count := 0
 	iter := q.BindMap(qb.M{"execution_id": executionId}).Iter()
-	defer iter.Close()
+	defer func() { _ = iter.Close() }()
 	for pageLog := new(PageLog); iter.StructScan(pageLog); pageLog = new(PageLog) {
 		if count < offset {
 			count++
@@ -316,7 +316,7 @@ func listCrawlLogsByExecutionId(query *gocqlx.Queryx, req *logV1.CrawlLogListReq
 	count := 0
 
 	iter := query.BindMap(qb.M{"execution_id": executionId}).Iter()
-	defer iter.Close()
+	defer func() { _ = iter.Close() }()
 	for crawlLog := new(CrawlLog); iter.StructScan(crawlLog); crawlLog = new(CrawlLog) {
 		if count < offset {
 			count++

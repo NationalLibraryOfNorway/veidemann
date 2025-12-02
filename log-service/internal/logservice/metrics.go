@@ -157,7 +157,7 @@ func CollectPageLog(pageLog *logV1.PageLog) {
 		var cached float64
 		var notCached float64
 		for _, resource := range resources {
-			if resource.GetFromCache() == true {
+			if resource.GetFromCache() {
 				cached++
 			} else {
 				notCached++

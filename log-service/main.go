@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -79,7 +80,7 @@ func main() {
 	if tracer, closer, err := tracing.Init("Log Service"); err != nil {
 		log.Warn().Err(err).Msg("Failed to initialize tracing")
 	} else {
-		defer closer.Close()
+		defer func() { _ = closer.Close() }()
 		opentracing.SetGlobalTracer(tracer)
 		log.Info().Msg("Tracing initialized")
 	}
@@ -132,19 +133,29 @@ func main() {
 		}
 	}()
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	done := make(chan struct{})
+
 	go func() {
 		defer close(done)
-		signals := make(chan os.Signal, 2)
-		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-		select {
-		case sig := <-signals:
-			log.Info().Str("signal", sig.String()).Msg("Shutting down")
+
+		// wait for signal
+		<-ctx.Done()
+
+		log.Info().
+			Str("reason", ctx.Err().Error()).
+			Msg("Shutting down")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+			log.Error().Err(err).Msg("metrics server shutdown failed")
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = metricsServer.Shutdown(ctx)
+		// gracefully stop gRPC
 		server.GracefulStop()
 	}()
 
@@ -153,11 +164,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	log.Info().Str("address", addr).Msg("API server listening")
-	if err = server.Serve(listener); err != nil {
+
+	// Serve blocks until GracefulStop/Stop is called or an error occurs
+	if err := server.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+		// real error: get non-zero exit + run defers
 		panic(err)
 	}
 
-	// wait for shutdown to complete
+	// wait for shutdown goroutine (metrics + GracefulStop) to finish
 	<-done
 }
