@@ -78,7 +78,7 @@ func (c *ContentWriterClient) WriteRecord(payload []byte, fetchStart time.Time, 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	stream, err := c.ContentWriterClient.Write(ctx)
+	stream, err := c.Write(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open stream to content writer: %w", err)
 	}

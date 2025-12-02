@@ -26,7 +26,7 @@ func main() {
 		fmt.Printf("Failed to create grpc client: %v\n", err)
 		os.Exit(1)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := dnsresolverV1.NewDnsResolverClient(conn)
 

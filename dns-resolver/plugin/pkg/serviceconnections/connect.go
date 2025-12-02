@@ -44,7 +44,7 @@ func (c *Connection) Close() error {
 }
 
 func (c *Connection) Ready() bool {
-	return c.ClientConn.GetState() == connectivity.Ready
+	return c.GetState() == connectivity.Ready
 }
 
 func NewClientConn(serviceName string, opts ...ConnectionOption) *Connection {

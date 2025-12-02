@@ -176,7 +176,7 @@ func (e *Resolve) OnStartup() error {
 		} else {
 			log.Infof("Listening on grpc://%s", e.addr)
 			e.listenAddr = ln.Addr()
-			if err := e.Server.Serve(ln); err != nil {
+			if err := e.Serve(ln); err != nil {
 				log.Error(err)
 			}
 		}
@@ -185,7 +185,7 @@ func (e *Resolve) OnStartup() error {
 }
 
 func (e *Resolve) OnStop() error {
-	e.Server.GracefulStop()
+	e.GracefulStop()
 	return nil
 }
 

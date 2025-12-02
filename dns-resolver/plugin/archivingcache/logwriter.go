@@ -72,5 +72,5 @@ func (l *LogWriterClient) WriteCrawlLog(record *contentwriterV1.WriteResponseMet
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	return l.LogWriter.WriteCrawlLogs(ctx, []*logV1.CrawlLog{crawlLog})
+	return l.WriteCrawlLogs(ctx, []*logV1.CrawlLog{crawlLog})
 }

@@ -72,7 +72,7 @@ func (s *ContentWriterMock) Write(stream contentwriterV1.ContentWriter_WriteServ
 			s.Cancel = x.Cancel
 			s.m.Unlock()
 		default:
-			return fmt.Errorf("Unexpected type %T", x)
+			return fmt.Errorf("unexpected type %T", x)
 		}
 	}
 	return nil
@@ -90,7 +90,7 @@ func (s *ContentWriterMock) Delete(ctx context.Context, in *emptypb.Empty) (*emp
 
 // Close implements ContentWriterServer
 func (s *ContentWriterMock) Close() {
-	s.Server.GracefulStop()
+	s.GracefulStop()
 }
 
 func (s *ContentWriterMock) Reset() {
