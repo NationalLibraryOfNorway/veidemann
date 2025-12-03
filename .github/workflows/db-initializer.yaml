@@ -1,0 +1,24 @@
+name: DB Initializer
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'rethinkdbadapter-*'
+    paths:
+      - 'rethinkdbadapter/**'
+  pull_request:
+    paths:
+      - 'rethinkdbadapter/**'
+  workflow_dispatch:
+
+jobs:
+  release:
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-and-publish-java.yaml
+    with:
+      path: rethinkdbadapter
