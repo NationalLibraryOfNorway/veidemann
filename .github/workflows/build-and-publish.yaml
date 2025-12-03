@@ -25,6 +25,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Normalize component path
+        run: |
+          path='${{ inputs.path }}'
+          path="${path//\//-}"
+          echo "NORMALIZED_PATH=$path" >> "$GITHUB_ENV"
+
       - name: Extract scoped tag
         if: startsWith(github.ref, format('refs/tags/{0}-', inputs.path))
         run: |
@@ -35,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/${{ inputs.path }}
+          images: ghcr.io/${{ github.repository }}/${{ env.NORMALIZED_PATH }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr

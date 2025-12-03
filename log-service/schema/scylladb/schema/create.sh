@@ -3,8 +3,7 @@
 # Licensed to the jaeger authors under one or more contributor license agreements.
 # This file originates from https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/cassandra/schema
 
-# This script is used in the Docker image norsknettarkiv/veidemann-log-schema
-# that allows installing veidemann keyspace and schema without installing cqlsh.
+# This script is used to initialize keyspace and schema without installing cqlsh.
 
 function usage {
     >&2 echo "Error: $1"

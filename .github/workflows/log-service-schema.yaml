@@ -1,0 +1,24 @@
+name: Log Service Schema
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'log-service-schema-*'
+    paths:
+      - 'log-service/schema/**'
+  pull_request:
+    paths:
+      - 'log-service/schema/**'
+  workflow_dispatch:
+
+jobs:
+  release:
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-and-publish.yaml
+    with:
+      path: log-service/schema
