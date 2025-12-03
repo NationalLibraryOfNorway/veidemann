@@ -1,5 +1,7 @@
 plugins {
     `java-library`
+    `application`
+    id("com.google.cloud.tools.jib") version "3.5.1"
 }
 
 java {
@@ -38,4 +40,18 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+application {
+    mainClass.set("no.nb.nna.veidemann.db.initializer.Main")
+}
+
+jib {
+    to {
+        image = "${rootProject.name}/db-initializer"
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
