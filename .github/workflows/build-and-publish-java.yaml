@@ -43,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/${{ inputs.path }}
+          images: ghcr.io/${{ toLower(github.repository) }}/${{ inputs.path }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -53,14 +53,14 @@ jobs:
       # Convert newline-separated tags from metadata-action to comma-separated for Jib
       - name: Prepare Jib tags
         run: |
-          TAGS_CSV="$(echo '${{ steps.meta.outputs.tags }}' | tr '\n' ',' | sed 's/,$//')"
+          TAGS_CSV="$(echo '${{ steps.meta.outputs.tag-names }}' | tr '\n' ',' | sed 's/,$//')"
           echo "JIB_TAGS=$TAGS_CSV" >> "$GITHUB_ENV"
           echo "Using JIB_TAGS=$TAGS_CSV"
 
       - name: Build and push container image with Jib
         run: |
           ./gradlew :${{ inputs.path }}:jib \
-            -Djib.to.image=ghcr.io/${{ github.repository }}/${{ inputs.path }} \
+            -Djib.to.image=ghcr.io/${{ toLower(github.repository) }}/${{ inputs.path }} \
             -Djib.to.tags=${{ env.JIB_TAGS }} \
             -Pversion=${{ steps.meta.outputs.version }} \
             --no-daemon --stacktrace
