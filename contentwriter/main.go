@@ -79,7 +79,7 @@ func main() {
 	if err := db.Connect(); err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	configCache := database.NewConfigCache(db, viper.GetDuration("db-cache-ttl"))
 	contentwriterService := server.New(viper.GetString("interface"), viper.GetInt("port"), settings.ViperSettings{}, configCache)
@@ -88,7 +88,7 @@ func main() {
 	tracer, closer := telemetry.InitTracer("Scope checker")
 	if tracer != nil {
 		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
+		defer func() { _ = closer.Close() }()
 	}
 
 	errc := make(chan error, 1)

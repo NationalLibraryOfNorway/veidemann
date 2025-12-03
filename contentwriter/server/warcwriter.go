@@ -80,10 +80,8 @@ func newWarcWriter(s settings.Settings, db database.DbAdapter, c *configV1.Confi
 		ww.timer = time.NewTimer(d)
 		ww.done = make(chan interface{})
 		go func() {
-			for {
-				if !ww.waitForTimer(rotationPolicy) {
-					break
-				}
+			for ww.waitForTimer(rotationPolicy) {
+				// wait
 			}
 		}()
 	}

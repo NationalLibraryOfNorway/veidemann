@@ -18,6 +18,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -110,7 +111,7 @@ func (c *RethinkDbConnection) GetConfigObject(ctx context.Context, ref *configV1
 
 func (c *RethinkDbConnection) HasCrawledContent(ctx context.Context, payloadDigest string) (*contentwriterV1.CrawledContent, error) {
 	if payloadDigest == "" {
-		return nil, fmt.Errorf("The required field 'digest' is missing from: 'crawledContent'")
+		return nil, errors.New("the required field 'digest' is missing from: 'crawledContent'")
 	}
 
 	term := r.Table("crawled_content").Get(payloadDigest)
@@ -130,16 +131,16 @@ func (c *RethinkDbConnection) HasCrawledContent(ctx context.Context, payloadDige
 
 func (c *RethinkDbConnection) WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error {
 	if crawledContent.Digest == "" {
-		return fmt.Errorf("The required field 'digest' is missing from: 'crawledContent'")
+		return errors.New("the required field 'digest' is missing from: 'crawledContent'")
 	}
 	if crawledContent.WarcId == "" {
-		return fmt.Errorf("The required field 'warc_id' is missing from: 'crawledContent'")
+		return errors.New("the required field 'warc_id' is missing from: 'crawledContent'")
 	}
 	if crawledContent.TargetUri == "" {
-		return fmt.Errorf("The required field 'target_uri' is missing from: 'crawledContent'")
+		return errors.New("the required field 'target_uri' is missing from: 'crawledContent'")
 	}
 	if crawledContent.Date == nil {
-		return fmt.Errorf("The required field 'date' is missing from: 'crawledContent'")
+		return errors.New("the required field 'date' is missing from: 'crawledContent'")
 	}
 
 	term := r.Table("crawled_content").Insert(crawledContent)
