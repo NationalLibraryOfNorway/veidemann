@@ -4,7 +4,7 @@ export {ErrorService} from './error.service';
 export {SnackBarService} from './snack-bar/snack-bar.service';
 export {AuthService, GuardService, TokenInterceptor} from './auth';
 export {ControllerApiService} from './api/controller-api.service';
-export {ReportApiService} from './api/report-api.service';
+export {ReportApiService} from './api/report-api.service_old';
 export {LogApiService} from './api/log-api.service';
 export {LocaleService} from './locale.service';
 

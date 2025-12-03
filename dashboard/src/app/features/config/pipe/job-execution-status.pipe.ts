@@ -1,7 +1,7 @@
 import {Pipe, PipeTransform} from '@angular/core';
 import {Observable} from 'rxjs';
 
-import {ReportApiService} from '../../../core/api/report-api.service';
+import {ReportApiService} from '../../../core/api/report-api.service_old';
 import {ConfigObject} from '../../../shared/models/config';
 import {JobExecutionStatus} from '../../../shared/models/report';
 

@@ -1,6 +1,6 @@
 import {inject, TestBed} from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
-import {ReportApiService} from './report-api.service';
+import {ReportApiService} from './report-api.service_old';
 import {provideCoreTesting} from '../core.testing.module';
 
 describe('ReportApiService', () => {
