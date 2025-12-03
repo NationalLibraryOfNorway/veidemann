@@ -5,12 +5,12 @@ on:
     branches:
       - 'main'
     tags:
-      - 'log-service-schema-*'
+      - 'log-service-schema-scylladb-*'
     paths:
-      - 'log-service/schema/**'
+      - 'log-service/schema/scylladb/**'
   pull_request:
     paths:
-      - 'log-service/schema/**'
+      - 'log-service/schema/scylladb/**'
   workflow_dispatch:
 
 jobs:
@@ -21,4 +21,4 @@ jobs:
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      path: log-service/schema
+      path: log-service/schema/scylladb
