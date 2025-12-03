@@ -44,7 +44,7 @@ public class AbstractIntegrationTest {
     private static Network network = Network.newNetwork();
 
     @Container
-    public static GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:6-alpine"))
+    public static GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:8-alpine"))
             .withNetwork(network)
             .withNetworkAliases("redis")
             .withExposedPorts(6379)
@@ -57,7 +57,7 @@ public class AbstractIntegrationTest {
             );
 
     @Container
-    public static GenericContainer rethinkDb = new GenericContainer(DockerImageName.parse("rethinkdb:2.4.1-buster-slim"))
+    public static GenericContainer rethinkDb = new GenericContainer(DockerImageName.parse("rethinkdb:2.4.4-bookworm-slim"))
             .withNetwork(network)
             .withNetworkAliases("db")
             .withExposedPorts(28015)
@@ -68,18 +68,16 @@ public class AbstractIntegrationTest {
             );
     @Container
     public static GenericContainer dbInitializer = new GenericContainer(
-            DockerImageName.parse("norsknettarkiv/veidemann-db-initializer").withTag(AbstractIntegrationTest.getStringProperty("veidemann.rethinkdbadapter.version", "v0.8.0")))
+            DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter").withTag("0.11.0"))
             .withNetwork(network)
             .dependsOn(rethinkDb)
             .withEnv("DB_HOST", "db")
             .withEnv("DB_PORT", "28015")
             .withEnv("DB_USER", "admin")
             .withStartupCheckStrategy(
-                    new OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)))
-            .waitingFor(
-                    Wait.forLogMessage(".*DB initialized.*", 1));
+                    new OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)));
     @Container
-    public GenericContainer queueWorker = new GenericContainer(DockerImageName.parse("ghcr.io/nlnwa/veidemann-frontier-queue-workers:0.1.0"))
+    public GenericContainer queueWorker = new GenericContainer(DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.2.0"))
             .withNetwork(network)
             .dependsOn(dbInitializer, redis)
             .withEnv("DB_HOST", "db")
