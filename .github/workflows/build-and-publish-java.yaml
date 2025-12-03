@@ -43,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ toLower(github.repository) }}/${{ inputs.path }}
+          images: ghcr.io/${{ github.repository }}/${{ inputs.path }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -60,7 +60,7 @@ jobs:
       - name: Build and push container image with Jib
         run: |
           ./gradlew :${{ inputs.path }}:jib \
-            -Djib.to.image=ghcr.io/${{ toLower(github.repository) }}/${{ inputs.path }} \
+            -Djib.to.image=ghcr.io/${GITHUB_REPOSITORY,,}/${{ inputs.path }} \
             -Djib.to.tags=${{ env.JIB_TAGS }} \
             -Pversion=${{ steps.meta.outputs.version }} \
             --no-daemon --stacktrace
