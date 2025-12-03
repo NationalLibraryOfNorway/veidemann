@@ -90,17 +90,6 @@ func (c *RethinkDbConnection) Close() error {
 	return c.session.(*r.Session).Close()
 }
 
-// execRead executes the given read term with a timeout
-func (c *RethinkDbConnection) execRead(ctx context.Context, name string, term *r.Term) (*r.Cursor, error) {
-	q := func(ctx context.Context) (*r.Cursor, error) {
-		runOpts := r.RunOpts{
-			Context: ctx,
-		}
-		return term.Run(c.session, runOpts)
-	}
-	return c.execWithRetry(ctx, name, q)
-}
-
 // execWrite executes the given write term with a timeout
 func (c *RethinkDbConnection) execWrite(ctx context.Context, name string, term *r.Term) (writeResponse r.WriteResponse, err error) {
 	q := func(ctx context.Context) (*r.Cursor, error) {

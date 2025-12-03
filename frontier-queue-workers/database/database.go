@@ -235,7 +235,7 @@ func (d *database) TimeoutCrawlExecutions(ctx context.Context) (int, error) {
 			// put ceid back in timout queue to recover
 			_, rollbackErr := d.redis.RPush(redisCrawlExecutionTimeoutQueue, ceid).Result()
 			if rollbackErr != nil {
-				return count, fmt.Errorf("%v:  %w: failed to recover ceid %s (must be inserted into timeout queue manually):", err, rollbackErr, ceid)
+				return count, fmt.Errorf("%w: failed to recover ceid %s (must be inserted into timeout queue manually): %v", rollbackErr, ceid, err)
 			}
 			break
 		}
