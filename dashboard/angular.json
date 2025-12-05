@@ -134,35 +134,9 @@
           }
         },
         "test": {
-          "builder": "@angular/build:karma",
+          "builder": "@angular/build:unit-test",
           "options": {
-            "sourceMap": false,
-            "karmaConfig": "karma.conf.js",
-            "polyfills": [
-              "@angular/localize/init"
-            ],
-            "tsConfig": "tsconfig.spec.json",
-            "scripts": [],
-            "styles": [
-              "src/styles.scss"
-            ],
-            "stylePreprocessorOptions": {
-              "includePaths": [
-                "src/styles"
-              ]
-            },
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public",
-                "output": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "node_modules/monaco-editor",
-                "output": "public/monaco-editor/"
-              }
-            ]
+            "browsers": ["chromium"]
           }
         },
         "lint": {
