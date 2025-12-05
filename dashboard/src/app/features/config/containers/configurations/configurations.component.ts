@@ -37,7 +37,6 @@ import {ConfigQuery, distinctUntilArrayChanged, Sort} from '../../../../shared/f
 import {KindService, OptionsService} from '../../services';
 import {ConfigDialogData, ConfigOptions, dialogByKind, multiDialogByKind} from '../../func';
 import {ReferrerError} from '../../../../shared/error';
-import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
 import {RunCrawlRequest} from '../../../../shared/models/controller/controller.model';
 import {AbilityService} from '@casl/angular';
 import {AsyncPipe} from '@angular/common';
@@ -73,7 +72,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     ConfigQueryComponent,
     EntityViewComponent,
     FlexDirective,
-    KeyboardShortcutsModule,
     LayoutDirective,
     MatListModule,
     MatIcon,
@@ -98,10 +96,9 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   ],
   standalone: true
 })
-export class ConfigurationsComponent implements OnInit, OnDestroy, AfterViewInit {
+export class ConfigurationsComponent implements OnInit, OnDestroy {
   readonly Kind = Kind;
   readonly ability$: Observable<any>;
-  shortcuts: ShortcutInput[] = [];
 
   length$: Observable<number>;
   pageSize$: Observable<number>;
@@ -374,75 +371,6 @@ export class ConfigurationsComponent implements OnInit, OnDestroy, AfterViewInit
             return true;
         }
       }));
-  }
-
-  ngAfterViewInit() {
-    this.shortcuts.push(
-      {
-        key: 'shift + e',
-        label: 'Configurations actions',
-        description: 'Edit selected configuration',
-        command: (event: ShortcutEventOutput) => {
-          if (this.configObject$.value !== null) {
-            this.onEdit(this.configObject$.value);
-          } else if (this.selectedConfigs.length > 1) {
-            this.onEditSelected();
-          }
-        }
-      },
-      {
-        key: 'shift + c',
-        label: 'Configurations actions',
-        description: 'Clone selected configuration',
-        command: (event: ShortcutEventOutput) => {
-          if (this.configObject$.value !== null) {
-            this.onClone(this.configObject$.value);
-          }
-        }
-      },
-      {
-        key: 'shift + n',
-        label: 'Configurations actions',
-        description: 'Create new configuration',
-        command: (event: ShortcutEventOutput) => {
-          if (this.kind !== null && this.kind !== Kind.SEED) {
-            this.onCreateConfigWithDialog();
-          }
-        }
-      },
-      {
-        key: 'shift + f',
-        label: 'Configurations actions',
-        description: 'Create new  seed for entity',
-        command: (event: ShortcutEventOutput) => {
-          if (this.configObject$.value !== null && this.configObject$.value.kind === Kind.CRAWLENTITY) {
-            this.onCreateSeedFromEntity(this.configObject$.value);
-          }
-        }
-      },
-      {
-        key: 'shift + d',
-        label: 'Configurations actions',
-        description: 'Show details for selected configuration',
-        command: (event: ShortcutEventOutput) => {
-          if (this.configObject$.value !== null) {
-            this.onShowDetails(this.configObject$.value);
-          }
-        }
-      },
-      {
-        key: 'shift + del',
-        label: 'Configurations actions',
-        description: 'Delete configuration',
-        command: (event: ShortcutEventOutput) => {
-          if (this.configObject$.value !== null && this.selectedConfigs.length === 0) {
-            this.onDeleteConfig(this.configObject$.value);
-          } else if (this.selectedConfigs.length > 0) {
-            this.onDeleteSelectedConfigs();
-          }
-        }
-      },
-    );
   }
 
   ngOnDestroy(): void {

@@ -2,7 +2,6 @@ import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input
 
 
 import {animate, state, style, transition, trigger} from '@angular/animations';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
 import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
 import {JobExecutionFetchPipe, JobNamePipe} from '../../pipe';
 import {MatTableModule} from '@angular/material/table';
@@ -46,7 +45,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     JobExecutionFetchPipe,
     JobExecutionPreviewComponent,
     JobNamePipe,
-    KeyboardShortcutsModule,
     LayoutDirective,
     MatButtonModule,
     MatIcon,

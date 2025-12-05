@@ -15,7 +15,6 @@ import {AbilityService} from "@casl/angular";
 
 import {AuthService, ControllerApiService, ErrorService, GuardService, SnackBarService} from '../../core';
 import {AboutDialogComponent} from './about-dialog/about-dialog.component';
-import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
 import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
 import {AsyncPipe} from '@angular/common';
 import {MatToolbar} from '@angular/material/toolbar';
@@ -38,7 +37,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   imports: [
     AsyncPipe,
     FlexDirective,
-    KeyboardShortcutsModule,
     LayoutDirective,
     MatButtonModule,
     MatIcon,
@@ -54,12 +52,11 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     DialogComponent
   ]
 })
-export class AppComponent implements OnInit, AfterViewInit {
+export class AppComponent implements OnInit {
   readonly ability$: Observable<any>;
 
   isModuleLoading$: Observable<boolean>;
   private moduleLoadSemaphore = 0;
-  shortcuts: ShortcutInput[] = [];
 
   constructor(private authService: AuthService,
     private controllerApiService: ControllerApiService,
@@ -102,101 +99,6 @@ export class AppComponent implements OnInit, AfterViewInit {
       }
     }
 
-  }
-
-  ngAfterViewInit(): void {
-    this.shortcuts.push(
-      {
-        key: 'c e',
-        label: 'Configurations',
-        description: 'Show entity view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/entity'])
-      },
-      {
-        key: 'c s',
-        label: 'Configurations',
-        description: 'Show seed view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/seed'])
-      },
-      {
-        key: 'c j',
-        label: 'Configurations',
-        description: 'Show crawljob view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/crawljobs'])
-      },
-      {
-        key: 'c s c',
-        label: 'Configurations',
-        description: 'Show schedule view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/schedule'])
-      },
-      {
-        key: 'c r',
-        label: 'Configurations',
-        description: 'Show crawlconfig view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/crawlconfig'])
-      },
-      {
-        key: 'c o',
-        label: 'Configurations',
-        description: 'Show collection view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/collection'])
-      },
-      {
-        key: 'c b',
-        label: 'Configurations',
-        description: 'Show browserconfig view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/browserconfig'])
-      },
-      {
-        key: 'c b s',
-        label: 'Configurations',
-        description: 'Show browserscript view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/browserscript'])
-      },
-      {
-        key: 'c p',
-        label: 'Configurations',
-        description: 'Show politeness view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/politenessconfig'])
-      },
-      {
-        key: 'c h',
-        label: 'Configurations',
-        description: 'Show crawlhostgroup view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/crawlhostgroupconfig'])
-      },
-      {
-        key: 'c u',
-        label: 'Configurations',
-        description: 'Show users view',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/config/rolemapping'])
-      },
-      {
-        key: 'r j',
-        label: 'Reports',
-        description: 'Show jobexecution reports',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/report/jobexecution'])
-      },
-      {
-        key: 'r c',
-        label: 'Reports',
-        description: 'Show crawlexecution reports',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/report/crawlexecution'])
-      },
-      {
-        key: 'r p',
-        label: 'Reports',
-        description: 'Show pagelog reports',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/report/pagelog'])
-      },
-      {
-        key: 'r c l',
-        label: 'Reports',
-        description: 'Show crawllog reports',
-        command: (output: ShortcutEventOutput) => this.router.navigate(['/report/crawllog'])
-      }
-    );
   }
 
   get isLoggedIn(): boolean {
