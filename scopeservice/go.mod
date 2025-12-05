@@ -7,7 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.0
 	github.com/nlnwa/whatwg-url v0.6.2
-	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e
+	github.com/opentracing-contrib/go-grpc v0.1.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
