@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     tags:
-      - 'rethinkdb-*'
+      - 'rethinkdb-v*'
     paths:
       - 'rethinkdb/**'
   pull_request:

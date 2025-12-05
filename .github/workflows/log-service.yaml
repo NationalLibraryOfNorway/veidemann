@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     tags:
-      - 'log-service-*'
+      - 'log-service-v*'
     paths:
       - 'log-service/**'
   pull_request:

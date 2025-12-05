@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     tags:
-      - 'frontier-*'
+      - 'frontier-v*'
     paths:
       - 'frontier/**'
   pull_request:
