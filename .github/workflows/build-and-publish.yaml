@@ -32,9 +32,9 @@ jobs:
           echo "NORMALIZED_PATH=$path" >> "$GITHUB_ENV"
 
       - name: Extract scoped tag
-        if: startsWith(github.ref, format('refs/tags/{0}-', inputs.path))
+        if: startsWith(github.ref, format('refs/tags/{0}-', env.NORMALIZED_PATH))
         run: |
-          TAG=${GITHUB_REF#refs/tags/${{ inputs.path }}-}
+          TAG=${GITHUB_REF#refs/tags/${{ env.NORMALIZED_PATH }}-}
           echo "TAG=$TAG" >> $GITHUB_ENV
 
       - name: Extract metadata
