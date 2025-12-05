@@ -1,4 +1,4 @@
-name: Protobuf Code Generation
+name: Protobuf CI
 
 on:
   push:
@@ -6,8 +6,11 @@ on:
       - 'main'
     paths:
       - 'proto/**'
+  pull_request:
+    paths:
+      - 'proto/**'
   workflow_dispatch:
-  
+
 jobs:
   ci:
     runs-on: ubuntu-latest

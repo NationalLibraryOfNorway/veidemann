@@ -1,27 +1,13 @@
-name: RethinkDB
+name: RethinkDB Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'rethinkdb-v*'
-    paths:
-      - 'rethinkdb/**'
-  pull_request:
-    paths:
-      - 'rethinkdb/**'
+      - 'rethinkdb-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: rethinkdb/probe
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

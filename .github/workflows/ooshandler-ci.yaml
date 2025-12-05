@@ -1,9 +1,14 @@
-name: Log Service Schema Release
+name: OOS Handler CI
 
 on:
   push:
-    tags:
-      - 'log-service-schema-scylladb-v[0-9]+.[0-9]+.[0-9]+*'
+    branches:
+      - 'main'
+    paths:
+      - 'ooshandler/**'
+  pull_request:
+    paths:
+      - 'ooshandler/**'
   workflow_dispatch:
 
 jobs:
@@ -13,4 +18,4 @@ jobs:
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      path: log-service/schema/scylladb
+      path: ooshandler

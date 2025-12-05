@@ -1,27 +1,13 @@
-name: Frontier Queue Workers
+name: Frontier Queue Workers Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'frontier-queue-workers-*'
-    paths:
-      - 'frontier-queue-workers/**'
-  pull_request:
-    paths:
-      - 'frontier-queue-workers/**'
+      - 'frontier-queue-workers-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: frontier-queue-workers
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

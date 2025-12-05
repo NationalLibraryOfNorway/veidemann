@@ -1,0 +1,18 @@
+name: Frontier Queue Workers CI
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'frontier-queue-workers/**'
+  pull_request:
+    paths:
+      - 'frontier-queue-workers/**'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: frontier-queue-workers

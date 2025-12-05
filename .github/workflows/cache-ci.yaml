@@ -1,0 +1,18 @@
+name: Cache CI
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'cache/**'
+  pull_request:
+    paths:
+      - 'cache/**'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: cache/helpers

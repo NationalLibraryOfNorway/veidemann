@@ -1,27 +1,13 @@
-name: Cache
+name: Cache Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'cache-*'
-    paths:
-      - 'cache/**'
-  pull_request:
-    paths:
-      - 'cache/**'
+      - 'cache-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: cache/helpers
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

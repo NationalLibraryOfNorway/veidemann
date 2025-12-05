@@ -1,30 +1,16 @@
-name: Metrics
+name: Metrics Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'metrics-*'
-    paths:
-      - 'metrics/**'
-  pull_request:
-    paths:
-      - 'metrics/**'
+      - 'metrics-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: metrics
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/build-and-publish.yaml
     with:
-      PATH: metrics
+      path: metrics

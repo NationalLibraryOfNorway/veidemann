@@ -1,21 +1,13 @@
-name: Veidemann RethinkDB AST Service
+name: RethinkDB AST Service Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'rethinkdb-ast-service-*'
-    paths:
-      - 'rethinkdb-ast-service/**'
-  pull_request:
-    paths:
-      - 'rethinkdb-ast-service/**'
+      - 'rethinkdb-ast-service-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  build:
-    if: github.event_name != 'pull_request'
+  release:
     permissions:
       contents: read
       packages: write

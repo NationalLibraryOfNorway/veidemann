@@ -1,21 +1,13 @@
-name: Frontier
+name: Frontier Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'frontier-v*'
-    paths:
-      - 'frontier/**'
-  pull_request:
-    paths:
-      - 'frontier/**'
+      - 'frontier-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
   release:
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

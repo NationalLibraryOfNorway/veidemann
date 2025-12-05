@@ -2,26 +2,12 @@ name: OOS Handler
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'ooshandler-*'
-    paths:
-      - 'ooshandler/**'
-  pull_request:
-    paths:
-      - 'ooshandler/**'
+      - 'ooshandler-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: ooshandler
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

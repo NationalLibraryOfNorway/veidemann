@@ -1,0 +1,18 @@
+name: Browser Controller CI
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "browser-controller/**"
+  pull_request:
+    paths:
+      - "browser-controller/**"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: browser-controller

@@ -1,27 +1,13 @@
-name: Scope Service
+name: Scope Service Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'scopeservice-*'
-    paths:
-      - 'scopeservice/**'
-  pull_request:
-    paths:
-      - 'scopeservice/**'
+      - 'scopeservice-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: scopeservice
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

@@ -1,26 +1,13 @@
-name: veidemannctl
+name: veidemannctl Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'ctl-*'
-    paths:
-      - 'ctl/**'
-  pull_request:
-    paths:
-      - 'ctl/**'
+      - 'ctl-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: ctl
-
   release:
-    needs: ci
     uses: ./.github/workflows/build-and-release.yaml
     with:
-      PATH: ctl
+      path: ctl

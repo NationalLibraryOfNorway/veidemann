@@ -1,27 +1,13 @@
-name: Robots Evaluator
+name: Robots Evaluator Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'robots-evaluator-*'
-    paths:
-      - 'robots-evaluator/**'
-  pull_request:
-    paths:
-      - 'robots-evaluator/**'
+      - 'robots-evaluator-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: robots-evaluator
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

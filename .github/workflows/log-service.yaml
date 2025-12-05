@@ -1,27 +1,13 @@
-name: Log Service
+name: Log Service Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'log-service-v*'
-    paths:
-      - 'log-service/**'
-  pull_request:
-    paths:
-      - 'log-service/**'
+      - 'log-service-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: log-service
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

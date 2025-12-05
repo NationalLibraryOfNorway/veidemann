@@ -1,27 +1,13 @@
-name: Recorder Proxy
+name: Recorder Proxy Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'recorderproxy-*'
-    paths:
-      - 'recorderproxy/**'
-  pull_request:
-    paths:
-      - 'recorderproxy/**'
+      - 'recorderproxy-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: recorderproxy
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

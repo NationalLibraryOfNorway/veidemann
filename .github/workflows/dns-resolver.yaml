@@ -1,27 +1,13 @@
-name: DNS Resolver
+name: DNS Resolver Release
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
-      - 'dns-resolver-*'
-    paths:
-      - 'dns-resolver/**'
-  pull_request:
-    paths:
-      - 'dns-resolver/**'
+      - 'dns-resolver-v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/golang-ci.yaml
-    with:
-      working-directory: dns-resolver
-
   release:
-    needs: ci
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
