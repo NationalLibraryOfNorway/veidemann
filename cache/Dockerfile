@@ -9,7 +9,7 @@ COPY helpers ./
 RUN CGO_ENABLED=0 go install ./...
 
 
-FROM docker.io/alpine:3.22 AS generate-certificates
+FROM docker.io/alpine:3.23 AS generate-certificates
 
 RUN apk add --no-cache gnutls-utils
 
