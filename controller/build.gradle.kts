@@ -32,11 +32,10 @@ dependencies {
     implementation(platform(libs.slf4j.bom))
     implementation("org.slf4j:slf4j-api")
     implementation("org.slf4j:jul-to-slf4j")
-    
     implementation(platform(libs.log4j.bom))
     implementation("org.apache.logging.log4j:log4j-api")
     implementation("org.apache.logging.log4j:log4j-core")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl")
+    implementation("org.apache.logging.log4j:log4j-slf4j2-impl")
 
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
