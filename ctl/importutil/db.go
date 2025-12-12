@@ -25,7 +25,7 @@ import (
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/dgraph-io/ristretto/z"
+	"github.com/dgraph-io/ristretto/v2/z"
 	"github.com/rs/zerolog/log"
 )
 
