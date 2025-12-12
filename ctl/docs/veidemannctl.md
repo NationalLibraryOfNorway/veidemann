@@ -13,6 +13,7 @@ veidemannctl controls the Veidemann web crawler
       --config string                 Path to the config file to use (By default configuration file is stored under $HOME/.veidemann/contexts/
       --context string                The name of the context to use
   -h, --help                          help for veidemannctl
+      --insecure                      If set, it will use an insecure connection
       --log-caller                    include information about caller in log output
       --log-format string             set log format, available formats are: "pretty" or "json" (default "pretty")
       --log-level string              set log level, available levels are "panic", "fatal", "error", "warn", "info", "debug" and "trace" (default "info")
