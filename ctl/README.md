@@ -33,7 +33,7 @@ go generate
 When no `--server <address>` is provided or previously set using `veidemannctl
 config set-address <address>` you might experience the following error message:
 
-```
+```console
 $ veidemannctl get seed
 Error: failed to build resolver: passthrough: received empty target in Build()
 ```

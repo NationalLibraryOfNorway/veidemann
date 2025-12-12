@@ -1,4 +1,4 @@
-name: veidemannctl Release
+name: veidemannctl build & release
 
 on:
   push:
@@ -7,7 +7,93 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: darwin
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Compute build metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMMIT="${GITHUB_SHA}"
+          DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#ctl-}"  # ctl-v0.10.2 -> v0.10.2
+            VERSION="${VERSION#v}"             # v0.10.2 -> 0.10.2
+          elif [[ "${GITHUB_REF_TYPE}" == "branch" ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            VERSION="dev"
+          fi
+
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "COMMIT=$COMMIT" >> "$GITHUB_ENV"
+          echo "DATE=$DATE" >> "$GITHUB_ENV"
+
+      - name: Build
+        shell: bash
+        working-directory: ctl
+        run: |
+          set -euo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/dist"
+
+          LDFLAGS="-s -w \
+            -X main.version=${VERSION} \
+            -X main.commit=${COMMIT} \
+            -X main.date=${DATE}"
+
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
+            go build -trimpath -ldflags "$LDFLAGS" \
+            -o "${GITHUB_WORKSPACE}/dist/veidemannctl_${{ matrix.goos }}_${{ matrix.goarch }}" \
+            .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veidemannctl-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/veidemannctl_${{ matrix.goos }}_${{ matrix.goarch }}*
+
   release:
-    uses: ./.github/workflows/build-and-release.yaml
-    with:
-      path: ctl
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Flatten artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          find dist -type f -maxdepth 2 -exec mv {} release/ \;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*
