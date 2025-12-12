@@ -1,23 +1,93 @@
-apiVersion: skaffold/v4beta4
+apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
-  name: veidemann
-
-build:
-  local:
-    push: false
-
-  artifacts:
-    - image: nettarkivet/olricd
-      docker:
-        dockerfile: olricd/Dockerfile
-      context: olricd
-
-deploy:
-  kubeContext: minikube
-  kubectl: {}
+  name: infra
 
 manifests:
   kustomize:
     paths:
-      - deploy/k8s
+      - deploy/k8s/overlays/dev/rethinkdb
+      - deploy/k8s/overlays/dev/olric
+
+deploy:
+  kubeContext: minikube
+  statusCheck: true
+  helm:
+    releases:
+      - name: cert-manager
+        remoteChart: oci://quay.io/jetstack/charts/cert-manager
+        version: 1.19.1
+        namespace: cert-manager
+        createNamespace: true
+        setValues:
+          crds.enabled: true
+      - name: redis
+        remoteChart: oci://ghcr.io/cloudpirates-io/helm-charts/redis
+        version: 0.16.6
+        namespace: default
+        valuesFiles:
+          - deploy/k8s/overlays/dev/redis/values.yaml
+  kubectl: {}
+
+---
+
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: app
+
+build:
+  local:
+    push: false
+  # artifacts:
+    # - image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator
+    #   context: ./robots-evaluator
+    #   ko: {}
+    # - image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice
+    #   context: ./scopeservice
+    #   ko: {}
+    # - image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver
+    #   context: ./dns-resolver
+    #   ko: {}
+    # - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
+    #   context: ./dashboard
+    #   docker:
+    #     dockerfile: Dockerfile
+    # - image: ghcr.io/nationallibraryofnorway/veidemann/cache
+    #   context: ./cache
+    #   docker:
+    #     dockerfile: Dockerfile
+    #     noCache: false
+    #     pullParent: false
+
+# The skaffold integration with jib-gradle-plugin is not yet
+# compatible with Gradle 9.x, so we cannot build images with jib for now.
+#     - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
+#       context: .
+#       jib:
+#         project: rethinkdbadapter
+
+manifests:
+  kustomize:
+    paths:
+      - deploy/k8s/overlays/dev
+
+deploy:
+  kubeContext: minikube
+  statusCheck: true
+  kubectl: {}
+
+profiles:
+  - name: auth
+    manifests:
+      helm:
+        releases:
+          - name: dex
+            repo: https://charts.dexidp.io
+            remoteChart: dex
+            version: 0.24.0
+            valuesFiles:
+              - deploy/k8s/overlays/auth/dex/values.yaml
+      kustomize:
+        paths:
+          - kubernetes/overlays/auth

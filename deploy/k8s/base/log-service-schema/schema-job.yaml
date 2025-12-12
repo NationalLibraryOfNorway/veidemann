@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: log-schema
+  labels:
+    app.kubernetes.io/name: log-schema
+spec:
+  ttlSecondsAfterFinished: 60
+  backoffLimit: 3
+  template:
+    metadata:
+      name: log-schema
+      labels:
+        app.kubernetes.io/name: log-schema
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: log-schema
+          image: ghcr.io/nationallibraryofnorway/veidemann/log-service-schema-scylladb:0.3.2
+          env:
+            - name: CQLSH_HOST
+              value: "scylla-client"
+            - name: KEYSPACE
+              value: "v7n_v3_dev"

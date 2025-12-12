@@ -1,0 +1,32 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: veidemann
+spec:
+  endpoints:
+  - path: /metrics
+    port: http-metrics
+  jobLabel: app.kubernetes.io/name
+  namespaceSelector:
+    matchNames:
+    - veidemann
+  selector:
+    matchLabels:
+      metrics: prometheus
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: veidemann-core
+spec:
+  endpoints:
+    - path: /metrics
+      port: http-metrics
+  jobLabel: app.kubernetes.io/name
+  namespaceSelector:
+    matchNames:
+      - veidemann
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: metrics

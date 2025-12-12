@@ -1,0 +1,43 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cache
+spec:
+  template:
+    spec:
+      volumes:
+        - name: cache
+          ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 250Mi
+        - name: cache-conf
+          configMap:
+            name: cache-conf
+            items:
+              - key: cache.conf
+                path: cache.conf
+        - name: ca-certificates
+          secret:
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+            optional: false
+            secretName: cache
+      containers:
+        - name: cache
+          volumeMounts:
+            - name: cache-conf
+              mountPath: /etc/squid/conf.d/cache.conf
+              subPath: cache.conf
+            - name: ca-certificates
+              mountPath: "/ca-certificates"
+            - name: cache
+              mountPath: /var/spool

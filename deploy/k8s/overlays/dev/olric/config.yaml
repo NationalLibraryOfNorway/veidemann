@@ -1,4 +1,9 @@
 olricd:
+  replicaCount: 1          # each key stored on 3 pods
+  writeQuorum: 1           # must reach 2 replicas
+  readQuorum: 1            # fast reads, can be 2 for stronger consistency
+  memberCountQuorum: 1     # cluster requires 3 nodes to stay writable
+  replicationMode: 1       # 0 = sync, 1 = async
 
   # BindAddr denotes the address that Olric will bind to for communication
   # with other Olric nodes.
@@ -28,23 +33,8 @@ olricd:
   # PartitionCount is 271, by default.
   partitionCount: 271
 
-  # ReplicaCount is 1, by default.
-  replicaCount: 1
-
-  # Minimum number of successful writes to return a response for a write request.
-  writeQuorum: 1
-
-  # Minimum number of successful reads to return a response for a read request.
-  readQuorum: 1
-
   # Switch to control read-repair algorithm which helps to reduce entropy.
   readRepair: false
-
-  # Default value is SyncReplicationMode.
-  replicationMode: 0 # sync mode. for async, set 1
-
-  # Minimum number of members to form a cluster and run any query on the cluster.
-  memberCountQuorum: 1
 
   # Coordinator member pushes the routing table to cluster members in the case of
   # node join or left events. It also pushes the table periodically. routingTablePushInterval
@@ -155,7 +145,7 @@ logging:
   verbosity: 3
 
   # Default LogLevel is DEBUG. Available levels: "DEBUG", "WARN", "ERROR", "INFO"
-  level: WARN
+  level: INFO
   output: stderr
 
 
@@ -176,11 +166,11 @@ memberlist:
 
   # JoinRetryInterval is the time gap between attempts to join an existing
   # cluster.
-  joinRetryInterval: 1ms
+  joinRetryInterval: 1s
 
   # MaxJoinAttempts denotes the maximum number of attemps to join an existing
   # cluster before forming a new one.
-  maxJoinAttempts: 1
+  maxJoinAttempts: 100
 
   # See service discovery plugins
   #peers:
@@ -221,7 +211,8 @@ dmaps:
 #      evictionPolicy: "NONE"
 
 
-serviceDiscovery:
-  provider: "k8s"
-  path: "/usr/lib/olric-kubernetes-plugin.so"
-  args: 'label_selector="run = olricd-hpa"'
+# serviceDiscovery: {}
+  # provider: "k8s"
+  # path: "/usr/lib/olric-kubernetes-plugin.so"
+  # namespace: "veidemann"
+  # label_selector: "app=olricd"

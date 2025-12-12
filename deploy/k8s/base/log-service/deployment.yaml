@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-service
+  labels:
+    app.kubernetes.io/name: log-service
+    app.kubernetes.io/component: log-service
+  annotations:
+    sidecar.jaegertracing.io/inject: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: log-service
+      app.kubernetes.io/component: log-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: log-service
+        app.kubernetes.io/component: log-service
+      annotations:
+        # shard awareness fails if linkerd is enabled without skipping ports
+        linkerd.io/inject: enabled
+        # skip outbound to scylla
+        config.linkerd.io/skip-outbound-ports: "9042,19042"
+    spec:
+      containers:
+        - name: log-service
+          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.5.2
+          ports:
+            - name: grpc
+              containerPort: 8080
+              protocol: TCP
+            - name: http-metrics
+              containerPort: 9153
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: DB_HOST
+              value: "scylla-client"
+            - name: DB_KEYSPACE
+              value: "v7n_v3_dev"
+            - name: JAEGER_SERVICE_NAME
+              value: log-service
+            - name: JAEGER_AGENT_HOST
+              value: localhost
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+            - name: JAEGER_SAMPLER_TYPE
+              value: remote
+            - name: JAEGER_SAMPLER_PARAM
+              value: "0.1"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10

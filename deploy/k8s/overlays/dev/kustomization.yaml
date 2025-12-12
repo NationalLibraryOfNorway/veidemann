@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  - certificate.yaml
+  - ingress.yaml
+  - rethinkdbadapter/
+  - robots/
+  - scopeservice/
+  - frontier-queue-workers/
+  - frontier/
+  - ooshandler/
+  - harvester/
+  - contentwriter
+  - controller
+  - dashboard
+  - dns-resolver
+  - log-service
+  - cache

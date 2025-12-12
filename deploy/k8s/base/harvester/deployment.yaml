@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: harvester
+  labels:
+    app.kubernetes.io/name: harvester
+    app.kubernetes.io/component: harvester
+  annotations:
+    sidecar.jaegertracing.io/inject: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: harvester
+      app.kubernetes.io/component: harvester
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: harvester
+        app.kubernetes.io/component: harvester
+      annotations:
+        linkerd.io/inject: enabled
+        config.linkerd.io/opaque-ports: "9900"
+        # Skip outbound to cache
+        config.linkerd.io/skip-outbound-ports: "3128"
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: browser-controller
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.5.1
+          ports:
+            - containerPort: 9999
+              protocol: TCP
+            - name: http-metrics
+              containerPort: 9301
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: PORT
+              value: "9999"
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"
+            - name: BROWSER_HOST
+              value: localhost
+            - name: BROWSER_PORT
+              value: "3000"
+            - name: PROXY_COUNT
+              value: "2"
+            - name: PROXY_HOST
+              value: localhost
+            - name: PROXY_PORT
+              value: "9900"
+            - name: FRONTIER_HOST
+              value: frontier
+            - name: FRONTIER_PORT
+              value: "7700"
+            - name: CONTENT_WRITER_HOST
+              value: "contentwriter"
+            - name: CONTENT_WRITER_PORT
+              value: "8082"
+            - name: ROBOTS_EVALUATOR_HOST
+              value: "robotsevaluator-service"
+            - name: ROBOTS_EVALUATOR_PORT
+              value: "7053"
+            - name: LOG_SERVICE_HOST
+              value: "log-service"
+            - name: LOG_SERVICE_PORT
+              value: "8080"
+            - name: METRICS_PORT
+              value: "9301"
+            - name: JAEGER_SERVICE_NAME
+              value: browser-controller
+            - name: JAEGER_SAMPLER_TYPE
+              value: remote
+            - name: JAEGER_SAMPLER_PARAM
+              value: "0.1"
+            - name: LOG_LEVEL
+              value: WARN
+        - name: recorderproxy
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.5.1
+          ports:
+            - containerPort: 9900
+              name: proxy
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "9900"
+            - name: BROWSER_CONTROLLER_HOST
+              value: localhost
+            - name: BROWSER_CONTROLLER_PORT
+              value: "9999"
+            - name: PROXY_COUNT
+              value: "2"
+            - name: DNS_RESOLVER_HOST
+              value: "dns-resolver"
+            - name: DNS_RESOLVER_PORT
+              value: "8053"
+            - name: CONTENT_WRITER_HOST
+              value: "contentwriter"
+            - name: CONTENT_WRITER_PORT
+              value: "8082"
+            - name: CACHE_HOST
+              value: "cache-balancer"
+            - name: CACHE_PORT
+              value: "3128"
+            - name: JAEGER_SERVICE_NAME
+              value: harvester-proxy
+            - name: LOG_LEVEL
+              value: WARN
+        - name: browser
+          image: docker.io/browserless/chrome:1.36.0-puppeteer-3.3.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: debug
+              protocol: TCP
+          env:
+            - name: CONNECTION_TIMEOUT
+              value: "600000"
+            - name: ENABLE_CORS
+              value: "true"
+            - name: JAEGER_SERVICE_NAME
+              value: harvester-browser
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /json/version
+              port: debug
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /json/version
+              port: debug
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm

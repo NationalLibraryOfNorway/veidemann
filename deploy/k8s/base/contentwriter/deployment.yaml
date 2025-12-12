@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contentwriter
+  labels:
+    app.kubernetes.io/name: contentwriter
+    app.kubernetes.io/component: contentwriter
+  annotations:
+    sidecar.jaegertracing.io/inject: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: contentwriter
+      app.kubernetes.io/component: contentwriter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: contentwriter
+        app.kubernetes.io/component: contentwriter
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      terminationGracePeriodSeconds: 300
+      volumes:
+        - name: warcs
+          persistentVolumeClaim:
+            claimName: warcs
+      containers:
+        - name: contentwriter
+          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.1.1
+          ports:
+            - name: grpc
+              containerPort: 8082
+          volumeMounts:
+            - mountPath: /workdir
+              name: warcs
+              subPath: workdir
+            - mountPath: /warcs
+              name: warcs
+              subPath: warcs
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"
+            - name: HOST_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: TERMINATION_GRACE_PERIOD_SECONDS
+              value: "300"
+            - name: PORT
+              value: "8082"
+            - name: WARC_DIR
+              value: "/warcs"
+            - name: WORK_DIR
+              value: "/workdir"
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: WARC_WRITER_POOL_SIZE
+              value: "2"
+            - name: WARC_VERSION
+              value: "1.0"
+            - name: JAEGER_SERVICE_NAME
+              value: contentwriter
+            - name: JAEGER_AGENT_HOST
+              value: localhost
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+            - name: JAEGER_SAMPLER_TYPE
+              value: remote
+            - name: JAEGER_SAMPLER_PARAM
+              value: "0.1"
+          readinessProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 10

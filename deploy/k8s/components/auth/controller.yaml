@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veidemann-controller
+spec:
+  template:
+    spec:
+      containers:
+        - name: veidemann-controller
+          env:
+            - name: OPENID_CONNECT_ISSUER
+              value: "https://veidemann.test/dex"
+            - name: SKIP_AUTHENTICATION
+              value: "false"
+          volumeMounts:
+            - mountPath: /veidemann/trustedca/tls.crt
+              name: ca
+              subPath: ca.crt
+      volumes:
+        - name: ca
+          secret:
+            optional: false
+            defaultMode: 420
+            items:
+              - key: ca.crt
+                path: ca.crt
+            secretName: veidemann-tls

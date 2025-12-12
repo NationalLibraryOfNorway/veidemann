@@ -1,0 +1,31 @@
+kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+
+commonLabels:
+  grafana_dashboard: veidemann
+
+configMapGenerator:
+  - name: grafana-dashboard-rethinkdb
+    files:
+      - rethinkdb.json
+  - name: grafana-dashboard-veidemann-cache
+    files:
+      - veidemann-cache.json
+  - name: grafana-dashboard-veidemann-dns
+    files:
+      - veidemann-dns.json
+  - name: grafana-dashboard-frontier-jvm
+    files:
+      - veidemann-frontier-jvm.json
+  - name: grafana-dashboard-veidemann-harvesters
+    files:
+      - veidemann-harvesters.json
+  - name: grafana-dashboard-veidemann-job-status
+    files:
+      - veidemann-job-status.json
+  - name: grafana-dashboard-veidemann-overview
+    files:
+      - veidemann-overview.json
+  - name: grafana-dashboard-redis
+    files:
+      - redis.json

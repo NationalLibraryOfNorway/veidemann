@@ -1,0 +1,99 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: veidemann
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "veidemann.test"
+        - "*.veidemann.test"
+      secretName: veidemann-tls
+  rules:
+    - host: "veidemann.test"
+      http:
+        paths:
+          - path: /veidemann
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard
+                port:
+                  number: 80
+          - path: /veidemann/docs
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard-docs
+                port:
+                  number: 80
+    - host: "rethinkdb.veidemann.test"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rethinkdb-admin
+                port:
+                  number: 8080
+    - host: "browser.veidemann.test"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: harvester
+                port:
+                  number: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: veidemann-api
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+      - veidemann.test
+      secretName: veidemann-tls
+  rules:
+    - host: veidemann.test
+      http:
+        paths:
+          - path: /veidemann.api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 7700
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: veidemann-api-grpc-web
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+      - veidemann.test
+      secretName: veidemann-tls
+  rules:
+    - host: veidemann.test
+      http:
+        paths:
+          - path: /veidemann/api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-grpc-web
+                port:
+                  number: 10000

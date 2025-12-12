@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller
+  labels:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+  annotations:
+    sidecar.jaegertracing.io/inject: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: controller
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: controller
+        app.kubernetes.io/component: controller
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      volumes:
+        - name: log4j2
+          configMap:
+            name: controller
+            items:
+              - key: log4j2.xml
+                path: log4j2.xml
+        - name: envoy-config
+          configMap:
+            name: controller-envoy
+      containers:
+        - name: controller
+          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.12.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 7700
+          resources: {}
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: API_PORT
+              value: "7700"
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"
+            - name: FRONTIER_HOST
+              value: "frontier"
+            - name: FRONTIER_PORT
+              value: "7700"
+            - name: SCOPESERVICE_HOST
+              value: "scopeservice"
+            - name: SCOPESERVICE_PORT
+              value: "8080"
+            - name: LOG_SERVICE_HOST
+              value: "log-service"
+            - name: LOG_SERVICE_PORT
+              value: "8080"
+            - name: AST_SERVICE_URL
+              value: "http://localhost:3000"
+            - name: OPENID_CONNECT_ISSUER
+              value: ""
+            - name: SKIP_AUTHENTICATION
+              value: "true"
+            - name: JAEGER_SERVICE_NAME
+              value: "controller"
+            - name: JAEGER_AGENT_HOST
+              value: "localhost"
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStore=/opt/java/openjdk/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
+          volumeMounts:
+            - name: log4j2
+              mountPath: /veidemann/config/log4j2.xml
+              subPath: log4j2.xml
+
+        - name: rethinkdb-ast-service
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.1.0
+          ports:
+            - name: http
+              containerPort: 3000
+          resources: {}
+          
+        - name: envoy
+          image: docker.io/envoyproxy/envoy-distroless:v1.29.1
+          ports:
+            - name: admin
+              containerPort: 9901
+              protocol: TCP
+            - name: grpc-web
+              containerPort: 10000
+              protocol: TCP
+          command:
+            - envoy
+          args:
+            - -c
+            - /config/envoy.yaml
+          livenessProbe:
+            tcpSocket:
+              port: admin
+            initialDelaySeconds: 2
+          readinessProbe:
+            tcpSocket:
+              port: admin
+            initialDelaySeconds: 2
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /config

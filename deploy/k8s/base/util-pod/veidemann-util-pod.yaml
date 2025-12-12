@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: util-pod
+spec:
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    fsGroup: 1000
+  restartPolicy: Never
+  volumes:
+    - name: oos
+      persistentVolumeClaim:
+        claimName: oos
+        readOnly: true
+    - name: warcs
+      persistentVolumeClaim:
+        claimName: warcs
+        readOnly: true
+    - name: backup
+      persistentVolumeClaim:
+        claimName: backup
+        readOnly: true
+  containers:
+    - name: warc-inspector-image
+      image: ghcr.io/nlnwa/warc-inspector-image:3.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+      workingDir: /mnt
+      args:
+        - "-c"
+        - "trap : TERM INT; sleep infinity & wait"
+      volumeMounts:
+        - mountPath: "/mnt/backup"
+          name: backup
+        - mountPath: "/mnt/warcs"
+          name: warcs
+        - mountPath: "/mnt/oos"
+          name: oos
+      resources:
+        limits:
+          cpu: "1"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 100Mi

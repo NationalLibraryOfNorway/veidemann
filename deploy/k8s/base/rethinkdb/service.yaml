@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rethinkdb
+  labels:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: cluster
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 29015
+      targetPort: cluster
+  selector:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: cluster
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rethinkdb-client
+  labels:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: cluster
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: cluster
+  ports:
+    - port: 28015
+      targetPort: driver
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rethinkdb-admin
+  labels:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: dashboard
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http-admin
+  selector:
+    app.kubernetes.io/name: rethinkdb
+    app.kubernetes.io/component: dashboard

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontier-queue-workers
+  labels:
+    app.kubernetes.io/name: frontier-queue-workers
+    app.kubernetes.io/component: frontier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontier-queue-workers
+      app.kubernetes.io/component: frontier
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontier-queue-workers
+        app.kubernetes.io/component: frontier
+      annotations:
+        linkerd.io/inject: enabled
+        # Wait 5 seconds before blocking new requests after receiving the TERM signal.
+        # It should be enough time to ensure workers have completed.
+        # See https://linkerd.io/2.11/tasks/graceful-shutdown/.
+        config.alpha.linkerd.io/proxy-wait-before-exit-seconds: "5"
+    spec:
+      containers:
+        - name: frontier-queue-workers
+          image: ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.2.0
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
