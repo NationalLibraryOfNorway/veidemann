@@ -19,7 +19,7 @@ dependencies {
     implementation(libs.jaeger.client)
 
     implementation(platform(libs.grpc.bom))
-    implementation("io.grpc:grpc-inprocess")
+    implementation("io.grpc:grpc-netty-shaded")
 
     implementation("org.checkerframework:checker-qual:3.52.0")
     implementation("it.sauronsoftware.cron4j:cron4j:2.2.5")
@@ -37,6 +37,7 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-core")
     implementation("org.apache.logging.log4j:log4j-slf4j2-impl")
 
+    testImplementation("io.grpc:grpc-inprocess")
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
