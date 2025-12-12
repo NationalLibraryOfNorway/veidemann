@@ -25,7 +25,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -44,8 +43,8 @@ import io.grpc.Status;
 import io.grpc.health.v1.HealthCheckResponse.ServingStatus;
 import io.opentracing.Scope;
 import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
-import io.opentracing.util.GlobalTracer;
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.ConfigRef;
@@ -55,13 +54,12 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatusChange;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.log.v1.CrawlLog;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
+import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.db.RethinkDbConnection;
 import no.nb.nna.veidemann.db.Tables;
-import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
@@ -103,11 +101,25 @@ public class Frontier implements AutoCloseable {
     final RethinkDbConnection conn;
     static final RethinkDB r = RethinkDB.r;
 
-    public Frontier(Tracer tracer, Settings settings, JedisPool jedisPool, RobotsServiceClient robotsServiceClient, DnsServiceClient dnsServiceClient,
-                    ScopeServiceClient scopeServiceClient, OutOfScopeHandlerClient outOfScopeHandlerClient,
-                    LogServiceClient logServiceClient) {
+    public Frontier(Tracer tracer,
+            Settings settings,
+            JedisPool jedisPool,
+            RobotsServiceClient robotsServiceClient,
+            DnsServiceClient dnsServiceClient,
+            ScopeServiceClient scopeServiceClient,
+            OutOfScopeHandlerClient outOfScopeHandlerClient,
+            LogServiceClient logServiceClient,
+            RethinkDbConnection conn,
+            ConfigAdapter configAdapter) {
         this.tracer = tracer;
-        GlobalTracer.registerIfAbsent(tracer);
+        this.settings = settings;
+        this.jedisPool = jedisPool;
+        this.robotsServiceClient = robotsServiceClient;
+        this.dnsServiceClient = dnsServiceClient;
+        this.scopeServiceClient = scopeServiceClient;
+        this.outOfScopeHandlerClient = outOfScopeHandlerClient;
+        this.logServiceClient = logServiceClient;
+        this.conn = conn;
 
         postFetchThreadPool = new ForkJoinPool(
                 64,
@@ -118,8 +130,8 @@ public class Frontier implements AutoCloseable {
                 1024,
                 2,
                 null,
-                60, TimeUnit.SECONDS);
-
+                60,
+                TimeUnit.SECONDS);
         asyncFunctionsThreadPool = new ForkJoinPool(
                 32,
                 ForkJoinPool.defaultForkJoinWorkerThreadFactory,
@@ -129,42 +141,39 @@ public class Frontier implements AutoCloseable {
                 1024,
                 1,
                 null,
-                60, TimeUnit.SECONDS);
+                60,
+                TimeUnit.SECONDS);
 
-        this.settings = settings;
-        this.jedisPool = jedisPool;
-        this.robotsServiceClient = robotsServiceClient;
-        this.dnsServiceClient = dnsServiceClient;
-        this.scopeServiceClient = scopeServiceClient;
-        this.outOfScopeHandlerClient = outOfScopeHandlerClient;
-        this.logServiceClient = logServiceClient;
-        conn = ((RethinkDbInitializer) DbService.getInstance().getDbInitializer()).getDbConnection();
         this.crawlQueueManager = new CrawlQueueManager(this, conn, jedisPool);
 
-        configCache = CacheBuilder.newBuilder()
+        this.configCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
-                .build(
-                        new CacheLoader<>() {
-                            public ConfigObject load(ConfigRef key) throws DbException {
-                                ConfigObject co = DbService.getInstance().getConfigAdapter()
-                                        .getConfigObject(key);
-                                if (co == null) {
-                                    return ConfigObject.getDefaultInstance();
-                                }
-                                return co;
-                            }
-                        });
-        scriptParameterResolver = new ScriptParameterResolver(this);
+                .build(new CacheLoader<>() {
+                    @Override
+                    public ConfigObject load(ConfigRef key) throws DbException {
+                        ConfigObject co = configAdapter.getConfigObject(key);
+                        return co != null ? co : ConfigObject.getDefaultInstance();
+                    }
+                });
+
+        this.scriptParameterResolver = new ScriptParameterResolver(this);
     }
 
     public CrawlExecutionStatus scheduleSeed(CrawlSeedRequest request) throws DbException {
         Tracer tracer = getTracer();
-        Span span = tracer.activeSpan();
-
+        final SpanContext parentCtx;
+        if (tracer != null) {
+            Span activeSpan = tracer.activeSpan();
+            parentCtx = activeSpan != null ? activeSpan.context() : null;
+        } else {
+            parentCtx = null;
+        }
         // Check that job is still running before allowing new seeds
         String jobState = conn.exec(r.table(Tables.JOB_EXECUTIONS.name).get(request.getJobExecutionId()).g("state"));
         if (jobState.matches("FINISHED|ABORTED_TIMEOUT|ABORTED_SIZE|ABORTED_MANUAL|FAILED|DIED")) {
-            throw Status.FAILED_PRECONDITION.withDescription("Job execution '" + request.getJobExecutionId() + "' has finished").asRuntimeException();
+            throw Status.FAILED_PRECONDITION
+                    .withDescription("Job execution '" + request.getJobExecutionId() + "' has finished")
+                    .asRuntimeException();
         }
 
         // Create crawl execution
@@ -174,7 +183,7 @@ public class Frontier implements AutoCloseable {
                         request.getJobExecutionId(),
                         request.getSeed().getId()));
 
-        LOG.debug("New crawl execution: " + status.getId());
+        LOG.debug("New crawl execution: {}", status.getId());
 
         // Do not process seed if job is aborted
         if (CrawlExecutionHelpers.isAborted(this, status)) {
@@ -183,12 +192,28 @@ public class Frontier implements AutoCloseable {
 
         try {
             getAsyncFunctionsThreadPool().submit(() -> {
-                try (Scope scope = tracer.scopeManager().activate(span)) {
+                if (tracer == null) {
+                    try {
+                        preprocessAndQueueSeed(request, status);
+                    } catch (DbException e) {
+                        LOG.error("Error preprocessing and queuing seed {}", request.getSeed().getMeta().getName(), e);
+                    }
+                    return;
+                }
+
+                Span asyncSpan = (parentCtx != null
+                        ? tracer.buildSpan("frontier.preprocessAndQueueSeed").asChildOf(parentCtx).start()
+                        : tracer.buildSpan("frontier.preprocessAndQueueSeed").start());
+
+                try (Scope scope = tracer.scopeManager().activate(asyncSpan)) {
                     preprocessAndQueueSeed(request, status);
                 } catch (DbException e) {
-                    LOG.error(e.toString(), e);
+                    LOG.error("Error preprocessing and queuing seed {}", request.getSeed().getMeta().getName(), e);
+                } finally {
+                    asyncSpan.finish();
                 }
             });
+
             return status.getCrawlExecutionStatus();
         } catch (RejectedExecutionException e) {
             if (getAsyncFunctionsThreadPool().isShutdown()) {
@@ -201,14 +226,25 @@ public class Frontier implements AutoCloseable {
     }
 
     public void preprocessAndQueueSeed(CrawlSeedRequest request, StatusWrapper status) throws DbException {
+        Tracer tracer = getTracer();
+        final SpanContext parentCtx;
+        if (tracer != null) {
+            Span activeSpan = tracer.activeSpan(); // this will be the async span from scheduleSeed
+            parentCtx = activeSpan != null ? activeSpan.context() : null;
+        } else {
+            parentCtx = null;
+        }
+
         String uri = request.getSeed().getMeta().getName();
 
         try {
-            Collection<Annotation> scriptParameters = getScriptParameterResolver().GetScriptParameters(request.getSeed(), request.getJob());
+            Collection<Annotation> scriptParameters = getScriptParameterResolver()
+                    .GetScriptParameters(request.getSeed(), request.getJob());
             ConfigObject crawlConfig = getConfig(request.getJob().getCrawlJob().getCrawlConfigRef());
             ConfigObject collectionConfig = getConfig(crawlConfig.getCrawlConfig().getCollectionRef());
             QueuedUriWrapper qUri = QueuedUriWrapper.createSeedQueuedUri(this, uri, request.getJobExecutionId(),
-                    status.getId(), crawlConfig.getCrawlConfig().getPolitenessRef(), collectionConfig.getMeta().getName(),
+                    status.getId(), crawlConfig.getCrawlConfig().getPolitenessRef(),
+                    collectionConfig.getMeta().getName(),
                     scriptParameters, request.getJob().getCrawlJob().getScopeScriptRef());
             qUri.setPriorityWeight(crawlConfig.getCrawlConfig().getPriorityWeight());
 
@@ -216,79 +252,103 @@ public class Frontier implements AutoCloseable {
                 return;
             }
 
-            ListenableFuture<PreconditionState> future = Preconditions.checkPreconditions(this, crawlConfig, status, qUri);
+            ListenableFuture<PreconditionState> future = Preconditions.checkPreconditions(this, crawlConfig, status,
+                    qUri);
 
             Futures.transformAsync(future, c -> {
-                switch (c) {
-                    case DENIED:
-                        if (status.getState() == State.ABORTED_MANUAL) {
-                            // Job was aborted before crawl execution was created. Ignore
-                        } else if (qUri.shouldInclude()) {
-                            // Seed was in scope, but failed for other reason
-                            LOG.warn("Seed '{}' could not be crawled. Error: {}", qUri.getUri(), qUri.getError());
-                            status.setEndState(State.FAILED)
-                                    .setError(qUri.getError())
-                                    .incrementDocumentsFailed()
-                                    .saveStatus();
+                Span span = null;
+                if (tracer != null) {
+                    span = (parentCtx != null
+                            ? tracer.buildSpan("frontier.preconditionsAndQueue").asChildOf(parentCtx).start()
+                            : tracer.buildSpan("frontier.preconditionsAndQueue").start());
+                }
+
+                try (Scope scope = span != null ? tracer.scopeManager().activate(span) : null) {
+                    switch (c) {
+                        case DENIED:
+                            if (status.getState() == State.ABORTED_MANUAL) {
+                                // Job was aborted before crawl execution was created. Ignore
+                            } else if (qUri.shouldInclude()) {
+                                // Seed was in scope, but failed for other reason
+                                LOG.warn("Seed '{}' could not be crawled. Error: {}", qUri.getUri(), qUri.getError());
+                                status.setEndState(State.FAILED)
+                                        .setError(qUri.getError())
+                                        .incrementDocumentsFailed()
+                                        .saveStatus();
+                            } else {
+                                // Seed is out of scope
+                                LOG.warn("Seed '{}' could not be crawled. Status: {}, Error: {}", qUri.getUri(),
+                                        qUri.getExcludedReasonStatusCode(), qUri.getExcludedError());
+                                if (qUri.hasExcludedError()) {
+                                    status.setError(qUri.getExcludedError());
+                                } else if (qUri.hasError()) {
+                                    status.setError(qUri.getError());
+                                }
+                                status.setEndState(State.FAILED)
+                                        .incrementDocumentsDenied(1)
+                                        .saveStatus();
+                            }
+                            return null;
+                        case RETRY:
+                            status.incrementDocumentsRetried();
+                    }
+
+                    // Prefetch ok, add to queue
+                    try {
+                        boolean wasAdded = qUri.addUriToQueue();
+                        if (wasAdded) {
+                            LOG.debug("Seed '{}' added to queue", qUri.getUri());
                         } else {
-                            // Seed is out of scope
-                            LOG.warn("Seed '{}' could not be crawled. Status: {}, Error: {}", qUri.getUri(), qUri.getExcludedReasonStatusCode(), qUri.getExcludedError());
-                            if (qUri.hasExcludedError()) {
-                                status.setError(qUri.getExcludedError());
-                            } else if (qUri.hasError()) {
+                            LOG.warn(
+                                    "Seed could not be crawled, probably because another seed with same URL was already crawled. Error: {}",
+                                    qUri.getError());
+                            status.setEndState(CrawlExecutionStatus.State.FAILED);
+                            if (qUri.hasError()) {
                                 status.setError(qUri.getError());
                             }
-                            status.setEndState(State.FAILED)
-                                    .incrementDocumentsDenied(1)
-                                    .saveStatus();
                         }
-                        return null;
-                    case RETRY:
-                        status.incrementDocumentsRetried();
-                }
+                        status.saveStatus();
 
-                // Prefetch ok, add to queue
-                try {
-                    boolean wasAdded = qUri.addUriToQueue();
-                    if (wasAdded) {
-                        LOG.debug("Seed '{}' added to queue", qUri.getUri());
-                    } else {
-                        LOG.warn("Seed could not be crawled, probably because another seed with same URL was already crawled. Error: {}", qUri.getError());
-                        status.setEndState(CrawlExecutionStatus.State.FAILED);
-                        if (qUri.hasError()) {
-                            status.setError(qUri.getError());
+                        OffsetDateTime timeout = null;
+                        if (request.hasTimeout()) {
+                            timeout = ProtoUtils.tsToOdt(request.getTimeout());
+                        } else {
+                            long maxDuration = request.getJob().getCrawlJob().getLimits().getMaxDurationS();
+                            if (maxDuration > 0) {
+                                timeout = ProtoUtils.tsToOdt(status.getCreatedTime()).plus(maxDuration,
+                                        ChronoUnit.SECONDS);
+                            }
                         }
-                    }
-                    status.saveStatus();
-
-                    OffsetDateTime timeout = null;
-                    if (request.hasTimeout()) {
-                        timeout = ProtoUtils.tsToOdt(request.getTimeout());
-                    } else {
-                        long maxDuration = request.getJob().getCrawlJob().getLimits().getMaxDurationS();
-                        if (maxDuration > 0) {
-                            timeout = ProtoUtils.tsToOdt(status.getCreatedTime()).plus(maxDuration, ChronoUnit.SECONDS);
+                        if (timeout != null) {
+                            getCrawlQueueManager().scheduleCrawlExecutionTimeout(status.getId(), timeout);
                         }
+                    } catch (Exception e) {
+                        LOG.warn("Error adding seed '{}' to queue", qUri.getUri(), e);
                     }
-                    if (timeout != null) {
-                        getCrawlQueueManager().scheduleCrawlExecutionTimeout(status.getId(), timeout);
+                    return null;
+                } finally {
+                    if (span != null) {
+                        span.finish();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-                return null;
             }, getAsyncFunctionsThreadPool());
         } catch (URISyntaxException ex) {
             status.incrementDocumentsFailed()
                     .setEndState(CrawlExecutionStatus.State.FAILED)
                     .setError(ExtraStatusCodes.ILLEGAL_URI.toFetchError(ex.toString()))
                     .saveStatus();
+            if (!status.isEnded()) {
+                status.setEndState(State.FAILED).saveStatus();
+            }
         } catch (Exception ex) {
             LOG.warn(ex.toString(), ex);
             status.incrementDocumentsFailed()
                     .setEndState(CrawlExecutionStatus.State.FAILED)
                     .setError(ExtraStatusCodes.RUNTIME_EXCEPTION.toFetchError(ex.toString()))
                     .saveStatus();
+            if (!status.isEnded()) {
+                status.setEndState(State.FAILED).saveStatus();
+            }
         }
     }
 
@@ -326,7 +386,8 @@ public class Frontier implements AutoCloseable {
         return settings;
     }
 
-    public CrawlExecutionStatus createCrawlExecutionStatus(String jobId, String jobExecutionId, String seedId) throws DbException {
+    public CrawlExecutionStatus createCrawlExecutionStatus(String jobId, String jobExecutionId, String seedId)
+            throws DbException {
         Objects.requireNonNull(jobId, "jobId must be set");
         Objects.requireNonNull(jobExecutionId, "jobExecutionId must be set");
         Objects.requireNonNull(seedId, "seedId must be set");
@@ -338,14 +399,17 @@ public class Frontier implements AutoCloseable {
                 .setState(CrawlExecutionStatus.State.CREATED)
                 .build();
 
-        Map rMap = ProtoUtils.protoToRethink(status);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
         rMap.put("lastChangeTime", r.now());
         rMap.put("createdTime", r.now());
-        // Set desiredState to ABORTED_MANUAL if JobExecution has desiredState ABORTED_MANUAL.
+        // Set desiredState to ABORTED_MANUAL if JobExecution has desiredState
+        // ABORTED_MANUAL.
         rMap.put("desiredState", r.table(Tables.JOB_EXECUTIONS.name).get(jobExecutionId).g("desiredState").default_("")
                 .do_(j -> r.branch(j.eq("ABORTED_MANUAL"), "ABORTED_MANUAL", "UNDEFINED")));
 
-        crawlQueueManager.updateJobExecutionStatus(jobExecutionId, State.UNDEFINED, State.CREATED, CrawlExecutionStatusChange.getDefaultInstance());
+        crawlQueueManager.updateJobExecutionStatus(jobExecutionId, State.UNDEFINED, State.CREATED,
+                CrawlExecutionStatusChange.getDefaultInstance());
 
         Insert qry = r.table(Tables.EXECUTIONS.name).insert(rMap);
         return conn.executeInsert("db-createExecutionStatus", qry, CrawlExecutionStatus.class);
@@ -374,18 +438,20 @@ public class Frontier implements AutoCloseable {
     /**
      * Write crawl log entry for uris failing preconditions.
      * <p>
-     * Normally the crawl log is written by the harvester, but when preconditions fail a fetch will never be tried and
+     * Normally the crawl log is written by the harvester, but when preconditions
+     * fail a fetch will never be tried and
      * the crawl log must be written by the frontier.
      *
      * @param qUri the uri with failed precondition
      */
-    public void writeLog(Frontier frontier, QueuedUriWrapper qUri) {
-        writeLog(frontier, qUri, qUri.getError().getCode());
+    public void writeLog(QueuedUriWrapper qUri) {
+        writeLog(qUri, qUri.getError().getCode());
     }
 
-    public void writeLog(Frontier frontier, QueuedUriWrapper qUri, int statusCode) {
+    public void writeLog(QueuedUriWrapper qUri, int statusCode) {
         if (statusCode == 0) {
-            throw new IllegalArgumentException("Should never write log with status code 0, but did for " + qUri.getUri());
+            throw new IllegalArgumentException(
+                    "Should never write log with status code 0, but did for " + qUri.getUri());
         }
         CrawlLog crawlLog = CrawlLog.newBuilder()
                 .setWarcId(UUID.randomUUID().toString())
@@ -406,41 +472,35 @@ public class Frontier implements AutoCloseable {
 
     @Override
     public void close() {
-        System.out.println("Shutting down Frontier");
-        Future postFetchFuture = shutdownPool("postFetchPool", postFetchThreadPool, 60, TimeUnit.SECONDS);
-        Future asyncFunctionsFuture = shutdownPool("asyncFunctionsPool", asyncFunctionsThreadPool, 60, TimeUnit.SECONDS);
+        LOG.info("Shutting down Frontier");
+
+        shutdownPool("postFetchPool", postFetchThreadPool, 60, TimeUnit.SECONDS);
+        shutdownPool("asyncFunctionsPool", asyncFunctionsThreadPool, 60, TimeUnit.SECONDS);
+
         try {
             crawlQueueManager.close();
-            postFetchFuture.get();
-            asyncFunctionsFuture.get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            // Preserve interrupt status
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            LOG.warn("Error closing CrawlQueueManager", e);
         }
-        System.out.println("Frontier shut down");
+
+        LOG.info("Frontier shut down");
     }
 
-    public Future shutdownPool(String name, ExecutorService pool, long timeout, TimeUnit unit) {
-        pool.shutdown(); // Disable new tasks from being submitted
-        return ForkJoinPool.commonPool().submit(() -> {
-            try {
-                // Wait a while for existing tasks to terminate
-                if (!pool.awaitTermination(timeout, unit)) {
-                    pool.shutdownNow(); // Cancel currently executing tasks
-                    // Wait a while for tasks to respond to being cancelled
-                    if (!pool.awaitTermination(timeout, unit))
-                        System.err.println(name + " did not terminate");
-                }
-            } catch (InterruptedException ie) {
-                // (Re-)Cancel if current thread also interrupted
+    private void shutdownPool(String name, ExecutorService pool, long timeout, TimeUnit unit) {
+        pool.shutdown();
+        try {
+            if (!pool.awaitTermination(timeout, unit)) {
+                LOG.warn("{} did not terminate in {} {}", name, timeout, unit);
                 pool.shutdownNow();
-                // Preserve interrupt status
-                Thread.currentThread().interrupt();
+                if (!pool.awaitTermination(timeout, unit)) {
+                    LOG.error("{} failed to terminate after forced shutdown", name);
+                }
             }
-        });
+        } catch (InterruptedException ie) {
+            LOG.warn("Interrupted while shutting down {}", name, ie);
+            pool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -451,9 +511,11 @@ public class Frontier implements AutoCloseable {
     public ServingStatus checkHealth() {
         try (Jedis jedis = jedisPool.getResource()) {
             if (!"PONG".equals(jedis.ping())) {
+                LOG.warn("Redis health check failed: unexpected PING response");
                 return ServingStatus.NOT_SERVING;
             }
-        } catch (Throwable t) {
+        } catch (Exception e) {
+            LOG.warn("Redis health check failed", e);
             return ServingStatus.NOT_SERVING;
         }
         return ServingStatus.SERVING;

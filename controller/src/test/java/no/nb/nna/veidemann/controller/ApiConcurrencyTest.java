@@ -15,19 +15,31 @@
  */
 package no.nb.nna.veidemann.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.assertj.core.data.Offset;
+import org.junit.jupiter.api.Test;
+
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Empty;
-import com.netflix.concurrency.limits.grpc.server.ConcurrencyLimitServerInterceptor;
-import com.netflix.concurrency.limits.grpc.server.GrpcServerLimiterBuilder;
-import com.netflix.concurrency.limits.limit.Gradient2Limit;
-import com.netflix.concurrency.limits.limit.WindowedLimit;
+
 import io.grpc.BindableService;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.ServerInterceptor;
-import io.grpc.ServerInterceptors;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -43,7 +55,6 @@ import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
-import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierImplBase;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
@@ -53,22 +64,6 @@ import no.nb.nna.veidemann.commons.db.DbServiceSPI;
 import no.nb.nna.veidemann.commons.db.ExecutionsAdapter;
 import no.nb.nna.veidemann.commons.util.ApiTools;
 import no.nb.nna.veidemann.controller.settings.Settings;
-import org.assertj.core.data.Offset;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  *
@@ -215,23 +210,8 @@ public class ApiConcurrencyTest {
 
             };
 
-            ServerInterceptor interceptor = ConcurrencyLimitServerInterceptor.newBuilder(
-                    new GrpcServerLimiterBuilder()
-                            .partitionByMethod()
-                            .partition(FrontierGrpc.getCrawlSeedMethod().getFullMethodName(), 0.38)
-                            .partition(FrontierGrpc.getGetNextPageMethod().getFullMethodName(), 0.02)
-                            .partition(FrontierGrpc.getBusyCrawlHostGroupCountMethod().getFullMethodName(), 0.15)
-                            .partition(FrontierGrpc.getQueueCountForCrawlExecutionMethod().getFullMethodName(), 0.15)
-                            .partition(FrontierGrpc.getQueueCountForCrawlHostGroupMethod().getFullMethodName(), 0.15)
-                            .partition(FrontierGrpc.getQueueCountTotalMethod().getFullMethodName(), 0.15)
-                            .limit(WindowedLimit.newBuilder()
-                                    .build(Gradient2Limit.newBuilder()
-                                            .build()))
-                            .build())
-                    .build();
-
             server = frontierServerBuilder.executor(executor)
-                    .addService(ServerInterceptors.intercept(service, interceptor))
+                    .addService(service)
                     .build();
             try {
                 server.start();

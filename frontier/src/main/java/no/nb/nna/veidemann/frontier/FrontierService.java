@@ -15,16 +15,19 @@
  */
 package no.nb.nna.veidemann.frontier;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigBeanFactory;
+import java.net.URI;
+import java.util.concurrent.CountDownLatch;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
-import io.jaegertracing.Configuration;
+
 import io.opentracing.Tracer;
-import io.opentracing.util.GlobalTracer;
-import io.prometheus.client.exporter.HTTPServer;
-import io.prometheus.client.hotspot.DefaultExports;
+import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
+import no.nb.nna.veidemann.db.RethinkDbConnection;
+import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 import no.nb.nna.veidemann.frontier.api.FrontierApiServer;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import no.nb.nna.veidemann.frontier.worker.DnsServiceClient;
@@ -33,33 +36,37 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-
-import java.io.IOException;
-import java.net.URI;
 
 /**
  * Class for launching the service.
  */
-public class FrontierService {
+public class FrontierService implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FrontierService.class);
 
-    private static final Settings SETTINGS;
+    private final Settings settings;
+    private final Tracer tracer;
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-    static {
-        Config config = ConfigFactory.load();
-        config.checkValid(ConfigFactory.defaultReference());
-        SETTINGS = ConfigBeanFactory.create(config, Settings.class);
-    }
+    // Resources that need closing
+    private DbService db;
+    private RobotsServiceClient robotsServiceClient;
+    private DnsServiceClient dnsServiceClient;
+    private ScopeServiceClient scopeServiceClient;
+    private OutOfScopeHandlerClient outOfScopeHandlerClient;
+    private LogServiceClient logServiceClient;
+    private FrontierApiServer apiServer;
+    private JedisPool jedisPool;
+    private Frontier frontier;
 
     /**
      * Create a new Frontier service.
      */
-    public FrontierService() {
+    public FrontierService(Settings settings, Tracer tracer) {
+        this.settings = settings;
+        this.tracer = tracer;
     }
 
     /**
@@ -68,81 +75,140 @@ public class FrontierService {
      *
      * @return this instance
      */
-    public FrontierService start() {
-        Tracer tracer = Configuration.fromEnv().getTracer();
-        GlobalTracer.registerIfAbsent(tracer);
+    public void start() throws ConfigException, DbException {
 
-        DefaultExports.initialize();
-        try {
-            HTTPServer server = new HTTPServer(SETTINGS.getPrometheusPort());
-        } catch (IOException ex) {
-            System.err.println("Could not start Prometheus exporter: " + ex.getLocalizedMessage());
-            System.exit(3);
-        }
+        db = DbService.configure(settings);
+        RethinkDbConnection conn = ((RethinkDbInitializer) db.getDbInitializer()).getDbConnection();
 
         JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
         jedisPoolConfig.setMaxTotal(256);
         jedisPoolConfig.setMaxIdle(16);
         jedisPoolConfig.setMinIdle(2);
+        jedisPool = new JedisPool(
+                jedisPoolConfig,
+                URI.create("redis://" + settings.getRedisHost() + ':' + settings.getRedisPort()));
 
-        try (DbService db = DbService.configure(SETTINGS);
+        robotsServiceClient = new RobotsServiceClient(
+                settings.getRobotsEvaluatorHost(),
+                settings.getRobotsEvaluatorPort());
+        dnsServiceClient = new DnsServiceClient(
+                settings.getDnsResolverHost(),
+                settings.getDnsResolverPort());
+        scopeServiceClient = new ScopeServiceClient(
+                settings.getScopeserviceHost(),
+                settings.getScopeservicePort());
+        outOfScopeHandlerClient = new OutOfScopeHandlerClient(
+                settings.getOutOfScopeHandlerHost(),
+                settings.getOutOfScopeHandlerPort());
+        logServiceClient = new LogServiceClient(
+                settings.getLogServiceHost(),
+                settings.getLogServicePort());
 
-             JedisPool jedisPool = new JedisPool(jedisPoolConfig, URI.create("redis://" + SETTINGS.getRedisHost() + ':' + SETTINGS.getRedisPort()));
+        frontier = new Frontier(
+                tracer,
+                settings,
+                jedisPool,
+                robotsServiceClient,
+                dnsServiceClient,
+                scopeServiceClient,
+                outOfScopeHandlerClient,
+                logServiceClient,
+                conn,
+                db.getConfigAdapter());
 
-             RobotsServiceClient robotsServiceClient = new RobotsServiceClient(
-                     SETTINGS.getRobotsEvaluatorHost(), SETTINGS.getRobotsEvaluatorPort());
+        apiServer = new FrontierApiServer(
+                settings.getApiPort(),
+                settings.getTerminationGracePeriodSeconds(),
+                frontier);
 
-             DnsServiceClient dnsServiceClient = new DnsServiceClient(
-                     SETTINGS.getDnsResolverHost(), SETTINGS.getDnsResolverPort());
+        apiServer.start();
 
-             ScopeServiceClient scopeServiceClient = new ScopeServiceClient(
-                     SETTINGS.getScopeserviceHost(), SETTINGS.getScopeservicePort());
+        LOG.info("Veidemann Frontier (v. {}) started",
+                FrontierService.class.getPackage().getImplementationVersion());
+    }
 
-             OutOfScopeHandlerClient outOfScopeHandlerClient = new OutOfScopeHandlerClient(
-                     SETTINGS.getOutOfScopeHandlerHost(), SETTINGS.getOutOfScopeHandlerPort());
+    public void blockUntilShutdown() {
+        try {
+            shutdownLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
-             LogServiceClient logServiceClient = new LogServiceClient(
-                     SETTINGS.getLogServiceHost(), SETTINGS.getLogServicePort());
+    /** Called from shutdown hook or tests. */
+    public void initiateShutdown() {
+        shutdownLatch.countDown();
+    }
 
-             Frontier frontier = new Frontier(tracer, SETTINGS, jedisPool, robotsServiceClient, dnsServiceClient, scopeServiceClient,
-                     outOfScopeHandlerClient, logServiceClient);
-        ) {
+    @Override
+    public void close() {
+        LOG.info("Shutting down FrontierService");
 
-            FrontierApiServer apiServer = new FrontierApiServer(SETTINGS.getApiPort(), SETTINGS.getTerminationGracePeriodSeconds(), frontier);
-            registerShutdownHook(apiServer);
-
-            apiServer.start();
-
-            LOG.info("Veidemann Frontier (v. {}) started", System.getenv("VERSION"));
-
-            apiServer.blockUntilShutdown();
-        } catch (ConfigException ex) {
-            LOG.error("Configuration error: {}", ex.getLocalizedMessage());
-            System.exit(1);
-        } catch (Exception ex) {
-            LOG.error("Could not start service", ex);
-            System.exit(1);
+        if (apiServer != null) {
+            try {
+                apiServer.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing API server", e);
+            }
+        }
+        if (frontier != null) {
+            try {
+                frontier.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing frontier", e);
+            }
+        }
+        if (logServiceClient != null) {
+            try {
+                logServiceClient.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing logServiceClient", e);
+            }
+        }
+        if (outOfScopeHandlerClient != null) {
+            try {
+                outOfScopeHandlerClient.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing outOfScopeHandlerClient", e);
+            }
+        }
+        if (scopeServiceClient != null) {
+            try {
+                scopeServiceClient.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing scopeServiceClient", e);
+            }
+        }
+        if (dnsServiceClient != null) {
+            try {
+                dnsServiceClient.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing dnsServiceClient", e);
+            }
+        }
+        if (robotsServiceClient != null) {
+            try {
+                robotsServiceClient.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing robotsServiceClient", e);
+            }
+        }
+        if (jedisPool != null) {
+            try {
+                jedisPool.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing jedisPool", e);
+            }
+        }
+        if (db != null) {
+            try {
+                db.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing db", e);
+            }
         }
 
-        return this;
-    }
-
-    private void registerShutdownHook(FrontierApiServer apiServer) {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-            System.err.println("*** shutting down gRPC server since JVM is shutting down");
-            apiServer.shutdown();
-        }));
-    }
-
-    /**
-     * Get the settings object.
-     * <p>
-     *
-     * @return the settings
-     */
-    public static Settings getSettings() {
-        return SETTINGS;
+        LOG.info("FrontierService shutdown complete");
     }
 
 }

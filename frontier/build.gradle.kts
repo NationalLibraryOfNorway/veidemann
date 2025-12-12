@@ -17,10 +17,6 @@ dependencies {
     implementation(libs.typesafe.config)
     implementation("redis.clients:jedis:7.1.0")
 
-    // Concurrency limits
-    implementation(libs.concurrency.limits.grpc)
-    implementation(libs.concurrency.limits.core)
-
     // Prometheus
     implementation("io.prometheus:simpleclient:0.16.0")
     implementation("io.prometheus:simpleclient_hotspot:0.16.0")
@@ -44,6 +40,7 @@ dependencies {
     // Logging
     implementation(platform(libs.slf4j.bom))
     implementation("org.slf4j:slf4j-api")
+    implementation("org.slf4j:jul-to-slf4j")
     implementation(platform(libs.log4j.bom))
     implementation("org.apache.logging.log4j:log4j-api")
     implementation("org.apache.logging.log4j:log4j-core")

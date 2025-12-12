@@ -14,8 +14,6 @@ dependencies {
     implementation(project(":commons"))
     implementation(project(":rethinkdbadapter"))
 
-    implementation(libs.concurrency.limits.core)
-    implementation(libs.concurrency.limits.grpc)
     implementation(libs.jaeger.client)
 
     implementation(platform(libs.grpc.bom))

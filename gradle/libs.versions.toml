@@ -13,9 +13,6 @@ protobuf-java-util  = { module = "com.google.protobuf:protobuf-java-util",  vers
 
 typesafe-config = { module = "com.typesafe:config", version = "1.4.5" }
 
-concurrency-limits-core = { module = "com.netflix.concurrency-limits:concurrency-limits-core", version.ref = "concurrency-limits" }
-concurrency-limits-grpc = { module = "com.netflix.concurrency-limits:concurrency-limits-grpc", version.ref = "concurrency-limits" }
-
 jaeger-client = { module = "io.jaegertracing:jaeger-client", version.ref = "jaeger-client" }
 
 slf4j-bom = { module = "org.slf4j:slf4j-bom", version = "2.0.17" }

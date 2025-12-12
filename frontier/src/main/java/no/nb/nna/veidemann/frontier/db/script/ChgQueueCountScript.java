@@ -1,19 +1,20 @@
 package no.nb.nna.veidemann.frontier.db.script;
 
-import com.google.common.collect.ImmutableList;
-import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
-
-import java.util.List;
-
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_BUSY_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
 
+import java.util.List;
+
+import com.google.common.collect.ImmutableList;
+
+import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
+
 public class ChgQueueCountScript extends RedisJob<Long> {
-    final LuaScript chgQueueCountScript;
+    private final LuaScript chgQueueCountScript;
 
     public ChgQueueCountScript() {
         super("chgQueueCountScript");
-        chgQueueCountScript = new LuaScript("chg_queue_count.lua");
+        this.chgQueueCountScript = new LuaScript("chg_queue_count.lua");
     }
 
     public Long run(JedisContext ctx, CrawlHostGroup chg) {

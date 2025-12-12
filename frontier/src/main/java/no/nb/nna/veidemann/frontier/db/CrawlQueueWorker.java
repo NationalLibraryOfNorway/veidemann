@@ -26,65 +26,86 @@ public class CrawlQueueWorker implements AutoCloseable {
     private final JedisPool jedisPool;
     private final ScheduledExecutorService executor;
 
-    Runnable fetchTimeoutWorker = new Runnable() {
-        @Override
-        public void run() {
-            Error err = ExtraStatusCodes.RUNTIME_EXCEPTION.toFetchError("Timeout waiting for Harvester");
-
-            try (JedisContext ctx = JedisContext.forPool(jedisPool)) {
-                for (String chgId = ctx.getJedis().lpop(CHG_TIMEOUT_KEY); chgId != null; chgId = ctx.getJedis().lpop(CHG_TIMEOUT_KEY)) {
-                    try {
-                        CrawlHostGroup chg = frontier.getCrawlQueueManager().getCrawlHostGroup(chgId);
-                        if (chg.getCurrentUriId().isEmpty()) {
-                            frontier.getCrawlQueueManager().releaseCrawlHostGroup(ctx, chgId, chg.getSessionToken(), 0, true);
-                            continue;
-                        }
-                        PostFetchHandler postFetchHandler = new PostFetchHandler(chg, frontier, false);
-                        postFetchHandler.postFetchFailure(err);
-                        postFetchHandler.postFetchFinally(true);
-                    } catch (Exception e) {
-                        LOG.warn("Error while getting chg {}", chgId, e);
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } catch (Throwable t) {
-                t.printStackTrace();
-                System.exit(1);
-            }
-        }
-    };
-
-    Runnable checkPaused = new Runnable() {
-        @Override
-        public void run() {
-            try {
-                frontier.getCrawlQueueManager().pause(DbService.getInstance().getExecutionsAdapter().getDesiredPausedState());
-            } catch (DbException e) {
-                LOG.warn("Could not read pause state", e);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } catch (Throwable t) {
-                t.printStackTrace();
-                System.exit(1);
-            }
-        }
-    };
-
     public CrawlQueueWorker(Frontier frontier, JedisPool jedisPool) {
         this.frontier = frontier;
         this.jedisPool = jedisPool;
-        executor = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("CrawlQueueWorker-%d").build());
+        this.executor = Executors.newScheduledThreadPool(
+                2,
+                new ThreadFactoryBuilder()
+                        .setNameFormat("CrawlQueueWorker-%d")
+                        .setUncaughtExceptionHandler((t, e) ->
+                                LOG.error("Uncaught exception in {}", t.getName(), e))
+                        .build()
+        );
 
-        executor.scheduleWithFixedDelay(fetchTimeoutWorker, 1200, 500, TimeUnit.MILLISECONDS);
-        executor.scheduleWithFixedDelay(checkPaused, 3, 3, TimeUnit.SECONDS);
+        executor.scheduleWithFixedDelay(this::runFetchTimeoutWorker, 1200, 500, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(this::runCheckPaused, 3, 3, TimeUnit.SECONDS);
+    }
+
+    private void runFetchTimeoutWorker() {
+        Error err = ExtraStatusCodes.RUNTIME_EXCEPTION.toFetchError("Timeout waiting for Harvester");
+
+        try (JedisContext ctx = JedisContext.forPool(jedisPool)) {
+            var jedis = ctx.getJedis();
+            String chgId;
+            while ((chgId = jedis.lpop(CHG_TIMEOUT_KEY)) != null) {
+                processTimedOutChg(ctx, chgId, err);
+            }
+        } catch (Exception e) {
+            LOG.warn("Error in fetchTimeoutWorker", e);
+        }
+    }
+
+    private void processTimedOutChg(JedisContext ctx, String chgId, Error err) {
+        PostFetchHandler postFetchHandler = null;
+        try {
+            CrawlHostGroup chg = frontier.getCrawlQueueManager().getCrawlHostGroup(chgId);
+            if (chg.getCurrentUriId().isEmpty()) {
+                frontier.getCrawlQueueManager()
+                        .releaseCrawlHostGroup(ctx, chgId, chg.getSessionToken(), 0, true);
+                return;
+            }
+
+            postFetchHandler = new PostFetchHandler(chg, frontier, false);
+            postFetchHandler.postFetchFailure(err);
+        } catch (Exception e) {
+            LOG.warn("Error while processing timed out chg {}", chgId, e);
+        } finally {
+            if (postFetchHandler != null) {
+                try {
+                    postFetchHandler.postFetchFinally(true);
+                } catch (Exception e) {
+                    LOG.warn("Error in postFetchFinally for chg {}", chgId, e);
+                }
+            }
+        }
+    }
+
+    private void runCheckPaused() {
+        try {
+            boolean desiredPaused = DbService.getInstance()
+                    .getExecutionsAdapter()
+                    .getDesiredPausedState();
+            frontier.getCrawlQueueManager().pause(desiredPaused);
+        } catch (DbException e) {
+            LOG.warn("Could not read pause state", e);
+        } catch (Exception e) {
+            LOG.warn("Unexpected error in checkPaused", e);
+        }
     }
 
     @Override
     public void close() throws InterruptedException {
         LOG.debug("Closing CrawlQueueWorker");
         executor.shutdown();
-        executor.awaitTermination(15, TimeUnit.SECONDS);
+        if (!executor.awaitTermination(15, TimeUnit.SECONDS)) {
+            LOG.warn("CrawlQueueWorker did not terminate in 15 seconds; forcing shutdownNow");
+            executor.shutdownNow();
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.error("CrawlQueueWorker still not terminated after shutdownNow");
+            }
+        }
         LOG.debug("CrawlQueueWorker closed");
     }
 }
+

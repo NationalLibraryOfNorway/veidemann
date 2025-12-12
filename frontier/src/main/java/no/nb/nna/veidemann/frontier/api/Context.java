@@ -6,68 +6,89 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Context {
+
     private static final Logger LOG = LoggerFactory.getLogger(Context.class);
-    private final AtomicBoolean isShutdown;
-    private final AtomicInteger amountOfActiveObserversCounter;
+
     private final Frontier frontier;
 
-    static final Lock lock = new ReentrantLock();
-    static final Condition notTerminated = lock.newCondition();
+    // Lifecycle state guarded by lock
+    private final Lock lock = new ReentrantLock();
+    private final Condition terminationReached = lock.newCondition();
+
+    private boolean shutdownRequested = false;
+    private int activeObservers = 0;
 
     public Context(Frontier frontier) {
-        isShutdown = new AtomicBoolean(false);
-        amountOfActiveObserversCounter = new AtomicInteger(0);
         this.frontier = frontier;
     }
 
-    public void shutdown() {
-        isShutdown.set(true);
-        if (amountOfActiveObserversCounter.get() <= 0) {
-            lock.lock();
-            try {
-                notTerminated.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
-    public boolean isShutdown() {
-        return isShutdown.get();
-    }
-
     /**
-     * @param timeout
-     * @param unit
-     * @return true if this StreamObserverPool terminated and false if the timeout elapsed before termination
-     * @throws InterruptedException
+     * Initiate shutdown. New observers should not be started,
+     * and termination is signalled once all active observers have completed.
      */
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        if (amountOfActiveObserversCounter.get() <= 0 && isShutdown.get()) {
-            return true;
-        }
+    public void shutdown() {
         lock.lock();
         try {
-            return notTerminated.await(timeout, unit);
+            shutdownRequested = true;
+            if (isTerminated()) {
+                // No active observers – signal immediately
+                terminationReached.signalAll();
+            }
         } finally {
             lock.unlock();
         }
     }
 
-    public void awaitTermination() throws InterruptedException {
-        if (amountOfActiveObserversCounter.get() <= 0 && isShutdown.get()) {
-            return;
-        }
+    public boolean isShutdown() {
         lock.lock();
         try {
-            notTerminated.await();
+            return shutdownRequested;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Await termination of this context.
+     *
+     * @param timeout timeout value
+     * @param unit    timeout unit
+     * @return true if terminated (shutdown requested and no active observers),
+     *         false if the timeout elapsed before termination
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        long nanos = unit.toNanos(timeout);
+        lock.lock();
+        try {
+            while (!isTerminated()) {
+                if (nanos <= 0L) {
+                    return false; // timed out
+                }
+                nanos = terminationReached.awaitNanos(nanos);
+            }
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Await termination without timeout.
+     *
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public void awaitTermination() throws InterruptedException {
+        lock.lock();
+        try {
+            while (!isTerminated()) {
+                terminationReached.await();
+            }
         } finally {
             lock.unlock();
         }
@@ -81,21 +102,46 @@ public class Context {
         return frontier.getCrawlQueueManager();
     }
 
+    /**
+     * Called when a streaming client starts (e.g. pageCompleted stream).
+     */
     public void startPageComplete() {
-        amountOfActiveObserversCounter.incrementAndGet();
-        LOG.trace("Client connected. Currently active clients: {}", amountOfActiveObserversCounter.get());
+        lock.lock();
+        try {
+            activeObservers++;
+            LOG.trace("Client connected. Currently active clients: {}", activeObservers);
+        } finally {
+            lock.unlock();
+        }
     }
 
+    /**
+     * Called when a streaming client completes.
+     */
     public void setObserverCompleted() {
-        if (amountOfActiveObserversCounter.decrementAndGet() <= 0 && isShutdown.get()) {
-            lock.lock();
-            try {
-                notTerminated.signalAll();
-            } finally {
-                lock.unlock();
+        lock.lock();
+        try {
+            if (activeObservers > 0) {
+                activeObservers--;
+            } else {
+                LOG.warn("setObserverCompleted called but activeObservers is already 0");
             }
+
+            if (isTerminated()) {
+                terminationReached.signalAll();
+            }
+
+            LOG.trace("Client disconnected. Currently active clients: {}.", activeObservers);
+        } finally {
+            lock.unlock();
         }
-        LOG.trace("Client disconnected. Currently active clients: {}.",
-                amountOfActiveObserversCounter.get());
+    }
+
+    /**
+     * Terminated = shutdown requested AND no active observers.
+     * Must be called under {@code lock}.
+     */
+    private boolean isTerminated() {
+        return shutdownRequested && activeObservers <= 0;
     }
 }

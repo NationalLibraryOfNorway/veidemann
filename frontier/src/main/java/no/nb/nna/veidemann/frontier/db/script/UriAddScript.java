@@ -1,31 +1,30 @@
 package no.nb.nna.veidemann.frontier.db.script;
 
-import com.google.common.collect.ImmutableList;
-import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.UCHG;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.UEID;
 
 import java.util.List;
 import java.util.Locale;
 
-import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.UCHG;
-import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.UEID;
+import com.google.common.collect.ImmutableList;
+
+import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 
 public class UriAddScript extends RedisJob<Boolean> {
-    final LuaScript uriAddScript;
+    private final LuaScript uriAddScript;
 
     public UriAddScript() {
         super("uriAddScript");
-        uriAddScript = new LuaScript("uri_add.lua");
+        this.uriAddScript = new LuaScript("uri_add.lua");
     }
 
     /**
-     * Add uri to queue.
-     *
-     * @param ctx
-     * @param qUri the uri to add
+     * Add URI to queue.
      */
     public void run(JedisContext ctx, QueuedUri qUri) {
         execute(ctx, jedis -> {
             String chgId = qUri.getCrawlHostGroupId();
+
             String ueIdKey = String.format("%s%s:%s",
                     UEID,
                     chgId,
@@ -34,12 +33,11 @@ public class UriAddScript extends RedisJob<Boolean> {
                     qUri.getSequence(),
                     qUri.getEarliestFetchTimeStamp().getSeconds(),
                     qUri.getId());
-            String uchgKey = String.format("%s%s",
-                    UCHG,
-                    chgId);
+
+            String uchgKey = UCHG + chgId;
             double priorityWeight = qUri.getPriorityWeight();
 
-            // If this is a seed, up the priority to ensure it gets out of CREATED state in reasonable time
+            // If this is a seed, up the priority
             if (qUri.getDiscoveryPath().isEmpty()) {
                 priorityWeight += 100d;
             }
