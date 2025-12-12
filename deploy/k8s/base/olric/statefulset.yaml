@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: olric
+spec:
+  serviceName: olric
+  replicas: 1
+  selector:
+    matchLabels:
+      app: olric
+  template:
+    metadata:
+      labels:
+        app: olric
+    spec:
+      serviceAccountName: olricd
+      containers:
+      - name: olricd
+        image: ghcr.io/nationallibraryofnorway/veidemann/olricd:0.7.1
+        ports:
+          - name: api
+            containerPort: 3320
+          - name: gossip
+            containerPort: 3322
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+        env:
+          - name: OLRIC_SERVER_CONFIG
+            value: /etc/olricd/config.yaml
+        volumeMounts:
+          - name: olric-config
+            mountPath: /etc/olricd/config.yaml
+            subPath: config.yaml
+            readOnly: true
+      volumes:
+        - name: olric-config
+          configMap:
+            name: olric-config
+            items:
+              - path: config.yaml
+                key: config.yaml

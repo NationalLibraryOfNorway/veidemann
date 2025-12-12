@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ooshandler
+  labels:
+    app.kubernetes.io/name: ooshandler
+    app.kubernetes.io/component: ooshandler
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ooshandler
+      app.kubernetes.io/component: ooshandler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ooshandler
+        app.kubernetes.io/component: ooshandler
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+        - name: ooshandler
+          image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler:0.2.3
+          ports:
+            - name: http-ooshandler
+              containerPort: 50052
+              protocol: TCP
+            - name: http-metrics
+              containerPort: 9301
+              protocol: TCP
+          args:
+            - -metrics-address
+            - 0.0.0.0:9301
+            - -data-dir
+            - /data/oos
+          readinessProbe:
+            tcpSocket:
+              port: 50052
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 50052
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+

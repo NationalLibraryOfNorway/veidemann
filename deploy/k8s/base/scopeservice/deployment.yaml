@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scopeservice
+  labels:
+    app.kubernetes.io/name: scopeservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: scopeservice
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: scopeservice
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+        - name: scopeservice
+          image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice:main
+          resources:
+            requests:
+              memory: "50Mi"
+              cpu: "125m"
+            limits:
+              memory: "100Mi"
+          ports:
+            - name: grpc
+              containerPort: 8080
+              protocol: TCP
+            - name: http-metrics
+              containerPort: 9153
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: debug
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10

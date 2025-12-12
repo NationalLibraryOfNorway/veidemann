@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: contentwriter
+  labels:
+    app.kubernetes.io/name: contentwriter
+    app.kubernetes.io/component: contentwriter
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      name: grpc
+      targetPort: grpc
+  selector:
+    app.kubernetes.io/name: contentwriter
+    app.kubernetes.io/component: contentwriter

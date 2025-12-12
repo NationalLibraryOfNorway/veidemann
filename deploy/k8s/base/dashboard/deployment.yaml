@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  labels:
+    app.kubernetes.io/name: dashboard
+    app.kubernetes.io/component: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dashboard
+      app.kubernetes.io/component: dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dashboard
+        app.kubernetes.io/component: dashboard
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: dashboard
+            items:
+              - key: config.json
+                path: config.json
+      containers:
+        - name: dashboard
+          image: ghcr.io/nationallibraryofnorway/veidemann/dashboard:0.24.2
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /usr/share/nginx/app/veidemann/assets/config.json
+              subPath: config.json
+              name: config
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10

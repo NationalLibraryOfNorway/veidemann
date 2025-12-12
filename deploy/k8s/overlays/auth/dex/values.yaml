@@ -1,0 +1,75 @@
+config:
+  issuer: https://veidemann.test/dex
+  storage:
+    config:
+      inCluster: true
+    type: kubernetes
+
+  logger:
+    level: debug
+
+  web:
+    http: 0.0.0.0:5556
+    allowedOrigins:
+      - https://veidemann.test
+      - https://localhost:4200
+
+  oauth2:
+    alwaysShowLoginScreen: false
+    responseTypes:
+      - code
+    skipApprovalScreen: true
+
+  staticClients:
+    - id: veidemann-dashboard
+      name: Veidemann Admin Dashboard
+      redirectURIs:
+        - https://veidemann.test/veidemann/
+        - https://localhost:4200/
+      public: true
+    - id: veidemann-cli
+      name: Veidemann CLI
+      public: true
+    - id: veidemann-api
+      name: Veidemann API
+      public: true
+      trustedPeers:
+        - veidemann-cli
+        - veidemann-dashboard
+
+  enablePasswordDB: true
+  staticPasswords:
+    - email: admin@example.com
+      hash: $2y$10$hlWo5xp7ugBAaVTpa2yyaOBJCM858/JfMabGOyLDk8hsLsIOzUGNm
+      userID: 08a8684b-db88-4b73-90a9-3cd1661f5466
+      username: admin
+    - email: operator@example.com
+      hash: $2y$10$hlWo5xp7ugBAaVTpa2yyaOBJCM858/JfMabGOyLDk8hsLsIOzUGNm
+      userID: 79e579ab-26a9-4f9a-8e9f-ec71cd54b589
+      username: operator
+    - email: curator@example.com
+      hash: $2y$10$hlWo5xp7ugBAaVTpa2yyaOBJCM858/JfMabGOyLDk8hsLsIOzUGNm
+      userID: a373332a-71d4-4264-83cf-8ce00c12eb5a
+      username: curator
+    - email: consultant@example.com
+      hash: $2y$10$hlWo5xp7ugBAaVTpa2yyaOBJCM858/JfMabGOyLDk8hsLsIOzUGNm
+      userID: 5f38da63-9622-4912-8504-d7b512784248
+      username: consultant
+    - email: any.user@example.com
+      hash: $2y$10$hlWo5xp7ugBAaVTpa2yyaOBJCM858/JfMabGOyLDk8hsLsIOzUGNm
+      userID: bab7b9ba-550d-459d-8c1c-2e68353d8937
+      username: any.user
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: veidemann.test
+      paths:
+        - path: /dex
+          pathType: Prefix
+
+  tls:
+    - hosts:
+        - veidemann.test
+      secretName: veidemann-tls

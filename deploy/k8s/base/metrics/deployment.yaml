@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics
+  labels:
+    app.kubernetes.io/name: metrics
+    app.kubernetes.io/component: metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: metrics
+      app.kubernetes.io/component: metrics
+  template:
+    metadata:
+      name: metrics
+      labels:
+        app.kubernetes.io/name: metrics
+        app.kubernetes.io/component: metrics
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+        - name: metrics
+          image: ghcr.io/nationallibraryofnorway/veidemann/metrics:0.4.0
+          ports:
+            - containerPort: 9301
+              name: http-metrics
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: PORT
+              value: "9301"
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"
+            - name: FRONTIER_HOST
+              value: "frontier"
+            - name: FRONTIER_PORT
+              value: "7700"
+          readinessProbe:
+            tcpSocket:
+              port: 9301
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9301
+            initialDelaySeconds: 15
+            periodSeconds: 10

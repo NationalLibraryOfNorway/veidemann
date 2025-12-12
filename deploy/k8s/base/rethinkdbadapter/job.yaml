@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-initializer
+  labels:
+    app.kubernetes.io/name: db-initializer
+    app.kubernetes.io/component: db-initializer
+spec:
+  ttlSecondsAfterFinished: 0
+  template:
+    metadata:
+      name: db-initializer
+      labels:
+        app.kubernetes.io/name: db-initializer
+        app.kubernetes.io/component: db-initializer
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-initializer
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter:0.12.0
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"

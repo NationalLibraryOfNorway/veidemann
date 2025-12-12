@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: robots
+  labels:
+    app.kubernetes.io/name: robots
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: robots
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: robots
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+        - name: robots
+          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.9.1
+          ports:
+            - name: grpc
+              containerPort: 8090
+              protocol: TCP
+          env:
+            - name: OLRIC_ADDRESS
+              value: olric-client:3320
+            - name: HTTP_PROXY
+              value: http://harvester:8080
+            - name: NO_PROXY
+              value: "127.0.0.1,localhost,.svc,.svc.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+          readinessProbe:
+            httpGet:
+              path: "/readyz"
+              port: 9153
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: "/readyz"
+              port: 9153
+            initialDelaySeconds: 15
+            periodSeconds: 10

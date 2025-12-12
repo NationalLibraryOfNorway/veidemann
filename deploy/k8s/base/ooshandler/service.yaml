@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ooshandler
+  labels:
+    app.kubernetes.io/name: ooshandler
+    app.kubernetes.io/component: ooshandler
+    metrics: prometheus
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 50052
+      targetPort: http-ooshandler
+    - name: http-metrics
+      port: 9301
+      targetPort: http-metrics
+  selector:
+    app.kubernetes.io/name: ooshandler
+    app.kubernetes.io/component: ooshandler

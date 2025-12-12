@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns-resolver
+  labels:
+    app.kubernetes.io/name: dns-resolver
+    app.kubernetes.io/component: dns-resolver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dns-resolver
+      app.kubernetes.io/component: dns-resolver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dns-resolver
+        app.kubernetes.io/component: dns-resolver
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      volumes:
+        - name: corefile
+          configMap:
+            name: dns-resolver
+            items:
+              - key: Corefile
+                path: Corefile
+      containers:
+        - name: dns-resolver
+          image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver:0.6.1
+          env:
+            - name: LOG_WRITER_HOST
+              value: "log-service"
+            - name: LOG_WRITER_PORT
+              value: "8080"
+            - name: CONTENT_WRITER_HOST
+              value: "contentwriter"
+            - name: CONTENT_WRITER_PORT
+              value: "8082"
+            - name: DNS_SERVER
+              value: "8.8.8.8"
+          ports:
+            - containerPort: 8053
+              name: grpc
+              protocol: TCP
+            - containerPort: 53
+              name: dns
+              protocol: UDP
+            - containerPort: 53
+              name: dns-tcp
+              protocol: TCP
+            - containerPort: 9153
+              name: http-metrics
+              protocol: TCP
+            - containerPort: 8181
+              name: http-health
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: http-health
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: http-health
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: corefile
+              mountPath: /Corefile
+              subPath: Corefile
