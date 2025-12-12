@@ -26,7 +26,6 @@ func main() {
 	// configure rewriter
 	r.configPath = "/etc/squid/conf.d/veidemann.conf"
 	if r.balancer {
-		logger.Print("Configuring squid as balancer")
 		r.templatePath = "/etc/squid/squid-balancer.conf.template"
 		if d, err := discovery.NewDiscovery(); err != nil {
 			logger.Fatalf("Failed to initialize discovery: %v", err)
@@ -34,7 +33,6 @@ func main() {
 			r.discovery = d
 		}
 	} else {
-		logger.Println("Configuring squid as cache")
 		r.templatePath = "/etc/squid/squid.conf.template"
 	}
 
@@ -54,6 +52,11 @@ func main() {
 		// This code is run in parent process
 		logger.Printf("Configuration initialized (%s)", r.configPath)
 	} else {
+		if r.balancer {
+			logger.Print("Configuring squid as balancer")
+		} else {
+			logger.Print("Configuring squid as cache")
+		}
 		// This code is run in forked child
 		logger.Println("Daemon started")
 		defer func() {
