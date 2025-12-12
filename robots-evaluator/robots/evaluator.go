@@ -91,7 +91,7 @@ func (e *Evaluator) fetchRobotsTxt(ctx context.Context, uri string) (string, err
 		return string(cached), nil
 	}
 	if !errors.Is(err, cache.ErrKeyNotFound) {
-		slog.Warn("Failed to get robots.txt from cache", "robotsUri", robotsUri, "error", err)
+		slog.Debug("Failed to find robots.txt in cache", "robotsUri", robotsUri, "error", err)
 	} else {
 		slog.Debug("Cache miss for robots.txt", "robotsUri", robotsUri)
 	}
@@ -120,7 +120,7 @@ func (e *Evaluator) fetchRobotsTxt(ctx context.Context, uri string) (string, err
 	robotsTxt := string(b)
 
 	if err := e.Cache.Put(ctx, robotsUri, b); err != nil {
-		slog.Warn("Failed to put robots.txt in cache", "robotsUri", robotsUri, "error", err)
+		slog.Warn("Failed to cache robots.txt", "robotsUri", robotsUri, "error", err)
 	}
 
 	return robotsTxt, nil

@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -26,16 +27,16 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/cache"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/robots"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -46,116 +47,6 @@ var (
 	commit  = ""
 	date    = ""
 )
-
-func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	err := run(ctx)
-	slog.Error("Stopped "+name, "error", err)
-
-	os.Exit(1)
-}
-
-type Config struct {
-	Host         string
-	Port         int
-	MetricsPort  int
-	LogLevel     string
-	LogFile      string
-	OlricAddress []string
-}
-
-func run(ctx context.Context) error {
-	pflag.String("log-level", "info", "Log level, available levels are: error, warn, info and debug")
-	pflag.String("addr", ":8090", "Address for the gRPC server")
-	pflag.String("metrics-addr", ":9153", "Address for the metrics server")
-	pflag.StringSlice("olric-address", []string{"localhost:3320"}, "Olric address")
-	pflag.String("olric-dmap", "robots-evaluator", "Olric DMap name")
-	pflag.Parse()
-
-	_ = viper.BindPFlags(pflag.CommandLine)
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
-
-	level := viper.GetString("log-level")
-	addr := viper.GetString("addr")
-	metricsAddr := viper.GetString("metrics-addr")
-	metricsPath := "/metrics"
-	olricAddress := viper.GetStringSlice("olric-address")
-	olricDmap := viper.GetString("olric-dmap")
-
-	initLogger(os.Stderr, level)
-
-	slog.Info("Starting "+name, "version", version, "commit", commit, "date", date)
-
-	cache, err := cache.NewOlricCache(olricAddress, olricDmap)
-	if err != nil {
-		return fmt.Errorf("failed to create Olric cache: %w", err)
-	}
-
-	defer func() { _ = cache.Close(context.Background()) }()
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	s := &robots.EvaluatorServer{
-		Evaluator: &robots.Evaluator{
-			Cache:  cache,
-			Client: client,
-		},
-	}
-
-	server := grpc.NewServer()
-	robotsevaluatorV1.RegisterRobotsEvaluatorServer(server, s)
-
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", addr, err)
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer cancel()
-		slog.Info("Starting metrics server", "address", metricsAddr, "path", metricsPath)
-		err := runMetricsServer(ctx, metricsAddr, metricsPath)
-		slog.Error("Metrics server stopped", "error", err)
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer cancel()
-		slog.Info("Starting gRPC server", "address", addr)
-		err := server.Serve(listener)
-		slog.Error("gRPC server stopped", "error", err)
-	}()
-
-	<-ctx.Done()          // Wait for context cancellation
-	server.GracefulStop() // Stop the gRPC server gracefully
-	wg.Wait()             // Wait for all goroutines to finish
-
-	return nil
-}
-
-func runMetricsServer(ctx context.Context, addr string, path string) error {
-	http.Handle(path, promhttp.Handler())
-
-	server := &http.Server{Addr: addr}
-
-	go func() {
-		<-ctx.Done()
-		_ = server.Shutdown(context.Background())
-	}()
-
-	return server.ListenAndServe()
-}
 
 func initLogger(w io.Writer, level string) {
 	levelVar := new(slog.LevelVar)
@@ -177,5 +68,166 @@ func toLogLevel(level string) slog.Level {
 		return slog.LevelError
 	default:
 		return slog.LevelInfo
+	}
+}
+
+func main() {
+	pflag.String("log-level", "info", "error, warn, info or debug")
+	pflag.String("addr", ":8090", "Address for the gRPC server")
+	pflag.String("telemetry-addr", ":9153", "Address for the telemetry server")
+	pflag.StringSlice("olric-address", []string{"localhost:3320"}, "Olric address")
+	pflag.String("olric-dmap", "robots-evaluator", "Olric DMap name")
+	pflag.Parse()
+
+	_ = viper.BindPFlags(pflag.CommandLine)
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+
+	level := viper.GetString("log-level")
+	addr := viper.GetString("addr")
+	telemetryAddr := viper.GetString("telemetry-addr")
+	olricAddress := viper.GetStringSlice("olric-address")
+	olricDmap := viper.GetString("olric-dmap")
+
+	initLogger(os.Stderr, level)
+
+	app := &App{
+		Addr:          addr,
+		TelemetryAddr: telemetryAddr,
+		OlricAddr:     olricAddress,
+		OlricDmap:     olricDmap,
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	slog.Info(name, "version", version, "commit", commit, "date", date)
+
+	if err := app.Run(ctx); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+}
+
+type App struct {
+	Addr          string
+	TelemetryAddr string
+	OlricAddr     []string
+	OlricDmap     string
+
+	ready   atomic.Bool
+	cachier cache.Cachier
+}
+
+func (app *App) Run(ctx context.Context) error {
+	g, ctx := errgroup.WithContext(ctx)
+
+	mux := http.NewServeMux()
+	mux.Handle(readyPath, app)
+
+	telemetry := &http.Server{
+		Addr:    app.TelemetryAddr,
+		Handler: mux,
+	}
+
+	g.Go(func() error {
+		err := telemetry.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	})
+
+	err := app.init(ctx)
+	if err != nil {
+		return err
+	}
+
+	grpcServer := grpc.NewServer()
+
+	impl := &robots.EvaluatorServer{
+		Evaluator: &robots.Evaluator{
+			Cache: app.cachier,
+			Client: &http.Client{
+				Timeout: 10 * time.Second,
+			},
+		},
+	}
+	robotsevaluatorV1.RegisterRobotsEvaluatorServer(grpcServer, impl)
+
+	listener, err := net.Listen("tcp", app.Addr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", app.Addr, err)
+	}
+
+	slog.Info("gRPC server listening", "address", app.Addr)
+
+	g.Go(func() error { return grpcServer.Serve(listener) })
+
+	<-ctx.Done()
+
+	grpcServer.GracefulStop()
+	app.ready.Store(false)
+
+	_ = listener.Close()
+	_ = app.cachier.Close(context.Background())
+	_ = telemetry.Shutdown(context.Background())
+
+	return g.Wait()
+}
+
+const readyPath = "/readyz"
+
+func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !app.ready.Load() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte("not ready\n"))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok\n"))
+}
+
+func (app *App) init(ctx context.Context) error {
+	init := new(errgroup.Group)
+
+	init.Go(func() error {
+		cachier, err := app.newOlricCache(ctx)
+		if err != nil {
+			return err
+		}
+		app.cachier = cachier
+		app.ready.Store(true)
+
+		return nil
+	})
+
+	return init.Wait()
+}
+
+func (app *App) newOlricCache(ctx context.Context) (cache.Cachier, error) {
+	backoff := time.Second
+	timer := time.NewTimer(backoff)
+	const maxBackoff = 30 * time.Second
+
+	for {
+		c, err := cache.NewOlricCache(app.OlricAddr, app.OlricDmap)
+		if err == nil {
+			slog.Info("Connected to olric", "address", app.OlricAddr)
+			return c, nil
+		}
+
+		slog.Warn("Connection failed, retrying...", "error", err, "backoff", backoff.String())
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+		if backoff < maxBackoff {
+			backoff *= 2
+		}
+		timer.Reset(backoff)
 	}
 }
