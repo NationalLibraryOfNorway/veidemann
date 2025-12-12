@@ -92,7 +92,7 @@ func run(o *options) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := reportV1.NewReportClient(conn)
 
@@ -114,7 +114,7 @@ func run(o *options) error {
 	if err != nil {
 		return fmt.Errorf("error creating formatter: %w", err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	for {
 		msg, err := r.Recv()

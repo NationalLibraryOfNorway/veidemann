@@ -265,7 +265,7 @@ func (s *MarshalSpec) resolve() (err error) {
 					}
 					s.rTemplate = string(data)
 				} else {
-					return errors.New("Format is 'template', but template is missing")
+					return errors.New("format is 'template', but template is missing")
 				}
 			} else {
 				s.rTemplate = s.Template
@@ -436,7 +436,7 @@ func Unmarshal(ctx context.Context, filename string, result chan<- *configV1.Con
 		go func() {
 			f := f
 			defer wg.Done()
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 			err := unmarshal(f, result, ctx.Done(), t)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal")
@@ -462,7 +462,7 @@ func newYamlReader(r io.Reader) yamlReader {
 // readYaml reads a yaml document from the reader and returns it as a byte array
 func (yr yamlReader) readYaml() ([]byte, error) {
 	delim := []byte{'-', '-', '-'}
-	var inDoc bool = true
+	inDoc := true
 	var err error
 	var l, doc []byte
 

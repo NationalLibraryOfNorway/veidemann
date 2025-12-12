@@ -40,7 +40,7 @@ If the job is already running, the seed will be added to the running job.`,
 			if err != nil {
 				return fmt.Errorf("failed to connect")
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			client := controllerV1.NewControllerClient(conn)
 

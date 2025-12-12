@@ -36,7 +36,7 @@ func NewCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			client := controllerV1.NewControllerClient(conn)
 

@@ -44,7 +44,7 @@ func TestLoginServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	select {
 	case <-done:

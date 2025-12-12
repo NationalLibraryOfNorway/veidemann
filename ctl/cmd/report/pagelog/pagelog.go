@@ -75,14 +75,14 @@ func run(o *options) error {
 	if err != nil {
 		return err
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	// connect to grpc server
 	conn, err := connection.Connect()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := logV1.NewLogClient(conn)
 

@@ -39,7 +39,7 @@ func NewCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to connect: %w", err)
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			client := configV1.NewConfigClient(conn)
 

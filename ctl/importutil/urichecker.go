@@ -25,7 +25,7 @@ func (uc *UriChecker) Check(uri string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resp, err := uc.Client.Do(req)
+	resp, err := uc.Do(req)
 	if err != nil {
 		var uerr *url.Error
 		if errors.As(err, &uerr) && uerr.Timeout() {
@@ -37,7 +37,7 @@ func (uc *UriChecker) Check(uri string) (string, error) {
 		}
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusMovedPermanently {
 		u, err := resp.Location()
@@ -60,11 +60,11 @@ func (uc *UriChecker) GetTitle(uri string) string {
 	if err != nil {
 		return ""
 	}
-	resp, err := uc.Client.Do(req)
+	resp, err := uc.Do(req)
 	if err != nil {
 		return ""
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	doc, err := html.Parse(resp.Body)
 	if err != nil {

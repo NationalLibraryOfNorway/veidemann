@@ -21,8 +21,6 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"google.golang.org/protobuf/proto"
-
-	api "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 func TestCreateSelector(t *testing.T) {
@@ -70,7 +68,7 @@ func TestCreateListRequest(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *api.ListRequest
+		want *configV1.ListRequest
 	}{
 		{
 			name: "One Id",
@@ -81,12 +79,12 @@ func TestCreateListRequest(t *testing.T) {
 				0,
 				0,
 			},
-			want: &api.ListRequest{Kind: api.Kind_browserConfig, Id: []string{"id1"}},
+			want: &configV1.ListRequest{Kind: configV1.Kind_browserConfig, Id: []string{"id1"}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := CreateListRequest(api.Kind_browserConfig, tt.args.ids, tt.args.name, tt.args.labelString, nil, tt.args.pageSize, tt.args.page)
+			got, err := CreateListRequest(configV1.Kind_browserConfig, tt.args.ids, tt.args.name, tt.args.labelString, nil, tt.args.pageSize, tt.args.page)
 			if err != nil {
 				t.Errorf("Error in CreateListRequest(): %v", err)
 			}
@@ -130,7 +128,7 @@ func TestCreateTemplateFilter(t *testing.T) {
 		{"message/label",
 			args{filterString: "meta.label=foo:bar", templateObj: &configV1.ConfigObject{}},
 			&commonsV1.FieldMask{Paths: []string{"meta.label"}},
-			&configV1.ConfigObject{Meta: &configV1.Meta{Label: []*api.Label{{Key: "foo", Value: "bar"}}}},
+			&configV1.ConfigObject{Meta: &configV1.Meta{Label: []*configV1.Label{{Key: "foo", Value: "bar"}}}},
 			false,
 		},
 		{"oneof/int",

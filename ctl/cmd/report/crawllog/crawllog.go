@@ -71,7 +71,7 @@ func run(o *options) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := logV1.NewLogClient(conn)
 
@@ -93,7 +93,7 @@ func run(o *options) error {
 	if err != nil {
 		return err
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	for {
 		msg, err := r.Recv()

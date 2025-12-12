@@ -259,7 +259,7 @@ func CompleteName(kind string, name string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := configV1.NewConfigClient(conn)
 	r, err := client.ListConfigObjects(context.Background(), request)

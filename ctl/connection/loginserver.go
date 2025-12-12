@@ -16,7 +16,12 @@ type response struct {
 func handleLoginResponse(resp chan<- *response) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		fmt.Fprintf(w, "<html><body><h1>%s</h1></body></html>", "Window can safely be closed")
+		_, err := fmt.Fprintf(w, "<html><body><h1>%s</h1></body></html>", "Window can safely be closed")
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			resp <- nil
+			return
+		}
 		resp <- &response{
 			query.Get("code"),
 			query.Get("state"),

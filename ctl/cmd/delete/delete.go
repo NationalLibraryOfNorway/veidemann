@@ -66,7 +66,7 @@ func NewCmd() *cobra.Command {
 			}
 
 			if len(o.ids) == 0 && o.filters == nil && o.label == "" {
-				return fmt.Errorf("Either the -f or -q flags, or one or more id's must be provided\n")
+				return errors.New("either the -f or -q flags, or one or more id's must be provided")
 			}
 
 			// set silence usage to true to avoid printing usage when an error occurs
@@ -88,7 +88,7 @@ func run(o *options) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := configV1.NewConfigClient(conn)
 

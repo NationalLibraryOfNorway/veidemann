@@ -47,7 +47,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("failed to connect: %w", err)
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			configClient := configV1.NewConfigClient(conn)
 

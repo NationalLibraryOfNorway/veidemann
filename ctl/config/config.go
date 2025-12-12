@@ -282,7 +282,7 @@ func writeConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to create config file \"%s\": %w", configFile, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	if err = file.Chmod(0600); err != nil {
 		return fmt.Errorf("failed to change access mode on config file \"%s\": %w", configFile, err)
@@ -327,7 +327,7 @@ func resolveContext(name string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		dec := yaml.NewDecoder(f)
 		c := new(context)
 		err = dec.Decode(c)
@@ -358,14 +358,14 @@ func SetCurrentContext(ctxName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create or open '%s': %w", contextFile, err)
 	}
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	enc := yaml.NewEncoder(w)
 	err = enc.Encode(context{ctxName})
 	if err != nil {
 		return fmt.Errorf("failed to write context to '%s': %w", contextFile, err)
 	}
-	defer enc.Close()
+	defer func() { _ = enc.Close() }()
 
 	return nil
 }

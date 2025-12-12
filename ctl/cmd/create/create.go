@@ -87,7 +87,7 @@ func run(o *options) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := configV1.NewConfigClient(conn)
 

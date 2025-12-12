@@ -90,7 +90,7 @@ func run(o *options) error {
 		if err != nil {
 			return fmt.Errorf("unable to open output file: %v: %w", o.OutFile, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		out = f
 	}
 
@@ -99,7 +99,7 @@ func run(o *options) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := configV1.NewConfigClient(conn)
 
