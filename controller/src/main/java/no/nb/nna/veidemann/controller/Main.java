@@ -15,15 +15,17 @@
  */
 package no.nb.nna.veidemann.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
+
 import com.typesafe.config.ConfigException;
+
 import io.jaegertracing.Configuration;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.controller.settings.Settings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  * Main class for launching the controller service.
@@ -70,9 +72,8 @@ public final class Main {
 
     private static void registerShutdownHook(Controller controller) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.err.println("*** JVM shutdown detected, initiating controller shutdown");
+            LOG.info("JVM shutdown detected, initiating shutdown");
             controller.initiateShutdown();
-            System.err.println("*** controller shutdown signal sent");
         }, "controller-shutdown-hook"));
     }
 }
