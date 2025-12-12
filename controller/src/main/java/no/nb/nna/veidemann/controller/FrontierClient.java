@@ -15,12 +15,18 @@
  */
 package no.nb.nna.veidemann.controller;
 
+import java.time.OffsetDateTime;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Empty;
-import com.netflix.concurrency.limits.grpc.client.ConcurrencyLimitClientInterceptor;
-import com.netflix.concurrency.limits.grpc.client.GrpcClientLimiterBuilder;
+
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -40,12 +46,6 @@ import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierStub;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.client.GrpcUtil;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.OffsetDateTime;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -70,17 +70,11 @@ public class FrontierClient implements AutoCloseable {
     public FrontierClient(ManagedChannelBuilder<?> channelBuilder, String supportedSeedType) {
         LOG.info("Setting up Frontier client");
 
-        ClientInterceptor tracingInterceptor = TracingClientInterceptor.newBuilder().withTracer(GlobalTracer.get()).build();
-        ClientInterceptor pressureLimitInterceptor = new ConcurrencyLimitClientInterceptor(
-                new GrpcClientLimiterBuilder()
-                        .partitionByMethod()
-                        .partition(FrontierGrpc.getCrawlSeedMethod().getFullMethodName(), 0.2)
-                        .partition(FrontierGrpc.getBusyCrawlHostGroupCountMethod().getFullMethodName(), 0.2)
-                        .partition(FrontierGrpc.getQueueCountForCrawlExecutionMethod().getFullMethodName(), 0.2)
-                        .partition(FrontierGrpc.getQueueCountForCrawlHostGroupMethod().getFullMethodName(), 0.2)
-                        .partition(FrontierGrpc.getQueueCountTotalMethod().getFullMethodName(), 0.2)
-                        .blockOnLimit(true).build());
-        channel = channelBuilder.intercept(tracingInterceptor, pressureLimitInterceptor).build();
+        ClientInterceptor tracingInterceptor = TracingClientInterceptor.newBuilder().withTracer(GlobalTracer.get())
+                .build();
+        channel = channelBuilder
+                .intercept(tracingInterceptor)
+                .build();
         blockingStub = FrontierGrpc.newBlockingStub(channel);
         asyncStub = FrontierGrpc.newStub(channel);
         futureStub = FrontierGrpc.newFutureStub(channel);
@@ -93,11 +87,12 @@ public class FrontierClient implements AutoCloseable {
      * @param crawlJob     the crawl job configuration
      * @param seed         the seed to crawl
      * @param jobExecution the jobExecution this crawl is part of
-     * @param timeout      timestamp for when this crawl times out. Might be null for no timeout
+     * @param timeout      timestamp for when this crawl times out. Might be null
+     *                     for no timeout
      * @return the id of the newly created crawl execution
      */
     public CrawlExecutionId crawlSeed(ConfigObject crawlJob, ConfigObject seed, JobExecutionStatus jobExecution,
-                                      OffsetDateTime timeout) {
+            OffsetDateTime timeout) {
         int retryLimit = 3;
         double backoffMultiplier = 1.5;
         long retrySleep = 100;
@@ -114,19 +109,20 @@ public class FrontierClient implements AutoCloseable {
             try {
                 return GrpcUtil.forkedCall(() -> blockingStub.crawlSeed(request.build()));
             } catch (StatusRuntimeException ex) {
-                if (ex.getStatus().getCode() == Status.UNAVAILABLE.getCode() && ex.getStatus().getDescription().contains("limit")) {
+                Status.Code code = ex.getStatus().getCode();
+                if (code == Status.Code.RESOURCE_EXHAUSTED || code == Status.Code.UNAVAILABLE) {
                     if (retryCount >= retryLimit) {
-                        LOG.error("RPC failed: " + ex.getStatus(), ex);
+                        LOG.error("RPC failed after {} retries: {}", retryCount, ex.getStatus(), ex);
                         throw ex;
                     }
-                    LOG.debug("Frontier concurrency limit reached. Retrying in {}ms", retrySleep);
+                    LOG.debug("Frontier overloaded ({}). Retrying in {}ms", code, retrySleep);
                     try {
                         Thread.sleep(retrySleep);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException(e);
                     }
-                    retrySleep += retrySleep * backoffMultiplier;
+                    retrySleep = (long) (retrySleep * backoffMultiplier);
                     retryCount++;
                 } else {
                     LOG.error("RPC failed: " + ex.getStatus(), ex);
@@ -147,12 +143,14 @@ public class FrontierClient implements AutoCloseable {
         return futureStub.queueCountTotal(Empty.getDefaultInstance());
     }
 
-    public void queueCountForCrawlExecution(CrawlExecutionId crawlExecutionId, FutureCallback<CountResponse> callback, Executor executor) {
+    public void queueCountForCrawlExecution(CrawlExecutionId crawlExecutionId, FutureCallback<CountResponse> callback,
+            Executor executor) {
         ListenableFuture<CountResponse> future = futureStub.queueCountForCrawlExecution(crawlExecutionId);
         Futures.addCallback(future, callback, executor);
     }
 
-    public void queueCountForCrawlHostGroup(CrawlHostGroup crawlHostGroup, FutureCallback<CountResponse> callback, Executor executor) {
+    public void queueCountForCrawlHostGroup(CrawlHostGroup crawlHostGroup, FutureCallback<CountResponse> callback,
+            Executor executor) {
         ListenableFuture<CountResponse> future = futureStub.queueCountForCrawlHostGroup(crawlHostGroup);
         Futures.addCallback(future, callback, executor);
     }

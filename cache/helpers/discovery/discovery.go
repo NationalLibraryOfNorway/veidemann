@@ -19,12 +19,11 @@ type Discovery struct {
 }
 
 func NewDiscovery() (*Discovery, error) {
-	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
-	// creates the clientset
+
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -50,23 +49,36 @@ func (d *Discovery) GetParents() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var parents []string
-	service, err := d.kube.CoreV1().Services(d.ns).Get(ctx, d.serviceName, metaV1.GetOptions{})
+	// EndpointSlices for a Service are labeled with kubernetes.io/service-name=<serviceName>
+	sel := labels.Set{
+		"kubernetes.io/service-name": d.serviceName,
+	}.AsSelector().String()
+
+	slices, err := d.kube.DiscoveryV1().EndpointSlices(d.ns).List(ctx, metaV1.ListOptions{
+		LabelSelector: sel,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get service named %s: %w", d.serviceName, err)
-	}
-	set := labels.Set(service.Spec.Selector)
-	epl, err := d.kube.CoreV1().Endpoints(d.ns).List(ctx, metaV1.ListOptions{LabelSelector: set.AsSelector().String()})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list endpoints for service: %s: %w", d.serviceName, err)
+		return nil, fmt.Errorf("failed to list endpointslices for service %s: %w", d.serviceName, err)
 	}
 
-	for _, eps := range epl.Items {
-		for _, ss := range eps.Subsets {
-			for _, a := range ss.Addresses {
-				parents = append(parents, a.IP)
+	seen := make(map[string]struct{}, 64)
+	parents := make([]string, 0, 16)
+
+	for _, es := range slices.Items {
+		for _, ep := range es.Endpoints {
+			// If readiness is specified, only include Ready endpoints
+			if ep.Conditions.Ready != nil && !*ep.Conditions.Ready {
+				continue
+			}
+			for _, addr := range ep.Addresses {
+				if _, ok := seen[addr]; ok {
+					continue
+				}
+				seen[addr] = struct{}{}
+				parents = append(parents, addr)
 			}
 		}
 	}
+
 	return parents, nil
 }

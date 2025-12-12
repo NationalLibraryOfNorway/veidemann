@@ -15,29 +15,82 @@
  */
 package no.nb.nna.veidemann.frontier;
 
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
+
+import com.typesafe.config.ConfigException;
+
+import io.jaegertracing.Configuration;
+import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
+import io.prometheus.client.exporter.HTTPServer;
+import io.prometheus.client.hotspot.DefaultExports;
+import no.nb.nna.veidemann.commons.db.DbException;
+import no.nb.nna.veidemann.frontier.settings.Settings;
+
 /**
  * Main class for launching the service.
  */
 public final class Main {
 
-    /**
-     * Private constructor to avoid instantiation.
-     */
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+
     private Main() {
+        // no instances
+    }
+
+    public static void main(String[] args) {
+        initLoggingBridge();
+        Tracer tracer = initTracing();
+
+        try {
+            Settings settings = Settings.load();
+
+            // process-wide metrics
+            DefaultExports.initialize();
+
+            try (HTTPServer metrics = new HTTPServer(settings.getPrometheusPort());
+                    FrontierService frontierService = new FrontierService(settings, tracer)) {
+
+                registerShutdownHook(frontierService);
+
+                frontierService.start();
+                frontierService.blockUntilShutdown();
+            }
+
+        } catch (ConfigException | DbException ex) {
+            LOG.error("Configuration error: {}", ex.getLocalizedMessage(), ex);
+            System.exit(1);
+        } catch (IOException ex) {
+            LOG.error("Failed to start Prometheus server", ex);
+            System.exit(1);
+        } catch (Exception ex) {
+            LOG.error("Fatal error in frontier", ex);
+            System.exit(1);
+        }
     }
 
     /**
-     * Start the server.
-     * <p>
-     * @param args the command line arguments
+     * Route all java.util.logging (JUL) logs through SLF4J/Log4j2.
      */
-    public static void main(String[] args) {
-        // This class intentionally doesn't do anything except for instanciating a ResourceResolverServer.
-        // This is necessary to be able to replace the LogManager. The system property must be set before any other
-        // logging is even loaded.
-        System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-
-        new FrontierService().start();
+    private static void initLoggingBridge() {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
     }
 
+    private static Tracer initTracing() {
+        Tracer tracer = Configuration.fromEnv().getTracer();
+        GlobalTracer.registerIfAbsent(tracer);
+        return tracer;
+    }
+
+    private static void registerShutdownHook(FrontierService frontierService) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.info("JVM shutdown detected, initiating shutdown");
+            frontierService.initiateShutdown();
+        }, "frontier-service-shutdown-hook"));
+    }
 }

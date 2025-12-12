@@ -1,5 +1,25 @@
 package no.nb.nna.veidemann.frontier.testutil;
 
+import static com.rethinkdb.RethinkDB.r;
+
+import java.io.IOException;
+import java.time.Duration;
+
+import org.assertj.core.api.Assertions;
+import org.assertj.core.presentation.StandardRepresentation;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.startupcheck.IsRunningStartupCheckStrategy;
+import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.utility.DockerImageName;
+
 import io.opentracing.mock.MockTracer;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
@@ -17,57 +37,37 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.presentation.StandardRepresentation;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.startupcheck.IsRunningStartupCheckStrategy;
-import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-
-import java.io.IOException;
-import java.time.Duration;
-
-import static com.rethinkdb.RethinkDB.r;
 
 public class AbstractIntegrationTest {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractIntegrationTest.class);
     private static Network network = Network.newNetwork();
 
     @Container
-    public static GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:8-alpine"))
+    public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:8-alpine"))
             .withNetwork(network)
             .withNetworkAliases("redis")
             .withExposedPorts(6379)
-            .withLogConsumer(new SkipUntilFilter("Ready to accept connections", new Slf4jLogConsumer(LoggerFactory.getLogger("REDIS"))))
+            .withLogConsumer(new SkipUntilFilter("Ready to accept connections",
+                    new Slf4jLogConsumer(LoggerFactory.getLogger("REDIS"))))
             .withStartupCheckStrategy(
-                    new IsRunningStartupCheckStrategy().withTimeout(Duration.ofSeconds(60))
-            )
+                    new IsRunningStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)))
             .waitingFor(
-                    Wait.forLogMessage(".*Ready to accept connections.*", 1)
-            );
+                    Wait.forLogMessage(".*Ready to accept connections.*", 1));
 
     @Container
-    public static GenericContainer rethinkDb = new GenericContainer(DockerImageName.parse("rethinkdb:2.4.4-bookworm-slim"))
+    public static GenericContainer<?> rethinkDb = new GenericContainer<>(
+            DockerImageName.parse("rethinkdb:2.4.4-bookworm-slim"))
             .withNetwork(network)
             .withNetworkAliases("db")
             .withExposedPorts(28015)
             .withStartupCheckStrategy(
-                    new IsRunningStartupCheckStrategy().withTimeout(Duration.ofSeconds(60))
-            ).waitingFor(
-                    Wait.forLogMessage(".*Server ready.*", 1)
-            );
+                    new IsRunningStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)))
+            .waitingFor(
+                    Wait.forLogMessage(".*Server ready.*", 1));
     @Container
-    public static GenericContainer dbInitializer = new GenericContainer(
+    public static GenericContainer<?> dbInitializer = new GenericContainer<>(
             DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter").withTag("0.11.0"))
             .withNetwork(network)
             .dependsOn(rethinkDb)
@@ -77,7 +77,8 @@ public class AbstractIntegrationTest {
             .withStartupCheckStrategy(
                     new OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)));
     @Container
-    public GenericContainer queueWorker = new GenericContainer(DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.2.0"))
+    public GenericContainer<?> queueWorker = new GenericContainer<>(
+            DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.2.0"))
             .withNetwork(network)
             .dependsOn(dbInitializer, redis)
             .withEnv("DB_HOST", "db")
@@ -154,10 +155,12 @@ public class AbstractIntegrationTest {
         scopeCheckerServiceMock = new ScopeCheckerServiceMock(settings.getScopeservicePort()).start();
         harvesterMock = new HarvesterMock(settings).start();
         logServiceMock = new LogServiceMock(settings.getLogServicePort()).start();
-        robotsServiceClient = new RobotsServiceClient(settings.getRobotsEvaluatorHost(), settings.getRobotsEvaluatorPort());
+        robotsServiceClient = new RobotsServiceClient(settings.getRobotsEvaluatorHost(),
+                settings.getRobotsEvaluatorPort());
         dnsServiceClient = new DnsServiceClient(settings.getDnsResolverHost(), settings.getDnsResolverPort());
         scopeServiceClient = new ScopeServiceClient(settings.getScopeserviceHost(), settings.getScopeservicePort());
-        outOfScopeHandlerClient = new OutOfScopeHandlerClient(settings.getOutOfScopeHandlerHost(), settings.getOutOfScopeHandlerPort());
+        outOfScopeHandlerClient = new OutOfScopeHandlerClient(settings.getOutOfScopeHandlerHost(),
+                settings.getOutOfScopeHandlerPort());
         logServiceClient = new LogServiceClient(settings.getLogServiceHost(), settings.getLogServicePort());
 
         CommonSettings dbSettings = new CommonSettings()
@@ -182,7 +185,7 @@ public class AbstractIntegrationTest {
         rethinkDbData = new RethinkDbData(conn);
 
         frontier = new Frontier(tracer, settings, jedisPool, robotsServiceClient, dnsServiceClient, scopeServiceClient,
-                outOfScopeHandlerClient, logServiceClient);
+                outOfScopeHandlerClient, logServiceClient, conn, DbService.getInstance().getConfigAdapter());
         apiServer = new FrontierApiServer(settings.getApiPort(), settings.getTerminationGracePeriodSeconds(), frontier);
         apiServer.start();
 
@@ -192,7 +195,14 @@ public class AbstractIntegrationTest {
     @AfterEach
     public void shutdown() throws Exception {
         harvesterMock.close();
-        apiServer.shutdown();
+
+        if (apiServer != null) {
+            apiServer.close();
+        }
+        if (frontier != null) {
+            frontier.close();
+        }
+
         robotsServiceClient.close();
         dnsServiceClient.close();
         scopeServiceClient.close();
@@ -213,6 +223,19 @@ public class AbstractIntegrationTest {
 
         jedisPool.getResource().flushAll();
         jedisPool.close();
+
+        if (queueWorker != null) {
+            queueWorker.close();
+        }
+        if (dbInitializer != null) {
+            dbInitializer.close();
+        }
+        if (rethinkDb != null) {
+            rethinkDb.close();
+        }
+        if (redis != null) {
+            redis.close();
+        }
     }
 
     public class CustomRepresentation extends StandardRepresentation {

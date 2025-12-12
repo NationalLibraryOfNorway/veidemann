@@ -16,6 +16,15 @@
 
 package no.nb.nna.veidemann.frontier.testutil;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -28,13 +37,6 @@ import no.nb.nna.veidemann.api.uricanonicalizer.v1.CanonicalizeRequest;
 import no.nb.nna.veidemann.api.uricanonicalizer.v1.CanonicalizeResponse;
 import no.nb.nna.veidemann.api.uricanonicalizer.v1.UriCanonicalizerServiceGrpc;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.concurrent.TimeUnit;
 
 public class ScopeCheckerServiceMock implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ScopeCheckerServiceMock.class);
@@ -100,7 +102,7 @@ public class ScopeCheckerServiceMock implements AutoCloseable {
         public void canonicalize(CanonicalizeRequest request, StreamObserver<CanonicalizeResponse> responseObserver) {
             try {
                 String qUri = request.getUri();
-                URL u = new URL(qUri);
+                URL u = URI.create(qUri).toURL();
                 ParsedUri pUri = ParsedUri.newBuilder()
                         .setHref(qUri)
                         .setScheme(u.getProtocol())
@@ -155,7 +157,7 @@ public class ScopeCheckerServiceMock implements AutoCloseable {
                             .setError(ExtraStatusCodes.BLOCKED.toFetchError());
                 }
 
-                URL u = new URL(qUri);
+                URL u = URI.create(qUri).toURL();
                 ParsedUri icUri = ParsedUri.newBuilder()
                         .setHref(qUri)
                         .setScheme(u.getProtocol())

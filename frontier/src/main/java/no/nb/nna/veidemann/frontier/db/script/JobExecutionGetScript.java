@@ -1,13 +1,14 @@
 package no.nb.nna.veidemann.frontier.db.script;
 
-import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
-import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_PREFIX;
 
 import java.util.Map;
 
-import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_PREFIX;
+import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
+import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 
 public class JobExecutionGetScript extends RedisJob<JobExecutionStatus> {
+
     public JobExecutionGetScript() {
         super("jobExecutionGetScript");
     }
@@ -19,16 +20,16 @@ public class JobExecutionGetScript extends RedisJob<JobExecutionStatus> {
             if (!jedis.exists(key)) {
                 return null;
             }
-            JobExecutionStatusRedisMapper m = new JobExecutionStatusRedisMapper(jedis.hgetAll(key));
 
-            return m.toJobExecutionStatus(jobExecutionId);
+            JobExecutionStatusRedisMapper mapper = new JobExecutionStatusRedisMapper(jedis.hgetAll(key));
+            return mapper.toJobExecutionStatus(jobExecutionId);
         });
     }
 
     private static class JobExecutionStatusRedisMapper {
-        private Map<String, String> values;
+        private final Map<String, String> values;
 
-        public JobExecutionStatusRedisMapper(Map<String, String> values) {
+        JobExecutionStatusRedisMapper(Map<String, String> values) {
             this.values = values;
         }
 
@@ -40,7 +41,7 @@ public class JobExecutionGetScript extends RedisJob<JobExecutionStatus> {
             return Integer.parseInt(values.getOrDefault(field, "0"));
         }
 
-        public JobExecutionStatus toJobExecutionStatus(String jobExecutionId) {
+        JobExecutionStatus toJobExecutionStatus(String jobExecutionId) {
             JobExecutionStatus.Builder jes = JobExecutionStatus.newBuilder()
                     .setId(jobExecutionId)
                     .setDocumentsCrawled(getAsLong("documentsCrawled"))

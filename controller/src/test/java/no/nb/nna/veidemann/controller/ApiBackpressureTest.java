@@ -15,8 +15,27 @@
  */
 package no.nb.nna.veidemann.controller;
 
-import com.netflix.concurrency.limits.grpc.client.ConcurrencyLimitClientInterceptor;
-import com.netflix.concurrency.limits.grpc.client.GrpcClientLimiterBuilder;
+import static no.nb.nna.veidemann.controller.JobExecutionUtil.handleGet;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.Status;
@@ -31,25 +50,6 @@ import no.nb.nna.veidemann.api.config.v1.ConfigRef;
 import no.nb.nna.veidemann.api.config.v1.ListRequest;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
 import no.nb.nna.veidemann.commons.db.DbException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Iterator;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static no.nb.nna.veidemann.controller.JobExecutionUtil.handleGet;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
 
 /**
  *
@@ -69,27 +69,51 @@ public class ApiBackpressureTest {
     }
 
     @Test
-    void requestThrottling() {
-        AtomicInteger count = new AtomicInteger(0);
+    void requestThrottling() throws Exception {
+        int n = 100;
+
+        AtomicInteger ok = new AtomicInteger();
+        AtomicInteger err = new AtomicInteger();
+        CountDownLatch done = new CountDownLatch(n);
+
         try (ApiServerMock inProcessServer = new ApiServerMock(0, 50, null)) {
-            ConfigGrpc.ConfigStub configClient = ConfigGrpc.newStub(inProcessChannel).withInterceptors(
-                    new ConcurrencyLimitClientInterceptor(new GrpcClientLimiterBuilder().blockOnLimit(true).build())
-            );
+            ConfigGrpc.ConfigStub configClient = ConfigGrpc.newStub(inProcessChannel);
 
-            for (int i = 0; i < 100; i++) {
-                configClient.getConfigObject(ConfigRef.getDefaultInstance(), new StreamObserver<ConfigObject>() {
-                    public void onNext(ConfigObject value) {
-                        count.incrementAndGet();
-                    }
+            for (int i = 0; i < n; i++) {
+                configClient
+                        // Optional but recommended to avoid hanging tests:
+                        // .withDeadlineAfter(2, TimeUnit.SECONDS) // only if you switch to a stub type
+                        // that supports it
+                        .getConfigObject(ConfigRef.getDefaultInstance(), new StreamObserver<ConfigObject>() {
+                            @Override
+                            public void onNext(ConfigObject value) {
+                                ok.incrementAndGet();
+                            }
 
-                    public void onError(Throwable t) {
-                    }
+                            @Override
+                            public void onError(Throwable t) {
+                                err.incrementAndGet();
+                                done.countDown();
+                            }
 
-                    public void onCompleted() {
-                    }
-                });
+                            @Override
+                            public void onCompleted() {
+                                done.countDown();
+                            }
+                        });
             }
-            assertThat(count.get()).isCloseTo(100, within(25));
+
+            // Wait for all calls to finish (or time out)
+            boolean finished = done.await(5, TimeUnit.SECONDS);
+
+            assertThat(finished).as("RPCs did not finish in time").isTrue();
+
+            // Now assert what you *actually* expect.
+            // If you removed throttling, you probably want near-100 successes:
+            assertThat(ok.get()).isCloseTo(100, within(25));
+
+            // And you probably want to know if you’re dropping a lot:
+            assertThat(err.get()).isLessThanOrEqualTo(25); // tune as needed
         }
     }
 
@@ -198,7 +222,8 @@ public class ApiBackpressureTest {
                             StreamObserver<ConfigObject> responseObserver = new BlockingStreamObserver<>(observer);
                             AtomicInteger onNextCount = new AtomicInteger(0);
                             new Thread(() -> {
-                                try (ChangeFeed<ConfigObject> c = new RepeatingChangeFeed<>(listResponseCount, ConfigObject.getDefaultInstance());) {
+                                try (ChangeFeed<ConfigObject> c = new RepeatingChangeFeed<>(listResponseCount,
+                                        ConfigObject.getDefaultInstance());) {
                                     c.stream().forEach(o -> {
                                         responseObserver.onNext(o);
                                         onNextCount.incrementAndGet();

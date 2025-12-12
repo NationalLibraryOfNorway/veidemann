@@ -15,6 +15,13 @@
  */
 package no.nb.nna.veidemann.frontier.worker;
 
+import java.net.URISyntaxException;
+import java.util.Collection;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.ConfigRef;
@@ -25,39 +32,39 @@ import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
-import java.net.URISyntaxException;
-import java.util.Collection;
-
-/**
- *
- */
 public class PreFetchHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PreFetchHandler.class);
 
-    StatusWrapper status;
-    final Frontier frontier;
-    QueuedUriWrapper qUri;
-
-//    private Span span;
+    private final StatusWrapper status;
+    private final Frontier frontier;
+    private final QueuedUriWrapper qUri;
 
     public PreFetchHandler(QueuedUri uri, Frontier frontier) throws DbException {
         this.frontier = frontier;
         this.status = StatusWrapper.getStatusWrapper(frontier, uri.getExecutionId());
 
-        ConfigObject collectionConfig = frontier.getConfig(status.getCrawlConfig().getCrawlConfig().getCollectionRef());
-        ConfigObject seed = frontier.getConfig(ConfigRef.newBuilder()
-                .setKind(Kind.seed).setId(status.getCrawlExecutionStatus().getSeedId())
-                .build());
-        Collection<Annotation> scriptParameters = frontier.getScriptParameterResolver().GetScriptParameters(seed, status.getCrawlJobConfig());
+        ConfigObject collectionConfig = frontier.getConfig(
+                status.getCrawlConfig().getCrawlConfig().getCollectionRef());
+        ConfigObject seed = frontier.getConfig(
+                ConfigRef.newBuilder()
+                        .setKind(Kind.seed)
+                        .setId(status.getCrawlExecutionStatus().getSeedId())
+                        .build());
+
+        Collection<Annotation> scriptParameters = frontier.getScriptParameterResolver()
+                .GetScriptParameters(seed, status.getCrawlJobConfig());
 
         try {
-            this.qUri = QueuedUriWrapper.getQueuedUriWrapperWithScopeCheck(frontier, uri, collectionConfig.getMeta().getName(),
-                    scriptParameters, status.getCrawlJobConfig().getCrawlJob().getScopeScriptRef()).clearError();
+            this.qUri = QueuedUriWrapper
+                    .getQueuedUriWrapperWithScopeCheck(
+                            frontier,
+                            uri,
+                            collectionConfig.getMeta().getName(),
+                            scriptParameters,
+                            status.getCrawlJobConfig().getCrawlJob().getScopeScriptRef())
+                    .clearError();
         } catch (URISyntaxException ex) {
             throw new RuntimeException(ex);
         }
@@ -68,30 +75,18 @@ public class PreFetchHandler {
     }
 
     /**
-     * Check if crawl is aborted.
-     * </p>
+     * Check if crawl is aborted, run preconditions and do prefetch-side effects.
      *
-     * @return true if we should do the fetch
+     * @return true if we should do the fetch (harvester should be given a spec)
      */
     public boolean preFetch() throws DbException {
-
         MDC.put("eid", qUri.getExecutionId());
         MDC.put("uri", qUri.getUri());
-
-//        TODO: Add tracing
-//        span = GlobalTracer.get()
-//                .buildSpan("runNextFetch")
-//                .withTag(Tags.COMPONENT.getKey(), "CrawlExecution")
-//                .withTag("uri", qUri.getUri())
-//                .withTag("executionId", status.getId())
-//                .ignoreActiveSpan()
-//                .startManual();
-
-        if (!qUri.getCrawlHostGroup().getSessionToken().isEmpty()) {
-            throw new IllegalStateException("Fetching in progress from another harvester");
-        }
-
         try {
+            if (!qUri.getCrawlHostGroup().getSessionToken().isEmpty()) {
+                throw new IllegalStateException("Fetching in progress from another harvester");
+            }
+
             if (!Preconditions.crawlExecutionOk(frontier, status)) {
                 LOG.debug("DENIED");
                 frontier.getCrawlQueueManager().removeQUri(qUri);
@@ -100,7 +95,10 @@ public class PreFetchHandler {
             }
 
             String curCrawlHostGroupId = qUri.getCrawlHostGroupId();
-            PreconditionState check = Preconditions.checkPreconditions(frontier, status.getCrawlConfig(), status, qUri).get();
+            PreconditionState check = Preconditions
+                    .checkPreconditions(frontier, status.getCrawlConfig(), status, qUri)
+                    .get();
+
             switch (check) {
                 case DENIED:
                     LOG.debug("DENIED");
@@ -114,19 +112,25 @@ public class PreFetchHandler {
                     return false;
                 case OK:
                     LOG.debug("OK");
-                    // IP resolution, scope check and robots.txt evaluation done
-                    qUri.setPriorityWeight(status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
+                    qUri.setPriorityWeight(
+                            status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
                     status.saveStatus();
                     return true;
+                default:
+                    LOG.error("Unknown precondition state: {}", check);
+                    return false;
             }
-
         } catch (DbException e) {
-            LOG.error("Failed communicating with DB: {}", e.toString(), e);
+            LOG.error("Failed communicating with DB in preFetch: {}", e.toString(), e);
+            throw e;
         } catch (Throwable t) {
             // Errors should be handled elsewhere. Exception here indicates a bug.
-            LOG.error("Possible bug: {}", t.toString(), t);
+            LOG.error("Possible bug in preFetch: {}", t.toString(), t);
+            throw new RuntimeException("Bug in preFetch", t);
+        } finally {
+            MDC.remove("eid");
+            MDC.remove("uri");
         }
-        return false;
     }
 
     public PageHarvestSpec getHarvestSpec() throws DbException {
@@ -135,7 +139,7 @@ public class PreFetchHandler {
         frontier.getCrawlQueueManager().updateCrawlHostGroup(qUri.getCrawlHostGroup());
         status.setState(State.FETCHING).saveStatus();
 
-        LOG.debug("Fetching " + qUri.getUri());
+        LOG.debug("Fetching {}", qUri.getUri());
         return PageHarvestSpec.newBuilder()
                 .setSessionToken(qUri.getCrawlHostGroup().getSessionToken())
                 .setQueuedUri(qUri.getQueuedUri())

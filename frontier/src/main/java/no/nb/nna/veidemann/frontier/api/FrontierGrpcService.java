@@ -15,7 +15,14 @@
  */
 package no.nb.nna.veidemann.frontier.api;
 
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
 import com.google.protobuf.Empty;
+
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -29,27 +36,28 @@ import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvest;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvestSpec;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
-import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * gRPC implementation of the Frontier API.
  */
-public class FrontierService extends FrontierGrpc.FrontierImplBase {
+public class FrontierGrpcService extends FrontierGrpc.FrontierImplBase implements AutoCloseable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FrontierService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FrontierGrpcService.class);
 
-    final Context ctx;
+    private final Frontier frontier;
+    private final Context ctx;
 
-    public FrontierService(Frontier frontier) {
-        ctx = new Context(frontier);
+    public FrontierGrpcService(Frontier frontier) {
+        this.frontier = frontier;
+        this.ctx = new Context(frontier);
     }
 
+    public Frontier getFrontier() {
+        return frontier;
+    }
+
+    /** Stop internal executors / context, but do NOT close the Frontier itself. */
     public void shutdown() {
-        ctx.getFrontier().close();
         ctx.shutdown();
     }
 
@@ -62,20 +70,28 @@ public class FrontierService extends FrontierGrpc.FrontierImplBase {
     }
 
     @Override
+    public void close() {
+        shutdown();
+    }
+
+    @Override
     public void crawlSeed(CrawlSeedRequest request, StreamObserver<CrawlExecutionId> responseObserver) {
         MDC.clear();
         MDC.put("uri", request.getSeed().getMeta().getName());
         try {
-            CrawlExecutionStatus reply = ctx.getFrontier().scheduleSeed(request);
+            CrawlExecutionStatus reply = frontier.scheduleSeed(request);
             responseObserver.onNext(CrawlExecutionId.newBuilder().setId(reply.getId()).build());
             responseObserver.onCompleted();
         } catch (StatusRuntimeException e) {
-            LOG.error("Crawl seed error: " + e.getMessage());
+            // gRPC error from downstream; keep status, log with some detail
+            LOG.error("Crawl seed error (gRPC status: {}): {}", e.getStatus(), e.getMessage());
             responseObserver.onError(e);
         } catch (Exception e) {
-            LOG.error("Crawl seed error: " + e.getMessage(), e);
-            Status status = Status.UNKNOWN.withDescription(e.toString());
+            LOG.error("Crawl seed error: {}", e.getMessage(), e);
+            Status status = Status.UNKNOWN.withDescription(e.toString()).withCause(e);
             responseObserver.onError(status.asException());
+        } finally {
+            MDC.clear();
         }
     }
 
@@ -86,7 +102,7 @@ public class FrontierService extends FrontierGrpc.FrontierImplBase {
 
     @Override
     public StreamObserver<PageHarvest> pageCompleted(StreamObserver<Empty> responseObserver) {
-        return new PageCompletedHandler(ctx, (ServerCallStreamObserver) responseObserver);
+        return new PageCompletedHandler(ctx, (ServerCallStreamObserver<Empty>) responseObserver);
     }
 
     @Override

@@ -44,7 +44,12 @@ func (c *Connection) Close() error {
 }
 
 func (c *Connection) Ready() bool {
-	return c.GetState() == connectivity.Ready
+	switch c.GetState() {
+	case connectivity.Connecting, connectivity.Idle, connectivity.Ready:
+		return true
+	default:
+		return false
+	}
 }
 
 func NewClientConn(serviceName string, opts ...ConnectionOption) *Connection {

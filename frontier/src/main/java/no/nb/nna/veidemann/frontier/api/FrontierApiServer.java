@@ -24,39 +24,31 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.concurrency.limits.grpc.server.ConcurrencyLimitServerInterceptor;
-import com.netflix.concurrency.limits.grpc.server.GrpcServerLimiterBuilder;
-import com.netflix.concurrency.limits.limit.Gradient2Limit;
-import com.netflix.concurrency.limits.limit.WindowedLimit;
-
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptors;
-import io.grpc.services.HealthStatusManager;
+import io.grpc.protobuf.services.HealthStatusManager;
 import io.opentracing.contrib.grpc.TracingServerInterceptor;
 import io.opentracing.contrib.grpc.TracingServerInterceptor.ServerRequestAttribute;
-import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 
-/**
- *
- */
-public class FrontierApiServer {
+public class FrontierApiServer implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FrontierApiServer.class);
 
     private final Server server;
     private final ScheduledExecutorService healthCheckerExecutorService;
     private long shutdownTimeoutMillis = 60 * 1000;
-    final FrontierService frontierService;
+    final FrontierGrpcService frontierService;
     final HealthStatusManager health;
 
     public FrontierApiServer(int port, int shutdownTimeoutSeconds, Frontier frontier) {
-        this(ServerBuilder.forPort(port), frontier);
-        this.shutdownTimeoutMillis = shutdownTimeoutSeconds * 1000;
+        this(ServerBuilder.forPort(port), shutdownTimeoutSeconds, frontier);
     }
 
-    public FrontierApiServer(ServerBuilder<?> serverBuilder, Frontier frontier) {
+    public FrontierApiServer(ServerBuilder<?> serverBuilder, int shutdownTimeoutSeconds, Frontier frontier) {
+        this.shutdownTimeoutMillis = shutdownTimeoutSeconds * 1000L;
+
         TracingServerInterceptor tracingInterceptor = TracingServerInterceptor
                 .newBuilder()
                 .withTracer(frontier.getTracer())
@@ -66,27 +58,18 @@ public class FrontierApiServer {
 
         healthCheckerExecutorService = Executors.newScheduledThreadPool(1);
         health = new HealthStatusManager();
-        healthCheckerExecutorService.scheduleAtFixedRate(new HealthChecker(frontier, health), 0, 1, TimeUnit.SECONDS);
+        healthCheckerExecutorService.scheduleAtFixedRate(
+                new HealthChecker(frontier, health), 0, 1, TimeUnit.SECONDS);
 
-        frontierService = new FrontierService(frontier);
+        frontierService = new FrontierGrpcService(frontier);
+
+        SimpleConcurrencyLimitInterceptor limitInterceptor = new SimpleConcurrencyLimitInterceptor(
+                /* pick a number */ 100);
+
         server = serverBuilder
                 .addService(ServerInterceptors.intercept(
                         frontierService,
-                        ConcurrencyLimitServerInterceptor.newBuilder(
-                                new GrpcServerLimiterBuilder()
-                                        .partitionByMethod()
-                                        .partition(FrontierGrpc.getCrawlSeedMethod().getFullMethodName(), 0.30)
-                                        .partition(FrontierGrpc.getGetNextPageMethod().getFullMethodName(), 0.0001)
-                                        .partition(FrontierGrpc.getPageCompletedMethod().getFullMethodName(), 0.0999)
-                                        .partition(FrontierGrpc.getBusyCrawlHostGroupCountMethod().getFullMethodName(), 0.15)
-                                        .partition(FrontierGrpc.getQueueCountForCrawlExecutionMethod().getFullMethodName(), 0.15)
-                                        .partition(FrontierGrpc.getQueueCountForCrawlHostGroupMethod().getFullMethodName(), 0.15)
-                                        .partition(FrontierGrpc.getQueueCountTotalMethod().getFullMethodName(), 0.15)
-                                        .limit(WindowedLimit.newBuilder()
-                                                .build(Gradient2Limit.newBuilder()
-                                                        .build()))
-                                        .build())
-                                .build(),
+                        limitInterceptor,
                         tracingInterceptor))
                 .addService(health.getHealthService())
                 .build();
@@ -95,9 +78,7 @@ public class FrontierApiServer {
     public FrontierApiServer start() {
         try {
             server.start();
-
-            LOG.info("Frontier listening on {}", server.getPort());
-
+            LOG.info("Frontier gRPC server listening on {}", server.getPort());
             return this;
         } catch (IOException ex) {
             shutdown();
@@ -106,46 +87,72 @@ public class FrontierApiServer {
     }
 
     public void shutdown() {
+        LOG.info("Shutting down FrontierApiServer");
         health.enterTerminalState();
 
         long startTime = System.currentTimeMillis();
         server.shutdown();
         frontierService.shutdown();
-        try {
-            server.awaitTermination(shutdownTimeoutMillis - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            System.err.println("Interrupted while waiting for server shutdown");
+
+        long remaining = shutdownTimeoutMillis - (System.currentTimeMillis() - startTime);
+        if (remaining < 0) {
+            remaining = 0;
         }
+
         try {
-            boolean gracefulStop = frontierService.awaitTermination(shutdownTimeoutMillis - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
+            server.awaitTermination(remaining, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            LOG.warn("Interrupted while waiting for gRPC server shutdown", e);
+            Thread.currentThread().interrupt();
+        }
+
+        remaining = shutdownTimeoutMillis - (System.currentTimeMillis() - startTime);
+        if (remaining < 0) {
+            remaining = 0;
+        }
+
+        try {
+            boolean gracefulStop = frontierService.awaitTermination(remaining, TimeUnit.MILLISECONDS);
             if (gracefulStop) {
-                System.err.println("*** server shut down gracefully");
+                LOG.info("Frontier gRPC service shut down gracefully");
             } else {
-                System.err.println("*** server shutdown timed out");
+                LOG.warn("Frontier gRPC service shutdown timed out");
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            LOG.warn("Interrupted while waiting for Frontier gRPC service termination", e);
+            Thread.currentThread().interrupt();
         }
+
         healthCheckerExecutorService.shutdownNow();
         try {
-            healthCheckerExecutorService.awaitTermination(5, TimeUnit.SECONDS);
+            if (!healthCheckerExecutorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Health checker executor did not terminate");
+            }
         } catch (InterruptedException e) {
-            System.err.println("Interrupted while waiting for health checker shutdown");
+            LOG.warn("Interrupted while waiting for health checker shutdown", e);
+            Thread.currentThread().interrupt();
         }
     }
 
     /**
-     * Await termination on the main thread since the grpc library uses daemon threads.
+     * Await termination on the main thread since the grpc library uses daemon
+     * threads.
      */
     public void blockUntilShutdown() {
         if (server != null) {
             try {
                 frontierService.awaitTermination();
             } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
                 shutdown();
-                throw new RuntimeException(ex);
+                throw new RuntimeException("Interrupted while waiting for Frontier gRPC service termination", ex);
             }
         }
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     class HealthChecker implements Runnable {

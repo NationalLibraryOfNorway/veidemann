@@ -15,11 +15,19 @@
  */
 package no.nb.nna.veidemann.frontier.worker;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.util.GlobalTracer;
+
 import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
@@ -33,18 +41,6 @@ import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CountedCompleter;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  *
@@ -63,10 +59,10 @@ public class PostFetchHandler {
     private long delayMs = 0L;
     private long fetchTimeMs = 0L;
 
-    private AtomicBoolean done = new AtomicBoolean();
-    private AtomicBoolean finalized = new AtomicBoolean();
+    private final AtomicBoolean done = new AtomicBoolean();
+    private final AtomicBoolean finalized = new AtomicBoolean();
 
-    private List<QueuedUri> outlinkQueue = new ArrayList<>();
+    private final List<QueuedUri> outlinkQueue = new ArrayList<>();
 
     public PostFetchHandler(String sessionToken, Frontier frontier) throws DbException {
         this(frontier.getCrawlQueueManager().getCrawlHostGroupForSessionToken(sessionToken), frontier);
@@ -84,9 +80,11 @@ public class PostFetchHandler {
             LOG.debug("Could not find CrawlHostGroup. Fetch has probably timed out");
             throw new IllegalSessionException("Could not find CrawlHostGroup. Fetch has probably timed out");
         }
-        // Refresh CHG busy timout to ensure postfetch has time to do its job.
-        if (extendBusyTime && !frontier.getCrawlQueueManager().updateBusyTimeout(chg.getId(),
-                chg.getSessionToken(), System.currentTimeMillis() + 60000L)) {
+        // Refresh CHG busy timeout to ensure postfetch has time to do its job.
+        if (extendBusyTime && !frontier.getCrawlQueueManager().updateBusyTimeout(
+                chg.getId(),
+                chg.getSessionToken(),
+                System.currentTimeMillis() + 60000L)) {
             LOG.debug("Could not refresh busy timeout. Fetch has probably timed out");
             throw new IllegalSessionException("Could not refresh busy timeout. Fetch has probably timed out");
         }
@@ -96,15 +94,24 @@ public class PostFetchHandler {
             LOG.debug("Could not find Queued URI. Fetch has probably timed out");
             throw new IllegalSessionException("Could not find Queued URI. Fetch has probably timed out");
         }
-        fetchTimeMs = Durations.toMillis(Timestamps.between(chg.getFetchStartTimeStamp(), ProtoUtils.getNowTs()));
+        fetchTimeMs = Durations.toMillis(
+                Timestamps.between(chg.getFetchStartTimeStamp(), ProtoUtils.getNowTs()));
 
         this.status = StatusWrapper.getStatusWrapper(frontier, queuedUri.getExecutionId());
-        this.collectionConfig = frontier.getConfig(status.getCrawlConfig().getCrawlConfig().getCollectionRef());
-        ConfigObject seed = frontier.getConfig(ConfigRef.newBuilder()
-                .setKind(Kind.seed).setId(status.getCrawlExecutionStatus().getSeedId())
-                .build());
-        this.scriptParameters = frontier.getScriptParameterResolver().GetScriptParameters(seed, status.getCrawlJobConfig());
-        this.qUri = QueuedUriWrapper.getQueuedUriWrapperNoScopeCheck(frontier, queuedUri, collectionConfig.getMeta().getName())
+        this.collectionConfig = frontier.getConfig(
+                status.getCrawlConfig().getCrawlConfig().getCollectionRef());
+        ConfigObject seed = frontier.getConfig(
+                ConfigRef.newBuilder()
+                        .setKind(Kind.seed)
+                        .setId(status.getCrawlExecutionStatus().getSeedId())
+                        .build());
+        this.scriptParameters = frontier.getScriptParameterResolver()
+                .GetScriptParameters(seed, status.getCrawlJobConfig());
+        this.qUri = QueuedUriWrapper
+                .getQueuedUriWrapperNoScopeCheck(
+                        frontier,
+                        queuedUri,
+                        collectionConfig.getMeta().getName())
                 .clearError();
 
         this.frontier = frontier;
@@ -130,108 +137,105 @@ public class PostFetchHandler {
         if (done.compareAndSet(false, true)) {
             MDC.put("eid", qUri.getExecutionId());
             MDC.put("uri", qUri.getUri());
-
-            frontier.getCrawlQueueManager().removeQUri(qUri);
-            status.incrementDocumentsCrawled()
-                    .incrementBytesCrawled(metrics.getBytesDownloaded())
-                    .incrementUrisCrawled(metrics.getUriCount())
-                    .saveStatus();
-        }
-    }
-
-    /**
-     * Do post proccessing after a failed fetch.
-     *
-     * @param error the Error causing the failure
-     */
-    public void postFetchFailure(Error error) throws DbException {
-        if (done.compareAndSet(false, true)) {
-            MDC.put("eid", qUri.getExecutionId());
-            MDC.put("uri", qUri.getUri());
-
-            PreconditionState state = ErrorHandler.fetchFailure(frontier, status, qUri, error);
-            status.saveStatus();
-            switch(state) {
-                case DENIED:
-                    frontier.getCrawlQueueManager().removeQUri(qUri);
-                    break;
-                case RETRY:
-                    qUri.save();
-                    break;
+            try {
+                frontier.getCrawlQueueManager().removeQUri(qUri);
+                status.incrementDocumentsCrawled()
+                        .incrementBytesCrawled(metrics.getBytesDownloaded())
+                        .incrementUrisCrawled(metrics.getUriCount())
+                        .saveStatus();
+            } finally {
+                MDC.remove("eid");
+                MDC.remove("uri");
             }
         }
     }
 
-    /**
-     * Do some housekeeping.
-     * </p>
-     * This should be run regardless of if we fetched anything or if the fetch failed in any way.
-     */
+    public void postFetchFailure(Error error) throws DbException {
+        if (done.compareAndSet(false, true)) {
+            MDC.put("eid", qUri.getExecutionId());
+            MDC.put("uri", qUri.getUri());
+            try {
+                PreconditionState state = ErrorHandler.fetchFailure(frontier, status, qUri, error);
+                status.saveStatus();
+                switch (state) {
+                    case DENIED:
+                        frontier.getCrawlQueueManager().removeQUri(qUri);
+                        break;
+                    case RETRY:
+                        qUri.save();
+                        break;
+                    default:
+                        LOG.warn("Unknown precondition state after fetch failure: {}", state);
+                }
+            } finally {
+                MDC.remove("eid");
+                MDC.remove("uri");
+            }
+        }
+    }
+
     public void postFetchFinally() {
         postFetchFinally(false);
     }
 
     public void postFetchFinally(boolean isTimeout) {
-        if (finalized.compareAndSet(false, true)) {
-            try {
-                calculateDelay();
-            } catch (DbException e) {
-                LOG.error(e.toString(), e);
-            }
+        if (!finalized.compareAndSet(false, true)) {
+            return;
+        }
 
-            MDC.put("eid", qUri.getExecutionId());
-            MDC.put("uri", qUri.getUri());
+        try {
+            calculateDelay();
+        } catch (DbException e) {
+            LOG.error(e.toString(), e);
+        }
 
+        MDC.put("eid", qUri.getExecutionId());
+        MDC.put("uri", qUri.getUri());
+        try {
             try {
                 if (Preconditions.crawlExecutionOk(frontier, status)) {
-                    // Handle outlinks
-                    Span span = GlobalTracer.get().activeSpan();
-                    ConfigRef scopeScriptRef = status.getCrawlJobConfig().getCrawlJob().getScopeScriptRef();
-                    forEach(span, frontier.getPostFetchThreadPool(), outlinkQueue, outlink -> {
+                    // Handle outlinks SEQUENTIALLY.
+                    // OutlinkHandler will create and manage its own span for each outlink.
+                    ConfigRef scopeScriptRef = status.getCrawlJobConfig()
+                            .getCrawlJob()
+                            .getScopeScriptRef();
+
+                    for (QueuedUri outlink : outlinkQueue) {
                         try {
-                            OutlinkHandler.processOutlink(frontier, status, qUri, outlink, scriptParameters, scopeScriptRef);
+                            OutlinkHandler.processOutlink(
+                                    frontier,
+                                    status,
+                                    qUri,
+                                    outlink,
+                                    scriptParameters,
+                                    scopeScriptRef);
                         } catch (DbException | IllegalStateException e) {
-                            // An error here indicates problems with DB communication. No idea how to handle that yet.
-                            LOG.error("Error processing outlink: {}", e.toString(), e);
+                            // DB / state issues that bubble up from OutlinkHandler
+                            LOG.error("Error processing outlink {}: {}", outlink.getUri(), e.toString(), e);
                         } catch (Throwable e) {
                             // Catch everything to ensure crawl host group gets released.
-                            // Discovering this message in logs should be investigated as a possible bug.
-                            LOG.error("Unknown error while processing outlink. Might be a bug", e);
+                            LOG.error("Unknown error while processing outlink {}. Might be a bug",
+                                    outlink.getUri(), e);
                         }
-                    });
+                    }
                 }
             } catch (DbException e) {
                 LOG.error(e.toString(), e);
             }
 
-            CrawlExecutionHelpers.postFetchFinally(frontier, status, qUri, getDelay(TimeUnit.MILLISECONDS), isTimeout);
+            CrawlExecutionHelpers.postFetchFinally(
+                    frontier,
+                    status,
+                    qUri,
+                    getDelay(TimeUnit.MILLISECONDS),
+                    isTimeout);
+        } finally {
+            MDC.remove("eid");
+            MDC.remove("uri");
         }
     }
 
-    public static <E> void forEach(Span span, ForkJoinPool threadPool, List<E> array, Consumer<E> action) {
-        class Task extends CountedCompleter<Void> {
-            final int lo, hi;
-
-            Task(Task parent, int lo, int hi) {
-                super(parent, 31 - Integer.numberOfLeadingZeros(hi - lo));
-                this.lo = lo;
-                this.hi = hi;
-            }
-
-            public void compute() {
-                try (Scope scope = GlobalTracer.get().activateSpan(span)) {
-                    for (int n = hi - lo; n >= 2; n /= 2)
-                        new Task(this, lo + n / 2, lo + n).fork();
-                    action.accept(array.get(lo));
-                    propagateCompletion();
-                }
-            }
-        }
-        if (array.size() > 0)
-            threadPool.invoke(new Task(null, 0, array.size()));
-    }
-
-    public void queueOutlink(QueuedUri outlink) throws DbException {
+    public void queueOutlink(QueuedUri outlink) {
         outlinkQueue.add(outlink);
     }
 

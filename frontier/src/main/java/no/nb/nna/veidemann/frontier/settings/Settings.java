@@ -17,6 +17,10 @@ package no.nb.nna.veidemann.frontier.settings;
 
 import java.time.Duration;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigBeanFactory;
+import com.typesafe.config.ConfigFactory;
+
 import no.nb.nna.veidemann.commons.settings.CommonSettings;
 
 /**
@@ -192,5 +196,11 @@ public class Settings extends CommonSettings {
 
     public void setLogServicePort(int logServicePort) {
         this.logServicePort = logServicePort;
+    }
+
+    public static Settings load() {
+        Config config = ConfigFactory.load();
+        config.checkValid(ConfigFactory.defaultReference());
+        return ConfigBeanFactory.create(config, Settings.class);
     }
 }

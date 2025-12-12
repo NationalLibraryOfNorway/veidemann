@@ -1,223 +1,269 @@
 package no.nb.nna.veidemann.frontier.db;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayDeque;
-import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 public class TimeoutSupplier<E> implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(TimeoutSupplier.class);
 
-    private final int queueCapacity;
     private final Supplier<E> supplier;
     private final Consumer<E> timeoutHandler;
-    private final long timeout;
-    private final TimeUnit unit;
-    private final ScheduledThreadPoolExecutor timeoutThread;
-    private final ExecutorService supplierThread;
-    private final Queue<Element> queue;
-    private boolean paused = false;
-    private boolean running = true;
-    private final Lock lock = new ReentrantLock();
-    private final Condition notEmpty = lock.newCondition();
-    private final Condition mightHaveSpace = lock.newCondition();
-    private int count;
+    private final long elementTimeout;
+    private final TimeUnit elementTimeoutUnit;
 
-    public TimeoutSupplier(int capacity, long timeout, TimeUnit unit, Supplier<E> supplier) {
+    private final BlockingQueue<Element<E>> queue;
+
+    private final ScheduledExecutorService timeoutScheduler;
+    private final ExecutorService supplierExecutor;
+
+    private final ReentrantLock pauseLock = new ReentrantLock();
+    private final Condition unpaused = pauseLock.newCondition();
+    private volatile boolean paused = false;
+    private volatile boolean running = true;
+
+    public TimeoutSupplier(int capacity,
+                           long timeout,
+                           TimeUnit unit,
+                           Supplier<E> supplier) {
         this(capacity, timeout, unit, 2, supplier, null);
     }
 
-    public TimeoutSupplier(int capacity, long timeout, TimeUnit unit, Supplier<E> supplier, Consumer<E> timeoutHandler) {
+    public TimeoutSupplier(int capacity,
+                           long timeout,
+                           TimeUnit unit,
+                           Supplier<E> supplier,
+                           Consumer<E> timeoutHandler) {
         this(capacity, timeout, unit, 2, supplier, timeoutHandler);
     }
 
-    public TimeoutSupplier(int capacity, long timeout, TimeUnit unit, int workerThreads, Supplier<E> supplier, Consumer<E> timeoutHandler) {
-        this.queueCapacity = capacity;
-        queue = new ArrayDeque<>(queueCapacity);
+    public TimeoutSupplier(int capacity,
+                           long timeout,
+                           TimeUnit unit,
+                           int workerThreads,
+                           Supplier<E> supplier,
+                           Consumer<E> timeoutHandler) {
         this.supplier = supplier;
         this.timeoutHandler = timeoutHandler;
-        this.timeout = timeout;
-        this.unit = unit;
+        this.elementTimeout = timeout;
+        this.elementTimeoutUnit = unit;
 
-        timeoutThread = new ScheduledThreadPoolExecutor(1,
-                new ThreadFactoryBuilder().setNameFormat("TimeoutSupplierCleaner-%d").build());
-        timeoutThread.setRemoveOnCancelPolicy(true);
+        this.queue = new ArrayBlockingQueue<>(capacity);
 
-        supplierThread = Executors.newFixedThreadPool(workerThreads,
-                new ThreadFactoryBuilder().setNameFormat("TimeoutSupplierWorker-%d").build());
+        this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder()
+                        .setNameFormat("TimeoutSupplierCleaner-%d")
+                        .build()
+        );
+
+        this.supplierExecutor = Executors.newFixedThreadPool(
+                workerThreads,
+                new ThreadFactoryBuilder()
+                        .setNameFormat("TimeoutSupplierWorker-%d")
+                        .build()
+        );
 
         for (int i = 0; i < workerThreads; i++) {
-            supplierThread.submit(() -> run());
+            supplierExecutor.submit(this::producerLoop);
         }
     }
 
-    private void run() {
-        while (true) {
-            lock.lock();
-            try {
-                while (running && (paused || count > queueCapacity)) {
-                    mightHaveSpace.await();
-                }
-                if (!running) {
-                    return;
-                }
-                count++;
-            } catch (InterruptedException interruptedException) {
-                return;
-            } finally {
-                lock.unlock();
-            }
-
-            Element e = null;
-            try {
-                E v = supplier.get();
-                if (v != null) {
-                    e = new Element(v);
-                }
-            } catch (Throwable t) {
-                LOG.warn("Error thrown by supplier function", t);
-                if (e != null) {
-                    e.cancel();
-                    continue;
-                }
-            }
-
-            lock.lock();
-            try {
-                if (e == null) {
-                    count--;
-                    mightHaveSpace.signalAll();
-                    continue;
+    private void producerLoop() {
+        try {
+            while (running) {
+                try {
+                    awaitUnpausedOrStopped();
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
 
                 if (!running) {
-                    e.cancel();
-                    return;
+                    break;
                 }
 
-                Element t = e;
-                ScheduledFuture<?> f = timeoutThread.schedule(() -> t.cancel(), timeout, unit);
+                E v;
+                try {
+                    v = supplier.get();
+                } catch (Throwable t) {
+                    LOG.warn("Error thrown by supplier function", t);
+                    sleepQuietly(10, TimeUnit.MILLISECONDS);
+                    continue;
+                }
+
+                if (v == null) {
+                    continue; // no work this round
+                }
+
+                Element<E> e = new Element<>(v);
+                ScheduledFuture<?> f = timeoutScheduler.schedule(
+                        () -> expire(e),
+                        elementTimeout,
+                        elementTimeoutUnit
+                );
                 e.setTimeoutFuture(f);
-                if (queue.offer(t)) {
-                    notEmpty.signal();
+
+                try {
+                    queue.put(e); // back-pressure on capacity
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
-            } finally {
-                lock.unlock();
+            }
+        } finally {
+            // thread exits
+        }
+    }
+
+    private void awaitUnpausedOrStopped() throws InterruptedException {
+        pauseLock.lock();
+        try {
+            while (paused && running) {
+                unpaused.await();
+            }
+        } finally {
+            pauseLock.unlock();
+        }
+    }
+
+    private void expire(Element<E> e) {
+        if (!e.markExpired()) {
+            return; // already claimed
+        }
+
+        queue.remove(e);
+
+        if (timeoutHandler != null) {
+            try {
+                timeoutHandler.accept(e.value());
+            } catch (Throwable t) {
+                LOG.warn("Error in timeout handler", t);
             }
         }
     }
 
     public void pause(boolean pause) {
-        lock.lock();
+        pauseLock.lock();
         try {
             if (this.paused != pause) {
                 this.paused = pause;
-                mightHaveSpace.signalAll();
+                if (!pause) {
+                    unpaused.signalAll();
+                }
             }
         } finally {
-            lock.unlock();
+            pauseLock.unlock();
         }
     }
 
+    /**
+     * Get an element, waiting up to the given timeout.
+     * Returns null on timeout or if stopped.
+     */
     public E get(long timeout, TimeUnit unit) throws InterruptedException {
-        long nanos = unit.toNanos(timeout);
-        lock.lockInterruptibly();
-        E v = null;
-        try {
-            while (v == null) {
-                Element e = queue.poll();
-                while (e == null) {
-                    if (nanos <= 0L)
-                        return null;
-                    nanos = notEmpty.awaitNanos(nanos);
-                    e = queue.poll();
-                }
-                v = e.get();
-                count--;
-                mightHaveSpace.signal();
+        long nanosTimeout = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + nanosTimeout;
+
+        while (true) {
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0L) {
+                return null;
             }
-            return v;
-        } finally {
-            lock.unlock();
+
+            Element<E> e = queue.poll(remaining, TimeUnit.NANOSECONDS);
+            if (e == null) {
+                return null; // timed out waiting for an element
+            }
+
+            E v = e.claim();
+            if (v != null) {
+                return v; // successfully claimed a non-expired element
+            }
+
+            // Already expired between poll and claim; loop and try again
         }
     }
 
     @Override
     public void close() throws InterruptedException {
         LOG.debug("Closing TimeoutSupplier");
-        lock.lock();
+
+        pauseLock.lock();
         try {
             running = false;
-            while (!queue.isEmpty()) {
-                queue.peek().cancel();
-            }
+            paused = false;
+            unpaused.signalAll();
         } finally {
-            lock.unlock();
+            pauseLock.unlock();
         }
-        supplierThread.shutdown();
-        timeoutThread.shutdown();
-        supplierThread.awaitTermination(5, TimeUnit.SECONDS);
-        timeoutThread.awaitTermination(5, TimeUnit.SECONDS);
+
+        // Drain remaining elements and treat them as timed out
+        Element<E> e;
+        while ((e = queue.poll()) != null) {
+            expire(e);
+        }
+
+        supplierExecutor.shutdownNow();
+        timeoutScheduler.shutdownNow();
+
+        supplierExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        timeoutScheduler.awaitTermination(5, TimeUnit.SECONDS);
+
         LOG.debug("TimeoutSupplier closed");
     }
 
-    private class Element {
-        private ScheduledFuture<?> timeOutFuture;
-        private final E value;
-        private boolean done = false;
+    private void sleepQuietly(long time, TimeUnit unit) {
+        try {
+            unit.sleep(time);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
-        public Element(E value) {
+    private static final class Element<E> {
+        private final E value;
+        private final AtomicBoolean done = new AtomicBoolean(false);
+        private volatile ScheduledFuture<?> timeoutFuture;
+
+        Element(E value) {
             this.value = value;
         }
 
-        public void setTimeoutFuture(ScheduledFuture<?> timeOutFuture) {
-            this.timeOutFuture = timeOutFuture;
+        void setTimeoutFuture(ScheduledFuture<?> timeoutFuture) {
+            this.timeoutFuture = timeoutFuture;
         }
 
-        public void cancel() {
-            lock.lock();
-            try {
-                if (!done) {
-                    if (timeOutFuture != null) {
-                        timeOutFuture.cancel(true);
-                    }
-                    queue.remove(this);
-                    if (timeoutHandler != null) {
-                        timeoutHandler.accept(value);
-                    }
-                    done = true;
-                    count--;
-                    mightHaveSpace.signalAll();
-                }
-            } finally {
-                lock.unlock();
-            }
+        E value() {
+            return value;
         }
 
-        public E get() {
-            lock.lock();
-            try {
-                if (done) {
-                    return null;
+        E claim() {
+            if (done.compareAndSet(false, true)) {
+                ScheduledFuture<?> f = timeoutFuture;
+                if (f != null) {
+                    f.cancel(false);
                 }
-                timeOutFuture.cancel(false);
-                done = true;
                 return value;
-            } finally {
-                lock.unlock();
             }
+            return null;
+        }
+
+        boolean markExpired() {
+            return done.compareAndSet(false, true);
         }
     }
 }

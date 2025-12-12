@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package no.nb.nna.veidemann.frontier.worker;
+
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.concurrent.ExecutionException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -25,12 +31,6 @@ import no.nb.nna.veidemann.api.config.v1.ConfigRef;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 
 public class OutlinkHandler {
 
@@ -42,14 +42,21 @@ public class OutlinkHandler {
     /**
      * Check if outlink is in scope for crawling and eventually add it to queue.
      *
-     * @param frontier
-     * @param outlink  the outlink to evaluate
+     * @param frontier         the frontier instance
+     * @param status           crawl status wrapper
+     * @param parentUri        the parent queued URI
+     * @param outlink          the outlink to evaluate
+     * @param scriptParameters script params for scope/other scripts
+     * @param scopeScriptRef   reference to the scope script
      * @return true if outlink was added to queue
-     * @throws DbException
+     * @throws DbException on DB-related errors
      */
-    public static boolean processOutlink(Frontier frontier, StatusWrapper status, QueuedUriWrapper parentUri,
-                                         QueuedUri outlink, Collection<Annotation> scriptParameters, ConfigRef scopeScriptRef)
-            throws DbException {
+    public static boolean processOutlink(Frontier frontier,
+            StatusWrapper status,
+            QueuedUriWrapper parentUri,
+            QueuedUri outlink,
+            Collection<Annotation> scriptParameters,
+            ConfigRef scopeScriptRef) throws DbException {
 
         boolean wasQueued = false;
         Tracer tracer = frontier.getTracer();
@@ -58,42 +65,66 @@ public class OutlinkHandler {
                 .withTag(Tags.SPAN_KIND, Tags.SPAN_KIND_SERVER)
                 .withTag("uri", outlink.getUri())
                 .start();
+
         try (Scope scope = tracer.scopeManager().activate(span)) {
             String canonicalizedUri = frontier.getScopeServiceClient().canonicalize(outlink.getUri());
             QueuedUri.Builder ol = outlink.toBuilder()
                     .setUri(canonicalizedUri);
 
-            QueuedUriWrapper outUri = QueuedUriWrapper.getOutlinkQueuedUriWrapper(frontier, parentUri, ol,
-                    null, scriptParameters, scopeScriptRef);
+            QueuedUriWrapper outUri = QueuedUriWrapper.getOutlinkQueuedUriWrapper(
+                    frontier,
+                    parentUri,
+                    ol,
+                    null,
+                    scriptParameters,
+                    scopeScriptRef);
 
-            PreconditionState check = Preconditions.checkPreconditions(frontier,
-                    status.getCrawlConfig(), status, outUri).get();
+            PreconditionState check = Preconditions
+                    .checkPreconditions(frontier, status.getCrawlConfig(), status, outUri)
+                    .get();
+
             switch (check) {
                 case OK:
                     LOG.debug("Found new URI: {}, queueing.", outUri.getUri());
-                    outUri.setPriorityWeight(status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
+                    outUri.setPriorityWeight(
+                            status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
                     if (outUri.addUriToQueue()) {
                         wasQueued = true;
                     }
                     break;
+
                 case RETRY:
                     LOG.debug("Failed preconditions for: {}, queueing for retry.", outUri.getUri());
-                    outUri.setPriorityWeight(status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
+                    outUri.setPriorityWeight(
+                            status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
                     if (outUri.addUriToQueue()) {
                         wasQueued = true;
                     }
                     break;
+
                 case DENIED:
+                    // nothing to do
+                    break;
+
+                default:
+                    LOG.warn("Unknown precondition state for outlink {}: {}", outUri.getUri(), check);
                     break;
             }
         } catch (URISyntaxException ex) {
             status.incrementDocumentsFailed();
-            LOG.info("Illegal URI {}", ex);
-        } catch (InterruptedException | ExecutionException e) {
-            LOG.error(e.toString(), e);
+            LOG.info("Illegal URI {}", ex.toString(), ex);
+        } catch (InterruptedException e) {
+            // Preserve interrupt status and log
+            Thread.currentThread().interrupt();
+            LOG.error("Interrupted while processing outlink {}: {}", outlink.getUri(), e.toString(), e);
+        } catch (ExecutionException e) {
+            LOG.error("Execution error while processing outlink {}: {}", outlink.getUri(), e.toString(), e);
         } finally {
-            span.finish();
+            if (span != null) {
+                span.finish();
+            }
         }
+
         return wasQueued;
     }
 }

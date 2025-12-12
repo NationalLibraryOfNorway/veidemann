@@ -13,7 +13,7 @@ public class SkipUntilFilter extends BaseConsumer<SkipUntilFilter> {
     final Consumer<OutputFrame> next;
     boolean foundMatch = false;
 
-    public SkipUntilFilter(String match, Consumer next) {
+    public SkipUntilFilter(String match, Consumer<OutputFrame> next) {
         this.match = match;
         this.next = next;
     }

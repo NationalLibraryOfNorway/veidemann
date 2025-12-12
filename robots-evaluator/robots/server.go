@@ -2,13 +2,12 @@ package robots
 
 import (
 	"context"
+	"log/slog"
 
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 )
 
 type EvaluatorServer struct {
-	robotsevaluatorV1.UnimplementedRobotsEvaluatorServer
-
 	*Evaluator
 }
 
@@ -19,11 +18,18 @@ var _ robotsevaluatorV1.RobotsEvaluatorServer = (*EvaluatorServer)(nil)
 func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.IsAllowedRequest) (*robotsevaluatorV1.IsAllowedReply, error) {
 	uri := req.GetUri()
 	userAgent := req.GetUserAgent()
-
 	politenessConfig := req.GetPoliteness().GetPolitenessConfig()
 	custom := politenessConfig.GetCustomRobots()
 	minValiditySeconds := politenessConfig.GetMinimumRobotsValidityDurationS()
 	policy := politenessConfig.GetRobotsPolicy()
+
+	slog.Debug("IsAllowed request",
+		"uri", uri,
+		"userAgent", userAgent,
+		"robotsPolicy", policy,
+		"minValiditySeconds", minValiditySeconds,
+		"customRobotsProvided", custom != "",
+	)
 
 	ok, err := e.Evaluator.IsAllowed(ctx, &AllowedRequest{
 		RobotsPolicy:       policy,
@@ -33,6 +39,12 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.
 		UserAgent:          userAgent,
 	})
 	if err != nil {
+		slog.Error("IsAllowed error",
+			"uri", uri,
+			"userAgent", userAgent,
+			"robotsPolicy", policy,
+			"error", err,
+		)
 		return nil, err
 	}
 
