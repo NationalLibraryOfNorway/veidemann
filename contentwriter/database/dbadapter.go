@@ -24,24 +24,21 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 )
 
-type ConfigCache interface {
-	GetConfigObject(context.Context, *configV1.ConfigRef) (*configV1.ConfigObject, error)
-	HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error)
-	WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error
+type ContentAdapter interface {
+	HasCrawledContent(ctx context.Context, collection, key string) (*contentwriterV1.CrawledContent, error)
+	WriteCrawledContent(ctx context.Context, collection string, ttl time.Duration, crawledContent *contentwriterV1.CrawledContent) error
 }
 
-type DbAdapter interface {
+type ConfigAdapter interface {
 	GetConfigObject(context.Context, *configV1.ConfigRef) (*configV1.ConfigObject, error)
-	HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error)
-	WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error
 }
 
 type configCache struct {
-	db    DbAdapter
+	db    ConfigAdapter
 	cache *cache
 }
 
-func NewConfigCache(db DbAdapter, ttl time.Duration) ConfigCache {
+func NewConfigCache(db ConfigAdapter, ttl time.Duration) ConfigAdapter {
 	return &configCache{
 		db:    db,
 		cache: newCache(ttl),
@@ -62,11 +59,4 @@ func (cc *configCache) GetConfigObject(ctx context.Context, ref *configV1.Config
 	cc.cache.Set(result.Id, result)
 
 	return result, nil
-}
-func (cc *configCache) HasCrawledContent(ctx context.Context, revisitKey string) (*contentwriterV1.CrawledContent, error) {
-	return cc.db.HasCrawledContent(ctx, revisitKey)
-}
-
-func (cc *configCache) WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error {
-	return cc.db.WriteCrawledContent(ctx, crawledContent)
 }

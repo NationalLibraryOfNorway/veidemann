@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package settings
+package flags
 
 import (
 	"github.com/nlnwa/gowarc"

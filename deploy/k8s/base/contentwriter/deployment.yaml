@@ -32,6 +32,8 @@ spec:
           ports:
             - name: grpc
               containerPort: 8082
+            - name: http-metrics
+              containerPort: 9153
           volumeMounts:
             - mountPath: /workdir
               name: warcs
@@ -39,35 +41,47 @@ spec:
             - mountPath: /warcs
               name: warcs
               subPath: warcs
-          envFrom:
-            - secretRef:
-                name: rethinkdb-env
-                optional: false
           env:
-            - name: DB_HOST
+            - name: CONTENTWRITER_DB_HOST
               value: "rethinkdb-client"
-            - name: DB_PORT
+            - name: CONTENTWRITER_DB_PORT
               value: "28015"
-            - name: DB_NAME
+            - name: CONTENTWRITER_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rethinkdb-env
+                  key: DB_USER
+                  optional: false
+            - name: CONTENTWRITER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rethinkdb-env
+                  key: DB_PASSWORD
+                  optional: false
+            - name: CONTENTWRITER_DB_NAME
               value: "veidemann"
-            - name: HOST_NAME
+            - name: CONTENTWRITER_REDIS_PORT
+              value: "6379"
+            - name: CONTENTWRITER_REDIS_DB
+              value: "1"
+            - name: CONTENTWRITER_HOSTNAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: TERMINATION_GRACE_PERIOD_SECONDS
+            - name: CONTENTWRITER_TERMINATION_GRACE_PERIOD_SECONDS
               value: "300"
-            - name: PORT
+            - name: CONTENTWRITER_PORT
               value: "8082"
-            - name: WARC_DIR
+            - name: CONTENTWRITER_WARC_DIR
               value: "/warcs"
-            - name: WORK_DIR
+            - name: CONTENTWRITER_WORK_DIR
               value: "/workdir"
-            - name: LOG_LEVEL
+            - name: CONTENTWRITER_LOG_LEVEL
               value: "debug"
-            - name: WARC_WRITER_POOL_SIZE
+            - name: CONTENTWRITER_WARC_WRITER_POOL_SIZE
               value: "2"
-            - name: WARC_VERSION
-              value: "1.0"
+            - name: CONTENTWRITER_WARC_VERSION
+              value: "1.1"
             - name: JAEGER_SERVICE_NAME
               value: contentwriter
             - name: JAEGER_AGENT_HOST
@@ -79,12 +93,13 @@ spec:
             - name: JAEGER_SAMPLER_PARAM
               value: "0.1"
           readinessProbe:
-            tcpSocket:
-              port: 8082
-            initialDelaySeconds: 15
+            httpGet:
+              path: "/readyz"
+              port: http-metrics
+            initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: 8082
+              port: grpc
             initialDelaySeconds: 15
             periodSeconds: 10

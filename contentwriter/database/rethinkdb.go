@@ -18,12 +18,10 @@ package database
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -109,48 +107,6 @@ func (c *RethinkDbConnection) GetConfigObject(ctx context.Context, ref *configV1
 	return &result, nil
 }
 
-func (c *RethinkDbConnection) HasCrawledContent(ctx context.Context, payloadDigest string) (*contentwriterV1.CrawledContent, error) {
-	if payloadDigest == "" {
-		return nil, errors.New("the required field 'digest' is missing from: 'crawledContent'")
-	}
-
-	term := r.Table("crawled_content").Get(payloadDigest)
-	response, err := c.execRead(ctx, "db-hasCrawledContent", &term)
-	if err != nil {
-		return nil, err
-	}
-
-	if response.IsNil() {
-		return nil, nil
-	} else {
-		var res contentwriterV1.CrawledContent
-		err := response.One(&res)
-		return &res, err
-	}
-}
-
-func (c *RethinkDbConnection) WriteCrawledContent(ctx context.Context, crawledContent *contentwriterV1.CrawledContent) error {
-	if crawledContent.Digest == "" {
-		return errors.New("the required field 'digest' is missing from: 'crawledContent'")
-	}
-	if crawledContent.WarcId == "" {
-		return errors.New("the required field 'warc_id' is missing from: 'crawledContent'")
-	}
-	if crawledContent.TargetUri == "" {
-		return errors.New("the required field 'target_uri' is missing from: 'crawledContent'")
-	}
-	if crawledContent.Date == nil {
-		return errors.New("the required field 'date' is missing from: 'crawledContent'")
-	}
-
-	term := r.Table("crawled_content").Insert(crawledContent)
-	err := c.execWrite(ctx, "db-writeCrawledContent", &term)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // execRead executes the given read term with a timeout
 func (c *RethinkDbConnection) execRead(ctx context.Context, name string, term *r.Term) (*r.Cursor, error) {
 	q := func(ctx context.Context) (*r.Cursor, error) {
@@ -160,20 +116,6 @@ func (c *RethinkDbConnection) execRead(ctx context.Context, name string, term *r
 		return term.Run(c.session, runOpts)
 	}
 	return c.execWithRetry(ctx, name, q)
-}
-
-// execWrite executes the given write term with a timeout
-func (c *RethinkDbConnection) execWrite(ctx context.Context, name string, term *r.Term) error {
-	q := func(ctx context.Context) (*r.Cursor, error) {
-		runOpts := r.RunOpts{
-			Context:    ctx,
-			Durability: "soft",
-		}
-		_, err := (*term).RunWrite(c.session, runOpts)
-		return nil, err
-	}
-	_, err := c.execWithRetry(ctx, name, q)
-	return err
 }
 
 // execWithRetry executes given query function repeatedly until successful or max retry limit is reached

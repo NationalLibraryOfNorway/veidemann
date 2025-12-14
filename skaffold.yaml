@@ -40,25 +40,28 @@ build:
   local:
     push: false
   # artifacts:
-    # - image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator
-    #   context: ./robots-evaluator
-    #   ko: {}
-    # - image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice
-    #   context: ./scopeservice
-    #   ko: {}
-    # - image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver
-    #   context: ./dns-resolver
-    #   ko: {}
-    # - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
-    #   context: ./dashboard
-    #   docker:
-    #     dockerfile: Dockerfile
-    # - image: ghcr.io/nationallibraryofnorway/veidemann/cache
-    #   context: ./cache
-    #   docker:
-    #     dockerfile: Dockerfile
-    #     noCache: false
-    #     pullParent: false
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter
+  #     context: ./contentwriter
+  #     ko: {}
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator
+  #     context: ./robots-evaluator
+  #     ko: {}
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice
+  #     context: ./scopeservice
+  #     ko: {}
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver
+  #     context: ./dns-resolver
+  #     ko: {}
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
+  #     context: ./dashboard
+  #     docker:
+  #       dockerfile: Dockerfile
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/cache
+  #     context: ./cache
+  #     docker:
+  #       dockerfile: Dockerfile
+  #       noCache: false
+  #       pullParent: false
 
 # The skaffold integration with jib-gradle-plugin is not yet
 # compatible with Gradle 9.x, so we cannot build images with jib for now.

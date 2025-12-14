@@ -27,7 +27,6 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
 	"github.com/google/uuid"
 	"github.com/nlnwa/gowarc"
 	"github.com/rs/zerolog/log"
@@ -40,34 +39,49 @@ var now = time.Now
 const warcFileScheme = "warcfile"
 
 type warcWriter struct {
-	settings         settings.Settings
+	opts             WriterOptions
 	collectionConfig *configV1.ConfigObject
 	subCollection    configV1.Collection_SubCollectionType
 	filePrefix       string
 	fileWriter       *gowarc.WarcFileWriter
-	dbAdapter        database.DbAdapter
+	configAdapter    database.ConfigAdapter
+	contentAdapter   database.ContentAdapter
 	timer            *time.Timer
 	done             chan interface{}
 	lock             sync.Mutex
 	revisitProfile   string
 }
 
-func newWarcWriter(s settings.Settings, db database.DbAdapter, c *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
-	collectionConfig := c.GetCollection()
+type WriterOptions struct {
+	WarcDir            string
+	WarcVersion        *gowarc.WarcVersion
+	WarcWriterPoolSize int
+	FlushRecord        bool
+}
+
+func newWarcWriter(
+	settings WriterOptions,
+	config database.ConfigAdapter,
+	content database.ContentAdapter,
+	collection *configV1.ConfigObject,
+	recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
+
+	collectionConfig := collection.GetCollection()
 	ww := &warcWriter{
-		settings:         s,
-		dbAdapter:        db,
-		collectionConfig: c,
+		opts:             settings,
+		configAdapter:    config,
+		contentAdapter:   content,
+		collectionConfig: collection,
 		subCollection:    recordMeta.GetSubCollection(),
-		filePrefix:       createFilePrefix(c.GetMeta().GetName(), recordMeta.GetSubCollection(), now(), c.GetCollection().GetCollectionDedupPolicy()),
+		filePrefix:       createFilePrefix(collection.GetMeta().GetName(), recordMeta.GetSubCollection(), now(), collection.GetCollection().GetCollectionDedupPolicy()),
 	}
-	switch warcVersion := s.WarcVersion(); warcVersion {
+	switch settings.WarcVersion {
 	case gowarc.V1_1:
 		ww.revisitProfile = gowarc.ProfileIdenticalPayloadDigestV1_1
 	case gowarc.V1_0:
 		ww.revisitProfile = gowarc.ProfileIdenticalPayloadDigestV1_0
 	default:
-		panic(fmt.Sprintf("unsupported WARC version: '%s'", warcVersion))
+		panic(fmt.Sprintf("unsupported WARC version: '%s'", settings.WarcVersion))
 	}
 	ww.initFileWriter()
 
@@ -96,21 +110,60 @@ func (ww *warcWriter) CollectionName() string {
 func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...gowarc.WarcRecord) (*contentwriterV1.WriteReply, error) {
 	ww.lock.Lock()
 	defer ww.lock.Unlock()
+
+	dedupPolicy := ww.collectionConfig.GetCollection().GetCollectionDedupPolicy()
+	ttl := timeToLive(dedupPolicy)
+	collection := ww.filePrefix[:len(ww.filePrefix)-1]
 	revisitKeys := make([]string, len(record))
+
 	for i, r := range record {
-		r := r
-		record[i], revisitKeys[i] = ww.detectRevisit(int32(i), r, meta)
 		defer func() { _ = r.Close() }()
+
+		if r.Type() != gowarc.Response && r.Type() != gowarc.Resource {
+			record[i], revisitKeys[i] = r, ""
+			continue
+		}
+
+		digest := r.WarcHeader().Get(gowarc.WarcPayloadDigest)
+		if digest == "" {
+			digest = r.WarcHeader().Get(gowarc.WarcBlockDigest)
+		}
+		if digest == "" {
+			record[i], revisitKeys[i] = r, ""
+			continue
+		}
+
+		crawledContent, err := ww.contentAdapter.HasCrawledContent(context.TODO(), collection, digest)
+		if err != nil {
+			log.Warn().Err(err).
+				Str("collection", collection).
+				Str("digest", digest).
+				Msg("Error checking for crawled content")
+			record[i], revisitKeys[i] = r, digest
+			continue
+		}
+		if crawledContent == nil {
+			log.Debug().
+				Str("collection", collection).
+				Str("digest", digest).
+				Msg("No crawled content found")
+			record[i], revisitKeys[i] = r, digest
+			continue
+		}
+		revisitRecord, err := ww.toRevisitRecord(int32(i), r, meta, crawledContent)
+		if err != nil {
+			log.Err(err).Msg("Could not create revisit record")
+			record[i], revisitKeys[i] = r, digest
+			continue
+		}
+		record[i], revisitKeys[i] = revisitRecord, ""
 	}
+
 	results := ww.fileWriter.Write(record...)
 
-	reply := &contentwriterV1.WriteReply{
-		Meta: &contentwriterV1.WriteResponseMeta{
-			RecordMeta: map[int32]*contentwriterV1.WriteResponseMeta_RecordMeta{},
-		},
-	}
-
 	var err error
+	recordMeta := map[int32]*contentwriterV1.WriteResponseMeta_RecordMeta{}
+
 	for i, res := range results {
 		recNum := int32(i)
 		rec := record[i]
@@ -128,31 +181,40 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 		headerWarcRecordId := rec.WarcHeader().Get(gowarc.WarcRecordID)
 		// Trim '<' and '>'
 		warcRecordId := strings.TrimSuffix(strings.TrimPrefix(headerWarcRecordId, "<"), ">")
+
 		// Parse as 'urn:uuid:xxxxxxxx-xxx-xxx-xxx-xxxxxxxxx'
 		warcId, parseErr := uuid.Parse(warcRecordId)
 		if parseErr != nil {
-			log.Err(parseErr).Str("warcRecordId", warcRecordId).Msgf("failed to parse %s at %s:%d", gowarc.WarcRecordID, res.FileName, res.FileOffset)
+			log.Err(parseErr).Str("warcRecordId", warcRecordId).Msgf("failed to parse %s as UUID at %s:%d", gowarc.WarcRecordID, res.FileName, res.FileOffset)
 		}
 
+		log.Debug().Msgf("Written record num %d: WarcId: %s, StorageRef: %s:%d", recNum, warcId.String(), res.FileName, res.FileOffset)
+
 		if res.Err == nil && parseErr == nil && revisitKey != "" {
-			if t, err := time.Parse(time.RFC3339, rec.WarcHeader().Get(gowarc.WarcDate)); err != nil {
-				log.Err(err).Msg("Could not write CrawledContent to DB")
-			} else {
+			writeErr := func() error {
+				t, err := time.Parse(time.RFC3339, rec.WarcHeader().Get(gowarc.WarcDate))
+				if err != nil {
+					return err
+				}
 				cr := &contentwriterV1.CrawledContent{
 					Digest:    revisitKey,
 					WarcId:    warcId.String(),
 					TargetUri: meta.GetTargetUri(),
 					Date:      timestamppb.New(t),
 				}
-				log.Debug().Msgf("Write crawled content: %+v", cr)
-				if err := ww.dbAdapter.WriteCrawledContent(context.TODO(), cr); err != nil {
-					log.Err(err).Msg("Could not write CrawledContent to DB")
-				}
+				return ww.contentAdapter.WriteCrawledContent(context.TODO(), collection, ttl, cr)
+			}()
+			if writeErr != nil {
+				log.Warn().Err(writeErr).
+					Str("collection", collection).
+					Str("digest", revisitKey).
+					Msg("Failed to writecrawled content")
 			}
 		}
+
 		storageRef := warcFileScheme + ":" + res.FileName + ":" + strconv.FormatInt(res.FileOffset, 10)
 		collectionFinalName := ww.filePrefix[:len(ww.filePrefix)-1]
-		reply.GetMeta().GetRecordMeta()[recNum] = &contentwriterV1.WriteResponseMeta_RecordMeta{
+		recordMeta[recNum] = &contentwriterV1.WriteResponseMeta_RecordMeta{
 			RecordNum:           recNum,
 			Type:                FromGowarcRecordType(record[i].Type()),
 			WarcId:              warcId.String(),
@@ -163,64 +225,47 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 			CollectionFinalName: collectionFinalName,
 		}
 	}
-	return reply, err
+	return &contentwriterV1.WriteReply{
+		Meta: &contentwriterV1.WriteResponseMeta{
+			RecordMeta: recordMeta,
+		},
+	}, err
 }
 
-func (ww *warcWriter) detectRevisit(recordNum int32, record gowarc.WarcRecord, meta *contentwriterV1.WriteRequestMeta) (gowarc.WarcRecord, string) {
-	if record.Type() == gowarc.Response || record.Type() == gowarc.Resource {
-		digest := record.WarcHeader().Get(gowarc.WarcPayloadDigest)
-		if digest == "" {
-			digest = record.WarcHeader().Get(gowarc.WarcBlockDigest)
-		}
-		revisitKey := digest + ":" + ww.filePrefix[:len(ww.filePrefix)-1]
-
-		duplicate, err := ww.dbAdapter.HasCrawledContent(context.TODO(), revisitKey)
-		if err != nil {
-			log.Warn().Err(err).Str("revisitKey", revisitKey).Msg("Failed checking for revisit, treating as new object")
-			return record, ""
-		}
-
-		if duplicate != nil {
-			log.Debug().Msgf("Detected %s as a revisit of %s",
-				record.WarcHeader().Get(gowarc.WarcRecordID), duplicate.GetWarcId())
-			ref := &gowarc.RevisitRef{
-				Profile:        ww.revisitProfile,
-				TargetRecordId: "<urn:uuid:" + duplicate.GetWarcId() + ">",
-				TargetUri:      duplicate.GetTargetUri(),
-				TargetDate:     duplicate.GetDate().AsTime().In(time.UTC).Format(time.RFC3339),
-			}
-			revisit, err := record.ToRevisitRecord(ref)
-			if err != nil {
-				log.Warn().Err(err).Msgf("Failed to create revisit record from %s record, treating as new object", record.Type())
-				return record, ""
-			}
-
-			newRecordMeta := meta.GetRecordMeta()[recordNum]
-			newRecordMeta.Type = contentwriterV1.RecordType_REVISIT
-			newRecordMeta.BlockDigest = revisit.Block().BlockDigest()
-			if r, ok := revisit.Block().(gowarc.PayloadBlock); ok {
-				newRecordMeta.PayloadDigest = r.PayloadDigest()
-			}
-
-			size, err := strconv.ParseInt(revisit.WarcHeader().Get(gowarc.ContentLength), 10, 64)
-			if err != nil {
-				log.Err(err).Msg("Failed checking for revisit, treating as new object")
-				return record, ""
-			}
-			newRecordMeta.Size = size
-			meta.GetRecordMeta()[recordNum] = newRecordMeta
-			return revisit, ""
-		}
-		return record, revisitKey
+func (ww *warcWriter) toRevisitRecord(recordNum int32, record gowarc.WarcRecord, meta *contentwriterV1.WriteRequestMeta, crawledContent *contentwriterV1.CrawledContent) (gowarc.WarcRecord, error) {
+	ref := &gowarc.RevisitRef{
+		Profile:        ww.revisitProfile,
+		TargetRecordId: "<urn:uuid:" + crawledContent.GetWarcId() + ">",
+		TargetUri:      crawledContent.GetTargetUri(),
+		TargetDate:     crawledContent.GetDate().AsTime().In(time.UTC).Format(time.RFC3339),
 	}
-	return record, ""
+	revisit, err := record.ToRevisitRecord(ref)
+	if err != nil {
+		return record, fmt.Errorf("failed to create revisit record: %w", err)
+	}
+
+	newRecordMeta := meta.GetRecordMeta()[recordNum]
+	newRecordMeta.Type = contentwriterV1.RecordType_REVISIT
+	newRecordMeta.BlockDigest = revisit.Block().BlockDigest()
+	if r, ok := revisit.Block().(gowarc.PayloadBlock); ok {
+		newRecordMeta.PayloadDigest = r.PayloadDigest()
+	}
+
+	size, err := strconv.ParseInt(revisit.WarcHeader().Get(gowarc.ContentLength), 10, 64)
+	if err != nil {
+		return record, fmt.Errorf("failed to parse content length from revisit record: %w", err)
+	}
+	newRecordMeta.Size = size
+	meta.GetRecordMeta()[recordNum] = newRecordMeta
+
+	return revisit, nil
 }
 
 func (ww *warcWriter) initFileWriter() {
-	log.Debug().Msgf("Initializing filewriter with dir: '%s' and file prefix: '%s'", ww.settings.WarcDir(), ww.filePrefix)
+	log.Debug().Msgf("Initializing filewriter with dir: '%s' and file prefix: '%s'", ww.opts.WarcDir, ww.filePrefix)
 	c := ww.collectionConfig.GetCollection()
 	namer := &gowarc.PatternNameGenerator{
-		Directory: ww.settings.WarcDir(),
+		Directory: ww.opts.WarcDir,
 		Prefix:    ww.filePrefix,
 	}
 
@@ -229,10 +274,10 @@ func (ww *warcWriter) initFileWriter() {
 		gowarc.WithMaxFileSize(c.GetFileSize()),
 		gowarc.WithFileNameGenerator(namer),
 		gowarc.WithWarcInfoFunc(ww.warcInfoGenerator),
-		gowarc.WithMaxConcurrentWriters(ww.settings.WarcWriterPoolSize()),
+		gowarc.WithMaxConcurrentWriters(ww.opts.WarcWriterPoolSize),
 		gowarc.WithAddWarcConcurrentToHeader(true),
-		gowarc.WithFlush(ww.settings.FlushRecord()),
-		gowarc.WithRecordOptions(gowarc.WithVersion(ww.settings.WarcVersion())),
+		gowarc.WithFlush(ww.opts.FlushRecord),
+		gowarc.WithRecordOptions(gowarc.WithVersion(ww.opts.WarcVersion)),
 	}
 
 	ww.fileWriter = gowarc.NewWarcFileWriter(opts...)
@@ -329,4 +374,39 @@ func createFilePrefix(collectionName string, subCollection configV1.Collection_S
 	} else {
 		return collectionName + "_" + dedupRotationKey + "-"
 	}
+}
+
+func timeToLive(p configV1.Collection_RotationPolicy) time.Duration {
+	now := time.Now().UTC()
+	loc := now.Location()
+
+	var next time.Time
+
+	switch p {
+	case configV1.Collection_HOURLY:
+		next = now.Truncate(time.Hour).Add(time.Hour)
+
+	case configV1.Collection_DAILY:
+		next = time.Date(
+			now.Year(), now.Month(), now.Day(),
+			0, 0, 0, 0, loc,
+		).AddDate(0, 0, 1)
+
+	case configV1.Collection_MONTHLY:
+		next = time.Date(
+			now.Year(), now.Month(), 1,
+			0, 0, 0, 0, loc,
+		).AddDate(0, 1, 0)
+
+	case configV1.Collection_YEARLY:
+		next = time.Date(
+			now.Year(), 1, 1,
+			0, 0, 0, 0, loc,
+		).AddDate(1, 0, 0)
+
+	default:
+		return 0
+	}
+
+	return next.Sub(now)
 }

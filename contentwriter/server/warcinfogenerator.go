@@ -26,7 +26,7 @@ import (
 
 func (ww *warcWriter) warcInfoGenerator(recordBuilder gowarc.WarcRecordBuilder) error {
 	payload := &gowarc.WarcFields{}
-	payload.Set("format", fmt.Sprintf("WARC File Format %d.%d", ww.settings.WarcVersion().Major(), ww.settings.WarcVersion().Minor()))
+	payload.Set("format", fmt.Sprintf("WARC File Format %d.%d", ww.opts.WarcVersion.Major(), ww.opts.WarcVersion.Minor()))
 	payload.Set("collection", ww.collectionConfig.GetMeta().GetName())
 	payload.Set("description", ww.collectionConfig.GetMeta().GetDescription())
 	if ww.subCollection != configV1.Collection_UNDEFINED {

@@ -19,7 +19,7 @@ FROM gcr.io/distroless/base-debian12
 COPY --from=build /build/contentwriter /
 
 # api server
-EXPOSE 8080/tcp
+EXPOSE 8082/tcp
 # prometheus metrics server
 EXPOSE 9153/tcp
 

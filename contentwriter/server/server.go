@@ -17,87 +17,28 @@
 package server
 
 import (
-	"fmt"
 	"io"
-	"net"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/telemetry"
 	"github.com/nlnwa/gowarc"
-	otgrpc "github.com/opentracing-contrib/go-grpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type GrpcServer struct {
-	listenHost  string
-	listenPort  int
-	settings    settings.Settings
-	grpcServer  *grpc.Server
-	configCache database.ConfigCache
-	service     *ContentWriterService
-}
-
-func New(host string, port int, settings settings.Settings, configCache database.ConfigCache) *GrpcServer {
-	recordOpts := []gowarc.WarcRecordOption{
-		gowarc.WithBufferTmpDir(settings.WorkDir()),
-		gowarc.WithVersion(settings.WarcVersion()),
-	}
-	if settings.UseStrictValidation() {
-		recordOpts = append(recordOpts, gowarc.WithStrictValidation())
-	}
-	s := &GrpcServer{
-		listenHost:  host,
-		listenPort:  port,
-		settings:    settings,
-		configCache: configCache,
-		service: &ContentWriterService{
-			warcWriterRegistry: newWarcWriterRegistry(settings, configCache),
-			configCache:        configCache,
-			recordOptions:      recordOpts,
-		},
-	}
-	return s
-}
-
-func (s *GrpcServer) Start() error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.listenHost, s.listenPort))
-	if err != nil {
-		log.Fatal().Msgf("failed to listen: %v", err)
-	}
-
-	tracer := opentracing.GlobalTracer()
-	var opts = []grpc.ServerOption{
-		grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer)),
-		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
-	}
-	s.grpcServer = grpc.NewServer(opts...)
-	contentwriterV1.RegisterContentWriterServer(s.grpcServer, s.service)
-
-	log.Info().Msgf("ContentWriter Service listening on %s", lis.Addr())
-	return s.grpcServer.Serve(lis)
-}
-
-func (s *GrpcServer) Shutdown() {
-	log.Info().Msg("Shutting down ContentWriter Service")
-	s.grpcServer.GracefulStop()
-	s.service.warcWriterRegistry.Shutdown()
-}
-
 type ContentWriterService struct {
-	contentwriterV1.UnimplementedContentWriterServer
-	configCache        database.ConfigCache
+	configCache        database.ConfigAdapter
 	warcWriterRegistry *warcWriterRegistry
 	recordOptions      []gowarc.WarcRecordOption
 }
 
+func (s *ContentWriterService) Close() {
+	s.warcWriterRegistry.Shutdown()
+}
+
 func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteServer) (err error) {
-	telemetry.ScopechecksTotal.Inc()
+	ScopechecksTotal.Inc()
 	//telemetry.ScopecheckResponseTotal.With(prometheus.Labels{"code": strconv.Itoa(int(result.ExcludeReason))}).Inc()
 	ctx := newWriteSessionContext(s.configCache, s.recordOptions)
 	defer ctx.cancelSession()

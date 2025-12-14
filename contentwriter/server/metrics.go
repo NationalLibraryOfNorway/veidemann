@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package telemetry
+package server
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 var (
@@ -65,3 +66,14 @@ const (
 	metricsNs        = "veidemann"
 	metricsSubsystem = "scopeservice"
 )
+
+func init() {
+	prometheus.MustRegister(
+		CanonicalizationsTotal,
+		ScopechecksTotal,
+		ScopecheckResponseTotal,
+		CompileScriptSeconds,
+		ExecuteScriptSeconds,
+		collectors.NewBuildInfoCollector(),
+	)
+}
