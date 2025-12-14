@@ -1,122 +1,154 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
+	stdlog "log"
+
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/logger"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/server"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/telemetry"
+	"github.com/nlnwa/gowarc"
+	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/uber/jaeger-client-go/config"
+	jaegerLog "github.com/uber/jaeger-client-go/log"
 
-	"strings"
+	"google.golang.org/grpc"
+)
 
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+var (
+	name    = "contentwriter"
+	version = ""
+	commit  = ""
+	date    = ""
 )
 
 func main() {
-	pflag.String("interface", "", "interface the browser controller api listens to. No value means all interfaces.")
-	pflag.Int("port", 8080, "port the browser controller api listens to.")
-	pflag.String("host-name", "", "")
-	pflag.String("warc-dir", "", "")
-	pflag.String("warc-version", "1.1", "which WARC version to use for generated records. Allowed values: 1.0, 1.1")
-	pflag.Int("warc-writer-pool-size", 1, "")
-	pflag.Bool("flush-record", false, "if true, flush WARC-file to disk after each record.")
-	pflag.String("work-dir", "", "")
-	pflag.Int("termination-grace-period-seconds", 0, "")
-	pflag.Bool("strict-validation", false, "if true, use strict record validation")
-
-	pflag.String("db-host", "rethinkdb-proxy", "DB host")
-	pflag.Int("db-port", 28015, "DB port")
-	pflag.String("db-name", "veidemann", "DB name")
-	pflag.String("db-user", "", "Database username")
-	pflag.String("db-password", "", "Database password")
-	pflag.Duration("db-query-timeout", 1*time.Minute, "Database query timeout")
-	pflag.Int("db-max-retries", 5, "Max retries when database query fails")
-	pflag.Int("db-max-open-conn", 10, "Max open database connections")
-	pflag.Bool("db-use-opentracing", false, "Use opentracing for database queries")
-	pflag.Duration("db-cache-ttl", 5*time.Minute, "How long to cache results from database")
-
-	pflag.String("metrics-interface", "", "Interface for exposing metrics. Empty means all interfaces")
-	pflag.Int("metrics-port", 9153, "Port for exposing metrics")
-	pflag.String("metrics-path", "/metrics", "Path for exposing metrics")
-
-	pflag.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
-	pflag.String("log-formatter", "logfmt", "log formatter, available values are logfmt and json")
-	pflag.Bool("log-method", false, "log method names")
-
-	pflag.Parse()
-
-	replacer := strings.NewReplacer("-", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	viper.AutomaticEnv()
-	err := viper.BindPFlags(pflag.CommandLine)
+	opts, err := flags.ParseFlags()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not parse flags")
+		log.Fatal().Err(err).Msg("Failed to parse flags")
 	}
 
-	logger.InitLog(viper.GetString("log-level"), viper.GetString("log-formatter"), viper.GetBool("log-method"))
+	initLogging(opts.LogLevel(), opts.LogFormatter())
 
-	db := database.NewRethinkDbConnection(
-		database.Options{
-			Address:            fmt.Sprintf("%s:%d", viper.GetString("db-host"), viper.GetInt("db-port")),
-			Username:           viper.GetString("db-user"),
-			Password:           viper.GetString("db-password"),
-			Database:           viper.GetString("db-name"),
-			QueryTimeout:       viper.GetDuration("db-query-timeout"),
-			MaxOpenConnections: viper.GetInt("db-max-open-conn"),
-			MaxRetries:         viper.GetInt("db-max-retries"),
-			UseOpenTracing:     viper.GetBool("db-use-opentracing"),
-		},
-	)
-	if err := db.Connect(); err != nil {
-		panic(err)
-	}
-	defer func() { _ = db.Close() }()
-
-	configCache := database.NewConfigCache(db, viper.GetDuration("db-cache-ttl"))
-	contentwriterService := server.New(viper.GetString("interface"), viper.GetInt("port"), settings.ViperSettings{}, configCache)
-
-	// telemetry setup
-	tracer, closer := telemetry.InitTracer("Scope checker")
-	if tracer != nil {
-		opentracing.SetGlobalTracer(tracer)
+	closer := initTracer(name)
+	if closer != nil {
 		defer func() { _ = closer.Close() }()
 	}
 
-	errc := make(chan error, 1)
+	log.Info().Msgf("%s version %s, commit %s, date %s", name, version, commit, date)
 
-	ms := telemetry.NewMetricsServer(viper.GetString("metrics-interface"), viper.GetInt("metrics-port"), viper.GetString("metrics-path"))
-	go func() { errc <- ms.Start() }()
-	defer ms.Close()
-
-	done := make(chan struct{})
-	go func() {
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-		select {
-		case err := <-errc:
-			log.Err(err).Msg("Metrics server failed")
-			contentwriterService.Shutdown()
-		case sig := <-signals:
-			log.Debug().Msgf("Received signal: %s", sig)
-			contentwriterService.Shutdown()
-		}
-		done <- struct{}{}
-	}()
-
-	err = contentwriterService.Start()
+	err = run(opts)
 	if err != nil {
-		log.Err(err).Msg("Could not start Content writer service")
+		log.Fatal().Err(err).Msg("Goodbye")
 	}
-	// wait for shutdown to finish
-	<-done
+}
+
+func run(opts flags.Options) error {
+	recordOpts := []gowarc.WarcRecordOption{
+		gowarc.WithBufferTmpDir(opts.WorkDir()),
+		gowarc.WithVersion(opts.WarcVersion()),
+	}
+	if opts.UseStrictValidation() {
+		recordOpts = append(recordOpts, gowarc.WithStrictValidation())
+	}
+
+	tracer := opentracing.GlobalTracer()
+	grpcServerOptions := []grpc.ServerOption{
+		grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer)),
+		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
+	}
+
+	app := &server.App{
+		Addr:           fmt.Sprintf("%s:%d", opts.Interface(), opts.Port()),
+		ConfigCacheTTL: opts.DbCacheTTL(),
+		DbOptions: database.Options{
+			Address:            fmt.Sprintf("%s:%d", opts.DbHost(), opts.DbPort()),
+			Username:           opts.DbUser(),
+			Password:           opts.DbPassword(),
+			Database:           opts.DbName(),
+			QueryTimeout:       opts.DbQueryTimeout(),
+			MaxOpenConnections: opts.DbMaxOpenConn(),
+			MaxRetries:         opts.DbMaxRetries(),
+			UseOpenTracing:     opts.DbUseOpenTracing(),
+		},
+		RedisOptions: &redis.Options{
+			Addr: fmt.Sprintf("%s:%d", opts.RedisHost(), opts.RedisPort()),
+			DB:   opts.RedisDb(),
+		},
+		RecordOptions: recordOpts,
+		GrpcOptions:   grpcServerOptions,
+		WriterOpts: server.WriterOptions{
+			WarcDir:            opts.WarcDir(),
+			WarcVersion:        opts.WarcVersion(),
+			WarcWriterPoolSize: opts.WarcWriterPoolSize(),
+			FlushRecord:        opts.FlushRecord(),
+		},
+		TelemetryAddr: fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort()),
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	return app.Run(ctx)
+}
+
+func initLogging(level string, format string) {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	switch strings.ToLower(level) {
+	case "panic":
+		log.Logger = log.Level(zerolog.PanicLevel)
+	case "fatal":
+		log.Logger = log.Level(zerolog.FatalLevel)
+	case "error":
+		log.Logger = log.Level(zerolog.ErrorLevel)
+	case "warn":
+		log.Logger = log.Level(zerolog.WarnLevel)
+	case "info":
+		log.Logger = log.Level(zerolog.InfoLevel)
+	case "debug":
+		log.Logger = log.Level(zerolog.DebugLevel)
+	case "trace":
+		log.Logger = log.Level(zerolog.TraceLevel)
+	}
+
+	if format == "logfmt" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	}
+
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(log.Logger)
+
+	log.Info().Msgf("Setting log level to %s", level)
+}
+
+// Init returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+func initTracer(service string) io.Closer {
+	cfg, err := config.FromEnv()
+	if err != nil {
+		return nil
+	}
+
+	if cfg.ServiceName == "" {
+		cfg.ServiceName = service
+	}
+
+	tracer, closer, err := cfg.NewTracer(config.Logger(jaegerLog.StdLogger))
+	if err == nil {
+		opentracing.SetGlobalTracer(tracer)
+	}
+
+	return closer
 }

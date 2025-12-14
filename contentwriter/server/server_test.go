@@ -19,8 +19,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net"
-	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
@@ -28,11 +29,14 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
+	"github.com/go-redis/redismock/v9"
+	"github.com/nlnwa/gowarc"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -42,14 +46,14 @@ const bufSize = 1024 * 1024
 type serverAndClient struct {
 	lis        *bufconn.Listener
 	dbMock     *r.Mock
-	server     *GrpcServer
+	redisMock  redismock.ClientMock
+	server     *grpc.Server
 	clientConn *grpc.ClientConn
 	client     contentwriterV1.ContentWriterClient
+	service    *ContentWriterService
 }
 
-func newServerAndClient(settings settings.Settings) serverAndClient {
-	serverAndClient := serverAndClient{}
-
+func newServerAndClient(settings *flags.Mock) serverAndClient {
 	dbMockConn := database.NewMockConnection()
 	dbMockConn.GetMock().
 		On(r.Table("config").Get("c1")).Return(map[string]interface{}{
@@ -71,38 +75,59 @@ func newServerAndClient(settings settings.Settings) serverAndClient {
 			"fileRotationPolicy":    "MONTHLY",
 			"compress":              true,
 		}}, nil)
-	serverAndClient.dbMock = dbMockConn.GetMock()
 
-	configCache := database.NewConfigCache(dbMockConn, time.Duration(1))
-	serverAndClient.lis = bufconn.Listen(bufSize)
-	server := New("", 0, settings, configCache)
-	server.grpcServer = grpc.NewServer()
-	contentwriterV1.RegisterContentWriterServer(server.grpcServer, server.service)
+	lis := bufconn.Listen(bufSize)
+
+	rdb, mock := redismock.NewClientMock()
+	contentWriterService := &ContentWriterService{
+		configCache: database.NewConfigCache(dbMockConn, time.Duration(1)),
+		warcWriterRegistry: newWarcWriterRegistry(
+			WriterOptions{
+				WarcDir:            settings.WarcDir(),
+				WarcWriterPoolSize: settings.WarcWriterPoolSize(),
+				WarcVersion:        gowarc.V1_1,
+				FlushRecord:        true,
+			},
+			database.NewConfigCache(dbMockConn, time.Duration(1)),
+			&database.CrawledContentHashCache{
+				Client: rdb,
+			},
+		),
+	}
+
+	grpcServer := grpc.NewServer()
+	contentwriterV1.RegisterContentWriterServer(grpcServer, contentWriterService)
 	go func() {
-		if err := server.grpcServer.Serve(serverAndClient.lis); err != nil {
+		if err := grpcServer.Serve(lis); err != nil {
 			panic(fmt.Errorf("Server exited with error: %v", err))
 		}
 	}()
-	serverAndClient.server = server
 
 	// Set up client
 	bufDialer := func(context.Context, string) (net.Conn, error) {
-		return serverAndClient.lis.Dial()
+		return lis.Dial()
 	}
 
 	conn, err := grpc.NewClient("localhost", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(fmt.Errorf("Failed to dial bufnet: %v", err))
 	}
-	serverAndClient.clientConn = conn
-	serverAndClient.client = contentwriterV1.NewContentWriterClient(conn)
 
-	return serverAndClient
+	return serverAndClient{
+		server:     grpcServer,
+		clientConn: conn,
+		client:     contentwriterV1.NewContentWriterClient(conn),
+		dbMock:     dbMockConn.GetMock(),
+		redisMock:  mock,
+		lis:        lis,
+		service:    contentWriterService,
+	}
 }
 
 func (s serverAndClient) close() {
 	s.clientConn.Close() //nolint
-	s.server.Shutdown()
+	s.server.GracefulStop()
+	s.service.Close()
 }
 
 type writeRequests []*contentwriterV1.WriteRequest
@@ -222,26 +247,39 @@ var writeReq2 = writeRequests{
 }
 
 func TestContentWriterService_Write(t *testing.T) {
-	testSettings := settings.NewMock(t.TempDir(), 1)
+	testSettings := flags.NewMock(t.TempDir(), 1)
 
 	now = func() time.Time {
 		return time.Date(2000, 10, 10, 2, 59, 59, 0, time.UTC)
 	}
 
 	serverAndClient := newServerAndClient(testSettings)
-	serverAndClient.dbMock.
-		On(r.Table("crawled_content").Get("sha1:C37FFB221569C553A2476C22C7DAD429F3492977:c1_2000101002")).
-		Return(nil, nil).Once()
+	redisMock := serverAndClient.redisMock
+	redisMock.ExpectHGet(
+		"c1_2000101002",
+		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
+	).RedisNil()
 
-	s := map[string]interface{}{
-		"date":      r.MockAnything(),
-		"digest":    "sha1:C37FFB221569C553A2476C22C7DAD429F3492977:c1_2000101002",
-		"targetUri": "http://www.example.com/foo.html",
-		"warcId":    r.MockAnything(),
-	}
+	redisMock.Regexp().ExpectHSet(
+		"c1_2000101002",
+		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
+		"(?s).*",
+	).SetVal(1)
 
-	serverAndClient.dbMock.
-		On(r.Table("crawled_content").Insert(s)).Return(&r.WriteResponse{Inserted: 1}, nil)
+	redisMock.CustomMatch(func(expectArgs, cmdArgs []interface{}) error {
+		// cmdArgs: ["expire", key, ttl]
+		if len(cmdArgs) != 3 {
+			return fmt.Errorf("unexpected args: %#v", cmdArgs)
+		}
+		if cmdArgs[0] != "expire" {
+			return fmt.Errorf("unexpected command: %v", cmdArgs[0])
+		}
+		if cmdArgs[1] != "c1_2000101002" {
+			return fmt.Errorf("unexpected key: %v", cmdArgs[1])
+		}
+		// ignore ttl completely
+		return nil
+	}).ExpectExpire("c1_2000101002", 0).SetVal(true)
 
 	ctx := context.Background()
 	assert := assert.New(t)
@@ -257,6 +295,7 @@ func TestContentWriterService_Write(t *testing.T) {
 	if reply == nil {
 		t.Fatalf("Reply is nil")
 	}
+	assert.NoError(serverAndClient.redisMock.ExpectationsWereMet())
 
 	assert.Equal(2, len(reply.Meta.RecordMeta))
 
@@ -286,26 +325,39 @@ func TestContentWriterService_Write(t *testing.T) {
 }
 
 func TestContentWriterService_Write_Compressed(t *testing.T) {
-	testSettings := settings.NewMock(t.TempDir(), 1)
+	testSettings := flags.NewMock(t.TempDir(), 1)
 
 	now = func() time.Time {
 		return time.Date(2000, 10, 10, 2, 59, 59, 0, time.UTC)
 	}
 
 	serverAndClient := newServerAndClient(testSettings)
-	serverAndClient.dbMock.
-		On(r.Table("crawled_content").Get("sha1:C37FFB221569C553A2476C22C7DAD429F3492977:c2_2000101002")).
-		Return(nil, nil).Once()
+	redisMock := serverAndClient.redisMock
+	redisMock.ExpectHGet(
+		"c2_2000101002",
+		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
+	).RedisNil()
 
-	s := map[string]interface{}{
-		"date":      r.MockAnything(),
-		"digest":    "sha1:C37FFB221569C553A2476C22C7DAD429F3492977:c2_2000101002",
-		"targetUri": "http://www.example.com/foo.html",
-		"warcId":    r.MockAnything(),
-	}
+	redisMock.Regexp().ExpectHSet(
+		"c2_2000101002",
+		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
+		"(?s).*",
+	).SetVal(1)
 
-	serverAndClient.dbMock.
-		On(r.Table("crawled_content").Insert(s)).Return(&r.WriteResponse{Inserted: 1}, nil)
+	redisMock.CustomMatch(func(expectArgs, cmdArgs []interface{}) error {
+		// cmdArgs: ["expire", key, ttl]
+		if len(cmdArgs) != 3 {
+			return fmt.Errorf("unexpected args: %#v", cmdArgs)
+		}
+		if cmdArgs[0] != "expire" {
+			return fmt.Errorf("unexpected command: %v", cmdArgs[0])
+		}
+		if cmdArgs[1] != "c2_2000101002" {
+			return fmt.Errorf("unexpected key: %v", cmdArgs[1])
+		}
+		// ignore ttl completely
+		return nil
+	}).ExpectExpire("c2_2000101002", 0).SetVal(true)
 
 	ctx := context.Background()
 	assert := assert.New(t)
@@ -323,6 +375,8 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 	}
 	assert.NoError(err)
 	assert.Equal(2, len(reply.GetMeta().GetRecordMeta()))
+
+	assert.NoError(serverAndClient.redisMock.ExpectationsWereMet())
 
 	fileNamePattern := `c2_2000101002-\d{14}-0001-(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.+).warc.gz`
 
@@ -350,21 +404,30 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 }
 
 func TestContentWriterService_WriteRevisit(t *testing.T) {
-	testSettings := settings.NewMock(t.TempDir(), 1)
+	testSettings := flags.NewMock(t.TempDir(), 1)
 
 	now = func() time.Time {
 		return time.Date(2000, 10, 10, 2, 59, 59, 0, time.UTC)
 	}
 
 	serverAndClient := newServerAndClient(testSettings)
-	serverAndClient.dbMock.
-		On(r.Table("crawled_content").Get("sha1:C37FFB221569C553A2476C22C7DAD429F3492977:c1_2000101002")).
-		Return(map[string]interface{}{
-			"date":      time.Date(2021, 8, 27, 13, 52, 0, 0, time.UTC),
-			"digest":    "digest",
-			"targetUri": "http://www.example.com",
-			"warcId":    "fff232109-0d71-467f-b728-de86be386c6f",
-		}, nil).Once()
+
+	crawledContent := &contentwriterV1.CrawledContent{
+		Date:      timestamppb.New(time.Date(2021, 8, 27, 13, 52, 0, 0, time.UTC)),
+		Digest:    "sha1:C37FFB221569C553A2476C22C7DAD429F3492977:c1_2000101002",
+		TargetUri: "http://www.example.com",
+		WarcId:    "fff232109-0d71-467f-b728-de86be386c6f",
+	}
+	b, err := proto.Marshal(crawledContent)
+	if err != nil {
+		t.Fatalf("Failed to marshal CrawledContent: %v", err)
+	}
+
+	redisMock := serverAndClient.redisMock
+	redisMock.Regexp().ExpectHGet(
+		"c1_2000101002",
+		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
+	).SetVal(string(b))
 
 	ctx := context.Background()
 	assert := assert.New(t)
@@ -380,6 +443,7 @@ func TestContentWriterService_WriteRevisit(t *testing.T) {
 		t.Fatalf("Reply is nil")
 	}
 	assert.NoError(err)
+	assert.NoError(serverAndClient.redisMock.ExpectationsWereMet())
 	assert.Equal(2, len(reply.Meta.RecordMeta))
 
 	fileNamePattern := `c1_2000101002-\d{14}-0001-(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.+).warc`
@@ -408,24 +472,30 @@ func TestContentWriterService_WriteRevisit(t *testing.T) {
 }
 
 func dirHasFilesMatching(t *testing.T, dir string, pattern string, count int) bool {
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		panic(err)
-	}
-
-	found := 0
 	p := regexp.MustCompile(pattern)
-	for _, file := range files {
-		if p.MatchString(file.Name()) {
-			found++
+	var found []string
+
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
 		}
+		if p.MatchString(d.Name()) {
+			found = append(found, d.Name())
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("Error walking directory %q: %v", dir, err)
 	}
-	if found != count {
+	if len(found) == count {
+		t.Log("Found matching file:", found, "pattern:", pattern)
+		return true
+	} else {
+		t.Log("Did not find all files", found, "expected:", count, "pattern:", pattern)
 		f := ""
-		for _, ff := range files {
-			f += "\n  " + ff.Name()
+		for _, ff := range found {
+			f += "\n  " + ff
 		}
 		return assert.Fail(t, "Wrong number of files in '"+dir+"'", "Expected %d files to match %s, but found %d\nFiles in dir:%s", count, pattern, found, f)
 	}
-	return false
 }

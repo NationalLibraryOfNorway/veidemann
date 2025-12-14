@@ -29,7 +29,7 @@ import (
 )
 
 type writeSessionContext struct {
-	configCache      database.ConfigCache
+	configCache      database.ConfigAdapter
 	meta             *contentwriterV1.WriteRequestMeta
 	collectionConfig *configV1.ConfigObject
 	recordOpts       []gowarc.WarcRecordOption
@@ -38,7 +38,7 @@ type writeSessionContext struct {
 	rbMapSync        sync.Mutex
 }
 
-func newWriteSessionContext(configCache database.ConfigCache, recordOpts []gowarc.WarcRecordOption) *writeSessionContext {
+func newWriteSessionContext(configCache database.ConfigAdapter, recordOpts []gowarc.WarcRecordOption) *writeSessionContext {
 	return &writeSessionContext{
 		configCache:    configCache,
 		recordOpts:     recordOpts,

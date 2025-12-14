@@ -22,30 +22,34 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
-	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/settings"
 )
 
 type warcWriterRegistry struct {
-	settings    settings.Settings
-	dbAdapter   database.DbAdapter
-	warcWriters map[string]*warcWriter
-	lock        sync.Mutex
+	settings       WriterOptions
+	dbAdapter      database.ConfigAdapter
+	contentAdapter database.ContentAdapter
+	warcWriters    map[string]*warcWriter
+	lock           sync.Mutex
 }
 
-func newWarcWriterRegistry(settings settings.Settings, db database.DbAdapter) *warcWriterRegistry {
-	return &warcWriterRegistry{settings: settings, warcWriters: make(map[string]*warcWriter), dbAdapter: db}
+func newWarcWriterRegistry(settings WriterOptions, db database.ConfigAdapter, content database.ContentAdapter) *warcWriterRegistry {
+	return &warcWriterRegistry{
+		settings:       settings,
+		warcWriters:    make(map[string]*warcWriter),
+		dbAdapter:      db,
+		contentAdapter: content,
+	}
 }
 
-func (w *warcWriterRegistry) GetWarcWriter(collectionConf *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
+func (w *warcWriterRegistry) GetWarcWriter(collection *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
-	key := collectionConf.GetMeta().GetName() + "#" + recordMeta.GetSubCollection().String()
+	key := collection.GetMeta().GetName() + "#" + recordMeta.GetSubCollection().String()
 	if ww, ok := w.warcWriters[key]; ok {
 		return ww
 	}
-
-	ww := newWarcWriter(w.settings, w.dbAdapter, collectionConf, recordMeta)
+	ww := newWarcWriter(w.settings, w.dbAdapter, w.contentAdapter, collection, recordMeta)
 	w.warcWriters[key] = ww
 	return ww
 }
