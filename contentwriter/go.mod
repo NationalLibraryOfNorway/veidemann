@@ -10,7 +10,6 @@ require (
 	github.com/nlnwa/gowarc v1.6.0
 	github.com/opentracing-contrib/go-grpc v0.1.2
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
@@ -18,11 +17,14 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	google.golang.org/grpc v1.77.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
-require github.com/go-redis/redismock/v9 v9.2.0 // indirect
+require (
+	github.com/go-redis/redismock/v9 v9.2.0
+	github.com/pkg/errors v0.9.1 // indirect
+)
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
@@ -46,7 +48,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/prometheus/prometheus v0.40.3 // indirect
-	github.com/redis/go-redis/v9 v9.17.2 // indirect
+	github.com/redis/go-redis/v9 v9.17.2
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
