@@ -68,7 +68,7 @@ jobs:
             -o "${GITHUB_WORKSPACE}/dist/veidemannctl_${{ matrix.goos }}_${{ matrix.goarch }}" \
             .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: veidemannctl-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/veidemannctl_${{ matrix.goos }}_${{ matrix.goarch }}*
