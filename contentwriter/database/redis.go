@@ -7,7 +7,6 @@ import (
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -70,7 +69,6 @@ func (c *CrawledContentHashCache) WriteCrawledContent(ctx context.Context, colle
 // WriteCrawledContent upserts the field and refreshes the collection TTL (sliding TTL).
 // This also naturally applies TTL config changes on the next write.
 func (c *CrawledContentHashCache) writeCrawledContent(ctx context.Context, key, field string, value []byte, ttl time.Duration) error {
-	log.Debug().Str("key", key).Str("field", field).Dur("ttl", ttl).Msg("Writing crawled content to Redis")
 	if field == "" {
 		return errors.New("missing required field: field")
 	}

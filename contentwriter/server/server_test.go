@@ -268,7 +268,7 @@ func TestContentWriterService_Write(t *testing.T) {
 
 	redisMock.CustomMatch(func(expectArgs, cmdArgs []interface{}) error {
 		// cmdArgs: ["expire", key, ttl]
-		if len(cmdArgs) != 3 {
+		if len(cmdArgs) != 4 {
 			return fmt.Errorf("unexpected args: %#v", cmdArgs)
 		}
 		if cmdArgs[0] != "expire" {
@@ -279,7 +279,7 @@ func TestContentWriterService_Write(t *testing.T) {
 		}
 		// ignore ttl completely
 		return nil
-	}).ExpectExpire("c1_2000101002", 0).SetVal(true)
+	}).ExpectExpireNX("c1_2000101002", 0).SetVal(true)
 
 	ctx := context.Background()
 	assert := assert.New(t)
@@ -346,7 +346,7 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 
 	redisMock.CustomMatch(func(expectArgs, cmdArgs []interface{}) error {
 		// cmdArgs: ["expire", key, ttl]
-		if len(cmdArgs) != 3 {
+		if len(cmdArgs) != 4 {
 			return fmt.Errorf("unexpected args: %#v", cmdArgs)
 		}
 		if cmdArgs[0] != "expire" {
@@ -357,7 +357,7 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 		}
 		// ignore ttl completely
 		return nil
-	}).ExpectExpire("c2_2000101002", 0).SetVal(true)
+	}).ExpectExpireNX("c2_2000101002", 0).SetVal(true)
 
 	ctx := context.Background()
 	assert := assert.New(t)
