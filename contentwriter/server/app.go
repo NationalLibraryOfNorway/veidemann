@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -138,7 +137,7 @@ func backoff(ctx context.Context, name string, fn func() error) func() error {
 			if err == nil {
 				return nil
 			}
-			slog.Warn("Connection failed, retrying...", "error", err, "backoff", backoff.String(), "service", name)
+			log.Warn().Err(err).Dur("backoff", backoff).Str("service", name).Msg("Connection failed, retrying...")
 
 			select {
 			case <-ctx.Done():
