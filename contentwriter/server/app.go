@@ -47,11 +47,6 @@ func (app *App) Run(ctx context.Context) error {
 		Addr:    app.TelemetryAddr,
 		Handler: mux,
 	}
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = telemetry.Shutdown(ctx)
-	}()
 
 	g.Go(func() error {
 		err := telemetry.ListenAndServe()
@@ -71,10 +66,10 @@ func (app *App) Run(ctx context.Context) error {
 	}()
 
 	init := new(errgroup.Group)
-	init.Go(backoff(ctx, func() error {
+	init.Go(backoff(ctx, "rethinkdb", func() error {
 		return rethinkdb.Connect()
 	}))
-	init.Go(backoff(ctx, func() (err error) {
+	init.Go(backoff(ctx, "redis", func() (err error) {
 		err = redisClient.Ping(ctx).Err()
 		if err == nil {
 			log.Info().Str("address", app.RedisOptions.Addr).Msg("Connected to Redis")
@@ -103,6 +98,7 @@ func (app *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", app.Addr, err)
 	}
+	defer func() { _ = listener.Close() }()
 
 	log.Info().Msgf("gRPC server listening on %s", app.Addr)
 
@@ -112,9 +108,10 @@ func (app *App) Run(ctx context.Context) error {
 
 	<-ctx.Done()
 
-	grpcServer.GracefulStop()
-
 	app.ready.Store(false)
+
+	grpcServer.GracefulStop()
+	_ = telemetry.Shutdown(context.Background())
 
 	return g.Wait()
 }
@@ -130,7 +127,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("ok\n"))
 }
 
-func backoff(ctx context.Context, fn func() error) func() error {
+func backoff(ctx context.Context, name string, fn func() error) func() error {
 	return func() error {
 		backoff := time.Second
 		timer := time.NewTimer(backoff)
@@ -141,7 +138,7 @@ func backoff(ctx context.Context, fn func() error) func() error {
 			if err == nil {
 				return nil
 			}
-			slog.Warn("Connection failed, retrying...", "error", err, "backoff", backoff.String())
+			slog.Warn("Connection failed, retrying...", "error", err, "backoff", backoff.String(), "service", name)
 
 			select {
 			case <-ctx.Done():
