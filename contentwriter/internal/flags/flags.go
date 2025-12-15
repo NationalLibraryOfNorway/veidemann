@@ -51,6 +51,7 @@ func ParseFlags() (Options, error) {
 	flags.Duration("db-cache-ttl", 5*time.Minute, "How long to cache results from database")
 
 	flags.String("redis-host", "redis", "Redis host")
+	flags.String("redis-password", "", "Redis password")
 	flags.Int("redis-port", 6379, "Redis port")
 	flags.Int("redis-db", 1, "Redis database number")
 
@@ -192,4 +193,8 @@ func (o Options) RedisPort() int {
 
 func (o Options) RedisDb() int {
 	return viper.GetInt("redis-db")
+}
+
+func (o Options) RedisPassword() string {
+	return viper.GetString("redis-password")
 }

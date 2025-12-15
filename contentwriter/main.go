@@ -84,8 +84,9 @@ func run(opts flags.Options) error {
 			UseOpenTracing:     opts.DbUseOpenTracing(),
 		},
 		RedisOptions: &redis.Options{
-			Addr: fmt.Sprintf("%s:%d", opts.RedisHost(), opts.RedisPort()),
-			DB:   opts.RedisDb(),
+			Addr:     fmt.Sprintf("%s:%d", opts.RedisHost(), opts.RedisPort()),
+			DB:       opts.RedisDb(),
+			Password: opts.RedisPassword(),
 		},
 		RecordOptions: recordOpts,
 		GrpcOptions:   grpcServerOptions,
