@@ -25,7 +25,7 @@ import (
 	"time"
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -33,9 +33,9 @@ import (
 type Database interface {
 	UpdateJobExecutions(ctx context.Context) (int, error)
 	RemoveFromUriQueue(ctx context.Context) (int, error)
-	MoveWaitToReady() (int, error)
-	MoveBusyToTimeout() (int, error)
-	MoveRunningToTimeout() (int, error)
+	MoveWaitToReady(ctx context.Context) (int, error)
+	MoveBusyToTimeout(ctx context.Context) (int, error)
+	MoveRunningToTimeout(ctx context.Context) (int, error)
 	TimeoutCrawlExecutions(ctx context.Context) (int, error)
 }
 
@@ -63,17 +63,15 @@ const (
 )
 
 type database struct {
-	// rethinkdb
-	rethinkDB *RethinkDbConnection
-	// redis
+	rethinkDB  *RethinkDbConnection
 	redis      *redis.Client
 	moveScript *redis.Script
 }
 
-func NewDatabase(redisClient *redis.Client, conn *RethinkDbConnection, scriptPath string) (Database, error) {
-	moveScript, err := loadRedisScript(redisClient, filepath.Join(scriptPath, redisChgDelayedQueueScriptName))
+func NewDatabase(ctx context.Context, redisClient *redis.Client, conn *RethinkDbConnection, scriptPath string) (Database, error) {
+	moveScript, err := loadRedisScript(ctx, redisClient, filepath.Join(scriptPath, redisChgDelayedQueueScriptName))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load redis script %s: %w", redisChgDelayedQueueScriptName, err)
 	}
 
 	return &database{
@@ -83,25 +81,25 @@ func NewDatabase(redisClient *redis.Client, conn *RethinkDbConnection, scriptPat
 	}, nil
 }
 
-func (d *database) moveChg(fromQueue string, toQueue string) (int, error) {
-	return d.moveScript.Run(d.redis, []string{fromQueue, toQueue}, time.Now().UTC().UnixNano()/int64(time.Millisecond)).Int()
+func (d *database) moveChg(ctx context.Context, fromQueue string, toQueue string) (int, error) {
+	return d.moveScript.Run(ctx, d.redis, []string{fromQueue, toQueue}, time.Now().UTC().UnixNano()/int64(time.Millisecond)).Int()
 }
 
-func (d *database) MoveWaitToReady() (int, error) {
-	return d.moveChg(redisWaitQueue, redisReadyQueue)
+func (d *database) MoveWaitToReady(ctx context.Context) (int, error) {
+	return d.moveChg(ctx, redisWaitQueue, redisReadyQueue)
 }
 
-func (d *database) MoveBusyToTimeout() (int, error) {
-	return d.moveChg(redisBusyQueue, redisTimeoutQueue)
+func (d *database) MoveBusyToTimeout(ctx context.Context) (int, error) {
+	return d.moveChg(ctx, redisBusyQueue, redisTimeoutQueue)
 }
 
-func (d *database) MoveRunningToTimeout() (int, error) {
-	return d.moveChg(redisCrawlExecutionRunningQueue, redisCrawlExecutionTimeoutQueue)
+func (d *database) MoveRunningToTimeout(ctx context.Context) (int, error) {
+	return d.moveChg(ctx, redisCrawlExecutionRunningQueue, redisCrawlExecutionTimeoutQueue)
 }
 
 func (d *database) RemoveFromUriQueue(ctx context.Context) (int, error) {
 	// Get up to 10000 uriIds from redis REMURI queue
-	uriIds, err := d.redis.LRange(redisRemoveUriQueue, 0, 9999).Result()
+	uriIds, err := d.redis.LRange(ctx, redisRemoveUriQueue, 0, 9999).Result()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get list of uriIds to be removed: %w", err)
 	}
@@ -110,18 +108,18 @@ func (d *database) RemoveFromUriQueue(ctx context.Context) (int, error) {
 	}
 
 	// Delete from rethinkdb table uri_queue
-	removed, err := removeQueuedUris(d.rethinkDB, ctx, uriIds)
+	removed, err := removeQueuedUris(ctx, d.rethinkDB, uriIds)
 	if err != nil {
 		return removed, fmt.Errorf("removed %d of %d queued uris: %w", removed, len(uriIds), err)
 	}
 
-	if err := deleteFromRemoveQueue(d.redis, uriIds); err != nil {
+	if err := deleteFromRemoveQueue(ctx, d.redis, uriIds); err != nil {
 		return removed, fmt.Errorf("failed to remove some queued uri ids from REMURI: %w", err)
 	}
 	return removed, nil
 }
 
-func removeQueuedUris(rethinkDB *RethinkDbConnection, ctx context.Context, uriIds []string) (int, error) {
+func removeQueuedUris(ctx context.Context, rethinkDB *RethinkDbConnection, uriIds []string) (int, error) {
 	term := r.Table(rethinkDbTableUriQueue).GetAll(r.Args(uriIds)).Delete(
 		r.DeleteOpts{
 			Durability: "soft",
@@ -130,17 +128,17 @@ func removeQueuedUris(rethinkDB *RethinkDbConnection, ctx context.Context, uriId
 	return wr.Deleted, err
 }
 
-func deleteFromRemoveQueue(redis *redis.Client, uriIds []string) error {
+func deleteFromRemoveQueue(ctx context.Context, redis *redis.Client, uriIds []string) error {
 	pipe := redis.Pipeline()
 	for _, uriId := range uriIds {
-		pipe.LRem(redisRemoveUriQueue, 1, uriId)
+		pipe.LRem(ctx, redisRemoveUriQueue, 1, uriId)
 	}
-	_, err := pipe.Exec()
+	_, err := pipe.Exec(ctx)
 	return err
 }
 
 func (d *database) UpdateJobExecutions(ctx context.Context) (int, error) {
-	jess, err := getJobExecutionStatuses(d.redis)
+	jess, err := getJobExecutionStatuses(ctx, d.redis)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get job executions: %w", err)
 	}
@@ -155,22 +153,22 @@ func (d *database) UpdateJobExecutions(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func getJobExecutionStatuses(redis *redis.Client) ([]map[string]interface{}, error) {
+func getJobExecutionStatuses(ctx context.Context, redis *redis.Client) ([]map[string]interface{}, error) {
 	// Get all keys prefixed with "JEID:"
 	var jobExecutionKeys []string
-	err := redis.Keys(redisJobExecutionPrefix + "*").ScanSlice(&jobExecutionKeys)
+	err := redis.Keys(ctx, redisJobExecutionPrefix+"*").ScanSlice(&jobExecutionKeys)
 	if err != nil {
 		return nil, err
 	}
 
 	var jobExecutionStatuses []map[string]interface{}
 	for _, key := range jobExecutionKeys {
-		if exists, err := redis.Exists(key).Result(); err != nil {
+		if exists, err := redis.Exists(ctx, key).Result(); err != nil {
 			return nil, err
 		} else if exists == 0 {
 			continue
 		}
-		jeMap, err := redis.HGetAll(key).Result()
+		jeMap, err := redis.HGetAll(ctx, key).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +221,7 @@ func updateJobExecution(rethinkDB *RethinkDbConnection, ctx context.Context, jes
 func (d *database) TimeoutCrawlExecutions(ctx context.Context) (int, error) {
 	count := 0
 	for {
-		ceid, err := d.redis.LPop(redisCrawlExecutionTimeoutQueue).Result()
+		ceid, err := d.redis.LPop(ctx, redisCrawlExecutionTimeoutQueue).Result()
 		if err == redis.Nil {
 			break
 		} else if err != nil {
@@ -233,7 +231,7 @@ func (d *database) TimeoutCrawlExecutions(ctx context.Context) (int, error) {
 		replaced, err := setCrawlExecutionStateAbortedTimeout(d.rethinkDB, ctx, ceid)
 		if err != nil {
 			// put ceid back in timout queue to recover
-			_, rollbackErr := d.redis.RPush(redisCrawlExecutionTimeoutQueue, ceid).Result()
+			_, rollbackErr := d.redis.RPush(ctx, redisCrawlExecutionTimeoutQueue, ceid).Result()
 			if rollbackErr != nil {
 				return count, fmt.Errorf("%w: failed to recover ceid %s (must be inserted into timeout queue manually): %v", rollbackErr, ceid, err)
 			}

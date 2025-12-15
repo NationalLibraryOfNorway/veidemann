@@ -17,31 +17,13 @@
 package database
 
 import (
-	"fmt"
+	"context"
 	"os"
 
-	"github.com/go-redis/redis"
-	"github.com/rs/zerolog/log"
+	"github.com/redis/go-redis/v9"
 )
 
-func NewRedisClient(host string, port int) (*redis.Client, error) {
-	addr := fmt.Sprintf("%s:%d", host, port)
-	client := redis.NewClient(&redis.Options{
-		Addr:       addr,
-		MaxRetries: 3,
-	})
-
-	_, err := client.Ping().Result()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping redis: %w", err)
-	}
-
-	log.Info().Str("component", "redis").Msgf("Connected to Redis at %s", addr)
-
-	return client, err
-}
-
-func loadRedisScript(client *redis.Client, path string) (*redis.Script, error) {
+func loadRedisScript(ctx context.Context, client *redis.Client, path string) (*redis.Script, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -51,13 +33,13 @@ func loadRedisScript(client *redis.Client, path string) (*redis.Script, error) {
 	script := redis.NewScript(string(bytes))
 
 	// load script if it doesn't exist in redis
-	boolSlice, err := script.Exists(client).Result()
+	boolSlice, err := script.Exists(ctx, client).Result()
 	if err != nil {
 		return nil, err
 	}
 	for _, exists := range boolSlice {
 		if !exists {
-			if err := script.Load(client).Err(); err != nil {
+			if err := script.Load(ctx, client).Err(); err != nil {
 				return nil, err
 			}
 		}

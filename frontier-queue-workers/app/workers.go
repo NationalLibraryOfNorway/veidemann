@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package main
+package app
 
 import (
 	"context"
@@ -24,13 +24,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// worker is a function that may return an error.
-type worker func() error
-
 // chgWaitQueueWorker returns a worker that moves crawl host groups from wait to ready queue.
-func chgWaitQueueWorker(db database.Database) worker {
+func chgWaitQueueWorker(ctx context.Context, db database.Database) func() error {
 	return func() error {
-		if moved, err := db.MoveWaitToReady(); err != nil {
+		if moved, err := db.MoveWaitToReady(ctx); err != nil {
 			return fmt.Errorf("error moving crawl host groups from wait queue to ready queue: %w", err)
 		} else if moved > 0 {
 			log.Debug().Msgf("%d crawl host group(s) is ready", moved)
@@ -40,9 +37,9 @@ func chgWaitQueueWorker(db database.Database) worker {
 }
 
 // chgBusyQueueWorker returns a worker that moves crawl host groups from busy to timeout queue.
-func chgBusyQueueWorker(db database.Database) worker {
+func chgBusyQueueWorker(ctx context.Context, db database.Database) func() error {
 	return func() error {
-		if moved, err := db.MoveBusyToTimeout(); err != nil {
+		if moved, err := db.MoveBusyToTimeout(ctx); err != nil {
 			return fmt.Errorf("error moving crawl host groups from busy queue to timeout queue: %w", err)
 		} else if moved > 0 {
 			log.Debug().Msgf("%d crawl host group(s) timed out", moved)
@@ -52,9 +49,9 @@ func chgBusyQueueWorker(db database.Database) worker {
 }
 
 // removeUriQueueWorker returns a worker that removes queued URIs.
-func removeUriQueueWorker(db database.Database) worker {
+func removeUriQueueWorker(ctx context.Context, db database.Database) func() error {
 	return func() error {
-		if removed, err := db.RemoveFromUriQueue(context.Background()); err != nil {
+		if removed, err := db.RemoveFromUriQueue(ctx); err != nil {
 			return err
 		} else if removed > 0 {
 			log.Debug().Msgf("Removed %d queued uris", removed)
@@ -64,9 +61,9 @@ func removeUriQueueWorker(db database.Database) worker {
 }
 
 // crawlExecutionRunningQueueWorker returns a worker that moves crawl executions from running to timeout queue.
-func crawlExecutionRunningQueueWorker(db database.Database) worker {
+func crawlExecutionRunningQueueWorker(ctx context.Context, db database.Database) func() error {
 	return func() error {
-		if moved, err := db.MoveRunningToTimeout(); err != nil {
+		if moved, err := db.MoveRunningToTimeout(ctx); err != nil {
 			return fmt.Errorf("error moving crawl executions from running to timeout queue: %w", err)
 		} else if moved > 0 {
 			log.Debug().Msgf("%d crawl execution(s) timed out", moved)
@@ -76,9 +73,9 @@ func crawlExecutionRunningQueueWorker(db database.Database) worker {
 }
 
 // crawlExecutionTimeoutQueueWorker returns a worker that sets desired state to ABORTED_TIMOUT on crawl executions in timeout queue.
-func crawlExecutionTimeoutQueueWorker(db database.Database) worker {
+func crawlExecutionTimeoutQueueWorker(ctx context.Context, db database.Database) func() error {
 	return func() error {
-		if timeouts, err := db.TimeoutCrawlExecutions(context.Background()); err != nil {
+		if timeouts, err := db.TimeoutCrawlExecutions(ctx); err != nil {
 			return fmt.Errorf("time out crawl executions: %w", err)
 		} else if timeouts > 0 {
 			log.Debug().Msgf("%d crawl execution(s) timed out", timeouts)
@@ -88,9 +85,9 @@ func crawlExecutionTimeoutQueueWorker(db database.Database) worker {
 }
 
 // updateJobExecutions returns a worker that updates stats on job executions.
-func updateJobExecutions(db database.Database) worker {
+func updateJobExecutions(ctx context.Context, db database.Database) func() error {
 	return func() error {
-		if count, err := db.UpdateJobExecutions(context.Background()); err != nil {
+		if count, err := db.UpdateJobExecutions(ctx); err != nil {
 			return fmt.Errorf("failed to update job executions: %w", err)
 		} else if count > 0 {
 			log.Debug().Msgf("Updated %d job execution(s)", count)

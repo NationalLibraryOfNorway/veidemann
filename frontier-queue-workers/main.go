@@ -18,24 +18,25 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
+	stdlog "log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
+	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/app"
 	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/database"
-	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/logger"
-	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/telemetry"
 	"github.com/opentracing/opentracing-go"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/config"
 )
 
 func main() {
@@ -51,7 +52,10 @@ func main() {
 
 	pflag.String("redis-host", "redis-veidemann-frontier-master", "Redis host")
 	pflag.Int("redis-port", 6379, "Redis port")
+	pflag.String("redis-password", "", "Redis password")
 	pflag.String("redis-script-path", "./lua", "Path to redis lua scripts")
+
+	pflag.String("telemetry-address", ":9153", "Address for telemetry endpoint")
 
 	pflag.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
 	pflag.String("log-formatter", "logfmt", "log formatter, available values are logfmt and json")
@@ -59,111 +63,126 @@ func main() {
 
 	pflag.Parse()
 
-	// setup viper
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	err := run(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Bye bye")
+	}
+}
+
+func run(ctx context.Context) error {
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
+
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to bind command line flags: %w", err)
 	}
 
-	// setup logging
-	logger.InitLog(viper.GetString("log-level"), viper.GetString("log-formatter"), viper.GetBool("log-method"))
+	initLog(viper.GetString("log-level"), viper.GetString("log-formatter"), viper.GetBool("log-method"))
 
-	defer func() {
-		if err := recover(); err != nil {
-			log.Fatal().Msgf("%v", err)
-		}
-	}()
-
-	// setup telemetry
-	if tracer, closer := telemetry.InitTracer("Scope checker", logger.NewJaegerLogger()); tracer != nil {
+	if tracer, closer := initTracer("frontier-queue-workers", newJaegerLogger()); tracer != nil {
+		defer func() { _ = closer.Close() }()
 		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			_ = closer.Close()
-		}()
 	}
 
-	// setup rethinkdb connection
-	rethinkDbConnection := database.NewRethinkDbConnection(
-		database.RethinkDbOptions{
-			Address:            fmt.Sprintf("%s:%d", viper.GetString("db-host"), viper.GetInt("db-port")),
-			Username:           viper.GetString("db-user"),
-			Password:           viper.GetString("db-password"),
-			Database:           viper.GetString("db-name"),
-			QueryTimeout:       viper.GetDuration("db-query-timeout"),
-			MaxOpenConnections: viper.GetInt("db-max-open-conn"),
-			MaxRetries:         viper.GetInt("db-max-retries"),
-			UseOpenTracing:     viper.GetBool("db-use-opentracing"),
-		},
-	)
-	if err := rethinkDbConnection.Connect(); err != nil {
-		panic(err)
+	redisOpts := &redis.Options{
+		Addr:       fmt.Sprintf("%s:%d", viper.GetString("redis-host"), viper.GetInt("redis-port")),
+		Password:   viper.GetString("redis-password"),
+		MaxRetries: 3,
 	}
-	defer func() {
-		_ = rethinkDbConnection.Close()
-	}()
 
-	redisClient, err := database.NewRedisClient(viper.GetString("redis-host"), viper.GetInt("redis-port"))
+	rethinkdbOpts := database.RethinkDbOptions{
+		Address:            fmt.Sprintf("%s:%d", viper.GetString("db-host"), viper.GetInt("db-port")),
+		Username:           viper.GetString("db-user"),
+		Password:           viper.GetString("db-password"),
+		Database:           viper.GetString("db-name"),
+		QueryTimeout:       viper.GetDuration("db-query-timeout"),
+		MaxOpenConnections: viper.GetInt("db-max-open-conn"),
+		MaxRetries:         viper.GetInt("db-max-retries"),
+		UseOpenTracing:     viper.GetBool("db-use-opentracing"),
+	}
+
+	app := &app.App{
+		DbOptions:     rethinkdbOpts,
+		RedisOptions:  redisOpts,
+		TelemetryAddr: viper.GetString("telemetry-address"),
+	}
+
+	return app.Run(ctx)
+}
+
+func initLog(level string, format string, logCaller bool) {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	switch strings.ToLower(level) {
+	case "panic":
+		log.Logger = log.Level(zerolog.PanicLevel)
+	case "fatal":
+		log.Logger = log.Level(zerolog.FatalLevel)
+	case "error":
+		log.Logger = log.Level(zerolog.ErrorLevel)
+	case "warn":
+		log.Logger = log.Level(zerolog.WarnLevel)
+	case "info":
+		log.Logger = log.Level(zerolog.InfoLevel)
+	case "debug":
+		log.Logger = log.Level(zerolog.DebugLevel)
+	case "trace":
+		log.Logger = log.Level(zerolog.TraceLevel)
+	}
+
+	if format == "logfmt" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	}
+
+	if logCaller {
+		log.Logger = log.With().Caller().Logger()
+	}
+
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(log.Logger)
+
+	log.Info().Msgf("Setting log level to %s", level)
+}
+
+// jaegerLogger implements the jaeger.Logger interface using zerolog
+type jaegerLogger struct {
+	impl zerolog.Logger
+}
+
+func newJaegerLogger() jaeger.Logger {
+	return &jaegerLogger{
+		impl: log.With().Str("component", "jaeger").Logger(),
+	}
+}
+
+func (j jaegerLogger) Error(msg string) {
+	j.impl.Error().Msg(msg)
+}
+
+func (j *jaegerLogger) Infof(msg string, args ...interface{}) {
+	j.impl.Info().Msgf(msg, args...)
+}
+
+// InitTracer returns an instance of opentracing.Tracer and io.Closer.
+func initTracer(service string, logger jaeger.Logger) (opentracing.Tracer, io.Closer) {
+	cfg, err := config.FromEnv()
 	if err != nil {
-		panic(err)
+		logger.Error(err.Error())
+		return nil, nil
 	}
-	defer func() {
-		_ = redisClient.Close()
-	}()
+	if cfg.ServiceName == "" {
+		cfg.ServiceName = service
+	}
 
-	db, err := database.NewDatabase(redisClient, rethinkDbConnection, viper.GetString("redis-script-path"))
+	tracer, closer, err := cfg.NewTracer(config.Logger(logger))
 	if err != nil {
-		panic(err)
+		logger.Error(err.Error())
+		return nil, nil
 	}
-
-	ctx, stop := context.WithCancel(context.Background())
-
-	go func() {
-		signals := make(chan os.Signal, 1)
-		defer signal.Stop(signals)
-		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-		sig := <-signals
-		log.Info().Str("signal", sig.String()).Msg("Shutting down")
-		stop()
-	}()
-
-	wg := new(errgroup.Group)
-
-	for _, v := range []struct {
-		name  string
-		delay time.Duration
-		fn    worker
-	}{
-		{"update-job-executions", 5 * time.Second, updateJobExecutions(db)},
-		{"ceid-timeout-queue", 1100 * time.Millisecond, crawlExecutionTimeoutQueueWorker(db)},
-		{"remuri-queue", 200 * time.Millisecond, removeUriQueueWorker(db)},
-		{"busy-queue", 50 * time.Millisecond, chgBusyQueueWorker(db)},
-		{"wait-queue", 50 * time.Millisecond, chgWaitQueueWorker(db)},
-		{"ceid-running-queue", 50 * time.Millisecond, crawlExecutionRunningQueueWorker(db)},
-	} {
-		t := v
-		log.Info().Dur("delayMs", t.delay).Msgf("Starting worker: %s", t.name)
-
-		wg.Go(func() error {
-			defer stop()
-			for {
-				// io.EOF can be returned by the go-redis driver but
-				// is to be seen as transient
-				if err := t.fn(); err != nil && !errors.Is(err, io.EOF) {
-					return fmt.Errorf("%s: %w", t.name, err)
-				}
-				select {
-				case <-ctx.Done():
-					return nil
-				case <-time.After(t.delay):
-				}
-			}
-		})
-	}
-
-	if err := wg.Wait(); err != nil {
-		panic(err)
-	}
+	return tracer, closer
 }
