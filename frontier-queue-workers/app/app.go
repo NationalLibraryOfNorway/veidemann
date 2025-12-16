@@ -19,7 +19,7 @@ import (
 type App struct {
 	Addr          string
 	DbOptions     database.RethinkDbOptions
-	RedisOptions  *redis.Options
+	RedisOptions  *redis.UniversalOptions
 	TelemetryAddr string
 
 	ready atomic.Bool
@@ -52,7 +52,7 @@ func (app *App) Run(ctx context.Context) error {
 		_ = rethinkDb.Close()
 	}()
 
-	redisClient := redis.NewClient(app.RedisOptions)
+	redisClient := redis.NewUniversalClient(app.RedisOptions)
 	defer func() {
 		_ = redisClient.Close()
 	}()
@@ -64,7 +64,7 @@ func (app *App) Run(ctx context.Context) error {
 	init.Go(backoff(ctx, "redis", func() (err error) {
 		err = redisClient.Ping(ctx).Err()
 		if err == nil {
-			log.Info().Str("address", app.RedisOptions.Addr).Msg("Connected to Redis")
+			log.Info().Str("address", app.RedisOptions.Addrs[0]).Msg("Connected to Redis")
 		}
 		return err
 	}))

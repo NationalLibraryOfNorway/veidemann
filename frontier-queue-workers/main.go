@@ -53,6 +53,7 @@ func main() {
 	pflag.String("redis-host", "redis-veidemann-frontier-master", "Redis host")
 	pflag.Int("redis-port", 6379, "Redis port")
 	pflag.String("redis-password", "", "Redis password")
+	pflag.String("redis-sentinel-master-name", "", "Redis Sentinel master name")
 
 	pflag.String("telemetry-address", ":9153", "Address for telemetry endpoint")
 
@@ -88,8 +89,11 @@ func run(ctx context.Context) error {
 		opentracing.SetGlobalTracer(tracer)
 	}
 
-	redisOpts := &redis.Options{
-		Addr:       fmt.Sprintf("%s:%d", viper.GetString("redis-host"), viper.GetInt("redis-port")),
+	redisOpts := &redis.UniversalOptions{
+		Addrs:     []string{
+			fmt.Sprintf("%s:%d", viper.GetString("redis-host"), viper.GetInt("redis-port")),
+		},
+		MasterName: viper.GetString("redis-sentinel-master-name"),
 		Password:   viper.GetString("redis-password"),
 		MaxRetries: 3,
 	}

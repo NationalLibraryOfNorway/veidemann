@@ -22,7 +22,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func loadRedisScript(ctx context.Context, client *redis.Client, scriptSrc string) (*redis.Script, error) {
+func loadRedisScript(ctx context.Context, client redis.UniversalClient, scriptSrc string) (*redis.Script, error) {
 	// create script
 	script := redis.NewScript(scriptSrc)
 

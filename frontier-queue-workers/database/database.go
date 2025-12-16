@@ -65,25 +65,25 @@ const (
 
 type database struct {
 	rethinkDB  *RethinkDbConnection
-	redis      *redis.Client
+	redisClient      redis.UniversalClient
 	moveScript *redis.Script
 }
 
-func NewDatabase(ctx context.Context, redisClient *redis.Client, conn *RethinkDbConnection) (Database, error) {
+func NewDatabase(ctx context.Context, redisClient redis.UniversalClient, conn *RethinkDbConnection) (Database, error) {
 	moveScript, err := loadRedisScript(ctx, redisClient, redisChgDelayedQueueScript)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load lua script: %w", err)
 	}
 
 	return &database{
-		redis:      redisClient,
+		redisClient:      redisClient,
 		rethinkDB:  conn,
 		moveScript: moveScript,
 	}, nil
 }
 
 func (d *database) moveChg(ctx context.Context, fromQueue string, toQueue string) (int, error) {
-	return d.moveScript.Run(ctx, d.redis, []string{fromQueue, toQueue}, time.Now().UTC().UnixNano()/int64(time.Millisecond)).Int()
+	return d.moveScript.Run(ctx, d.redisClient, []string{fromQueue, toQueue}, time.Now().UTC().UnixNano()/int64(time.Millisecond)).Int()
 }
 
 func (d *database) MoveWaitToReady(ctx context.Context) (int, error) {
@@ -100,7 +100,7 @@ func (d *database) MoveRunningToTimeout(ctx context.Context) (int, error) {
 
 func (d *database) RemoveFromUriQueue(ctx context.Context) (int, error) {
 	// Get up to 10000 uriIds from redis REMURI queue
-	uriIds, err := d.redis.LRange(ctx, redisRemoveUriQueue, 0, 9999).Result()
+	uriIds, err := d.redisClient.LRange(ctx, redisRemoveUriQueue, 0, 9999).Result()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get list of uriIds to be removed: %w", err)
 	}
@@ -114,7 +114,7 @@ func (d *database) RemoveFromUriQueue(ctx context.Context) (int, error) {
 		return removed, fmt.Errorf("removed %d of %d queued uris: %w", removed, len(uriIds), err)
 	}
 
-	if err := deleteFromRemoveQueue(ctx, d.redis, uriIds); err != nil {
+	if err := deleteFromRemoveQueue(ctx, d.redisClient, uriIds); err != nil {
 		return removed, fmt.Errorf("failed to remove some queued uri ids from REMURI: %w", err)
 	}
 	return removed, nil
@@ -129,7 +129,7 @@ func removeQueuedUris(ctx context.Context, rethinkDB *RethinkDbConnection, uriId
 	return wr.Deleted, err
 }
 
-func deleteFromRemoveQueue(ctx context.Context, redis *redis.Client, uriIds []string) error {
+func deleteFromRemoveQueue(ctx context.Context, redis redis.UniversalClient, uriIds []string) error {
 	pipe := redis.Pipeline()
 	for _, uriId := range uriIds {
 		pipe.LRem(ctx, redisRemoveUriQueue, 1, uriId)
@@ -139,7 +139,7 @@ func deleteFromRemoveQueue(ctx context.Context, redis *redis.Client, uriIds []st
 }
 
 func (d *database) UpdateJobExecutions(ctx context.Context) (int, error) {
-	jess, err := getJobExecutionStatuses(ctx, d.redis)
+	jess, err := getJobExecutionStatuses(ctx, d.redisClient)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get job executions: %w", err)
 	}
@@ -154,7 +154,7 @@ func (d *database) UpdateJobExecutions(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func getJobExecutionStatuses(ctx context.Context, redis *redis.Client) ([]map[string]interface{}, error) {
+func getJobExecutionStatuses(ctx context.Context, redis redis.UniversalClient) ([]map[string]interface{}, error) {
 	// Get all keys prefixed with "JEID:"
 	var jobExecutionKeys []string
 	err := redis.Keys(ctx, redisJobExecutionPrefix+"*").ScanSlice(&jobExecutionKeys)
@@ -222,7 +222,7 @@ func updateJobExecution(rethinkDB *RethinkDbConnection, ctx context.Context, jes
 func (d *database) TimeoutCrawlExecutions(ctx context.Context) (int, error) {
 	count := 0
 	for {
-		ceid, err := d.redis.LPop(ctx, redisCrawlExecutionTimeoutQueue).Result()
+		ceid, err := d.redisClient.LPop(ctx, redisCrawlExecutionTimeoutQueue).Result()
 		if err == redis.Nil {
 			break
 		} else if err != nil {
@@ -232,7 +232,7 @@ func (d *database) TimeoutCrawlExecutions(ctx context.Context) (int, error) {
 		replaced, err := setCrawlExecutionStateAbortedTimeout(d.rethinkDB, ctx, ceid)
 		if err != nil {
 			// put ceid back in timout queue to recover
-			_, rollbackErr := d.redis.RPush(ctx, redisCrawlExecutionTimeoutQueue, ceid).Result()
+			_, rollbackErr := d.redisClient.RPush(ctx, redisCrawlExecutionTimeoutQueue, ceid).Result()
 			if rollbackErr != nil {
 				return count, fmt.Errorf("%w: failed to recover ceid %s (must be inserted into timeout queue manually): %v", rollbackErr, ceid, err)
 			}
