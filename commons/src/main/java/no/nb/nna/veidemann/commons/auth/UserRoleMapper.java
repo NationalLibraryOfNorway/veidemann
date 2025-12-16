@@ -67,7 +67,7 @@ public class UserRoleMapper {
                     }
                 }
             }
-            LOG.debug("Get roles for user. Email: {}, Groups: {}, reolved to roles: {}", email, groups, roles);
+            LOG.debug("Get roles for user. Email: {}, Groups: {}, resolved to roles: {}", email, groups, roles);
             return roles;
         } finally {
             roleUpdateLock.unlock();
