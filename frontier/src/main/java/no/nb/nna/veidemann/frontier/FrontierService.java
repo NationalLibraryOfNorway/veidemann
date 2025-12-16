@@ -18,6 +18,7 @@ package no.nb.nna.veidemann.frontier;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,8 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -95,18 +98,29 @@ public class FrontierService implements AutoCloseable {
                 !settings.getRedisSentinelMasterName().isBlank()) {
 
             // Sentinel mode
-            LOG.info("Using Redis Sentinel with master '{}'", settings.getRedisSentinelMasterName());
+            LOG.info("Using Redis Sentinel with master '{}' at {}:{}",
+                    settings.getRedisSentinelMasterName(),
+                    settings.getRedisHost(),
+                    settings.getRedisPort());
 
-            Set<String> sentinels = Set.of(
-                    settings.getRedisHost() + ":" + settings.getRedisPort());
+            var masterCfg = DefaultJedisClientConfig.builder()
+                .password(settings.getRedisPassword())
+                .database(0)
+                .build();
+
+            var sentinelCfg = DefaultJedisClientConfig.builder()
+                    .password(settings.getRedisPassword())
+                    .build();
+
+            Set<HostAndPort> sentinels = Set.of(
+                    new HostAndPort(settings.getRedisHost(), settings.getRedisPort()));
 
             JedisSentinelPool sentinelPool = new JedisSentinelPool(
                     settings.getRedisSentinelMasterName(),
                     sentinels,
                     jedisPoolConfig,
-                    Protocol.DEFAULT_TIMEOUT,
-                    settings.getRedisPassword(),
-                    0);
+                    masterCfg,
+                    sentinelCfg);
 
             redisResource = sentinelPool;
             jedisSupplier = sentinelPool::getResource;
