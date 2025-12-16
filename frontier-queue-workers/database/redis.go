@@ -18,19 +18,13 @@ package database
 
 import (
 	"context"
-	"os"
 
 	"github.com/redis/go-redis/v9"
 )
 
-func loadRedisScript(ctx context.Context, client *redis.Client, path string) (*redis.Script, error) {
-	bytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
+func loadRedisScript(ctx context.Context, client *redis.Client, scriptSrc string) (*redis.Script, error) {
 	// create script
-	script := redis.NewScript(string(bytes))
+	script := redis.NewScript(scriptSrc)
 
 	// load script if it doesn't exist in redis
 	boolSlice, err := script.Exists(ctx, client).Result()

@@ -17,11 +17,10 @@ import (
 )
 
 type App struct {
-	Addr            string
-	DbOptions       database.RethinkDbOptions
-	RedisOptions    *redis.Options
-	RedisScriptPath string
-	TelemetryAddr   string
+	Addr          string
+	DbOptions     database.RethinkDbOptions
+	RedisOptions  *redis.Options
+	TelemetryAddr string
 
 	ready atomic.Bool
 }
@@ -74,7 +73,7 @@ func (app *App) Run(ctx context.Context) error {
 		return err
 	}
 
-	db, err := database.NewDatabase(ctx, redisClient, rethinkDb, app.RedisScriptPath)
+	db, err := database.NewDatabase(ctx, redisClient, rethinkDb)
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}

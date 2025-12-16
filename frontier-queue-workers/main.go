@@ -53,7 +53,6 @@ func main() {
 	pflag.String("redis-host", "redis-veidemann-frontier-master", "Redis host")
 	pflag.Int("redis-port", 6379, "Redis port")
 	pflag.String("redis-password", "", "Redis password")
-	pflag.String("redis-script-path", "./lua", "Path to redis lua scripts")
 
 	pflag.String("telemetry-address", ":9153", "Address for telemetry endpoint")
 

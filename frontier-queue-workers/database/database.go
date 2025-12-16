@@ -18,8 +18,8 @@ package database
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +28,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
+
+//go:embed lua/chg_delayed_queue.lua
+var redisChgDelayedQueueScript string
 
 // Database is an abstraction layer between the business layer and database implementation details
 type Database interface {
@@ -48,8 +51,6 @@ const (
 
 // redis constants
 const (
-	redisChgDelayedQueueScriptName = "chg_delayed_queue.lua"
-
 	redisRemoveUriQueue     = "REMURI"
 	redisJobExecutionPrefix = "JEID:"
 
@@ -68,10 +69,10 @@ type database struct {
 	moveScript *redis.Script
 }
 
-func NewDatabase(ctx context.Context, redisClient *redis.Client, conn *RethinkDbConnection, scriptPath string) (Database, error) {
-	moveScript, err := loadRedisScript(ctx, redisClient, filepath.Join(scriptPath, redisChgDelayedQueueScriptName))
+func NewDatabase(ctx context.Context, redisClient *redis.Client, conn *RethinkDbConnection) (Database, error) {
+	moveScript, err := loadRedisScript(ctx, redisClient, redisChgDelayedQueueScript)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load redis script %s: %w", redisChgDelayedQueueScriptName, err)
+		return nil, fmt.Errorf("failed to load lua script: %w", err)
 	}
 
 	return &database{
