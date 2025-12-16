@@ -38,6 +38,7 @@ import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.Protocol;
 
 /**
  * Class for launching the service.
@@ -86,7 +87,11 @@ public class FrontierService implements AutoCloseable {
         jedisPoolConfig.setMinIdle(2);
         jedisPool = new JedisPool(
                 jedisPoolConfig,
-                URI.create("redis://" + settings.getRedisHost() + ':' + settings.getRedisPort()));
+                settings.getRedisHost(),
+                settings.getRedisPort(),
+                Protocol.DEFAULT_TIMEOUT,
+                settings.getRedisPassword(),
+                0);
 
         robotsServiceClient = new RobotsServiceClient(
                 settings.getRobotsEvaluatorHost(),

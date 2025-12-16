@@ -60,6 +60,8 @@ public class Settings extends CommonSettings {
 
     private int redisPort;
 
+    private String redisPassword;
+
     private Duration busyTimeout;
 
     public Duration getBusyTimeout() {
@@ -180,6 +182,14 @@ public class Settings extends CommonSettings {
 
     public void setRedisPort(int redisPort) {
         this.redisPort = redisPort;
+    }
+
+    public String getRedisPassword() {
+        return redisPassword;
+    }
+    
+    public void setRedisPassword(String redisPassword) {
+        this.redisPassword = redisPassword;
     }
 
     public String getLogServiceHost() {
