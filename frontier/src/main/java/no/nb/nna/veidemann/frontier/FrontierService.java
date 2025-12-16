@@ -15,6 +15,7 @@
  */
 package no.nb.nna.veidemann.frontier;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
@@ -103,14 +104,11 @@ public class FrontierService implements AutoCloseable {
                     settings.getRedisHost(),
                     settings.getRedisPort());
 
-            var masterCfg = DefaultJedisClientConfig.builder()
-                .password(settings.getRedisPassword())
-                .database(0)
-                .build();
-
-            var sentinelCfg = DefaultJedisClientConfig.builder()
-                    .password(settings.getRedisPassword())
+            var masterCfg = clientConfigBuilder()
+                    .database(0)
                     .build();
+
+            var sentinelCfg = clientConfigBuilder().build();
 
             Set<HostAndPort> sentinels = Set.of(
                     new HostAndPort(settings.getRedisHost(), settings.getRedisPort()));
@@ -133,11 +131,10 @@ public class FrontierService implements AutoCloseable {
 
             JedisPool pool = new JedisPool(
                     jedisPoolConfig,
-                    settings.getRedisHost(),
-                    settings.getRedisPort(),
-                    Protocol.DEFAULT_TIMEOUT,
-                    settings.getRedisPassword(),
-                    0);
+                    new HostAndPort(settings.getRedisHost(), settings.getRedisPort()),
+                    clientConfigBuilder()
+                            .database(0)
+                            .build());
 
             redisResource = pool;
             jedisSupplier = pool::getResource;
@@ -266,4 +263,15 @@ public class FrontierService implements AutoCloseable {
         LOG.info("FrontierService shutdown complete");
     }
 
+    private Optional<String> redisPassword() {
+        return Optional.ofNullable(settings.getRedisPassword())
+                .map(String::trim)
+                .filter(p -> !p.isEmpty());
+    }
+
+    private DefaultJedisClientConfig.Builder clientConfigBuilder() {
+        var b = DefaultJedisClientConfig.builder();
+        redisPassword().ifPresent(b::password);
+        return b;
+    }
 }
