@@ -89,13 +89,13 @@ func run(ctx context.Context) error {
 		opentracing.SetGlobalTracer(tracer)
 	}
 
+	redisAddr := fmt.Sprintf("%s:%d", viper.GetString("redis-host"), viper.GetInt("redis-port"))
 	redisOpts := &redis.UniversalOptions{
-		Addrs:     []string{
-			fmt.Sprintf("%s:%d", viper.GetString("redis-host"), viper.GetInt("redis-port")),
-		},
-		MasterName: viper.GetString("redis-sentinel-master-name"),
-		Password:   viper.GetString("redis-password"),
-		MaxRetries: 3,
+		Addrs:            []string{redisAddr},
+		MasterName:       viper.GetString("redis-sentinel-master-name"),
+		SentinelPassword: viper.GetString("redis-password"),
+		Password:         viper.GetString("redis-password"),
+		MaxRetries:       3,
 	}
 
 	rethinkdbOpts := database.RethinkDbOptions{
