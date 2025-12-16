@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: fai
+  name: fai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fai
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fai
+    spec:
+      containers:
+      - name: fai
+        args:
+        - -sleep=10s
+        - -pattern=*.warc.gz
+        image: ghcr.io/nationallibraryofnorway/veidemann/fai:0.3.0
+        ports:
+        - containerPort: 8081
+          name: http-metrics
+          protocol: TCP
+        resources:
+          limits:
+            memory: 10Gi
+          requests:
+            cpu: 250m
+            memory: 250Mi
+      terminationGracePeriodSeconds: 600
