@@ -1,6 +1,17 @@
 package no.nb.nna.veidemann.frontier.db;
 
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_TIMEOUT_KEY;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
@@ -9,26 +20,18 @@ import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.frontier.db.script.RedisJob.JedisContext;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 import no.nb.nna.veidemann.frontier.worker.PostFetchHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisPool;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_TIMEOUT_KEY;
+import redis.clients.jedis.Jedis;
 
 public class CrawlQueueWorker implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(CrawlQueueWorker.class);
 
     private final Frontier frontier;
-    private final JedisPool jedisPool;
+    private final Supplier<Jedis> jedisSupplier;
     private final ScheduledExecutorService executor;
 
-    public CrawlQueueWorker(Frontier frontier, JedisPool jedisPool) {
+    public CrawlQueueWorker(Frontier frontier, Supplier<Jedis> jedisSupplier) {
         this.frontier = frontier;
-        this.jedisPool = jedisPool;
+        this.jedisSupplier = jedisSupplier;
         this.executor = Executors.newScheduledThreadPool(
                 2,
                 new ThreadFactoryBuilder()
@@ -45,7 +48,7 @@ public class CrawlQueueWorker implements AutoCloseable {
     private void runFetchTimeoutWorker() {
         Error err = ExtraStatusCodes.RUNTIME_EXCEPTION.toFetchError("Timeout waiting for Harvester");
 
-        try (JedisContext ctx = JedisContext.forPool(jedisPool)) {
+        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
             var jedis = ctx.getJedis();
             String chgId;
             while ((chgId = jedis.lpop(CHG_TIMEOUT_KEY)) != null) {

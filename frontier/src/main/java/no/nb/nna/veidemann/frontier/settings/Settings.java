@@ -62,6 +62,8 @@ public class Settings extends CommonSettings {
 
     private String redisPassword;
 
+    private String redisSentinelMasterName;
+
     private Duration busyTimeout;
 
     public Duration getBusyTimeout() {
@@ -190,6 +192,14 @@ public class Settings extends CommonSettings {
     
     public void setRedisPassword(String redisPassword) {
         this.redisPassword = redisPassword;
+    }
+
+    public String getRedisSentinelMasterName() {
+        return redisSentinelMasterName;
+    }
+
+    public void setRedisSentinelMasterName(String redisSentinelMasterName) {
+        this.redisSentinelMasterName = redisSentinelMasterName;
     }
 
     public String getLogServiceHost() {

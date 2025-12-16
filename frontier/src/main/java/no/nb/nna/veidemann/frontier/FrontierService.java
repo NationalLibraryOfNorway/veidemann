@@ -15,8 +15,9 @@
  */
 package no.nb.nna.veidemann.frontier;
 
-import java.net.URI;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +37,10 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisSentinelPool;
 import redis.clients.jedis.Protocol;
 
 /**
@@ -53,13 +56,13 @@ public class FrontierService implements AutoCloseable {
 
     // Resources that need closing
     private DbService db;
+    private AutoCloseable redisResource;
     private RobotsServiceClient robotsServiceClient;
     private DnsServiceClient dnsServiceClient;
     private ScopeServiceClient scopeServiceClient;
     private OutOfScopeHandlerClient outOfScopeHandlerClient;
     private LogServiceClient logServiceClient;
     private FrontierApiServer apiServer;
-    private JedisPool jedisPool;
     private Frontier frontier;
 
     /**
@@ -85,13 +88,46 @@ public class FrontierService implements AutoCloseable {
         jedisPoolConfig.setMaxTotal(256);
         jedisPoolConfig.setMaxIdle(16);
         jedisPoolConfig.setMinIdle(2);
-        jedisPool = new JedisPool(
-                jedisPoolConfig,
-                settings.getRedisHost(),
-                settings.getRedisPort(),
-                Protocol.DEFAULT_TIMEOUT,
-                settings.getRedisPassword(),
-                0);
+
+        Supplier<Jedis> jedisSupplier;
+
+        if (settings.getRedisSentinelMasterName() != null &&
+                !settings.getRedisSentinelMasterName().isBlank()) {
+
+            // Sentinel mode
+            LOG.info("Using Redis Sentinel with master '{}'", settings.getRedisSentinelMasterName());
+
+            Set<String> sentinels = Set.of(
+                    settings.getRedisHost() + ":" + settings.getRedisPort());
+
+            JedisSentinelPool sentinelPool = new JedisSentinelPool(
+                    settings.getRedisSentinelMasterName(),
+                    sentinels,
+                    jedisPoolConfig,
+                    Protocol.DEFAULT_TIMEOUT,
+                    settings.getRedisPassword(),
+                    0);
+
+            redisResource = sentinelPool;
+            jedisSupplier = sentinelPool::getResource;
+
+        } else {
+
+            // Standalone mode
+            LOG.info("Using standalone Redis at {}:{}",
+                    settings.getRedisHost(), settings.getRedisPort());
+
+            JedisPool pool = new JedisPool(
+                    jedisPoolConfig,
+                    settings.getRedisHost(),
+                    settings.getRedisPort(),
+                    Protocol.DEFAULT_TIMEOUT,
+                    settings.getRedisPassword(),
+                    0);
+
+            redisResource = pool;
+            jedisSupplier = pool::getResource;
+        }
 
         robotsServiceClient = new RobotsServiceClient(
                 settings.getRobotsEvaluatorHost(),
@@ -112,7 +148,7 @@ public class FrontierService implements AutoCloseable {
         frontier = new Frontier(
                 tracer,
                 settings,
-                jedisPool,
+                jedisSupplier,
                 robotsServiceClient,
                 dnsServiceClient,
                 scopeServiceClient,
@@ -198,11 +234,11 @@ public class FrontierService implements AutoCloseable {
                 LOG.warn("Error closing robotsServiceClient", e);
             }
         }
-        if (jedisPool != null) {
+        if (redisResource != null) {
             try {
-                jedisPool.close();
+                redisResource.close();
             } catch (Exception e) {
-                LOG.warn("Error closing jedisPool", e);
+                LOG.warn("Error closing Redis pool", e);
             }
         }
         if (db != null) {

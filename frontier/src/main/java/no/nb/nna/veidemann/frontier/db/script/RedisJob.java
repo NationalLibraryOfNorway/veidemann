@@ -3,13 +3,14 @@ package no.nb.nna.veidemann.frontier.db.script;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 public class RedisJob<R> {
     private static final Logger LOG = LoggerFactory.getLogger(RedisJob.class);
@@ -45,53 +46,92 @@ public class RedisJob<R> {
                     }
                 }
                 return result;
+
+            } catch (JedisDataException ex) {
+                // Sentinel/replication failover window: client ends up on a replica or demoted
+                // master.
+                if (isReadOnly(ex)) {
+                    attempts++;
+                    ctx.invalidate(); // <-- key: drop connection, borrow fresh next time
+
+                    if (attempts > maxAttempts) {
+                        LOG.error("Redis is READONLY. Giving up after {} attempts", attempts, ex);
+                        throw ex;
+                    }
+
+                    LOG.warn("Redis is READONLY (attempt {}/{}). Will retry in one second",
+                            attempts, maxAttempts, ex);
+                    sleepUninterruptibly(1000, ex);
+                    continue;
+                }
+                throw ex;
+
             } catch (JedisConnectionException ex) {
                 attempts++;
+                ctx.invalidate(); // also drop broken connection
+
                 if (attempts > maxAttempts) {
                     LOG.error("Failed connecting to Redis. Giving up after {} attempts", attempts, ex);
                     throw ex;
                 }
                 LOG.warn("Failed connecting to Redis (attempt {}/{}). Will retry in one second",
                         attempts, maxAttempts, ex);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    ex.addSuppressed(ie);
-                    throw ex;
-                }
+                sleepUninterruptibly(1000, ex);
             }
         }
     }
 
-    /**
-     * Class that wraps a Jedis connection.
-     */
+    private static boolean isReadOnly(JedisDataException ex) {
+        String msg = ex.getMessage();
+        return msg != null && msg.startsWith("READONLY");
+    }
+
+    private static void sleepUninterruptibly(long millis, Exception root) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            root.addSuppressed(ie);
+            // Preserve your current behavior: bubble up original exception
+            if (root instanceof RuntimeException re)
+                throw re;
+            throw new RuntimeException(root);
+        }
+    }
+
     public static class JedisContext implements AutoCloseable {
-        private final JedisPool jedisPool;
+        private final Supplier<Jedis> jedisSupplier;
         private Jedis jedis;
 
-        private JedisContext(JedisPool jedisPool) {
-            this.jedisPool = Objects.requireNonNull(jedisPool, "jedisPool");
+        private JedisContext(Supplier<Jedis> jedisSupplier) {
+            this.jedisSupplier = Objects.requireNonNull(jedisSupplier, "jedisSupplier");
         }
 
-        public static JedisContext forPool(JedisPool jedisPool) {
-            return new JedisContext(jedisPool);
+        public static JedisContext forSupplier(Supplier<Jedis> jedisSupplier) {
+            return new JedisContext(jedisSupplier);
         }
 
         public Jedis getJedis() {
             if (jedis == null) {
-                jedis = jedisPool.getResource();
+                jedis = jedisSupplier.get();
             }
             return jedis;
         }
 
+        /** Close current connection so next getJedis() borrows a fresh one. */
+        public void invalidate() {
+            if (jedis != null) {
+                try {
+                    jedis.close();
+                } finally {
+                    jedis = null;
+                }
+            }
+        }
+
         @Override
         public void close() {
-            if (jedis != null) {
-                jedis.close();
-                jedis = null;
-            }
+            invalidate();
         }
     }
 }

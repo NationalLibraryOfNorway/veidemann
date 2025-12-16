@@ -4,6 +4,7 @@ import static com.rethinkdb.RethinkDB.r;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.presentation.StandardRepresentation;
@@ -37,6 +38,7 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
@@ -105,7 +107,8 @@ public class AbstractIntegrationTest {
     ScopeServiceClient scopeServiceClient;
     OutOfScopeHandlerClient outOfScopeHandlerClient;
     LogServiceClient logServiceClient;
-    public JedisPool jedisPool;
+    public Supplier<Jedis> jedisSupplier;
+    public AutoCloseable jedisResource;
     public RedisData redisData;
     public RethinkDbData rethinkDbData;
     public MockTracer tracer;
@@ -180,11 +183,15 @@ public class AbstractIntegrationTest {
         jedisPoolConfig.setMaxIdle(32);
         jedisPoolConfig.setMinIdle(2);
 
-        jedisPool = new JedisPool(jedisPoolConfig, settings.getRedisHost(), settings.getRedisPort());
-        redisData = new RedisData(jedisPool);
-        rethinkDbData = new RethinkDbData(conn);
+        JedisPool jedisPool = new JedisPool(jedisPoolConfig, settings.getRedisHost(), settings.getRedisPort());
+        jedisResource = jedisPool;
+        jedisSupplier = jedisPool::getResource;
 
-        frontier = new Frontier(tracer, settings, jedisPool, robotsServiceClient, dnsServiceClient, scopeServiceClient,
+        rethinkDbData = new RethinkDbData(conn);
+        redisData = new RedisData(jedisSupplier::get);
+
+        frontier = new Frontier(tracer, settings, jedisSupplier, robotsServiceClient, dnsServiceClient,
+                scopeServiceClient,
                 outOfScopeHandlerClient, logServiceClient, conn, DbService.getInstance().getConfigAdapter());
         apiServer = new FrontierApiServer(settings.getApiPort(), settings.getTerminationGracePeriodSeconds(), frontier);
         apiServer.start();
@@ -221,8 +228,8 @@ public class AbstractIntegrationTest {
         conn.exec(r.table(Tables.SEEDS.name).delete());
         conn.exec(r.table(Tables.CRAWL_ENTITIES.name).delete());
 
-        jedisPool.getResource().flushAll();
-        jedisPool.close();
+        jedisSupplier.get().flushAll();
+        jedisResource.close();
 
         if (queueWorker != null) {
             queueWorker.close();

@@ -1,5 +1,23 @@
 package no.nb.nna.veidemann.frontier.api;
 
+import static no.nb.nna.veidemann.commons.ExtraStatusCodes.FAILED_DNS;
+import static no.nb.nna.veidemann.commons.ExtraStatusCodes.PRECLUDED_BY_ROBOTS;
+import static no.nb.nna.veidemann.commons.ExtraStatusCodes.RETRY_LIMIT_REACHED;
+import static no.nb.nna.veidemann.commons.ExtraStatusCodes.RUNTIME_EXCEPTION;
+import static no.nb.nna.veidemann.frontier.testutil.FrontierAssertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.CrawlLimitsConfig;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
@@ -9,24 +27,7 @@ import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.RunningCrawl;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.SeedAndExecutions;
 import no.nb.nna.veidemann.frontier.testutil.HarvesterMock;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import redis.clients.jedis.Jedis;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import static no.nb.nna.veidemann.commons.ExtraStatusCodes.FAILED_DNS;
-import static no.nb.nna.veidemann.commons.ExtraStatusCodes.PRECLUDED_BY_ROBOTS;
-import static no.nb.nna.veidemann.commons.ExtraStatusCodes.RETRY_LIMIT_REACHED;
-import static no.nb.nna.veidemann.commons.ExtraStatusCodes.RUNTIME_EXCEPTION;
-import static no.nb.nna.veidemann.frontier.testutil.FrontierAssertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 @Testcontainers
 @Tag("integration")
@@ -822,7 +823,7 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
         // Abort the first execution as soon as one seed is completed
         await().pollDelay(10, TimeUnit.MILLISECONDS).pollInterval(10, TimeUnit.MILLISECONDS).atMost(30, TimeUnit.SECONDS)
                 .until(() -> {
-                    try (Jedis jedis = jedisPool.getResource()) {
+                    try (Jedis jedis = jedisSupplier.get()) {
                         Map<String, String> f = jedis.hgetAll(CrawlQueueManager.JOB_EXECUTION_PREFIX + crawl.getStatus().getId());
                         if (!f.getOrDefault("FINISHED", "0").equals("0")) {
                             return true;

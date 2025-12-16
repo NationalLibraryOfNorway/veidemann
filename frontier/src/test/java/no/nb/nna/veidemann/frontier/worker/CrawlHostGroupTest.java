@@ -57,6 +57,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Supplier;
 
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_READY_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_WAIT_KEY;
@@ -74,7 +75,8 @@ public class CrawlHostGroupTest {
     public static GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:5.0.7-alpine"))
             .withExposedPorts(6379);
 
-    JedisPool jedisPool;
+    AutoCloseable jedisResource;
+    Supplier<Jedis> jedisSupplier;
     RedisData redisData;
 
     @BeforeEach
@@ -84,21 +86,27 @@ public class CrawlHostGroupTest {
 
         JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
         jedisPoolConfig.setMaxTotal(24);
-        jedisPool = new JedisPool(jedisPoolConfig, redisHost, redisPort);
-        redisData = new RedisData(jedisPool);
+        JedisPool jedisPool = new JedisPool(jedisPoolConfig, redisHost, redisPort);
+        jedisResource = jedisPool;
+        jedisSupplier = jedisPool::getResource;
+        redisData = new RedisData(jedisSupplier::get);
     }
 
     @AfterEach
     public void shutdown() {
-        jedisPool.getResource().flushAll();
-        jedisPool.close();
+        try (Jedis jedis = jedisSupplier.get()) {
+            jedis.flushDB();
+        }
+        try {
+            jedisResource.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
     public void testChgAddScript() throws Exception {
-        try (Jedis jedis = jedisPool.getResource()) {
-            JedisContext ctx = JedisContext.forPool(jedisPool);
-
+        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
             String chgId1 = "myChgId";
             String chgId2 = "mySecondChgId";
             String eId1 = "myCrawlExecutionId";
@@ -166,9 +174,7 @@ public class CrawlHostGroupTest {
 
     @Test
     public void testChgDelayedQueueScript() throws Exception {
-        try (Jedis jedis = jedisPool.getResource()) {
-            JedisContext ctx = JedisContext.forPool(jedisPool);
-
+        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
             String chgId1 = "myChgId";
             String chgId2 = "mySecondChgId";
             String eId1 = "myCrawlExecutionId";
@@ -234,9 +240,7 @@ public class CrawlHostGroupTest {
     public void testChgNextScript() throws Exception {
         redis.followOutput(new SkipUntilFilter("Ready to accept connections", new ToStdOutConsumer()));
 
-        try (Jedis jedis = jedisPool.getResource()) {
-            JedisContext ctx = JedisContext.forPool(jedisPool);
-
+        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
             String chgId1 = "myFirstChgId";
             String chgId2 = "mySecondChgId";
             String chgId3 = "myThirdChgId";
