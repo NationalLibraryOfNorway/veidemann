@@ -91,7 +91,7 @@ func (f *s3options) Upload(ctx context.Context, filePath string) (minio.UploadIn
 	objectName := filepath.Base(filePath)
 	options := minio.PutObjectOptions{
 		UserMetadata: map[string]string{
-			"x-amz-meta-md5": md5sum,
+			"md5": md5sum,
 		},
 	}
 
