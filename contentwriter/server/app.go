@@ -97,7 +97,6 @@ func (app *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", app.Addr, err)
 	}
-	defer func() { _ = listener.Close() }()
 
 	log.Info().Msgf("gRPC server listening on %s", app.Addr)
 
@@ -109,8 +108,14 @@ func (app *App) Run(ctx context.Context) error {
 
 	app.ready.Store(false)
 
+	// stop accepting new connections
+	_ = listener.Close()
+
 	grpcServer.GracefulStop()
-	_ = telemetry.Shutdown(context.Background())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = telemetry.Shutdown(ctx)
 
 	return g.Wait()
 }
