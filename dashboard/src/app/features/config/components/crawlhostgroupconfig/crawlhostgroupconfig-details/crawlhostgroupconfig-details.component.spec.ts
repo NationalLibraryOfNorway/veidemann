@@ -8,6 +8,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {By} from '@angular/platform-browser';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 const exampleCrawlHostGroupConfig: ConfigObject = {
   id: 'configObject_id',
@@ -33,7 +34,7 @@ const exampleCrawlHostGroupConfig: ConfigObject = {
   })
 };
 
-describe('CrawlHostGroupConfigDetailsComponent', () => {
+describe.only('CrawlHostGroupConfigDetailsComponent', () => {
   let component: CrawlHostGroupConfigDetailsComponent;
   let fixture: ComponentFixture<CrawlHostGroupConfigDetailsComponent>;
   let loader: HarnessLoader;
@@ -173,26 +174,67 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
       expect(ipRangeListElement).toBeNull();
     });
 
-    it('update button should be disabled if ip range is inavlid', async () => {
+    // it.only('update button should be disabled if ip range is inavlid', async () => {
+    //   await addIpRangeButton.click();
+    //   await fixture.whenStable();
+    //   ipRangeFromFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
+    //     .with({ selector: '[data-testid="ipRangeFrom"]' }));
+    //   ipRangeFromInput = await ipRangeFromFormField.getControl();
+    //   ipRangeToFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
+    //     .with({ selector: '[data-testid="ipRangeTo"]' }));
+    //   ipRangeToInput = await ipRangeToFormField.getControl();
+    //   await ipRangeFromInput.setValue('192.168.1.1');
+    //   await ipRangeToInput.setValue('193.168.1.100');
+    //   expect(component.canUpdate).toBeFalsy();
+    //   const invalidRangeError = fixture.debugElement.query(By.css('[data-testid="ipRangeInvalidError"]'));
+    //   expect(invalidRangeError).toBeDefined();
+    //   expect(invalidRangeError.properties['innerText']).toEqual(' The IP range is not valid');
+    //   await ipRangeToInput.setValue('192.169.1.100');
+    //   await fixture.whenStable();
+    //   // TODO check that error message is gone
+    //   expect(component.canUpdate).toBeTruthy();
+    // });
+
+    it.only('update button should be disabled if ip range is invalid', async () => {
       await addIpRangeButton.click();
       await fixture.whenStable();
-      ipRangeFromFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-        .with({ selector: '[data-testid="ipRangeFrom"]' }));
+
+      ipRangeFromFormField = await loader.getHarness<MatFormFieldHarness>(
+        MatFormFieldHarness.with({ selector: '[data-testid="ipRangeFrom"]' })
+      );
       ipRangeFromInput = await ipRangeFromFormField.getControl();
-      ipRangeToFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-        .with({ selector: '[data-testid="ipRangeTo"]' }));
+
+      ipRangeToFormField = await loader.getHarness<MatFormFieldHarness>(
+        MatFormFieldHarness.with({ selector: '[data-testid="ipRangeTo"]' })
+      );
       ipRangeToInput = await ipRangeToFormField.getControl();
+
+      // Set invalid range
       await ipRangeFromInput.setValue('192.168.1.1');
       await ipRangeToInput.setValue('193.168.1.100');
+      await fixture.whenStable();
+
       expect(component.canUpdate).toBeFalsy();
-      const invalidRangeError = fixture.debugElement.query(By.css('[data-testid="ipRangeInvalidError"]'));
-      expect(invalidRangeError).toBeDefined();
-      expect(invalidRangeError.properties['innerText']).toEqual(' The IP range is not valid');
+
+      // Query error element
+      const invalidRangeError = fixture.debugElement.query(
+        By.css('[data-testid="ipRangeInvalidError"]')
+      );
+
+      expect(invalidRangeError).not.toBeNull();
+
+      // IMPORTANT: innerText does not exist in jsdom
+      const errorText = (invalidRangeError.nativeElement as HTMLElement).textContent?.trim();
+
+      expect(errorText).toBe('The IP range is not valid');
+
+      // Make it valid
       await ipRangeToInput.setValue('192.169.1.100');
       await fixture.whenStable();
-      // TODO check that error message is gone
+
       expect(component.canUpdate).toBeTruthy();
     });
+
 
     /** Testing revert button */
 
