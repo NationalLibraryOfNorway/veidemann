@@ -77,6 +77,7 @@ public final class Controller implements AutoCloseable {
                 logServiceClient);
         scheduler = new CrawlJobScheduler();
 
+        userRoleMapper.start();
         scheduler.start();
         apiServer.start();
 
@@ -99,6 +100,13 @@ public final class Controller implements AutoCloseable {
 
     @Override
     public void close() {
+        if (userRoleMapper != null) {
+            try {
+                userRoleMapper.close();
+            } catch (Exception e) {
+                LOG.warn("Error closing userRoleMapper", e);
+            }
+        }
         // close in reverse startup order, guarding nulls
         if (scheduler != null) {
             try {

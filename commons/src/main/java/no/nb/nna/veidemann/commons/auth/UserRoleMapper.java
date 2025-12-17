@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class UserRoleMapper {
+public class UserRoleMapper implements AutoCloseable{
     private static final Logger LOG = LoggerFactory.getLogger(UserRoleMapper.class);
 
     private static final ScheduledExecutorService updaterService = Executors.newSingleThreadScheduledExecutor();
@@ -47,10 +47,18 @@ public class UserRoleMapper {
 
     Lock roleUpdateLock = new ReentrantLock();
 
-    public UserRoleMapper() {
+    public UserRoleMapper() {}
+
+    public void start() {
         updaterService.scheduleAtFixedRate(() -> {
             updateRoleMappings();
         }, 0, 60, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void close() throws Exception {
+        updaterService.shutdown();
+        updaterService.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     public Collection<Role> getRolesForUser(String email, Collection<String> groups, Collection<Role> roles) {
