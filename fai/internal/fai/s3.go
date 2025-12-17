@@ -81,6 +81,9 @@ func NewS3Uploader(options ...s3Option) (*s3options, error) {
 
 // Upload uploads the file at filePath to S3.
 func (f *s3options) Upload(ctx context.Context, filePath string) (minio.UploadInfo, error) {
+	f.client.TraceOn(os.Stdout)
+	defer f.client.TraceOff()
+
 	// Calculate the MD5 checksum of the file
 	md5sum, err := calculateMD5(filePath)
 	if err != nil {
