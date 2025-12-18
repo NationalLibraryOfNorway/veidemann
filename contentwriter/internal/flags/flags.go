@@ -30,6 +30,10 @@ func ParseFlags() (Options, error) {
 
 	flags.String("interface", "", "interface the contentwriter api listens to. No value means all interfaces.")
 	flags.Int("port", 8080, "port the contentwriter listens to.")
+
+	flags.Int("max-receive-message-size", 16*1024*1024, "maximum gRPC receive message size in bytes")
+	flags.Int("max-send-message-size", 16*1024*1024, "maximum gRPC send message size in bytes")
+
 	flags.String("hostname", "", "")
 	flags.String("warc-dir", "", "")
 	flags.String("warc-version", "1.1", "which WARC version to use for generated records. Allowed values: 1.0, 1.1")
@@ -82,6 +86,14 @@ type Options struct {
 
 func (o Options) HostName() string {
 	return viper.GetString("hostname")
+}
+
+func (o Options) MaxReceiveMessageSize() int {
+	return viper.GetInt("max-receive-message-size")
+}
+
+func (o Options) MaxSendMessageSize() int {
+	return viper.GetInt("max-send-message-size")
 }
 
 func (o Options) WarcDir() string {

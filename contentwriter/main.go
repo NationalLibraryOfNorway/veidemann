@@ -77,15 +77,22 @@ func run() error {
 		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
 	}
 
+	if opts.MaxReceiveMessageSize() > 0 {
+		grpcServerOptions = append(grpcServerOptions, grpc.MaxRecvMsgSize(opts.MaxReceiveMessageSize()))
+	}
+	if opts.MaxSendMessageSize() > 0 {
+		grpcServerOptions = append(grpcServerOptions, grpc.MaxSendMsgSize(opts.MaxSendMessageSize()))
+	}
+
 	var uploader server.Uploader
 
 	if opts.S3Address() != "" && opts.S3BucketName() != "" {
 		uploader, err = upload.NewS3Uploader(
 			upload.WithS3Address(opts.S3Address()),
+			upload.WithS3BucketName(opts.S3BucketName()),
 			upload.WithS3AccessKeyID(opts.S3AccessKeyID()),
 			upload.WithS3SecretAccessKey(opts.S3SecretAccessKey()),
 			upload.WithS3Token(opts.S3Token()),
-			upload.WithS3BucketName(opts.S3BucketName()),
 			upload.WithSecure(opts.S3Secure()),
 		)
 		if err != nil {
