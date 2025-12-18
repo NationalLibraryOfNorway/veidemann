@@ -28,7 +28,7 @@ spec:
             claimName: warcs
       containers:
         - name: contentwriter
-          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.3.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.4.1
           ports:
             - name: grpc
               containerPort: 8082
