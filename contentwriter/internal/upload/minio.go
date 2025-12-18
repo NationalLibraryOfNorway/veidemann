@@ -80,7 +80,7 @@ func NewS3Uploader(opts ...func(*options)) (*options, error) {
 }
 
 // Upload uploads the file at filePath to S3.
-func (f *options) Upload(ctx context.Context, filePath string, md5sum string) (any, error) {
+func (f *options) Upload(ctx context.Context, filePath string, md5sum string) (minio.UploadInfo, error) {
 	var options minio.PutObjectOptions
 	if md5sum != "" {
 		options.UserMetadata = map[string]string{"md5": md5sum}

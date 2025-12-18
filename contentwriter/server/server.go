@@ -66,8 +66,7 @@ func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteS
 				return status.Errorf(codes.Unknown, "failed to write payload: %v", err)
 			}
 		case *contentwriterV1.WriteRequest_Cancel:
-			log.Trace().Msgf("Got API request %T", v)
-			log.Debug().Str("reason", v.Cancel).Msg("Write request cancelled")
+			log.Trace().Str("type", v.Cancel).Msgf("Got API request %T", v)
 			return stream.SendAndClose(new(contentwriterV1.WriteReply))
 		default:
 			return status.Errorf(codes.InvalidArgument, "invalid write request: %v", v)
@@ -75,12 +74,12 @@ func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteS
 	}
 
 	if err := ctx.validateSession(); err != nil {
-		log.Warn().Err(err).Msg("Validate session")
+		log.Error().Err(err).Msg("Validation failed")
 		return status.Errorf(codes.Unknown, "validation failed: %v", err)
 	}
 
 	records := make([]gowarc.WarcRecord, len(ctx.records))
-	for i := 0; i < len(records); i++ {
+	for i := range records {
 		records[i] = ctx.records[int32(i)]
 	}
 	writer := s.warcWriterRegistry.GetWarcWriter(ctx.collectionConfig, ctx.meta.RecordMeta[0])

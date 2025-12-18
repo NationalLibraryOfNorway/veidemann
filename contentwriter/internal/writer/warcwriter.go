@@ -153,7 +153,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 			continue
 		}
 		if crawledContent == nil {
-			log.Debug().
+			log.Trace().
 				Str("collection", collection).
 				Str("digest", digest).
 				Msg("No crawled content found")
@@ -198,7 +198,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 			log.Err(parseErr).Str("warcRecordId", warcRecordId).Msgf("failed to parse %s as UUID at %s:%d", gowarc.WarcRecordID, res.FileName, res.FileOffset)
 		}
 
-		log.Debug().Msgf("Written record num %d: WarcId: %s, StorageRef: %s:%d", recNum, warcId.String(), res.FileName, res.FileOffset)
+		log.Trace().Msgf("Written record num %d: WarcId: %s, StorageRef: %s:%d", recNum, warcId.String(), res.FileName, res.FileOffset)
 
 		if res.Err == nil && parseErr == nil && revisitKey != "" {
 			writeErr := func() error {
@@ -215,7 +215,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 				return ww.contentAdapter.WriteCrawledContent(context.TODO(), collection, ttl, cr)
 			}()
 			if writeErr != nil {
-				log.Warn().Err(writeErr).
+				log.Error().Err(writeErr).
 					Str("collection", collection).
 					Str("digest", revisitKey).
 					Msg("Failed to writecrawled content")
@@ -272,7 +272,7 @@ func (ww *warcWriter) toRevisitRecord(recordNum int32, record gowarc.WarcRecord,
 }
 
 func (ww *warcWriter) initFileWriter() {
-	log.Debug().Msgf("Initializing filewriter with dir: '%s' and file prefix: '%s'", ww.warcDir, ww.filePrefix)
+	log.Trace().Msgf("Initializing filewriter with dir: '%s' and file prefix: '%s'", ww.warcDir, ww.filePrefix)
 	namer := &gowarc.PatternNameGenerator{
 		Directory: ww.warcDir,
 		Prefix:    ww.filePrefix,
@@ -295,13 +295,13 @@ func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPo
 			defer ww.lock.Unlock()
 			ww.filePrefix = prefix
 			if err := ww.fileWriter.Close(); err != nil {
-				log.Err(err).Msg("failed closing file writer")
+				log.Error().Err(err).Msg("failed closing file writer")
 			}
 			ww.fileWriter = nil
 			ww.initFileWriter()
 		} else {
 			if err := ww.fileWriter.Rotate(); err != nil {
-				log.Err(err).Msg("failed rotating file")
+				log.Error().Err(err).Msg("failed rotating file")
 			}
 		}
 

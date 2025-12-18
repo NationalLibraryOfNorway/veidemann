@@ -26,7 +26,7 @@ import (
 )
 
 type Uploader interface {
-	Upload(ctx context.Context, filePath string, md5sum string) (any, error)
+	Upload(ctx context.Context, filePath string, md5sum string) (minio.UploadInfo, error)
 }
 
 type App struct {
@@ -212,29 +212,26 @@ func finalize(ctx context.Context, filePath string, uploader Uploader) error {
 		return err
 	}
 	start := time.Now()
-	maybeInfo, err := uploader.Upload(ctx, filePath, md5sum)
+	info, err := uploader.Upload(ctx, filePath, md5sum)
 	if err != nil {
-		return fmt.Errorf("failed to upload: %s: %w", filePath, err)
+		return fmt.Errorf("failed to upload file: %s: %w", filePath, err)
 	}
 
 	metrics.Duration(time.Since(start))
 
-	info, ok := maybeInfo.(minio.UploadInfo)
-	if ok {
-		metrics.Size(info.Size)
+	metrics.Size(info.Size)
 
-		log.Info().
-			Str("key", info.Key).
-			Int64("size", info.Size).
-			Str("etag", info.ETag).
-			Str("duration", time.Since(start).String()).
-			Str("md5", md5sum).
-			Msg("Uploaded file")
-	}
+	log.Debug().
+		Str("key", info.Key).
+		Int64("size", info.Size).
+		Str("etag", info.ETag).
+		Str("duration", time.Since(start).String()).
+		Str("md5", md5sum).
+		Msg("Uploaded file")
 
 	err = os.Remove(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to remove file: %s: %w", filePath, err)
+		return fmt.Errorf("failed to remove file after upload: %s: %w", filePath, err)
 	}
 
 	return nil
