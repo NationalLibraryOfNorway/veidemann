@@ -7,6 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.0
 	github.com/google/uuid v1.6.0
+	github.com/minio/minio-go/v7 v7.0.97
 	github.com/nlnwa/gowarc v1.6.0
 	github.com/opentracing-contrib/go-grpc v0.1.2
 	github.com/opentracing/opentracing-go v1.2.0
@@ -19,6 +20,18 @@ require (
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
+)
+
+require (
+	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/klauspost/crc32 v1.3.0 // indirect
+	github.com/minio/crc64nvme v1.1.0 // indirect
+	github.com/minio/md5-simd v1.1.2 // indirect
+	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/rs/xid v1.6.0 // indirect
+	github.com/tinylib/msgp v1.3.0 // indirect
 )
 
 require (

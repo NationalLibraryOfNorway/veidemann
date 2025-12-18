@@ -22,26 +22,34 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
+	"github.com/nlnwa/gowarc"
+	"github.com/rs/zerolog/log"
 )
 
+type WarcWriter interface {
+	Write(meta *contentwriterV1.WriteRequestMeta, record ...gowarc.WarcRecord) (*contentwriterV1.WriteReply, error)
+	Close() error
+}
+
 type warcWriterRegistry struct {
-	settings       WriterOptions
+	writerOpts     writer.Options
 	dbAdapter      database.ConfigAdapter
 	contentAdapter database.ContentAdapter
-	warcWriters    map[string]*warcWriter
+	warcWriters    map[string]WarcWriter
 	lock           sync.Mutex
 }
 
-func newWarcWriterRegistry(settings WriterOptions, db database.ConfigAdapter, content database.ContentAdapter) *warcWriterRegistry {
+func newWarcWriterRegistry(writerOpts writer.Options, db database.ConfigAdapter, content database.ContentAdapter) *warcWriterRegistry {
 	return &warcWriterRegistry{
-		settings:       settings,
-		warcWriters:    make(map[string]*warcWriter),
+		writerOpts:     writerOpts,
+		warcWriters:    make(map[string]WarcWriter),
 		dbAdapter:      db,
 		contentAdapter: content,
 	}
 }
 
-func (w *warcWriterRegistry) GetWarcWriter(collection *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
+func (w *warcWriterRegistry) GetWarcWriter(collection *configV1.ConfigObject, recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) WarcWriter {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
@@ -49,16 +57,19 @@ func (w *warcWriterRegistry) GetWarcWriter(collection *configV1.ConfigObject, re
 	if ww, ok := w.warcWriters[key]; ok {
 		return ww
 	}
-	ww := newWarcWriter(w.settings, w.dbAdapter, w.contentAdapter, collection, recordMeta)
+	ww := writer.New(w.writerOpts, w.dbAdapter, w.contentAdapter, collection, recordMeta)
 	w.warcWriters[key] = ww
 	return ww
 }
 
-func (w *warcWriterRegistry) Shutdown() {
+func (w *warcWriterRegistry) Close() {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
 	for _, ww := range w.warcWriters {
-		ww.Shutdown()
+		err := ww.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to close WarcWriter")
+		}
 	}
 }

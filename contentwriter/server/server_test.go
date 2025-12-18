@@ -30,6 +30,7 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/go-redis/redismock/v9"
 	"github.com/nlnwa/gowarc"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ type serverAndClient struct {
 	server     *grpc.Server
 	clientConn *grpc.ClientConn
 	client     contentwriterV1.ContentWriterClient
-	service    *ContentWriterService
+	registry   *warcWriterRegistry
 }
 
 func newServerAndClient(settings *flags.Mock) serverAndClient {
@@ -79,20 +80,21 @@ func newServerAndClient(settings *flags.Mock) serverAndClient {
 	lis := bufconn.Listen(bufSize)
 
 	rdb, mock := redismock.NewClientMock()
+	warcWriterRegistry := newWarcWriterRegistry(
+		writer.Options{
+			WarcDir:     settings.WarcDir(),
+			WarcVersion: gowarc.V1_1,
+			Flush:       true,
+			PoolSize:    settings.WarcWriterPoolSize(),
+		},
+		database.NewConfigCache(dbMockConn, time.Duration(1)),
+		&database.CrawledContentHashCache{
+			Client: rdb,
+		},
+	)
 	contentWriterService := &ContentWriterService{
-		configCache: database.NewConfigCache(dbMockConn, time.Duration(1)),
-		warcWriterRegistry: newWarcWriterRegistry(
-			WriterOptions{
-				WarcDir:            settings.WarcDir(),
-				WarcWriterPoolSize: settings.WarcWriterPoolSize(),
-				WarcVersion:        gowarc.V1_1,
-				FlushRecord:        true,
-			},
-			database.NewConfigCache(dbMockConn, time.Duration(1)),
-			&database.CrawledContentHashCache{
-				Client: rdb,
-			},
-		),
+		configCache:        database.NewConfigCache(dbMockConn, time.Duration(1)),
+		warcWriterRegistry: warcWriterRegistry,
 	}
 
 	grpcServer := grpc.NewServer()
@@ -120,14 +122,14 @@ func newServerAndClient(settings *flags.Mock) serverAndClient {
 		dbMock:     dbMockConn.GetMock(),
 		redisMock:  mock,
 		lis:        lis,
-		service:    contentWriterService,
+		registry:   warcWriterRegistry,
 	}
 }
 
 func (s serverAndClient) close() {
-	s.clientConn.Close() //nolint
+	_ = s.clientConn.Close()
 	s.server.GracefulStop()
-	s.service.Close()
+	s.registry.Close()
 }
 
 type writeRequests []*contentwriterV1.WriteRequest
@@ -249,7 +251,7 @@ var writeReq2 = writeRequests{
 func TestContentWriterService_Write(t *testing.T) {
 	testSettings := flags.NewMock(t.TempDir(), 1)
 
-	now = func() time.Time {
+	writer.Now = func() time.Time {
 		return time.Date(2000, 10, 10, 2, 59, 59, 0, time.UTC)
 	}
 
@@ -327,7 +329,7 @@ func TestContentWriterService_Write(t *testing.T) {
 func TestContentWriterService_Write_Compressed(t *testing.T) {
 	testSettings := flags.NewMock(t.TempDir(), 1)
 
-	now = func() time.Time {
+	writer.Now = func() time.Time {
 		return time.Date(2000, 10, 10, 2, 59, 59, 0, time.UTC)
 	}
 
@@ -406,7 +408,7 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 func TestContentWriterService_WriteRevisit(t *testing.T) {
 	testSettings := flags.NewMock(t.TempDir(), 1)
 
-	now = func() time.Time {
+	writer.Now = func() time.Time {
 		return time.Date(2000, 10, 10, 2, 59, 59, 0, time.UTC)
 	}
 

@@ -33,13 +33,7 @@ type ContentWriterService struct {
 	recordOptions      []gowarc.WarcRecordOption
 }
 
-func (s *ContentWriterService) Close() {
-	s.warcWriterRegistry.Shutdown()
-}
-
 func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteServer) (err error) {
-	ScopechecksTotal.Inc()
-	//telemetry.ScopecheckResponseTotal.With(prometheus.Labels{"code": strconv.Itoa(int(result.ExcludeReason))}).Inc()
 	ctx := newWriteSessionContext(s.configCache, s.recordOptions)
 	defer ctx.cancelSession()
 	defer func() {

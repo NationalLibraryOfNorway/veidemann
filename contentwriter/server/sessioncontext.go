@@ -111,7 +111,7 @@ func (s *writeSessionContext) validateSession() error {
 			return fmt.Errorf("missing metadata for record num: %d", k)
 		}
 
-		rt := ToGowarcRecordType(recordMeta.Type)
+		rt := toGowarcRecordType(recordMeta.Type)
 		rb.SetRecordType(rt)
 		rb.AddWarcHeader(gowarc.WarcTargetURI, s.meta.TargetUri)
 		rb.AddWarcHeader(gowarc.WarcIPAddress, s.meta.IpAddress)
@@ -141,5 +141,28 @@ func (s *writeSessionContext) validateSession() error {
 func (s *writeSessionContext) cancelSession() {
 	for _, rb := range s.recordBuilders {
 		_ = rb.Close()
+	}
+}
+
+func toGowarcRecordType(recordType contentwriterV1.RecordType) gowarc.RecordType {
+	switch recordType {
+	case contentwriterV1.RecordType_WARCINFO:
+		return gowarc.Warcinfo
+	case contentwriterV1.RecordType_RESPONSE:
+		return gowarc.Response
+	case contentwriterV1.RecordType_RESOURCE:
+		return gowarc.Resource
+	case contentwriterV1.RecordType_REQUEST:
+		return gowarc.Request
+	case contentwriterV1.RecordType_METADATA:
+		return gowarc.Metadata
+	case contentwriterV1.RecordType_REVISIT:
+		return gowarc.Revisit
+	case contentwriterV1.RecordType_CONVERSION:
+		return gowarc.Conversion
+	case contentwriterV1.RecordType_CONTINUATION:
+		return gowarc.Continuation
+	default:
+		return 0
 	}
 }

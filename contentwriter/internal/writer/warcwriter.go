@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package server
+package writer
 
 import (
 	"context"
@@ -33,66 +33,76 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// now is a function so that tests can override the clock.
-var now = time.Now
+// Now is a function so that tests can override the clock.
+var Now = time.Now
 
 const warcFileScheme = "warcfile"
 
 type warcWriter struct {
-	opts             WriterOptions
-	collectionConfig *configV1.ConfigObject
-	subCollection    configV1.Collection_SubCollectionType
-	filePrefix       string
-	fileWriter       *gowarc.WarcFileWriter
-	configAdapter    database.ConfigAdapter
-	contentAdapter   database.ContentAdapter
-	timer            *time.Timer
-	done             chan interface{}
-	lock             sync.Mutex
-	revisitProfile   string
+	fileWriterOpts []gowarc.WarcFileWriterOption
+	collection     *configV1.ConfigObject
+	subCollection  configV1.Collection_SubCollectionType
+	filePrefix     string
+	warcDir        string
+	warcVersion    *gowarc.WarcVersion
+	fileWriter     *gowarc.WarcFileWriter
+	configAdapter  database.ConfigAdapter
+	contentAdapter database.ContentAdapter
+	timer          *time.Timer
+	done           chan struct{}
+	lock           sync.Mutex
+	revisitProfile string
 }
 
-type WriterOptions struct {
-	WarcDir            string
-	WarcVersion        *gowarc.WarcVersion
-	WarcWriterPoolSize int
-	FlushRecord        bool
+type Options struct {
+	WarcVersion           *gowarc.WarcVersion
+	WarcDir               string
+	Flush                 bool
+	PoolSize              int
+	AfterFileCreationHook func(filename string, size int64, warcInfoId string) error
 }
 
-func newWarcWriter(
-	settings WriterOptions,
+func New(
+	opts Options,
 	config database.ConfigAdapter,
 	content database.ContentAdapter,
 	collection *configV1.ConfigObject,
 	recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
 
-	collectionConfig := collection.GetCollection()
+	coll := collection.GetCollection()
+
 	ww := &warcWriter{
-		opts:             settings,
-		configAdapter:    config,
-		contentAdapter:   content,
-		collectionConfig: collection,
-		subCollection:    recordMeta.GetSubCollection(),
-		filePrefix:       createFilePrefix(collection.GetMeta().GetName(), recordMeta.GetSubCollection(), now(), collection.GetCollection().GetCollectionDedupPolicy()),
+		warcVersion:    opts.WarcVersion,
+		warcDir:        opts.WarcDir,
+		configAdapter:  config,
+		contentAdapter: content,
+		collection:     collection,
+		subCollection:  recordMeta.GetSubCollection(),
+		revisitProfile: versionToRevisitProfile(opts.WarcVersion),
+		filePrefix:     CreateFilePrefix(collection.GetMeta().GetName(), recordMeta.GetSubCollection(), Now(), collection.GetCollection().GetCollectionDedupPolicy()),
 	}
-	switch settings.WarcVersion {
-	case gowarc.V1_1:
-		ww.revisitProfile = gowarc.ProfileIdenticalPayloadDigestV1_1
-	case gowarc.V1_0:
-		ww.revisitProfile = gowarc.ProfileIdenticalPayloadDigestV1_0
-	default:
-		panic(fmt.Sprintf("unsupported WARC version: '%s'", settings.WarcVersion))
+
+	ww.fileWriterOpts = []gowarc.WarcFileWriterOption{
+		gowarc.WithCompression(coll.GetCompress()),
+		gowarc.WithMaxFileSize(coll.GetFileSize()),
+		gowarc.WithWarcInfoFunc(ww.warcInfoGenerator),
+		gowarc.WithAddWarcConcurrentToHeader(true),
+		gowarc.WithFlush(opts.Flush),
+		gowarc.WithMaxConcurrentWriters(opts.PoolSize),
+		gowarc.WithRecordOptions(gowarc.WithVersion(ww.warcVersion)),
+		gowarc.WithAfterFileCreationHook(opts.AfterFileCreationHook),
 	}
+
 	ww.initFileWriter()
 
-	rotationPolicy := collectionConfig.GetFileRotationPolicy()
-	dedupPolicy := collectionConfig.GetCollectionDedupPolicy()
+	rotationPolicy := coll.GetFileRotationPolicy()
+	dedupPolicy := coll.GetCollectionDedupPolicy()
 	if dedupPolicy != configV1.Collection_NONE && dedupPolicy < rotationPolicy {
 		rotationPolicy = dedupPolicy
 	}
-	if d, ok := timeToNextRotation(now(), rotationPolicy); ok {
+	if d, ok := TimeToNextRotation(Now(), rotationPolicy); ok {
 		ww.timer = time.NewTimer(d)
-		ww.done = make(chan interface{})
+		ww.done = make(chan struct{})
 		go func() {
 			for ww.waitForTimer(rotationPolicy) {
 				// wait
@@ -111,7 +121,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 	ww.lock.Lock()
 	defer ww.lock.Unlock()
 
-	dedupPolicy := ww.collectionConfig.GetCollection().GetCollectionDedupPolicy()
+	dedupPolicy := ww.collection.GetCollection().GetCollectionDedupPolicy()
 	ttl := timeToLive(dedupPolicy)
 	collection := ww.filePrefix[:len(ww.filePrefix)-1]
 	revisitKeys := make([]string, len(record))
@@ -216,7 +226,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 		collectionFinalName := ww.filePrefix[:len(ww.filePrefix)-1]
 		recordMeta[recNum] = &contentwriterV1.WriteResponseMeta_RecordMeta{
 			RecordNum:           recNum,
-			Type:                FromGowarcRecordType(record[i].Type()),
+			Type:                fromGowarcRecordType(record[i].Type()),
 			WarcId:              warcId.String(),
 			StorageRef:          storageRef,
 			BlockDigest:         rec.WarcHeader().Get(gowarc.WarcBlockDigest),
@@ -262,23 +272,14 @@ func (ww *warcWriter) toRevisitRecord(recordNum int32, record gowarc.WarcRecord,
 }
 
 func (ww *warcWriter) initFileWriter() {
-	log.Debug().Msgf("Initializing filewriter with dir: '%s' and file prefix: '%s'", ww.opts.WarcDir, ww.filePrefix)
-	c := ww.collectionConfig.GetCollection()
+	log.Debug().Msgf("Initializing filewriter with dir: '%s' and file prefix: '%s'", ww.warcDir, ww.filePrefix)
 	namer := &gowarc.PatternNameGenerator{
-		Directory: ww.opts.WarcDir,
+		Directory: ww.warcDir,
 		Prefix:    ww.filePrefix,
 	}
-
-	opts := []gowarc.WarcFileWriterOption{
-		gowarc.WithCompression(c.GetCompress()),
-		gowarc.WithMaxFileSize(c.GetFileSize()),
-		gowarc.WithFileNameGenerator(namer),
-		gowarc.WithWarcInfoFunc(ww.warcInfoGenerator),
-		gowarc.WithMaxConcurrentWriters(ww.opts.WarcWriterPoolSize),
-		gowarc.WithAddWarcConcurrentToHeader(true),
-		gowarc.WithFlush(ww.opts.FlushRecord),
-		gowarc.WithRecordOptions(gowarc.WithVersion(ww.opts.WarcVersion)),
-	}
+	opts := make([]gowarc.WarcFileWriterOption, len(ww.fileWriterOpts))
+	copy(opts, ww.fileWriterOpts)
+	opts = append(opts, gowarc.WithFileNameGenerator(namer))
 
 	ww.fileWriter = gowarc.NewWarcFileWriter(opts...)
 }
@@ -287,8 +288,8 @@ func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPo
 	select {
 	case <-ww.done:
 	case <-ww.timer.C:
-		c := ww.collectionConfig.GetCollection()
-		prefix := createFilePrefix(ww.collectionConfig.GetMeta().GetName(), ww.subCollection, now(), c.GetCollectionDedupPolicy())
+		c := ww.collection.GetCollection()
+		prefix := CreateFilePrefix(ww.collection.GetMeta().GetName(), ww.subCollection, Now(), c.GetCollectionDedupPolicy())
 		if prefix != ww.filePrefix {
 			ww.lock.Lock()
 			defer ww.lock.Unlock()
@@ -304,7 +305,7 @@ func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPo
 			}
 		}
 
-		if d, ok := timeToNextRotation(now(), rotationPolicy); ok {
+		if d, ok := TimeToNextRotation(Now(), rotationPolicy); ok {
 			ww.timer.Reset(d)
 		}
 		return true
@@ -319,16 +320,14 @@ func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPo
 	return false
 }
 
-func (ww *warcWriter) Shutdown() {
+func (ww *warcWriter) Close() error {
 	if ww.timer != nil {
 		close(ww.done)
 	}
-	if err := ww.fileWriter.Close(); err != nil {
-		log.Err(err).Msg("failed closing file writer")
-	}
+	return ww.fileWriter.Close()
 }
 
-func timeToNextRotation(now time.Time, p configV1.Collection_RotationPolicy) (time.Duration, bool) {
+func TimeToNextRotation(now time.Time, p configV1.Collection_RotationPolicy) (time.Duration, bool) {
 	var t2 time.Time
 
 	switch p {
@@ -348,7 +347,7 @@ func timeToNextRotation(now time.Time, p configV1.Collection_RotationPolicy) (ti
 	return d, true
 }
 
-func createFileRotationKey(now time.Time, p configV1.Collection_RotationPolicy) string {
+func CreateFileRotationKey(now time.Time, p configV1.Collection_RotationPolicy) string {
 	switch p {
 	case configV1.Collection_HOURLY:
 		return now.Format("2006010215")
@@ -363,12 +362,12 @@ func createFileRotationKey(now time.Time, p configV1.Collection_RotationPolicy) 
 	}
 }
 
-func createFilePrefix(collectionName string, subCollection configV1.Collection_SubCollectionType, ts time.Time, dedupPolicy configV1.Collection_RotationPolicy) string {
+func CreateFilePrefix(collectionName string, subCollection configV1.Collection_SubCollectionType, ts time.Time, dedupPolicy configV1.Collection_RotationPolicy) string {
 	if subCollection != configV1.Collection_UNDEFINED {
 		collectionName += "_" + subCollection.String()
 	}
 
-	dedupRotationKey := createFileRotationKey(ts, dedupPolicy)
+	dedupRotationKey := CreateFileRotationKey(ts, dedupPolicy)
 	if dedupRotationKey == "" {
 		return collectionName + "-"
 	} else {
@@ -409,4 +408,15 @@ func timeToLive(p configV1.Collection_RotationPolicy) time.Duration {
 	}
 
 	return next.Sub(now)
+}
+
+func versionToRevisitProfile(version *gowarc.WarcVersion) string {
+	switch version {
+	case gowarc.V1_1:
+		return gowarc.ProfileIdenticalPayloadDigestV1_1
+	case gowarc.V1_0:
+		return gowarc.ProfileIdenticalPayloadDigestV1_0
+	default:
+		return ""
+	}
 }

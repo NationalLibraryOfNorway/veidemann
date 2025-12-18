@@ -22,6 +22,7 @@ import (
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/nlnwa/gowarc"
 	"github.com/stretchr/testify/assert"
 )
@@ -58,7 +59,7 @@ func Test_timeToNextRotation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := timeToNextRotation(tt.args.now, tt.args.p)
+			got, got1 := writer.TimeToNextRotation(tt.args.now, tt.args.p)
 			if got != tt.want {
 				t.Errorf("timeToNextRotation() got = %v, want %v", got, tt.want)
 			}
@@ -100,7 +101,7 @@ func Test_createFileRotationKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := createFileRotationKey(tt.args.now, tt.args.p); got != tt.want {
+			if got := writer.CreateFileRotationKey(tt.args.now, tt.args.p); got != tt.want {
 				t.Errorf("createFileRotationKey() = %v, want %v", got, tt.want)
 			}
 		})
@@ -110,7 +111,7 @@ func Test_createFileRotationKey(t *testing.T) {
 func Test_getFilename(t *testing.T) {
 	ng := &gowarc.PatternNameGenerator{
 		Directory: "",
-		Prefix:    createFilePrefix("foo", configV1.Collection_UNDEFINED, time.Now(), configV1.Collection_NONE),
+		Prefix:    writer.CreateFilePrefix("foo", configV1.Collection_UNDEFINED, time.Now(), configV1.Collection_NONE),
 		Serial:    0,
 	}
 	d1, f1 := ng.NewWarcfileName()
@@ -122,7 +123,7 @@ func Test_getFilename(t *testing.T) {
 
 	ng = &gowarc.PatternNameGenerator{
 		Directory: "",
-		Prefix:    createFilePrefix("foo", configV1.Collection_UNDEFINED, time.Now(), configV1.Collection_YEARLY),
+		Prefix:    writer.CreateFilePrefix("foo", configV1.Collection_UNDEFINED, time.Now(), configV1.Collection_YEARLY),
 		Serial:    0,
 	}
 	d1, f1 = ng.NewWarcfileName()
@@ -134,7 +135,7 @@ func Test_getFilename(t *testing.T) {
 
 	ng = &gowarc.PatternNameGenerator{
 		Directory: "myDir",
-		Prefix:    createFilePrefix("foo", configV1.Collection_DNS, time.Now(), configV1.Collection_MONTHLY),
+		Prefix:    writer.CreateFilePrefix("foo", configV1.Collection_DNS, time.Now(), configV1.Collection_MONTHLY),
 		Serial:    0,
 	}
 	d1, f1 = ng.NewWarcfileName()
@@ -146,7 +147,7 @@ func Test_getFilename(t *testing.T) {
 
 	ng = &gowarc.PatternNameGenerator{
 		Directory: "myDir",
-		Prefix:    createFilePrefix("foo", configV1.Collection_DNS, time.Now(), configV1.Collection_DAILY),
+		Prefix:    writer.CreateFilePrefix("foo", configV1.Collection_DNS, time.Now(), configV1.Collection_DAILY),
 		Serial:    0,
 	}
 	d1, f1 = ng.NewWarcfileName()

@@ -14,6 +14,8 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/upload"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/server"
 	"github.com/nlnwa/gowarc"
 	otgrpc "github.com/opentracing-contrib/go-grpc"
@@ -35,9 +37,21 @@ var (
 )
 
 func main() {
+	err := run()
+	if err != nil {
+		log.Error().Err(err).Msg("Bye")
+		os.Exit(1)
+	}
+	log.Info().Msg("Bye")
+}
+
+func run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	opts, err := flags.ParseFlags()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse flags")
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
 	initLogging(opts.LogLevel(), opts.LogFormatter())
@@ -49,13 +63,6 @@ func main() {
 
 	log.Info().Msgf("%s version %s, commit %s, date %s", name, version, commit, date)
 
-	err = run(opts)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Goodbye")
-	}
-}
-
-func run(opts flags.Options) error {
 	recordOpts := []gowarc.WarcRecordOption{
 		gowarc.WithBufferTmpDir(opts.WorkDir()),
 		gowarc.WithVersion(opts.WarcVersion()),
@@ -68,6 +75,22 @@ func run(opts flags.Options) error {
 	grpcServerOptions := []grpc.ServerOption{
 		grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer)),
 		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
+	}
+
+	var uploader server.Uploader
+
+	if opts.S3Address() != "" && opts.S3BucketName() != "" {
+		uploader, err = upload.NewS3Uploader(
+			upload.WithS3Address(opts.S3Address()),
+			upload.WithS3AccessKeyID(opts.S3AccessKeyID()),
+			upload.WithS3SecretAccessKey(opts.S3SecretAccessKey()),
+			upload.WithS3Token(opts.S3Token()),
+			upload.WithS3BucketName(opts.S3BucketName()),
+			upload.WithSecure(opts.S3Secure()),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create S3 uploader: %w", err)
+		}
 	}
 
 	app := &server.App{
@@ -90,17 +113,15 @@ func run(opts flags.Options) error {
 		},
 		RecordOptions: recordOpts,
 		GrpcOptions:   grpcServerOptions,
-		WriterOpts: server.WriterOptions{
-			WarcDir:            opts.WarcDir(),
-			WarcVersion:        opts.WarcVersion(),
-			WarcWriterPoolSize: opts.WarcWriterPoolSize(),
-			FlushRecord:        opts.FlushRecord(),
+		WriterOpts: writer.Options{
+			WarcDir:     opts.WarcDir(),
+			WarcVersion: opts.WarcVersion(),
+			Flush:       opts.FlushRecord(),
+			PoolSize:    opts.WarcWriterPoolSize(),
 		},
 		TelemetryAddr: fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort()),
+		Uploader:      uploader,
 	}
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	return app.Run(ctx)
 }

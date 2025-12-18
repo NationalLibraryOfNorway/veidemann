@@ -28,8 +28,8 @@ import (
 func ParseFlags() (Options, error) {
 	flags := pflag.CommandLine
 
-	flags.String("interface", "", "interface the browser controller api listens to. No value means all interfaces.")
-	flags.Int("port", 8080, "port the browser controller api listens to.")
+	flags.String("interface", "", "interface the contentwriter api listens to. No value means all interfaces.")
+	flags.Int("port", 8080, "port the contentwriter listens to.")
 	flags.String("hostname", "", "")
 	flags.String("warc-dir", "", "")
 	flags.String("warc-version", "1.1", "which WARC version to use for generated records. Allowed values: 1.0, 1.1")
@@ -56,11 +56,18 @@ func ParseFlags() (Options, error) {
 	flags.Int("redis-db", 1, "Redis database number")
 
 	flags.String("metrics-interface", "", "Interface for exposing metrics. Empty means all interfaces")
-	flags.Int("metrics-port", 9153, "Port for exposing metrics")
-	flags.String("metrics-path", "/metrics", "Path for exposing metrics")
+	pflag.String("metrics-address", ":9153", "address to expose metrics on")
+	pflag.String("metrics-path", "/metrics", "path to expose metrics on")
 
 	flags.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
 	flags.String("log-formatter", "logfmt", "log formatter, available values are logfmt and json")
+
+	pflag.String("s3-address", "localhost:9000", "s3 endpoint (address:port)")
+	pflag.String("s3-bucket-name", "", "name of bucket to upload files to")
+	pflag.String("s3-access-key-id", "", "access key ID")
+	pflag.String("s3-secret-access-key", "", "secret access key")
+	pflag.String("s3-token", "", "token to use for s3 authentication (optional)")
+	pflag.Bool("s3-secure", false, "use secure connection to S3 endpoint")
 
 	pflag.Parse()
 
@@ -197,4 +204,28 @@ func (o Options) RedisDb() int {
 
 func (o Options) RedisPassword() string {
 	return viper.GetString("redis-password")
+}
+
+func (o Options) S3Address() string {
+	return viper.GetString("s3-address")
+}
+
+func (o Options) S3BucketName() string {
+	return viper.GetString("s3-bucket-name")
+}
+
+func (o Options) S3AccessKeyID() string {
+	return viper.GetString("s3-access-key-id")
+}
+
+func (o Options) S3SecretAccessKey() string {
+	return viper.GetString("s3-secret-access-key")
+}
+
+func (o Options) S3Token() string {
+	return viper.GetString("s3-token")
+}
+
+func (o Options) S3Secure() bool {
+	return viper.GetBool("s3-secure")
 }

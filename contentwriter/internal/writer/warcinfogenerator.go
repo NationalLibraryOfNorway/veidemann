@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package server
+package writer
 
 import (
 	"fmt"
@@ -26,9 +26,9 @@ import (
 
 func (ww *warcWriter) warcInfoGenerator(recordBuilder gowarc.WarcRecordBuilder) error {
 	payload := &gowarc.WarcFields{}
-	payload.Set("format", fmt.Sprintf("WARC File Format %d.%d", ww.opts.WarcVersion.Major(), ww.opts.WarcVersion.Minor()))
-	payload.Set("collection", ww.collectionConfig.GetMeta().GetName())
-	payload.Set("description", ww.collectionConfig.GetMeta().GetDescription())
+	payload.Set("format", fmt.Sprintf("WARC File Format %d.%d", ww.warcVersion.Major(), ww.warcVersion.Minor()))
+	payload.Set("collection", ww.collection.GetMeta().GetName())
+	payload.Set("description", ww.collection.GetMeta().GetDescription())
 	if ww.subCollection != configV1.Collection_UNDEFINED {
 		payload.Set("subCollection", ww.subCollection.String())
 	}

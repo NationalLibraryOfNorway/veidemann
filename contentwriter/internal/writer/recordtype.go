@@ -14,37 +14,14 @@
  * limitations under the License.
  */
 
-package server
+package writer
 
 import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/nlnwa/gowarc"
 )
 
-func ToGowarcRecordType(recordType contentwriterV1.RecordType) gowarc.RecordType {
-	switch recordType {
-	case contentwriterV1.RecordType_WARCINFO:
-		return gowarc.Warcinfo
-	case contentwriterV1.RecordType_RESPONSE:
-		return gowarc.Response
-	case contentwriterV1.RecordType_RESOURCE:
-		return gowarc.Resource
-	case contentwriterV1.RecordType_REQUEST:
-		return gowarc.Request
-	case contentwriterV1.RecordType_METADATA:
-		return gowarc.Metadata
-	case contentwriterV1.RecordType_REVISIT:
-		return gowarc.Revisit
-	case contentwriterV1.RecordType_CONVERSION:
-		return gowarc.Conversion
-	case contentwriterV1.RecordType_CONTINUATION:
-		return gowarc.Continuation
-	default:
-		return 0
-	}
-}
-
-func FromGowarcRecordType(recordType gowarc.RecordType) contentwriterV1.RecordType {
+func fromGowarcRecordType(recordType gowarc.RecordType) contentwriterV1.RecordType {
 	switch recordType {
 	case gowarc.Warcinfo:
 		return contentwriterV1.RecordType_WARCINFO
