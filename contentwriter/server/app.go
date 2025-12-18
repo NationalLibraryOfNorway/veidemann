@@ -240,6 +240,7 @@ func finalize(ctx context.Context, filePath string, uploader Uploader) error {
 func mapLeftovers(u func(string), dir string) {
 	patterns := []string{
 		filepath.Join(dir, "*.open"),
+		filepath.Join(dir, "*.warc.gz"),
 	}
 
 	seen := map[string]struct{}{}
