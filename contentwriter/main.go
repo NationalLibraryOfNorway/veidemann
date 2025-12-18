@@ -119,7 +119,7 @@ func run() error {
 			Flush:       opts.FlushRecord(),
 			PoolSize:    opts.WarcWriterPoolSize(),
 		},
-		TelemetryAddr: fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort()),
+		TelemetryAddr: opts.MetricsAddress(),
 		Uploader:      uploader,
 	}
 

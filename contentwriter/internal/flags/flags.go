@@ -55,9 +55,7 @@ func ParseFlags() (Options, error) {
 	flags.Int("redis-port", 6379, "Redis port")
 	flags.Int("redis-db", 1, "Redis database number")
 
-	flags.String("metrics-interface", "", "Interface for exposing metrics. Empty means all interfaces")
 	pflag.String("metrics-address", ":9153", "address to expose metrics on")
-	pflag.String("metrics-path", "/metrics", "path to expose metrics on")
 
 	flags.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
 	flags.String("log-formatter", "logfmt", "log formatter, available values are logfmt and json")
@@ -178,16 +176,8 @@ func (o Options) DbCacheTTL() time.Duration {
 	return viper.GetDuration("db-cache-ttl")
 }
 
-func (o Options) MetricsInterface() string {
-	return viper.GetString("metrics-interface")
-}
-
-func (o Options) MetricsPort() int {
-	return viper.GetInt("metrics-port")
-}
-
-func (o Options) MetricsPath() string {
-	return viper.GetString("metrics-path")
+func (o Options) MetricsAddress() string {
+	return viper.GetString("metrics-address")
 }
 
 func (o Options) RedisHost() string {

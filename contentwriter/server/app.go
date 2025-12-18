@@ -71,6 +71,8 @@ func (app *App) Run(ctx context.Context) error {
 		return nil
 	})
 
+	log.Info().Str("address", app.TelemetryAddr).Msg("Telemetry server listening")
+
 	rethinkdb := database.NewRethinkDbConnection(app.DbOptions)
 	defer func() {
 		_ = rethinkdb.Close()
