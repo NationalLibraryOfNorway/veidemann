@@ -124,7 +124,7 @@
   </button>
     }
     @if (!showSave) {
-      <button mat-raised-button [color]="validFileSize ? 'accent' : 'warn'"
+      <button mat-raised-button
         [disabled]="!canUpdate"
         [color]="validFileSize ? 'accent' : 'warn'"
         [matTooltip]="validFileSize ? null : 'Update config knowing the consequences of not setting file size'"
