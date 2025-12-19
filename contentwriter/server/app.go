@@ -106,6 +106,7 @@ func (app *App) Run(ctx context.Context) error {
 		})
 
 		writerOpts.AfterFileCreationHook = func(filename string, size int64, warcInfoId string) error {
+			metrics.WrittenSizeBytes(size)
 			manager.Enqueue(filename)
 			return nil
 		}
@@ -211,15 +212,38 @@ func finalize(ctx context.Context, filePath string, uploader Uploader) error {
 	if err != nil {
 		return err
 	}
+
 	start := time.Now()
 	info, err := uploader.Upload(ctx, filePath, md5sum)
+	dur := time.Since(start)
+
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %s: %w", filePath, err)
 	}
 
-	metrics.Duration(time.Since(start))
+	metrics.UploadDuration(dur)
+	metrics.UploadedSizeBytes(info.Size)
 
-	metrics.Size(info.Size)
+	if st, err := os.Stat(filePath); err == nil {
+		diskSize := st.Size()
+		metrics.OnDiskSizeBytes(diskSize)
+
+		if diskSize != info.Size {
+			metrics.UploadSizeMismatch()
+
+			log.Warn().
+				Str("key", info.Key).
+				Str("file", filePath).
+				Int64("disk_size", diskSize).
+				Int64("uploaded_size", info.Size).
+				Int64("delta", info.Size-diskSize).
+				Dur("duration", dur).
+				Msg("Uploaded size differs from on-disk size")
+		}
+	} else {
+		metrics.OnDiskStatFailed()
+		log.Warn().Err(err).Str("file", filePath).Msg("Failed to stat file after upload")
+	}
 
 	log.Debug().
 		Str("key", info.Key).
@@ -229,8 +253,7 @@ func finalize(ctx context.Context, filePath string, uploader Uploader) error {
 		Str("md5", md5sum).
 		Msg("Uploaded file")
 
-	err = os.Remove(filePath)
-	if err != nil {
+	if err = os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to remove file after upload: %s: %w", filePath, err)
 	}
 

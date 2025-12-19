@@ -23,29 +23,61 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-const namespace = "fai"
+const (
+	namespace = "veidemann"
+	subsystem = "contentwriter"
+)
 
-var duration = promauto.NewHistogram(prometheus.HistogramOpts{
+var uploadDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 	Namespace: namespace,
-	Name:      "duration_seconds",
+	Subsystem: subsystem,
+	Name:      "upload_duration_seconds",
 	Help:      "Duration of operations in seconds.",
 	// 1s, 10s, 30s, 1m, 10m, 30m
 	Buckets: []float64{1, 10, 30, 60, 600, 1800},
 })
 
-var filesize = promauto.NewHistogram(prometheus.HistogramOpts{
+var writtenSize = promauto.NewHistogram(prometheus.HistogramOpts{
 	Namespace: namespace,
-	Name:      "file_size_bytes",
-	Help:      "Size of files in bytes.",
-	// 1MB, 100MB, 500MB, 1GB
-	Buckets: []float64{1000000, 100000000, 500000000, 1000000000},
+	Subsystem: subsystem,
+	Name:      "written_file_size_bytes",
+	Help:      "Size of files as reported by the writer (bytes).",
+	Buckets:   []float64{1e6, 1e8, 5e8, 1e9},
 })
 
-// Size records the size of the given file.
-func Size(size int64) {
-	filesize.Observe(float64(size))
-}
+var onDiskSize = promauto.NewHistogram(prometheus.HistogramOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "on_disk_file_size_bytes",
+	Help:      "Size of files on disk at upload time (bytes).",
+	Buckets:   []float64{1e6, 1e8, 5e8, 1e9},
+})
 
-func Duration(d time.Duration) {
-	duration.Observe(float64(d))
-}
+var uploadedSize = promauto.NewHistogram(prometheus.HistogramOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "uploaded_file_size_bytes",
+	Help:      "Size of uploaded files as reported by the uploader (bytes).",
+	Buckets:   []float64{1e6, 1e8, 5e8, 1e9},
+})
+
+var uploadSizeMismatch = promauto.NewCounter(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "upload_size_mismatch_total",
+	Help:      "Count of uploads where uploaded size differs from on-disk size.",
+})
+
+var onDiskStatFailed = promauto.NewCounter(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "on_disk_stat_failed_total",
+	Help:      "Count of failures to stat a file after upload.",
+})
+
+func WrittenSizeBytes(n int64)       { writtenSize.Observe(float64(n)) }
+func OnDiskSizeBytes(n int64)        { onDiskSize.Observe(float64(n)) }
+func UploadedSizeBytes(n int64)      { uploadedSize.Observe(float64(n)) }
+func UploadDuration(d time.Duration) { uploadDuration.Observe(d.Seconds()) }
+func UploadSizeMismatch()            { uploadSizeMismatch.Inc() }
+func OnDiskStatFailed()              { onDiskStatFailed.Inc() }
