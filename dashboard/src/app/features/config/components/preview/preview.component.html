@@ -41,9 +41,11 @@
         }
       }
     </div>
+    @if (configObject.kind !== Kind.BROWSERSCRIPT) {
     <div fxFlex>
       <app-shortcut-list [configObject]="configObject"></app-shortcut-list>
     </div>
+    }
   </div>
 }
 

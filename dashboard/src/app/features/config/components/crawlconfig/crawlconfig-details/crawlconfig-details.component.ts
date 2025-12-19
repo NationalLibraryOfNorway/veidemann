@@ -12,12 +12,14 @@ import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatButtonModule} from '@angular/material/button';
 
 @Component({
   selector: 'app-crawlconfig-details',
   templateUrl: './crawlconfig-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    MatButtonModule,
     FlexDirective,
     LayoutDirective,
     LayoutGapDirective,

@@ -12,6 +12,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MatInputModule} from '@angular/material/input';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
@@ -19,6 +20,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   templateUrl: './browserconfig-dialog.component.html',
   styleUrls: ['./browserconfig-dialog.component.css'],
   imports: [
+    MatButtonModule,
     MatDialogModule,
     MetaComponent,
     MatInputModule,

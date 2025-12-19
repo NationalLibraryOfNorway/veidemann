@@ -3,7 +3,7 @@ import {BrowserScriptType, ConfigObject} from '../../../../../shared/models';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatLabel} from '@angular/material/form-field';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
-import {FlexDirective, FlexFillDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
 import {FormsModule} from '@angular/forms';
 
 
@@ -16,13 +16,14 @@ import {FormsModule} from '@angular/forms';
   imports: [
     EditorComponent,
     FlexDirective,
-    FlexFillDirective,
+    FlexLayoutModule,
     FormsModule,
     LayoutDirective,
     MatChipsModule,
     MatLabel
   ]
 })
+
 export class BrowserscriptPreviewComponent implements OnInit {
   readonly BrowserScriptType = BrowserScriptType;
   @Input()
@@ -50,10 +51,9 @@ export class BrowserscriptPreviewComponent implements OnInit {
   }
 
   initEditor(editor: any) {
-    console.log('Editor initialized', editor);
-    // editor.onDidChangeModelDecorations(() => {
-    //   this.cdr.markForCheck();
-    // });
+    setTimeout(() => {
+      editor.layout();
+    })
   }
 
 

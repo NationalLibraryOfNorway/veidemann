@@ -13,6 +13,10 @@ import {FilesizeInputComponent} from '../../filesize-input/filesize-input.compon
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {MatCardModule} from '@angular/material/card';
+import {MatInputModule} from '@angular/material/input';
 
 @Component({
   selector: 'app-collection-dialog',
@@ -20,17 +24,21 @@ import {MatTooltip} from '@angular/material/tooltip';
   styleUrls: ['./collection-dialog.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FilesizeInputComponent,
+    FlexDirective,
+    LayoutDirective,
+    LayoutGapDirective,
+    MatButtonModule,
+    MatCardModule,
+    MatCheckbox,
     MatDialogModule,
     MatFormFieldModule,
+    MatIcon,
+    MatInputModule,
     MatSelectModule,
+    MatTooltip,
     CollectionMetaComponent,
     ReactiveFormsModule,
-    MatCheckbox,
-    FilesizeInputComponent,
-    MatIcon,
-    MatButtonModule,
-    MatTooltip
-
   ],
   standalone: true
 })
