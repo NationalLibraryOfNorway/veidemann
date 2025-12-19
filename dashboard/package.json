@@ -35,7 +35,7 @@
     "@angular/localize": "^20.3.15",
     "@angular/material": "^20.2.14",
     "@angular/material-date-fns-adapter": "^20.2.14",
-    "@angular/platform-browser": "^20.3.15",
+    "@angular/platform-browser": "^21.0.6",
     "@angular/router": "^20.3.15",
     "@casl/ability": "^6.7.3",
     "@casl/angular": "^9.0.4",
