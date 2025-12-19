@@ -35,8 +35,8 @@
               },
               {
                 "glob": "**/*",
-                "input": "node_modules/monaco-editor",
-                "output": "public/monaco-editor/"
+                "input": "node_modules/monaco-editor/min",
+                "output": "public/monaco/min"
               }
             ],
             "styles": [

@@ -57,7 +57,7 @@
     "grpc-web": "^1.5.0",
     "ip-address": "^10.0.1",
     "minimist": "~1.2.8",
-    "monaco-editor": "^0.52.2",
+    "monaco-editor": "^0.55.1",
     "ng-keyboard-shortcuts": "^13.0.8",
     "ng-mocks": "^14.13.5",
     "ngx-echarts": "^20.0.2",

@@ -14,6 +14,7 @@ import { routes } from './app.routes';
 import { ApplicationErrorHandler, AuthService, ControllerApiService, LocaleService } from './core';
 import { firstValueFrom } from 'rxjs';
 import {NGX_ECHARTS_CONFIG} from 'ngx-echarts';
+import {NgxMonacoEditorConfig, provideMonacoEditor} from 'ngx-monaco-editor-v2';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +31,14 @@ export class AppConfig {
   }
 }
 
+const monacoConfig: NgxMonacoEditorConfig = {
+  // You can pass cdn url here instead
+  baseUrl: 'public/monaco/min/vs',
+  defaultOptions: { scrollBeyondLastLine: false },
+};
+
 export const appConfig: ApplicationConfig = {
+
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
@@ -40,6 +48,7 @@ export const appConfig: ApplicationConfig = {
       OAuthModule.forRoot(),
       KeyboardShortcutsModule.forRoot(),
     ),
+    provideMonacoEditor(monacoConfig),
     OAuthService,
     { provide: ValidationHandler, useClass: JwksValidationHandler },
     { provide: PureAbility, useValue: createMongoAbility() },
