@@ -7,7 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.0
 	github.com/coreos/go-oidc/v3 v3.17.0
-	github.com/dgraph-io/badger/v4 v4.8.0
+	github.com/dgraph-io/badger/v4 v4.9.0
 	github.com/dgraph-io/ristretto/v2 v2.3.0
 	github.com/invopop/yaml v0.3.1
 	github.com/magiconair/properties v1.8.10
