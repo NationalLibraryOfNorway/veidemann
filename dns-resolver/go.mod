@@ -9,7 +9,7 @@ require (
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.5.0
 	github.com/allegro/bigcache v1.2.1
 	github.com/coredns/caddy v1.1.4-0.20250930002214-15135a999495
-	github.com/coredns/coredns v1.13.1
+	github.com/coredns/coredns v1.13.2
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
 	github.com/miekg/dns v1.1.68
@@ -34,6 +34,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.4 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.57.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
@@ -42,9 +43,8 @@ require (
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251124214823-79d6a2a48846 // indirect
 )
