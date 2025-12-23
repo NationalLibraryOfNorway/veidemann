@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -150,6 +151,12 @@ func (app *App) Run(ctx context.Context) error {
 			Cache: app.cachier,
 			Client: &http.Client{
 				Timeout: 10 * time.Second,
+				Transport: &http.Transport{
+					Proxy: http.ProxyFromEnvironment,
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
 			},
 		},
 	}
