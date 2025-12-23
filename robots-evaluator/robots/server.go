@@ -23,12 +23,19 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.
 	minValiditySeconds := politenessConfig.GetMinimumRobotsValidityDurationS()
 	policy := politenessConfig.GetRobotsPolicy()
 
+	collectionId := req.GetCollectionRef().GetId()
+	executionId := req.GetExecutionId()
+	jobExecutionId := req.GetJobExecutionId()
+
 	slog.Debug("IsAllowed request",
 		"uri", uri,
 		"userAgent", userAgent,
 		"robotsPolicy", policy,
 		"minValiditySeconds", minValiditySeconds,
 		"customRobotsProvided", custom != "",
+		"collectionId", collectionId,
+		"executionId", executionId,
+		"jobExecutionId", jobExecutionId,
 	)
 
 	ok, err := e.Evaluator.IsAllowed(ctx, &AllowedRequest{
@@ -37,6 +44,9 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.
 		Uri:                uri,
 		CustomRobots:       custom,
 		UserAgent:          userAgent,
+		CollectionId:       collectionId,
+		ExecutionId:        executionId,
+		JobExecutionId:     jobExecutionId,
 	})
 	if err != nil {
 		slog.Error("IsAllowed error",

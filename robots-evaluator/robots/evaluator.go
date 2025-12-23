@@ -14,6 +14,12 @@ import (
 	whatwgurl "github.com/nlnwa/whatwg-url/url"
 )
 
+const (
+	executionID    = "veidemann_eid"
+	jobExecutionID = "veidemann_jeid"
+	collectionID   = "veidemann_cid"
+)
+
 type Evaluator struct {
 	Cache  cache.Cachier
 	Client *http.Client
@@ -25,6 +31,9 @@ type AllowedRequest struct {
 	Uri                string
 	CustomRobots       string
 	UserAgent          string
+	CollectionId       string
+	ExecutionId        string
+	JobExecutionId     string
 }
 
 // IsAllowed implements the RobotsEvaluatorServer interface
@@ -42,7 +51,7 @@ func (e *Evaluator) IsAllowed(ctx context.Context, req *AllowedRequest) (bool, e
 		customIfMissing := req.RobotsPolicy == configV1.PolitenessConfig_CUSTOM_IF_MISSING ||
 			req.RobotsPolicy == configV1.PolitenessConfig_CUSTOM_IF_MISSING_CLASSIC
 
-		robotsTxt, err := e.fetchRobotsTxt(ctx, req.Uri)
+		robotsTxt, err := e.fetchRobotsTxt(ctx, req)
 		if err == nil {
 			return grobotstxt.AgentAllowed(robotsTxt, req.UserAgent, req.Uri), nil
 		}
@@ -67,41 +76,64 @@ type SitemapRequest struct {
 }
 
 func (e *Evaluator) Sitemap(ctx context.Context, req *SitemapRequest) ([]string, error) {
-	robotsTxt, err := e.fetchRobotsTxt(ctx, req.Uri)
+	robotsTxt, err := e.fetchSitemap(ctx, req.Uri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch robots.txt: %w", err)
 	}
 	return grobotstxt.Sitemaps(robotsTxt), nil
 }
 
-func (e *Evaluator) fetchRobotsTxt(ctx context.Context, uri string) (string, error) {
-	base, err := whatwgurl.Parse(uri)
+func (e *Evaluator) fetchSitemap(ctx context.Context, uri string) (string, error) {
+	return e.fetchRobotsTxt(ctx, &AllowedRequest{
+		Uri: uri,
+	})
+}
+
+func (e *Evaluator) fetchRobotsTxt(ctx context.Context, req *AllowedRequest) (string, error) {
+	base, err := whatwgurl.Parse(req.Uri)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse URI: %w", err)
 	}
 	robotsUrl, err := base.Parse("/robots.txt")
 	if err != nil {
-		return "", fmt.Errorf("failed to parse robots.txt URI: %w", err)
+		return "", fmt.Errorf("failed to parse robots.txt: %w", err)
 	}
 	robotsUri := robotsUrl.String()
 
-	cached, err := e.Cache.Get(ctx, robotsUri)
+	cacheKey := fmt.Sprintf("robots|%s|%s|%d|%s",
+		robotsUrl.Scheme(),
+		robotsUrl.Host(),
+		robotsUrl.DecodedPort(),
+		req.JobExecutionId,
+	)
+
+	cached, err := e.Cache.Get(ctx, cacheKey)
 	if err == nil {
-		slog.Debug("Cache hit for robots.txt", "robotsUri", robotsUri)
+		slog.Debug("Cache hit for robots.txt", "key", cacheKey)
 		return string(cached), nil
 	}
 	if !errors.Is(err, cache.ErrKeyNotFound) {
-		slog.Debug("Failed to find robots.txt in cache", "robotsUri", robotsUri, "error", err)
+		slog.Debug("Failed to find robots.txt in cache", "key", cacheKey, "error", err)
 	} else {
-		slog.Debug("Cache miss for robots.txt", "robotsUri", robotsUri)
+		slog.Debug("Cache miss for robots.txt", "key", cacheKey)
 	}
 
-	slog.Debug("Fetching robots.txt", "robotsUri", robotsUri)
-
+	slog.Debug("Fetching robots.txt", "url", robotsUri)
 	robotsReq, err := http.NewRequestWithContext(ctx, http.MethodGet, robotsUri, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
+
+	if req.CollectionId != "" {
+		robotsReq.Header.Set(collectionID, req.CollectionId)
+	}
+	if req.ExecutionId != "" {
+		robotsReq.Header.Set(executionID, req.ExecutionId)
+	}
+	if req.JobExecutionId != "" {
+		robotsReq.Header.Set(jobExecutionID, req.JobExecutionId)
+	}
+
 	resp, err := e.Client.Do(robotsReq)
 	if err != nil {
 		return "", err
@@ -119,8 +151,8 @@ func (e *Evaluator) fetchRobotsTxt(ctx context.Context, uri string) (string, err
 
 	robotsTxt := string(b)
 
-	if err := e.Cache.Put(ctx, robotsUri, b); err != nil {
-		slog.Warn("Failed to cache robots.txt", "robotsUri", robotsUri, "error", err)
+	if err := e.Cache.Put(ctx, cacheKey, b); err != nil {
+		slog.Warn("Failed to cache robots.txt", "key", cacheKey, "error", err)
 	}
 
 	return robotsTxt, nil
