@@ -23,8 +23,8 @@ deploy:
         setValues:
           crds.enabled: true
       - name: redis
-        remoteChart: oci://ghcr.io/cloudpirates-io/helm-charts/redis
-        version: 0.16.6
+        remoteChart: oci://registry-1.docker.io/cloudpirates/redis
+        version: 0.17.6
         namespace: default
         valuesFiles:
           - deploy/k8s/overlays/dev/redis/values.yaml
