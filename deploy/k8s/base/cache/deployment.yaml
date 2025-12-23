@@ -38,7 +38,7 @@ spec:
               echo "cache-0 is reachable."
       containers:
         - name: cache
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.5.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.6.0
           args:
             - -b # be a balancer
           ports:

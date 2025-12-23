@@ -25,7 +25,7 @@ spec:
         fsGroup: 13
       containers:
         - name: cache
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.5.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.6.0
           ports:
             - name: http
               containerPort: 3128
