@@ -41,6 +41,9 @@ build:
   local:
     push: false
   # artifacts:
+  #   - image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy
+  #     context: ./recorderproxy
+  #     ko: {}
   #   - image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter
   #     context: ./contentwriter
   #     ko: {}
