@@ -37,9 +37,8 @@ spec:
               done
               echo "cache-0 is reachable."
       containers:
-        - name: squid
+        - name: cache
           image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.5.1
-          imagePullPolicy: IfNotPresent
           args:
             - -b # be a balancer
           ports:
@@ -61,7 +60,7 @@ spec:
               cpu: 100m
             limits:
               memory: 500Mi
-        - name: squid-exporter
+        - name: cache-exporter
           image: docker.io/boynux/squid-exporter:v1.13.0
           ports:
             - name: http-metrics

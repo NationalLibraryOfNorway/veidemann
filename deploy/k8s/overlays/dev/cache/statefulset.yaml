@@ -20,8 +20,8 @@ spec:
           configMap:
             name: cache-conf
             items:
-              - key: cache.conf
-                path: cache.conf
+              - key: parent.conf
+                path: parent.conf
         - name: ca-certificates
           secret:
             items:
@@ -35,8 +35,8 @@ spec:
         - name: cache
           volumeMounts:
             - name: cache-conf
-              mountPath: /etc/squid/conf.d/cache.conf
-              subPath: cache.conf
+              mountPath: /etc/squid/conf.d/95-cache.conf
+              subPath: parent.conf
             - name: ca-certificates
               mountPath: "/ca-certificates"
             - name: cache

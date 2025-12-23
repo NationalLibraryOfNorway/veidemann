@@ -19,21 +19,14 @@ offline_mode on
 # Refresh patterns
 refresh_pattern .               4320    100%    4320 store-stale override-expire override-lastmod ignore-private ignore-reload ignore-no-store
 
-# Logging configuration
-# ---------------------
-debug_options ALL,1
-log_mime_hdrs off
-logfile_daemon /usr/local/sbin/loghelper
-
 # Cache settings
 # --------------------
-store_id_program /usr/local/sbin/storeid -t 20
+store_id_program /usr/local/sbin/storeid -t 1
 store_id_extras "%{veidemann_jeid}>h"
-store_id_children 20 startup=5 idle=5 concurrency=20
+store_id_children 5 startup=2 idle=1 concurrency=5
 
 cache_miss_revalidate off
 negative_ttl 100 day
-request_entities on
 
 # Manipulate headers
 # ----------------------

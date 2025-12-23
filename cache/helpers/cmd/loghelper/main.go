@@ -4,27 +4,45 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
-	"strings"
 )
 
 func main() {
-	logger := log.New(os.Stderr, "[LogHelper] ", log.Ldate|log.Ltime|log.LUTC|log.Lmsgprefix)
+	if len(os.Args) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: loghelper <stdout|stderr>")
+		os.Exit(2)
+	}
 
-	r := bufio.NewReader(os.Stdin)
+	var sink *os.File
+	switch os.Args[1] {
+	case "stdout":
+		sink = os.Stdout
+	case "stderr":
+		sink = os.Stderr
+	default:
+		fmt.Fprintf(os.Stderr, "unsupported sink %q\n", os.Args[1])
+		os.Exit(2)
+	}
+
+	r := bufio.NewReaderSize(os.Stdin, 512*1024)
+
 	for {
-		l, err := r.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				return
+		line, err := r.ReadBytes('\n')
+
+		if len(line) > 0 {
+			// Squid logfile_daemon protocol:
+			// L<data>\n  → write <data> verbatim
+			if line[0] == 'L' {
+				_, _ = sink.Write(line[1:])
 			}
-			logger.Println(err)
+			// All other commands (F, b*, R, T, O, r*) are ignored.
 		}
-		l = strings.Trim(l, " \t\n\r")
-		if strings.HasPrefix(l, "L") {
-			l = l[1:]
-			_, _ = fmt.Fprintln(os.Stderr, l)
+
+		if err != nil {
+			if err != io.EOF {
+				fmt.Fprintf(os.Stderr, "loghelper read error: %v\n", err)
+			}
+			return
 		}
 	}
 }

@@ -9,6 +9,4 @@ nonhierarchical_direct off
 digest_generation off
 dead_peer_timeout 300 seconds
 
-logfile_daemon /usr/local/sbin/loghelper
-
 cache deny all

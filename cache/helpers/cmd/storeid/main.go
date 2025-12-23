@@ -7,20 +7,36 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
 
 func main() {
 	threadCount := 5
-
-	flag.IntVar(&threadCount, "t", threadCount, "Set number of threads")
+	flag.IntVar(&threadCount, "t", threadCount, "Set number of workers")
 	flag.Parse()
 
-	i := make(chan string, threadCount)
+	in := make(chan string, threadCount*2)
+	out := make(chan string, threadCount*2)
 
+	// Single stdout writer to prevent interleaving/corruption.
+	go func() {
+		w := bufio.NewWriter(os.Stdout)
+		for s := range out {
+			if s == "" {
+				s = "ERR\n"
+			}
+			_, _ = w.WriteString(s)
+			_ = w.Flush()
+		}
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(threadCount)
 	for j := 0; j < threadCount; j++ {
 		go func() {
-			for s := range i {
-				fmt.Print(rewrite(s))
+			defer wg.Done()
+			for s := range in {
+				out <- rewriteSafe(s)
 			}
 		}()
 	}
@@ -30,40 +46,49 @@ func main() {
 		l, err := r.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
-				return
+				break
 			}
-			panic(err)
+			// Helpers should not panic; emit nothing and exit non-zero is also OK,
+			// but simplest: break.
+			break
 		}
-		i <- l
+		in <- l
 	}
+
+	close(in)
+	wg.Wait()
+	close(out)
 }
 
-// rewrite matches lines for each requested URL with the
-//
-// see http://www.squid-cache.org/Doc/config/store_id_program/
-func rewrite(s string) string {
-	l := strings.TrimSpace(s)
-
-	var (
-		res       string
-		channelId string
-		url       string
-		extras    string
-	)
-
-	parts := strings.SplitN(l, " ", 3)
-	channelId = parts[0]
-	url = parts[1]
-	if len(parts) > 2 {
-		extras = parts[2]
+func rewriteSafe(s string) string {
+	line := strings.TrimRight(s, "\r\n")
+	if line == "" {
+		return ""
 	}
 
-	p := strings.SplitN(url, ":", 2)
-	if extras == "-" || p[0] == "cache_object" {
-		res = url
-	} else {
-		res = extras + url
+	// Parse: <channel-id> SP <url> [SP <extras...>]
+	i := strings.IndexByte(line, ' ')
+	if i < 0 {
+		return fmt.Sprintf("%s ERR\n", line)
+	}
+	channelId := line[:i]
+
+	rest := strings.TrimLeft(line[i+1:], " ")
+	if rest == "" {
+		return fmt.Sprintf("%s ERR\n", channelId)
+	}
+	j := strings.IndexByte(rest, ' ')
+	url := rest
+	extras := ""
+	if j >= 0 {
+		url = rest[:j]
+		extras = strings.TrimLeft(rest[j+1:], " ")
 	}
 
-	return fmt.Sprintf("%s OK store-id=\"%s\"\n", channelId, res)
+	if extras == "-" || extras == "" || strings.HasPrefix(url, "cache_object:") {
+		return fmt.Sprintf("%s OK store-id=%s\n", channelId, url)
+	}
+
+	res := "v1|" + extras + "|" + url
+	return fmt.Sprintf("%s OK store-id=%s\n", channelId, res)
 }

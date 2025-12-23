@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache
+spec:
+  template:
+    spec:
+      volumes:
+        - name: cache-conf
+          configMap:
+            name: cache-conf
+            items:
+              - key: children.conf
+                path: children.conf
+      containers:
+        - name: cache
+          volumeMounts:
+            - name: cache-conf
+              mountPath: /etc/squid/conf.d/95-cache-balancer.conf
+              subPath: children.conf

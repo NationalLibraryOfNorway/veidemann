@@ -8,9 +8,11 @@ resources:
   - cache-cert.yaml
 
 patches:
-  - path: cache-statefulset.yaml
+  - path: statefulset.yaml
+  - path: deployment.yaml
 
 configMapGenerator:
   - name: cache-conf
     files:
-      - cache.conf
+      - parent.conf
+      - children.conf

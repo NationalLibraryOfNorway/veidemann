@@ -1,78 +1,136 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
+	"os/signal"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/cache/helpers/discovery"
 	"github.com/NationalLibraryOfNorway/veidemann/cache/helpers/iputil"
-	"github.com/sevlyar/go-daemon"
 )
 
 func main() {
-	r := new(rewriter)
+	var (
+		isBalancer bool
+		configPath string
+		readyFile  string
+		interval   time.Duration
+		minReconf  time.Duration
+	)
 
-	logger := log.New(os.Stderr, "[ConfigHandler] ", log.Ldate|log.Ltime|log.LUTC|log.Lmsgprefix)
-
-	flag.BoolVar(&r.balancer, "b", false, "Set to true to configure squid as balancer")
+	flag.BoolVar(&isBalancer, "b", false, "Configure squid as balancer")
+	flag.StringVar(&configPath, "config", "/etc/squid/conf.d/90-role.conf", "Output config path")
+	flag.StringVar(&readyFile, "ready-file", "/run/confighandler.ready", "Write this file after initial successful render (empty disables)")
+	flag.DurationVar(&interval, "interval", 5*time.Second, "Rewrite check interval")
+	flag.DurationVar(&minReconf, "min-reconfigure-interval", 30*time.Second, "Minimum interval between squid reconfigure calls")
 	flag.Parse()
 
-	// configure rewriter
-	r.configPath = "/etc/squid/conf.d/veidemann.conf"
+	mode := "cache"
+	if isBalancer {
+		mode = "balancer"
+	}
+
+	log := slog.With("daemon", "confighandler", "pid", os.Getpid(), "mode", mode)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	r := &rewriter{
+		balancer:   isBalancer,
+		configPath: configPath,
+	}
+
 	if r.balancer {
-		r.templatePath = "/etc/squid/squid-balancer.conf.template"
-		if d, err := discovery.NewDiscovery(); err != nil {
-			logger.Fatalf("Failed to initialize discovery: %v", err)
-		} else {
-			r.discovery = d
+		disc, err := discovery.NewDiscovery()
+		if err != nil {
+			log.Error("Failed to create discovery", "error", err)
+			os.Exit(1)
 		}
+		r.discovery = disc
+		r.templatePath = "/etc/squid/squid-balancer.conf.template"
 	} else {
 		r.templatePath = "/etc/squid/squid.conf.template"
 	}
 
-	// initial config rewrite
-	// Note: this will run twice (both in the parent and the child process)
-	if err := r.rewriteConfig(); err != nil {
-		logger.Fatalf("Failed to initialize configuration: %v", err)
-	}
-
-	context := &daemon.Context{LogFileName: "/dev/stderr"}
-	child, err := context.Reborn()
-	if err != nil {
-		logger.Fatalf("Failed to create daemon process: %v", err)
-	}
-
-	if child != nil {
-		// This code is run in parent process
-		logger.Printf("Configuration initialized (%s)", r.configPath)
-	} else {
-		if r.balancer {
-			logger.Print("Configuring squid as balancer")
-		} else {
-			logger.Print("Configuring squid as cache")
+	if err := run(ctx, log, r, interval, minReconf, readyFile); err != nil {
+		// Context cancellation is a normal shutdown.
+		if ctx.Err() != nil {
+			log.Info("Shutting down", "reason", ctx.Err().Error())
+			return
 		}
-		// This code is run in forked child
-		logger.Println("Daemon started")
-		defer func() {
-			_ = context.Release()
-			logger.Println("Daemon stopped")
-		}()
-		for {
-			time.Sleep(5 * time.Second)
-			if err := r.rewriteConfig(); err != nil {
-				logger.Printf("Failed to rewrite configuration: %v", err)
+		log.Error("Exited with error", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf time.Duration, readyFile string) error {
+	changed, err := r.rewriteConfig()
+	if err != nil {
+		return fmt.Errorf("initial rewrite failed: %w", err)
+	}
+
+	if changed {
+		log.Info("Initial config rendered", "path", r.configPath)
+	} else {
+		log.Info("Initial config unchanged", "path", r.configPath)
+	}
+
+	// Signal readiness to entrypoint/supervisor.
+	if readyFile != "" {
+		if err := os.MkdirAll(filepath.Dir(readyFile), 0755); err != nil {
+			return fmt.Errorf("create ready dir: %w", err)
+		}
+		if err := writeFileAtomic(readyFile, []byte("ok\n"), 0644); err != nil {
+			return fmt.Errorf("write ready file: %w", err)
+		}
+	}
+
+	// Decide initial reconfigure behavior:
+	// - If you want to reconfigure immediately after first change, set lastReconf = time.Time{}.
+	// - Here: avoid immediate reconfigure right after initial render.
+	lastReconf := time.Now()
+
+	t := time.NewTicker(interval)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+
+		case <-t.C:
+			changed, err := r.rewriteConfig()
+			if err != nil {
+				log.Error("Rewrite failed", "error", err)
+				continue
 			}
-			if r.changes {
-				logger.Printf("Reconfiguring squid...")
-				if err := reconfigureSquid(); err != nil {
-					logger.Printf("Error reconfiguring squid: %v", err)
-				}
+			if !changed {
+				continue
+			}
+
+			if time.Since(lastReconf) < minReconf {
+				log.Debug("Change detected but reconfigure throttled", "since_last", time.Since(lastReconf).String())
+				continue
+			}
+
+			lastReconf = time.Now()
+			out, err := reconfigureSquid()
+			if err != nil {
+				log.Error("Squid reconfigure failed", "error", err, "output", out)
+				continue
+			}
+			if out != "" {
+				log.Info("Squid reconfigured", "output", out)
+			} else {
+				log.Info("Squid reconfigured")
 			}
 		}
 	}
@@ -85,50 +143,48 @@ type rewriter struct {
 	balancer       bool
 	templatePath   string
 	configPath     string
-	changes        bool
 }
 
-func (r *rewriter) rewriteConfig() error {
-	r.changes = false
-
+func (r *rewriter) rewriteConfig() (bool, error) {
 	dnsServers := r.getDnsServersString()
 	if dnsServers == "" {
-		return fmt.Errorf("no dns servers configured")
+		return false, fmt.Errorf("no dns servers configured (DNS_SERVERS env empty/invalid)")
 	}
 
 	parents := ""
 	if r.balancer {
-		var err error
-		parents, err = r.getParents()
+		p, err := r.getParents()
 		if err != nil {
-			return fmt.Errorf("failed to get parents: %w", err)
+			return false, fmt.Errorf("get parents: %w", err)
 		}
-		if parents == "" {
-			return fmt.Errorf("found no parents")
+		if p == "" {
+			return false, fmt.Errorf("found no parents")
 		}
+		parents = p
 	}
-	if parents != r.lastParents || dnsServers != r.lastDnsServers {
-		// read template
-		b, err := os.ReadFile(r.templatePath)
-		if err != nil {
-			return fmt.Errorf("failed to read template (%s): %w", r.templatePath, err)
-		}
-		// substitute template variables
-		conf := string(b)
-		conf = strings.Replace(conf, "${DNS_IP}", dnsServers, 1)
-		if r.balancer {
-			conf = strings.Replace(conf, "${PARENTS}", parents, 1)
-		}
-		// write config
-		if err := os.WriteFile(r.configPath, []byte(conf), 0644); err != nil {
-			return fmt.Errorf("failed to write config (%s): %w", r.configPath, err)
-		}
-		r.changes = true
+
+	if parents == r.lastParents && dnsServers == r.lastDnsServers {
+		return false, nil
+	}
+
+	b, err := os.ReadFile(r.templatePath)
+	if err != nil {
+		return false, fmt.Errorf("read template (%s): %w", r.templatePath, err)
+	}
+
+	conf := string(b)
+	conf = strings.ReplaceAll(conf, "${DNS_IP}", dnsServers)
+	if r.balancer {
+		conf = strings.ReplaceAll(conf, "${PARENTS}", parents)
+	}
+
+	if err := writeFileAtomic(r.configPath, []byte(conf), 0644); err != nil {
+		return false, fmt.Errorf("write config (%s): %w", r.configPath, err)
 	}
 
 	r.lastParents = parents
 	r.lastDnsServers = dnsServers
-	return nil
+	return true, nil
 }
 
 func (r *rewriter) getParents() (string, error) {
@@ -136,58 +192,56 @@ func (r *rewriter) getParents() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var peers string
+	var b strings.Builder
 	for _, parent := range parents {
-		peers += fmt.Sprintf("cache_peer %v parent 3128 0 carp no-digest\n", parent)
+		fmt.Fprintf(&b, "cache_peer %v parent 3128 0 carp no-digest\n", parent)
 	}
-	return peers, nil
+	return b.String(), nil
 }
 
 func (r *rewriter) getDnsServersString() string {
-	var dnsServers string
-
-	dnsEnv, _ := os.LookupEnv("DNS_SERVERS")
-	dns := strings.Split(dnsEnv, " ")
-
-	for _, d := range dns {
-		ip, _, err := iputil.IPAndPortForAddr(strings.TrimSpace(d), 53)
+	fields := strings.Fields(os.Getenv("DNS_SERVERS"))
+	ips := make([]string, 0, len(fields))
+	for _, d := range fields {
+		ip, _, err := iputil.IPAndPortForAddr(d, 53)
 		if err == nil {
-			dnsServers += ip + " "
+			ips = append(ips, ip)
 		}
 	}
-	return dnsServers
+	return strings.Join(ips, " ")
 }
 
-func reconfigureSquid() error {
-	cmd := exec.Command("squid", "-k", "reconfigure")
-	// ignore error returned if wait was already called
-	defer func() { _ = cmd.Wait() }()
+func reconfigureSquid() (string, error) {
+	out, err := exec.Command("squid", "-k", "reconfigure").CombinedOutput()
+	if len(out) > 0 {
+		return string(out), err
+	}
+	return "", err
+}
 
-	stderr, err := cmd.StderrPipe()
+func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".tmp-*")
 	if err != nil {
-		return fmt.Errorf("failed to pipe stderr [%s]: %w", cmd.String(), err)
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("failed to pipe stdout [%s]: %w", cmd.String(), err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start [%s]", cmd.String())
-	}
-	if slurp, err := io.ReadAll(stdout); err != nil {
-		return fmt.Errorf("failed to read standard out [%s]", cmd.String())
-	} else if len(slurp) > 0 {
-		log.Printf("%s", slurp)
-	}
-	if slurp, err := io.ReadAll(stderr); err != nil {
-		return fmt.Errorf("failed to read standard err [%s]", cmd.String())
-	} else if len(slurp) > 0 {
-		log.Printf("%s", slurp)
-	}
-
-	if err := cmd.Wait(); err != nil {
 		return err
 	}
-	return nil
+	tmpName := tmp.Name()
+	defer func() { _ = os.Remove(tmpName) }()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(perm); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
 }
