@@ -8,6 +8,7 @@ manifests:
     paths:
       - deploy/k8s/overlays/dev/rethinkdb
       - deploy/k8s/overlays/dev/olric
+      - deploy/k8s/overlays/dev/rethinkdbadapter/
 
 deploy:
   kubeContext: minikube
