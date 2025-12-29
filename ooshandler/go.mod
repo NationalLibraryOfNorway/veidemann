@@ -8,7 +8,7 @@ require (
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/prometheus/client_golang v1.23.2
 	golang.org/x/sync v0.18.0
-	google.golang.org/grpc v1.77.0
+	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 )
 
