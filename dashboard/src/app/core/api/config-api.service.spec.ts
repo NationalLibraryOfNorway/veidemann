@@ -1,19 +1,40 @@
-import { inject, TestBed } from '@angular/core/testing';
+import {beforeEach, describe, expect, it} from 'vitest';
+import {TestBed} from '@angular/core/testing';
 import {provideCoreTesting} from '../core.testing.module';
-import { ConfigApiService } from './config-api.service';
+import {ConfigApiService} from './config-api.service';
 
 describe('ConfigApiService', () => {
+  let service: ConfigApiService;
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
         ...provideCoreTesting,
-        ConfigApiService]
+        ConfigApiService,
+      ],
     });
+
+    service = TestBed.inject(ConfigApiService);
   });
 
-  it('should be created', inject([ConfigApiService], (service: ConfigApiService) => {
+  it('should be created', () => {
     expect(service).toBeTruthy();
-  }));
+  });
+});
+
+
+// describe('ConfigApiService', () => {
+//   beforeEach(() => {
+//     TestBed.configureTestingModule({
+//       providers: [
+//         ...provideCoreTesting,
+//         ConfigApiService]
+//     });
+//   });
+//
+//   it('should be created', inject([ConfigApiService], (service: ConfigApiService) => {
+//     expect(service).toBeTruthy();
+//   }));
 
   // it('returns a list of configObjects', () => {
   // });
@@ -38,5 +59,5 @@ describe('ConfigApiService', () => {
   //
   // it('get a list of script annotations for a configObject', () => {
   // });
-});
+// });
 
