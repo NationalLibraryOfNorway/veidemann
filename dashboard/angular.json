@@ -136,7 +136,8 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "runner": "vitest"
+            "runner": "vitest",
+            "setupFiles": ["src/test-setup.ts"]
           }
         },
         "lint": {
