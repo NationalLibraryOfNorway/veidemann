@@ -8,7 +8,7 @@ import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {describe, it } from 'vitest'
 
-describe.only('BrowserScriptDialogComponent', () => {
+describe('BrowserScriptDialogComponent', () => {
   let component: BrowserScriptDialogComponent;
   let fixture: ComponentFixture<BrowserScriptDialogComponent>;
 
