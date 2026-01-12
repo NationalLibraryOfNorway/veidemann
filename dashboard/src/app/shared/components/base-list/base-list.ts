@@ -1,6 +1,5 @@
 import {DataSource, SelectionModel} from '@angular/cdk/collections';
 import {
-  AfterViewInit,
   ChangeDetectorRef,
   ContentChildren,
   Directive,
@@ -13,7 +12,6 @@ import {
 } from '@angular/core';
 import {MatPaginator, MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {MatSort, MatSortModule, Sort, SortDirection} from '@angular/material/sort';
-import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {first, map, shareReplay} from 'rxjs/operators';
 import {Kind, ListItem} from '../../../shared/models';
@@ -33,7 +31,6 @@ export const BASE_LIST_IMPORTS = [
   AsyncPipe,
   LayoutDirective,
   FlexDirective,
-  KeyboardShortcutsModule,
   MatButtonModule,
   MatCheckboxModule,
   MatIconModule,
@@ -49,7 +46,7 @@ export const BASE_LIST_IMPORTS = [
 
  @Directive()
 // eslint-disable-next-line @angular-eslint/directive-class-suffix
-export abstract class BaseListComponent<T extends ListItem> implements AfterViewInit {
+export abstract class BaseListComponent<T extends ListItem> {
   readonly Kind = Kind;
   length$: BehaviorSubject<number>;
 
@@ -129,7 +126,6 @@ export abstract class BaseListComponent<T extends ListItem> implements AfterView
 
   // Keyboard navigation
   selectedRowIndex: number = null;
-  shortcuts: ShortcutInput[] = [];
 
   protected constructor(@Optional() protected cdr?: ChangeDetectorRef) {
     this.sort = new EventEmitter<Sort>();
@@ -140,85 +136,6 @@ export abstract class BaseListComponent<T extends ListItem> implements AfterView
     this.selection = new SelectionModel<T>(true, []);
     this.allSelected = false;
     this.length$ = new BehaviorSubject<number>(0);
-  }
-
-  ngAfterViewInit() {
-
-    this.shortcuts.push(
-      {
-        key: 'shift + down',
-        label: 'List navigation',
-        description: 'Navigate to row below',
-        preventDefault: true,
-        command: (event: ShortcutEventOutput) => {
-          const keyboardEvent = new KeyboardEvent('keydown', {key: 'ArrowDown'});
-          this.onKeyboardEvent(keyboardEvent);
-        }
-      },
-      {
-        key: 'shift + up',
-        label: 'List navigation',
-        description: 'Navigate to row above',
-        preventDefault: true,
-        command: (event: ShortcutEventOutput) => {
-          const keyboardEvent = new KeyboardEvent('keydown', {key: 'ArrowUp'});
-          this.onKeyboardEvent(keyboardEvent);
-        }
-      },
-      {
-        key: 'shift + right',
-        label: 'List navigation',
-        description: 'Get next page',
-        preventDefault: true,
-        command: (event: ShortcutEventOutput) => {
-          this.paginator.nextPage();
-        }
-      },
-      {
-        key: 'shift + left',
-        label: 'List navigation',
-        description: 'Get previous page',
-        preventDefault: true,
-        command: (event: ShortcutEventOutput) => {
-          this.paginator.previousPage();
-        }
-      },
-      {
-        key: 'shift + enter',
-        label: 'List navigation',
-        description: 'Show preview for selected row',
-        command: (event: ShortcutEventOutput) => {
-          const keyboardEvent = new KeyboardEvent('keydown', {key: 'Enter'});
-          this.onKeyboardEvent(keyboardEvent);
-        }
-      },
-      {
-        key: 'shift + s',
-        label: 'List navigation',
-        description: 'Toggle checkbox for selected row',
-        command: (event: ShortcutEventOutput) => {
-          const keyboardEvent = new KeyboardEvent('keydown', {key: 'S'});
-          this.onKeyboardEvent(keyboardEvent);
-        }
-      },
-      {
-        key: 'shift + a',
-        label: 'List navigation',
-        description: 'Select all in page',
-        command: (event: ShortcutEventOutput) => {
-          const keyboardEvent = new KeyboardEvent('keydown', {key: 'A'});
-          this.onKeyboardEvent(keyboardEvent);
-        }
-      },
-      {
-        key: 'shift + escape',
-        label: 'List navigation',
-        description: 'Stop keyboard list navigation',
-        command: (event: ShortcutEventOutput) => {
-          this.selectedRowIndex = null;
-          this.cdr.markForCheck();
-        }
-      });
   }
 
   reset() {

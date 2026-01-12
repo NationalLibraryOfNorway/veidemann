@@ -1,10 +1,5 @@
 <div class="container mat-typography" fxLayout="column">
   @if (ability$ | async; as ability) {
-  <ng-keyboard-shortcuts [shortcuts]="shortcuts"></ng-keyboard-shortcuts>
-  <ng-keyboard-shortcuts-help class="keys" [keyDescription]="'Show this menu'" [keyLabel]="'General'"
-    [key]="'shift + h'" [closeKeyDescription]="'Hide this help menu'" [closeKeyLabel]="'General'" [closeKey]="'escape'"
-    [title]="'Keyboard shortcuts'">
-  </ng-keyboard-shortcuts-help>
   <mat-toolbar class="main-toolbar" color="primary">
     <a routerLink="/"><img class="veidemann_logo" alt="Veidemann" src="public/logo/veidemann_horizontal_white.png"></a>
     <span fxFlex></span>

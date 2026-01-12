@@ -1,6 +1,5 @@
 @if (ability$ | async; as ability) {
   <div fxLayout="column" class="container">
-    <ng-keyboard-shortcuts [shortcuts]="shortcuts"></ng-keyboard-shortcuts>
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }

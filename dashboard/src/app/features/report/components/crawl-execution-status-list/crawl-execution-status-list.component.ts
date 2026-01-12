@@ -15,7 +15,6 @@ import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatSortModule} from '@angular/material/sort';
 import {FlexLayoutModule} from '@ngbracket/ngx-layout';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatMenuModule} from '@angular/material/menu';
@@ -52,7 +51,6 @@ import {CrawlExecutionPreviewComponent} from '../crawl-execution-preview/crawl-e
     ExecutionQueueCountPipe,
     FlexLayoutModule,
     JobNamePipe,
-    KeyboardShortcutsModule,
     MatButtonModule,
     MatIcon,
     MatMenuModule,

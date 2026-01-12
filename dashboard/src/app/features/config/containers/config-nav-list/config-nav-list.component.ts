@@ -3,7 +3,6 @@ import {ConfigOptions, ConfigPath} from '../../func';
 import {Kind} from '../../../../shared/models';
 import {AuthService} from '../../../../core';
 import {NavigationListComponent} from '../../../../shared/components';
-import {ShortcutInput} from 'ng-keyboard-shortcuts';
 import {Router, RouterLink, RouterLinkActive} from '@angular/router';
 import {Observable} from 'rxjs';
 import {AbilityService} from '@casl/angular';
@@ -32,8 +31,6 @@ export class ConfigNavListComponent extends NavigationListComponent {
   readonly ConfigPath = ConfigPath;
   readonly Kind = Kind;
   readonly ability$: Observable<any>
-
-  shortcuts: ShortcutInput[] = [];
 
   @Input()
   kind: Kind;

@@ -12,7 +12,6 @@ import {FormsModule, ReactiveFormsModule, UntypedFormBuilder} from '@angular/for
 import {Kind} from '../../../../shared/models';
 import {ConfigQuery} from '../../../../shared/func';
 import {ConfigOptions} from '../../func';
-import {KeyboardShortcutsModule, ShortcutEventOutput, ShortcutInput} from 'ng-keyboard-shortcuts';
 import {QueryComponent} from '../../../../shared/components';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
@@ -31,7 +30,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    KeyboardShortcutsModule,
     LayoutDirective,
     LayoutGapDirective,
     MatButtonModule,
@@ -46,7 +44,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 })
 export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements OnChanges, AfterViewInit {
   readonly Kind = Kind;
-  shortcuts: ShortcutInput[] = [];
 
   term: string;
 
@@ -57,21 +54,6 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
 
   constructor(protected override fb: UntypedFormBuilder) {
     super(fb);
-  }
-
-  override ngAfterViewInit() {
-    super.ngAfterViewInit();
-    this.shortcuts.push(
-      {
-        key: 'shift + l',
-        label: 'Query',
-        description: 'Focus query search input',
-        command: (output: ShortcutEventOutput) => {
-          event.preventDefault();
-          this.searchElement.nativeElement.focus();
-        }
-      },
-    );
   }
 
   override onQuery(query: ConfigQuery) {

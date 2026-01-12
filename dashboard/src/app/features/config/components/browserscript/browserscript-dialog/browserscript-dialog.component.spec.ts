@@ -4,12 +4,9 @@ import {BrowserScriptDialogComponent} from './browserscript-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {LabelService} from '../../../services';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {of} from 'rxjs';
-import {AuthService} from '../../../../../core';
 import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {describe, it } from 'vitest'
 
 describe('BrowserScriptDialogComponent', () => {
   let component: BrowserScriptDialogComponent;
