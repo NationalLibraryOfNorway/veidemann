@@ -9,7 +9,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
-import {KeyboardShortcutsModule} from 'ng-keyboard-shortcuts';
 import {MatButtonModule} from '@angular/material/button';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
@@ -32,7 +31,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   imports: [
     CommonModule,
     FlexDirective,
-    KeyboardShortcutsModule,
     LayoutDirective,
     MatButtonModule,
     MatMenuModule,
