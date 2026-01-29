@@ -8,7 +8,6 @@ import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 
 import { createMongoAbility, PureAbility } from '@casl/ability';
 import { AuthConfig, JwksValidationHandler, OAuthModule, OAuthService, ValidationHandler } from 'angular-oauth2-oidc';
-import { KeyboardShortcutsModule } from 'ng-keyboard-shortcuts';
 
 import { routes } from './app.routes';
 import { ApplicationErrorHandler, AuthService, ControllerApiService, LocaleService } from './core';
@@ -46,7 +45,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptorsFromDi()),
     importProvidersFrom(
       OAuthModule.forRoot(),
-      KeyboardShortcutsModule.forRoot(),
     ),
     provideMonacoEditor(monacoConfig),
     OAuthService,
