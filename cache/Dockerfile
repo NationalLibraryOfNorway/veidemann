@@ -1,4 +1,4 @@
-FROM docker.io/golang:1.25-alpine AS build-helpers
+FROM docker.io/golang:1.26-alpine AS build-helpers
 
 WORKDIR /go/src/helpers
 
