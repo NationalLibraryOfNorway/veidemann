@@ -60,10 +60,28 @@ spec:
                   optional: false
             - name: CONTENTWRITER_DB_NAME
               value: "veidemann"
+            - name: CONTENTWRITER_REDIS_HOST
+              value: "kvrocks"
             - name: CONTENTWRITER_REDIS_PORT
-              value: "6379"
+              value: "6666"
             - name: CONTENTWRITER_REDIS_DB
               value: "1"
+            - name: CONTENTWRITER_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: redis-password
+                  optional: true
+            - name: CONTENTWRITER_REDIS_MASTER_NAME
+              value: "kvrocks"
+            - name: CONTENTWRITER_REDIS_SENTINEL_ADDRS
+              value: "kvrocks-sentinel:26379"
+            - name: CONTENTWRITER_REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: redis-password
+                  optional: true
             - name: CONTENTWRITER_HOSTNAME
               valueFrom:
                 fieldRef:
