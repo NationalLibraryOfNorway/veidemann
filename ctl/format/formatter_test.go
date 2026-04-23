@@ -74,7 +74,7 @@ func TestNewFormatter(t *testing.T) {
 	tests := []struct {
 		name   string
 		args   args
-		record interface{}
+		record any
 		want   string
 	}{
 		{"JobExec-json", args{format: "json"},

@@ -34,19 +34,19 @@ type badgerLogger struct {
 	prefix string
 }
 
-func (l badgerLogger) Errorf(fmt string, args ...interface{}) {
+func (l badgerLogger) Errorf(fmt string, args ...any) {
 	log.Error().Msgf(l.prefix+fmt, args...)
 }
 
-func (l badgerLogger) Warningf(fmt string, args ...interface{}) {
+func (l badgerLogger) Warningf(fmt string, args ...any) {
 	log.Warn().Msgf(l.prefix+fmt, args...)
 }
 
-func (l badgerLogger) Infof(fmt string, args ...interface{}) {
+func (l badgerLogger) Infof(fmt string, args ...any) {
 	log.Debug().Msgf(l.prefix+fmt, args...)
 }
 
-func (l badgerLogger) Debugf(fmt string, args ...interface{}) {
+func (l badgerLogger) Debugf(fmt string, args ...any) {
 	log.Trace().Msgf(l.prefix+fmt, args...)
 }
 

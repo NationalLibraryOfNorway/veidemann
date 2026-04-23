@@ -46,7 +46,7 @@ type recordReader struct {
 
 type RecordDecoder interface {
 	Init(r io.Reader, suffix string)
-	Read(v interface{}) (err error)
+	Read(v any) (err error)
 }
 
 func NewRecordReader(fileOrDir string, decoder RecordDecoder, filePattern string) (l *recordReader, err error) {
@@ -129,7 +129,7 @@ func (l *recordReader) initRecordReader() error {
 	return nil
 }
 
-func (l *recordReader) Next(v interface{}) (*State, error) {
+func (l *recordReader) Next(v any) (*State, error) {
 	err := l.recordDecoder.Read(v)
 	if errors.Is(err, io.EOF) {
 		if err = l.initRecordReader(); err != nil {

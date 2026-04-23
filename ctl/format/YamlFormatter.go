@@ -37,7 +37,7 @@ func newYamlFormatter(s *MarshalSpec) Formatter {
 }
 
 // WriteRecord writes a record to the formatters writer
-func (yf *yamlFormatter) WriteRecord(record interface{}) error {
+func (yf *yamlFormatter) WriteRecord(record any) error {
 	switch v := record.(type) {
 	case proto.Message:
 		var values reflect.Value
