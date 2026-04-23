@@ -37,7 +37,7 @@ func newJsonFormatter(s *MarshalSpec) Formatter {
 }
 
 // WriteRecord writes a record to the formatters writer
-func (jf *jsonFormatter) WriteRecord(record interface{}) error {
+func (jf *jsonFormatter) WriteRecord(record any) error {
 	switch v := record.(type) {
 	case proto.Message:
 		var values reflect.Value

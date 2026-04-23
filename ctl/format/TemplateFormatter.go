@@ -50,7 +50,7 @@ func newTemplateFormatter(s *MarshalSpec) (Formatter, error) {
 }
 
 // WriteRecord writes a record to the formatters writer
-func (tf *templateFormatter) WriteRecord(record interface{}) error {
+func (tf *templateFormatter) WriteRecord(record any) error {
 	if !tf.headerWritten {
 		tf.headerWritten = true
 		tpl := tf.parsedTemplate.Lookup("HEADER")
@@ -65,7 +65,7 @@ func (tf *templateFormatter) WriteRecord(record interface{}) error {
 	tpl := tf.parsedTemplate
 	if tpl != nil {
 		if r, ok := record.(string); ok {
-			var j interface{}
+			var j any
 			err := json.Unmarshal([]byte(r), &j)
 			if err != nil {
 				return fmt.Errorf("failed to parse json: %w", err)
@@ -108,7 +108,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 				return fmt.Sprintf("%-24.24s", ts.AsTime().Format(time.RFC3339))
 			}
 		},
-		"json": func(v interface{}) (string, error) {
+		"json": func(v any) (string, error) {
 			if v == nil {
 				return "", nil
 			} else {
@@ -122,7 +122,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 				return buf.String(), nil
 			}
 		},
-		"prettyJson": func(v interface{}) (string, error) {
+		"prettyJson": func(v any) (string, error) {
 			if v == nil {
 				return "", nil
 			} else {
@@ -138,7 +138,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 			}
 		},
 		"nl": func() string { return "\n" },
-		"join": func(sep string, v interface{}) string {
+		"join": func(sep string, v any) string {
 			a := reflect.ValueOf(v)
 			if a.Kind() != reflect.Slice {
 				s, _ := v.(string)
@@ -148,14 +148,14 @@ func parseTemplate(templateString string) (*template.Template, error) {
 			if a.Len() == 0 {
 				return ""
 			}
-			b.WriteString(fmt.Sprintf("%s", a.Index(0)))
+			fmt.Fprintf(&b, "%s", a.Index(0))
 			for i := 1; i < a.Len(); i++ {
 				b.WriteString(sep)
-				b.WriteString(fmt.Sprintf("%s", a.Index(i)))
+				fmt.Fprintf(&b, "%s", a.Index(i))
 			}
 			return b.String()
 		},
-		"flatMap": func(v interface{}, field ...string) []interface{} {
+		"flatMap": func(v any, field ...string) []any {
 			slice := reflect.ValueOf(v)
 			if slice.Kind() != reflect.Slice {
 				return nil
@@ -165,9 +165,9 @@ func parseTemplate(templateString string) (*template.Template, error) {
 			if fieldCount == 0 {
 				fieldCount = 1
 			}
-			res := make([]interface{}, n*fieldCount)
+			res := make([]any, n*fieldCount)
 
-			for i := 0; i < n; i++ {
+			for i := range n {
 				val := reflect.ValueOf(v).Index(i)
 				if len(field) == 0 {
 					res[i] = fmt.Sprintf("%s", val)
@@ -183,7 +183,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 
 			return res
 		},
-		"printLabels": func(v interface{}) string {
+		"printLabels": func(v any) string {
 			if labels, ok := v.([]*configV1.Label); ok {
 				b := strings.Builder{}
 				// b.WriteString("[")

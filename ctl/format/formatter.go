@@ -49,29 +49,29 @@ type Formatter interface {
 	// WriteRecord writes a record to the formatter.
 	// The input record is guaranteed to be a protobuf message
 	// or the result of parsing a json formatted string into an interface (see https://pkg.go.dev/encoding/json#Unmarshal).
-	WriteRecord(interface{}) error
+	WriteRecord(any) error
 	Close() error
 }
 
 // anyElement is a struct that can hold any type of element.
 // It is used as input to the json unmarshaler.
 type anyElement struct {
-	v interface{}
+	v any
 }
 
 // UnmarshalJSON implements the encoding/json.Unmarshaler interface.
 // The function uses encoding.json.Unmarshal to unmarshal the input.
-// If the input is a map[string]interface{}, the map is traversed to find any RethinkDb dates
+// If the input is a map[string]any, the map is traversed to find any RethinkDb dates
 // which are converted to RFC3339 formatted strings.
 func (r *anyElement) UnmarshalJSON(b []byte) error {
-	var i interface{}
+	var i any
 	err := json.Unmarshal(b, &i)
 	if err != nil {
 		return err
 	}
 
 	switch j := i.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		if d, ok := r.formatDate(j); ok {
 			r.v = d
 			return nil
@@ -86,9 +86,9 @@ func (r *anyElement) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-func (r *anyElement) traverseMap(i *map[string]interface{}) {
+func (r *anyElement) traverseMap(i *map[string]any) {
 	for k, v := range *i {
-		if m, ok := v.(map[string]interface{}); ok {
+		if m, ok := v.(map[string]any); ok {
 			if d, ok := r.formatDate(m); ok {
 				(*i)[k] = d
 			} else {
@@ -99,7 +99,7 @@ func (r *anyElement) traverseMap(i *map[string]interface{}) {
 }
 
 // getAsInt returns the value as an int if it is a float64 or int
-func getAsInt(v interface{}) (int, bool) {
+func getAsInt(v any) (int, bool) {
 	switch i := v.(type) {
 	case float64:
 		return int(i), true
@@ -113,13 +113,13 @@ func getAsInt(v interface{}) (int, bool) {
 // formatDate first checks if i is a RethinkDb date.
 // If so, date is the result of converting the date to a RFC3339 formatted string and isDate is true.
 // Otherwise, date is the empty string and isDate is false.
-func (r *anyElement) formatDate(element map[string]interface{}) (date string, isDate bool) {
+func (r *anyElement) formatDate(element map[string]any) (date string, isDate bool) {
 	var year, month, day, hour, minute, second, nano, offset int
 
-	if dateTime, ok := element["dateTime"].(map[string]interface{}); !ok {
+	if dateTime, ok := element["dateTime"].(map[string]any); !ok {
 		return "", false
 	} else {
-		if date, ok := dateTime["date"].(map[string]interface{}); !ok {
+		if date, ok := dateTime["date"].(map[string]any); !ok {
 			return "", false
 		} else {
 			if year, ok = getAsInt(date["year"]); !ok {
@@ -132,7 +132,7 @@ func (r *anyElement) formatDate(element map[string]interface{}) (date string, is
 				return "", false
 			}
 		}
-		if tm, ok := dateTime["time"].(map[string]interface{}); !ok {
+		if tm, ok := dateTime["time"].(map[string]any); !ok {
 			return "", false
 		} else {
 			if hour, ok = getAsInt(tm["hour"]); !ok {
@@ -149,7 +149,7 @@ func (r *anyElement) formatDate(element map[string]interface{}) (date string, is
 			}
 		}
 	}
-	if of, ok := element["offset"].(map[string]interface{}); !ok {
+	if of, ok := element["offset"].(map[string]any); !ok {
 		return "", false
 	} else {
 		if offset, ok = getAsInt(of["totalSeconds"]); !ok {
@@ -173,7 +173,7 @@ type preFormatter struct {
 // If the input record is a string, it is parsed as json and the result is passed to the wrapped formatter.
 // If the input record is a protobuf message, it is passed to the wrapped formatter.
 // Otherwise, an error is returned.
-func (p *preFormatter) WriteRecord(record interface{}) error {
+func (p *preFormatter) WriteRecord(record any) error {
 	switch v := record.(type) {
 	case string:
 		var j anyElement

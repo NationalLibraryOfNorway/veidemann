@@ -33,7 +33,7 @@ func (l *LineAsStringDecoder) Init(r io.Reader, suffix string) {
 	l.r = bufio.NewReader(r)
 }
 
-func (l *LineAsStringDecoder) Read(v interface{}) error {
+func (l *LineAsStringDecoder) Read(v any) error {
 	s, err := l.r.ReadString('\n')
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (l *LineAsStringDecoder) Read(v interface{}) error {
 }
 
 type decoder interface {
-	Decode(v interface{}) error
+	Decode(v any) error
 }
 
 // JsonYamlDecoder is a decoder that reads json or yaml from the input and decodes it into a struct
@@ -72,6 +72,6 @@ func (j *JsonYamlDecoder) Init(r io.Reader, suffix string) {
 	}
 }
 
-func (j *JsonYamlDecoder) Read(v interface{}) error {
+func (j *JsonYamlDecoder) Read(v any) error {
 	return j.Decode(v)
 }
