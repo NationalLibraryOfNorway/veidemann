@@ -12,4 +12,4 @@ bootstrapApplication(App, {
     ...appConfig.providers,
     provideAnimations(),
   ]
-}).catch(err => console.error(err));
+}).catch(console.error);
