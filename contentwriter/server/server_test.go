@@ -267,21 +267,11 @@ func TestContentWriterService_Write(t *testing.T) {
 		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
 		"(?s).*",
 	).SetVal(1)
-
-	redisMock.CustomMatch(func(expectArgs, cmdArgs []interface{}) error {
-		// cmdArgs: ["expire", key, ttl]
-		if len(cmdArgs) != 4 {
-			return fmt.Errorf("unexpected args: %#v", cmdArgs)
-		}
-		if cmdArgs[0] != "expire" {
-			return fmt.Errorf("unexpected command: %v", cmdArgs[0])
-		}
-		if cmdArgs[1] != "c1_2000101002" {
-			return fmt.Errorf("unexpected key: %v", cmdArgs[1])
-		}
-		// ignore ttl completely
-		return nil
-	}).ExpectExpireNX("c1_2000101002", 0).SetVal(true)
+	redisMock.ExpectTTL("c1_2000101002").SetVal(time.Duration(-1))
+	redisMock.ExpectExpireAt(
+		"c1_2000101002",
+		time.Date(2000, 10, 10, 3, 0, 0, 0, time.UTC),
+	).SetVal(true)
 
 	ctx := context.Background()
 	assert := assert.New(t)
@@ -345,21 +335,11 @@ func TestContentWriterService_Write_Compressed(t *testing.T) {
 		"sha1:C37FFB221569C553A2476C22C7DAD429F3492977",
 		"(?s).*",
 	).SetVal(1)
-
-	redisMock.CustomMatch(func(expectArgs, cmdArgs []interface{}) error {
-		// cmdArgs: ["expire", key, ttl]
-		if len(cmdArgs) != 4 {
-			return fmt.Errorf("unexpected args: %#v", cmdArgs)
-		}
-		if cmdArgs[0] != "expire" {
-			return fmt.Errorf("unexpected command: %v", cmdArgs[0])
-		}
-		if cmdArgs[1] != "c2_2000101002" {
-			return fmt.Errorf("unexpected key: %v", cmdArgs[1])
-		}
-		// ignore ttl completely
-		return nil
-	}).ExpectExpireNX("c2_2000101002", 0).SetVal(true)
+	redisMock.ExpectTTL("c2_2000101002").SetVal(time.Duration(-1))
+	redisMock.ExpectExpireAt(
+		"c2_2000101002",
+		time.Date(2000, 10, 10, 3, 0, 0, 0, time.UTC),
+	).SetVal(true)
 
 	ctx := context.Background()
 	assert := assert.New(t)
