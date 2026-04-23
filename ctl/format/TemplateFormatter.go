@@ -167,7 +167,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 			}
 			res := make([]any, n*fieldCount)
 
-			for i := 0; i < n; i++ {
+			for i := range n {
 				val := reflect.ValueOf(v).Index(i)
 				if len(field) == 0 {
 					res[i] = fmt.Sprintf("%s", val)
