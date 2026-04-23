@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var config_v1_resources_pb = require('../../config/v1/resources_pb.js');
 goog.object.extend(proto, config_v1_resources_pb);
@@ -211,7 +205,7 @@ requestId: jspb.Message.getFieldWithDefault(msg, 7, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.browsercontroller.v1.RegisterNew}
  */
 proto.veidemann.api.browsercontroller.v1.RegisterNew.deserializeBinary = function(bytes) {
@@ -240,15 +234,15 @@ proto.veidemann.api.browsercontroller.v1.RegisterNew.deserializeBinaryFromReader
       msg.setProxyId(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setUri(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setCrawlExecutionId(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setJobExecutionId(value);
       break;
     case 5:
@@ -257,11 +251,11 @@ proto.veidemann.api.browsercontroller.v1.RegisterNew.deserializeBinaryFromReader
       msg.setCollectionRef(value);
       break;
     case 6:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setMethod(value);
       break;
     case 7:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setRequestId(value);
       break;
     default:
@@ -536,7 +530,7 @@ activity: jspb.Message.getFieldWithDefault(msg, 1, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.browsercontroller.v1.NotifyActivity}
  */
 proto.veidemann.api.browsercontroller.v1.NotifyActivity.deserializeBinary = function(bytes) {
@@ -675,7 +669,7 @@ cached: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.browsercontroller.v1.Completed}
  */
 proto.veidemann.api.browsercontroller.v1.Completed.deserializeBinary = function(bytes) {
@@ -884,7 +878,7 @@ completed: (f = msg.getCompleted()) && proto.veidemann.api.browsercontroller.v1.
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.browsercontroller.v1.DoRequest}
  */
 proto.veidemann.api.browsercontroller.v1.DoRequest.deserializeBinary = function(bytes) {
@@ -1138,7 +1132,7 @@ replacementScript: (f = msg.getReplacementScript()) && config_v1_resources_pb.Br
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.browsercontroller.v1.NewReply}
  */
 proto.veidemann.api.browsercontroller.v1.NewReply.deserializeBinary = function(bytes) {
@@ -1163,11 +1157,11 @@ proto.veidemann.api.browsercontroller.v1.NewReply.deserializeBinaryFromReader = 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setCrawlExecutionId(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setJobExecutionId(value);
       break;
     case 4:
@@ -1424,7 +1418,7 @@ cancel: (f = jspb.Message.getField(msg, 4)) == null ? undefined : f
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.browsercontroller.v1.DoReply}
  */
 proto.veidemann.api.browsercontroller.v1.DoReply.deserializeBinary = function(bytes) {
@@ -1454,7 +1448,7 @@ proto.veidemann.api.browsercontroller.v1.DoReply.deserializeBinaryFromReader = f
       msg.setNew(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setCancel(value);
       break;
     default:

@@ -58,6 +58,9 @@ func ParseFlags() (Options, error) {
 	flags.String("redis-password", "", "Redis password")
 	flags.Int("redis-port", 6379, "Redis port")
 	flags.Int("redis-db", 1, "Redis database number")
+	flags.String("redis-master-name", "", "Redis Sentinel master name")
+	flags.StringSlice("redis-sentinel-addrs", []string{}, "Comma-separated Redis Sentinel addresses")
+	flags.String("redis-sentinel-password", "", "Redis Sentinel password")
 
 	pflag.String("metrics-address", ":9153", "address to expose metrics on")
 
@@ -206,6 +209,22 @@ func (o Options) RedisDb() int {
 
 func (o Options) RedisPassword() string {
 	return viper.GetString("redis-password")
+}
+
+func (o Options) RedisMasterName() string {
+	return viper.GetString("redis-master-name")
+}
+
+func (o Options) RedisSentinelAddrs() []string {
+	return viper.GetStringSlice("redis-sentinel-addrs")
+}
+
+func (o Options) RedisSentinelPassword() string {
+	return viper.GetString("redis-sentinel-password")
+}
+
+func (o Options) UseRedisSentinel() bool {
+	return o.RedisMasterName() != "" && len(o.RedisSentinelAddrs()) > 0
 }
 
 func (o Options) S3Address() string {

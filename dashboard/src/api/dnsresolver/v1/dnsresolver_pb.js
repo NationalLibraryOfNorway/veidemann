@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var config_v1_resources_pb = require('../../config/v1/resources_pb.js');
 goog.object.extend(proto, config_v1_resources_pb);
@@ -117,7 +111,7 @@ collectionRef: (f = msg.getCollectionRef()) && config_v1_resources_pb.ConfigRef.
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.dnsresolver.v1.ResolveRequest}
  */
 proto.veidemann.api.dnsresolver.v1.ResolveRequest.deserializeBinary = function(bytes) {
@@ -142,7 +136,7 @@ proto.veidemann.api.dnsresolver.v1.ResolveRequest.deserializeBinaryFromReader = 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setHost(value);
       break;
     case 2:
@@ -150,7 +144,7 @@ proto.veidemann.api.dnsresolver.v1.ResolveRequest.deserializeBinaryFromReader = 
       msg.setPort(value);
       break;
     case 6:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setExecutionId(value);
       break;
     case 7:
@@ -359,7 +353,7 @@ error: (f = msg.getError()) && commons_v1_resources_pb.Error.toObject(includeIns
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.dnsresolver.v1.ResolveReply}
  */
 proto.veidemann.api.dnsresolver.v1.ResolveReply.deserializeBinary = function(bytes) {
@@ -384,7 +378,7 @@ proto.veidemann.api.dnsresolver.v1.ResolveReply.deserializeBinaryFromReader = fu
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setHost(value);
       break;
     case 2:
@@ -392,7 +386,7 @@ proto.veidemann.api.dnsresolver.v1.ResolveReply.deserializeBinaryFromReader = fu
       msg.setPort(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setTextualIp(value);
       break;
     case 4:

@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var commons_v1_resources_pb = require('../../commons/v1/resources_pb.js');
 goog.object.extend(proto, commons_v1_resources_pb);
@@ -176,7 +170,7 @@ offset: jspb.Message.getFieldWithDefault(msg, 15, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.log.v1.CrawlLogListRequest}
  */
 proto.veidemann.api.log.v1.CrawlLogListRequest.deserializeBinary = function(bytes) {
@@ -201,7 +195,7 @@ proto.veidemann.api.log.v1.CrawlLogListRequest.deserializeBinaryFromReader = fun
     var field = reader.getFieldNumber();
     switch (field) {
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addWarcId(value);
       break;
     case 5:
@@ -220,7 +214,7 @@ proto.veidemann.api.log.v1.CrawlLogListRequest.deserializeBinaryFromReader = fun
       msg.setReturnedFieldsMask(value);
       break;
     case 8:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setOrderByPath(value);
       break;
     case 9:
@@ -635,7 +629,7 @@ offset: jspb.Message.getFieldWithDefault(msg, 15, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.log.v1.PageLogListRequest}
  */
 proto.veidemann.api.log.v1.PageLogListRequest.deserializeBinary = function(bytes) {
@@ -660,7 +654,7 @@ proto.veidemann.api.log.v1.PageLogListRequest.deserializeBinaryFromReader = func
     var field = reader.getFieldNumber();
     switch (field) {
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addWarcId(value);
       break;
     case 5:
@@ -679,7 +673,7 @@ proto.veidemann.api.log.v1.PageLogListRequest.deserializeBinaryFromReader = func
       msg.setReturnedFieldsMask(value);
       break;
     case 8:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setOrderByPath(value);
       break;
     case 9:
@@ -1108,7 +1102,7 @@ outlink: (f = jspb.Message.getField(msg, 3)) == null ? undefined : f
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.log.v1.WritePageLogRequest}
  */
 proto.veidemann.api.log.v1.WritePageLogRequest.deserializeBinary = function(bytes) {
@@ -1143,7 +1137,7 @@ proto.veidemann.api.log.v1.WritePageLogRequest.deserializeBinaryFromReader = fun
       msg.setResource(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setOutlink(value);
       break;
     default:
@@ -1356,7 +1350,7 @@ crawllog: (f = msg.getCrawllog()) && log_v1_resources_pb.CrawlLog.toObject(inclu
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.log.v1.WriteCrawlLogRequest}
  */
 proto.veidemann.api.log.v1.WriteCrawlLogRequest.deserializeBinary = function(bytes) {

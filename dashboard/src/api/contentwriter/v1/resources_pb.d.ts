@@ -28,11 +28,11 @@ export class CrawledContent extends jspb.Message {
 
 export namespace CrawledContent {
   export type AsObject = {
-    digest: string,
-    warcId: string,
-    targetUri: string,
-    date?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-  }
+    digest: string;
+    warcId: string;
+    targetUri: string;
+    date?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+  };
 }
 
 export class StorageRef extends jspb.Message {
@@ -55,13 +55,13 @@ export class StorageRef extends jspb.Message {
 
 export namespace StorageRef {
   export type AsObject = {
-    warcId: string,
-    recordType: RecordType,
-    storageRef: string,
-  }
+    warcId: string;
+    recordType: RecordType;
+    storageRef: string;
+  };
 }
 
-export enum RecordType { 
+export enum RecordType {
   WARCINFO = 0,
   RESPONSE = 1,
   RESOURCE = 2,

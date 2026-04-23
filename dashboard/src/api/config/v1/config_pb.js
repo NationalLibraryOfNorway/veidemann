@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var config_v1_resources_pb = require('../../config/v1/resources_pb.js');
 goog.object.extend(proto, config_v1_resources_pb);
@@ -271,7 +265,7 @@ seed: (f = msg.getSeed()) && config_v1_resources_pb.ConfigRef.toObject(includeIn
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.GetScriptAnnotationsRequest}
  */
 proto.veidemann.api.config.v1.GetScriptAnnotationsRequest.deserializeBinary = function(bytes) {
@@ -480,7 +474,7 @@ annotationList: jspb.Message.toObjectList(msg.getAnnotationList(),
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.GetScriptAnnotationsResponse}
  */
 proto.veidemann.api.config.v1.GetScriptAnnotationsResponse.deserializeBinary = function(bytes) {
@@ -632,7 +626,7 @@ kind: jspb.Message.getFieldWithDefault(msg, 1, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.GetLabelKeysRequest}
  */
 proto.veidemann.api.config.v1.GetLabelKeysRequest.deserializeBinary = function(bytes) {
@@ -779,7 +773,7 @@ offset: jspb.Message.getFieldWithDefault(msg, 15, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.ListRequest}
  */
 proto.veidemann.api.config.v1.ListRequest.deserializeBinary = function(bytes) {
@@ -808,15 +802,15 @@ proto.veidemann.api.config.v1.ListRequest.deserializeBinaryFromReader = function
       msg.setKind(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addId(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setNameRegex(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addLabelSelector(value);
       break;
     case 5:
@@ -835,7 +829,7 @@ proto.veidemann.api.config.v1.ListRequest.deserializeBinaryFromReader = function
       msg.setReturnedFieldsMask(value);
       break;
     case 8:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setOrderByPath(value);
       break;
     case 9:
@@ -1302,7 +1296,7 @@ updateTemplate: (f = msg.getUpdateTemplate()) && config_v1_resources_pb.ConfigOb
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.UpdateRequest}
  */
 proto.veidemann.api.config.v1.UpdateRequest.deserializeBinary = function(bytes) {
@@ -1553,7 +1547,7 @@ updated: jspb.Message.getFieldWithDefault(msg, 1, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.UpdateResponse}
  */
 proto.veidemann.api.config.v1.UpdateResponse.deserializeBinary = function(bytes) {
@@ -1684,7 +1678,7 @@ approximate: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.ListCountResponse}
  */
 proto.veidemann.api.config.v1.ListCountResponse.deserializeBinary = function(bytes) {
@@ -1843,7 +1837,7 @@ deleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.DeleteResponse}
  */
 proto.veidemann.api.config.v1.DeleteResponse.deserializeBinary = function(bytes) {
@@ -1980,7 +1974,7 @@ keyList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.config.v1.LabelKeysResponse}
  */
 proto.veidemann.api.config.v1.LabelKeysResponse.deserializeBinary = function(bytes) {
@@ -2005,7 +1999,7 @@ proto.veidemann.api.config.v1.LabelKeysResponse.deserializeBinaryFromReader = fu
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addKey(value);
       break;
     default:

@@ -29,11 +29,11 @@ export class ResolveRequest extends jspb.Message {
 
 export namespace ResolveRequest {
   export type AsObject = {
-    host: string,
-    port: number,
-    executionId: string,
-    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject,
-  }
+    host: string;
+    port: number;
+    executionId: string;
+    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject;
+  };
 }
 
 export class ResolveReply extends jspb.Message {
@@ -66,11 +66,11 @@ export class ResolveReply extends jspb.Message {
 
 export namespace ResolveReply {
   export type AsObject = {
-    host: string,
-    port: number,
-    textualIp: string,
-    rawIp: Uint8Array | string,
-    error?: commons_v1_resources_pb.Error.AsObject,
-  }
+    host: string;
+    port: number;
+    textualIp: string;
+    rawIp: Uint8Array | string;
+    error?: commons_v1_resources_pb.Error.AsObject;
+  };
 }
 

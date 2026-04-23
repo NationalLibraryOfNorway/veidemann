@@ -26,9 +26,9 @@ export class GetScriptAnnotationsRequest extends jspb.Message {
 
 export namespace GetScriptAnnotationsRequest {
   export type AsObject = {
-    job?: config_v1_resources_pb.ConfigRef.AsObject,
-    seed?: config_v1_resources_pb.ConfigRef.AsObject,
-  }
+    job?: config_v1_resources_pb.ConfigRef.AsObject;
+    seed?: config_v1_resources_pb.ConfigRef.AsObject;
+  };
 }
 
 export class GetScriptAnnotationsResponse extends jspb.Message {
@@ -47,8 +47,8 @@ export class GetScriptAnnotationsResponse extends jspb.Message {
 
 export namespace GetScriptAnnotationsResponse {
   export type AsObject = {
-    annotationList: Array<config_v1_resources_pb.Annotation.AsObject>,
-  }
+    annotationList: Array<config_v1_resources_pb.Annotation.AsObject>;
+  };
 }
 
 export class GetLabelKeysRequest extends jspb.Message {
@@ -65,8 +65,8 @@ export class GetLabelKeysRequest extends jspb.Message {
 
 export namespace GetLabelKeysRequest {
   export type AsObject = {
-    kind: config_v1_resources_pb.Kind,
-  }
+    kind: config_v1_resources_pb.Kind;
+  };
 }
 
 export class ListRequest extends jspb.Message {
@@ -123,18 +123,18 @@ export class ListRequest extends jspb.Message {
 
 export namespace ListRequest {
   export type AsObject = {
-    kind: config_v1_resources_pb.Kind,
-    idList: Array<string>,
-    nameRegex: string,
-    labelSelectorList: Array<string>,
-    queryTemplate?: config_v1_resources_pb.ConfigObject.AsObject,
-    queryMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    orderByPath: string,
-    orderDescending: boolean,
-    pageSize: number,
-    offset: number,
-  }
+    kind: config_v1_resources_pb.Kind;
+    idList: Array<string>;
+    nameRegex: string;
+    labelSelectorList: Array<string>;
+    queryTemplate?: config_v1_resources_pb.ConfigObject.AsObject;
+    queryMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    orderByPath: string;
+    orderDescending: boolean;
+    pageSize: number;
+    offset: number;
+  };
 }
 
 export class UpdateRequest extends jspb.Message {
@@ -163,10 +163,10 @@ export class UpdateRequest extends jspb.Message {
 
 export namespace UpdateRequest {
   export type AsObject = {
-    listRequest?: ListRequest.AsObject,
-    updateMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    updateTemplate?: config_v1_resources_pb.ConfigObject.AsObject,
-  }
+    listRequest?: ListRequest.AsObject;
+    updateMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    updateTemplate?: config_v1_resources_pb.ConfigObject.AsObject;
+  };
 }
 
 export class UpdateResponse extends jspb.Message {
@@ -183,8 +183,8 @@ export class UpdateResponse extends jspb.Message {
 
 export namespace UpdateResponse {
   export type AsObject = {
-    updated: number,
-  }
+    updated: number;
+  };
 }
 
 export class ListCountResponse extends jspb.Message {
@@ -204,9 +204,9 @@ export class ListCountResponse extends jspb.Message {
 
 export namespace ListCountResponse {
   export type AsObject = {
-    count: number,
-    approximate: boolean,
-  }
+    count: number;
+    approximate: boolean;
+  };
 }
 
 export class DeleteResponse extends jspb.Message {
@@ -223,8 +223,8 @@ export class DeleteResponse extends jspb.Message {
 
 export namespace DeleteResponse {
   export type AsObject = {
-    deleted: boolean,
-  }
+    deleted: boolean;
+  };
 }
 
 export class LabelKeysResponse extends jspb.Message {
@@ -243,7 +243,7 @@ export class LabelKeysResponse extends jspb.Message {
 
 export namespace LabelKeysResponse {
   export type AsObject = {
-    keyList: Array<string>,
-  }
+    keyList: Array<string>;
+  };
 }
 

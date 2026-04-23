@@ -41,13 +41,13 @@ export class ListRequest extends jspb.Message {
 
 export namespace ListRequest {
   export type AsObject = {
-    idList: Array<string>,
-    queryTemplate?: eventhandler_v1_resources_pb.EventObject.AsObject,
-    queryMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    pageSize: number,
-    offset: number,
-  }
+    idList: Array<string>;
+    queryTemplate?: eventhandler_v1_resources_pb.EventObject.AsObject;
+    queryMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    pageSize: number;
+    offset: number;
+  };
 }
 
 export class UpdateRequest extends jspb.Message {
@@ -79,11 +79,11 @@ export class UpdateRequest extends jspb.Message {
 
 export namespace UpdateRequest {
   export type AsObject = {
-    listRequest?: ListRequest.AsObject,
-    updateMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    updateTemplate?: eventhandler_v1_resources_pb.EventObject.AsObject,
-    comment: string,
-  }
+    listRequest?: ListRequest.AsObject;
+    updateMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    updateTemplate?: eventhandler_v1_resources_pb.EventObject.AsObject;
+    comment: string;
+  };
 }
 
 export class SaveRequest extends jspb.Message {
@@ -105,9 +105,9 @@ export class SaveRequest extends jspb.Message {
 
 export namespace SaveRequest {
   export type AsObject = {
-    object?: eventhandler_v1_resources_pb.EventObject.AsObject,
-    comment: string,
-  }
+    object?: eventhandler_v1_resources_pb.EventObject.AsObject;
+    comment: string;
+  };
 }
 
 export class UpdateResponse extends jspb.Message {
@@ -124,8 +124,8 @@ export class UpdateResponse extends jspb.Message {
 
 export namespace UpdateResponse {
   export type AsObject = {
-    updated: number,
-  }
+    updated: number;
+  };
 }
 
 export class ListCountResponse extends jspb.Message {
@@ -145,9 +145,9 @@ export class ListCountResponse extends jspb.Message {
 
 export namespace ListCountResponse {
   export type AsObject = {
-    count: number,
-    approximate: boolean,
-  }
+    count: number;
+    approximate: boolean;
+  };
 }
 
 export class DeleteResponse extends jspb.Message {
@@ -164,8 +164,8 @@ export class DeleteResponse extends jspb.Message {
 
 export namespace DeleteResponse {
   export type AsObject = {
-    deleted: boolean,
-  }
+    deleted: boolean;
+  };
 }
 
 export class ListLabelRequest extends jspb.Message {
@@ -182,8 +182,8 @@ export class ListLabelRequest extends jspb.Message {
 
 export namespace ListLabelRequest {
   export type AsObject = {
-    text: string,
-  }
+    text: string;
+  };
 }
 
 export class ListLabelResponse extends jspb.Message {
@@ -202,7 +202,7 @@ export class ListLabelResponse extends jspb.Message {
 
 export namespace ListLabelResponse {
   export type AsObject = {
-    labelList: Array<string>,
-  }
+    labelList: Array<string>;
+  };
 }
 

@@ -24,9 +24,9 @@ export class Data extends jspb.Message {
 
 export namespace Data {
   export type AsObject = {
-    recordNum: number,
-    data: Uint8Array | string,
-  }
+    recordNum: number;
+    data: Uint8Array | string;
+  };
 }
 
 export class WriteRequestMeta extends jspb.Message {
@@ -62,13 +62,13 @@ export class WriteRequestMeta extends jspb.Message {
 
 export namespace WriteRequestMeta {
   export type AsObject = {
-    executionId: string,
-    targetUri: string,
-    recordMetaMap: Array<[number, WriteRequestMeta.RecordMeta.AsObject]>,
-    fetchTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    ipAddress: string,
-    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject,
-  }
+    executionId: string;
+    targetUri: string;
+    recordMetaMap: Array<[number, WriteRequestMeta.RecordMeta.AsObject]>;
+    fetchTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    ipAddress: string;
+    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject;
+  };
 
   export class RecordMeta extends jspb.Message {
     getRecordNum(): number;
@@ -107,15 +107,15 @@ export namespace WriteRequestMeta {
 
   export namespace RecordMeta {
     export type AsObject = {
-      recordNum: number,
-      type: contentwriter_v1_resources_pb.RecordType,
-      recordContentType: string,
-      blockDigest: string,
-      payloadDigest: string,
-      size: number,
-      subCollection: config_v1_resources_pb.Collection.SubCollectionType,
-      warcConcurrentToList: Array<string>,
-    }
+      recordNum: number;
+      type: contentwriter_v1_resources_pb.RecordType;
+      recordContentType: string;
+      blockDigest: string;
+      payloadDigest: string;
+      size: number;
+      subCollection: config_v1_resources_pb.Collection.SubCollectionType;
+      warcConcurrentToList: Array<string>;
+    };
   }
 
 }
@@ -138,6 +138,8 @@ export class WriteRequest extends jspb.Message {
 
   getCancel(): string;
   setCancel(value: string): WriteRequest;
+  hasCancel(): boolean;
+  clearCancel(): WriteRequest;
 
   getValueCase(): WriteRequest.ValueCase;
 
@@ -151,13 +153,13 @@ export class WriteRequest extends jspb.Message {
 
 export namespace WriteRequest {
   export type AsObject = {
-    meta?: WriteRequestMeta.AsObject,
-    protocolHeader?: Data.AsObject,
-    payload?: Data.AsObject,
-    cancel: string,
-  }
+    meta?: WriteRequestMeta.AsObject;
+    protocolHeader?: Data.AsObject;
+    payload?: Data.AsObject;
+    cancel?: string;
+  };
 
-  export enum ValueCase { 
+  export enum ValueCase {
     VALUE_NOT_SET = 0,
     META = 1,
     PROTOCOL_HEADER = 2,
@@ -180,8 +182,8 @@ export class WriteResponseMeta extends jspb.Message {
 
 export namespace WriteResponseMeta {
   export type AsObject = {
-    recordMetaMap: Array<[number, WriteResponseMeta.RecordMeta.AsObject]>,
-  }
+    recordMetaMap: Array<[number, WriteResponseMeta.RecordMeta.AsObject]>;
+  };
 
   export class RecordMeta extends jspb.Message {
     getRecordNum(): number;
@@ -218,15 +220,15 @@ export namespace WriteResponseMeta {
 
   export namespace RecordMeta {
     export type AsObject = {
-      recordNum: number,
-      type: contentwriter_v1_resources_pb.RecordType,
-      warcId: string,
-      storageRef: string,
-      blockDigest: string,
-      payloadDigest: string,
-      revisitReferenceId: string,
-      collectionFinalName: string,
-    }
+      recordNum: number;
+      type: contentwriter_v1_resources_pb.RecordType;
+      warcId: string;
+      storageRef: string;
+      blockDigest: string;
+      payloadDigest: string;
+      revisitReferenceId: string;
+      collectionFinalName: string;
+    };
   }
 
 }
@@ -247,7 +249,7 @@ export class WriteReply extends jspb.Message {
 
 export namespace WriteReply {
   export type AsObject = {
-    meta?: WriteResponseMeta.AsObject,
-  }
+    meta?: WriteResponseMeta.AsObject;
+  };
 }
 

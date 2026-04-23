@@ -38,14 +38,14 @@ export class RegisterNew extends jspb.Message {
 
 export namespace RegisterNew {
   export type AsObject = {
-    proxyId: number,
-    uri: string,
-    crawlExecutionId: string,
-    jobExecutionId: string,
-    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject,
-    method: string,
-    requestId: string,
-  }
+    proxyId: number;
+    uri: string;
+    crawlExecutionId: string;
+    jobExecutionId: string;
+    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject;
+    method: string;
+    requestId: string;
+  };
 }
 
 export class NotifyActivity extends jspb.Message {
@@ -62,10 +62,10 @@ export class NotifyActivity extends jspb.Message {
 
 export namespace NotifyActivity {
   export type AsObject = {
-    activity: NotifyActivity.Activity,
-  }
+    activity: NotifyActivity.Activity;
+  };
 
-  export enum Activity { 
+  export enum Activity {
     DATA_RECEIVED = 0,
     ALL_DATA_RECEIVED = 1,
   }
@@ -90,9 +90,9 @@ export class Completed extends jspb.Message {
 
 export namespace Completed {
   export type AsObject = {
-    crawlLog?: log_v1_resources_pb.CrawlLog.AsObject,
-    cached: boolean,
-  }
+    crawlLog?: log_v1_resources_pb.CrawlLog.AsObject;
+    cached: boolean;
+  };
 }
 
 export class DoRequest extends jspb.Message {
@@ -123,12 +123,12 @@ export class DoRequest extends jspb.Message {
 
 export namespace DoRequest {
   export type AsObject = {
-    pb_new?: RegisterNew.AsObject,
-    notify?: NotifyActivity.AsObject,
-    completed?: Completed.AsObject,
-  }
+    pb_new?: RegisterNew.AsObject;
+    notify?: NotifyActivity.AsObject;
+    completed?: Completed.AsObject;
+  };
 
-  export enum ActionCase { 
+  export enum ActionCase {
     ACTION_NOT_SET = 0,
     NEW = 1,
     NOTIFY = 2,
@@ -163,11 +163,11 @@ export class NewReply extends jspb.Message {
 
 export namespace NewReply {
   export type AsObject = {
-    crawlExecutionId: string,
-    jobExecutionId: string,
-    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject,
-    replacementScript?: config_v1_resources_pb.BrowserScript.AsObject,
-  }
+    crawlExecutionId: string;
+    jobExecutionId: string;
+    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject;
+    replacementScript?: config_v1_resources_pb.BrowserScript.AsObject;
+  };
 }
 
 export class DoReply extends jspb.Message {
@@ -178,6 +178,8 @@ export class DoReply extends jspb.Message {
 
   getCancel(): string;
   setCancel(value: string): DoReply;
+  hasCancel(): boolean;
+  clearCancel(): DoReply;
 
   getActionCase(): DoReply.ActionCase;
 
@@ -191,11 +193,11 @@ export class DoReply extends jspb.Message {
 
 export namespace DoReply {
   export type AsObject = {
-    pb_new?: NewReply.AsObject,
-    cancel: string,
-  }
+    pb_new?: NewReply.AsObject;
+    cancel?: string;
+  };
 
-  export enum ActionCase { 
+  export enum ActionCase {
     ACTION_NOT_SET = 0,
     NEW = 1,
     CANCEL = 4,

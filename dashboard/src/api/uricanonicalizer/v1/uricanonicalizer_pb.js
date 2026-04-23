@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var commons_v1_resources_pb = require('../../commons/v1/resources_pb.js');
 goog.object.extend(proto, commons_v1_resources_pb);
@@ -112,7 +106,7 @@ uri: jspb.Message.getFieldWithDefault(msg, 1, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.uricanonicalizer.v1.CanonicalizeRequest}
  */
 proto.veidemann.api.uricanonicalizer.v1.CanonicalizeRequest.deserializeBinary = function(bytes) {
@@ -137,7 +131,7 @@ proto.veidemann.api.uricanonicalizer.v1.CanonicalizeRequest.deserializeBinaryFro
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setUri(value);
       break;
     default:
@@ -242,7 +236,7 @@ uri: (f = msg.getUri()) && commons_v1_resources_pb.ParsedUri.toObject(includeIns
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.uricanonicalizer.v1.CanonicalizeResponse}
  */
 proto.veidemann.api.uricanonicalizer.v1.CanonicalizeResponse.deserializeBinary = function(bytes) {

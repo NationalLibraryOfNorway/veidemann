@@ -26,7 +26,7 @@ import (
 
 type ContentAdapter interface {
 	HasCrawledContent(ctx context.Context, collection, key string) (*contentwriterV1.CrawledContent, error)
-	WriteCrawledContent(ctx context.Context, collection string, ttl time.Duration, crawledContent *contentwriterV1.CrawledContent) error
+	WriteCrawledContent(ctx context.Context, collection string, crawledContent *contentwriterV1.CrawledContent, expiresAt time.Time) error
 }
 
 type ConfigAdapter interface {

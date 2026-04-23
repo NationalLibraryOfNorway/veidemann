@@ -17,8 +17,8 @@ export class CanonicalizeRequest extends jspb.Message {
 
 export namespace CanonicalizeRequest {
   export type AsObject = {
-    uri: string,
-  }
+    uri: string;
+  };
 }
 
 export class CanonicalizeResponse extends jspb.Message {
@@ -37,7 +37,7 @@ export class CanonicalizeResponse extends jspb.Message {
 
 export namespace CanonicalizeResponse {
   export type AsObject = {
-    uri?: commons_v1_resources_pb.ParsedUri.AsObject,
-  }
+    uri?: commons_v1_resources_pb.ParsedUri.AsObject;
+  };
 }
 

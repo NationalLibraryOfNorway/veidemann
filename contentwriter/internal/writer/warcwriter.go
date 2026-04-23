@@ -70,6 +70,7 @@ func New(
 	recordMeta *contentwriterV1.WriteRequestMeta_RecordMeta) *warcWriter {
 
 	coll := collection.GetCollection()
+	now := Now()
 
 	ww := &warcWriter{
 		warcVersion:    opts.WarcVersion,
@@ -79,7 +80,7 @@ func New(
 		collection:     collection,
 		subCollection:  recordMeta.GetSubCollection(),
 		revisitProfile: versionToRevisitProfile(opts.WarcVersion),
-		filePrefix:     CreateFilePrefix(collection.GetMeta().GetName(), recordMeta.GetSubCollection(), Now(), collection.GetCollection().GetCollectionDedupPolicy()),
+		filePrefix:     CreateFilePrefix(collection.GetMeta().GetName(), recordMeta.GetSubCollection(), now, collection.GetCollection().GetCollectionDedupPolicy()),
 	}
 
 	ww.fileWriterOpts = []gowarc.WarcFileWriterOption{
@@ -100,7 +101,7 @@ func New(
 	if dedupPolicy != configV1.Collection_NONE && dedupPolicy < rotationPolicy {
 		rotationPolicy = dedupPolicy
 	}
-	if d, ok := TimeToNextRotation(Now(), rotationPolicy); ok {
+	if d, ok := TimeToNextRotation(now, rotationPolicy); ok {
 		ww.timer = time.NewTimer(d)
 		ww.done = make(chan struct{})
 		go func() {
@@ -122,7 +123,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 	defer ww.lock.Unlock()
 
 	dedupPolicy := ww.collection.GetCollection().GetCollectionDedupPolicy()
-	ttl := timeToLive(dedupPolicy)
+	expires := expiresAt(dedupPolicy, Now())
 	collection := ww.filePrefix[:len(ww.filePrefix)-1]
 	revisitKeys := make([]string, len(record))
 
@@ -212,7 +213,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 					TargetUri: meta.GetTargetUri(),
 					Date:      timestamppb.New(t),
 				}
-				return ww.contentAdapter.WriteCrawledContent(context.TODO(), collection, ttl, cr)
+				return ww.contentAdapter.WriteCrawledContent(context.TODO(), collection, cr, expires)
 			}()
 			if writeErr != nil {
 				log.Error().Err(writeErr).
@@ -289,7 +290,8 @@ func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPo
 	case <-ww.done:
 	case <-ww.timer.C:
 		c := ww.collection.GetCollection()
-		prefix := CreateFilePrefix(ww.collection.GetMeta().GetName(), ww.subCollection, Now(), c.GetCollectionDedupPolicy())
+		now := Now()
+		prefix := CreateFilePrefix(ww.collection.GetMeta().GetName(), ww.subCollection, now, c.GetCollectionDedupPolicy())
 		if prefix != ww.filePrefix {
 			ww.lock.Lock()
 			defer ww.lock.Unlock()
@@ -305,7 +307,7 @@ func (ww *warcWriter) waitForTimer(rotationPolicy configV1.Collection_RotationPo
 			}
 		}
 
-		if d, ok := TimeToNextRotation(Now(), rotationPolicy); ok {
+		if d, ok := TimeToNextRotation(now, rotationPolicy); ok {
 			ww.timer.Reset(d)
 		}
 		return true
@@ -347,6 +349,34 @@ func TimeToNextRotation(now time.Time, p configV1.Collection_RotationPolicy) (ti
 	return d, true
 }
 
+func expiresAt(p configV1.Collection_RotationPolicy, now time.Time) time.Time {
+	switch p {
+	case configV1.Collection_HOURLY:
+		return now.Truncate(time.Hour).Add(time.Hour)
+
+	case configV1.Collection_DAILY:
+		return time.Date(
+			now.Year(), now.Month(), now.Day(),
+			0, 0, 0, 0, now.Location(),
+		).AddDate(0, 0, 1)
+
+	case configV1.Collection_MONTHLY:
+		return time.Date(
+			now.Year(), now.Month(), 1,
+			0, 0, 0, 0, now.Location(),
+		).AddDate(0, 1, 0)
+
+	case configV1.Collection_YEARLY:
+		return time.Date(
+			now.Year(), 1, 1,
+			0, 0, 0, 0, now.Location(),
+		).AddDate(1, 0, 0)
+
+	default:
+		return time.Time{}
+	}
+}
+
 func CreateFileRotationKey(now time.Time, p configV1.Collection_RotationPolicy) string {
 	switch p {
 	case configV1.Collection_HOURLY:
@@ -373,41 +403,6 @@ func CreateFilePrefix(collectionName string, subCollection configV1.Collection_S
 	} else {
 		return collectionName + "_" + dedupRotationKey + "-"
 	}
-}
-
-func timeToLive(p configV1.Collection_RotationPolicy) time.Duration {
-	now := time.Now().UTC()
-	loc := now.Location()
-
-	var next time.Time
-
-	switch p {
-	case configV1.Collection_HOURLY:
-		next = now.Truncate(time.Hour).Add(time.Hour)
-
-	case configV1.Collection_DAILY:
-		next = time.Date(
-			now.Year(), now.Month(), now.Day(),
-			0, 0, 0, 0, loc,
-		).AddDate(0, 0, 1)
-
-	case configV1.Collection_MONTHLY:
-		next = time.Date(
-			now.Year(), now.Month(), 1,
-			0, 0, 0, 0, loc,
-		).AddDate(0, 1, 0)
-
-	case configV1.Collection_YEARLY:
-		next = time.Date(
-			now.Year(), 1, 1,
-			0, 0, 0, 0, loc,
-		).AddDate(1, 0, 0)
-
-	default:
-		return 0
-	}
-
-	return next.Sub(now)
 }
 
 func versionToRevisitProfile(version *gowarc.WarcVersion) string {

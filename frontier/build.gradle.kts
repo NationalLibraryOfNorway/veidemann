@@ -1,6 +1,6 @@
 plugins {
     `java`
-    id("com.google.cloud.tools.jib")
+    alias(libs.plugins.jib)
 }
 
 java {

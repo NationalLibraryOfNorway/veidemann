@@ -51,16 +51,16 @@ export class CrawlLogListRequest extends jspb.Message {
 
 export namespace CrawlLogListRequest {
   export type AsObject = {
-    warcIdList: Array<string>,
-    queryTemplate?: log_v1_resources_pb.CrawlLog.AsObject,
-    queryMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    orderByPath: string,
-    orderDescending: boolean,
-    watch: boolean,
-    pageSize: number,
-    offset: number,
-  }
+    warcIdList: Array<string>;
+    queryTemplate?: log_v1_resources_pb.CrawlLog.AsObject;
+    queryMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    orderByPath: string;
+    orderDescending: boolean;
+    watch: boolean;
+    pageSize: number;
+    offset: number;
+  };
 }
 
 export class PageLogListRequest extends jspb.Message {
@@ -109,16 +109,16 @@ export class PageLogListRequest extends jspb.Message {
 
 export namespace PageLogListRequest {
   export type AsObject = {
-    warcIdList: Array<string>,
-    queryTemplate?: log_v1_resources_pb.PageLog.AsObject,
-    queryMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    orderByPath: string,
-    orderDescending: boolean,
-    watch: boolean,
-    pageSize: number,
-    offset: number,
-  }
+    warcIdList: Array<string>;
+    queryTemplate?: log_v1_resources_pb.PageLog.AsObject;
+    queryMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    orderByPath: string;
+    orderDescending: boolean;
+    watch: boolean;
+    pageSize: number;
+    offset: number;
+  };
 }
 
 export class WritePageLogRequest extends jspb.Message {
@@ -134,6 +134,8 @@ export class WritePageLogRequest extends jspb.Message {
 
   getOutlink(): string;
   setOutlink(value: string): WritePageLogRequest;
+  hasOutlink(): boolean;
+  clearOutlink(): WritePageLogRequest;
 
   getValueCase(): WritePageLogRequest.ValueCase;
 
@@ -147,12 +149,12 @@ export class WritePageLogRequest extends jspb.Message {
 
 export namespace WritePageLogRequest {
   export type AsObject = {
-    crawllog?: log_v1_resources_pb.CrawlLog.AsObject,
-    resource?: log_v1_resources_pb.PageLog.Resource.AsObject,
-    outlink: string,
-  }
+    crawllog?: log_v1_resources_pb.CrawlLog.AsObject;
+    resource?: log_v1_resources_pb.PageLog.Resource.AsObject;
+    outlink?: string;
+  };
 
-  export enum ValueCase { 
+  export enum ValueCase {
     VALUE_NOT_SET = 0,
     CRAWLLOG = 1,
     RESOURCE = 2,
@@ -176,7 +178,7 @@ export class WriteCrawlLogRequest extends jspb.Message {
 
 export namespace WriteCrawlLogRequest {
   export type AsObject = {
-    crawllog?: log_v1_resources_pb.CrawlLog.AsObject,
-  }
+    crawllog?: log_v1_resources_pb.CrawlLog.AsObject;
+  };
 }
 

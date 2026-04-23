@@ -7,13 +7,13 @@ import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/materia
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 
 import { createMongoAbility, PureAbility } from '@casl/ability';
-import { AuthConfig, JwksValidationHandler, OAuthModule, OAuthService, ValidationHandler } from 'angular-oauth2-oidc';
+import { AuthConfig, OAuthModule, OAuthService } from 'angular-oauth2-oidc';
 
+import { NGX_ECHARTS_CONFIG } from 'ngx-echarts';
+import { NgxMonacoEditorConfig, provideMonacoEditor } from 'ngx-monaco-editor-v2';
+import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { ApplicationErrorHandler, AuthService, ControllerApiService, LocaleService } from './core';
-import { firstValueFrom } from 'rxjs';
-import {NGX_ECHARTS_CONFIG} from 'ngx-echarts';
-import {NgxMonacoEditorConfig, provideMonacoEditor} from 'ngx-monaco-editor-v2';
 
 @Injectable({
   providedIn: 'root'
@@ -48,7 +48,6 @@ export const appConfig: ApplicationConfig = {
     ),
     provideMonacoEditor(monacoConfig),
     OAuthService,
-    { provide: ValidationHandler, useClass: JwksValidationHandler },
     { provide: PureAbility, useValue: createMongoAbility() },
     provideAppInitializer(initializeApp),
     {

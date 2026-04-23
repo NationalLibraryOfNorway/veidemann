@@ -19,10 +19,7 @@ spec:
         app.kubernetes.io/name: log-service
         app.kubernetes.io/component: log-service
       annotations:
-        # shard awareness fails if linkerd is enabled without skipping ports
         linkerd.io/inject: enabled
-        # skip outbound to scylla
-        config.linkerd.io/skip-outbound-ports: "9042,19042"
     spec:
       containers:
         - name: log-service
@@ -39,10 +36,8 @@ spec:
               value: "8080"
             - name: LOG_LEVEL
               value: "debug"
-            - name: DB_HOST
-              value: "scylla-client"
-            - name: DB_KEYSPACE
-              value: "v7n_v3_dev"
+            - name: PARQUET_DIR
+              value: "/parquet"
             - name: JAEGER_SERVICE_NAME
               value: log-service
             - name: JAEGER_AGENT_HOST
@@ -54,12 +49,14 @@ spec:
             - name: JAEGER_SAMPLER_PARAM
               value: "0.1"
           readinessProbe:
-            tcpSocket:
-              port: 8080
+            httpGet:
+              path: "/readyz"
+              port: http-metrics
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
-            tcpSocket:
-              port: 8080
+            httpGet:
+              path: "/readyz"
+              port: http-metrics
             initialDelaySeconds: 15
             periodSeconds: 10

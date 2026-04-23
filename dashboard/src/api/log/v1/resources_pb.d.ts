@@ -90,30 +90,30 @@ export class CrawlLog extends jspb.Message {
 
 export namespace CrawlLog {
   export type AsObject = {
-    warcId: string,
-    timeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    statusCode: number,
-    size: number,
-    requestedUri: string,
-    responseUri: string,
-    discoveryPath: string,
-    referrer: string,
-    contentType: string,
-    fetchTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    fetchTimeMs: number,
-    blockDigest: string,
-    payloadDigest: string,
-    storageRef: string,
-    recordType: string,
-    warcRefersTo: string,
-    ipAddress: string,
-    executionId: string,
-    retries: number,
-    error?: commons_v1_resources_pb.Error.AsObject,
-    jobExecutionId: string,
-    collectionFinalName: string,
-    method: string,
-  }
+    warcId: string;
+    timeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    statusCode: number;
+    size: number;
+    requestedUri: string;
+    responseUri: string;
+    discoveryPath: string;
+    referrer: string;
+    contentType: string;
+    fetchTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    fetchTimeMs: number;
+    blockDigest: string;
+    payloadDigest: string;
+    storageRef: string;
+    recordType: string;
+    warcRefersTo: string;
+    ipAddress: string;
+    executionId: string;
+    retries: number;
+    error?: commons_v1_resources_pb.Error.AsObject;
+    jobExecutionId: string;
+    collectionFinalName: string;
+    method: string;
+  };
 }
 
 export class PageLog extends jspb.Message {
@@ -158,16 +158,16 @@ export class PageLog extends jspb.Message {
 
 export namespace PageLog {
   export type AsObject = {
-    warcId: string,
-    uri: string,
-    executionId: string,
-    referrer: string,
-    jobExecutionId: string,
-    collectionFinalName: string,
-    method: string,
-    resourceList: Array<PageLog.Resource.AsObject>,
-    outlinkList: Array<string>,
-  }
+    warcId: string;
+    uri: string;
+    executionId: string;
+    referrer: string;
+    jobExecutionId: string;
+    collectionFinalName: string;
+    method: string;
+    resourceList: Array<PageLog.Resource.AsObject>;
+    outlinkList: Array<string>;
+  };
 
   export class Resource extends jspb.Message {
     getUri(): string;
@@ -215,18 +215,18 @@ export namespace PageLog {
 
   export namespace Resource {
     export type AsObject = {
-      uri: string,
-      fromCache: boolean,
-      renderable: boolean,
-      resourceType: string,
-      contentType: string,
-      statusCode: number,
-      discoveryPath: string,
-      warcId: string,
-      referrer: string,
-      error?: commons_v1_resources_pb.Error.AsObject,
-      method: string,
-    }
+      uri: string;
+      fromCache: boolean;
+      renderable: boolean;
+      resourceType: string;
+      contentType: string;
+      statusCode: number;
+      discoveryPath: string;
+      warcId: string;
+      referrer: string;
+      error?: commons_v1_resources_pb.Error.AsObject;
+      method: string;
+    };
   }
 
 }

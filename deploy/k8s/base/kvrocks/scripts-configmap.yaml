@@ -1,0 +1,164 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kvrocks-scripts
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
+data:
+  kvrocks-start.sh: |
+    #!/bin/sh
+    set -eu
+
+    HEADLESS_SERVICE="kvrocks-headless.${POD_NAMESPACE}.svc"
+    POD_NAME="$(hostname)"
+    POD_FQDN="${POD_NAME}.${HEADLESS_SERVICE}"
+    DEFAULT_MASTER="kvrocks-0.${HEADLESS_SERVICE}"
+    BASE_CONFIG="/config/kvrocks.conf"
+    CONFIG_DIR="/etc/kvrocks/generated"
+    CONFIG_FILE="${CONFIG_DIR}/kvrocks.conf"
+
+    discover_master() {
+      for sentinel_ip in $(getent hosts "${HEADLESS_SERVICE}" 2>/dev/null | awk '{print $1}' | sort -u); do
+        candidate="$(redis-cli --raw -h "${sentinel_ip}" -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
+        if [ -n "${candidate}" ]; then
+          echo "${candidate}"
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    if MASTER_HOST="$(discover_master)"; then
+      echo "Discovered current master from sentinel: ${MASTER_HOST}"
+    else
+      MASTER_HOST="${DEFAULT_MASTER}"
+      echo "No sentinel state found, bootstrapping from ${MASTER_HOST}"
+    fi
+
+    mkdir -p "${CONFIG_DIR}"
+    cp "${BASE_CONFIG}" "${CONFIG_FILE}"
+    printf '\n' >> "${CONFIG_FILE}"
+
+    if [ -n "${REDIS_PASSWORD:-}" ]; then
+      printf '%s\n' \
+        "requirepass ${REDIS_PASSWORD}" \
+        "masterauth ${REDIS_PASSWORD}" \
+        >> "${CONFIG_FILE}"
+    fi
+
+    printf '%s\n' \
+      "replica-announce-ip ${POD_IP}" \
+      'replica-announce-port 6666' \
+      >> "${CONFIG_FILE}"
+
+    if [ "${MASTER_HOST}" = "${POD_NAME}" ] || [ "${MASTER_HOST}" = "${POD_FQDN}" ] || [ "${MASTER_HOST}" = "${POD_IP}" ]; then
+      echo "Starting ${POD_NAME} as master"
+    else
+      echo "slaveof ${MASTER_HOST} 6666" >> "${CONFIG_FILE}"
+      echo "Starting ${POD_NAME} as replica of ${MASTER_HOST}"
+    fi
+
+    exec kvrocks -c "${CONFIG_FILE}"
+  sentinel-start.sh: |
+    #!/bin/sh
+    set -eu
+
+    HEADLESS_SERVICE="kvrocks-headless.${POD_NAMESPACE}.svc"
+    POD_NAME="$(hostname)"
+    POD_FQDN="${POD_NAME}.${HEADLESS_SERVICE}"
+    DEFAULT_MASTER="kvrocks-0.${HEADLESS_SERVICE}"
+    CONFIG_DIR="/etc/sentinel/generated"
+    CONFIG_FILE="${CONFIG_DIR}/sentinel.conf"
+
+    kvrocks_cli() {
+      if [ -n "${REDIS_PASSWORD:-}" ]; then
+        REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli "$@"
+      else
+        redis-cli "$@"
+      fi
+    }
+
+    discover_master() {
+      for sentinel_ip in $(getent hosts "${HEADLESS_SERVICE}" 2>/dev/null | awk '{print $1}' | sort -u); do
+        candidate="$(redis-cli --raw -h "${sentinel_ip}" -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
+        if [ -n "${candidate}" ]; then
+          echo "${candidate}"
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    echo "Waiting for local kvrocks"
+    until kvrocks_cli -h 127.0.0.1 -p 6666 ping >/dev/null 2>&1; do
+      sleep 1
+    done
+
+    if MASTER_HOST="$(discover_master)"; then
+      echo "Discovered current master from peer sentinel: ${MASTER_HOST}"
+    else
+      MASTER_HOST="${DEFAULT_MASTER}"
+      echo "No peer sentinel state found, monitoring bootstrap master ${MASTER_HOST}"
+    fi
+
+    mkdir -p "${CONFIG_DIR}"
+    printf '%s\n' \
+      'port 26379' \
+      'bind 0.0.0.0' \
+      'dir /tmp' \
+      'protected-mode no' \
+      'sentinel resolve-hostnames yes' \
+      'sentinel announce-hostnames yes' \
+      "sentinel monitor kvrocks ${MASTER_HOST} 6666 2" \
+      'sentinel down-after-milliseconds kvrocks 10000' \
+      'sentinel failover-timeout kvrocks 60000' \
+      'sentinel parallel-syncs kvrocks 1' \
+      "sentinel announce-ip ${POD_FQDN}" \
+      'sentinel announce-port 26379' \
+      'logfile ""' \
+      > "${CONFIG_FILE}"
+
+    if [ -n "${REDIS_PASSWORD:-}" ]; then
+      printf '%s\n' \
+        "sentinel auth-pass kvrocks ${REDIS_PASSWORD}" \
+        >> "${CONFIG_FILE}"
+    fi
+
+    exec redis-server "${CONFIG_FILE}" --sentinel
+  kvrocks-prestop.sh: |
+    #!/bin/sh
+    set -eu
+
+    POD_NAME="$(hostname)"
+    POD_FQDN="${POD_NAME}.kvrocks-headless.${POD_NAMESPACE}.svc"
+
+    kvrocks_cli() {
+      if [ -n "${REDIS_PASSWORD:-}" ]; then
+        REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli "$@"
+      else
+        redis-cli "$@"
+      fi
+    }
+
+    ROLE="$(kvrocks_cli --raw -h 127.0.0.1 -p 6666 role 2>/dev/null | sed -n '1p' || true)"
+
+    if [ "${ROLE}" != "master" ]; then
+      exit 0
+    fi
+
+    echo "Master is terminating, asking local sentinel to fail over"
+    redis-cli -h 127.0.0.1 -p 26379 sentinel failover kvrocks >/dev/null 2>&1 || true
+
+    end_time=$(($(date +%s) + 25))
+    while [ "$(date +%s)" -lt "${end_time}" ]; do
+      master_host="$(redis-cli --raw -h 127.0.0.1 -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
+      if [ -n "${master_host}" ] && [ "${master_host}" != "${POD_IP}" ] && [ "${master_host}" != "${POD_NAME}" ] && [ "${master_host}" != "${POD_FQDN}" ]; then
+        echo "Sentinel elected ${master_host} as the new master"
+        exit 0
+      fi
+      sleep 1
+    done
+
+    echo "Sentinel did not finish failover before termination"
+    exit 0

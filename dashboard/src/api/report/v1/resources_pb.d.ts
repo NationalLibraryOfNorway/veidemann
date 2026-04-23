@@ -64,21 +64,21 @@ export class StatusDetail extends jspb.Message {
 
 export namespace StatusDetail {
   export type AsObject = {
-    id: string,
-    state: frontier_v1_resources_pb.CrawlExecutionStatus.State,
-    jobid: string,
-    seed: string,
-    startTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    documentsCrawled: number,
-    bytesCrawled: number,
-    urisCrawled: number,
-    documentsFailed: number,
-    documentsOutOfScope: number,
-    documentsRetried: number,
-    documentsDenied: number,
-    queueSize: number,
-    currentUri: string,
-  }
+    id: string;
+    state: frontier_v1_resources_pb.CrawlExecutionStatus.State;
+    jobid: string;
+    seed: string;
+    startTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    documentsCrawled: number;
+    bytesCrawled: number;
+    urisCrawled: number;
+    documentsFailed: number;
+    documentsOutOfScope: number;
+    documentsRetried: number;
+    documentsDenied: number;
+    queueSize: number;
+    currentUri: string;
+  };
 }
 

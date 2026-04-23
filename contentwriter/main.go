@@ -113,11 +113,6 @@ func run() error {
 			MaxRetries:         opts.DbMaxRetries(),
 			UseOpenTracing:     opts.DbUseOpenTracing(),
 		},
-		RedisOptions: &redis.Options{
-			Addr:     fmt.Sprintf("%s:%d", opts.RedisHost(), opts.RedisPort()),
-			DB:       opts.RedisDb(),
-			Password: opts.RedisPassword(),
-		},
 		RecordOptions: recordOpts,
 		GrpcOptions:   grpcServerOptions,
 		WriterOpts: writer.Options{
@@ -128,6 +123,22 @@ func run() error {
 		},
 		TelemetryAddr: opts.MetricsAddress(),
 		Uploader:      uploader,
+	}
+
+	if opts.UseRedisSentinel() {
+		app.RedisFailoverOptions = &redis.FailoverOptions{
+			MasterName:       opts.RedisMasterName(),
+			SentinelAddrs:    opts.RedisSentinelAddrs(),
+			Password:         opts.RedisPassword(),
+			SentinelPassword: opts.RedisSentinelPassword(),
+			DB:               opts.RedisDb(),
+		}
+	} else {
+		app.RedisOptions = &redis.Options{
+			Addr:     fmt.Sprintf("%s:%d", opts.RedisHost(), opts.RedisPort()),
+			DB:       opts.RedisDb(),
+			Password: opts.RedisPassword(),
+		}
 	}
 
 	return app.Run(ctx)

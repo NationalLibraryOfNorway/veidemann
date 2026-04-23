@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var frontier_v1_resources_pb = require('../../frontier/v1/resources_pb.js');
 goog.object.extend(proto, frontier_v1_resources_pb);
@@ -92,7 +86,7 @@ uri: (f = msg.getUri()) && frontier_v1_resources_pb.QueuedUri.toObject(includeIn
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.ooshandler.v1.SubmitUriRequest}
  */
 proto.veidemann.api.ooshandler.v1.SubmitUriRequest.deserializeBinary = function(bytes) {

@@ -9,6 +9,7 @@ manifests:
       - deploy/k8s/overlays/dev/rethinkdb
       - deploy/k8s/overlays/dev/olric
       - deploy/k8s/overlays/dev/rethinkdbadapter/
+      - deploy/k8s/overlays/dev/kvrocks
 
 deploy:
   kubeContext: minikube
@@ -17,17 +18,18 @@ deploy:
     releases:
       - name: cert-manager
         remoteChart: oci://quay.io/jetstack/charts/cert-manager
-        version: 1.19.1
+        version: 1.20.2
         namespace: cert-manager
         createNamespace: true
         setValues:
           crds.enabled: true
       - name: redis
         remoteChart: oci://registry-1.docker.io/cloudpirates/redis
-        version: 0.17.6
+        version: 0.27.1
         namespace: default
-        valuesFiles:
-          - deploy/k8s/overlays/dev/redis/values.yaml
+        setValues:
+          auth.enabled: false
+          persistence.enabled: false
   kubectl: {}
 
 ---
@@ -40,39 +42,63 @@ metadata:
 build:
   local:
     push: false
-  # artifacts:
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy
-  #     context: ./recorderproxy
-  #     ko: {}
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter
-  #     context: ./contentwriter
-  #     ko: {}
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator
-  #     context: ./robots-evaluator
-  #     ko: {}
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice
-  #     context: ./scopeservice
-  #     ko: {}
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver
-  #     context: ./dns-resolver
-  #     ko: {}
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
-  #     context: ./dashboard
-  #     docker:
-  #       dockerfile: Dockerfile
-  #   - image: ghcr.io/nationallibraryofnorway/veidemann/cache
-  #     context: ./cache
-  #     docker:
-  #       dockerfile: Dockerfile
-  #       noCache: false
-  #       pullParent: false
-
-# The skaffold integration with jib-gradle-plugin is not yet
-# compatible with Gradle 9.x, so we cannot build images with jib for now.
-#     - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
-#       context: .
-#       jib:
-#         project: rethinkdbadapter
+  artifacts:
+    - image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy
+      context: ./recorderproxy
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter
+      context: ./contentwriter
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator
+      context: ./robots-evaluator
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice
+      context: ./scopeservice
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver
+      context: ./dns-resolver
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/log-service
+      context: ./log-service
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller
+      context: ./browser-controller
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/metrics
+      context: ./metrics
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler
+      context: ./ooshandler
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers
+      context: ./frontier-queue-workers
+      ko: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
+      context: ./dashboard
+      docker:
+        dockerfile: Dockerfile
+    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service
+      context: ./rethinkdb-ast-service
+      docker:
+        dockerfile: Dockerfile
+    - image: ghcr.io/nationallibraryofnorway/veidemann/cache
+      context: ./cache
+      docker:
+        dockerfile: Dockerfile
+        noCache: false
+        pullParent: false
+    - image: ghcr.io/nationallibraryofnorway/veidemann/frontier
+      context: .
+      jib:
+        project: frontier
+    - image: ghcr.io/nationallibraryofnorway/veidemann/controller
+      context: .
+      jib:
+        project: controller
+    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
+      context: .
+      jib:
+        project: rethinkdbadapter
 
 manifests:
   kustomize:

@@ -12,8 +12,6 @@ import (
 
 type CrawledContentHashCache struct {
 	Client *redis.Client
-	// Collection string
-	// TTL        time.Duration // configurable; can change at runtime if you update c.TTL
 }
 
 // HasCrawledContent returns the stored blob for digest (field) or nil if absent.
@@ -50,7 +48,7 @@ func (c *CrawledContentHashCache) hasCrawledContent(ctx context.Context, key str
 	return b, err
 }
 
-func (c *CrawledContentHashCache) WriteCrawledContent(ctx context.Context, collection string, ttl time.Duration, crawledContent *contentwriterV1.CrawledContent) error {
+func (c *CrawledContentHashCache) WriteCrawledContent(ctx context.Context, collection string, crawledContent *contentwriterV1.CrawledContent, expiresAt time.Time) error {
 	if crawledContent == nil {
 		return errors.New("missing required field: crawledContent")
 	}
@@ -63,12 +61,11 @@ func (c *CrawledContentHashCache) WriteCrawledContent(ctx context.Context, colle
 	if err != nil {
 		return err
 	}
-	return c.writeCrawledContent(ctx, collection, digest, b, ttl)
+	return c.writeCrawledContent(ctx, collection, digest, b, expiresAt)
 }
 
-// WriteCrawledContent upserts the field and refreshes the collection TTL (sliding TTL).
-// This also naturally applies TTL config changes on the next write.
-func (c *CrawledContentHashCache) writeCrawledContent(ctx context.Context, key, field string, value []byte, ttl time.Duration) error {
+// WriteCrawledContent upserts the field and sets the expiresAt if the key doesn't have a TTL. If the key already has a TTL, it leaves it unchanged.
+func (c *CrawledContentHashCache) writeCrawledContent(ctx context.Context, key, field string, value []byte, expiresAt time.Time) error {
 	if field == "" {
 		return errors.New("missing required field: field")
 	}
@@ -76,14 +73,23 @@ func (c *CrawledContentHashCache) writeCrawledContent(ctx context.Context, key, 
 		return errors.New("missing required field: value")
 	}
 
-	if ttl <= 0 {
-		_, err := c.Client.HSet(ctx, key, field, value).Result()
+	err := c.Client.HSet(ctx, key, field, value).Err()
+	if err != nil {
 		return err
 	}
 
-	pipe := c.Client.Pipeline()
-	pipe.HSet(ctx, key, field, value)
-	pipe.ExpireNX(ctx, key, ttl)
-	_, err := pipe.Exec(ctx)
-	return err
+	if expiresAt.IsZero() {
+		return nil
+	}
+
+	ttl, err := c.Client.TTL(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+
+	if ttl == -1 {
+		return c.Client.ExpireAt(ctx, key, expiresAt).Err()
+	}
+
+	return nil
 }

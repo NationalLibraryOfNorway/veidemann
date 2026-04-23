@@ -93,28 +93,28 @@ export class QueuedUri extends jspb.Message {
 
 export namespace QueuedUri {
   export type AsObject = {
-    id: string,
-    executionId: string,
-    discoveredTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    sequence: number,
-    uri: string,
-    ip: string,
-    discoveryPath: string,
-    referrer: string,
-    cookiesList: Array<Cookie.AsObject>,
-    pageFetchTimeMs: number,
-    retries: number,
-    earliestFetchTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    crawlHostGroupId: string,
-    politenessRef?: config_v1_resources_pb.ConfigRef.AsObject,
-    error?: commons_v1_resources_pb.Error.AsObject,
-    jobExecutionId: string,
-    unresolved: boolean,
-    fetchStartTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    priorityWeight: number,
-    seedUri: string,
-    annotationList: Array<config_v1_resources_pb.Annotation.AsObject>,
-  }
+    id: string;
+    executionId: string;
+    discoveredTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    sequence: number;
+    uri: string;
+    ip: string;
+    discoveryPath: string;
+    referrer: string;
+    cookiesList: Array<Cookie.AsObject>;
+    pageFetchTimeMs: number;
+    retries: number;
+    earliestFetchTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    crawlHostGroupId: string;
+    politenessRef?: config_v1_resources_pb.ConfigRef.AsObject;
+    error?: commons_v1_resources_pb.Error.AsObject;
+    jobExecutionId: string;
+    unresolved: boolean;
+    fetchStartTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    priorityWeight: number;
+    seedUri: string;
+    annotationList: Array<config_v1_resources_pb.Annotation.AsObject>;
+  };
 }
 
 export class Cookie extends jspb.Message {
@@ -158,17 +158,17 @@ export class Cookie extends jspb.Message {
 
 export namespace Cookie {
   export type AsObject = {
-    name: string,
-    value: string,
-    domain: string,
-    path: string,
-    expires: number,
-    size: number,
-    httpOnly: boolean,
-    secure: boolean,
-    session: boolean,
-    sameSite: string,
-  }
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number;
+    size: number;
+    httpOnly: boolean;
+    secure: boolean;
+    session: boolean;
+    sameSite: string;
+  };
 }
 
 export class CrawlHostGroup extends jspb.Message {
@@ -214,17 +214,17 @@ export class CrawlHostGroup extends jspb.Message {
 
 export namespace CrawlHostGroup {
   export type AsObject = {
-    id: string,
-    minTimeBetweenPageLoadMs: number,
-    maxTimeBetweenPageLoadMs: number,
-    delayFactor: number,
-    maxRetries: number,
-    retryDelaySeconds: number,
-    queuedUriCount: number,
-    currentUriId: string,
-    sessionToken: string,
-    fetchStartTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-  }
+    id: string;
+    minTimeBetweenPageLoadMs: number;
+    maxTimeBetweenPageLoadMs: number;
+    delayFactor: number;
+    maxRetries: number;
+    retryDelaySeconds: number;
+    queuedUriCount: number;
+    currentUriId: string;
+    sessionToken: string;
+    fetchStartTimeStamp?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+  };
 }
 
 export class CrawlExecutionStatus extends jspb.Message {
@@ -307,28 +307,28 @@ export class CrawlExecutionStatus extends jspb.Message {
 
 export namespace CrawlExecutionStatus {
   export type AsObject = {
-    id: string,
-    state: CrawlExecutionStatus.State,
-    jobId: string,
-    seedId: string,
-    startTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    documentsCrawled: number,
-    bytesCrawled: number,
-    urisCrawled: number,
-    documentsFailed: number,
-    documentsOutOfScope: number,
-    documentsRetried: number,
-    documentsDenied: number,
-    lastChangeTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    createdTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    currentUriIdList: Array<string>,
-    jobExecutionId: string,
-    error?: commons_v1_resources_pb.Error.AsObject,
-    desiredState: CrawlExecutionStatus.State,
-  }
+    id: string;
+    state: CrawlExecutionStatus.State;
+    jobId: string;
+    seedId: string;
+    startTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    documentsCrawled: number;
+    bytesCrawled: number;
+    urisCrawled: number;
+    documentsFailed: number;
+    documentsOutOfScope: number;
+    documentsRetried: number;
+    documentsDenied: number;
+    lastChangeTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    createdTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    currentUriIdList: Array<string>;
+    jobExecutionId: string;
+    error?: commons_v1_resources_pb.Error.AsObject;
+    desiredState: CrawlExecutionStatus.State;
+  };
 
-  export enum State { 
+  export enum State {
     UNDEFINED = 0,
     CREATED = 1,
     FETCHING = 2,
@@ -400,20 +400,20 @@ export class CrawlExecutionStatusChange extends jspb.Message {
 
 export namespace CrawlExecutionStatusChange {
   export type AsObject = {
-    id: string,
-    state: CrawlExecutionStatus.State,
-    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    addDocumentsCrawled: number,
-    addBytesCrawled: number,
-    addUrisCrawled: number,
-    addDocumentsFailed: number,
-    addDocumentsOutOfScope: number,
-    addDocumentsRetried: number,
-    addDocumentsDenied: number,
-    addCurrentUri?: QueuedUri.AsObject,
-    deleteCurrentUri?: QueuedUri.AsObject,
-    error?: commons_v1_resources_pb.Error.AsObject,
-  }
+    id: string;
+    state: CrawlExecutionStatus.State;
+    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    addDocumentsCrawled: number;
+    addBytesCrawled: number;
+    addUrisCrawled: number;
+    addDocumentsFailed: number;
+    addDocumentsOutOfScope: number;
+    addDocumentsRetried: number;
+    addDocumentsDenied: number;
+    addCurrentUri?: QueuedUri.AsObject;
+    deleteCurrentUri?: QueuedUri.AsObject;
+    error?: commons_v1_resources_pb.Error.AsObject;
+  };
 }
 
 export class JobExecutionStatus extends jspb.Message {
@@ -478,24 +478,24 @@ export class JobExecutionStatus extends jspb.Message {
 
 export namespace JobExecutionStatus {
   export type AsObject = {
-    id: string,
-    jobId: string,
-    state: JobExecutionStatus.State,
-    executionsStateMap: Array<[string, number]>,
-    startTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    documentsCrawled: number,
-    bytesCrawled: number,
-    urisCrawled: number,
-    documentsFailed: number,
-    documentsOutOfScope: number,
-    documentsRetried: number,
-    documentsDenied: number,
-    error?: commons_v1_resources_pb.Error.AsObject,
-    desiredState: JobExecutionStatus.State,
-  }
+    id: string;
+    jobId: string;
+    state: JobExecutionStatus.State;
+    executionsStateMap: Array<[string, number]>;
+    startTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    endTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    documentsCrawled: number;
+    bytesCrawled: number;
+    urisCrawled: number;
+    documentsFailed: number;
+    documentsOutOfScope: number;
+    documentsRetried: number;
+    documentsDenied: number;
+    error?: commons_v1_resources_pb.Error.AsObject;
+    desiredState: JobExecutionStatus.State;
+  };
 
-  export enum State { 
+  export enum State {
     UNDEFINED = 0,
     CREATED = 1,
     RUNNING = 2,

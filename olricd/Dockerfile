@@ -1,6 +1,6 @@
 FROM golang:1.26 AS build
 
-ARG OLRIC_VERSION=v0.7.1
+ARG OLRIC_VERSION=v0.7.2
 ARG PLUGIN_REPO=https://github.com/olric-data/olric-kubernetes-plugin.git
 
 WORKDIR /workspace

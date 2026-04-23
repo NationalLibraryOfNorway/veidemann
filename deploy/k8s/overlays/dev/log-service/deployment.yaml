@@ -5,8 +5,15 @@ metadata:
 spec:
   template:
     spec:
+      volumes:
+        - name: parquet
+          persistentVolumeClaim:
+            claimName: log-service-parquet
       containers:
         - name: log-service
           env:
-            - name: NOOP
-              value: "true"
+            - name: MAX_LINES_PER_FILE
+              value: "100"
+          volumeMounts:
+            - mountPath: /parquet
+              name: parquet

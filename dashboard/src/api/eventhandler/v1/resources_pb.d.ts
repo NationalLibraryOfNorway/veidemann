@@ -47,24 +47,24 @@ export class EventObject extends jspb.Message {
 
 export namespace EventObject {
   export type AsObject = {
-    id: string,
-    type: string,
-    source: string,
-    state: EventObject.State,
-    assignee: string,
-    dataList: Array<Data.AsObject>,
-    severity: EventObject.Severity,
-    labelList: Array<string>,
-    activityList: Array<Activity.AsObject>,
-  }
+    id: string;
+    type: string;
+    source: string;
+    state: EventObject.State;
+    assignee: string;
+    dataList: Array<Data.AsObject>;
+    severity: EventObject.Severity;
+    labelList: Array<string>;
+    activityList: Array<Activity.AsObject>;
+  };
 
-  export enum State { 
+  export enum State {
     NEW = 0,
     OPEN = 1,
     CLOSED = 2,
   }
 
-  export enum Severity { 
+  export enum Severity {
     INFO = 0,
     WARN = 1,
     ERROR = 2,
@@ -85,8 +85,8 @@ export class EventRef extends jspb.Message {
 
 export namespace EventRef {
   export type AsObject = {
-    id: string,
-  }
+    id: string;
+  };
 }
 
 export class Activity extends jspb.Message {
@@ -116,11 +116,11 @@ export class Activity extends jspb.Message {
 
 export namespace Activity {
   export type AsObject = {
-    modifiedBy: string,
-    modifiedTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    descriptionList: Array<Activity.Change.AsObject>,
-    comment: string,
-  }
+    modifiedBy: string;
+    modifiedTime?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    descriptionList: Array<Activity.Change.AsObject>;
+    comment: string;
+  };
 
   export class Change extends jspb.Message {
     getType(): Activity.ChangeType;
@@ -145,15 +145,15 @@ export namespace Activity {
 
   export namespace Change {
     export type AsObject = {
-      type: Activity.ChangeType,
-      field: string,
-      oldVal: string,
-      newVal: string,
-    }
+      type: Activity.ChangeType;
+      field: string;
+      oldVal: string;
+      newVal: string;
+    };
   }
 
 
-  export enum ChangeType { 
+  export enum ChangeType {
     CREATED = 0,
     VALUE_CHANGED = 1,
     ARRAY_ADD = 2,
@@ -178,8 +178,8 @@ export class Data extends jspb.Message {
 
 export namespace Data {
   export type AsObject = {
-    key: string,
-    value: string,
-  }
+    key: string;
+    value: string;
+  };
 }
 

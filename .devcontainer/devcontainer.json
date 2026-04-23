@@ -1,0 +1,16 @@
+{
+	"name": "Veidemann",
+	"image": "mcr.microsoft.com/devcontainers/base:trixie",
+	"features": {
+		"ghcr.io/devcontainers/features/go:1": {},
+		"ghcr.io/devcontainers/features/java:1": {
+			"version": "21",
+			"jdkDistro": "ms",
+			"installGradle": true
+		},
+		"ghcr.io/devcontainers/features/node:1": {},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
+	},
+
+	"forwardPorts": [3000]
+}
