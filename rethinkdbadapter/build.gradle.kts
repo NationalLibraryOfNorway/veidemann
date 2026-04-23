@@ -1,7 +1,7 @@
 plugins {
     `java-library`
     `application`
-    id("com.google.cloud.tools.jib")
+    alias(libs.plugins.jib)
 }
 
 java {
