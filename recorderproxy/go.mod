@@ -10,8 +10,8 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/opentracing-contrib/go-stdlib v0.0.0-20190519235532-cf7a6c988dc9
-	github.com/opentracing/opentracing-go v1.1.0
+	github.com/opentracing-contrib/go-stdlib v1.1.1
+	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/pflag v1.0.10
