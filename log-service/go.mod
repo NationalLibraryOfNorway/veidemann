@@ -1,9 +1,9 @@
 module github.com/NationalLibraryOfNorway/veidemann/log-service
 
-go 1.25.0
+go 1.25.6
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.1.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/opentracing-contrib/go-grpc v0.1.2
@@ -14,7 +14,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	google.golang.org/grpc v1.78.0
+	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -28,7 +28,8 @@ require (
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.6.1 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
+	golang.org/x/crypto v0.50.0 // indirect
 )
 
 require (
@@ -38,9 +39,9 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/klauspost/compress v1.18.2 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/parquet-go/bitpack v1.0.0 // indirect
 	github.com/parquet-go/jsonlite v1.0.0 // indirect
@@ -62,9 +63,9 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
 )

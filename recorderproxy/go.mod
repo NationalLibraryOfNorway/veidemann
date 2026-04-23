@@ -1,11 +1,9 @@
 module github.com/NationalLibraryOfNorway/veidemann/recorderproxy
 
-go 1.24.0
-
-toolchain go1.24.3
+go 1.25.6
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.1.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.1.1
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
 	github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650
 	github.com/getlantern/proxy v0.0.0-20190225163220-31d1cc06ed3d
@@ -18,8 +16,8 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	golang.org/x/net v0.48.0
-	google.golang.org/grpc v1.79.3
+	golang.org/x/net v0.53.0
+	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -42,16 +40,17 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
 )
 
 require (
