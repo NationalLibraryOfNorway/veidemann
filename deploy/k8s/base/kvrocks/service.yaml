@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kvrocks
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
+spec:
+  ports:
+    - name: kvrocks
+      port: 6666
+      targetPort: kvrocks
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kvrocks-headless
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: kvrocks
+      port: 6666
+      targetPort: kvrocks
+      protocol: TCP
+    - name: sentinel
+      port: 26379
+      targetPort: sentinel
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kvrocks-sentinel
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: sentinel
+spec:
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: sentinel
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
