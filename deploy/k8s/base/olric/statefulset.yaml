@@ -16,7 +16,7 @@ spec:
       serviceAccountName: olricd
       containers:
       - name: olricd
-        image: ghcr.io/nationallibraryofnorway/veidemann/olricd:0.7.1
+        image: ghcr.io/nationallibraryofnorway/veidemann/olricd:0.7.2
         ports:
           - name: api
             containerPort: 3320

@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: log-service
-          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.5.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.6.0
           ports:
             - name: grpc
               containerPort: 8080

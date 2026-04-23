@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: metrics
-          image: ghcr.io/nationallibraryofnorway/veidemann/metrics:0.4.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/metrics:0.4.1
           ports:
             - containerPort: 9301
               name: http-metrics

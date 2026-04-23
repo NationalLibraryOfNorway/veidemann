@@ -97,7 +97,7 @@ spec:
             - name: kvrocks-generated
               mountPath: /etc/kvrocks/generated
         - name: sentinel
-          image: docker.io/redis:7.2.7-alpine
+          image: docker.io/redis:7.2.13-alpine
           command:
             - /bin/sh
             - /scripts/sentinel-start.sh

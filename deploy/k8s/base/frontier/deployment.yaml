@@ -35,7 +35,7 @@ spec:
 
       containers:
         - name: frontier
-          image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.16.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.16.4
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 7700

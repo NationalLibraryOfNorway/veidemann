@@ -3,6 +3,21 @@ kind: Config
 metadata:
   name: infra
 
+build:
+  local:
+    push: false
+  artifacts:
+    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
+      context: .
+      jib:
+        project: rethinkdbadapter
+    - image: ghcr.io/nationallibraryofnorway/veidemann/olricd
+      context: ./olricd
+      docker: {}
+    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb
+      context: ./rethinkdb
+      docker: {}
+
 manifests:
   kustomize:
     paths:
@@ -75,18 +90,13 @@ build:
       ko: {}
     - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
       context: ./dashboard
-      docker:
-        dockerfile: Dockerfile
+      docker: {}
     - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service
       context: ./rethinkdb-ast-service
-      docker:
-        dockerfile: Dockerfile
+      docker: {}
     - image: ghcr.io/nationallibraryofnorway/veidemann/cache
       context: ./cache
-      docker:
-        dockerfile: Dockerfile
-        noCache: false
-        pullParent: false
+      docker: {}
     - image: ghcr.io/nationallibraryofnorway/veidemann/frontier
       context: .
       jib:
@@ -95,10 +105,7 @@ build:
       context: .
       jib:
         project: controller
-    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
-      context: .
-      jib:
-        project: rethinkdbadapter
+
 
 manifests:
   kustomize:
@@ -124,3 +131,8 @@ profiles:
       kustomize:
         paths:
           - kubernetes/overlays/auth
+
+  - name: no-build
+    patches:
+      - op: remove
+        path: /build
