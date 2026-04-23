@@ -9,7 +9,7 @@ dependencies {
     implementation("io.opentracing:opentracing-api:0.33.0")
     compileOnly("io.opentracing.contrib:opentracing-grpc:0.2.3")
 
-    api("com.nimbusds:oauth2-oidc-sdk:11.30.1")
+    api("com.nimbusds:oauth2-oidc-sdk:11.37")
     api(libs.typesafe.config)
 
     implementation(platform(libs.slf4j.bom))

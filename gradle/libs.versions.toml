@@ -7,9 +7,10 @@ typesafe-config = "1.4.6"
 slf4j-bom = "2.0.17"
 log4j-bom = "2.25.4"
 junit-bom = "5.14.3"
-mockito-bom = "5.20.0"
+mockito-bom = "5.23.0"
 plugin-protobuf = "0.10.0"
 plugin-jib = "3.5.3"
+plugin-versions = "0.54.0"
 
 [libraries]
 grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
@@ -31,3 +32,4 @@ mockito-bom = { module = "org.mockito:mockito-bom", version.ref = "mockito-bom" 
 [plugins]
 protobuf = { id = "com.google.protobuf", version.ref = "plugin-protobuf" }
 jib = { id = "com.google.cloud.tools.jib", version.ref = "plugin-jib" }
+versions = { id = "com.github.ben-manes.versions", version.ref = "plugin-versions" }
