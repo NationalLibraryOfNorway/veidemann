@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parquet-util
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parquet-util
+  template:
+    metadata:
+      labels:
+        app: parquet-util
+    spec:
+      volumes:
+        - name: db
+          persistentVolumeClaim:
+            claimName: log-service-parquet
+      containers:
+        - name: main
+          image: nixery.dev/shell/duckdb/gnutar
+          volumeMounts:
+            - name: db
+              mountPath: /mnt/db
+          command:
+            - "bash"
+          args:
+            - "-c"
+            - "trap : TERM INT; sleep infinity & wait"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 100Mi
