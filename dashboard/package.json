@@ -89,22 +89,9 @@
     "vitest": "^4.0.16"
   },
   "overrides": {
-    "ngx-monaco-editor-v2": {
-      "@angular/common": "^21.0.8",
-      "@angular/core": "^21.0.8",
-      "monaco-editor": "^0.55.1",
-      "rxjs": "^7.8.2"
-    },
     "ngx-filesize": {
       "@angular/common": "^21.0.8",
       "@angular/core": "^21.0.8",
-      "rxjs": "^7.8.2"
-    },
-    "ng-mocks": {
-      "@angular/core": "^21.0.8",
-      "@angular/common": "^21.0.8",
-      "@angular/forms": "^21.0.8",
-      "@angular/platform-browser": "^21.0.8",
       "rxjs": "^7.8.2"
     }
   }
