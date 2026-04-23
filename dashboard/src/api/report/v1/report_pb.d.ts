@@ -22,9 +22,9 @@ export class ExecuteDbQueryRequest extends jspb.Message {
 
 export namespace ExecuteDbQueryRequest {
   export type AsObject = {
-    query: string,
-    limit: number,
-  }
+    query: string;
+    limit: number;
+  };
 }
 
 export class ExecuteDbQueryReply extends jspb.Message {
@@ -41,8 +41,8 @@ export class ExecuteDbQueryReply extends jspb.Message {
 
 export namespace ExecuteDbQueryReply {
   export type AsObject = {
-    record: string,
-  }
+    record: string;
+  };
 }
 
 export class CrawlExecutionsListRequest extends jspb.Message {
@@ -109,20 +109,20 @@ export class CrawlExecutionsListRequest extends jspb.Message {
 
 export namespace CrawlExecutionsListRequest {
   export type AsObject = {
-    idList: Array<string>,
-    stateList: Array<frontier_v1_resources_pb.CrawlExecutionStatus.State>,
-    startTimeFrom?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    startTimeTo?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    hasError: boolean,
-    queryTemplate?: frontier_v1_resources_pb.CrawlExecutionStatus.AsObject,
-    queryMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    orderByPath: string,
-    orderDescending: boolean,
-    watch: boolean,
-    pageSize: number,
-    offset: number,
-  }
+    idList: Array<string>;
+    stateList: Array<frontier_v1_resources_pb.CrawlExecutionStatus.State>;
+    startTimeFrom?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    startTimeTo?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    hasError: boolean;
+    queryTemplate?: frontier_v1_resources_pb.CrawlExecutionStatus.AsObject;
+    queryMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    orderByPath: string;
+    orderDescending: boolean;
+    watch: boolean;
+    pageSize: number;
+    offset: number;
+  };
 }
 
 export class JobExecutionsListRequest extends jspb.Message {
@@ -186,18 +186,18 @@ export class JobExecutionsListRequest extends jspb.Message {
 
 export namespace JobExecutionsListRequest {
   export type AsObject = {
-    idList: Array<string>,
-    stateList: Array<frontier_v1_resources_pb.JobExecutionStatus.State>,
-    startTimeFrom?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    startTimeTo?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    queryTemplate?: frontier_v1_resources_pb.JobExecutionStatus.AsObject,
-    queryMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject,
-    orderByPath: string,
-    orderDescending: boolean,
-    watch: boolean,
-    pageSize: number,
-    offset: number,
-  }
+    idList: Array<string>;
+    stateList: Array<frontier_v1_resources_pb.JobExecutionStatus.State>;
+    startTimeFrom?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    startTimeTo?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    queryTemplate?: frontier_v1_resources_pb.JobExecutionStatus.AsObject;
+    queryMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    returnedFieldsMask?: commons_v1_resources_pb.FieldMask.AsObject;
+    orderByPath: string;
+    orderDescending: boolean;
+    watch: boolean;
+    pageSize: number;
+    offset: number;
+  };
 }
 

@@ -16,7 +16,7 @@ export class ExecutionId extends jspb.Message {
 
 export namespace ExecutionId {
   export type AsObject = {
-    id: string,
-  }
+    id: string;
+  };
 }
 

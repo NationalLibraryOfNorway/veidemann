@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var commons_v1_resources_pb = require('../../commons/v1/resources_pb.js');
 goog.object.extend(proto, commons_v1_resources_pb);
@@ -161,7 +155,7 @@ limit: jspb.Message.getFieldWithDefault(msg, 14, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.report.v1.ExecuteDbQueryRequest}
  */
 proto.veidemann.api.report.v1.ExecuteDbQueryRequest.deserializeBinary = function(bytes) {
@@ -186,7 +180,7 @@ proto.veidemann.api.report.v1.ExecuteDbQueryRequest.deserializeBinaryFromReader 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setQuery(value);
       break;
     case 14:
@@ -320,7 +314,7 @@ record: jspb.Message.getFieldWithDefault(msg, 1, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.report.v1.ExecuteDbQueryReply}
  */
 proto.veidemann.api.report.v1.ExecuteDbQueryReply.deserializeBinary = function(bytes) {
@@ -345,7 +339,7 @@ proto.veidemann.api.report.v1.ExecuteDbQueryReply.deserializeBinaryFromReader = 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setRecord(value);
       break;
     default:
@@ -469,7 +463,7 @@ offset: jspb.Message.getFieldWithDefault(msg, 15, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.report.v1.CrawlExecutionsListRequest}
  */
 proto.veidemann.api.report.v1.CrawlExecutionsListRequest.deserializeBinary = function(bytes) {
@@ -494,14 +488,11 @@ proto.veidemann.api.report.v1.CrawlExecutionsListRequest.deserializeBinaryFromRe
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addId(value);
       break;
     case 2:
-      var values = /** @type {!Array<!proto.veidemann.api.frontier.v1.CrawlExecutionStatus.State>} */ (reader.isDelimited() ? reader.readPackedEnum() : [reader.readEnum()]);
-      for (var i = 0; i < values.length; i++) {
-        msg.addState(values[i]);
-      }
+      reader.readPackableEnumInto(msg.getStateList());
       break;
     case 3:
       var value = new google_protobuf_timestamp_pb.Timestamp;
@@ -533,7 +524,7 @@ proto.veidemann.api.report.v1.CrawlExecutionsListRequest.deserializeBinaryFromRe
       msg.setReturnedFieldsMask(value);
       break;
     case 9:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setOrderByPath(value);
       break;
     case 10:
@@ -1110,7 +1101,7 @@ offset: jspb.Message.getFieldWithDefault(msg, 15, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.report.v1.JobExecutionsListRequest}
  */
 proto.veidemann.api.report.v1.JobExecutionsListRequest.deserializeBinary = function(bytes) {
@@ -1135,14 +1126,11 @@ proto.veidemann.api.report.v1.JobExecutionsListRequest.deserializeBinaryFromRead
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addId(value);
       break;
     case 2:
-      var values = /** @type {!Array<!proto.veidemann.api.frontier.v1.JobExecutionStatus.State>} */ (reader.isDelimited() ? reader.readPackedEnum() : [reader.readEnum()]);
-      for (var i = 0; i < values.length; i++) {
-        msg.addState(values[i]);
-      }
+      reader.readPackableEnumInto(msg.getStateList());
       break;
     case 3:
       var value = new google_protobuf_timestamp_pb.Timestamp;
@@ -1170,7 +1158,7 @@ proto.veidemann.api.report.v1.JobExecutionsListRequest.deserializeBinaryFromRead
       msg.setReturnedFieldsMask(value);
       break;
     case 9:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setOrderByPath(value);
       break;
     case 10:

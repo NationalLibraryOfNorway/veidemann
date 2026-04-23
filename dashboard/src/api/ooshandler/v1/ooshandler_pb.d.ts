@@ -20,7 +20,7 @@ export class SubmitUriRequest extends jspb.Message {
 
 export namespace SubmitUriRequest {
   export type AsObject = {
-    uri?: frontier_v1_resources_pb.QueuedUri.AsObject,
-  }
+    uri?: frontier_v1_resources_pb.QueuedUri.AsObject;
+  };
 }
 

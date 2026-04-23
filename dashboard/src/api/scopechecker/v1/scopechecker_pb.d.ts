@@ -29,11 +29,11 @@ export class ScopeCheckRequest extends jspb.Message {
 
 export namespace ScopeCheckRequest {
   export type AsObject = {
-    queuedUri?: frontier_v1_resources_pb.QueuedUri.AsObject,
-    scopeScriptName: string,
-    scopeScript: string,
-    debug: boolean,
-  }
+    queuedUri?: frontier_v1_resources_pb.QueuedUri.AsObject;
+    scopeScriptName: string;
+    scopeScript: string;
+    debug: boolean;
+  };
 }
 
 export class ScopeCheckResponse extends jspb.Message {
@@ -66,14 +66,14 @@ export class ScopeCheckResponse extends jspb.Message {
 
 export namespace ScopeCheckResponse {
   export type AsObject = {
-    evaluation: ScopeCheckResponse.Evaluation,
-    excludeReason: number,
-    includeCheckUri?: commons_v1_resources_pb.ParsedUri.AsObject,
-    error?: commons_v1_resources_pb.Error.AsObject,
-    console: string,
-  }
+    evaluation: ScopeCheckResponse.Evaluation;
+    excludeReason: number;
+    includeCheckUri?: commons_v1_resources_pb.ParsedUri.AsObject;
+    error?: commons_v1_resources_pb.Error.AsObject;
+    console: string;
+  };
 
-  export enum Evaluation { 
+  export enum Evaluation {
     INCLUDE = 0,
     EXCLUDE = 1,
   }

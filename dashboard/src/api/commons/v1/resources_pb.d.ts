@@ -22,10 +22,10 @@ export class Error extends jspb.Message {
 
 export namespace Error {
   export type AsObject = {
-    code: number,
-    msg: string,
-    detail: string,
-  }
+    code: number;
+    msg: string;
+    detail: string;
+  };
 }
 
 export class FieldMask extends jspb.Message {
@@ -44,8 +44,8 @@ export class FieldMask extends jspb.Message {
 
 export namespace FieldMask {
   export type AsObject = {
-    pathsList: Array<string>,
-  }
+    pathsList: Array<string>;
+  };
 }
 
 export class ParsedUri extends jspb.Message {
@@ -86,16 +86,16 @@ export class ParsedUri extends jspb.Message {
 
 export namespace ParsedUri {
   export type AsObject = {
-    href: string,
-    scheme: string,
-    host: string,
-    port: number,
-    username: string,
-    password: string,
-    path: string,
-    query: string,
-    fragment: string,
-  }
+    href: string;
+    scheme: string;
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    path: string;
+    query: string;
+    fragment: string;
+  };
 }
 
 export class ExtractedText extends jspb.Message {
@@ -133,14 +133,14 @@ export class ExtractedText extends jspb.Message {
 
 export namespace ExtractedText {
   export type AsObject = {
-    warcId: string,
-    text: string,
-    sentenceCount: number,
-    wordCount: number,
-    longWordCount: number,
-    characterCount: number,
-    lix: number,
-    language: string,
-  }
+    warcId: string;
+    text: string;
+    sentenceCount: number;
+    wordCount: number;
+    longWordCount: number;
+    characterCount: number;
+    lix: number;
+    language: string;
+  };
 }
 

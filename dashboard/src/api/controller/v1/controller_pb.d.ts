@@ -24,9 +24,9 @@ export class RunCrawlRequest extends jspb.Message {
 
 export namespace RunCrawlRequest {
   export type AsObject = {
-    jobId: string,
-    seedId: string,
-  }
+    jobId: string;
+    seedId: string;
+  };
 }
 
 export class RunCrawlReply extends jspb.Message {
@@ -43,8 +43,8 @@ export class RunCrawlReply extends jspb.Message {
 
 export namespace RunCrawlReply {
   export type AsObject = {
-    jobExecutionId: string,
-  }
+    jobExecutionId: string;
+  };
 }
 
 export class RoleList extends jspb.Message {
@@ -63,8 +63,8 @@ export class RoleList extends jspb.Message {
 
 export namespace RoleList {
   export type AsObject = {
-    roleList: Array<config_v1_resources_pb.Role>,
-  }
+    roleList: Array<config_v1_resources_pb.Role>;
+  };
 }
 
 export class OpenIdConnectIssuerReply extends jspb.Message {
@@ -81,8 +81,8 @@ export class OpenIdConnectIssuerReply extends jspb.Message {
 
 export namespace OpenIdConnectIssuerReply {
   export type AsObject = {
-    openIdConnectIssuer: string,
-  }
+    openIdConnectIssuer: string;
+  };
 }
 
 export class CrawlerStatus extends jspb.Message {
@@ -105,13 +105,13 @@ export class CrawlerStatus extends jspb.Message {
 
 export namespace CrawlerStatus {
   export type AsObject = {
-    runstatus: RunStatus,
-    busycrawlhostgroupcount: number,
-    queuesize: number,
-  }
+    runstatus: RunStatus;
+    busycrawlhostgroupcount: number;
+    queuesize: number;
+  };
 }
 
-export enum RunStatus { 
+export enum RunStatus {
   RUNNING = 0,
   PAUSED = 1,
   PAUSE_REQUESTED = 2,

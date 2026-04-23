@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var frontier_v1_resources_pb = require('../../frontier/v1/resources_pb.js');
 goog.object.extend(proto, frontier_v1_resources_pb);
@@ -118,7 +112,7 @@ debug: jspb.Message.getBooleanFieldWithDefault(msg, 4, false)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.scopechecker.v1.ScopeCheckRequest}
  */
 proto.veidemann.api.scopechecker.v1.ScopeCheckRequest.deserializeBinary = function(bytes) {
@@ -148,11 +142,11 @@ proto.veidemann.api.scopechecker.v1.ScopeCheckRequest.deserializeBinaryFromReade
       msg.setQueuedUri(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setScopeScriptName(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setScopeScript(value);
       break;
     case 4:
@@ -360,7 +354,7 @@ console: jspb.Message.getFieldWithDefault(msg, 5, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.scopechecker.v1.ScopeCheckResponse}
  */
 proto.veidemann.api.scopechecker.v1.ScopeCheckResponse.deserializeBinary = function(bytes) {
@@ -403,7 +397,7 @@ proto.veidemann.api.scopechecker.v1.ScopeCheckResponse.deserializeBinaryFromRead
       msg.setError(value);
       break;
     case 5:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setConsole(value);
       break;
     default:

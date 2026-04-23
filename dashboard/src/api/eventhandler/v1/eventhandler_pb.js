@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var eventhandler_v1_resources_pb = require('../../eventhandler/v1/resources_pb.js');
 goog.object.extend(proto, eventhandler_v1_resources_pb);
@@ -258,7 +252,7 @@ offset: jspb.Message.getFieldWithDefault(msg, 8, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.ListRequest}
  */
 proto.veidemann.api.eventhandler.v1.ListRequest.deserializeBinary = function(bytes) {
@@ -283,7 +277,7 @@ proto.veidemann.api.eventhandler.v1.ListRequest.deserializeBinaryFromReader = fu
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addId(value);
       break;
     case 2:
@@ -618,7 +612,7 @@ comment: jspb.Message.getFieldWithDefault(msg, 5, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.UpdateRequest}
  */
 proto.veidemann.api.eventhandler.v1.UpdateRequest.deserializeBinary = function(bytes) {
@@ -658,7 +652,7 @@ proto.veidemann.api.eventhandler.v1.UpdateRequest.deserializeBinaryFromReader = 
       msg.setUpdateTemplate(value);
       break;
     case 5:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setComment(value);
       break;
     default:
@@ -899,7 +893,7 @@ comment: jspb.Message.getFieldWithDefault(msg, 2, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.SaveRequest}
  */
 proto.veidemann.api.eventhandler.v1.SaveRequest.deserializeBinary = function(bytes) {
@@ -929,7 +923,7 @@ proto.veidemann.api.eventhandler.v1.SaveRequest.deserializeBinaryFromReader = fu
       msg.setObject(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setComment(value);
       break;
     default:
@@ -1079,7 +1073,7 @@ updated: jspb.Message.getFieldWithDefault(msg, 1, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.UpdateResponse}
  */
 proto.veidemann.api.eventhandler.v1.UpdateResponse.deserializeBinary = function(bytes) {
@@ -1210,7 +1204,7 @@ approximate: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.ListCountResponse}
  */
 proto.veidemann.api.eventhandler.v1.ListCountResponse.deserializeBinary = function(bytes) {
@@ -1369,7 +1363,7 @@ deleted: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.DeleteResponse}
  */
 proto.veidemann.api.eventhandler.v1.DeleteResponse.deserializeBinary = function(bytes) {
@@ -1499,7 +1493,7 @@ text: jspb.Message.getFieldWithDefault(msg, 1, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.ListLabelRequest}
  */
 proto.veidemann.api.eventhandler.v1.ListLabelRequest.deserializeBinary = function(bytes) {
@@ -1524,7 +1518,7 @@ proto.veidemann.api.eventhandler.v1.ListLabelRequest.deserializeBinaryFromReader
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setText(value);
       break;
     default:
@@ -1636,7 +1630,7 @@ labelList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.eventhandler.v1.ListLabelResponse}
  */
 proto.veidemann.api.eventhandler.v1.ListLabelResponse.deserializeBinary = function(bytes) {
@@ -1661,7 +1655,7 @@ proto.veidemann.api.eventhandler.v1.ListLabelResponse.deserializeBinaryFromReade
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addLabel(value);
       break;
     default:

@@ -36,13 +36,13 @@ export class IsAllowedRequest extends jspb.Message {
 
 export namespace IsAllowedRequest {
   export type AsObject = {
-    jobExecutionId: string,
-    executionId: string,
-    uri: string,
-    userAgent: string,
-    politeness?: config_v1_resources_pb.ConfigObject.AsObject,
-    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject,
-  }
+    jobExecutionId: string;
+    executionId: string;
+    uri: string;
+    userAgent: string;
+    politeness?: config_v1_resources_pb.ConfigObject.AsObject;
+    collectionRef?: config_v1_resources_pb.ConfigRef.AsObject;
+  };
 }
 
 export class IsAllowedReply extends jspb.Message {
@@ -75,12 +75,12 @@ export class IsAllowedReply extends jspb.Message {
 
 export namespace IsAllowedReply {
   export type AsObject = {
-    isAllowed: boolean,
-    crawlDelay: number,
-    cacheDelay: number,
-    sitemapList: Array<string>,
-    otherFieldsList: Array<IsAllowedReply.OtherField.AsObject>,
-  }
+    isAllowed: boolean;
+    crawlDelay: number;
+    cacheDelay: number;
+    sitemapList: Array<string>;
+    otherFieldsList: Array<IsAllowedReply.OtherField.AsObject>;
+  };
 
   export class OtherField extends jspb.Message {
     getName(): string;
@@ -99,9 +99,9 @@ export namespace IsAllowedReply {
 
   export namespace OtherField {
     export type AsObject = {
-      name: string,
-      value: string,
-    }
+      name: string;
+      value: string;
+    };
   }
 
 }

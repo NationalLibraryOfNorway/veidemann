@@ -36,11 +36,11 @@ export class CrawlSeedRequest extends jspb.Message {
 
 export namespace CrawlSeedRequest {
   export type AsObject = {
-    jobExecutionId: string,
-    job?: config_v1_resources_pb.ConfigObject.AsObject,
-    seed?: config_v1_resources_pb.ConfigObject.AsObject,
-    timeout?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-  }
+    jobExecutionId: string;
+    job?: config_v1_resources_pb.ConfigObject.AsObject;
+    seed?: config_v1_resources_pb.ConfigObject.AsObject;
+    timeout?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+  };
 }
 
 export class CrawlExecutionId extends jspb.Message {
@@ -57,8 +57,8 @@ export class CrawlExecutionId extends jspb.Message {
 
 export namespace CrawlExecutionId {
   export type AsObject = {
-    id: string,
-  }
+    id: string;
+  };
 }
 
 export class PageHarvest extends jspb.Message {
@@ -92,11 +92,11 @@ export class PageHarvest extends jspb.Message {
 
 export namespace PageHarvest {
   export type AsObject = {
-    metrics?: PageHarvest.Metrics.AsObject,
-    outlink?: frontier_v1_resources_pb.QueuedUri.AsObject,
-    error?: commons_v1_resources_pb.Error.AsObject,
-    sessionToken: string,
-  }
+    metrics?: PageHarvest.Metrics.AsObject;
+    outlink?: frontier_v1_resources_pb.QueuedUri.AsObject;
+    error?: commons_v1_resources_pb.Error.AsObject;
+    sessionToken: string;
+  };
 
   export class Metrics extends jspb.Message {
     getUriCount(): number;
@@ -115,13 +115,13 @@ export namespace PageHarvest {
 
   export namespace Metrics {
     export type AsObject = {
-      uriCount: number,
-      bytesDownloaded: number,
-    }
+      uriCount: number;
+      bytesDownloaded: number;
+    };
   }
 
 
-  export enum MsgCase { 
+  export enum MsgCase {
     MSG_NOT_SET = 0,
     METRICS = 2,
     OUTLINK = 3,
@@ -153,10 +153,10 @@ export class PageHarvestSpec extends jspb.Message {
 
 export namespace PageHarvestSpec {
   export type AsObject = {
-    queuedUri?: frontier_v1_resources_pb.QueuedUri.AsObject,
-    crawlConfig?: config_v1_resources_pb.ConfigObject.AsObject,
-    sessionToken: string,
-  }
+    queuedUri?: frontier_v1_resources_pb.QueuedUri.AsObject;
+    crawlConfig?: config_v1_resources_pb.ConfigObject.AsObject;
+    sessionToken: string;
+  };
 }
 
 export class CountResponse extends jspb.Message {
@@ -173,7 +173,7 @@ export class CountResponse extends jspb.Message {
 
 export namespace CountResponse {
   export type AsObject = {
-    count: number,
-  }
+    count: number;
+  };
 }
 

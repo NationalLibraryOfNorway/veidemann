@@ -13,13 +13,7 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global =
-    (typeof globalThis !== 'undefined' && globalThis) ||
-    (typeof window !== 'undefined' && window) ||
-    (typeof global !== 'undefined' && global) ||
-    (typeof self !== 'undefined' && self) ||
-    (function () { return this; }).call(null) ||
-    Function('return this')();
+var global = globalThis;
 
 var commons_v1_resources_pb = require('../../commons/v1/resources_pb.js');
 goog.object.extend(proto, commons_v1_resources_pb);
@@ -235,7 +229,7 @@ annotationList: jspb.Message.toObjectList(msg.getAnnotationList(),
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.frontier.v1.QueuedUri}
  */
 proto.veidemann.api.frontier.v1.QueuedUri.deserializeBinary = function(bytes) {
@@ -260,11 +254,11 @@ proto.veidemann.api.frontier.v1.QueuedUri.deserializeBinaryFromReader = function
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setId(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setExecutionId(value);
       break;
     case 3:
@@ -277,19 +271,19 @@ proto.veidemann.api.frontier.v1.QueuedUri.deserializeBinaryFromReader = function
       msg.setSequence(value);
       break;
     case 5:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setUri(value);
       break;
     case 7:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setIp(value);
       break;
     case 8:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setDiscoveryPath(value);
       break;
     case 9:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setReferrer(value);
       break;
     case 10:
@@ -311,7 +305,7 @@ proto.veidemann.api.frontier.v1.QueuedUri.deserializeBinaryFromReader = function
       msg.setEarliestFetchTimeStamp(value);
       break;
     case 14:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setCrawlHostGroupId(value);
       break;
     case 15:
@@ -325,7 +319,7 @@ proto.veidemann.api.frontier.v1.QueuedUri.deserializeBinaryFromReader = function
       msg.setError(value);
       break;
     case 17:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setJobExecutionId(value);
       break;
     case 18:
@@ -342,7 +336,7 @@ proto.veidemann.api.frontier.v1.QueuedUri.deserializeBinaryFromReader = function
       msg.setPriorityWeight(value);
       break;
     case 21:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setSeedUri(value);
       break;
     case 22:
@@ -1103,7 +1097,7 @@ sameSite: jspb.Message.getFieldWithDefault(msg, 10, "")
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.frontier.v1.Cookie}
  */
 proto.veidemann.api.frontier.v1.Cookie.deserializeBinary = function(bytes) {
@@ -1128,19 +1122,19 @@ proto.veidemann.api.frontier.v1.Cookie.deserializeBinaryFromReader = function(ms
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setName(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setValue(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setDomain(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setPath(value);
       break;
     case 5:
@@ -1164,7 +1158,7 @@ proto.veidemann.api.frontier.v1.Cookie.deserializeBinaryFromReader = function(ms
       msg.setSession(value);
       break;
     case 10:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setSameSite(value);
       break;
     default:
@@ -1503,7 +1497,7 @@ fetchStartTimeStamp: (f = msg.getFetchStartTimeStamp()) && google_protobuf_times
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.frontier.v1.CrawlHostGroup}
  */
 proto.veidemann.api.frontier.v1.CrawlHostGroup.deserializeBinary = function(bytes) {
@@ -1528,7 +1522,7 @@ proto.veidemann.api.frontier.v1.CrawlHostGroup.deserializeBinaryFromReader = fun
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setId(value);
       break;
     case 2:
@@ -1556,11 +1550,11 @@ proto.veidemann.api.frontier.v1.CrawlHostGroup.deserializeBinaryFromReader = fun
       msg.setQueuedUriCount(value);
       break;
     case 8:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setCurrentUriId(value);
       break;
     case 9:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setSessionToken(value);
       break;
     case 10:
@@ -1940,7 +1934,7 @@ desiredState: jspb.Message.getFieldWithDefault(msg, 23, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.frontier.v1.CrawlExecutionStatus}
  */
 proto.veidemann.api.frontier.v1.CrawlExecutionStatus.deserializeBinary = function(bytes) {
@@ -1965,7 +1959,7 @@ proto.veidemann.api.frontier.v1.CrawlExecutionStatus.deserializeBinaryFromReader
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setId(value);
       break;
     case 2:
@@ -1973,11 +1967,11 @@ proto.veidemann.api.frontier.v1.CrawlExecutionStatus.deserializeBinaryFromReader
       msg.setState(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setJobId(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setSeedId(value);
       break;
     case 6:
@@ -2029,11 +2023,11 @@ proto.veidemann.api.frontier.v1.CrawlExecutionStatus.deserializeBinaryFromReader
       msg.setCreatedTime(value);
       break;
     case 20:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.addCurrentUriId(value);
       break;
     case 21:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setJobExecutionId(value);
       break;
     case 22:
@@ -2744,7 +2738,7 @@ error: (f = msg.getError()) && commons_v1_resources_pb.Error.toObject(includeIns
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.frontier.v1.CrawlExecutionStatusChange}
  */
 proto.veidemann.api.frontier.v1.CrawlExecutionStatusChange.deserializeBinary = function(bytes) {
@@ -2769,7 +2763,7 @@ proto.veidemann.api.frontier.v1.CrawlExecutionStatusChange.deserializeBinaryFrom
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setId(value);
       break;
     case 2:
@@ -3320,7 +3314,7 @@ desiredState: jspb.Message.getFieldWithDefault(msg, 16, 0)
 
 /**
  * Deserializes binary data (in protobuf wire format).
- * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @param {jspb.binary.bytesource.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.veidemann.api.frontier.v1.JobExecutionStatus}
  */
 proto.veidemann.api.frontier.v1.JobExecutionStatus.deserializeBinary = function(bytes) {
@@ -3345,11 +3339,11 @@ proto.veidemann.api.frontier.v1.JobExecutionStatus.deserializeBinaryFromReader =
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setId(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {string} */ (reader.readStringRequireUtf8());
       msg.setJobId(value);
       break;
     case 3:
@@ -3359,7 +3353,7 @@ proto.veidemann.api.frontier.v1.JobExecutionStatus.deserializeBinaryFromReader =
     case 4:
       var value = msg.getExecutionsStateMap();
       reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readInt32, null, "", 0);
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readStringRequireUtf8, jspb.BinaryReader.prototype.readInt32, null, "", 0);
          });
       break;
     case 6:
@@ -3461,7 +3455,12 @@ proto.veidemann.api.frontier.v1.JobExecutionStatus.serializeBinaryToWriter = fun
   }
   f = message.getExecutionsStateMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(4, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeInt32);
+jspb.internal.public_for_gencode.serializeMapToBinary(
+    message.getExecutionsStateMap(true),
+    4,
+    writer,
+    jspb.BinaryWriter.prototype.writeString,
+    jspb.BinaryWriter.prototype.writeInt32);
   }
   f = message.getStartTime();
   if (f != null) {

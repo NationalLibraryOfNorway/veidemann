@@ -85,24 +85,24 @@ export class ConfigObject extends jspb.Message {
 
 export namespace ConfigObject {
   export type AsObject = {
-    id: string,
-    apiversion: string,
-    kind: Kind,
-    meta?: Meta.AsObject,
-    crawlEntity?: CrawlEntity.AsObject,
-    seed?: Seed.AsObject,
-    crawlJob?: CrawlJob.AsObject,
-    crawlConfig?: CrawlConfig.AsObject,
-    crawlScheduleConfig?: CrawlScheduleConfig.AsObject,
-    browserConfig?: BrowserConfig.AsObject,
-    politenessConfig?: PolitenessConfig.AsObject,
-    browserScript?: BrowserScript.AsObject,
-    crawlHostGroupConfig?: CrawlHostGroupConfig.AsObject,
-    roleMapping?: RoleMapping.AsObject,
-    collection?: Collection.AsObject,
-  }
+    id: string;
+    apiversion: string;
+    kind: Kind;
+    meta?: Meta.AsObject;
+    crawlEntity?: CrawlEntity.AsObject;
+    seed?: Seed.AsObject;
+    crawlJob?: CrawlJob.AsObject;
+    crawlConfig?: CrawlConfig.AsObject;
+    crawlScheduleConfig?: CrawlScheduleConfig.AsObject;
+    browserConfig?: BrowserConfig.AsObject;
+    politenessConfig?: PolitenessConfig.AsObject;
+    browserScript?: BrowserScript.AsObject;
+    crawlHostGroupConfig?: CrawlHostGroupConfig.AsObject;
+    roleMapping?: RoleMapping.AsObject;
+    collection?: Collection.AsObject;
+  };
 
-  export enum SpecCase { 
+  export enum SpecCase {
     SPEC_NOT_SET = 0,
     CRAWL_ENTITY = 5,
     SEED = 6,
@@ -161,15 +161,15 @@ export class Meta extends jspb.Message {
 
 export namespace Meta {
   export type AsObject = {
-    name: string,
-    description: string,
-    created?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    createdBy: string,
-    lastModified?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    lastModifiedBy: string,
-    labelList: Array<Label.AsObject>,
-    annotationList: Array<Annotation.AsObject>,
-  }
+    name: string;
+    description: string;
+    created?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    createdBy: string;
+    lastModified?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    lastModifiedBy: string;
+    labelList: Array<Label.AsObject>;
+    annotationList: Array<Annotation.AsObject>;
+  };
 }
 
 export class Label extends jspb.Message {
@@ -189,9 +189,9 @@ export class Label extends jspb.Message {
 
 export namespace Label {
   export type AsObject = {
-    key: string,
-    value: string,
-  }
+    key: string;
+    value: string;
+  };
 }
 
 export class Annotation extends jspb.Message {
@@ -211,9 +211,9 @@ export class Annotation extends jspb.Message {
 
 export namespace Annotation {
   export type AsObject = {
-    key: string,
-    value: string,
-  }
+    key: string;
+    value: string;
+  };
 }
 
 export class ConfigRef extends jspb.Message {
@@ -233,9 +233,9 @@ export class ConfigRef extends jspb.Message {
 
 export namespace ConfigRef {
   export type AsObject = {
-    kind: Kind,
-    id: string,
-  }
+    kind: Kind;
+    id: string;
+  };
 }
 
 export class CrawlEntity extends jspb.Message {
@@ -249,7 +249,7 @@ export class CrawlEntity extends jspb.Message {
 
 export namespace CrawlEntity {
   export type AsObject = {
-  }
+  };
 }
 
 export class Seed extends jspb.Message {
@@ -276,10 +276,10 @@ export class Seed extends jspb.Message {
 
 export namespace Seed {
   export type AsObject = {
-    entityRef?: ConfigRef.AsObject,
-    jobRefList: Array<ConfigRef.AsObject>,
-    disabled: boolean,
-  }
+    entityRef?: ConfigRef.AsObject;
+    jobRefList: Array<ConfigRef.AsObject>;
+    disabled: boolean;
+  };
 }
 
 export class CrawlJob extends jspb.Message {
@@ -316,12 +316,12 @@ export class CrawlJob extends jspb.Message {
 
 export namespace CrawlJob {
   export type AsObject = {
-    scheduleRef?: ConfigRef.AsObject,
-    limits?: CrawlLimitsConfig.AsObject,
-    crawlConfigRef?: ConfigRef.AsObject,
-    scopeScriptRef?: ConfigRef.AsObject,
-    disabled: boolean,
-  }
+    scheduleRef?: ConfigRef.AsObject;
+    limits?: CrawlLimitsConfig.AsObject;
+    crawlConfigRef?: ConfigRef.AsObject;
+    scopeScriptRef?: ConfigRef.AsObject;
+    disabled: boolean;
+  };
 }
 
 export class CrawlConfig extends jspb.Message {
@@ -361,13 +361,13 @@ export class CrawlConfig extends jspb.Message {
 
 export namespace CrawlConfig {
   export type AsObject = {
-    collectionRef?: ConfigRef.AsObject,
-    browserConfigRef?: ConfigRef.AsObject,
-    politenessRef?: ConfigRef.AsObject,
-    extra?: ExtraConfig.AsObject,
-    minimumDnsTtlS: number,
-    priorityWeight: number,
-  }
+    collectionRef?: ConfigRef.AsObject;
+    browserConfigRef?: ConfigRef.AsObject;
+    politenessRef?: ConfigRef.AsObject;
+    extra?: ExtraConfig.AsObject;
+    minimumDnsTtlS: number;
+    priorityWeight: number;
+  };
 }
 
 export class ExtraConfig extends jspb.Message {
@@ -384,8 +384,8 @@ export class ExtraConfig extends jspb.Message {
 
 export namespace ExtraConfig {
   export type AsObject = {
-    createScreenshot: boolean,
-  }
+    createScreenshot: boolean;
+  };
 }
 
 export class CrawlScheduleConfig extends jspb.Message {
@@ -412,10 +412,10 @@ export class CrawlScheduleConfig extends jspb.Message {
 
 export namespace CrawlScheduleConfig {
   export type AsObject = {
-    cronExpression: string,
-    validFrom?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-    validTo?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-  }
+    cronExpression: string;
+    validFrom?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+    validTo?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+  };
 }
 
 export class CrawlLimitsConfig extends jspb.Message {
@@ -435,9 +435,9 @@ export class CrawlLimitsConfig extends jspb.Message {
 
 export namespace CrawlLimitsConfig {
   export type AsObject = {
-    maxDurationS: number,
-    maxBytes: number,
-  }
+    maxDurationS: number;
+    maxBytes: number;
+  };
 }
 
 export class BrowserConfig extends jspb.Message {
@@ -482,16 +482,16 @@ export class BrowserConfig extends jspb.Message {
 
 export namespace BrowserConfig {
   export type AsObject = {
-    userAgent: string,
-    windowWidth: number,
-    windowHeight: number,
-    pageLoadTimeoutMs: number,
-    scriptSelectorList: Array<string>,
-    scriptRefList: Array<ConfigRef.AsObject>,
-    headersMap: Array<[string, string]>,
-    scriptParametersMap: Array<[string, string]>,
-    maxInactivityTimeMs: number,
-  }
+    userAgent: string;
+    windowWidth: number;
+    windowHeight: number;
+    pageLoadTimeoutMs: number;
+    scriptSelectorList: Array<string>;
+    scriptRefList: Array<ConfigRef.AsObject>;
+    headersMap: Array<[string, string]>;
+    scriptParametersMap: Array<[string, string]>;
+    maxInactivityTimeMs: number;
+  };
 }
 
 export class PolitenessConfig extends jspb.Message {
@@ -517,13 +517,13 @@ export class PolitenessConfig extends jspb.Message {
 
 export namespace PolitenessConfig {
   export type AsObject = {
-    robotsPolicy: PolitenessConfig.RobotsPolicy,
-    minimumRobotsValidityDurationS: number,
-    customRobots: string,
-    useHostname: boolean,
-  }
+    robotsPolicy: PolitenessConfig.RobotsPolicy;
+    minimumRobotsValidityDurationS: number;
+    customRobots: string;
+    useHostname: boolean;
+  };
 
-  export enum RobotsPolicy { 
+  export enum RobotsPolicy {
     OBEY_ROBOTS = 0,
     IGNORE_ROBOTS = 1,
     CUSTOM_ROBOTS = 2,
@@ -556,12 +556,12 @@ export class BrowserScript extends jspb.Message {
 
 export namespace BrowserScript {
   export type AsObject = {
-    script: string,
-    urlRegexpList: Array<string>,
-    browserScriptType: BrowserScript.BrowserScriptType,
-  }
+    script: string;
+    urlRegexpList: Array<string>;
+    browserScriptType: BrowserScript.BrowserScriptType;
+  };
 
-  export enum BrowserScriptType { 
+  export enum BrowserScriptType {
     UNDEFINED = 0,
     EXTRACT_OUTLINKS = 1,
     REPLACEMENT = 2,
@@ -602,13 +602,13 @@ export class CrawlHostGroupConfig extends jspb.Message {
 
 export namespace CrawlHostGroupConfig {
   export type AsObject = {
-    ipRangeList: Array<CrawlHostGroupConfig.IpRange.AsObject>,
-    minTimeBetweenPageLoadMs: number,
-    maxTimeBetweenPageLoadMs: number,
-    delayFactor: number,
-    maxRetries: number,
-    retryDelaySeconds: number,
-  }
+    ipRangeList: Array<CrawlHostGroupConfig.IpRange.AsObject>;
+    minTimeBetweenPageLoadMs: number;
+    maxTimeBetweenPageLoadMs: number;
+    delayFactor: number;
+    maxRetries: number;
+    retryDelaySeconds: number;
+  };
 
   export class IpRange extends jspb.Message {
     getIpFrom(): string;
@@ -627,9 +627,9 @@ export namespace CrawlHostGroupConfig {
 
   export namespace IpRange {
     export type AsObject = {
-      ipFrom: string,
-      ipTo: string,
-    }
+      ipFrom: string;
+      ipTo: string;
+    };
   }
 
 }
@@ -653,9 +653,9 @@ export class ApiKey extends jspb.Message {
 
 export namespace ApiKey {
   export type AsObject = {
-    token: string,
-    validuntil?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-  }
+    token: string;
+    validuntil?: google_protobuf_timestamp_pb.Timestamp.AsObject;
+  };
 }
 
 export class RoleMapping extends jspb.Message {
@@ -666,9 +666,13 @@ export class RoleMapping extends jspb.Message {
 
   getEmail(): string;
   setEmail(value: string): RoleMapping;
+  hasEmail(): boolean;
+  clearEmail(): RoleMapping;
 
   getGroup(): string;
   setGroup(value: string): RoleMapping;
+  hasGroup(): boolean;
+  clearGroup(): RoleMapping;
 
   getRoleList(): Array<Role>;
   setRoleList(value: Array<Role>): RoleMapping;
@@ -687,13 +691,13 @@ export class RoleMapping extends jspb.Message {
 
 export namespace RoleMapping {
   export type AsObject = {
-    apiKey?: ApiKey.AsObject,
-    email: string,
-    group: string,
-    roleList: Array<Role>,
-  }
+    apiKey?: ApiKey.AsObject;
+    email?: string;
+    group?: string;
+    roleList: Array<Role>;
+  };
 
-  export enum EmailOrGroupCase { 
+  export enum EmailOrGroupCase {
     EMAIL_OR_GROUP_NOT_SET = 0,
     API_KEY = 1,
     EMAIL = 2,
@@ -729,12 +733,12 @@ export class Collection extends jspb.Message {
 
 export namespace Collection {
   export type AsObject = {
-    collectionDedupPolicy: Collection.RotationPolicy,
-    fileRotationPolicy: Collection.RotationPolicy,
-    compress: boolean,
-    fileSize: number,
-    subCollectionsList: Array<Collection.SubCollection.AsObject>,
-  }
+    collectionDedupPolicy: Collection.RotationPolicy;
+    fileRotationPolicy: Collection.RotationPolicy;
+    compress: boolean;
+    fileSize: number;
+    subCollectionsList: Array<Collection.SubCollection.AsObject>;
+  };
 
   export class SubCollection extends jspb.Message {
     getType(): Collection.SubCollectionType;
@@ -753,13 +757,13 @@ export namespace Collection {
 
   export namespace SubCollection {
     export type AsObject = {
-      type: Collection.SubCollectionType,
-      name: string,
-    }
+      type: Collection.SubCollectionType;
+      name: string;
+    };
   }
 
 
-  export enum RotationPolicy { 
+  export enum RotationPolicy {
     NONE = 0,
     HOURLY = 1,
     DAILY = 2,
@@ -767,7 +771,7 @@ export namespace Collection {
     YEARLY = 4,
   }
 
-  export enum SubCollectionType { 
+  export enum SubCollectionType {
     UNDEFINED = 0,
     SCREENSHOT = 1,
     DNS = 2,
@@ -790,8 +794,8 @@ export class LogLevels extends jspb.Message {
 
 export namespace LogLevels {
   export type AsObject = {
-    logLevelList: Array<LogLevels.LogLevel.AsObject>,
-  }
+    logLevelList: Array<LogLevels.LogLevel.AsObject>;
+  };
 
   export class LogLevel extends jspb.Message {
     getLogger(): string;
@@ -810,13 +814,13 @@ export namespace LogLevels {
 
   export namespace LogLevel {
     export type AsObject = {
-      logger: string,
-      level: LogLevels.Level,
-    }
+      logger: string;
+      level: LogLevels.Level;
+    };
   }
 
 
-  export enum Level { 
+  export enum Level {
     UNDEFINED = 0,
     ALL = 1,
     TRACE = 2,
@@ -829,7 +833,7 @@ export namespace LogLevels {
   }
 }
 
-export enum Kind { 
+export enum Kind {
   UNDEFINED = 0,
   CRAWLENTITY = 5,
   SEED = 6,
@@ -843,7 +847,7 @@ export enum Kind {
   ROLEMAPPING = 14,
   COLLECTION = 15,
 }
-export enum Role { 
+export enum Role {
   ANY_USER = 0,
   ANY = 1,
   ADMIN = 2,
