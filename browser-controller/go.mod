@@ -4,22 +4,22 @@ go 1.25.6
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.1
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.5.0
-	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.5.0
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.6.0
+	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.6.0
 	github.com/chromedp/cdproto v0.0.0-20201009231348-1c6a710e77de
 	github.com/chromedp/chromedp v0.5.5
 	github.com/docker/go-connections v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/mailru/easyjson v0.9.1
+	github.com/mailru/easyjson v0.9.2
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	github.com/testcontainers/testcontainers-go v0.41.0
+	github.com/testcontainers/testcontainers-go v0.42.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
@@ -33,7 +33,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
@@ -41,10 +40,8 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
-	github.com/creack/pty v1.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker v28.5.2+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -75,7 +72,6 @@ require (
 	github.com/gobwas/ws v1.0.4 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
@@ -85,12 +81,13 @@ require (
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
-	github.com/moby/patternmatcher v0.6.0 // indirect
+	github.com/moby/moby/api v1.54.2 // indirect
+	github.com/moby/moby/client v0.4.1 // indirect
+	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/sys/user v0.4.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
@@ -103,7 +100,7 @@ require (
 	github.com/prometheus/common v0.67.2 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
-	github.com/shirou/gopsutil/v4 v4.26.2 // indirect
+	github.com/shirou/gopsutil/v4 v4.26.3 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect

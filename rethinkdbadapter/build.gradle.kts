@@ -16,8 +16,8 @@ dependencies {
 
 
     api("com.rethinkdb:rethinkdb-driver:2.3.3")
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("org.yaml:snakeyaml:2.0")
+    implementation("com.google.code.gson:gson:2.13.2")
+    implementation("org.yaml:snakeyaml:2.6")
     
     // OpenTracing
     implementation("io.opentracing:opentracing-api:0.33.0")

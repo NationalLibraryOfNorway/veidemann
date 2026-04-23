@@ -19,7 +19,7 @@ dependencies {
     implementation(platform(libs.grpc.bom))
     implementation("io.grpc:grpc-netty-shaded")
 
-    implementation("org.checkerframework:checker-qual:3.52.0")
+    implementation("org.checkerframework:checker-qual:4.0.0")
     implementation("it.sauronsoftware.cron4j:cron4j:2.2.5")
     
     implementation("io.opentracing.contrib:opentracing-grpc:0.2.3")
@@ -39,7 +39,7 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.assertj:assertj-core:3.24.2")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation(platform(libs.mockito.bom))
     testImplementation("org.mockito:mockito-core")
 }

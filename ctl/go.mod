@@ -4,14 +4,14 @@ go 1.25.6
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.1
-	github.com/coreos/go-oidc/v3 v3.17.0
-	github.com/dgraph-io/badger/v4 v4.9.0
-	github.com/dgraph-io/ristretto/v2 v2.3.0
+	github.com/coreos/go-oidc/v3 v3.18.0
+	github.com/dgraph-io/badger/v4 v4.9.1
+	github.com/dgraph-io/ristretto/v2 v2.4.0
 	github.com/invopop/yaml v0.3.1
 	github.com/magiconair/properties v1.8.10
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -30,16 +30,16 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/flatbuffers v25.9.23+incompatible // indirect
+	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect

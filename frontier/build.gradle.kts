@@ -15,7 +15,7 @@ dependencies {
     implementation(project(":rethinkdbadapter"))
 
     implementation(libs.typesafe.config)
-    implementation("redis.clients:jedis:7.1.0")
+    implementation("redis.clients:jedis:7.4.1")
 
     // Prometheus
     implementation("io.prometheus:simpleclient:0.16.0")
@@ -30,7 +30,7 @@ dependencies {
     // RethinkDB
     implementation("com.rethinkdb:rethinkdb-driver:2.3.3")
     implementation("com.google.code.gson:gson:2.13.2")
-    implementation("org.yaml:snakeyaml:2.5")
+    implementation("org.yaml:snakeyaml:2.6")
     
     // Tracing
     implementation("io.jaegertracing:jaeger-client:1.8.1")
@@ -59,7 +59,7 @@ dependencies {
     testImplementation("io.opentracing:opentracing-mock:0.33.0")
     
     // Testcontainers
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.2")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
 }
 
 tasks.test {
