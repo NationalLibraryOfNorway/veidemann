@@ -148,10 +148,10 @@ func parseTemplate(templateString string) (*template.Template, error) {
 			if a.Len() == 0 {
 				return ""
 			}
-			b.WriteString(fmt.Sprintf("%s", a.Index(0)))
+			fmt.Fprintf(&b, "%s", a.Index(0))
 			for i := 1; i < a.Len(); i++ {
 				b.WriteString(sep)
-				b.WriteString(fmt.Sprintf("%s", a.Index(i)))
+				fmt.Fprintf(&b, "%s", a.Index(i))
 			}
 			return b.String()
 		},
