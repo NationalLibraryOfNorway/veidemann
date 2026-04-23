@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -30,15 +31,16 @@ type Uploader interface {
 }
 
 type App struct {
-	Addr           string
-	TelemetryAddr  string
-	DbOptions      database.Options
-	ConfigCacheTTL time.Duration
-	RedisOptions   *redis.Options
-	RecordOptions  []gowarc.WarcRecordOption
-	GrpcOptions    []grpc.ServerOption
-	WriterOpts     writer.Options
-	Uploader       Uploader
+	Addr                 string
+	TelemetryAddr        string
+	DbOptions            database.Options
+	ConfigCacheTTL       time.Duration
+	RedisOptions         *redis.Options
+	RedisFailoverOptions *redis.FailoverOptions
+	RecordOptions        []gowarc.WarcRecordOption
+	GrpcOptions          []grpc.ServerOption
+	WriterOpts           writer.Options
+	Uploader             Uploader
 
 	ready atomic.Bool
 }
@@ -77,7 +79,19 @@ func (app *App) Run(ctx context.Context) error {
 	defer func() {
 		_ = rethinkdb.Close()
 	}()
-	redisClient := redis.NewClient(app.RedisOptions)
+	var redisClient *redis.Client
+	var redisTarget string
+	if app.RedisFailoverOptions != nil {
+		redisClient = redis.NewFailoverClient(app.RedisFailoverOptions)
+		redisTarget = fmt.Sprintf(
+			"sentinel master %s via %s",
+			app.RedisFailoverOptions.MasterName,
+			strings.Join(app.RedisFailoverOptions.SentinelAddrs, ","),
+		)
+	} else {
+		redisClient = redis.NewClient(app.RedisOptions)
+		redisTarget = app.RedisOptions.Addr
+	}
 	defer func() {
 		_ = redisClient.Close()
 	}()
@@ -89,7 +103,7 @@ func (app *App) Run(ctx context.Context) error {
 	init.Go(backoff(ictx, "redis", func() (err error) {
 		err = redisClient.Ping(ictx).Err()
 		if err == nil {
-			log.Info().Str("address", app.RedisOptions.Addr).Msg("Connected to Redis")
+			log.Info().Str("address", redisTarget).Msg("Connected to Redis")
 		}
 		return err
 	}))
