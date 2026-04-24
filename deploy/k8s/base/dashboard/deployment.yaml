@@ -28,7 +28,7 @@ spec:
                 path: config.json
       containers:
         - name: dashboard
-          image: ghcr.io/nationallibraryofnorway/veidemann/dashboard:0.24.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/dashboard:0.24.4
           ports:
             - containerPort: 80
               name: http

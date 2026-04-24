@@ -32,7 +32,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.5.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.5.2
           ports:
             - containerPort: 9999
               protocol: TCP
@@ -89,7 +89,7 @@ spec:
             - name: LOG_LEVEL
               value: WARN
         - name: recorderproxy
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.5.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.6.0
           ports:
             - containerPort: 9900
               name: proxy

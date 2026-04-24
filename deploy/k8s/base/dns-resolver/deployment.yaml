@@ -28,7 +28,7 @@ spec:
                 path: Corefile
       containers:
         - name: dns-resolver
-          image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver:0.6.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver:0.6.2
           env:
             - name: LOG_WRITER_HOST
               value: "log-service"

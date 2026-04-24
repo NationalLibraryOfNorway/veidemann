@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: ooshandler
-          image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler:0.2.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler:0.2.4
           ports:
             - name: http-ooshandler
               containerPort: 50052
