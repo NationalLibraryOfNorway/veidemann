@@ -5,7 +5,7 @@ go 1.25.6
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.1
 	github.com/google/uuid v1.6.0
-	github.com/minio/minio-go/v7 v7.0.100
+	github.com/minio/minio-go/v7 v7.1.0
 	github.com/opentracing-contrib/go-grpc v0.1.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/parquet-go/parquet-go v0.29.0
@@ -28,6 +28,7 @@ require (
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.6.1 // indirect
+	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
 )
