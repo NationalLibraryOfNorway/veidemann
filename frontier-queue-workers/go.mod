@@ -11,7 +11,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	golang.org/x/sync v0.20.0
-	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
+	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
 require (
