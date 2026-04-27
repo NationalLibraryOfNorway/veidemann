@@ -59,7 +59,7 @@
     "monaco-editor": "^0.55.1",
     "ng-mocks": "^14.15.2",
     "ngx-echarts": "^21.0.0",
-    "ngx-filesize": "^3.0.6",
+    "ngx-filesize": "^3.0.7",
     "ngx-monaco-editor-v2": "^21.1.4",
     "prismjs": "^1.30.0",
     "rxjs": "~7.8.2",
