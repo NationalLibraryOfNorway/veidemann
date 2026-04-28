@@ -10,6 +10,7 @@ secretGenerator:
   - name: kvrocks-auth
     literals:
       - redis-password=change-me
+      - sentinel-password=change-me
 
 generatorOptions:
   disableNameSuffixHash: true

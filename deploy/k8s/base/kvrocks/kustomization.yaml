@@ -4,6 +4,8 @@ kind: Kustomization
 resources:
   - serviceaccount.yaml
   - service.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
   - configmap.yaml
   - scripts-configmap.yaml
   - statefulset.yaml

@@ -14,13 +14,85 @@ data:
     POD_NAME="$(hostname)"
     POD_FQDN="${POD_NAME}.${HEADLESS_SERVICE}"
     DEFAULT_MASTER="kvrocks-0.${HEADLESS_SERVICE}"
+    DATA_DIR="/var/lib/kvrocks"
+    CLUSTER_STATE_DIR="${DATA_DIR}/cluster-state"
+    BOOTSTRAP_MARKER="${CLUSTER_STATE_DIR}/initial-bootstrap-authorized"
     BASE_CONFIG="/config/kvrocks.conf"
     CONFIG_DIR="/etc/kvrocks/generated"
     CONFIG_FILE="${CONFIG_DIR}/kvrocks.conf"
+    POD_ORDINAL="${POD_NAME##*-}"
+    BOOTSTRAP_AUTHORIZED=false
+
+    ensure_safe_secret() {
+      secret_name="$1"
+      secret_value="$2"
+
+      if printf '%s' "${secret_value}" | grep -q '[[:cntrl:]]'; then
+        echo "${secret_name} must not contain control characters" >&2
+        exit 1
+      fi
+    }
+
+    quote_config_value() {
+      printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+    }
+
+    ensure_simple_path() {
+      value_name="$1"
+      value="$2"
+
+      case "${value}" in
+        '')
+          echo "${value_name} must not be empty" >&2
+          exit 1
+          ;;
+        *[!A-Za-z0-9._/-]*)
+          echo "${value_name} may only contain letters, digits, '.', '_', '-', and '/'" >&2
+          exit 1
+          ;;
+      esac
+    }
+
+    ensure_uint() {
+      value_name="$1"
+      value="$2"
+
+      if ! printf '%s' "${value}" | grep -Eq '^[0-9]+$'; then
+        echo "${value_name} must be an unsigned integer" >&2
+        exit 1
+      fi
+    }
+
+    ensure_cron_expression() {
+      value_name="$1"
+      value="$2"
+
+      if ! printf '%s' "${value}" | grep -Eq '^[0-9*,/ -]+$'; then
+        echo "${value_name} contains unsupported characters" >&2
+        exit 1
+      fi
+
+      if [ "$(printf '%s\n' "${value}" | awk '{ print NF }')" -ne 5 ]; then
+        echo "${value_name} must contain exactly five cron fields" >&2
+        exit 1
+      fi
+    }
+
+    sentinel_cli() {
+      REDISCLI_AUTH="${SENTINEL_PASSWORD}" redis-cli "$@"
+    }
+
+    local_data_present() {
+      find "${DATA_DIR}" -mindepth 1 -maxdepth 1 \
+        ! -name lost+found \
+        ! -name cluster-state \
+        ! -name sentinel \
+        -print -quit | grep -q .
+    }
 
     discover_master() {
       for sentinel_ip in $(getent hosts "${HEADLESS_SERVICE}" 2>/dev/null | awk '{print $1}' | sort -u); do
-        candidate="$(redis-cli --raw -h "${sentinel_ip}" -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
+        candidate="$(sentinel_cli --raw -h "${sentinel_ip}" -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
         if [ -n "${candidate}" ]; then
           echo "${candidate}"
           return 0
@@ -29,31 +101,91 @@ data:
       return 1
     }
 
-    if MASTER_HOST="$(discover_master)"; then
-      echo "Discovered current master from sentinel: ${MASTER_HOST}"
-    else
-      MASTER_HOST="${DEFAULT_MASTER}"
-      echo "No sentinel state found, bootstrapping from ${MASTER_HOST}"
+    if [ -z "${REDIS_PASSWORD:-}" ] || [ -z "${SENTINEL_PASSWORD:-}" ]; then
+      echo "REDIS_PASSWORD and SENTINEL_PASSWORD must both be configured" >&2
+      exit 1
     fi
 
-    mkdir -p "${CONFIG_DIR}"
+    backup_enabled="${KVROCKS_BACKUP_ENABLED:-false}"
+    case "${backup_enabled}" in
+      true|false)
+        ;;
+      *)
+        echo "KVROCKS_BACKUP_ENABLED must be true or false" >&2
+        exit 1
+        ;;
+    esac
+
+    ensure_safe_secret REDIS_PASSWORD "${REDIS_PASSWORD}"
+    ensure_safe_secret SENTINEL_PASSWORD "${SENTINEL_PASSWORD}"
+
+    if MASTER_HOST="$(discover_master)"; then
+      echo "Discovered current master from sentinel: ${MASTER_HOST}"
+    elif [ -n "${KVROCKS_RECOVERY_MASTER:-}" ]; then
+      MASTER_HOST="${KVROCKS_RECOVERY_MASTER}"
+      echo "Using operator-supplied recovery master ${MASTER_HOST}"
+    elif local_data_present || [ -f "${BOOTSTRAP_MARKER}" ]; then
+      echo "No durable sentinel state available for a node with existing state. Set KVROCKS_RECOVERY_MASTER to recover safely." >&2
+      exit 1
+    elif [ "${POD_ORDINAL}" = "0" ]; then
+      MASTER_HOST="${POD_NAME}"
+      BOOTSTRAP_AUTHORIZED=true
+      echo "Bootstrapping initial master on ${MASTER_HOST}"
+    else
+      echo "Waiting for sentinel state or explicit recovery target before starting ${POD_NAME}" >&2
+      exit 1
+    fi
+
+    mkdir -p "${CLUSTER_STATE_DIR}" "${CONFIG_DIR}"
     cp "${BASE_CONFIG}" "${CONFIG_FILE}"
     printf '\n' >> "${CONFIG_FILE}"
 
-    if [ -n "${REDIS_PASSWORD:-}" ]; then
+    printf 'requirepass "%s"\n' "$(quote_config_value "${REDIS_PASSWORD}")" >> "${CONFIG_FILE}"
+    printf 'masterauth "%s"\n' "$(quote_config_value "${REDIS_PASSWORD}")" >> "${CONFIG_FILE}"
+
+    if [ "${backup_enabled}" = "true" ]; then
+      backup_root="${KVROCKS_BACKUP_ROOT:-/var/lib/kvrocks-backups}"
+      case "${backup_root}" in
+        */)
+          backup_root="${backup_root%/}"
+          ;;
+      esac
+
+      bgsave_cron="${KVROCKS_BGSAVE_CRON:-0 4 * * *}"
+      ensure_simple_path KVROCKS_BACKUP_ROOT "${backup_root}"
+      ensure_cron_expression KVROCKS_BGSAVE_CRON "${bgsave_cron}"
+
+      backup_dir="${backup_root}/${POD_NAME}"
+      mkdir -p "${backup_dir}"
+
       printf '%s\n' \
-        "requirepass ${REDIS_PASSWORD}" \
-        "masterauth ${REDIS_PASSWORD}" \
+        "backup-dir ${backup_dir}" \
+        "bgsave-cron ${bgsave_cron}" \
         >> "${CONFIG_FILE}"
+
+      if [ -n "${KVROCKS_MAX_BACKUP_TO_KEEP:-}" ]; then
+        ensure_uint KVROCKS_MAX_BACKUP_TO_KEEP "${KVROCKS_MAX_BACKUP_TO_KEEP}"
+        printf 'max-backup-to-keep %s\n' "${KVROCKS_MAX_BACKUP_TO_KEEP}" >> "${CONFIG_FILE}"
+      fi
+
+      if [ -n "${KVROCKS_MAX_BACKUP_KEEP_HOURS:-}" ]; then
+        ensure_uint KVROCKS_MAX_BACKUP_KEEP_HOURS "${KVROCKS_MAX_BACKUP_KEEP_HOURS}"
+        printf 'max-backup-keep-hours %s\n' "${KVROCKS_MAX_BACKUP_KEEP_HOURS}" >> "${CONFIG_FILE}"
+      fi
+
+      echo "Enabled per-pod scheduled backups in ${backup_dir}"
     fi
 
     printf '%s\n' \
-      "replica-announce-ip ${POD_IP}" \
+      "replica-announce-ip ${POD_FQDN}" \
       'replica-announce-port 6666' \
       >> "${CONFIG_FILE}"
 
     if [ "${MASTER_HOST}" = "${POD_NAME}" ] || [ "${MASTER_HOST}" = "${POD_FQDN}" ] || [ "${MASTER_HOST}" = "${POD_IP}" ]; then
       echo "Starting ${POD_NAME} as master"
+      if [ "${BOOTSTRAP_AUTHORIZED}" = "true" ]; then
+        touch "${BOOTSTRAP_MARKER}"
+      fi
     else
       echo "slaveof ${MASTER_HOST} 6666" >> "${CONFIG_FILE}"
       echo "Starting ${POD_NAME} as replica of ${MASTER_HOST}"
@@ -67,21 +199,65 @@ data:
     HEADLESS_SERVICE="kvrocks-headless.${POD_NAMESPACE}.svc"
     POD_NAME="$(hostname)"
     POD_FQDN="${POD_NAME}.${HEADLESS_SERVICE}"
-    DEFAULT_MASTER="kvrocks-0.${HEADLESS_SERVICE}"
-    CONFIG_DIR="/etc/sentinel/generated"
+    DATA_DIR="/var/lib/kvrocks"
+    CONFIG_DIR="${DATA_DIR}/sentinel"
     CONFIG_FILE="${CONFIG_DIR}/sentinel.conf"
+    CLUSTER_STATE_DIR="${DATA_DIR}/cluster-state"
+    BOOTSTRAP_MARKER="${CLUSTER_STATE_DIR}/initial-bootstrap-authorized"
+    POD_ORDINAL="${POD_NAME##*-}"
+
+    ensure_safe_secret() {
+      secret_name="$1"
+      secret_value="$2"
+
+      if printf '%s' "${secret_value}" | grep -q '[[:cntrl:]]'; then
+        echo "${secret_name} must not contain control characters" >&2
+        exit 1
+      fi
+    }
+
+    quote_config_value() {
+      printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+    }
 
     kvrocks_cli() {
-      if [ -n "${REDIS_PASSWORD:-}" ]; then
-        REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli "$@"
-      else
-        redis-cli "$@"
-      fi
+      REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli "$@"
+    }
+
+    local_kvrocks_role() {
+      kvrocks_cli --raw -h 127.0.0.1 -p 6666 role 2>/dev/null | sed -n '1p' || true
+    }
+
+    sentinel_cli() {
+      REDISCLI_AUTH="${SENTINEL_PASSWORD}" redis-cli "$@"
+    }
+
+    wait_for_dns() {
+      host="$1"
+      deadline=$(($(date +%s) + 60))
+
+      while [ "$(date +%s)" -lt "${deadline}" ]; do
+        if getent hosts "${host}" >/dev/null 2>&1; then
+          return 0
+        fi
+        sleep 1
+      done
+
+      echo "Timed out waiting for DNS name ${host} to resolve" >&2
+      return 1
+    }
+
+    local_data_present() {
+      find "${DATA_DIR}" -mindepth 1 -maxdepth 1 \
+        ! -name lost+found \
+        ! -name cluster-state \
+        ! -name sentinel \
+        -print -quit | grep -q .
     }
 
     discover_master() {
       for sentinel_ip in $(getent hosts "${HEADLESS_SERVICE}" 2>/dev/null | awk '{print $1}' | sort -u); do
-        candidate="$(redis-cli --raw -h "${sentinel_ip}" -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
+        candidate="$(sentinel_cli --raw -h "${sentinel_ip}" -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
         if [ -n "${candidate}" ]; then
           echo "${candidate}"
           return 0
@@ -90,6 +266,21 @@ data:
       return 1
     }
 
+    if [ -z "${REDIS_PASSWORD:-}" ] || [ -z "${SENTINEL_PASSWORD:-}" ]; then
+      echo "REDIS_PASSWORD and SENTINEL_PASSWORD must both be configured" >&2
+      exit 1
+    fi
+
+    ensure_safe_secret REDIS_PASSWORD "${REDIS_PASSWORD}"
+    ensure_safe_secret SENTINEL_PASSWORD "${SENTINEL_PASSWORD}"
+
+    mkdir -p "${CONFIG_DIR}" "${CLUSTER_STATE_DIR}"
+
+    if [ -s "${CONFIG_FILE}" ]; then
+      echo "Starting sentinel from durable state"
+      exec redis-server "${CONFIG_FILE}" --sentinel
+    fi
+
     echo "Waiting for local kvrocks"
     until kvrocks_cli -h 127.0.0.1 -p 6666 ping >/dev/null 2>&1; do
       sleep 1
@@ -97,16 +288,27 @@ data:
 
     if MASTER_HOST="$(discover_master)"; then
       echo "Discovered current master from peer sentinel: ${MASTER_HOST}"
-    else
-      MASTER_HOST="${DEFAULT_MASTER}"
+    elif [ -n "${KVROCKS_RECOVERY_MASTER:-}" ]; then
+      MASTER_HOST="${KVROCKS_RECOVERY_MASTER}"
+      echo "Using operator-supplied recovery master ${MASTER_HOST}"
+    elif [ -f "${BOOTSTRAP_MARKER}" ] && [ "${POD_ORDINAL}" = "0" ] && [ "$(local_kvrocks_role)" = "master" ]; then
+      wait_for_dns "${POD_FQDN}"
+      MASTER_HOST="${POD_FQDN}"
+      echo "Using local bootstrap marker, monitoring bootstrap master ${MASTER_HOST}"
+    elif ! local_data_present && [ "${POD_ORDINAL}" = "0" ]; then
+      wait_for_dns "${POD_FQDN}"
+      MASTER_HOST="${POD_FQDN}"
       echo "No peer sentinel state found, monitoring bootstrap master ${MASTER_HOST}"
+    else
+      echo "No durable sentinel state available for a node with existing state. Set KVROCKS_RECOVERY_MASTER to recover safely." >&2
+      exit 1
     fi
 
-    mkdir -p "${CONFIG_DIR}"
+    : > "${CONFIG_FILE}"
     printf '%s\n' \
       'port 26379' \
       'bind 0.0.0.0' \
-      'dir /tmp' \
+      "dir ${CONFIG_DIR}" \
       'protected-mode no' \
       'sentinel resolve-hostnames yes' \
       'sentinel announce-hostnames yes' \
@@ -119,11 +321,9 @@ data:
       'logfile ""' \
       > "${CONFIG_FILE}"
 
-    if [ -n "${REDIS_PASSWORD:-}" ]; then
-      printf '%s\n' \
-        "sentinel auth-pass kvrocks ${REDIS_PASSWORD}" \
-        >> "${CONFIG_FILE}"
-    fi
+    printf 'requirepass "%s"\n' "$(quote_config_value "${SENTINEL_PASSWORD}")" >> "${CONFIG_FILE}"
+    printf 'sentinel sentinel-pass "%s"\n' "$(quote_config_value "${SENTINEL_PASSWORD}")" >> "${CONFIG_FILE}"
+    printf 'sentinel auth-pass kvrocks "%s"\n' "$(quote_config_value "${REDIS_PASSWORD}")" >> "${CONFIG_FILE}"
 
     exec redis-server "${CONFIG_FILE}" --sentinel
   kvrocks-prestop.sh: |
@@ -134,11 +334,11 @@ data:
     POD_FQDN="${POD_NAME}.kvrocks-headless.${POD_NAMESPACE}.svc"
 
     kvrocks_cli() {
-      if [ -n "${REDIS_PASSWORD:-}" ]; then
-        REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli "$@"
-      else
-        redis-cli "$@"
-      fi
+      REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli "$@"
+    }
+
+    sentinel_cli() {
+      REDISCLI_AUTH="${SENTINEL_PASSWORD}" redis-cli "$@"
     }
 
     ROLE="$(kvrocks_cli --raw -h 127.0.0.1 -p 6666 role 2>/dev/null | sed -n '1p' || true)"
@@ -148,11 +348,11 @@ data:
     fi
 
     echo "Master is terminating, asking local sentinel to fail over"
-    redis-cli -h 127.0.0.1 -p 26379 sentinel failover kvrocks >/dev/null 2>&1 || true
+    sentinel_cli -h 127.0.0.1 -p 26379 sentinel failover kvrocks >/dev/null 2>&1 || true
 
-    end_time=$(($(date +%s) + 25))
+    end_time=$(($(date +%s) + 45))
     while [ "$(date +%s)" -lt "${end_time}" ]; do
-      master_host="$(redis-cli --raw -h 127.0.0.1 -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
+      master_host="$(sentinel_cli --raw -h 127.0.0.1 -p 26379 sentinel get-master-addr-by-name kvrocks 2>/dev/null | sed -n '1p' || true)"
       if [ -n "${master_host}" ] && [ "${master_host}" != "${POD_IP}" ] && [ "${master_host}" != "${POD_NAME}" ] && [ "${master_host}" != "${POD_FQDN}" ]; then
         echo "Sentinel elected ${master_host} as the new master"
         exit 0
@@ -162,3 +362,34 @@ data:
 
     echo "Sentinel did not finish failover before termination"
     exit 0
+  kvrocks-readiness.sh: |
+    #!/bin/sh
+    set -eu
+
+    role_output="$(REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli --raw -h 127.0.0.1 -p 6666 role 2>/dev/null || true)"
+    role="$(printf '%s\n' "${role_output}" | sed -n '1p')"
+
+    case "${role}" in
+      master)
+        connected_replicas="$(printf '%s\n' "${role_output}" | sed -n '2p')"
+        [ -n "${connected_replicas}" ] && [ "${connected_replicas}" -ge 1 ]
+        ;;
+      slave)
+        master_link_status="$(printf '%s\n' "${role_output}" | sed -n '4p')"
+        [ "${master_link_status}" = "connected" ]
+        ;;
+      *)
+        exit 1
+        ;;
+    esac
+  sentinel-readiness.sh: |
+    #!/bin/sh
+    set -eu
+
+    sentinel_cli() {
+      REDISCLI_AUTH="${SENTINEL_PASSWORD}" redis-cli "$@"
+    }
+
+    sentinel_cli -h 127.0.0.1 -p 26379 ping | grep -q PONG
+    sentinel_cli --raw -h 127.0.0.1 -p 26379 sentinel get-master-addr-by-name kvrocks | sed -n '1p' | grep -q .
+    sentinel_cli -h 127.0.0.1 -p 26379 sentinel ckquorum kvrocks >/dev/null
