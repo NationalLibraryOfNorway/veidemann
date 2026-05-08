@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 )
@@ -17,10 +18,11 @@ const (
 )
 
 type FinalizedParquetFile struct {
-	Table      string
-	Collection string
-	Path       string
-	RowCount   int64
+	Table       string
+	Collection  string
+	Path        string
+	RowCount    int64
+	FinalizedAt time.Time
 }
 
 type PostCloseHandoff interface {

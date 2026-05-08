@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 )
 
 const indexFileName = ".index.json"
@@ -16,8 +18,9 @@ type indexFile struct {
 }
 
 type indexEntry struct {
-	Name     string `json:"name"`
-	RowCount int64  `json:"rowCount"`
+	Name                 string `json:"name"`
+	RowCount             int64  `json:"rowCount"`
+	FinalizedAtUnixMilli int64  `json:"finalizedAtUnixMilli,omitempty"`
 }
 
 func appendIndexEntry(dir string, entry indexEntry) error {
@@ -79,9 +82,12 @@ func writeIndexFile(dir string, index indexFile) error {
 	return os.Rename(tmpPath, path)
 }
 
-func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
-	tableDir := filepath.Join(s.baseDir, table)
-	if _, err := os.Stat(tableDir); err != nil {
+func loadFinalizedParquetFiles(baseDir, table string) ([]FinalizedParquetFile, error) {
+	rootDir := baseDir
+	if table != "" {
+		rootDir = filepath.Join(baseDir, table)
+	}
+	if _, err := os.Stat(rootDir); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
@@ -89,7 +95,7 @@ func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
 	}
 
 	indexPaths := make([]string, 0)
-	err := filepath.WalkDir(tableDir, func(path string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(rootDir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -106,9 +112,18 @@ func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
 	}
 	sort.Strings(indexPaths)
 
-	files := make([]string, 0)
+	files := make([]FinalizedParquetFile, 0)
 	for _, indexPath := range indexPaths {
 		dir := filepath.Dir(indexPath)
+		relDir, err := filepath.Rel(baseDir, dir)
+		if err != nil {
+			return nil, err
+		}
+		parts := strings.Split(relDir, string(os.PathSeparator))
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("unexpected parquet index path %s", indexPath)
+		}
+
 		index, err := readIndexFile(dir)
 		if err != nil {
 			return nil, err
@@ -117,7 +132,8 @@ func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
 		filtered := index.Files[:0]
 		for _, file := range index.Files {
 			path := filepath.Join(dir, file.Name)
-			if _, err := os.Stat(path); err != nil {
+			info, err := os.Stat(path)
+			if err != nil {
 				if os.IsNotExist(err) {
 					pruned = true
 					continue
@@ -125,7 +141,18 @@ func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
 				return nil, err
 			}
 			filtered = append(filtered, file)
-			files = append(files, path)
+
+			finalizedAt := info.ModTime().UTC()
+			if file.FinalizedAtUnixMilli > 0 {
+				finalizedAt = time.UnixMilli(file.FinalizedAtUnixMilli).UTC()
+			}
+			files = append(files, FinalizedParquetFile{
+				Table:       parts[0],
+				Collection:  collectionFromDirName(parts[1]),
+				Path:        path,
+				RowCount:    file.RowCount,
+				FinalizedAt: finalizedAt,
+			})
 		}
 		if pruned {
 			index.Files = filtered
@@ -133,6 +160,19 @@ func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
 				return nil, err
 			}
 		}
+	}
+	return files, nil
+}
+
+func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
+	finalizedFiles, err := loadFinalizedParquetFiles(s.baseDir, table)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]string, 0, len(finalizedFiles))
+	for _, file := range finalizedFiles {
+		files = append(files, file.Path)
 	}
 	return files, nil
 }
