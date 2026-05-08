@@ -20,3 +20,5 @@ spec:
           protocol: TCP
         - port: 26379
           protocol: TCP
+        - port: 9121
+          protocol: TCP

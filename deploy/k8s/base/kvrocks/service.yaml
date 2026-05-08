@@ -18,6 +18,23 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: kvrocks-metrics
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: metrics
+spec:
+  ports:
+    - name: metrics
+      port: 9121
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: datastore
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: kvrocks-headless
   labels:
     app.kubernetes.io/name: kvrocks
@@ -33,6 +50,10 @@ spec:
     - name: sentinel
       port: 26379
       targetPort: sentinel
+      protocol: TCP
+    - name: metrics
+      port: 9121
+      targetPort: metrics
       protocol: TCP
   selector:
     app.kubernetes.io/name: kvrocks

@@ -140,6 +140,35 @@ spec:
               readOnly: true
             - name: kvrocks-generated
               mountPath: /etc/kvrocks/generated
+        - name: metrics-exporter
+          image: docker.io/kvrocks/kvrocks_exporter:1.0.2
+          args:
+            - -kvrocks.addr=kvrocks://127.0.0.1:6666
+            - -kvrocks.password=$(REDIS_PASSWORD)
+            - -web.listen-address=:9121
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: redis-password
+          ports:
+            - name: metrics
+              containerPort: 9121
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
         - name: sentinel
           image: docker.io/redis:7.2.13-alpine
           command:
