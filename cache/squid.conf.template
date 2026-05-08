@@ -8,9 +8,11 @@ http_port 3128 ssl-bump \
  options=NO_SSLv3,NO_TLSv1,NO_TLSv1_1,NO_TLSv1_2,NO_TICKET
 
 sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 4MB
+
 acl step1 at_step SslBump1
 ssl_bump peek step1
 ssl_bump bump all
+
 sslproxy_cert_error allow all
 
 maximum_object_size 64 MB
