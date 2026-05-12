@@ -29,6 +29,9 @@ configMapGenerator:
   - name: grafana-dashboard-veidemann-overview
     files:
       - veidemann-overview.json
+  - name: grafana-dashboard-veidemann-contentwriter
+    files:
+      - veidemann-contentwriter.json
   - name: grafana-dashboard-redis
     files:
       - redis.json
