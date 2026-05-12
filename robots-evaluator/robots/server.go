@@ -27,17 +27,6 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.
 	executionId := req.GetExecutionId()
 	jobExecutionId := req.GetJobExecutionId()
 
-	slog.Debug("IsAllowed request",
-		"uri", uri,
-		"userAgent", userAgent,
-		"robotsPolicy", policy,
-		"minValiditySeconds", minValiditySeconds,
-		"customRobotsProvided", custom != "",
-		"collectionId", collectionId,
-		"executionId", executionId,
-		"jobExecutionId", jobExecutionId,
-	)
-
 	ok, err := e.Evaluator.IsAllowed(ctx, &AllowedRequest{
 		RobotsPolicy:       policy,
 		MinValiditySeconds: minValiditySeconds,
@@ -53,10 +42,27 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.
 			"uri", uri,
 			"userAgent", userAgent,
 			"robotsPolicy", policy,
+			"minValiditySeconds", minValiditySeconds,
+			"customRobotsProvided", custom != "",
+			"collectionId", collectionId,
+			"executionId", executionId,
+			"jobExecutionId", jobExecutionId,
 			"error", err,
 		)
 		return nil, err
 	}
+
+	slog.Debug("IsAllowed result",
+		"uri", uri,
+		"userAgent", userAgent,
+		"robotsPolicy", policy,
+		"minValiditySeconds", minValiditySeconds,
+		"customRobotsProvided", custom != "",
+		"collectionId", collectionId,
+		"executionId", executionId,
+		"jobExecutionId", jobExecutionId,
+		"isAllowed", ok,
+	)
 
 	return &robotsevaluatorV1.IsAllowedReply{
 		IsAllowed: ok,
