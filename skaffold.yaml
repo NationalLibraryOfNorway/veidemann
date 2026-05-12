@@ -40,9 +40,11 @@ deploy:
           crds.enabled: true
       - name: redis
         remoteChart: oci://registry-1.docker.io/cloudpirates/redis
-        version: 0.27.1
+        version: 0.27.4
         namespace: default
         setValues:
+          metrics.enabled: true
+          metrics.serviceMonitor.enabled: false
           auth.enabled: false
           persistence.enabled: false
   kubectl: {}
@@ -136,3 +138,32 @@ profiles:
     patches:
       - op: remove
         path: /build
+
+---
+
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: monitoring
+
+manifests:
+  kustomize:
+    paths:
+      - deploy/k8s/base/grafana
+      - deploy/k8s/overlays/dev/monitoring
+
+deploy:
+  kubeContext: minikube
+  statusCheck: true
+  kubectl: {}
+  helm:
+    releases:
+      - name: kube-prometheus-stack
+        repo: https://prometheus-community.github.io/helm-charts
+        remoteChart: kube-prometheus-stack
+        version: 84.3.0
+        namespace: monitoring
+        createNamespace: true
+        wait: true
+        valuesFiles:
+          - deploy/k8s/overlays/dev/monitoring/kube-prometheus-stack.minikube.values.yaml

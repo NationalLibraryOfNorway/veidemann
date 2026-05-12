@@ -12,9 +12,10 @@ resources:
   - frontier/
   - ooshandler/
   - harvester/
-  - contentwriter
-  - controller
-  - dashboard
-  - dns-resolver
-  - log-service
-  - cache
+  - contentwriter/
+  - controller/
+  - dashboard/
+  - dns-resolver/
+  - log-service/
+  - cache/
+  - metrics/

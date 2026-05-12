@@ -1,8 +1,4 @@
 {
-  "annotations": {
-    "list": [
-    ]
-  },
   "graphTooltip": 0,
   "links": [],
   "panels": [
@@ -15,7 +11,10 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -68,7 +67,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(up{service=\"veidemann-cache\"})",
+          "expr": "sum(up{service=\"cache-balancer\",pod=~\"$child_pod\"})",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -80,7 +79,7 @@
         }
       ],
       "thresholds": "0,1",
-      "title": "Services Up",
+      "title": "Child Services Up",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -101,12 +100,15 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
-      "format": "percentunit",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "format": "none",
       "gauge": {
-        "maxValue": 1,
+        "maxValue": 100,
         "minValue": 0,
-        "show": true,
+        "show": false,
         "thresholdLabels": false,
         "thresholdMarkers": true
       },
@@ -154,7 +156,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(squid_client_http_hit_kbytes_out_bytes_total{pod=~\"$pod\"}) / sum(squid_client_http_kbytes_out_kbytes_total{pod=~\"$pod\"})",
+          "expr": "sum(up{service=\"cache\",pod=~\"$parent_pod\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -164,8 +166,8 @@
           "target": ""
         }
       ],
-      "thresholds": "",
-      "title": "Bytes Hit Rate",
+      "thresholds": "0,1",
+      "title": "Parent Services Up",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -175,7 +177,7 @@
           "value": "null"
         }
       ],
-      "valueName": "current"
+      "valueName": "avg"
     },
     {
       "cacheTimeout": null,
@@ -186,7 +188,10 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "format": "percentunit",
       "gauge": {
         "maxValue": 1,
@@ -239,7 +244,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(squid_client_http_hits_total{pod=~\"$pod\"}) / sum(squid_client_http_requests_total{pod=~\"$pod\"})",
+          "expr": "sum(squid_client_http_hits_total{service=\"cache\",pod=~\"$parent_pod\"}) / sum(squid_client_http_requests_total{service=\"cache\",pod=~\"$parent_pod\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -250,7 +255,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Cache Hit Rate",
+      "title": "Parent Cache Hit Rate",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -271,7 +276,10 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "format": "percentunit",
       "gauge": {
         "maxValue": 1,
@@ -324,7 +332,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(squid_client_http_errors_total{pod=~\"$pod\"}) / sum(squid_client_http_requests_total{pod=~\"$pod\"})",
+          "expr": "sum(squid_client_http_hit_kbytes_out_bytes_total{service=\"cache\",pod=~\"$parent_pod\"}) / sum(squid_client_http_kbytes_out_kbytes_total{service=\"cache\",pod=~\"$parent_pod\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -335,7 +343,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Error Rate",
+      "title": "Parent Bytes Hit Rate",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -352,7 +360,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 7,
@@ -398,36 +409,36 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(squid_client_http_hits_total{pod=~\"$pod\"}[5m]))",
+          "expr": "sum(rate(squid_client_http_hits_total{service=\"cache-balancer\",pod=~\"$child_pod\"}[5m]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Total HTTP hits",
+          "legendFormat": "Child HTTP hits",
           "refId": "A",
           "step": 5,
           "target": ""
         },
         {
-          "expr": "sum(rate(squid_client_http_requests_total{pod=~\"$pod\"}[5m]))",
+          "expr": "sum(rate(squid_client_http_requests_total{service=\"cache-balancer\",pod=~\"$child_pod\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "Total Requests",
+          "legendFormat": "Child requests",
           "refId": "B",
           "step": 5
         },
         {
-          "expr": "sum(rate(squid_client_http_errors_total{pod=~\"$pod\"}[5m])) ",
+          "expr": "sum(rate(squid_client_http_errors_total{service=\"cache-balancer\",pod=~\"$child_pod\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Total Errors",
+          "legendFormat": "Child errors",
           "refId": "C",
           "step": 10
         },
         {
-          "expr": "label_replace(rate(squid_client_http_hits_total{pod=~\"$pod\"}[5m]), \"pod\", \"$1\", \"pod\", \"veidemann-cache-(.*)\")",
+          "expr": "rate(squid_client_http_requests_total{service=\"cache-balancer\",pod=~\"$child_pod\"}[5m])",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "HTTP hits {{ pod }}",
+          "legendFormat": "Child {{ pod }}",
           "refId": "D"
         }
       ],
@@ -435,7 +446,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client Requests",
+      "title": "Child Requests",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -477,7 +488,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 7,
@@ -510,29 +524,29 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(squid_client_http_kbytes_in_kbytes_total{pod=~\"$pod\"}[5m])) * -1",
+          "expr": "sum(rate(squid_client_http_kbytes_in_kbytes_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])) * -1",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "HTTP Traffic in",
+          "legendFormat": "Parent traffic in",
           "refId": "A",
           "step": 5,
           "target": ""
         },
         {
-          "expr": "sum(rate(squid_client_http_kbytes_out_kbytes_total{pod=~\"$pod\"}[5m]))  ",
+          "expr": "sum(rate(squid_client_http_kbytes_out_kbytes_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
-          "legendFormat": "HTTP Traffic Out",
+          "legendFormat": "Parent traffic out",
           "refId": "B",
           "step": 5
         },
         {
-          "expr": "sum(rate(squid_client_http_hit_kbytes_out_bytes_total{pod=~\"$pod\"}[5m]))",
+          "expr": "sum(rate(squid_client_http_hit_kbytes_out_bytes_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
-          "legendFormat": "HTTP Traffic Out Hits",
+          "legendFormat": "Parent hit bytes out",
           "refId": "C",
           "step": 5
         }
@@ -541,7 +555,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Client Traffic",
+      "title": "Parent Traffic",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -583,7 +597,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 7,
@@ -620,28 +637,28 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(squid_swap_files_cleaned_total{pod=~\"$pod\"}[5m]))",
+          "expr": "sum(rate(squid_swap_files_cleaned_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Swap files cleaned",
+          "legendFormat": "Parent swap files cleaned",
           "refId": "A",
           "step": 5,
           "target": ""
         },
         {
-          "expr": "sum(rate(squid_swap_ins_total{pod=~\"$pod\"}[5m]))",
+          "expr": "sum(rate(squid_swap_ins_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "Swap ins",
+          "legendFormat": "Parent swap ins",
           "refId": "B",
           "step": 5
         },
         {
-          "expr": "sum(rate(squid_swap_outs_total{pod=~\"$pod\"}[5m]))  ",
+          "expr": "sum(rate(squid_swap_outs_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Swap outs",
+          "legendFormat": "Parent swap outs",
           "refId": "C",
           "step": 10
         }
@@ -650,7 +667,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Swap",
+      "title": "Parent Swap",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -693,7 +710,14 @@
   "style": "dark",
   "tags": [
     "squid",
-    "veidemann"
+    "veidemann",
+    "kubernetes",
+    "prometheus",
+    "kube-prometheus-stack",
+    "application",
+    "veidemann-cache",
+    "service",
+    "cache"
   ],
   "templating": {
     "list": [
@@ -722,15 +746,48 @@
             "$__all"
           ]
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "",
         "hide": 0,
         "includeAll": true,
-        "label": "pod",
+        "label": "child pod",
         "multi": true,
-        "name": "pod",
+        "name": "child_pod",
         "options": [],
-        "query": "label_values(up{service=\"veidemann-cache\"}, pod)",
+        "query": "label_values(up{service=\"cache-balancer\"}, pod)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "",
+        "hide": 0,
+        "includeAll": true,
+        "label": "parent pod",
+        "multi": true,
+        "name": "parent_pod",
+        "options": [],
+        "query": "label_values(up{service=\"cache\"}, pod)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -774,5 +831,6 @@
   },
   "timezone": "UTC",
   "title": "Veidemann / Cache",
-  "version": 11
+  "version": 12,
+  "uid": "veidemann-cache"
 }

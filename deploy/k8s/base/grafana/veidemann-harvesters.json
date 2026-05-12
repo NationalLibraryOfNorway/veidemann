@@ -1,7 +1,4 @@
 {
-  "annotations": {
-    "list": []
-  },
   "editable": false,
   "gnetId": null,
   "graphTooltip": 0,
@@ -14,7 +11,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -102,7 +102,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -198,7 +201,10 @@
         "mode": "opacity"
       },
       "dataFormat": "tsbuckets",
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "gridPos": {
         "h": 9,
         "w": 12,
@@ -257,7 +263,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -344,7 +353,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -430,7 +442,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -518,7 +533,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -610,7 +628,10 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -690,7 +711,13 @@
   "schemaVersion": 18,
   "style": "dark",
   "tags": [
-    "veidemann"
+    "veidemann",
+    "kubernetes",
+    "prometheus",
+    "kube-prometheus-stack",
+    "application",
+    "veidemann-harvesters",
+    "service"
   ],
   "templating": {
     "list": [
@@ -716,7 +743,10 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "",
         "hide": 0,
         "includeAll": true,

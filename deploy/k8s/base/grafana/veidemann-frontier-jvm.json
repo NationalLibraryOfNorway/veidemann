@@ -1,7 +1,4 @@
 {
-  "annotations": {
-    "list": []
-  },
   "description": "JVM metrics Dashboard for Veidemann frontier",
   "editable": true,
   "gnetId": 3066,
@@ -15,7 +12,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 11,
@@ -136,7 +136,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 11,
@@ -234,7 +237,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 11,
@@ -324,7 +330,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 11,
@@ -413,7 +422,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 11,
@@ -503,8 +515,14 @@
   "schemaVersion": 18,
   "style": "dark",
   "tags": [
-    "JVM",
-    "prometheus"
+    "jvm",
+    "prometheus",
+    "kubernetes",
+    "kube-prometheus-stack",
+    "application",
+    "veidemann",
+    "veidemann-frontier",
+    "service"
   ],
   "templating": {
     "list": [
@@ -516,7 +534,10 @@
             "$__all"
           ]
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "label_values(up{service=\"frontier\"}, pod)",
         "hide": 0,
         "includeAll": true,
@@ -536,19 +557,19 @@
         "useTags": false
       },
       {
-      "current": {
-        "text": "prometheus",
-        "value": "prometheus"
-      },
-      "hide": 0,
-      "label": null,
-      "multi": false,
-      "name": "datasource",
-      "options": [],
-      "query": "prometheus",
-      "refresh": 1,
-      "regex": "",
-      "type": "datasource"
+        "current": {
+          "text": "prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "label": null,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
       }
     ]
   },

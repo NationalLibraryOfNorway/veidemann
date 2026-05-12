@@ -1,7 +1,4 @@
 {
-  "annotations": {
-    "list": []
-  },
   "description": "A dashboard for the CoreDNS DNS server.",
   "editable": true,
   "gnetId": 5926,
@@ -15,7 +12,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -116,7 +116,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -212,7 +215,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -311,7 +317,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -410,7 +419,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -524,7 +536,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -638,7 +653,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -725,7 +743,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -829,7 +850,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -951,7 +975,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -1070,7 +1097,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -1157,7 +1187,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "editable": true,
       "error": false,
       "fill": 1,
@@ -1258,7 +1291,13 @@
   "tags": [
     "dns",
     "coredns",
-    "veidemann"
+    "veidemann",
+    "kubernetes",
+    "prometheus",
+    "kube-prometheus-stack",
+    "application",
+    "veidemann-dns",
+    "service"
   ],
   "templating": {
     "list": [
@@ -1283,7 +1322,10 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "",
         "hide": 0,
         "includeAll": true,

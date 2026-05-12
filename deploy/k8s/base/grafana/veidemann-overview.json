@@ -1,8 +1,4 @@
 {
-  "annotations": {
-    "list": [
-    ]
-  },
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -15,7 +11,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -123,7 +122,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -212,7 +214,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -303,7 +308,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -420,7 +428,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 7,
@@ -508,7 +519,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 7,
@@ -614,7 +628,10 @@
         "label": "Others",
         "threshold": ".04"
       },
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fontSize": "80%",
       "format": "short",
       "gridPos": {
@@ -663,7 +680,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 10,
@@ -760,7 +780,10 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "format": "percentunit",
       "gauge": {
         "maxValue": 1,
@@ -834,7 +857,10 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "decimals": 2,
       "format": "none",
       "gauge": {
@@ -922,7 +948,10 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "decimals": 2,
       "format": "KBs",
       "gauge": {
@@ -1005,7 +1034,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 10,
@@ -1111,7 +1143,10 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -1192,7 +1227,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 4,
@@ -1282,7 +1320,10 @@
   "schemaVersion": 18,
   "style": "dark",
   "tags": [
-    "veidemann"
+    "veidemann",
+    "kubernetes",
+    "prometheus",
+    "kube-prometheus-stack"
   ],
   "templating": {
     "list": [
