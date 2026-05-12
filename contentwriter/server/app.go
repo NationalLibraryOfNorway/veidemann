@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -33,6 +31,10 @@ type Uploader interface {
 type App struct {
 	Addr                 string
 	TelemetryAddr        string
+	UploadFallbackDir    string
+	UploadInstanceID     string
+	UploadScanInterval   time.Duration
+	UploadTimeout        time.Duration
 	DbOptions            database.Options
 	ConfigCacheTTL       time.Duration
 	RedisOptions         *redis.Options
@@ -53,7 +55,7 @@ func normalizeShutdownError(err error) error {
 }
 
 func (app *App) Run(ctx context.Context) error {
-	g := new(errgroup.Group)
+	g, gctx := errgroup.WithContext(ctx)
 
 	const readyPath = "/readyz"
 	const metricsPath = "/metrics"
@@ -69,6 +71,9 @@ func (app *App) Run(ctx context.Context) error {
 
 	g.Go(func() error {
 		err := telemetry.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("telemetry server: %w", err)
+		}
 		log.Warn().Err(err).Msg("Telemetry server stopped")
 		return nil
 	})
@@ -113,16 +118,26 @@ func (app *App) Run(ctx context.Context) error {
 
 	writerOpts := app.WriterOpts
 	var manager *upload.Manager
+	var managerErr error
+	managerEnabled := app.Uploader != nil || app.UploadFallbackDir != ""
 
-	if app.Uploader != nil {
-		manager = upload.NewManager(1024, func(ctx context.Context, filePath string) error {
-			return finalize(ctx, filePath, app.Uploader)
+	if managerEnabled {
+		manager, managerErr = upload.NewManager(upload.ManagerConfig{
+			QueueSize:     1024,
+			WarcDir:       writerOpts.WarcDir,
+			FallbackDir:   app.UploadFallbackDir,
+			InstanceID:    app.UploadInstanceID,
+			ScanInterval:  app.UploadScanInterval,
+			UploadTimeout: app.UploadTimeout,
+			Uploader:      app.Uploader,
 		})
+		if managerErr != nil {
+			return fmt.Errorf("failed to initialize upload manager: %w", managerErr)
+		}
 
 		writerOpts.AfterFileCreationHook = func(filename string, size int64, warcInfoId string) error {
 			metrics.WrittenSizeBytes(size)
-			manager.Enqueue(filename)
-			return nil
+			return manager.Enqueue(filename)
 		}
 	}
 
@@ -148,7 +163,7 @@ func (app *App) Run(ctx context.Context) error {
 
 	g.Go(func() error { return grpcServer.Serve(listener) })
 
-	if app.Uploader != nil {
+	if managerEnabled {
 		// Use a ctx that survives SIGTERM
 		hardCtx := context.Background()
 		g.Go(func() error { return manager.Run(hardCtx) })
@@ -156,18 +171,30 @@ func (app *App) Run(ctx context.Context) error {
 
 	app.ready.Store(true)
 
-	<-ctx.Done()
+	backgroundFailure := false
+	select {
+	case <-ctx.Done():
+	case <-gctx.Done():
+		backgroundFailure = ctx.Err() == nil
+	}
 
 	app.ready.Store(false)
 
-	log.Warn().Err(ctx.Err()).Msg("Shutting down")
+	if backgroundFailure {
+		log.Warn().Msg("Shutting down after background task failure")
+	} else {
+		log.Warn().Err(ctx.Err()).Msg("Shutting down")
+	}
 
 	grpcServer.GracefulStop()
 
 	warcWriterRegistry.Close()
 
-	if app.Uploader != nil {
-		mapLeftovers(manager.Enqueue, writerOpts.WarcDir)
+	var scanErr error
+	if managerEnabled {
+		if !backgroundFailure {
+			scanErr = manager.ScanNow()
+		}
 		manager.Close()
 	}
 
@@ -175,6 +202,9 @@ func (app *App) Run(ctx context.Context) error {
 	defer cancel()
 	_ = telemetry.Shutdown(shutdownCtx)
 
+	if scanErr != nil {
+		return normalizeShutdownError(scanErr)
+	}
 	return normalizeShutdownError(g.Wait())
 }
 
@@ -217,80 +247,6 @@ func backoff(ctx context.Context, name string, fn func() error) func() error {
 					backoff = maxBackoff
 				}
 			}
-		}
-	}
-}
-
-func finalize(ctx context.Context, filePath string, uploader Uploader) error {
-	md5sum, err := calculateMD5(filePath)
-	if err != nil {
-		return err
-	}
-
-	start := time.Now()
-	info, err := uploader.Upload(ctx, filePath, md5sum)
-	dur := time.Since(start)
-
-	if err != nil {
-		return fmt.Errorf("failed to upload file: %s: %w", filePath, err)
-	}
-
-	metrics.UploadDuration(dur)
-	metrics.UploadedSizeBytes(info.Size)
-
-	if st, err := os.Stat(filePath); err == nil {
-		diskSize := st.Size()
-		metrics.OnDiskSizeBytes(diskSize)
-
-		if diskSize != info.Size {
-			metrics.UploadSizeMismatch()
-
-			log.Warn().
-				Str("key", info.Key).
-				Str("file", filePath).
-				Int64("disk_size", diskSize).
-				Int64("uploaded_size", info.Size).
-				Int64("delta", info.Size-diskSize).
-				Dur("duration", dur).
-				Msg("Uploaded size differs from on-disk size")
-		}
-	} else {
-		metrics.OnDiskStatFailed()
-		log.Warn().Err(err).Str("file", filePath).Msg("Failed to stat file after upload")
-	}
-
-	log.Debug().
-		Str("key", info.Key).
-		Int64("size", info.Size).
-		Str("etag", info.ETag).
-		Str("duration", time.Since(start).String()).
-		Str("md5", md5sum).
-		Msg("Uploaded file")
-
-	if err = os.Remove(filePath); err != nil {
-		return fmt.Errorf("failed to remove file after upload: %s: %w", filePath, err)
-	}
-
-	return nil
-}
-
-func mapLeftovers(u func(string), dir string) {
-	patterns := []string{
-		filepath.Join(dir, "*.open"),
-		filepath.Join(dir, "*.warc.gz"),
-	}
-
-	seen := map[string]struct{}{}
-	for _, p := range patterns {
-		matches, _ := filepath.Glob(p)
-		for _, f := range matches {
-			// dedupe
-			if _, ok := seen[f]; ok {
-				continue
-			}
-			seen[f] = struct{}{}
-
-			u(f)
 		}
 	}
 }

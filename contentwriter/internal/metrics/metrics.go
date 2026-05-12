@@ -75,9 +75,59 @@ var onDiskStatFailed = promauto.NewCounter(prometheus.CounterOpts{
 	Help:      "Count of failures to stat a file after upload.",
 })
 
+var uploadFailed = promauto.NewCounter(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "upload_failed_total",
+	Help:      "Count of failed upload attempts.",
+})
+
+var fallbackMoved = promauto.NewCounter(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "fallback_moved_total",
+	Help:      "Count of files moved into fallback storage.",
+})
+
+var fallbackMoveFailed = promauto.NewCounter(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "fallback_move_failed_total",
+	Help:      "Count of failures while moving files into fallback storage.",
+})
+
+var fallbackRetryAttempt = promauto.NewCounter(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "fallback_retry_attempt_total",
+	Help:      "Count of upload attempts for files already stored in fallback storage.",
+})
+
+var fallbackBacklogFiles = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "fallback_backlog_files",
+	Help:      "Current number of files waiting in fallback storage.",
+})
+
+var fallbackBacklogBytes = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "fallback_backlog_bytes",
+	Help:      "Current total size in bytes of files waiting in fallback storage.",
+})
+
 func WrittenSizeBytes(n int64)       { writtenSize.Observe(float64(n)) }
 func OnDiskSizeBytes(n int64)        { onDiskSize.Observe(float64(n)) }
 func UploadedSizeBytes(n int64)      { uploadedSize.Observe(float64(n)) }
 func UploadDuration(d time.Duration) { uploadDuration.Observe(d.Seconds()) }
 func UploadSizeMismatch()            { uploadSizeMismatch.Inc() }
 func OnDiskStatFailed()              { onDiskStatFailed.Inc() }
+func UploadFailed()                  { uploadFailed.Inc() }
+func FallbackMoved()                 { fallbackMoved.Inc() }
+func FallbackMoveFailed()            { fallbackMoveFailed.Inc() }
+func FallbackRetryAttempt()          { fallbackRetryAttempt.Inc() }
+func SetFallbackBacklog(files int, bytes int64) {
+	fallbackBacklogFiles.Set(float64(files))
+	fallbackBacklogBytes.Set(float64(bytes))
+}

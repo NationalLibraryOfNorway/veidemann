@@ -101,8 +101,12 @@ func run() error {
 	}
 
 	app := &server.App{
-		Addr:           fmt.Sprintf("%s:%d", opts.Interface(), opts.Port()),
-		ConfigCacheTTL: opts.DbCacheTTL(),
+		Addr:               fmt.Sprintf("%s:%d", opts.Interface(), opts.Port()),
+		ConfigCacheTTL:     opts.DbCacheTTL(),
+		UploadFallbackDir:  opts.WarcFallbackDir(),
+		UploadInstanceID:   opts.HostName(),
+		UploadScanInterval: opts.UploadRetryScanInterval(),
+		UploadTimeout:      opts.UploadTimeout(),
 		DbOptions: database.Options{
 			Address:            fmt.Sprintf("%s:%d", opts.DbHost(), opts.DbPort()),
 			Username:           opts.DbUser(),
