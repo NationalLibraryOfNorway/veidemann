@@ -26,12 +26,55 @@ import (
 )
 
 var (
-	cache *Cache
+	cache *testCache
 	ls    *util.LogServiceMock
 	cws   *util.ContentWriterMock
 	lw    *LogWriterClient
 	cw    *ContentWriterClient
 )
+
+type testCache struct {
+	entries map[string][]byte
+}
+
+func newTestCache() *testCache {
+	return &testCache{entries: make(map[string][]byte)}
+}
+
+func (c *testCache) Get(_ context.Context, key string) (*CacheEntry, error) {
+	data, ok := c.entries[key]
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
+
+	entry := new(CacheEntry)
+	if err := entry.unpack(append([]byte(nil), data...)); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+func (c *testCache) Set(_ context.Context, key string, entry *CacheEntry) error {
+	packed, err := entry.pack()
+	if err != nil {
+		return err
+	}
+	c.entries[key] = append([]byte(nil), packed...)
+	return nil
+}
+
+func (c *testCache) Len(context.Context) (int, error) {
+	return len(c.entries), nil
+}
+
+func (c *testCache) Close(context.Context) error {
+	return nil
+}
+
+func (c *testCache) Reset() error {
+	clear(c.entries)
+	return nil
+}
 
 func reset() {
 	if err := cache.Reset(); err != nil {
@@ -71,11 +114,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// setup cache
-	var err error
-	cache, err = NewCache(10*time.Second, 1024)
-	if err != nil {
-		panic(err)
-	}
+	cache = newTestCache()
 
 	// setup content writer client
 	cw = NewContentWriterClient(
@@ -261,11 +300,15 @@ func TestCache(t *testing.T) {
 		})
 		i++
 	}
-	if cache.Len() != len(tests) {
-		t.Errorf("Expected %d, got %d", len(tests), cache.Len())
+	cacheLen, err := cache.Len(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cacheLen != len(tests) {
+		t.Errorf("Expected %d, got %d", len(tests), cacheLen)
 	}
 	if ls.Len() != len(tests) {
-		t.Errorf("Expected %d, got %d", len(tests), cache.Len())
+		t.Errorf("Expected %d, got %d", len(tests), cacheLen)
 	}
 }
 

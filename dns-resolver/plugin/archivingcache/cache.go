@@ -2,85 +2,108 @@ package archivingcache
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/allegro/bigcache"
 	"github.com/miekg/dns"
+	"github.com/olric-data/olric"
 )
 
-// Cache is a wrapper around *bigcache.BigCache which takes care of marshalling and unmarshalling of dns.Msg.
-type Cache struct {
-	cache *bigcache.BigCache
-	now   func() time.Time
+var ErrKeyNotFound = errors.New("key not found")
+
+type Cachier interface {
+	Get(ctx context.Context, key string) (*CacheEntry, error)
+	Set(ctx context.Context, key string, entry *CacheEntry) error
+	Len(ctx context.Context) (int, error)
+	Close(ctx context.Context) error
 }
 
-// NewCache creates a new Cache
-func NewCache(lifeWindow time.Duration, maxSizeMb int) (*Cache, error) {
-	config := bigcache.Config{
-		// number of shards (must be a power of 2)
-		Shards: 1024,
-		// time after which entry can be evicted
-		LifeWindow: lifeWindow,
-		// rps * lifeWindow, used only in initial memory allocation
-		MaxEntriesInWindow: 1000 * 10 * 60,
-		// max entry size in bytes, used only in initial memory allocation
-		MaxEntrySize: 200,
-		// prints information about additional memory allocation
-		Verbose: true,
-		// cache will not allocate more memory than this limit, value in MB
-		// if value is reached then the oldest entries can be overridden for the new ones
-		// 0 value means no size limit
-		HardMaxCacheSize: maxSizeMb,
-		// callback fired when the oldest entry is removed because of its expiration time or no space left
-		// for the new entry, or because delete was called. A bitmask representing the reason will be returned.
-		// Default value is nil which means no callback and it prevents from unwrapping the oldest entry.
-		OnRemove:    nil,
-		CleanWindow: 0,
-	}
+type OlricCache struct {
+	client olric.Client
+	dmap   olric.DMap
+	ttl    time.Duration
+}
 
-	c, err := bigcache.NewBigCache(config)
+func NewOlricCache(addresses []string, dmapName string, ttl time.Duration) (*OlricCache, error) {
+	client, err := olric.NewClusterClient(addresses)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Olric client: %w", err)
 	}
 
-	return &Cache{
-		cache: c,
-		now:   time.Now,
+	dmap, err := client.NewDMap(dmapName)
+	if err != nil {
+		_ = client.Close(context.Background())
+		return nil, fmt.Errorf("failed to create DMap: %w", err)
+	}
+
+	return &OlricCache{
+		client: client,
+		dmap:   dmap,
+		ttl:    ttl,
 	}, nil
 }
 
-func (c *Cache) Len() int {
-	return c.cache.Len()
-}
-
-// Set writes a DNS response to the cache
-func (c *Cache) Set(key string, entry *CacheEntry) error {
-	e, err := entry.pack()
-	if err != nil {
-		return err
+func (c *OlricCache) Get(ctx context.Context, key string) (*CacheEntry, error) {
+	gr, err := c.dmap.Get(ctx, key)
+	if errors.Is(err, olric.ErrKeyNotFound) {
+		return nil, ErrKeyNotFound
 	}
-	err = c.cache.Set(key, e)
-	return err
-}
-
-// Get reads a DNS response from the cache. It returns an EntryNotFoundError when no entry exists for the given key.
-func (c *Cache) Get(key string) (*CacheEntry, error) {
-	data, err := c.cache.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	entry := new(CacheEntry)
-	err = entry.unpack(data)
+
+	data, err := gr.Byte()
 	if err != nil {
+		return nil, err
+	}
+
+	entry := new(CacheEntry)
+	if err := entry.unpack(data); err != nil {
 		return nil, err
 	}
 
 	return entry, nil
 }
 
-func (c *Cache) Reset() error {
-	return c.cache.Reset()
+func (c *OlricCache) Set(ctx context.Context, key string, entry *CacheEntry) error {
+	packed, err := entry.pack()
+	if err != nil {
+		return err
+	}
+
+	if c.ttl > 0 {
+		return c.dmap.Put(ctx, key, packed, olric.PX(c.ttl))
+	}
+	return c.dmap.Put(ctx, key, packed)
+}
+
+func (c *OlricCache) Len(ctx context.Context) (int, error) {
+	iter, err := c.dmap.Scan(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer iter.Close()
+
+	count := 0
+	for iter.Next() {
+		count++
+	}
+	return count, nil
+}
+
+func (c *OlricCache) Close(ctx context.Context) error {
+	if c == nil {
+		return nil
+	}
+	if c.dmap != nil {
+		_ = c.dmap.Close(ctx)
+	}
+	if c.client != nil {
+		return c.client.Close(ctx)
+	}
+	return nil
 }
 
 type CacheEntry struct {

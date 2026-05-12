@@ -29,16 +29,19 @@ var (
 
 // ArchivingCache is a CoreDNS plugin.
 type ArchivingCache struct {
-	Next          plugin.Handler
-	cache         *Cache
-	contentWriter *ContentWriterClient
-	logWriter     *LogWriterClient
-	now           time.Time
+	Next           plugin.Handler
+	cache          Cachier
+	olricAddresses []string
+	olricDMap      string
+	eviction       time.Duration
+	contentWriter  *ContentWriterClient
+	logWriter      *LogWriterClient
+	now            time.Time
 	singleflight.Group
 }
 
 // NewArchivingCache returns a new instance of ArchivingCache
-func NewArchivingCache(cache *Cache, lw *LogWriterClient, cw *ContentWriterClient) *ArchivingCache {
+func NewArchivingCache(cache Cachier, lw *LogWriterClient, cw *ContentWriterClient) *ArchivingCache {
 	return &ArchivingCache{
 		cache:         cache,
 		logWriter:     lw,
@@ -48,7 +51,7 @@ func NewArchivingCache(cache *Cache, lw *LogWriterClient, cw *ContentWriterClien
 }
 
 func (a *ArchivingCache) Ready() bool {
-	return a.logWriter.Ready() && a.contentWriter.Ready()
+	return a.cache != nil && clientReady(a.logWriter) && clientReady(a.contentWriter)
 }
 
 // ServeDNS implements the plugin.Handler interface.
@@ -93,7 +96,7 @@ func (a *ArchivingCache) serveDNS(ctx context.Context, w dns.ResponseWriter, r *
 
 	var msg *dns.Msg
 
-	entry := a.get(key, server)
+	entry := a.get(ctx, key, server)
 	if entry == nil {
 
 		nw := nonwriter.New(w)
@@ -116,7 +119,7 @@ func (a *ArchivingCache) serveDNS(ctx context.Context, w dns.ResponseWriter, r *
 				log.Errorf("failed to parse proxy address \"%s\" as host:port pair or IP address: %v", proxyAddr, err)
 			}
 			mt, _ := response.Typify(msg, a.now)
-			if err := a.set(key, mt, msg, collectionId, proxyIpAddr, server); err != nil {
+			if err := a.set(ctx, key, mt, msg, collectionId, proxyIpAddr, server); err != nil {
 				log.Errorf("%v: %v", key, err)
 			}
 			if err = a.archive(state, mt, msg, executionId, collectionId, proxyIpAddr, fetchStart); err != nil {
@@ -127,7 +130,7 @@ func (a *ArchivingCache) serveDNS(ctx context.Context, w dns.ResponseWriter, r *
 		msg = entry.Msg.SetRcode(r, entry.Msg.Rcode)
 
 		if hasCollectionId && collectionId != "" && !entry.HasCollectionId(collectionId) {
-			if err := a.update(key, entry, collectionId); err != nil {
+			if err := a.update(ctx, key, entry, collectionId); err != nil {
 				log.Errorf("%v: %v", key, err)
 			}
 			mt, _ := response.Typify(msg, a.now)
@@ -141,10 +144,10 @@ func (a *ArchivingCache) serveDNS(ctx context.Context, w dns.ResponseWriter, r *
 	return 0, nil
 }
 
-func (a *ArchivingCache) update(key string, entry *CacheEntry, collectionId string) error {
+func (a *ArchivingCache) update(ctx context.Context, key string, entry *CacheEntry, collectionId string) error {
 	entry.CollectionIds = append(entry.CollectionIds, collectionId)
 
-	err := a.cache.Set(key, entry)
+	err := a.cache.Set(ctx, key, entry)
 	if err != nil {
 		return fmt.Errorf("failed to update cache entry: %v, %v, %w", key, entry, err)
 	}
@@ -153,7 +156,7 @@ func (a *ArchivingCache) update(key string, entry *CacheEntry, collectionId stri
 }
 
 // set caches a new record.
-func (a *ArchivingCache) set(key string, t response.Type, msg *dns.Msg, collectionId string, proxyAddr string, server string) error {
+func (a *ArchivingCache) set(ctx context.Context, key string, t response.Type, msg *dns.Msg, collectionId string, proxyAddr string, server string) error {
 	switch t {
 	case response.NoError, response.NameError, response.Delegation, response.NoData:
 		// cache these response types
@@ -167,20 +170,24 @@ func (a *ArchivingCache) set(key string, t response.Type, msg *dns.Msg, collecti
 		CollectionIds: []string{collectionId},
 	}
 
-	err := a.cache.Set(key, entry)
+	err := a.cache.Set(ctx, key, entry)
 	if err != nil {
 		return fmt.Errorf("failed to cache entry: %s: %w", key, err)
 	}
 	log.Debugf("Cache set: %s, %v", key, entry)
 
-	CacheSize.WithLabelValues(server, Success).Set(float64(a.cache.Len()))
+	if size, err := a.cache.Len(ctx); err == nil {
+		CacheSize.WithLabelValues(server, Success).Set(float64(size))
+	} else {
+		log.Debugf("failed to determine cache size: %v", err)
+	}
 
 	return nil
 }
 
 // get returns a cached entry if it exists.
-func (a *ArchivingCache) get(key string, server string) *CacheEntry {
-	entry, err := a.cache.Get(key)
+func (a *ArchivingCache) get(ctx context.Context, key string, server string) *CacheEntry {
+	entry, err := a.cache.Get(ctx, key)
 	if err != nil {
 		log.Debugf("Cache miss: %s", key)
 		CacheMisses.WithLabelValues(server).Inc()
@@ -189,6 +196,17 @@ func (a *ArchivingCache) get(key string, server string) *CacheEntry {
 	log.Debugf("Cache hit: %s", key)
 	CacheHits.WithLabelValues(server, Success).Inc()
 	return entry
+}
+
+type readyClient interface {
+	Ready() bool
+}
+
+func clientReady(client readyClient) bool {
+	if client == nil {
+		return true
+	}
+	return client.Ready()
 }
 
 // archive writes a WARC record and a crawl log.

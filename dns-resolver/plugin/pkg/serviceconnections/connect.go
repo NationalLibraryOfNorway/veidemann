@@ -44,6 +44,9 @@ func (c *Connection) Close() error {
 }
 
 func (c *Connection) Ready() bool {
+	if c == nil || c.ClientConn == nil {
+		return false
+	}
 	switch c.GetState() {
 	case connectivity.Connecting, connectivity.Idle, connectivity.Ready:
 		return true

@@ -1,6 +1,7 @@
 package archivingcache
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -12,60 +13,72 @@ func TestSetup(t *testing.T) {
 		input     string
 		shouldErr bool
 		eviction  time.Duration
-		maxSizeMb int
+		addresses []string
+		dmap      string
 	}{
-		{`archivingcache`, false, defaultEviction, defaultMaxSizeMb},
+		{`archivingcache`, false, defaultEviction, []string{defaultOlricAddress}, defaultOlricDMap},
 		{`archivingcache {
 				eviction 10s
-			}`, false, 10 * time.Second, defaultMaxSizeMb},
+			}`, false, 10 * time.Second, []string{defaultOlricAddress}, defaultOlricDMap},
 		{`archivingcache {
-				maxSizeMb 1024
-			}`, false, defaultEviction, 1024},
+				olricAddress olric-client:3320
+			}`, false, defaultEviction, []string{"olric-client:3320"}, defaultOlricDMap},
 		{`archivingcache {
 				eviction 10m
-				maxSizeMb 1024
-			}`, false, 10 * 60 * time.Second, 1024},
+				olricAddress olric-a:3320
+				olricAddress olric-b:3320
+				olricDmap dns-cache
+			}`, false, 10 * 60 * time.Second, []string{"olric-a:3320", "olric-b:3320"}, "dns-cache"},
+		{`archivingcache {
+				olricAddress olric-a:3320,olric-b:3320
+			}`, false, defaultEviction, []string{"olric-a:3320", "olric-b:3320"}, defaultOlricDMap},
 		{`archivingcache {
 				contentWriterHost cwHost
-			}`, false, defaultEviction, defaultMaxSizeMb},
+			}`, false, defaultEviction, []string{defaultOlricAddress}, defaultOlricDMap},
 
 		// fails
 		{`archivingcache example.nl {
 				eviction
-				maxSizeMb 1024
-			}`, true, defaultEviction, defaultMaxSizeMb},
+				olricAddress olric-client:3320
+			}`, true, defaultEviction, nil, ""},
 		{`archivingcache example.nl {
 				eviction 15s
-				maxSizeMb
-			}`, true, defaultEviction, defaultMaxSizeMb},
+				olricAddress
+			}`, true, defaultEviction, nil, ""},
 		{`archivingcache example.nl {
 				eviction aaa
-				maxSizeMb aaa
-			}`, true, defaultEviction, defaultMaxSizeMb},
-		{`archivingcache 0 example.nl`, true, defaultEviction, defaultMaxSizeMb},
-		{`archivingcache -1 example.nl`, true, defaultEviction, defaultMaxSizeMb},
-		{`archivingcache 1 example.nl {
+				olricDmap dns-cache
+			}`, true, defaultEviction, nil, ""},
+		{`archivingcache {
+				olricDmap
+			}`, true, defaultEviction, nil, ""},
+		{`archivingcache {
 				positive 0
-			}`, true, defaultEviction, defaultMaxSizeMb},
-		{`archivingcache 1 example.nl {
-				positive 0
-				prefetch -1
-			}`, true, defaultEviction, defaultMaxSizeMb},
-		{`archivingcache 1 example.nl {
-				prefetch 0 blurp
-			}`, true, defaultEviction, defaultMaxSizeMb},
+			}`, true, defaultEviction, nil, ""},
 		{`archivingcache
-		  archivingcache`, true, defaultEviction, defaultMaxSizeMb},
+		  archivingcache`, true, defaultEviction, nil, ""},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		_, err := parseArchivingCache(c)
+		a, err := parseArchivingCache(c)
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %v: Expected error but found nil", i)
 			continue
 		} else if !test.shouldErr && err != nil {
 			t.Errorf("Test %v: Expected no error but found error: %v", i, err)
 			continue
+		}
+		if test.shouldErr {
+			continue
+		}
+		if a.eviction != test.eviction {
+			t.Errorf("Test %v: expected eviction %v, got %v", i, test.eviction, a.eviction)
+		}
+		if !reflect.DeepEqual(a.olricAddresses, test.addresses) {
+			t.Errorf("Test %v: expected addresses %v, got %v", i, test.addresses, a.olricAddresses)
+		}
+		if a.olricDMap != test.dmap {
+			t.Errorf("Test %v: expected dmap %q, got %q", i, test.dmap, a.olricDMap)
 		}
 	}
 }

@@ -7,7 +7,8 @@
     metadata
     archivingcache {
         eviction 1h
-        maxSizeMb 2048
+        olricAddress {$OLRIC_ADDRESS}
+        olricDmap {$OLRIC_DMAP}
         contentWriterHost {$CONTENT_WRITER_HOST}
         contentWriterPort {$CONTENT_WRITER_PORT}
         logHost {$LOG_WRITER_HOST}

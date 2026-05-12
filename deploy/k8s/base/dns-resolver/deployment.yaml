@@ -30,6 +30,10 @@ spec:
         - name: dns-resolver
           image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver:0.6.2
           env:
+            - name: OLRIC_ADDRESS
+              value: "olric-client:3320"
+            - name: OLRIC_DMAP
+              value: "dns-resolver-archivingcache"
             - name: LOG_WRITER_HOST
               value: "log-service"
             - name: LOG_WRITER_PORT
