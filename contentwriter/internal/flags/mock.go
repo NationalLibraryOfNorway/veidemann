@@ -17,14 +17,19 @@
 package flags
 
 import (
+	"time"
+
 	"github.com/nlnwa/gowarc"
 )
 
 type Mock struct {
 	hostName                      string
 	warcDir                       string
+	warcFallbackDir               string
 	warcWriterPoolSize            int
 	workDir                       string
+	uploadRetryScanInterval       time.Duration
+	uploadTimeout                 time.Duration
 	terminationGracePeriodSeconds int
 	flushRecord                   bool
 	useStrictValidation           bool
@@ -42,12 +47,24 @@ func (m Mock) WarcDir() string {
 	return m.warcDir
 }
 
+func (m Mock) WarcFallbackDir() string {
+	return m.warcFallbackDir
+}
+
 func (m Mock) WarcWriterPoolSize() int {
 	return m.warcWriterPoolSize
 }
 
 func (m Mock) WorkDir() string {
 	return m.workDir
+}
+
+func (m Mock) UploadRetryScanInterval() time.Duration {
+	return m.uploadRetryScanInterval
+}
+
+func (m Mock) UploadTimeout() time.Duration {
+	return m.uploadTimeout
 }
 
 func (m Mock) TerminationGracePeriodSeconds() int {

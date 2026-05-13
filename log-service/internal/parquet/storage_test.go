@@ -249,3 +249,70 @@ func TestPostCloseHandoffReceivesFinalizedFiles(t *testing.T) {
 		t.Fatalf("expected row counts [2 1], got [%d %d]", handedOff[0].RowCount, handedOff[1].RowCount)
 	}
 }
+
+func TestMissingIndexIsRecreatedAfterManualCleanup(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	store, err := New(dir, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := store.WriteCrawlLog(&logV1.CrawlLog{
+		WarcId:              "w-old",
+		ExecutionId:         "exec-recreate",
+		CollectionFinalName: "collection-recreate",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	collectionDir := filepath.Join(dir, tableCrawlLog, "collection-recreate")
+	files, err := filepath.Glob(filepath.Join(collectionDir, "*.parquet"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected one parquet file before manual cleanup, got %d", len(files))
+	}
+	if err := os.Remove(files[0]); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(collectionDir, indexFileName)); err != nil {
+		t.Fatal(err)
+	}
+
+	store, err = New(dir, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WriteCrawlLog(&logV1.CrawlLog{
+		WarcId:              "w-new",
+		ExecutionId:         "exec-recreate",
+		CollectionFinalName: "collection-recreate",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	index, err := readIndexFile(collectionDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(index.Files) != 1 {
+		t.Fatalf("expected recreated index to contain one file, got %+v", index.Files)
+	}
+
+	logs, err := store.ListCrawlLogsByWarcID([]string{"w-new"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 1 || logs[0].GetWarcId() != "w-new" {
+		t.Fatalf("expected recreated index to expose the new crawl log, got %+v", logs)
+	}
+}

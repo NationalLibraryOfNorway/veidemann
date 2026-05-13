@@ -1,0 +1,119 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kvrocks-backup-uploader
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 5 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 7200
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: kvrocks
+            app.kubernetes.io/component: backup
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - name: shared-backups
+              persistentVolumeClaim:
+                claimName: kvrocks-backups
+            - name: scripts
+              configMap:
+                name: kvrocks-backup-uploader-scripts
+                defaultMode: 0755
+            - name: tmp
+              emptyDir: {}
+          containers:
+            - name: s3-upload
+              image: docker.io/amazon/aws-cli:2.34.37
+              command:
+                - /bin/sh
+                - /scripts/upload-backups.sh
+              env:
+                - name: AWS_EC2_METADATA_DISABLED
+                  value: "true"
+                - name: HOME
+                  value: /tmp
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: BACKUP_ROOT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kvrocks-backup-config
+                      key: backup-root
+                - name: STATEFULSET_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kvrocks-backup-config
+                      key: statefulset-name
+                - name: BUCKET_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kvrocks-backup-config
+                      key: bucket-name
+                - name: BUCKET_PREFIX
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kvrocks-backup-config
+                      key: bucket-prefix
+                - name: AWS_ENDPOINT_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kvrocks-backup-config
+                      key: endpoint-url
+                - name: AWS_REGION
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kvrocks-backup-config
+                      key: region
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: kvrocks-backup-s3
+                      key: AWS_ACCESS_KEY_ID
+                      optional: true
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: kvrocks-backup-s3
+                      key: AWS_SECRET_ACCESS_KEY
+                      optional: true
+                - name: AWS_SESSION_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: kvrocks-backup-s3
+                      key: AWS_SESSION_TOKEN
+                      optional: true
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 65534
+                runAsGroup: 65534
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: shared-backups
+                  mountPath: /var/lib/kvrocks-backups
+                  readOnly: true
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp

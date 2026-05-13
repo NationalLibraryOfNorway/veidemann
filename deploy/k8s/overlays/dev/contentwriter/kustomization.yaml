@@ -3,3 +3,6 @@ kind: Kustomization
 resources:
   - pvc.yaml
   - ../../../base/contentwriter
+
+patches:
+  - path: deployment.yaml

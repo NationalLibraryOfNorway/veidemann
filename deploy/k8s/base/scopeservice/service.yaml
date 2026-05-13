@@ -4,6 +4,7 @@ metadata:
   name: scopeservice
   labels:
     app.kubernetes.io/name: scopeservice
+    metrics: prometheus
 spec:
   type: ClusterIP
   ports:

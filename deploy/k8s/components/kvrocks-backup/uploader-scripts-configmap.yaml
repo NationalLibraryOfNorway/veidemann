@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kvrocks-backup-uploader-scripts
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: backup
+data:
+  upload-backups.sh: |
+    #!/bin/sh
+    set -eu
+
+    require_value() {
+      value_name="$1"
+      value="$2"
+
+      if [ -z "${value}" ]; then
+        echo "${value_name} must be configured" >&2
+        exit 1
+      fi
+    }
+
+    BACKUP_ROOT="${BACKUP_ROOT:-/var/lib/kvrocks-backups}"
+    POD_NAMESPACE="${POD_NAMESPACE:-default}"
+    STATEFULSET_NAME="${STATEFULSET_NAME:-kvrocks}"
+    BUCKET_NAME="${BUCKET_NAME:-}"
+    BUCKET_PREFIX="${BUCKET_PREFIX:-}"
+    RUN_TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+    uploaded_count=0
+
+    require_value BUCKET_NAME "${BUCKET_NAME}"
+
+    if [ ! -d "${BACKUP_ROOT}" ]; then
+      echo "Backup root ${BACKUP_ROOT} does not exist" >&2
+      exit 1
+    fi
+
+    for pod_dir in "${BACKUP_ROOT}"/*; do
+      [ -d "${pod_dir}" ] || continue
+
+      pod_name="$(basename "${pod_dir}")"
+      if [ ! -s "${pod_dir}/CURRENT" ]; then
+        echo "Skipping ${pod_name}: no CURRENT file present" >&2
+        continue
+      fi
+
+      archive_name="kvrocks-${pod_name}-${RUN_TIMESTAMP}.tar.gz"
+      object_key="${POD_NAMESPACE}/${STATEFULSET_NAME}/${pod_name}/${archive_name}"
+      if [ -n "${BUCKET_PREFIX}" ]; then
+        object_key="${BUCKET_PREFIX%/}/${object_key}"
+      fi
+
+      echo "Uploading ${pod_name} backup to s3://${BUCKET_NAME}/${object_key}"
+      tar -C "${BACKUP_ROOT}" -czf - "${pod_name}" | aws s3 cp - "s3://${BUCKET_NAME}/${object_key}"
+      uploaded_count=$((uploaded_count + 1))
+    done
+
+    if [ "${uploaded_count}" -eq 0 ]; then
+      echo "No per-pod backup directories with CURRENT files were found under ${BACKUP_ROOT}" >&2
+      exit 1
+    fi
+
+    echo "Uploaded ${uploaded_count} backup archive(s)"

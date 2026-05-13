@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	parquetgo "github.com/parquet-go/parquet-go"
@@ -117,15 +118,17 @@ func (s *Storage) closeWriterLocked(writer *writerState) error {
 	if err := os.Rename(writer.tmpPath, writer.finalPath); err != nil {
 		return err
 	}
-	if err := appendIndexEntry(writer.dir, indexEntry{Name: filepath.Base(writer.finalPath), RowCount: writer.lineCount}); err != nil {
+	finalizedAt := time.Now().UTC()
+	if err := appendIndexEntry(writer.dir, indexEntry{Name: filepath.Base(writer.finalPath), RowCount: writer.lineCount, FinalizedAtUnixMilli: finalizedAt.UnixMilli()}); err != nil {
 		return err
 	}
 	if s.handoff != nil {
 		if err := s.handoff.HandoffFinalizedFile(FinalizedParquetFile{
-			Table:      writer.table,
-			Collection: writer.collection,
-			Path:       writer.finalPath,
-			RowCount:   writer.lineCount,
+			Table:       writer.table,
+			Collection:  writer.collection,
+			Path:        writer.finalPath,
+			RowCount:    writer.lineCount,
+			FinalizedAt: finalizedAt,
 		}); err != nil {
 			return err
 		}
@@ -143,6 +146,14 @@ func normalizeCollection(collection string) string {
 
 func collectionDirName(collection string) string {
 	return url.PathEscape(normalizeCollection(collection))
+}
+
+func collectionFromDirName(collection string) string {
+	unescaped, err := url.PathUnescape(collection)
+	if err != nil {
+		return normalizeCollection(collection)
+	}
+	return normalizeCollection(unescaped)
 }
 
 func writerKey(table, collection string) string {

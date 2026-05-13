@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kvrocks-backup-config
+  labels:
+    app.kubernetes.io/name: kvrocks
+    app.kubernetes.io/component: backup
+data:
+  bucket-name: CHANGE-ME
+  bucket-prefix: kvrocks
+  endpoint-url: https://s3.invalid
+  region: us-east-1
+  backup-root: /var/lib/kvrocks-backups
+  statefulset-name: kvrocks

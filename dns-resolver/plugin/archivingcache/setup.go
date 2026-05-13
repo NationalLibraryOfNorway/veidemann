@@ -1,8 +1,10 @@
 package archivingcache
 
 import (
+	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/serviceconnections"
@@ -39,6 +41,15 @@ func setup(c *caddy.Controller) error {
 
 // OnStartup connects to content writer and log writer.
 func (a *ArchivingCache) OnStartup() error {
+	if a.cache == nil {
+		cache, err := NewOlricCache(a.olricAddresses, a.olricDMap, a.eviction)
+		if err != nil {
+			return fmt.Errorf("failed to connect to olric: %w", err)
+		}
+		a.cache = cache
+		log.Infof("Connected to olric at: %s (dmap=%s)", strings.Join(a.olricAddresses, ","), a.olricDMap)
+	}
+
 	if a.contentWriter == nil {
 		return nil
 	}
@@ -60,18 +71,23 @@ func (a *ArchivingCache) OnStartup() error {
 
 // OnShutdown closes connections to content writer and log writer.
 func (a *ArchivingCache) OnShutdown() (err error) {
-	if a.logWriter != nil {
+	if a.contentWriter != nil {
 		_ = a.contentWriter.Close()
 	}
 	if a.logWriter != nil {
 		_ = a.logWriter.Close()
+	}
+	if a.cache != nil {
+		_ = a.cache.Close(context.Background())
 	}
 	return
 }
 
 func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
 	eviction := defaultEviction
-	maxSizeMb := defaultMaxSizeMb
+	olricAddresses := []string{defaultOlricAddress}
+	olricAddressesConfigured := false
+	olricDMap := defaultOlricDMap
 	var contentWriterHost string
 	var contentWriterPort int
 	var logHost string
@@ -99,18 +115,34 @@ func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
 					}
 					eviction = duration
 				}
-			case "maxSizeMb":
+			case "olricAddress":
+				args, err := getArgs(c)
+				if err != nil {
+					return nil, err
+				}
+				if !olricAddressesConfigured {
+					olricAddresses = nil
+					olricAddressesConfigured = true
+				}
+				for _, arg := range args {
+					for _, address := range strings.Split(arg, ",") {
+						address = strings.TrimSpace(address)
+						if address != "" {
+							olricAddresses = append(olricAddresses, address)
+						}
+					}
+				}
+				if len(olricAddresses) == 0 {
+					return nil, fmt.Errorf("missing value for %q", c.Val())
+				}
+			case "olricDmap":
 				if arg, err := getArg(c); err != nil {
 					return nil, err
 				} else {
-					amount, err := strconv.Atoi(arg)
-					if err != nil {
-						return nil, err
+					olricDMap = strings.TrimSpace(arg)
+					if olricDMap == "" {
+						return nil, fmt.Errorf("missing value for %q", c.Val())
 					}
-					if amount < 0 {
-						return nil, fmt.Errorf("illegal amount value given %q", arg)
-					}
-					maxSizeMb = amount
 				}
 			case "contentWriterHost":
 				if arg, err := getArg(c); err != nil {
@@ -148,10 +180,6 @@ func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
 		}
 	}
 
-	ca, err := NewCache(eviction, maxSizeMb)
-	if err != nil {
-		return nil, err
-	}
 	var lw *LogWriterClient
 	var cw *ContentWriterClient
 
@@ -167,23 +195,34 @@ func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
 			serviceconnections.WithPort(contentWriterPort),
 		)
 	}
-	return NewArchivingCache(ca, lw, cw), nil
+	a := NewArchivingCache(nil, lw, cw)
+	a.eviction = eviction
+	a.olricAddresses = olricAddresses
+	a.olricDMap = olricDMap
+	return a, nil
 }
 
 func getArg(c *caddy.Controller) (string, error) {
-	args := c.RemainingArgs()
-	if len(args) > 1 {
-		return "", c.ArgErr()
+	args, err := getArgs(c)
+	if err != nil {
+		return "", err
 	}
-
-	if len(args) == 0 {
-		return "", fmt.Errorf("missing value for %q", c.ArgErr())
-	}
-
 	return args[0], nil
 }
 
+func getArgs(c *caddy.Controller) ([]string, error) {
+	args := c.RemainingArgs()
+	if len(args) == 0 {
+		return nil, fmt.Errorf("missing value for %q", c.Val())
+	}
+	if len(args) > 1 && c.Val() != "olricAddress" {
+		return nil, c.ArgErr()
+	}
+	return args, nil
+}
+
 const (
-	defaultEviction  = 1 * time.Hour
-	defaultMaxSizeMb = 1024 * 8
+	defaultEviction     = 1 * time.Hour
+	defaultOlricAddress = "localhost:3320"
+	defaultOlricDMap    = "dns-resolver-archivingcache"
 )

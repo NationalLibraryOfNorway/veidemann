@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/archivingcache"
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/serviceconnections"
@@ -27,13 +26,62 @@ import (
 )
 
 var (
-	cache      *archivingcache.Cache
+	cache      *testCache
 	ls         *LogServiceMock
 	cws        *ContentWriterMock
 	serverCtx  context.Context
 	serverAddr string
 	p          plugin.Handler
 )
+
+type testCache struct {
+	entries map[string]*archivingcache.CacheEntry
+}
+
+func newTestCache() *testCache {
+	return &testCache{entries: make(map[string]*archivingcache.CacheEntry)}
+}
+
+func (c *testCache) Get(_ context.Context, key string) (*archivingcache.CacheEntry, error) {
+	entry, ok := c.entries[key]
+	if !ok {
+		return nil, archivingcache.ErrKeyNotFound
+	}
+	return cloneCacheEntry(entry), nil
+}
+
+func (c *testCache) Set(_ context.Context, key string, entry *archivingcache.CacheEntry) error {
+	c.entries[key] = cloneCacheEntry(entry)
+	return nil
+}
+
+func (c *testCache) Len(context.Context) (int, error) {
+	return len(c.entries), nil
+}
+
+func (c *testCache) Close(context.Context) error {
+	return nil
+}
+
+func (c *testCache) Reset() error {
+	clear(c.entries)
+	return nil
+}
+
+func cloneCacheEntry(entry *archivingcache.CacheEntry) *archivingcache.CacheEntry {
+	if entry == nil {
+		return nil
+	}
+
+	cloned := &archivingcache.CacheEntry{
+		ProxyAddr:     entry.ProxyAddr,
+		CollectionIds: append([]string(nil), entry.CollectionIds...),
+	}
+	if entry.Msg != nil {
+		cloned.Msg = entry.Msg.Copy()
+	}
+	return cloned
+}
 
 func reset() {
 	if err := cache.Reset(); err != nil {
@@ -119,11 +167,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// setup cache
-	var err error
-	cache, err = archivingcache.NewCache(10*time.Second, 1024)
-	if err != nil {
-		panic(err)
-	}
+	cache = newTestCache()
 
 	// setup content writer client
 	cw := archivingcache.NewContentWriterClient(
@@ -197,7 +241,7 @@ func TestForwardPluginMetadata(t *testing.T) {
 	if len(msg.Answer) == int(dns.TypeNone) {
 		t.Errorf("Expected answer, got none")
 	}
-	entry, err := cache.Get("example.org." + "A")
+	entry, err := cache.Get(context.Background(), "example.org."+"A")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

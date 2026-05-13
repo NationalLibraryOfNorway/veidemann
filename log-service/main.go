@@ -73,6 +73,8 @@ func parseFlags() (Options, error) {
 	flags.String("s3-secret-key", "", "Secret key for S3-compatible parquet handoff")
 	flags.String("s3-key-prefix", "", "Optional S3 object key prefix for parquet handoff")
 	flags.Bool("s3-insecure", false, "Use HTTP instead of HTTPS for S3-compatible parquet handoff when the endpoint has no scheme")
+	flags.Duration("s3-upload-delay", 0, "Delay before uploading finalized parquet files to S3. Example: 72h for 3 days. Zero uploads on close")
+	flags.Duration("s3-scan-interval", time.Minute, "Interval for scanning finalized parquet files for S3 upload eligibility")
 
 	flags.String("log-level", "info", "Log level, available levels are: panic, fatal, error, warn, info, debug and trace")
 	flags.String("log-formatter", "logfmt", "Log formatter, available values are: logfmt and json")
@@ -146,6 +148,14 @@ func (o Options) S3Insecure() bool {
 	return viper.GetBool("s3-insecure")
 }
 
+func (o Options) S3UploadDelay() time.Duration {
+	return viper.GetDuration("s3-upload-delay")
+}
+
+func (o Options) S3ScanInterval() time.Duration {
+	return viper.GetDuration("s3-scan-interval")
+}
+
 func main() {
 	err := run()
 	if err != nil {
@@ -186,11 +196,17 @@ func run() error {
 	}
 	if s3Handoff != nil {
 		storageOpts = append(storageOpts, parquet.WithPostCloseHandoff(s3Handoff))
-		log.Info().
+		logEvent := log.Info().
 			Str("endpoint", opts.S3Endpoint()).
 			Str("bucket", opts.S3Bucket()).
 			Str("keyPrefix", opts.S3KeyPrefix()).
-			Msg("Enabled async parquet S3 handoff")
+			Dur("uploadDelay", opts.S3UploadDelay()).
+			Dur("scanInterval", opts.S3ScanInterval())
+		if opts.S3UploadDelay() > 0 {
+			logEvent.Msg("Enabled parquet S3 archival with delayed upload")
+		} else {
+			logEvent.Msg("Enabled parquet S3 handoff on close")
+		}
 	} else {
 		log.Info().Msg("Parquet S3 handoff disabled; finalized files remain on local disk")
 	}
@@ -290,8 +306,11 @@ func newParquetS3Handoff(opts Options) (*parquet.AsyncS3Handoff, error) {
 	}
 
 	handoff, err := parquet.NewAsyncS3Handoff(client, parquet.AsyncS3HandoffConfig{
-		Bucket:    opts.S3Bucket(),
-		KeyPrefix: opts.S3KeyPrefix(),
+		BaseDir:      opts.ParquetDir(),
+		Bucket:       opts.S3Bucket(),
+		KeyPrefix:    opts.S3KeyPrefix(),
+		ScanInterval: opts.S3ScanInterval(),
+		UploadDelay:  opts.S3UploadDelay(),
 		OnError: func(file parquet.FinalizedParquetFile, err error) {
 			log.Error().Err(err).Str("path", file.Path).Str("table", file.Table).Str("collection", file.Collection).Msg("Parquet S3 handoff failed")
 		},

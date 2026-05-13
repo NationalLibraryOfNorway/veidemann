@@ -12,5 +12,12 @@ data:
     dir /var/lib/kvrocks
     db-name veidemann.kvrocks
     log-level info
+    workers 2
+    max-db-size 75
     slave-read-only yes
     slave-priority 100
+    rocksdb.block_cache_size 512
+    rocksdb.write_buffer_size 64
+    rocksdb.max_write_buffer_number 2
+    rocksdb.max_background_jobs 2
+    rocksdb.wal_size_limit_mb 8192

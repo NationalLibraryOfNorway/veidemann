@@ -5,8 +5,6 @@ arpa {
 
 . {
     errors
-    debug
-    log
     resolve :8053
     prometheus :9153
     ready :8181
@@ -14,7 +12,8 @@ arpa {
     reload
     archivingcache {
         eviction 5m
-        maxSizeMb 1028
+        olricAddress {$OLRIC_ADDRESS}
+        olricDmap {$OLRIC_DMAP}
         contentWriterHost {$CONTENT_WRITER_HOST}
         contentWriterPort {$CONTENT_WRITER_PORT}
         logHost {$LOG_WRITER_HOST}

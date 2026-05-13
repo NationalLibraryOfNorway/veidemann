@@ -1,17 +1,4 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": "-- Grafana --",
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -21,7 +8,10 @@
   "panels": [
     {
       "collapsed": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -38,7 +28,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -125,7 +118,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -209,7 +205,10 @@
     },
     {
       "collapsed": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -226,7 +225,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -313,7 +315,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -397,7 +402,10 @@
     },
     {
       "collapsed": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -414,7 +422,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -501,7 +512,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -588,7 +602,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -672,7 +689,10 @@
     },
     {
       "collapsed": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -689,7 +709,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -776,7 +799,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -863,7 +889,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -950,7 +979,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1037,7 +1069,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1124,7 +1159,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1210,7 +1248,15 @@
   "refresh": "5s",
   "schemaVersion": 22,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "kubernetes",
+    "prometheus",
+    "kube-prometheus-stack",
+    "datastore",
+    "rethinkdb",
+    "database",
+    "infrastructure"
+  ],
   "templating": {
     "list": [
       {
@@ -1238,7 +1284,10 @@
             "$__all"
           ]
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "label_values(server)",
         "hide": 0,
         "includeAll": true,
@@ -1265,7 +1314,10 @@
             "marker"
           ]
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "label_values(db)",
         "hide": 0,
         "includeAll": true,
@@ -1291,7 +1343,10 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "label_values({db=~\"$db_var\"}, table)",
         "hide": 0,
         "includeAll": true,

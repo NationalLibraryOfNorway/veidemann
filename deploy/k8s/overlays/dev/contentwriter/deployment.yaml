@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contentwriter
+spec:
+  template:
+    spec:
+      volumes:
+        - name: warc-fallback
+          persistentVolumeClaim:
+            claimName: warc-fallback
+      containers:
+        - name: contentwriter
+          env:
+            - name: CONTENTWRITER_WARC_FALLBACK_DIR
+              value: /warc-fallback
+          volumeMounts:
+            - mountPath: /warc-fallback
+              name: warc-fallback

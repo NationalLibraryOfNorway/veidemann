@@ -1,7 +1,4 @@
 {
-  "annotations": {
-    "list": []
-  },
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -14,7 +11,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -102,7 +102,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -208,7 +211,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -297,7 +303,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -384,7 +393,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "$datasource",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -504,7 +516,13 @@
   "schemaVersion": 18,
   "style": "dark",
   "tags": [
-    "veidemann"
+    "veidemann",
+    "kubernetes",
+    "prometheus",
+    "kube-prometheus-stack",
+    "application",
+    "veidemann-job-status",
+    "service"
   ],
   "templating": {
     "list": [
@@ -527,7 +545,10 @@
       },
       {
         "allValue": null,
-        "datasource": "$datasource",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "",
         "hide": 0,
         "includeAll": false,

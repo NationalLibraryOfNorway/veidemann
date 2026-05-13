@@ -36,10 +36,13 @@ func ParseFlags() (Options, error) {
 
 	flags.String("hostname", "", "")
 	flags.String("warc-dir", "", "")
+	flags.String("warc-fallback-dir", "", "directory for durable fallback storage when uploads fail")
 	flags.String("warc-version", "1.1", "which WARC version to use for generated records. Allowed values: 1.0, 1.1")
 	flags.Int("warc-writer-pool-size", 1, "")
 	flags.Bool("flush-record", false, "if true, flush WARC-file to disk after each record.")
 	flags.String("work-dir", "", "")
+	flags.Duration("upload-retry-scan-interval", time.Minute, "how often to scan fallback storage for files to retry")
+	flags.Duration("upload-timeout", 10*time.Minute, "timeout for a single upload attempt")
 	flags.Int("termination-grace-period-seconds", 0, "")
 	flags.Bool("strict", false, "if true, use strict record validation")
 
@@ -103,12 +106,24 @@ func (o Options) WarcDir() string {
 	return viper.GetString("warc-dir")
 }
 
+func (o Options) WarcFallbackDir() string {
+	return viper.GetString("warc-fallback-dir")
+}
+
 func (o Options) WarcWriterPoolSize() int {
 	return viper.GetInt("warc-writer-pool-size")
 }
 
 func (o Options) WorkDir() string {
 	return viper.GetString("work-dir")
+}
+
+func (o Options) UploadRetryScanInterval() time.Duration {
+	return viper.GetDuration("upload-retry-scan-interval")
+}
+
+func (o Options) UploadTimeout() time.Duration {
+	return viper.GetDuration("upload-timeout")
 }
 
 func (o Options) TerminationGracePeriodSeconds() int {

@@ -5,12 +5,16 @@ metadata:
   labels:
     app.kubernetes.io/name: contentwriter
     app.kubernetes.io/component: contentwriter
+    metrics: prometheus
 spec:
   type: ClusterIP
   ports:
     - port: 8082
       name: grpc
       targetPort: grpc
+    - port: 9153
+      name: http-metrics
+      targetPort: http-metrics
   selector:
     app.kubernetes.io/name: contentwriter
     app.kubernetes.io/component: contentwriter

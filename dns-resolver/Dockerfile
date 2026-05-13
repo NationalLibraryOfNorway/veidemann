@@ -24,6 +24,8 @@ EXPOSE 9153
 EXPOSE 8181
 
 ENV DNS_SERVER=8.8.8.8 \
+    OLRIC_ADDRESS=localhost:3320 \
+    OLRIC_DMAP=dns-resolver-archivingcache \
     CONTENT_WRITER_HOST=veidemann-contentwriter \
     CONTENT_WRITER_PORT=8080 \
     LOG_WRITER_HOST=veidemann-log-service \

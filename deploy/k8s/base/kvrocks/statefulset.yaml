@@ -8,6 +8,9 @@ metadata:
 spec:
   replicas: 3
   serviceName: kvrocks-headless
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: OnDelete
   selector:
     matchLabels:
       app.kubernetes.io/name: kvrocks
@@ -20,7 +23,7 @@ spec:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 10Gi
+            storage: 1Gi
   template:
     metadata:
       labels:
@@ -29,7 +32,33 @@ spec:
     spec:
       serviceAccountName: kvrocks
       automountServiceAccountToken: false
-      terminationGracePeriodSeconds: 60
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kvrocks
+                    app.kubernetes.io/component: datastore
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: kvrocks
+              app.kubernetes.io/component: datastore
       containers:
         - name: kvrocks
           image: apache/kvrocks:2.15.0
@@ -54,7 +83,11 @@ spec:
                 secretKeyRef:
                   name: kvrocks-auth
                   key: redis-password
-                  optional: true
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: sentinel-password
           lifecycle:
             preStop:
               exec:
@@ -66,15 +99,14 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - if [ -n "${REDIS_PASSWORD:-}" ]; then REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli -h 127.0.0.1 -p 6666 ping; else redis-cli -h 127.0.0.1 -p 6666 ping; fi | grep -q PONG
+                - REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli -h 127.0.0.1 -p 6666 ping | grep -q PONG
             failureThreshold: 30
             periodSeconds: 5
           readinessProbe:
             exec:
               command:
                 - /bin/sh
-                - -c
-                - if [ -n "${REDIS_PASSWORD:-}" ]; then REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli -h 127.0.0.1 -p 6666 ping; else redis-cli -h 127.0.0.1 -p 6666 ping; fi | grep -q PONG
+                - /scripts/kvrocks-readiness.sh
             periodSeconds: 5
             timeoutSeconds: 3
           livenessProbe:
@@ -82,9 +114,21 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - if [ -n "${REDIS_PASSWORD:-}" ]; then REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli -h 127.0.0.1 -p 6666 ping; else redis-cli -h 127.0.0.1 -p 6666 ping; fi | grep -q PONG
+                - REDISCLI_AUTH="${REDIS_PASSWORD}" redis-cli -h 127.0.0.1 -p 6666 ping | grep -q PONG
             periodSeconds: 10
             timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - name: data
               mountPath: /var/lib/kvrocks
@@ -96,6 +140,35 @@ spec:
               readOnly: true
             - name: kvrocks-generated
               mountPath: /etc/kvrocks/generated
+        - name: metrics-exporter
+          image: docker.io/kvrocks/kvrocks_exporter:1.0.2
+          args:
+            - -kvrocks.addr=kvrocks://127.0.0.1:6666
+            - -kvrocks.password=$(REDIS_PASSWORD)
+            - -web.listen-address=:9121
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: redis-password
+          ports:
+            - name: metrics
+              containerPort: 9121
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
         - name: sentinel
           image: docker.io/redis:7.2.13-alpine
           command:
@@ -115,21 +188,24 @@ spec:
                 secretKeyRef:
                   name: kvrocks-auth
                   key: redis-password
-                  optional: true
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: sentinel-password
           startupProbe:
             exec:
               command:
                 - /bin/sh
                 - -c
-                - redis-cli -h 127.0.0.1 -p 26379 ping | grep -q PONG
+                - REDISCLI_AUTH="${SENTINEL_PASSWORD}" redis-cli -h 127.0.0.1 -p 26379 ping | grep -q PONG
             failureThreshold: 30
             periodSeconds: 5
           readinessProbe:
             exec:
               command:
                 - /bin/sh
-                - -c
-                - redis-cli -h 127.0.0.1 -p 26379 ping | grep -q PONG
+                - /scripts/sentinel-readiness.sh
             periodSeconds: 5
             timeoutSeconds: 3
           livenessProbe:
@@ -137,15 +213,27 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - redis-cli -h 127.0.0.1 -p 26379 ping | grep -q PONG
+                - REDISCLI_AUTH="${SENTINEL_PASSWORD}" redis-cli -h 127.0.0.1 -p 26379 ping | grep -q PONG
             periodSeconds: 10
             timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
+            - name: data
+              mountPath: /var/lib/kvrocks
             - name: scripts
               mountPath: /scripts
               readOnly: true
-            - name: sentinel-generated
-              mountPath: /etc/sentinel/generated
       volumes:
         - name: kvrocks-config
           configMap:
@@ -155,6 +243,4 @@ spec:
             name: kvrocks-scripts
             defaultMode: 0755
         - name: kvrocks-generated
-          emptyDir: {}
-        - name: sentinel-generated
           emptyDir: {}
