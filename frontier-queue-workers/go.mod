@@ -9,7 +9,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	github.com/uber/jaeger-client-go v2.29.1+incompatible
+	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	golang.org/x/sync v0.20.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
