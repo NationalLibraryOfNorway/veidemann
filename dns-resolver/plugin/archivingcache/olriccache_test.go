@@ -153,7 +153,12 @@ func freePort(t *testing.T) int {
 	if err != nil {
 		t.Fatalf("net.Listen() error = %v", err)
 	}
-	defer listener.Close()
+	defer func() {
+		err = listener.Close()
+		if err != nil {
+			t.Errorf("listener.Close() error = %v", err)
+		}
+	}()
 
 	addr, ok := listener.Addr().(*net.TCPAddr)
 	if !ok {
