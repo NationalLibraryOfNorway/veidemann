@@ -11,8 +11,9 @@ FROM rethinkdb:2.4.4-bookworm-slim
 
 LABEL maintainer="Marius André Elsfjordstrand Beck <marius.beck@nb.no>"
 
-ADD https://github.com/krallin/tini/releases/download/v0.19.0/tini-amd64 /usr/local/bin/tini
-RUN chmod +x /usr/local/bin/tini
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends tini && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=probe /go/bin/probe /rethinkdb-probe
 COPY ./run.sh /
@@ -20,4 +21,4 @@ RUN chmod u+x /run.sh
 
 EXPOSE 28015 29015 8080
 
-ENTRYPOINT ["/usr/local/bin/tini", "--", "/run.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/run.sh"]
