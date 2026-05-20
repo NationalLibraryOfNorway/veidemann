@@ -6,7 +6,7 @@ require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.1.0
-	github.com/opentracing-contrib/go-grpc v0.1.2
+	github.com/opentracing-contrib/go-grpc v0.1.3
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/parquet-go/parquet-go v0.29.0
 	github.com/prometheus/client_golang v1.23.2
