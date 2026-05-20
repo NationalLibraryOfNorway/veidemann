@@ -15,7 +15,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
@@ -31,7 +31,6 @@ require (
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 )
 
 require (
