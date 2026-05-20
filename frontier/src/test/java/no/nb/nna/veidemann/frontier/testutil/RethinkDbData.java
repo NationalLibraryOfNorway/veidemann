@@ -1,6 +1,6 @@
 package no.nb.nna.veidemann.frontier.testutil;
 
-import com.rethinkdb.net.Cursor;
+import com.rethinkdb.net.Result;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
@@ -24,7 +24,7 @@ public class RethinkDbData {
     }
 
     public List<QueuedUri> getQueuedUris() throws DbQueryException, DbConnectionException {
-        try (Cursor<Map<String, Object>> cursor = conn.exec(r.table(Tables.URI_QUEUE.name))) {
+        try (Result<Map<String, Object>> cursor = conn.exec(r.table(Tables.URI_QUEUE.name))) {
             return (List<QueuedUri>) cursor.toList().stream()
                     .map(v -> ProtoUtils.rethinkToProto(v, QueuedUri.class))
                     .collect(Collectors.toList());
@@ -32,7 +32,7 @@ public class RethinkDbData {
     }
 
     public Map<String, CrawlExecutionStatus> getCrawlExecutionStatuses() throws DbQueryException, DbConnectionException {
-        try (Cursor<Map<String, Object>> cursor = conn.exec(r.table(Tables.EXECUTIONS.name))) {
+        try (Result<Map<String, Object>> cursor = conn.exec(r.table(Tables.EXECUTIONS.name))) {
             return cursor.toList().stream()
                     .map(v -> ProtoUtils.rethinkToProto(v, CrawlExecutionStatus.class))
                     .collect(Collectors.toMap(o -> o.getId(), o -> o));
@@ -40,7 +40,7 @@ public class RethinkDbData {
     }
 
     public Map<String, JobExecutionStatus> getJobExecutionStatuses() throws DbQueryException, DbConnectionException {
-        try (Cursor<Map<String, Object>> cursor = conn.exec(r.table(Tables.JOB_EXECUTIONS.name))) {
+        try (Result<Map<String, Object>> cursor = conn.exec(r.table(Tables.JOB_EXECUTIONS.name))) {
             return cursor.toList().stream()
                     .map(v -> ProtoUtils.rethinkToProto(v, JobExecutionStatus.class))
                     .collect(Collectors.toMap(o -> o.getId(), o -> o));

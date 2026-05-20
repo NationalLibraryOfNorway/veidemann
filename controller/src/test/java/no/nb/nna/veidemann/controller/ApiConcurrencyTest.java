@@ -58,6 +58,7 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierImplBase;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
+import no.nb.nna.veidemann.commons.db.DbQueryAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.commons.db.DbServiceSPI;
@@ -77,6 +78,7 @@ public class ApiConcurrencyTest {
         when(dbProviderMock.getConfigAdapter()).thenReturn(configAdapterMock);
         ExecutionsAdapter executionsAdapterMock = mock(ExecutionsAdapter.class);
         when(dbProviderMock.getExecutionsAdapter()).thenReturn(executionsAdapterMock);
+        when(dbProviderMock.getDbQueryAdapter()).thenReturn(mock(DbQueryAdapter.class));
 
         String controllerName = "controller";
         String frontierName = "frontier";
@@ -89,8 +91,8 @@ public class ApiConcurrencyTest {
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
 
-        try (DbService db = DbService.configure(dbProviderMock);
-             ControllerApiServer controller = new ControllerApiServer(settings, controllerServerBuilder, null, null, null);
+           try (DbService db = DbService.configure(dbProviderMock);
+               ControllerApiServer controller = new ControllerApiServer(settings, db, controllerServerBuilder, null, null, null);
              FrontierMock frontier = new FrontierMock(frontierServerBuilder);
              FrontierClient frontierClient = new FrontierClient(frontierChannel, "url")
         ) {

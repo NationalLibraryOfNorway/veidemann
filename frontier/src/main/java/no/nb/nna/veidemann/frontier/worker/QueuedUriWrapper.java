@@ -15,9 +15,6 @@
  */
 package no.nb.nna.veidemann.frontier.worker;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
@@ -36,12 +33,9 @@ import no.nb.nna.veidemann.api.scopechecker.v1.ScopeCheckResponse;
 import no.nb.nna.veidemann.api.scopechecker.v1.ScopeCheckResponse.Evaluation;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
-import no.nb.nna.veidemann.commons.db.DbConnectionException;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import no.nb.nna.veidemann.db.Tables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,12 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static no.nb.nna.veidemann.db.ProtoUtils.rethinkToProto;
 
 /**
  *
@@ -78,30 +68,6 @@ public class QueuedUriWrapper {
     private Timestamp oldEarliestFetchTimestamp;
 
     final Frontier frontier;
-
-    private final static String ALL_CHGS_CACHE_KEY = "all_chg";
-    static final LoadingCache<String, Map<String, ConfigObject>> chgConfigCache;
-
-    static {
-        chgConfigCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .build(
-                        new CacheLoader<String, Map<String, ConfigObject>>() {
-                            public Map<String, ConfigObject> load(String key) throws DbException {
-                                switch (key) {
-                                    case ALL_CHGS_CACHE_KEY:
-                                        try (ChangeFeed<ConfigObject> cursor = DbService.getInstance().getConfigAdapter()
-                                                .listConfigObjects(ListRequest.newBuilder()
-                                                        .setKind(Kind.crawlHostGroupConfig).build())) {
-                                            return cursor.stream().collect(
-                                                    Collectors.toUnmodifiableMap(ConfigObject::getId, Function.identity()));
-                                        }
-                                    default:
-                                        throw new IllegalArgumentException("Unknown chg cache key: " + key);
-                                }
-                            }
-                        });
-    }
 
     private QueuedUriWrapper(
             Frontier frontier, QueuedUriOrBuilder uri, String collectionName) {
@@ -224,18 +190,8 @@ public class QueuedUriWrapper {
         return scopeCheckResponse.getError();
     }
 
-    public QueuedUriWrapper save() throws DbQueryException, DbConnectionException {
-        Map rMap = ProtoUtils.protoToRethink(wrapped);
-
-        Map<String, Object> response = frontier.conn.exec("db-saveQueuedUri",
-                r.table(Tables.URI_QUEUE.name).get(wrapped.getId())
-                        .update(rMap)
-                        .optArg("durability", "soft")
-                        .optArg("return_changes", "always"));
-        List<Map<String, Map>> changes = (List<Map<String, Map>>) response.get("changes");
-
-        Map newDoc = changes.get(0).get("new_val");
-        wrapped = rethinkToProto(newDoc, QueuedUri.class).toBuilder();
+    public QueuedUriWrapper save() throws DbException {
+        wrapped = frontier.getFrontierAdapter().updateQueuedUri(wrapped.build()).toBuilder();
 
         if (oldEarliestFetchTimestamp != null && oldEarliestFetchTimestamp.getSeconds() != wrapped.getEarliestFetchTimeStamp().getSeconds()) {
             frontier.getCrawlQueueManager().updateQueuedUri(this, oldEarliestFetchTimestamp);
@@ -418,23 +374,23 @@ public class QueuedUriWrapper {
     public CrawlHostGroup getCrawlHostGroup() throws DbQueryException {
         if (crawlHostGroup == null) {
             try {
-                CrawlHostGroup chg = frontier.getCrawlQueueManager().getCrawlHostGroup(wrapped.getCrawlHostGroupId());
-                Map<String, ConfigObject> groupConfigs = chgConfigCache.get(ALL_CHGS_CACHE_KEY);
-                ConfigObject chgConfig = groupConfigs.getOrDefault(wrapped.getCrawlHostGroupId(),
-                        frontier.getConfig(ConfigRef.newBuilder().setKind(Kind.crawlHostGroupConfig).setId("chg-default").build()));
+            CrawlHostGroup chg = frontier.getCrawlQueueManager().getCrawlHostGroup(wrapped.getCrawlHostGroupId());
+            Map<String, ConfigObject> groupConfigs = getCrawlHostGroupConfigs();
+            ConfigObject chgConfig = groupConfigs.getOrDefault(wrapped.getCrawlHostGroupId(),
+                frontier.getConfig(ConfigRef.newBuilder().setKind(Kind.crawlHostGroupConfig).setId("chg-default").build()));
 
-                crawlHostGroup = CrawlHostGroup.newBuilder()
-                        .setId(wrapped.getCrawlHostGroupId())
-                        .setCurrentUriId(wrapped.getId())
-                        .setMinTimeBetweenPageLoadMs(chgConfig.getCrawlHostGroupConfig().getMinTimeBetweenPageLoadMs())
-                        .setMaxTimeBetweenPageLoadMs(chgConfig.getCrawlHostGroupConfig().getMaxTimeBetweenPageLoadMs())
-                        .setDelayFactor(chgConfig.getCrawlHostGroupConfig().getDelayFactor())
-                        .setMaxRetries(chgConfig.getCrawlHostGroupConfig().getMaxRetries())
-                        .setRetryDelaySeconds(chgConfig.getCrawlHostGroupConfig().getRetryDelaySeconds())
-                        .setFetchStartTimeStamp(wrapped.getFetchStartTimeStamp())
-                        .mergeFrom(chg);
-            } catch (ExecutionException e) {
-                throw new DbQueryException(e);
+            crawlHostGroup = CrawlHostGroup.newBuilder()
+                .setId(wrapped.getCrawlHostGroupId())
+                .setCurrentUriId(wrapped.getId())
+                .setMinTimeBetweenPageLoadMs(chgConfig.getCrawlHostGroupConfig().getMinTimeBetweenPageLoadMs())
+                .setMaxTimeBetweenPageLoadMs(chgConfig.getCrawlHostGroupConfig().getMaxTimeBetweenPageLoadMs())
+                .setDelayFactor(chgConfig.getCrawlHostGroupConfig().getDelayFactor())
+                .setMaxRetries(chgConfig.getCrawlHostGroupConfig().getMaxRetries())
+                .setRetryDelaySeconds(chgConfig.getCrawlHostGroupConfig().getRetryDelaySeconds())
+                .setFetchStartTimeStamp(wrapped.getFetchStartTimeStamp())
+                .mergeFrom(chg);
+            } catch (DbException e) {
+            throw new DbQueryException(e);
             }
         }
         return crawlHostGroup.build();
@@ -505,15 +461,11 @@ public class QueuedUriWrapper {
             throw new IllegalStateException(msg);
         }
 
-        try {
-            Map<String, ConfigObject> groupConfigs = chgConfigCache.get(ALL_CHGS_CACHE_KEY);
-            String crawlHostGroupId = CrawlHostGroupCalculator.calculateCrawlHostGroupId(getHost(), wrapped.getIp(), groupConfigs.values(), politeness);
-            wrapped.setCrawlHostGroupId(crawlHostGroupId);
-            wrapped.setUnresolved(false);
-            return this;
-        } catch (ExecutionException e) {
-            throw new DbQueryException(e);
-        }
+        Map<String, ConfigObject> groupConfigs = getCrawlHostGroupConfigs();
+        String crawlHostGroupId = CrawlHostGroupCalculator.calculateCrawlHostGroupId(getHost(), wrapped.getIp(), groupConfigs.values(), politeness);
+        wrapped.setCrawlHostGroupId(crawlHostGroupId);
+        wrapped.setUnresolved(false);
+        return this;
     }
 
     public QueuedUri getQueuedUri() {
@@ -530,6 +482,13 @@ public class QueuedUriWrapper {
 
     public String getCollectionName() {
         return collectionName;
+    }
+
+    private Map<String, ConfigObject> getCrawlHostGroupConfigs() throws DbException {
+        try (ChangeFeed<ConfigObject> cursor = frontier.getConfigAdapter().listConfigObjects(
+                ListRequest.newBuilder().setKind(Kind.crawlHostGroupConfig).build())) {
+            return cursor.stream().collect(Collectors.toUnmodifiableMap(ConfigObject::getId, Function.identity()));
+        }
     }
 
     private static void requireNonEmpty(String obj, String message) {

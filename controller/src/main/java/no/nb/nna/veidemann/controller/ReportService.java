@@ -23,8 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.net.Cursor;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -40,12 +38,12 @@ import no.nb.nna.veidemann.api.report.v1.JobExecutionsListRequest;
 import no.nb.nna.veidemann.api.report.v1.ReportGrpc;
 import no.nb.nna.veidemann.commons.auth.AllowedRoles;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
-import no.nb.nna.veidemann.commons.db.DbService;
+import no.nb.nna.veidemann.commons.db.DbQuery;
+import no.nb.nna.veidemann.commons.db.DbQueryAdapter;
+import no.nb.nna.veidemann.commons.db.DbResultSet;
 import no.nb.nna.veidemann.commons.db.ExecutionsAdapter;
 import no.nb.nna.veidemann.controller.query.QueryEngine;
 import no.nb.nna.veidemann.controller.settings.Settings;
-import no.nb.nna.veidemann.db.RethinkDbConnection;
-import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 
 /**
  *
@@ -55,12 +53,15 @@ public class ReportService extends ReportGrpc.ReportImplBase {
 
     private final ExecutionsAdapter executionsAdapter;
 
+    private final DbQueryAdapter dbQueryAdapter;
+
     private final QueryEngine queryEngine;
     
     private final Gson gson;
 
-    public ReportService(Settings settings) {
-        this.executionsAdapter = DbService.getInstance().getExecutionsAdapter();
+    public ReportService(Settings settings, ExecutionsAdapter executionsAdapter, DbQueryAdapter dbQueryAdapter) {
+        this.executionsAdapter = executionsAdapter;
+        this.dbQueryAdapter = dbQueryAdapter;
         URI astServiceUri = URI.create(settings.getAstServiceUrl());
 
         this.queryEngine = new QueryEngine(astServiceUri);
@@ -108,7 +109,7 @@ public class ReportService extends ReportGrpc.ReportImplBase {
     @AllowedRoles({Role.OPERATOR, Role.ADMIN, Role.CURATOR, Role.CONSULTANT})
     public void executeDbQuery(ExecuteDbQueryRequest request, StreamObserver<ExecuteDbQueryReply> respObserver) {
         try {
-            ReqlAst qry = queryEngine.parseQuery(request.getQuery());
+            DbQuery qry = queryEngine.parseQuery(request.getQuery());
             int limit = request.getLimit();
 
             // Default limit
@@ -116,24 +117,16 @@ public class ReportService extends ReportGrpc.ReportImplBase {
                 limit = 50;
             }
 
-            RethinkDbConnection conn = ((RethinkDbInitializer) DbService.getInstance().getDbInitializer()).getDbConnection();
-            Object result = conn.exec("js-query", qry);
-            if (result != null) {
-                if (result instanceof Cursor) {
-                    try (Cursor c = (Cursor) result) {
-                        int index = 0;
-                        while (!((ServerCallStreamObserver) respObserver).isCancelled()
-                                && c.hasNext() && (limit == -1 || index++ < limit)) {
-                            try {
-                                Object r = c.next(1000);
-                                respObserver.onNext(recordToExecuteDbQueryReply(r));
-                            } catch (TimeoutException e) {
-                                // Timeout is ok
-                            }
-                        }
+            try (DbResultSet<Object> result = dbQueryAdapter.executeQuery(qry)) {
+                int index = 0;
+                while (!((ServerCallStreamObserver<?>) respObserver).isCancelled()
+                        && result.hasNext() && (limit == -1 || index++ < limit)) {
+                    try {
+                        Object record = result.next(1000, java.util.concurrent.TimeUnit.MILLISECONDS);
+                        respObserver.onNext(recordToExecuteDbQueryReply(record));
+                    } catch (TimeoutException e) {
+                        // Timeout is ok
                     }
-                } else {
-                    respObserver.onNext(recordToExecuteDbQueryReply(result));
                 }
             }
 

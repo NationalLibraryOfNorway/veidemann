@@ -1,11 +1,8 @@
 package no.nb.nna.veidemann.frontier.db;
 
-import static no.nb.nna.veidemann.db.ProtoUtils.rethinkToProto;
-
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -30,10 +27,9 @@ import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvestSpec;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbException;
+import no.nb.nna.veidemann.commons.db.FrontierAdapter;
 import no.nb.nna.veidemann.commons.db.FutureOptional;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import no.nb.nna.veidemann.db.RethinkDbConnection;
-import no.nb.nna.veidemann.db.Tables;
 import no.nb.nna.veidemann.frontier.db.script.ChgAddScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgBusyTimeoutScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgGetScript;
@@ -80,7 +76,7 @@ public class CrawlQueueManager implements AutoCloseable {
     static final RethinkDB r = RethinkDB.r;
     public static final long RESCHEDULE_DELAY = 1000;
 
-    private final RethinkDbConnection conn;
+    private final FrontierAdapter frontierAdapter;
     private final Supplier<Jedis> jedisSupplier;
     final UriAddScript uriAddScript;
     final UriRemoveScript uriRemoveScript;
@@ -104,9 +100,9 @@ public class CrawlQueueManager implements AutoCloseable {
     // must be volatile, accessed from TimeoutSupplier worker threads
     private volatile boolean shouldRun = true;
 
-    public CrawlQueueManager(Frontier frontier, RethinkDbConnection conn, Supplier<Jedis> jedisSupplier) {
+    public CrawlQueueManager(Frontier frontier, FrontierAdapter frontierAdapter, Supplier<Jedis> jedisSupplier) {
         this.frontier = frontier;
-        this.conn = conn;
+        this.frontierAdapter = frontierAdapter;
         this.jedisSupplier = jedisSupplier;
         uriAddScript = new UriAddScript();
         uriRemoveScript = new UriRemoveScript();
@@ -158,26 +154,12 @@ public class CrawlQueueManager implements AutoCloseable {
                         .setEarliestFetchTimeStamp(ProtoUtils.getNowTs())
                         .build();
             }
-
-            Map<String, Object> rMap = ProtoUtils.protoToRethink(qUri);
-
             // Ensure that the URI we are about to add is not present in remove queue.
             try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
                 ctx.getJedis().lrem(REMOVE_URI_QUEUE_KEY, 0, qUri.getId());
             }
 
-            Map<String, Object> response = conn.exec(
-                    "db-saveQueuedUri",
-                    r.table(Tables.URI_QUEUE.name)
-                            .insert(rMap)
-                            .optArg("durability", "soft")
-                            .optArg("conflict", "replace")
-                            .optArg("return_changes", "always"));
-
-            @SuppressWarnings("unchecked")
-            List<Map<String, Map>> changes = (List<Map<String, Map>>) response.get("changes");
-            Map<String, Object> newDoc = changes.get(0).get("new_val");
-            qUri = rethinkToProto(newDoc, QueuedUri.class);
+                qUri = frontierAdapter.saveQueuedUri(qUri);
 
             try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
                 uriAddScript.run(ctx, qUri);
@@ -321,7 +303,7 @@ public class CrawlQueueManager implements AutoCloseable {
             String chgId = chg.getId();
             LOG.trace("Found Crawl Host Group ({})", chgId);
 
-            FutureOptional<QueuedUri> foqu = getNextFetchableQueuedUriForCrawlHostGroup(jedisContext, chg, conn);
+            FutureOptional<QueuedUri> foqu = getNextFetchableQueuedUriForCrawlHostGroup(jedisContext, chg);
 
             if (foqu.isPresent()) {
                 QueuedUri u = foqu.get();
@@ -437,20 +419,17 @@ public class CrawlQueueManager implements AutoCloseable {
 
     FutureOptional<QueuedUri> getNextFetchableQueuedUriForCrawlHostGroup(
             JedisContext ctx,
-            CrawlHostGroup crawlHostGroup,
-            RethinkDbConnection conn) throws DbException {
+            CrawlHostGroup crawlHostGroup) throws DbException {
 
         NextUriScriptResult res = nextUriScript.run(ctx, crawlHostGroup);
         if (res.future != null) {
             return res.future;
         }
 
-        Map<String, Object> obj = conn.exec(
-                "db-getNextQueuedUriToFetch",
-                r.table(Tables.URI_QUEUE.name).get(res.id));
+        QueuedUri obj = frontierAdapter.getQueuedUri(res.id);
 
         if (obj != null) {
-            return FutureOptional.of(rethinkToProto(obj, QueuedUri.class));
+            return FutureOptional.of(obj);
         } else {
             LOG.warn("Db inconsistency: Could not find queued uri: {}, CHG: {}", res.id, res.chgId);
             removeQUri(ctx, res.id, res.chgId, res.eid, res.sequence, res.fetchTime, false);
@@ -459,10 +438,7 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     public QueuedUri getQueuedUri(String uriId) throws DbException {
-        return conn.executeGet(
-                "db-getQueuedUri",
-                r.table(Tables.URI_QUEUE.name).get(uriId),
-                QueuedUri.class);
+        return frontierAdapter.getQueuedUri(uriId);
     }
 
     public long countByCrawlExecution(String executionId) {

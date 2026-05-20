@@ -48,7 +48,7 @@ public class RethinkDbConfigServer implements ConfigServer {
         LOG.debug("Connecting Config Server to: {}:{}", dbHost, dbPort);
         LogLevels logLevels = LogLevels.getDefaultInstance();
         try (Connection conn = connect(dbHost, dbPort, dbName, dbUser, dbPassword);) {
-            Map msg = r.table(Tables.SYSTEM.name).get("log_levels").pluck("logLevel").run(conn);
+            Map msg = (Map) r.table(Tables.SYSTEM.name).get("log_levels").pluck("logLevel").runAtom(conn);
             logLevels = ProtoUtils.rethinkToProto(msg, LogLevels.class);
         } catch (Exception ex) {
             LOG.debug("Failed reading logger config from db");

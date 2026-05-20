@@ -21,7 +21,7 @@ import com.rethinkdb.gen.ast.ReqlFunction1;
 import no.nb.nna.veidemann.api.commons.v1.FieldMask;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.db.RethinkAstVisualizer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 

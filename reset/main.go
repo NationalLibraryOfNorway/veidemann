@@ -37,8 +37,6 @@ func main() {
 
 	tables := map[string][]string{
 		"veidemann": {
-			"crawled_content",
-			"events",
 			"executions",
 			"job_executions",
 			"uri_queue",

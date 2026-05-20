@@ -15,10 +15,12 @@
  */
 package no.nb.nna.veidemann.db.opentracing;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.Result;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
@@ -27,10 +29,6 @@ import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.SocketAddress;
-import java.util.Optional;
-import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -50,7 +48,7 @@ public class ConnectionTracingInterceptor extends Connection {
     }
 
     public ConnectionTracingInterceptor(Connection conn, boolean withActiveSpanOnly) {
-        super(Connection.build());
+        super(new Connection.Builder());
         this.conn = conn;
         this.withActiveSpanOnly = withActiveSpanOnly;
     }
@@ -67,22 +65,12 @@ public class ConnectionTracingInterceptor extends Connection {
     }
 
     @Override
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass, Optional<Long> timeout) {
+    public <T> Result<T> run(ReqlAst term, OptArgs globalOpts, Result.FetchMode fetchMode, Boolean unwrap,
+                             TypeReference<T> typeRef) {
         Tracer tracer = getTracer();
         Span span = buildSpan(tracer, globalOpts, "run");
         try (Scope scope = tracer.scopeManager().activate(span)) {
-            return conn.run(term, globalOpts, pojoClass, timeout);
-        } finally {
-            span.finish();
-        }
-    }
-
-    @Override
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass) {
-        Tracer tracer = getTracer();
-        Span span = buildSpan(tracer, globalOpts, "run");
-        try (Scope scope = tracer.scopeManager().activate(span)) {
-            return conn.run(term, globalOpts, pojoClass);
+            return conn.run(term, globalOpts, fetchMode, unwrap, typeRef);
         } finally {
             span.finish();
         }
@@ -94,13 +82,9 @@ public class ConnectionTracingInterceptor extends Connection {
     }
 
     @Override
-    public Optional<Long> timeout() {
-        return conn.timeout();
-    }
-
-    @Override
-    public void use(String db) {
+    public Connection use(String db) {
         conn.use(db);
+        return this;
     }
 
     @Override
@@ -119,32 +103,25 @@ public class ConnectionTracingInterceptor extends Connection {
     }
 
     @Override
-    public Optional<SocketAddress> clientAddress() {
-        return conn.clientAddress();
-    }
-
-    @Override
-    public Optional<Integer> clientPort() {
-        return conn.clientPort();
-    }
-
-    @Override
-    public Connection reconnect(boolean noreplyWait, Optional<Long> timeout) throws TimeoutException {
-        return conn.reconnect(noreplyWait, timeout);
+    public Connection reconnect(boolean noreplyWait) {
+        conn.reconnect(noreplyWait);
+        return this;
     }
 
     @Override
     public Connection reconnect() {
-        return conn.reconnect();
+        conn.reconnect();
+        return this;
     }
 
     @Override
-    public void connect() throws TimeoutException {
+    public Connection connect() {
         conn.connect();
+        return this;
     }
 
     @Override
-    public Optional<String> db() {
+    public String db() {
         return conn.db();
     }
 

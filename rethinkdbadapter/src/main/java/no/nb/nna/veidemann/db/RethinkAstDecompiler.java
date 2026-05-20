@@ -281,7 +281,8 @@ public class RethinkAstDecompiler {
 
     private Arguments getArguments(ReqlAst ast) {
         try {
-            return (Arguments) argsField.get(ast);
+            Arguments args = (Arguments) argsField.get(ast);
+            return args == null ? new Arguments() : args;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -297,7 +298,8 @@ public class RethinkAstDecompiler {
 
     private OptArgs getOptArgs(ReqlAst ast) {
         try {
-            return (OptArgs) optargsField.get(ast);
+            OptArgs optArgs = (OptArgs) optargsField.get(ast);
+            return optArgs == null ? new OptArgs() : optArgs;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }

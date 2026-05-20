@@ -22,7 +22,7 @@ import no.nb.nna.veidemann.api.config.v1.ConfigObjectOrBuilder;
 import no.nb.nna.veidemann.api.config.v1.Kind;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.InstanceOfAssertFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;

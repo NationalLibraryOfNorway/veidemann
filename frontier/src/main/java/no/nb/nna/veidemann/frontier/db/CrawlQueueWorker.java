@@ -16,7 +16,6 @@ import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.db.DbException;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.frontier.db.script.RedisJob.JedisContext;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 import no.nb.nna.veidemann.frontier.worker.PostFetchHandler;
@@ -86,9 +85,7 @@ public class CrawlQueueWorker implements AutoCloseable {
 
     private void runCheckPaused() {
         try {
-            boolean desiredPaused = DbService.getInstance()
-                    .getExecutionsAdapter()
-                    .getDesiredPausedState();
+            boolean desiredPaused = frontier.getExecutionsAdapter().getDesiredPausedState();
             frontier.getCrawlQueueManager().pause(desiredPaused);
         } catch (DbException e) {
             LOG.warn("Could not read pause state", e);

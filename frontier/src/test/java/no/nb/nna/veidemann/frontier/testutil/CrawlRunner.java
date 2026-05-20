@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.SettableFuture;
-import com.rethinkdb.net.Cursor;
+import com.rethinkdb.net.Result;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -326,8 +326,9 @@ public class CrawlRunner implements AutoCloseable {
                                                         + "Remaining REDIS keys: %s%nQueue count total: %s",
                                                 jedisInner.keys("*"),
                                                 jedisInner.get("QCT")));
-                                        Cursor c = conn.exec("db-getQueuedUris", r.table(Tables.URI_QUEUE.name));
-                                        c.forEach(v -> sb.append("\nURI in RethinkDB queue: ").append(v));
+                                        try (Result<?> c = conn.exec("db-getQueuedUris", r.table(Tables.URI_QUEUE.name))) {
+                                            c.forEach(v -> sb.append("\nURI in RethinkDB queue: ").append(v));
+                                        }
                                     } catch (DbConnectionException | DbQueryException ex) {
                                         LOG.error("Error querying queue state", ex);
                                     }

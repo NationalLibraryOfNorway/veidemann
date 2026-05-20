@@ -2,7 +2,6 @@ package no.nb.nna.veidemann.db;
 
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.net.Cursor;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject.SpecCase;
 import no.nb.nna.veidemann.api.config.v1.ConfigObjectOrBuilder;
@@ -21,6 +20,7 @@ import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.DbConnectionException;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
+import no.nb.nna.veidemann.commons.db.DbResultSet;
 import no.nb.nna.veidemann.db.fieldmask.ObjectPathAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class RethinkDbConfigAdapter implements ConfigAdapter {
-    private static final Logger LOG = LoggerFactory.getLogger(RethinkDbConfigAdapter.class);
 
     private static final ObjectPathAccessor<ConfigObjectOrBuilder> OBJECT_PATH_ACCESSOR = new ObjectPathAccessor<>(ConfigObject.class);
 
@@ -45,32 +44,26 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
     public ConfigObject getConfigObject(ConfigRef request) throws DbException {
         final Tables table = getTableForKind(request.getKind());
 
-        Map<String, Object> response = conn.exec("db-getConfigObject",
-                r.table(table.name)
-                        .get(request.getId())
-        );
-
-        if (response == null) {
-            return null;
-        }
-
-        return ProtoUtils.rethinkToProto(response, ConfigObject.class);
+        return conn.executeGet("db-getConfigObject",
+            r.table(table.name)
+                .get(request.getId()),
+            ConfigObject.class);
     }
 
     public boolean hasConfigObject(ConfigRef request) throws DbQueryException, DbConnectionException {
         final Tables table = getTableForKind(request.getKind());
 
-        return conn.exec("db-getConfigObject",
+        return conn.executeAtom("db-getConfigObject",
                 r.table(table.name)
-                        .getAll(request.getId()).contains()
-        );
+                .getAll(request.getId()).contains(),
+            Boolean.class);
     }
 
     @Override
     public ChangeFeed<ConfigObject> listConfigObjects(no.nb.nna.veidemann.api.config.v1.ListRequest request) throws DbQueryException, DbConnectionException {
         ListConfigObjectQueryBuilder q = new ListConfigObjectQueryBuilder(request);
 
-        Object res = conn.exec("db-listConfigObjects", q.getListQuery());
+        DbResultSet<Map<String, Object>> res = conn.executeSequence("db-listConfigObjects", q.getListQuery());
         return new ChangeFeedBase<>(res) {
             @Override
             protected Function<Map<String, Object>, ConfigObject> mapper() {
@@ -84,7 +77,7 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
     @Override
     public ListCountResponse countConfigObjects(no.nb.nna.veidemann.api.config.v1.ListRequest request) throws DbQueryException, DbConnectionException {
         ListConfigObjectQueryBuilder q = new ListConfigObjectQueryBuilder(request);
-        long res = conn.exec("db-countConfigObjects", q.getCountQuery());
+        long res = conn.executeAtom("db-countConfigObjects", q.getCountQuery(), Long.class);
         return ListCountResponse.newBuilder().setCount(res).build();
     }
 
@@ -101,7 +94,7 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
 
         UpdateConfigObjectQueryBuilder q = new UpdateConfigObjectQueryBuilder(request);
 
-        Map res = conn.exec("db-updateConfigObjects", q.getUpdateQuery());
+        Map<String, Object> res = conn.executeObject("db-updateConfigObjects", q.getUpdateQuery());
         if ((long) res.get("inserted") != 0 || (long) res.get("errors") != 0 || (long) res.get("deleted") != 0) {
             throw new DbQueryException("Only replaced or unchanged expected from an update query. Got: " + res);
         }
@@ -143,7 +136,7 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
                 }
         }
 
-        Map<String, Object> response = conn.exec("db-deleteConfigObject",
+        Map<String, Object> response = conn.executeObject("db-deleteConfigObject",
                 r.table(table.name)
                         .get(object.getId())
                         .delete()
@@ -155,13 +148,13 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
     public LabelKeysResponse getLabelKeys(GetLabelKeysRequest request) throws DbQueryException, DbConnectionException {
         Tables table = getTableForKind(request.getKind());
 
-        try (Cursor<String> res = conn.exec("db-getLabelKeys",
+        try (DbResultSet<String> res = conn.executeSequence("db-getLabelKeys",
                 r.table(table.name)
                         .distinct().optArg("index", "kind_label_key")
                         .filter(k1 -> k1.nth(0).eq(request.getKind().name()))
                         .map(k2 -> k2.nth(1))
         )) {
-            return LabelKeysResponse.newBuilder().addAllKey(res).build();
+            return LabelKeysResponse.newBuilder().addAllKey(res.stream().toList()).build();
         }
     }
 
@@ -187,7 +180,7 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
 
     @Override
     public LogLevels getLogConfig() throws DbException {
-        Map<String, Object> response = conn.exec("get-logconfig",
+        Map<String, Object> response = conn.executeObject("get-logconfig",
                 r.table(Tables.SYSTEM.name)
                         .get("log_levels")
                         .pluck("logLevel")
@@ -235,12 +228,12 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
             throw new IllegalArgumentException("Missing meta");
         } else {
             // Check that name is set if this is a new object
-            if (!rMap.containsKey("id") && (!rMap.containsKey("meta") || !((Map) rMap.get("meta")).containsKey("name"))) {
+            if (!rMap.containsKey("id") && (!rMap.containsKey("meta") || !((Map<String, Object>) rMap.get("meta")).containsKey("name"))) {
                 throw new IllegalArgumentException("Trying to store a new " + msg.getClass().getSimpleName()
                         + " object, but meta.name is not set.");
             }
 
-            rMap.put("meta", updateMeta((Map) rMap.get("meta")));
+            rMap.put("meta", updateMeta((Map<String, Object>) rMap.get("meta")));
 
             return conn.executeInsert("db-save" + msg.getClass().getSimpleName(),
                     r.table(table.name)
@@ -260,9 +253,11 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
     }
 
     @SuppressWarnings("unchecked")
-    private Map updateMeta(Map meta) {
+    private Map<String, Object> updateMeta(Map<String, Object> meta) {
         if (meta == null) {
-            meta = r.hashMap();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> emptyMeta = (Map<String, Object>) (Map<?, ?>) r.hashMap();
+            meta = emptyMeta;
         }
 
         String user = EmailContextKey.email();
@@ -299,8 +294,9 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
                 ConfigRef.newBuilder().setKind(messageToCheck.getKind()).setId(messageToCheck.getId()).build());
         request.getQueryMaskBuilder().addPaths(dependentFieldName);
 
-        long dependencyCount = conn.exec("db-checkDependency",
-                new ListConfigObjectQueryBuilder(request.build()).getCountQuery());
+        long dependencyCount = conn.executeAtom("db-checkDependency",
+            new ListConfigObjectQueryBuilder(request.build()).getCountQuery(),
+            Long.class);
 
         if (dependencyCount > 0) {
             throw new DbQueryException("Can't delete " + messageToCheck.getKind()

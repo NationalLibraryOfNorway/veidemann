@@ -57,6 +57,7 @@ import no.nb.nna.veidemann.commons.auth.IdTokenValidator;
 import no.nb.nna.veidemann.commons.auth.NoopAuAuServerInterceptor;
 import no.nb.nna.veidemann.commons.auth.UserRoleMapper;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
+import no.nb.nna.veidemann.commons.db.DbQueryAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.commons.db.DbServiceSPI;
@@ -110,6 +111,7 @@ public class ControllerServiceTest {
         when(dbProviderMock.getConfigAdapter()).thenReturn(configAdapterMock);
         executionsAdapterMock = mock(ExecutionsAdapter.class);
         when(dbProviderMock.getExecutionsAdapter()).thenReturn(executionsAdapterMock);
+        when(dbProviderMock.getDbQueryAdapter()).thenReturn(mock(DbQueryAdapter.class));
 
         db = DbService.configure(dbProviderMock);
         FrontierClient frontierClientMock = mock(FrontierClient.class);
@@ -462,7 +464,7 @@ public class ControllerServiceTest {
         }
 
         public ControllerApiServerMock(Settings settings, IdTokenValidator idValidator, ServerBuilder<?> serverBuilder, UserRoleMapper userRoleMapper) {
-            super(settings, serverBuilder, userRoleMapper, null, null);
+                        super(settings, ControllerServiceTest.this.db, serverBuilder, userRoleMapper, null, null);
             this.idValidator = idValidator;
         }
 

@@ -191,8 +191,11 @@ public class AbstractIntegrationTest {
         redisData = new RedisData(jedisSupplier::get);
 
         frontier = new Frontier(tracer, settings, jedisSupplier, robotsServiceClient, dnsServiceClient,
-                scopeServiceClient,
-                outOfScopeHandlerClient, logServiceClient, conn, DbService.getInstance().getConfigAdapter());
+            scopeServiceClient,
+            outOfScopeHandlerClient, logServiceClient,
+            DbService.getInstance().getFrontierAdapter(),
+            DbService.getInstance().getConfigAdapter(),
+            DbService.getInstance().getExecutionsAdapter());
         apiServer = new FrontierApiServer(settings.getApiPort(), settings.getTerminationGracePeriodSeconds(), frontier);
         apiServer.start();
 

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 public class RethinkAstVisualizer {
@@ -80,7 +81,7 @@ public class RethinkAstVisualizer {
         }
 
         String objIndent = makeSubObjIndent(indent, last);
-        List<String> optArgsList = getOptArgs(ast).entrySet().stream().map(e -> {
+        List<String> optArgsList = getOptArgs(ast).entrySet().stream().sorted(Entry.comparingByKey()).map(e -> {
 
             String s = e.getKey() + ": ";
 
@@ -134,7 +135,8 @@ public class RethinkAstVisualizer {
 
     Arguments getArguments(ReqlAst ast) {
         try {
-            return (Arguments) argsField.get(ast);
+            Arguments args = (Arguments) argsField.get(ast);
+            return args == null ? new Arguments() : args;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -142,7 +144,8 @@ public class RethinkAstVisualizer {
 
     OptArgs getOptArgs(ReqlAst ast) {
         try {
-            return (OptArgs) optargsField.get(ast);
+            OptArgs optArgs = (OptArgs) optargsField.get(ast);
+            return optArgs == null ? new OptArgs() : optArgs;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }

@@ -34,11 +34,10 @@ import no.nb.nna.veidemann.commons.auth.RolesContextKey;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.commons.db.DbService;
-import no.nb.nna.veidemann.commons.settings.CommonSettings;
 import no.nb.nna.veidemann.commons.util.ApiTools;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -52,7 +51,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * <p>
  * These tests are dependent on a running RethinkDB instance.
  */
-public class RethinkDbConfigAdapterIT {
+public class RethinkDbConfigAdapterIT extends AbstractRethinkDbIntegrationTest {
     public static RethinkDbConfigAdapter configAdapter;
     static final RethinkDB r = RethinkDB.r;
 
@@ -67,36 +66,18 @@ public class RethinkDbConfigAdapterIT {
     ConfigObject browserConfig1;
     ConfigObject collectionConfig1;
 
-    @Before
+        @BeforeEach
     public void init() throws DbException {
-        String dbHost = System.getProperty("db.host");
-        int dbPort = Integer.parseInt(System.getProperty("db.port"));
-
-        if (!DbService.isConfigured()) {
-            CommonSettings settings = new CommonSettings();
-            DbService.configure(new CommonSettings()
-                    .withDbHost(dbHost)
-                    .withDbPort(dbPort)
-                    .withDbName("veidemann")
-                    .withDbUser("admin")
-                    .withDbPassword(""));
-        }
-
+                DbService dbService = configureDbService();
+                deleteDatabaseIfPresent();
         try {
-            DbService.getInstance().getDbInitializer().delete();
-        } catch (DbException e) {
-            if (!e.getMessage().matches("Database .* does not exist.")) {
-                throw e;
-            }
-        }
-        try {
-            DbService.getInstance().getDbInitializer().initialize();
+                        dbService.getDbInitializer().initialize();
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
         }
 
-        configAdapter = (RethinkDbConfigAdapter) DbService.getInstance().getConfigAdapter();
+                configAdapter = (RethinkDbConfigAdapter) dbService.getConfigAdapter();
 
         browserConfig1 = configAdapter.saveConfigObject(
                 createConfBuilder(browserConfig, "bc1").build());
@@ -156,9 +137,9 @@ public class RethinkDbConfigAdapterIT {
                         .build());
     }
 
-    @After
-    public void shutdown() {
-        DbService.getInstance().close();
+        @AfterEach
+        public void shutdown() throws DbException {
+                cleanupDbService();
     }
 
     private ConfigObject.Builder createConfBuilder(Kind kind, String name, Label... label) {

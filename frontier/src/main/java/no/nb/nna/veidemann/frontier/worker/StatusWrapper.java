@@ -15,17 +15,10 @@
  */
 package no.nb.nna.veidemann.frontier.worker;
 
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.Timestamp;
-import com.rethinkdb.RethinkDB;
-import com.rethinkdb.gen.ast.ReqlFunction1;
-import com.rethinkdb.gen.ast.Update;
-import com.rethinkdb.model.MapObject;
 
 import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
@@ -34,13 +27,10 @@ import no.nb.nna.veidemann.api.config.v1.Kind;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatusChange;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
+import no.nb.nna.veidemann.commons.db.CrawlExecutionStatusUpdate;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import no.nb.nna.veidemann.db.RethinkDbConnection;
-import no.nb.nna.veidemann.db.Tables;
-import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 
 /**
  * Wrapper around CrawlExecutionStatus that accumulates changes and flushes them
@@ -70,8 +60,6 @@ public class StatusWrapper {
     private ConfigObject jobConfig;
     private ConfigObject crawlConfig;
 
-    static final RethinkDB r = RethinkDB.r;
-
     private StatusWrapper(Frontier frontier, CrawlExecutionStatus status) {
         this.frontier = frontier;
         this.status = status.toBuilder();
@@ -85,8 +73,7 @@ public class StatusWrapper {
     public static StatusWrapper getStatusWrapper(Frontier frontier, String executionId) throws DbException {
         return new StatusWrapper(
                 frontier,
-                DbService.getInstance()
-                        .getExecutionsAdapter()
+            frontier.getExecutionsAdapter()
                         .getCrawlExecutionStatus(executionId));
     }
 
@@ -114,126 +101,10 @@ public class StatusWrapper {
 
         change.setId(status.getId());
 
-        ReqlFunction1 updateFunc = doc -> {
-            MapObject rMap = r.hashMap("lastChangeTime", r.now());
-
-            switch (change.getState()) {
-                case UNDEFINED:
-                    break;
-                case CREATED:
-                    throw new IllegalArgumentException("Not allowed to set state back to CREATED");
-                default:
-                    rMap.with("state", change.getState().name());
-            }
-
-            if (change.getAddBytesCrawled() != 0) {
-                rMap.with("bytesCrawled",
-                        doc.g("bytesCrawled")
-                                .add(change.getAddBytesCrawled())
-                                .default_(change.getAddBytesCrawled()));
-            }
-            if (change.getAddDocumentsCrawled() != 0) {
-                rMap.with("documentsCrawled",
-                        doc.g("documentsCrawled")
-                                .add(change.getAddDocumentsCrawled())
-                                .default_(change.getAddDocumentsCrawled()));
-            }
-            if (change.getAddDocumentsDenied() != 0) {
-                rMap.with("documentsDenied",
-                        doc.g("documentsDenied")
-                                .add(change.getAddDocumentsDenied())
-                                .default_(change.getAddDocumentsDenied()));
-            }
-            if (change.getAddDocumentsFailed() != 0) {
-                rMap.with("documentsFailed",
-                        doc.g("documentsFailed")
-                                .add(change.getAddDocumentsFailed())
-                                .default_(change.getAddDocumentsFailed()));
-            }
-            if (change.getAddDocumentsOutOfScope() != 0) {
-                rMap.with("documentsOutOfScope",
-                        doc.g("documentsOutOfScope")
-                                .add(change.getAddDocumentsOutOfScope())
-                                .default_(change.getAddDocumentsOutOfScope()));
-            }
-            if (change.getAddDocumentsRetried() != 0) {
-                rMap.with("documentsRetried",
-                        doc.g("documentsRetried")
-                                .add(change.getAddDocumentsRetried())
-                                .default_(change.getAddDocumentsRetried()));
-            }
-            if (change.getAddUrisCrawled() != 0) {
-                rMap.with("urisCrawled",
-                        doc.g("urisCrawled")
-                                .add(change.getAddUrisCrawled())
-                                .default_(change.getAddUrisCrawled()));
-            }
-            if (change.hasEndTime()) {
-                rMap.with("endTime", ProtoUtils.tsToOdt(change.getEndTime()));
-            }
-            if (change.hasError()) {
-                rMap.with("error", ProtoUtils.protoToRethink(change.getError()));
-            }
-
-            return doc.merge(rMap)
-                    .merge(d -> r.branch(
-                            // If the original document had an ended state, keep original endTime if
-                            // present;
-                            // otherwise use endTime from change request.
-                            doc.g("state").match("FINISHED|ABORTED_TIMEOUT|ABORTED_SIZE|ABORTED_MANUAL|FAILED|DIED"),
-                            r.hashMap("state", doc.g("state")).with("endTime",
-                                    r.branch(doc.hasFields("endTime"),
-                                            doc.g("endTime"),
-                                            d.g("endTime").default_((Object) null))),
-
-                            // If the change request contained an end state, set it and ensure startTime is
-                            // set.
-                            d.g("state").match("FINISHED|ABORTED_TIMEOUT|ABORTED_SIZE|ABORTED_MANUAL|FAILED|DIED"),
-                            r.hashMap("state", d.g("state")).with("startTime",
-                                    r.branch(doc.hasFields("startTime"),
-                                            doc.g("startTime"),
-                                            d.g("startTime").default_(r.now()))),
-
-                            // If change state is FETCHING or SLEEPING and original state was
-                            // CREATED/FETCHING/SLEEPING,
-                            // then update state.
-                            d.g("state").match("FETCHING|SLEEPING")
-                                    .and(doc.g("state").match("CREATED|FETCHING|SLEEPING")),
-                            r.hashMap("state", d.g("state")),
-
-                            // Otherwise keep original state.
-                            r.hashMap("state", doc.g("state"))))
-
-                    // Set startTime if not set and new state is FETCHING.
-                    .merge(d -> r.branch(doc.hasFields("startTime").not()
-                            .and(d.g("state").match("FETCHING")),
-                            r.hashMap("startTime", r.now()),
-                            r.hashMap()));
-        };
-
-        // Update the CrawlExecutionStatus
-        Update qry = r.table(Tables.EXECUTIONS.name)
-                .get(change.getId())
-                .update(updateFunc)
-                .optArg("durability", "soft")
-                .optArg("return_changes", "always");
-
-        RethinkDbConnection conn = ((RethinkDbInitializer) DbService.getInstance().getDbInitializer())
-                .getDbConnection();
-
-        Map<String, Object> response = conn.exec("db-updateCrawlExecutionStatus", qry);
-
-        @SuppressWarnings("unchecked")
-        List<Map<String, Map>> changes = (List<Map<String, Map>>) response.get("changes");
-        if (changes == null || changes.isEmpty()) {
-            throw new IllegalStateException("No changes returned when updating CrawlExecutionStatus " + change.getId());
-        }
-
-        Map<String, Object> oldVal = changes.get(0).get("old_val");
-        Map<String, Object> newVal = changes.get(0).get("new_val");
-
-        boolean wasNotEnded = oldVal == null || oldVal.get("endTime") == null;
-        CrawlExecutionStatus newDoc = ProtoUtils.rethinkToProto(newVal, CrawlExecutionStatus.class);
+        CrawlExecutionStatusUpdate update = frontier.getFrontierAdapter().updateCrawlExecutionStatus(change.build());
+        CrawlExecutionStatus oldDoc = update.previous();
+        CrawlExecutionStatus newDoc = update.current();
+        boolean wasNotEnded = oldDoc == null || !oldDoc.hasEndTime();
 
         CrawlExecutionStatus.State newState = newDoc.getState();
 
@@ -261,7 +132,7 @@ public class StatusWrapper {
 
         boolean noRunningExecutions = (hasRunningExecutions == null || !hasRunningExecutions);
         if (noRunningExecutions && wasNotEnded && newDoc.hasEndTime()) {
-            updateJobExecution(conn, newDoc.getJobExecutionId());
+            updateJobExecution(newDoc.getJobExecutionId());
         }
 
         status = newDoc.toBuilder();
@@ -271,7 +142,7 @@ public class StatusWrapper {
         return this;
     }
 
-    private void updateJobExecution(RethinkDbConnection conn, String jobExecutionId) throws DbException {
+    private void updateJobExecution(String jobExecutionId) throws DbException {
         JobExecutionStatus tjes = frontier.getCrawlQueueManager().getTempJobExecutionStatus(jobExecutionId);
         if (tjes == null) {
             return;
@@ -279,10 +150,7 @@ public class StatusWrapper {
 
         LOG.debug("JobExecution '{}' finished, saving stats", jobExecutionId);
 
-        JobExecutionStatus jes = conn.executeGet(
-                "db-getJobExecutionStatus",
-                r.table(Tables.JOB_EXECUTIONS.name).get(jobExecutionId),
-                JobExecutionStatus.class);
+        JobExecutionStatus jes = frontier.getFrontierAdapter().getJobExecutionStatus(jobExecutionId);
 
         if (jes == null) {
             throw new IllegalStateException("Can't find JobExecution: " + jobExecutionId);
@@ -310,10 +178,7 @@ public class StatusWrapper {
                 .setEndTime(ProtoUtils.getNowTs());
         jesBuilder.mergeFrom(tjes);
 
-        conn.exec("db-saveJobExecutionStatus",
-                r.table(Tables.JOB_EXECUTIONS.name)
-                        .get(jesBuilder.getId())
-                        .update(ProtoUtils.protoToRethink(jesBuilder)));
+        frontier.getFrontierAdapter().saveJobExecutionStatus(jesBuilder.build());
 
         frontier.getCrawlQueueManager().removeRedisJobExecution(jobExecutionId);
     }

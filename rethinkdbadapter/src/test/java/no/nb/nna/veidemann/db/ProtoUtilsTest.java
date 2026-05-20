@@ -26,7 +26,7 @@ import no.nb.nna.veidemann.api.config.v1.Label;
 import no.nb.nna.veidemann.api.config.v1.Meta;
 import no.nb.nna.veidemann.api.config.v1.Role;
 import no.nb.nna.veidemann.api.config.v1.RoleMapping;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

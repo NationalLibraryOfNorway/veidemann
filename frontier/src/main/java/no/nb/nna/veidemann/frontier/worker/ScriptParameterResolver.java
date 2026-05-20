@@ -11,7 +11,6 @@ import no.nb.nna.veidemann.api.config.v1.ListRequest;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.commons.util.ApiTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +64,7 @@ public class ScriptParameterResolver {
     }
 
     private Map<String, Annotation> LoadScriptParametersForJob(ConfigRef jobConfigRef) throws DbException {
-        ConfigAdapter db = DbService.getInstance().getConfigAdapter();
+        ConfigAdapter db = frontier.getConfigAdapter();
 
         ConfigObject jobConfig = frontier.getConfig(jobConfigRef);
         ConfigObject crawlConfig = frontier.getConfig(jobConfig.getCrawlJob().getCrawlConfigRef());

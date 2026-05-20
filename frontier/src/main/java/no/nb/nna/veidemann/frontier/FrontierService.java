@@ -29,8 +29,7 @@ import com.typesafe.config.ConfigException;
 import io.opentracing.Tracer;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
-import no.nb.nna.veidemann.db.RethinkDbConnection;
-import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
+import no.nb.nna.veidemann.commons.db.DbServices;
 import no.nb.nna.veidemann.frontier.api.FrontierApiServer;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import no.nb.nna.veidemann.frontier.worker.DnsServiceClient;
@@ -85,8 +84,7 @@ public class FrontierService implements AutoCloseable {
      */
     public void start() throws ConfigException, DbException {
 
-        db = DbService.configure(settings);
-        RethinkDbConnection conn = ((RethinkDbInitializer) db.getDbInitializer()).getDbConnection();
+        db = DbServices.connect(settings);
 
         JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
         jedisPoolConfig.setMaxTotal(256);
@@ -165,8 +163,9 @@ public class FrontierService implements AutoCloseable {
                 scopeServiceClient,
                 outOfScopeHandlerClient,
                 logServiceClient,
-                conn,
-                db.getConfigAdapter());
+                db.getFrontierAdapter(),
+                db.getConfigAdapter(),
+                db.getExecutionsAdapter());
 
         apiServer = new FrontierApiServer(
                 settings.getApiPort(),
