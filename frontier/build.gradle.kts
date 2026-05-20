@@ -15,12 +15,12 @@ dependencies {
     implementation(project(":rethinkdbadapter"))
 
     implementation(libs.typesafe.config)
-    implementation("redis.clients:jedis:7.4.1")
+    implementation(libs.jedis)
 
     // Prometheus
-    implementation("io.prometheus:simpleclient:0.16.0")
-    implementation("io.prometheus:simpleclient_hotspot:0.16.0")
-    implementation("io.prometheus:simpleclient_httpserver:0.16.0")
+    implementation(libs.prometheus.simpleclient)
+    implementation(libs.prometheus.simpleclient.hotspot)
+    implementation(libs.prometheus.simpleclient.httpserver)
 
     // gRPC
     implementation(platform(libs.grpc.bom))
@@ -28,14 +28,14 @@ dependencies {
     implementation("io.grpc:grpc-netty-shaded")
 
     // RethinkDB
-    implementation("com.rethinkdb:rethinkdb-driver:2.3.3")
-    implementation("com.google.code.gson:gson:2.13.2")
-    implementation("org.yaml:snakeyaml:2.6")
+    implementation(libs.rethinkdb.driver)
+    implementation(libs.gson)
+    implementation(libs.snakeyaml)
     
     // Tracing
-    implementation("io.jaegertracing:jaeger-client:1.8.1")
-    implementation("io.opentracing.contrib:opentracing-grpc:0.2.3")
-    implementation("io.opentracing:opentracing-noop:0.33.0")
+    implementation(libs.jaeger.client)
+    implementation(libs.opentracing.grpc)
+    implementation(libs.opentracing.noop)
     
     // Logging
     implementation(platform(libs.slf4j.bom))
@@ -52,14 +52,15 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // Assert/Mockito/etc..
-    testImplementation("org.assertj:assertj-core:3.24.2")
+    testImplementation(platform(libs.assertj.bom))
+    testImplementation("org.assertj:assertj-core")
     testImplementation(platform(libs.mockito.bom))
     testImplementation("org.mockito:mockito-core")
-    testImplementation("org.awaitility:awaitility:4.3.0")
-    testImplementation("io.opentracing:opentracing-mock:0.33.0")
+    testImplementation(libs.awaitility)
+    testImplementation(libs.opentracing.mock)
     
     // Testcontainers
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
+    testImplementation(libs.testcontainers.junit.jupiter)
 }
 
 tasks.test {
