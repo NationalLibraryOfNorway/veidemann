@@ -15,13 +15,13 @@ dependencies {
     implementation(project(":commons"))
 
 
-    api("com.rethinkdb:rethinkdb-driver:2.3.3")
-    implementation("com.google.code.gson:gson:2.13.2")
-    implementation("org.yaml:snakeyaml:2.6")
+    api(libs.rethinkdb.driver)
+    implementation(libs.gson)
+    implementation(libs.snakeyaml)
     
     // OpenTracing
-    implementation("io.opentracing:opentracing-api:0.33.0")
-    implementation("io.opentracing:opentracing-util:0.33.0")
+    implementation(libs.opentracing.api)
+    implementation(libs.opentracing.util)
 
     // Log4j and SLF4J
     implementation(platform(libs.slf4j.bom))
@@ -35,7 +35,8 @@ dependencies {
     testImplementation(platform(libs.mockito.bom))
     testImplementation("org.mockito:mockito-core")
     // AssertJ
-    testImplementation("org.assertj:assertj-core:3.27.6")
+    testImplementation(platform(libs.assertj.bom))
+    testImplementation("org.assertj:assertj-core")
     // JUnit
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")

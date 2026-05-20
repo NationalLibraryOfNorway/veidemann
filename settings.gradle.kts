@@ -1,5 +1,20 @@
 rootProject.name = "veidemann"
 
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
+    repositories {
+        mavenCentral()
+    }
+}
+
 include(
     "java-api",
     "rethinkdbadapter",
@@ -7,13 +22,3 @@ include(
     "frontier",
     "controller",
 )
-
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-    }
-
-    plugins {
-        id("com.google.cloud.tools.jib") version "3.5.1"
-    }
-}

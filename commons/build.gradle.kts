@@ -6,10 +6,10 @@ plugins {
 dependencies {
     implementation(project(":java-api"))
 
-    implementation("io.opentracing:opentracing-api:0.33.0")
-    compileOnly("io.opentracing.contrib:opentracing-grpc:0.2.3")
+    implementation(libs.opentracing.api)
+    compileOnly(libs.opentracing.grpc)
 
-    api("com.nimbusds:oauth2-oidc-sdk:11.37")
+    api(libs.oauth2.oidc.sdk)
     api(libs.typesafe.config)
 
     implementation(platform(libs.slf4j.bom))
@@ -24,11 +24,11 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.assertj:assertj-core:3.27.6")
+    testImplementation(platform(libs.assertj.bom))
+    testImplementation("org.assertj:assertj-core")
     testImplementation(platform(libs.mockito.bom))
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.mockito:mockito-junit-jupiter")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
 }
 
 tasks.test {
