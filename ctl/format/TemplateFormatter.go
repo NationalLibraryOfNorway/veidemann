@@ -172,7 +172,7 @@ func parseTemplate(templateString string) (*template.Template, error) {
 				if len(field) == 0 {
 					res[i] = fmt.Sprintf("%s", val)
 				} else {
-					if val.Kind() == reflect.Ptr {
+					if val.Kind() == reflect.Pointer {
 						val = val.Elem()
 					}
 					for j, f := range field {
