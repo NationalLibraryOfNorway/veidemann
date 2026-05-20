@@ -65,3 +65,13 @@ updates:
       commit-message:
           prefix: "build"
           include: "scope"
+
+    - package-ecosystem: "gradle"
+      labels:
+          - "dependencies"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      commit-message:
+          prefix: "build"
+          include: "scope"
