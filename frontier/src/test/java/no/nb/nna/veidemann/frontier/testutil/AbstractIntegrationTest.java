@@ -10,7 +10,6 @@ import org.assertj.core.api.Assertions;
 import org.assertj.core.presentation.StandardRepresentation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -38,14 +37,16 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
+import redis.clients.jedis.ConnectionPoolConfig;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.providers.PooledConnectionProvider;
 
 public class AbstractIntegrationTest {
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractIntegrationTest.class);
     private static Network network = Network.newNetwork();
 
+    @SuppressWarnings("resource")
     @Container
     public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:8-alpine"))
             .withNetwork(network)
@@ -58,6 +59,7 @@ public class AbstractIntegrationTest {
             .waitingFor(
                     Wait.forLogMessage(".*Ready to accept connections.*", 1));
 
+            @SuppressWarnings("resource")
     @Container
     public static GenericContainer<?> rethinkDb = new GenericContainer<>(
             DockerImageName.parse("rethinkdb:2.4.4-bookworm-slim"))
@@ -68,6 +70,7 @@ public class AbstractIntegrationTest {
                     new IsRunningStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)))
             .waitingFor(
                     Wait.forLogMessage(".*Server ready.*", 1));
+            @SuppressWarnings("resource")
     @Container
     public static GenericContainer<?> dbInitializer = new GenericContainer<>(
             DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter").withTag("0.11.0"))
@@ -78,6 +81,7 @@ public class AbstractIntegrationTest {
             .withEnv("DB_USER", "admin")
             .withStartupCheckStrategy(
                     new OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(60)));
+            @SuppressWarnings("resource")
     @Container
     public GenericContainer<?> queueWorker = new GenericContainer<>(
             DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.2.0"))
@@ -152,12 +156,18 @@ public class AbstractIntegrationTest {
         settings.setRedisHost(redis.getHost());
         settings.setRedisPort(redis.getFirstMappedPort());
 
-        dnsResolverMock = new DnsResolverMock(settings.getDnsResolverPort()).start();
-        robotsEvaluatorMock = new RobotsEvaluatorMock(settings.getRobotsEvaluatorPort()).start();
-        outOfScopeHandlerMock = new OutOfScopeHandlerMock(settings.getOutOfScopeHandlerPort()).start();
-        scopeCheckerServiceMock = new ScopeCheckerServiceMock(settings.getScopeservicePort()).start();
-        harvesterMock = new HarvesterMock(settings).start();
-        logServiceMock = new LogServiceMock(settings.getLogServicePort()).start();
+        dnsResolverMock = new DnsResolverMock(settings.getDnsResolverPort());
+        dnsResolverMock.start();
+        robotsEvaluatorMock = new RobotsEvaluatorMock(settings.getRobotsEvaluatorPort());
+        robotsEvaluatorMock.start();
+        outOfScopeHandlerMock = new OutOfScopeHandlerMock(settings.getOutOfScopeHandlerPort());
+        outOfScopeHandlerMock.start();
+        scopeCheckerServiceMock = new ScopeCheckerServiceMock(settings.getScopeservicePort());
+        scopeCheckerServiceMock.start();
+        harvesterMock = new HarvesterMock(settings);
+        harvesterMock.start();
+        logServiceMock = new LogServiceMock(settings.getLogServicePort());
+        logServiceMock.start();
         robotsServiceClient = new RobotsServiceClient(settings.getRobotsEvaluatorHost(),
                 settings.getRobotsEvaluatorPort());
         dnsServiceClient = new DnsServiceClient(settings.getDnsResolverHost(), settings.getDnsResolverPort());
@@ -178,25 +188,31 @@ public class AbstractIntegrationTest {
         conn = ((RethinkDbInitializer) DbService.getInstance().getDbInitializer()).getDbConnection();
         conn.connect(dbSettings);
 
-        JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-        jedisPoolConfig.setMaxTotal(512);
-        jedisPoolConfig.setMaxIdle(32);
-        jedisPoolConfig.setMinIdle(2);
+        ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
+        poolConfig.setMaxTotal(512);
+        poolConfig.setMaxIdle(32);
+        poolConfig.setMinIdle(2);
 
-        JedisPool jedisPool = new JedisPool(jedisPoolConfig, settings.getRedisHost(), settings.getRedisPort());
-        jedisResource = jedisPool;
-        jedisSupplier = jedisPool::getResource;
+        PooledConnectionProvider pooledProvider = new PooledConnectionProvider(
+            new HostAndPort(settings.getRedisHost(), settings.getRedisPort()),
+            DefaultJedisClientConfig.builder().build(),
+            poolConfig);
+        jedisResource = pooledProvider;
+        jedisSupplier = () -> new Jedis(pooledProvider.getConnection());
 
         rethinkDbData = new RethinkDbData(conn);
         redisData = new RedisData(jedisSupplier::get);
 
         frontier = new Frontier(tracer, settings, jedisSupplier, robotsServiceClient, dnsServiceClient,
-                scopeServiceClient,
-                outOfScopeHandlerClient, logServiceClient, conn, DbService.getInstance().getConfigAdapter());
+            scopeServiceClient,
+            outOfScopeHandlerClient, logServiceClient,
+            DbService.getInstance().getFrontierAdapter(),
+            DbService.getInstance().getConfigAdapter(),
+            DbService.getInstance().getExecutionsAdapter());
         apiServer = new FrontierApiServer(settings.getApiPort(), settings.getTerminationGracePeriodSeconds(), frontier);
         apiServer.start();
 
-        crawlRunner = new CrawlRunner(settings, rethinkDbData, jedisPool);
+        crawlRunner = new CrawlRunner(settings, rethinkDbData, jedisSupplier);
     }
 
     @AfterEach
@@ -228,7 +244,9 @@ public class AbstractIntegrationTest {
         conn.exec(r.table(Tables.SEEDS.name).delete());
         conn.exec(r.table(Tables.CRAWL_ENTITIES.name).delete());
 
-        jedisSupplier.get().flushAll();
+        try (Jedis jedis = jedisSupplier.get()) {
+            jedis.flushAll();
+        }
         jedisResource.close();
 
         if (queueWorker != null) {

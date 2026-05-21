@@ -11,10 +11,7 @@ import no.nb.nna.veidemann.api.config.v1.ListRequest;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.commons.util.ApiTools;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,7 +24,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class ScriptParameterResolver {
-    private static final Logger LOG = LoggerFactory.getLogger(ScriptParameterResolver.class);
     private final Frontier frontier;
     private final LoadingCache<ConfigRef, Map<String, Annotation>> jobParametersCache;
 
@@ -65,7 +61,7 @@ public class ScriptParameterResolver {
     }
 
     private Map<String, Annotation> LoadScriptParametersForJob(ConfigRef jobConfigRef) throws DbException {
-        ConfigAdapter db = DbService.getInstance().getConfigAdapter();
+        ConfigAdapter db = frontier.getConfigAdapter();
 
         ConfigObject jobConfig = frontier.getConfig(jobConfigRef);
         ConfigObject crawlConfig = frontier.getConfig(jobConfig.getCrawlJob().getCrawlConfigRef());

@@ -28,6 +28,7 @@ import com.typesafe.config.ConfigException;
 import no.nb.nna.veidemann.commons.auth.UserRoleMapper;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
+import no.nb.nna.veidemann.commons.db.DbServices;
 import no.nb.nna.veidemann.controller.scheduler.CrawlJobScheduler;
 import no.nb.nna.veidemann.controller.settings.Settings;
 
@@ -59,7 +60,7 @@ public final class Controller implements AutoCloseable {
     public void start() throws ConfigException, DbException {
         importTrustedCaIfPresent();
 
-        db = DbService.configure(settings);
+        db = DbServices.connectAndInstall(settings);
         urlFrontierClient = new FrontierClient(
                 settings.getFrontierHost(),
                 settings.getFrontierPort(),
@@ -72,6 +73,7 @@ public final class Controller implements AutoCloseable {
                 settings.getLogServicePort());
         apiServer = new ControllerApiServer(
                 settings,
+            db,
                 userRoleMapper,
                 scopeServiceClient,
                 logServiceClient);

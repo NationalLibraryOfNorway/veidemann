@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +28,7 @@ import com.typesafe.config.ConfigException;
 import io.opentracing.Tracer;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
-import no.nb.nna.veidemann.db.RethinkDbConnection;
-import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
+import no.nb.nna.veidemann.commons.db.DbServices;
 import no.nb.nna.veidemann.frontier.api.FrontierApiServer;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import no.nb.nna.veidemann.frontier.worker.DnsServiceClient;
@@ -39,13 +37,12 @@ import no.nb.nna.veidemann.frontier.worker.LogServiceClient;
 import no.nb.nna.veidemann.frontier.worker.OutOfScopeHandlerClient;
 import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
+import redis.clients.jedis.ConnectionPoolConfig;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisSentinelPool;
-import redis.clients.jedis.Protocol;
+import redis.clients.jedis.providers.PooledConnectionProvider;
+import redis.clients.jedis.providers.SentineledConnectionProvider;
 
 /**
  * Class for launching the service.
@@ -85,13 +82,12 @@ public class FrontierService implements AutoCloseable {
      */
     public void start() throws ConfigException, DbException {
 
-        db = DbService.configure(settings);
-        RethinkDbConnection conn = ((RethinkDbInitializer) db.getDbInitializer()).getDbConnection();
+        db = DbServices.connect(settings);
 
-        JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-        jedisPoolConfig.setMaxTotal(256);
-        jedisPoolConfig.setMaxIdle(16);
-        jedisPoolConfig.setMinIdle(2);
+        ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
+        poolConfig.setMaxTotal(256);
+        poolConfig.setMaxIdle(16);
+        poolConfig.setMinIdle(2);
 
         Supplier<Jedis> jedisSupplier;
 
@@ -113,15 +109,15 @@ public class FrontierService implements AutoCloseable {
             Set<HostAndPort> sentinels = Set.of(
                     new HostAndPort(settings.getRedisHost(), settings.getRedisPort()));
 
-            JedisSentinelPool sentinelPool = new JedisSentinelPool(
+                SentineledConnectionProvider sentinelProvider = new SentineledConnectionProvider(
                     settings.getRedisSentinelMasterName(),
-                    sentinels,
-                    jedisPoolConfig,
                     masterCfg,
+                    poolConfig,
+                    sentinels,
                     sentinelCfg);
 
-            redisResource = sentinelPool;
-            jedisSupplier = sentinelPool::getResource;
+                redisResource = sentinelProvider;
+                jedisSupplier = () -> new Jedis(sentinelProvider.getConnection());
 
         } else {
 
@@ -129,15 +125,15 @@ public class FrontierService implements AutoCloseable {
             LOG.info("Using standalone Redis at {}:{}",
                     settings.getRedisHost(), settings.getRedisPort());
 
-            JedisPool pool = new JedisPool(
-                    jedisPoolConfig,
+                PooledConnectionProvider pooledProvider = new PooledConnectionProvider(
                     new HostAndPort(settings.getRedisHost(), settings.getRedisPort()),
                     clientConfigBuilder()
-                            .database(0)
-                            .build());
+                        .database(0)
+                        .build(),
+                    poolConfig);
 
-            redisResource = pool;
-            jedisSupplier = pool::getResource;
+                redisResource = pooledProvider;
+                jedisSupplier = () -> new Jedis(pooledProvider.getConnection());
         }
 
         robotsServiceClient = new RobotsServiceClient(
@@ -165,8 +161,9 @@ public class FrontierService implements AutoCloseable {
                 scopeServiceClient,
                 outOfScopeHandlerClient,
                 logServiceClient,
-                conn,
-                db.getConfigAdapter());
+                db.getFrontierAdapter(),
+                db.getConfigAdapter(),
+                db.getExecutionsAdapter());
 
         apiServer = new FrontierApiServer(
                 settings.getApiPort(),

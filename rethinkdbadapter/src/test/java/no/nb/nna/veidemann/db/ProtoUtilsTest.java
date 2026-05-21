@@ -26,7 +26,7 @@ import no.nb.nna.veidemann.api.config.v1.Label;
 import no.nb.nna.veidemann.api.config.v1.Meta;
 import no.nb.nna.veidemann.api.config.v1.Role;
 import no.nb.nna.veidemann.api.config.v1.RoleMapping;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -66,7 +66,7 @@ public class ProtoUtilsTest {
                         .setMaxRetries(5))
                 .build();
 
-        Map crawlHostGroupConfig = r.hashMap("id", "UUID")
+        Map<?, ?> crawlHostGroupConfig = r.hashMap("id", "UUID")
                 .with("apiVersion", "v1")
                 .with("kind", "crawlHostGroupConfig")
                 .with("meta", r.hashMap()
@@ -87,7 +87,7 @@ public class ProtoUtilsTest {
         assertThat(result).isEqualTo(crawlHostGroupConfig);
 
         // Check conversion of object with list of enums
-        Map roleMappingRethink = r.hashMap("email", "admin@example.com")
+        Map<?, ?> roleMappingRethink = r.hashMap("email", "admin@example.com")
                 .with("role", r.array(Role.ADMIN.name(), Role.CURATOR.name()));
         RoleMapping roleMappingProto = RoleMapping.newBuilder().setEmail("admin@example.com").addRole(Role.ADMIN).addRole(Role.CURATOR).build();
         assertThat(ProtoUtils.protoToRethink(roleMappingProto)).isEqualTo(roleMappingRethink);
@@ -117,7 +117,7 @@ public class ProtoUtilsTest {
                         .setMaxRetries(5))
                 .build();
 
-        Map crawlHostGroupConfig = r.hashMap("id", "UUID")
+        Map<?, ?> crawlHostGroupConfig = r.hashMap("id", "UUID")
                 .with("apiVersion", "v1")
                 .with("kind", "crawlHostGroupConfig")
                 .with("meta", r.hashMap()
@@ -139,7 +139,7 @@ public class ProtoUtilsTest {
         assertThat(result).isEqualTo(expResult);
 
         // Check conversion of object with list of enums
-        Map roleMappingRethink = r.hashMap("email", "admin@example.com")
+        Map<?, ?> roleMappingRethink = r.hashMap("email", "admin@example.com")
                 .with("role", r.array(Role.ADMIN.name(), Role.CURATOR.name()));
         RoleMapping roleMappingProto = RoleMapping.newBuilder().setEmail("admin@example.com").addRole(Role.ADMIN).addRole(Role.CURATOR).build();
         assertThat(ProtoUtils.rethinkToProto(roleMappingRethink, RoleMapping.class)).isEqualTo(roleMappingProto);
@@ -169,7 +169,7 @@ public class ProtoUtilsTest {
                         .setMaxRetries(5))
                 .build();
 
-        Map crawlHostGroupConfig = r.hashMap("id", "UUID")
+        Map<?, ?> crawlHostGroupConfig = r.hashMap("id", "UUID")
                 .with("apiVersion", "v1")
                 .with("kind", "crawlHostGroupConfig")
                 .with("meta", r.hashMap()

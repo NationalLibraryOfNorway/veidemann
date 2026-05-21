@@ -18,11 +18,9 @@ package no.nb.nna.veidemann.commons.auth;
 
 import com.google.protobuf.Empty;
 import com.nimbusds.jwt.JWTClaimsSet;
-import io.grpc.Attributes;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
@@ -58,8 +56,7 @@ public class IdTokenAuAuServerInterceptorTest {
     private ManagedChannel inProcessChannel;
 
     private OosHandlerGrpc.OosHandlerBlockingStub blockingStub;
-
-    private OosHandlerGrpc.OosHandlerStub asyncStub;
+    private IdTokenAuAuServerInterceptor idTokenAuAuServerInterceptor;
 
     private TestService service;
 
@@ -68,7 +65,6 @@ public class IdTokenAuAuServerInterceptorTest {
         inProcessServerBuilder = InProcessServerBuilder.forName(uniqueServerName).directExecutor();
         inProcessChannel = InProcessChannelBuilder.forName(uniqueServerName).directExecutor().build();
         blockingStub = OosHandlerGrpc.newBlockingStub(inProcessChannel);
-        asyncStub = OosHandlerGrpc.newStub(inProcessChannel);
 
         IdTokenValidator idValidatorMock = mock(IdTokenValidator.class);
         UserRoleMapper roleMapperMock = mock(UserRoleMapper.class);
@@ -85,7 +81,7 @@ public class IdTokenAuAuServerInterceptorTest {
                 });
 
         service = new TestService();
-        IdTokenAuAuServerInterceptor idTokenAuAuServerInterceptor = new IdTokenAuAuServerInterceptor(roleMapperMock, idValidatorMock);
+            idTokenAuAuServerInterceptor = new IdTokenAuAuServerInterceptor(roleMapperMock, idValidatorMock);
         inProcessServer = inProcessServerBuilder
                 .addService(idTokenAuAuServerInterceptor.intercept(service))
                 .build();
@@ -96,6 +92,7 @@ public class IdTokenAuAuServerInterceptorTest {
     public void afterEachTest() {
         inProcessServer.shutdownNow();
         inProcessChannel.shutdownNow();
+        idTokenAuAuServerInterceptor.close();
     }
 
     @Test

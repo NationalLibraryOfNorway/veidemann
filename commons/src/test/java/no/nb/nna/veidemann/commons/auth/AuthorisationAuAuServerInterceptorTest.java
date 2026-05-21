@@ -76,68 +76,64 @@ public class AuthorisationAuAuServerInterceptorTest {
     public void interceptCall() throws IOException {
         // Create Service and interceptors
         TestService service = new TestService();
+        try (AuthorisationAuAuServerInterceptor authorisationAuAuServerInterceptor = new AuthorisationAuAuServerInterceptor(service)) {
+            ApiKeyRoleMapper apiKeyRoleMapper = new ApiKeyRoleMapperFromFile("src/test/resources/apikey_rolemapping");
+            try (ApiKeyAuAuServerInterceptor apiKeyAuAuServerInterceptor = new ApiKeyAuAuServerInterceptor(apiKeyRoleMapper)) {
+                IdTokenValidator idValidatorMock = mock(IdTokenValidator.class);
+                UserRoleMapper roleMapperMock = mock(UserRoleMapper.class);
+                when(idValidatorMock.verifyIdToken("token1"))
+                        .thenReturn(new JWTClaimsSet.Builder()
+                                .claim("email", "user@example.com")
+                                .claim("groups", new JSONArray())
+                                .build());
+                when(roleMapperMock.getRolesForUser(eq("user@example.com"), anyList(), anyCollection()))
+                        .thenAnswer((Answer<Collection<Role>>) invocation -> {
+                            Collection<Role> roles = invocation.getArgument(2);
+                            roles.add(Role.ANY_USER);
+                            roles.add(Role.READONLY);
+                            return roles;
+                        });
 
-        AuthorisationAuAuServerInterceptor authorisationAuAuServerInterceptor = new AuthorisationAuAuServerInterceptor(service);
+                try (IdTokenAuAuServerInterceptor idTokenAuAuServerInterceptor = new IdTokenAuAuServerInterceptor(roleMapperMock, idValidatorMock)) {
+                    Server inProcessServer = inProcessServerBuilder
+                            .addService(authorisationAuAuServerInterceptor.intercept(service))
+                            .build().start();
 
-        ApiKeyRoleMapper apiKeyRoleMapper = new ApiKeyRoleMapperFromFile("src/test/resources/apikey_rolemapping");
-        ApiKeyAuAuServerInterceptor apiKeyAuAuServerInterceptor = new ApiKeyAuAuServerInterceptor(apiKeyRoleMapper);
+                    assertThatExceptionOfType(StatusRuntimeException.class)
+                            .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).countConfigObjects(ListRequest.getDefaultInstance()))
+                            .withMessage("UNAUTHENTICATED");
 
-        IdTokenValidator idValidatorMock = mock(IdTokenValidator.class);
-        UserRoleMapper roleMapperMock = mock(UserRoleMapper.class);
-        when(idValidatorMock.verifyIdToken("token1"))
-                .thenReturn(new JWTClaimsSet.Builder()
-                        .claim("email", "user@example.com")
-                        .claim("groups", new JSONArray())
-                        .build());
-        when(roleMapperMock.getRolesForUser(eq("user@example.com"), anyList(), anyCollection()))
-                .thenAnswer((Answer<Collection<Role>>) invocation -> {
-                    Collection<Role> roles = invocation.getArgument(2);
-                    roles.add(Role.ANY_USER);
-                    roles.add(Role.READONLY);
-                    return roles;
-                });
+                    inProcessServer.shutdownNow();
 
-        IdTokenAuAuServerInterceptor idTokenAuAuServerInterceptor = new IdTokenAuAuServerInterceptor(roleMapperMock, idValidatorMock);
+                    inProcessServer = inProcessServerBuilder
+                            .addService(idTokenAuAuServerInterceptor.intercept(apiKeyAuAuServerInterceptor.intercept(authorisationAuAuServerInterceptor.intercept(service))))
+                            .build().start();
 
-        // Test with only AuthorisationAuAuServerInterceptor
-        Server inProcessServer = inProcessServerBuilder
-                .addService(authorisationAuAuServerInterceptor.intercept(service))
-                .build().start();
+                    blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).countConfigObjects(ListRequest.getDefaultInstance());
+                    assertThat(service.lastRoles).containsExactlyInAnyOrder(Role.ANY, Role.ANY_USER, Role.READONLY, Role.SYSTEM);
 
-        assertThatExceptionOfType(StatusRuntimeException.class)
-                .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).countConfigObjects(ListRequest.getDefaultInstance()))
-                .withMessage("UNAUTHENTICATED");
+                    assertThatExceptionOfType(StatusRuntimeException.class)
+                            .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("wrongApiKey", "token1")).saveConfigObject(ConfigObject.getDefaultInstance()))
+                            .withMessage("PERMISSION_DENIED");
 
-        inProcessServer.shutdownNow();
+                    assertThatExceptionOfType(StatusRuntimeException.class)
+                            .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).getConfigObject(ConfigRef.getDefaultInstance()))
+                            .withMessage("PERMISSION_DENIED");
 
+                    blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).getConfigObject(ConfigRef.newBuilder().setKind(Kind.browserConfig).build());
+                    assertThat(service.lastRoles).containsExactlyInAnyOrder(Role.ANY, Role.ANY_USER, Role.READONLY, Role.SYSTEM);
 
-        // Test with several interceptors
-        inProcessServer = inProcessServerBuilder
-                .addService(idTokenAuAuServerInterceptor.intercept(apiKeyAuAuServerInterceptor.intercept(authorisationAuAuServerInterceptor.intercept(service))))
-                .build().start();
+                    blockingStub.withCallCredentials(createCredentials("myApiKey", null)).getConfigObject(ConfigRef.newBuilder().setKind(Kind.browserConfig).build());
+                    assertThat(service.lastRoles).containsExactlyInAnyOrder(Role.ANY, Role.ANY_USER, Role.SYSTEM);
 
-        blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).countConfigObjects(ListRequest.getDefaultInstance());
-        assertThat(service.lastRoles).containsExactlyInAnyOrder(Role.ANY, Role.ANY_USER, Role.READONLY, Role.SYSTEM);
+                    assertThatExceptionOfType(StatusRuntimeException.class)
+                            .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).getConfigObject(ConfigRef.newBuilder().setKind(Kind.roleMapping).build()))
+                            .withMessage("PERMISSION_DENIED");
 
-        assertThatExceptionOfType(StatusRuntimeException.class)
-                .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("wrongApiKey", "token1")).saveConfigObject(ConfigObject.getDefaultInstance()))
-                .withMessage("PERMISSION_DENIED");
-
-        assertThatExceptionOfType(StatusRuntimeException.class)
-                .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).getConfigObject(ConfigRef.getDefaultInstance()))
-                .withMessage("PERMISSION_DENIED");
-
-        blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).getConfigObject(ConfigRef.newBuilder().setKind(Kind.browserConfig).build());
-        assertThat(service.lastRoles).containsExactlyInAnyOrder(Role.ANY, Role.ANY_USER, Role.READONLY, Role.SYSTEM);
-
-        blockingStub.withCallCredentials(createCredentials("myApiKey", null)).getConfigObject(ConfigRef.newBuilder().setKind(Kind.browserConfig).build());
-        assertThat(service.lastRoles).containsExactlyInAnyOrder(Role.ANY, Role.ANY_USER, Role.SYSTEM);
-
-        assertThatExceptionOfType(StatusRuntimeException.class)
-                .isThrownBy(() -> blockingStub.withCallCredentials(createCredentials("myApiKey", "token1")).getConfigObject(ConfigRef.newBuilder().setKind(Kind.roleMapping).build()))
-                .withMessage("PERMISSION_DENIED");
-
-        inProcessServer.shutdownNow();
+                    inProcessServer.shutdownNow();
+                }
+            }
+        }
     }
 
     public class TestService extends ConfigGrpc.ConfigImplBase {

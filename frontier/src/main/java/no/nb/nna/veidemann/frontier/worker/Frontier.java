@@ -19,7 +19,6 @@ import java.net.URISyntaxException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -37,8 +36,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.rethinkdb.RethinkDB;
-import com.rethinkdb.gen.ast.Insert;
 
 import io.grpc.Status;
 import io.grpc.health.v1.HealthCheckResponse.ServingStatus;
@@ -58,9 +55,9 @@ import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
+import no.nb.nna.veidemann.commons.db.ExecutionsAdapter;
+import no.nb.nna.veidemann.commons.db.FrontierAdapter;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import no.nb.nna.veidemann.db.RethinkDbConnection;
-import no.nb.nna.veidemann.db.Tables;
 import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
@@ -87,6 +84,12 @@ public class Frontier implements AutoCloseable {
 
     private final LogServiceClient logServiceClient;
 
+    private final FrontierAdapter frontierAdapter;
+
+    private final ConfigAdapter configAdapter;
+
+    private final ExecutionsAdapter executionsAdapter;
+
     private final CrawlQueueManager crawlQueueManager;
 
     private final LoadingCache<ConfigRef, ConfigObject> configCache;
@@ -98,8 +101,6 @@ public class Frontier implements AutoCloseable {
     private final ForkJoinPool asyncFunctionsThreadPool;
 
     private final Supplier<Jedis> jedisSupplier;
-    final RethinkDbConnection conn;
-    static final RethinkDB r = RethinkDB.r;
 
     public Frontier(Tracer tracer,
             Settings settings,
@@ -109,8 +110,9 @@ public class Frontier implements AutoCloseable {
             ScopeServiceClient scopeServiceClient,
             OutOfScopeHandlerClient outOfScopeHandlerClient,
             LogServiceClient logServiceClient,
-            RethinkDbConnection conn,
-            ConfigAdapter configAdapter) {
+            FrontierAdapter frontierAdapter,
+            ConfigAdapter configAdapter,
+            ExecutionsAdapter executionsAdapter) {
         this.tracer = tracer;
         this.settings = settings;
         this.jedisSupplier = jedisSupplier;
@@ -119,7 +121,9 @@ public class Frontier implements AutoCloseable {
         this.scopeServiceClient = scopeServiceClient;
         this.outOfScopeHandlerClient = outOfScopeHandlerClient;
         this.logServiceClient = logServiceClient;
-        this.conn = conn;
+        this.frontierAdapter = frontierAdapter;
+        this.configAdapter = configAdapter;
+        this.executionsAdapter = executionsAdapter;
 
         postFetchThreadPool = new ForkJoinPool(
                 64,
@@ -144,7 +148,7 @@ public class Frontier implements AutoCloseable {
                 60,
                 TimeUnit.SECONDS);
 
-        this.crawlQueueManager = new CrawlQueueManager(this, conn, jedisSupplier);
+        this.crawlQueueManager = new CrawlQueueManager(this, frontierAdapter, jedisSupplier);
 
         this.configCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
@@ -169,7 +173,7 @@ public class Frontier implements AutoCloseable {
             parentCtx = null;
         }
         // Check that job is still running before allowing new seeds
-        String jobState = conn.exec(r.table(Tables.JOB_EXECUTIONS.name).get(request.getJobExecutionId()).g("state"));
+        String jobState = frontierAdapter.getJobExecutionState(request.getJobExecutionId());
         if (jobState.matches("FINISHED|ABORTED_TIMEOUT|ABORTED_SIZE|ABORTED_MANUAL|FAILED|DIED")) {
             throw Status.FAILED_PRECONDITION
                     .withDescription("Job execution '" + request.getJobExecutionId() + "' has finished")
@@ -263,8 +267,10 @@ public class Frontier implements AutoCloseable {
                             : tracer.buildSpan("frontier.preconditionsAndQueue").start());
                 }
 
-                try (Scope scope = span != null ? tracer.scopeManager().activate(span) : null) {
+                try (Scope scope = span != null && tracer != null ? tracer.scopeManager().activate(span) : null) {
                     switch (c) {
+                        case OK:
+                            break;
                         case DENIED:
                             if (status.getState() == State.ABORTED_MANUAL) {
                                 // Job was aborted before crawl execution was created. Ignore
@@ -291,6 +297,7 @@ public class Frontier implements AutoCloseable {
                             return null;
                         case RETRY:
                             status.incrementDocumentsRetried();
+                            break;
                     }
 
                     // Prefetch ok, add to queue
@@ -392,27 +399,9 @@ public class Frontier implements AutoCloseable {
         Objects.requireNonNull(jobExecutionId, "jobExecutionId must be set");
         Objects.requireNonNull(seedId, "seedId must be set");
 
-        CrawlExecutionStatus status = CrawlExecutionStatus.newBuilder()
-                .setJobId(jobId)
-                .setJobExecutionId(jobExecutionId)
-                .setSeedId(seedId)
-                .setState(CrawlExecutionStatus.State.CREATED)
-                .build();
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
-        rMap.put("lastChangeTime", r.now());
-        rMap.put("createdTime", r.now());
-        // Set desiredState to ABORTED_MANUAL if JobExecution has desiredState
-        // ABORTED_MANUAL.
-        rMap.put("desiredState", r.table(Tables.JOB_EXECUTIONS.name).get(jobExecutionId).g("desiredState").default_("")
-                .do_(j -> r.branch(j.eq("ABORTED_MANUAL"), "ABORTED_MANUAL", "UNDEFINED")));
-
         crawlQueueManager.updateJobExecutionStatus(jobExecutionId, State.UNDEFINED, State.CREATED,
                 CrawlExecutionStatusChange.getDefaultInstance());
-
-        Insert qry = r.table(Tables.EXECUTIONS.name).insert(rMap);
-        return conn.executeInsert("db-createExecutionStatus", qry, CrawlExecutionStatus.class);
+        return frontierAdapter.createCrawlExecutionStatus(jobId, jobExecutionId, seedId);
     }
 
     public ConfigObject getConfig(ConfigRef ref) throws DbQueryException {
@@ -425,6 +414,18 @@ public class Frontier implements AutoCloseable {
 
     public Tracer getTracer() {
         return tracer;
+    }
+
+    public FrontierAdapter getFrontierAdapter() {
+        return frontierAdapter;
+    }
+
+    public ConfigAdapter getConfigAdapter() {
+        return configAdapter;
+    }
+
+    public ExecutionsAdapter getExecutionsAdapter() {
+        return executionsAdapter;
     }
 
     public ForkJoinPool getPostFetchThreadPool() {

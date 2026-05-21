@@ -26,7 +26,7 @@ import java.util.Objects;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
-import com.rethinkdb.ast.ReqlAst;
+import no.nb.nna.veidemann.commons.db.DbQuery;
 
 public class QueryEngine {
     private final HttpClient httpClient;
@@ -43,7 +43,7 @@ public class QueryEngine {
         this.gson = new Gson();
     }
 
-    public ReqlAst parseQuery(String query) throws IOException {
+    public DbQuery parseQuery(String query) throws IOException {
         String jsonBody = gson.toJson(new QueryRequest(query));
 
         HttpRequest request = HttpRequest.newBuilder(endpoint)
@@ -77,11 +77,12 @@ public class QueryEngine {
             throw new IllegalStateException("Missing 'ast' field in AST service response: " + response.body());
         }
 
-        return new RethinkPreparsedTerm(parsed.ast);
+        return new DbQuery(parsed.ast);
     }
 
     // Request DTO
     private static class QueryRequest {
+        @SuppressWarnings("unused")
         final String query;
         QueryRequest(String query) {
             this.query = query;

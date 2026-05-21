@@ -40,7 +40,6 @@ import no.nb.nna.veidemann.commons.auth.AllowedRoles;
 import no.nb.nna.veidemann.commons.auth.Authorisations;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
-import no.nb.nna.veidemann.commons.db.DbService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +55,8 @@ public class ConfigService extends ConfigGrpc.ConfigImplBase {
 
     private final ScopeServiceClient scopeServiceClient;
 
-    public ConfigService(ScopeServiceClient scopeServiceClient) {
-        this.db = DbService.getInstance().getConfigAdapter();
+    public ConfigService(ConfigAdapter db, ScopeServiceClient scopeServiceClient) {
+        this.db = db;
         this.scopeServiceClient = scopeServiceClient;
     }
 

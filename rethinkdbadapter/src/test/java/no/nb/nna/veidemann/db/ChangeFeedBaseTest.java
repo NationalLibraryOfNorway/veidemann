@@ -17,16 +17,18 @@
 package no.nb.nna.veidemann.db;
 
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.net.Cursor;
+import com.rethinkdb.net.Result;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,21 +38,21 @@ public class ChangeFeedBaseTest {
 
     @Test
     public void stream() throws TimeoutException {
-        Cursor<Map<String, Object>> cursorMock = mock(Cursor.class);
+        Result<Map<String, Object>> cursorMock = mockResult();
         when(cursorMock.hasNext())
                 .thenReturn(true)
                 .thenReturn(true)
                 .thenReturn(true)
                 .thenReturn(true)
                 .thenReturn(false);
-        when(cursorMock.next(anyLong()))
-                .thenReturn(r.hashMap("id", "id1"))
-                .thenReturn(r.hashMap("id", "id2").with("seed", r.hashMap("disabled", true)))
+        when(cursorMock.next(anyLong(), any(TimeUnit.class)))
+            .thenReturn(rethinkMap(r.hashMap("id", "id1")))
+            .thenReturn(rethinkMap(r.hashMap("id", "id2").with("seed", r.hashMap("disabled", true))))
                 // Error expected since boolean field disabled cannot contain a number
-                .thenReturn(r.hashMap("id", "id3").with("seed", r.hashMap("disabled", "100")))
-                .thenReturn(r.hashMap("id", "id4").with("seed", r.hashMap("disabled", false)));
+            .thenReturn(rethinkMap(r.hashMap("id", "id3").with("seed", r.hashMap("disabled", "100"))))
+            .thenReturn(rethinkMap(r.hashMap("id", "id4").with("seed", r.hashMap("disabled", false))));
 
-        ChangeFeed<ConfigObject> cf = new ChangeFeedBase<ConfigObject>(cursorMock) {
+        try (ChangeFeed<ConfigObject> cf = new ChangeFeedBase<ConfigObject>(RethinkDbResultSet.fromResult(cursorMock)) {
             @Override
             protected Function<Map<String, Object>, ConfigObject> mapper() {
                 return co -> {
@@ -64,14 +66,24 @@ public class ChangeFeedBaseTest {
                     }
                 };
             }
-        };
+        }) {
+            // Expecting only three because 'id3' should fail
+            assertThat(cf.stream()).hasSize(3).extracting("id")
+                    .satisfies(objects -> {
+                        assertThat(objects.get(0)).isEqualTo("id1");
+                        assertThat(objects.get(1)).isEqualTo("id2");
+                        assertThat(objects.get(2)).isEqualTo("id4");
+                    });
+        }
+    }
 
-        // Expecting only three because 'id3' should fail
-        assertThat(cf.stream()).hasSize(3).extracting("id")
-                .satisfies(objects -> {
-                    assertThat(objects.get(0)).isEqualTo("id1");
-                    assertThat(objects.get(1)).isEqualTo("id2");
-                    assertThat(objects.get(2)).isEqualTo("id4");
-                });
+    @SuppressWarnings("unchecked")
+    private static Result<Map<String, Object>> mockResult() {
+        return mock(Result.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> rethinkMap(Object value) {
+        return (Map<String, Object>) value;
     }
 }

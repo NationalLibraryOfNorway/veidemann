@@ -64,7 +64,7 @@ public class XmlPlusConfigServerOverridesConfiguration extends XmlConfiguration 
     }
 
     Node getLoggersNode() {
-        PluginType loggersType = pluginManager.getPluginType("loggers");
+        PluginType<?> loggersType = pluginManager.getPluginType("loggers");
         for (Node n : getRootNode().getChildren()) {
             if (n.getType().equals(loggersType)) {
                 return n;
@@ -84,8 +84,8 @@ public class XmlPlusConfigServerOverridesConfiguration extends XmlConfiguration 
         }
 
         // No node found, creating new
-        PluginType loggerType = pluginManager.getPluginType("logger");
-        PluginType appenderRefType = pluginManager.getPluginType("appenderref");
+        PluginType<?> loggerType = pluginManager.getPluginType("logger");
+        PluginType<?> appenderRefType = pluginManager.getPluginType("appenderref");
         Node l = new Node(loggers, "Logger", loggerType);
         l.getAttributes().put("name", logger.getLogger());
         l.getAttributes().put("level", logger.getLevel().name());

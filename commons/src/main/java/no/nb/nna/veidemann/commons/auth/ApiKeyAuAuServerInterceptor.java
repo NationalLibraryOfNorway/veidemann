@@ -22,8 +22,6 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import no.nb.nna.veidemann.api.config.v1.Role;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -33,8 +31,6 @@ import java.util.Collection;
  * This interceptor must be followed by {@link AuthorisationAuAuServerInterceptor}.
  */
 public class ApiKeyAuAuServerInterceptor extends AuAuServerInterceptor {
-    private static final Logger LOG = LoggerFactory.getLogger(IdTokenAuAuServerInterceptor.class);
-
     private final ApiKeyRoleMapper apiKeyRoleMapper;
 
     public ApiKeyAuAuServerInterceptor(ApiKeyRoleMapper apiKeyRoleMapper) {

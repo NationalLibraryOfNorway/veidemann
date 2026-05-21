@@ -45,8 +45,6 @@ public class ContentWriterClient implements AutoCloseable {
 
     private final ManagedChannel channel;
 
-    private final ContentWriterGrpc.ContentWriterBlockingStub blockingStub;
-
     private final ContentWriterGrpc.ContentWriterStub asyncStub;
 
     private final AtomicInteger requestCount = new AtomicInteger(0);
@@ -62,7 +60,6 @@ public class ContentWriterClient implements AutoCloseable {
         LOG.info("Setting up ContentWriter client");
         TracingClientInterceptor tracingInterceptor = TracingClientInterceptor.newBuilder().withTracer(GlobalTracer.get()).build();
         channel = channelBuilder.intercept(tracingInterceptor).build();
-        blockingStub = ContentWriterGrpc.newBlockingStub(channel);
         asyncStub = ContentWriterGrpc.newStub(channel);
     }
 

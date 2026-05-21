@@ -18,7 +18,7 @@ package no.nb.nna.veidemann.commons.auth;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.jwk.source.RemoteJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
 import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.JWSKeySelector;
 import com.nimbusds.jose.proc.JWSVerificationKeySelector;
@@ -59,12 +59,14 @@ public class IdTokenValidator {
     }
 
     public JWTClaimsSet verifyIdToken(String idToken) {
-        ConfigurableJWTProcessor jwtProcessor = new DefaultJWTProcessor();
+        ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
         try {
-            JWKSource keySource = new RemoteJWKSet(providerMetadata.getJWKSetURI().toURL());
+            JWKSource<SecurityContext> keySource = JWKSourceBuilder
+                    .<SecurityContext>create(providerMetadata.getJWKSetURI().toURL())
+                    .build();
             JWSAlgorithm expectedJWSAlg = JWSAlgorithm.RS256;
 
-            JWSKeySelector keySelector = new JWSVerificationKeySelector(expectedJWSAlg, keySource);
+            JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>(expectedJWSAlg, keySource);
             jwtProcessor.setJWSKeySelector(keySelector);
 
             // Process the token

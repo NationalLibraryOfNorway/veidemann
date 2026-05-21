@@ -29,12 +29,10 @@ import no.nb.nna.veidemann.api.report.v1.JobExecutionsListRequest;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
-import no.nb.nna.veidemann.commons.settings.CommonSettings;
 import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
 import java.util.Map;
@@ -42,56 +40,25 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RethinkDbExecutionsAdapterIT {
-    public static RethinkDbConnection conn;
-    public static RethinkDbExecutionsAdapter executionsAdapter;
+public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTest {
+    public RethinkDbConnection conn;
+    public RethinkDbExecutionsAdapter executionsAdapter;
 
     static RethinkDB r = RethinkDB.r;
 
-    @BeforeClass
-    public static void init() throws DbException {
-        String dbHost = System.getProperty("db.host");
-        int dbPort = Integer.parseInt(System.getProperty("db.port"));
+    @BeforeEach
+    public void init() throws DbException {
+        DbService dbService = configureDbService();
+        deleteDatabaseIfPresent();
+        dbService.getDbInitializer().initialize();
 
-        if (!DbService.isConfigured()) {
-            CommonSettings settings = new CommonSettings();
-            DbService.configure(new CommonSettings()
-                    .withDbHost(dbHost)
-                    .withDbPort(dbPort)
-                    .withDbName("veidemann")
-                    .withDbUser("admin")
-                    .withDbPassword(""));
-        }
-
-        try {
-            DbService.getInstance().getDbInitializer().delete();
-        } catch (DbException e) {
-            if (!e.getMessage().matches("Database .* does not exist.")) {
-                throw e;
-            }
-        }
-        DbService.getInstance().getDbInitializer().initialize();
-
-        executionsAdapter = (RethinkDbExecutionsAdapter) DbService.getInstance().getExecutionsAdapter();
-        conn = ((RethinkDbInitializer) DbService.getInstance().getDbInitializer()).getDbConnection();
+        executionsAdapter = (RethinkDbExecutionsAdapter) dbService.getExecutionsAdapter();
+        conn = ((RethinkDbInitializer) dbService.getDbInitializer()).getDbConnection();
     }
 
-    @AfterClass
-    public static void shutdown() {
-        DbService.getInstance().close();
-    }
-
-    @Before
-    public void cleanDb() throws DbException {
-        for (Tables table : Tables.values()) {
-            if (table != Tables.SYSTEM) {
-                try {
-                    conn.exec("delete", r.table(table.name).delete());
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-            }
-        }
+    @AfterEach
+    public void shutdown() throws DbException {
+        cleanupDbService();
     }
 
     private CrawlExecutionStatus createCrawlExecutionStatus(String jobId, String jobExecutionId, String seedId) throws DbException {
@@ -106,7 +73,7 @@ public class RethinkDbExecutionsAdapterIT {
                 .setState(CrawlExecutionStatus.State.CREATED)
                 .build();
 
-        Map rMap = ProtoUtils.protoToRethink(status);
+        Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
         rMap.put("lastChangeTime", r.now());
         rMap.put("createdTime", r.now());
 
@@ -121,7 +88,7 @@ public class RethinkDbExecutionsAdapterIT {
                 .setLastChangeTime(ProtoUtils.getNowTs())
                 .build();
 
-        Map rMap = ProtoUtils.protoToRethink(status);
+        Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
 
         Update qry = r.table(Tables.EXECUTIONS.name).get(ces.getId()).update(rMap);
         return conn.executeUpdate("db-updateExecutionStatus", qry, CrawlExecutionStatus.class);

@@ -2,29 +2,12 @@ package no.nb.nna.veidemann.commons.db;
 
 import no.nb.nna.veidemann.commons.settings.CommonSettings;
 
-import java.util.Iterator;
-import java.util.ServiceLoader;
-
 public class DbService implements AutoCloseable {
     private static DbService instance;
 
     private final DbServiceSPI service;
 
-    private DbService(CommonSettings settings) throws DbConnectionException {
-        ServiceLoader<DbServiceSPI> dbServiceLoader = ServiceLoader.load(DbServiceSPI.class);
-        Iterator<DbServiceSPI> services = dbServiceLoader.iterator();
-        if (!services.hasNext()) {
-            throw new DbConnectionException("No database adapter found");
-        }
-        this.service = services.next();
-        if (services.hasNext()) {
-            throw new DbConnectionException("More than one database adapter found");
-        }
-
-        this.service.connect(settings);
-    }
-
-    private DbService(DbServiceSPI service) {
+    DbService(DbServiceSPI service) {
         this.service = service;
     }
 
@@ -48,11 +31,7 @@ public class DbService implements AutoCloseable {
      * @param settings a {@link CommonSettings} object with connection parameters
      */
     public static synchronized DbService configure(CommonSettings settings) throws DbConnectionException {
-        if (instance != null) {
-            throw new IllegalStateException("Connection is already configured");
-        }
-        instance = new DbService(settings);
-        return instance;
+        return DbServices.connectAndInstall(settings);
     }
 
     /**
@@ -64,10 +43,14 @@ public class DbService implements AutoCloseable {
      * @return
      */
     public static synchronized DbService configure(DbServiceSPI service) {
+        return install(DbServices.wrap(service));
+    }
+
+    public static synchronized DbService install(DbService service) {
         if (instance != null) {
             throw new IllegalStateException("Connection is already configured");
         }
-        instance = new DbService(service);
+        instance = service;
         return instance;
     }
 
@@ -83,8 +66,12 @@ public class DbService implements AutoCloseable {
         return service.getExecutionsAdapter();
     }
 
-    public EventAdapter getEventAdapter() {
-        return service.getEventAdapter();
+    public DbQueryAdapter getDbQueryAdapter() {
+        return service.getDbQueryAdapter();
+    }
+
+    public FrontierAdapter getFrontierAdapter() {
+        return service.getFrontierAdapter();
     }
 
     public DbInitializer getDbInitializer() {

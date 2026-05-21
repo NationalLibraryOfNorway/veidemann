@@ -67,7 +67,7 @@ class IndexesTest {
     @Test
     void getBestIndexesForMask() {
         FieldMask mask = FieldMask.getDefaultInstance();
-        RethinkDbFieldMasksQueryBuilder queryBuilder = new JobExecutionQueryBuilder(mask);
+                RethinkDbFieldMasksQueryBuilder<?> queryBuilder = new JobExecutionQueryBuilder(mask);
         List<Index> result = queryBuilder.getBestIndexes();
         assertThat(result)
                 .as("none")
@@ -150,7 +150,7 @@ class IndexesTest {
 
     @Test
     void getBestIndexes() {
-        RethinkDbFieldMasksQueryBuilder noMaskBuilder = new JobExecutionQueryBuilder();
+                RethinkDbFieldMasksQueryBuilder<?> noMaskBuilder = new JobExecutionQueryBuilder();
 
         List<Index> result = noMaskBuilder.getBestIndexes("startTime");
         assertThat(result)

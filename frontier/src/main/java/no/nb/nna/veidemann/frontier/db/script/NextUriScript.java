@@ -12,6 +12,7 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.FutureOptional;
 import no.nb.nna.veidemann.frontier.db.script.NextUriScript.NextUriScriptResult;
+import redis.clients.jedis.params.ZRangeParams;
 import redis.clients.jedis.resps.Tuple;
 
 public class NextUriScript extends RedisJob<NextUriScriptResult> {
@@ -50,23 +51,28 @@ public class NextUriScript extends RedisJob<NextUriScriptResult> {
     public NextUriScriptResult run(JedisContext ctx, CrawlHostGroup crawlHostGroup) {
         return execute(ctx, jedis -> {
             String chgId = crawlHostGroup.getId();
+            String key = UCHG + chgId;
 
             // Find the crawl execution with the highest score
-            List<Tuple> mResult = jedis.zrevrangeByScoreWithScores(UCHG + chgId, "+inf", "-inf", 0, 1);
+            List<Tuple> mResult = jedis.zrangeWithScores(key,
+                    ZRangeParams.zrangeByScoreParams(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY)
+                            .rev()
+                            .limit(0, 1));
             if (mResult.isEmpty()) {
                 return new NextUriScriptResult(FutureOptional.empty());
             }
             double maxScore = mResult.iterator().next().getScore();
 
             // Choose weighted random crawl execution
-            String key = UCHG + chgId;
-            String minScore = String.valueOf(Math.random() * maxScore);
-            Long matchCount = jedis.zcount(key, minScore, "+inf");
+            double minScore = Math.random() * maxScore;
+            Long matchCount = jedis.zcount(key, minScore, Double.POSITIVE_INFINITY);
             if (matchCount == null || matchCount == 0) {
                 return new NextUriScriptResult(FutureOptional.empty());
             }
             int offset = (int) (Math.random() * matchCount);
-            List<String> eResult = jedis.zrangeByScore(key, minScore, "+inf", offset, 1);
+            List<String> eResult = jedis.zrange(key,
+                    ZRangeParams.zrangeByScoreParams(minScore, Double.POSITIVE_INFINITY)
+                            .limit(offset, 1));
             if (eResult.isEmpty()) {
                 return new NextUriScriptResult(FutureOptional.empty());
             }

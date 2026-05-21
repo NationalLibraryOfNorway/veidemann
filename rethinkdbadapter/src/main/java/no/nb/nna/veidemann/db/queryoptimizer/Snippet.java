@@ -76,7 +76,7 @@ abstract class Snippet<T extends MessageOrBuilder> {
     }
 
     class CanBeBehindCandidate {
-        Class<? extends Snippet> snippetType;
+        Class<?> snippetType;
         String path;
         List<Object> values;
         Index chosenIndex;

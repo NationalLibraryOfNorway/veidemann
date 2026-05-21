@@ -28,7 +28,6 @@ import no.nb.nna.veidemann.api.uricanonicalizer.v1.CanonicalizeResponse;
 import no.nb.nna.veidemann.api.uricanonicalizer.v1.UriCanonicalizerServiceGrpc;
 import no.nb.nna.veidemann.api.uricanonicalizer.v1.UriCanonicalizerServiceGrpc.UriCanonicalizerServiceBlockingStub;
 import no.nb.nna.veidemann.api.uricanonicalizer.v1.UriCanonicalizerServiceGrpc.UriCanonicalizerServiceFutureStub;
-import no.nb.nna.veidemann.api.uricanonicalizer.v1.UriCanonicalizerServiceGrpc.UriCanonicalizerServiceStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +45,6 @@ public class ScopeServiceClient implements AutoCloseable {
 
     private final UriCanonicalizerServiceBlockingStub blockingStub;
 
-    private final UriCanonicalizerServiceStub asyncStub;
-
     private final UriCanonicalizerServiceFutureStub futureStub;
 
     public ScopeServiceClient(final String host, final int port) {
@@ -61,7 +58,6 @@ public class ScopeServiceClient implements AutoCloseable {
                 .withTracer(GlobalTracer.get()).build();
         channel = channelBuilder.intercept(tracingInterceptor).build();
         blockingStub = UriCanonicalizerServiceGrpc.newBlockingStub(channel);
-        asyncStub = UriCanonicalizerServiceGrpc.newStub(channel);
         futureStub = UriCanonicalizerServiceGrpc.newFutureStub(channel);
     }
 

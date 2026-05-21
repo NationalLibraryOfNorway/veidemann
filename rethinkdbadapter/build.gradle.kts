@@ -4,6 +4,14 @@ plugins {
     alias(libs.plugins.jib)
 }
 
+val integrationTest by sourceSets.creating {
+    compileClasspath += sourceSets["main"].output + configurations.testRuntimeClasspath.get()
+    runtimeClasspath += output + compileClasspath
+}
+
+configurations[integrationTest.implementationConfigurationName].extendsFrom(configurations.testImplementation.get())
+configurations[integrationTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly.get())
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -55,4 +63,39 @@ jib {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+val integrationTestSystemProperties = listOf(
+    "db.host",
+    "db.port",
+    "db.name",
+    "db.user",
+    "db.password"
+)
+
+tasks.register<Test>("integrationTest") {
+    description = "Runs rethinkdbadapter integration tests against a live RethinkDB instance"
+    group = "verification"
+    testClassesDirs = integrationTest.output.classesDirs
+    classpath = integrationTest.runtimeClasspath
+    shouldRunAfter(tasks.test)
+    useJUnitPlatform()
+
+    integrationTestSystemProperties.forEach { propertyName ->
+        System.getProperty(propertyName)?.let { propertyValue ->
+            systemProperty(propertyName, propertyValue)
+        }
+    }
+
+    if (!systemProperties.containsKey("db.name")) {
+        systemProperty("db.name", "test")
+    }
+
+    doFirst {
+        val missingProperties = listOf("db.host", "db.port").filterNot(systemProperties::containsKey)
+        check(missingProperties.isEmpty()) {
+            "Missing required system properties for integrationTest: ${missingProperties.joinToString(", ")}. " +
+                    "Run with -Ddb.host=<host> -Ddb.port=<port>."
+        }
+    }
 }

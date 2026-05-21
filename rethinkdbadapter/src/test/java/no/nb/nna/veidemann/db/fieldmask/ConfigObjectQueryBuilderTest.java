@@ -21,7 +21,7 @@ import com.rethinkdb.gen.ast.ReqlFunction1;
 import no.nb.nna.veidemann.api.commons.v1.FieldMask;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.db.RethinkAstVisualizer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -39,7 +39,7 @@ public class ConfigObjectQueryBuilderTest {
                 .build();
 
         ConfigObjectQueryBuilder queryBuilder = new ConfigObjectQueryBuilder(m);
-        List q = queryBuilder.createPluckQuery();
+        List<Object> q = queryBuilder.createPluckQuery();
 
         assertThat(q).containsExactlyInAnyOrder("apiVersion", "kind", "id", "meta",
                 r.hashMap("crawlConfig", r.array(r.hashMap("extra", r.array("createScreenshot")), "priorityWeight")));

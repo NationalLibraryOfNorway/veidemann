@@ -22,15 +22,11 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import no.nb.nna.veidemann.api.ooshandler.v1.OosHandlerGrpc;
 import no.nb.nna.veidemann.api.ooshandler.v1.SubmitUriRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class OutOfScopeHandlerMock implements AutoCloseable {
-    private static final Logger LOG = LoggerFactory.getLogger(OutOfScopeHandlerMock.class);
-
     final Server server;
 
     public OutOfScopeHandlerMock(int port) {

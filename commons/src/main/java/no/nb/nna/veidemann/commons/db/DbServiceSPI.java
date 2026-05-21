@@ -12,7 +12,9 @@ public interface DbServiceSPI extends AutoCloseable {
 
     ExecutionsAdapter getExecutionsAdapter();
 
-    EventAdapter getEventAdapter();
+    DbQueryAdapter getDbQueryAdapter();
+
+    FrontierAdapter getFrontierAdapter();
 
     DbInitializer getDbInitializer();
 }

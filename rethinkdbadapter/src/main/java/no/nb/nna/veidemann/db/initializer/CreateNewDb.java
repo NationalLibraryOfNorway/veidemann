@@ -52,13 +52,11 @@ public class CreateNewDb extends TableCreator implements Runnable {
     private void createTables() throws DbQueryException, DbConnectionException {
         createSystemTable();
         createConfigsTable();
-        createCrawledContentTable();
         createUriQueueTable();
         createCrawlExecutionsTable();
         createJobExecutionsTable();
         createCrawlEntitiesTable();
         createSeedsTable();
-        createEventTable();
 
         waitForIndexes();
     }
@@ -89,10 +87,6 @@ public class CreateNewDb extends TableCreator implements Runnable {
                         .add(configRefSingular(row, Kind.crawlConfig.name(), "politenessRef"))
         );
         createMetaIndexes(Tables.CONFIG);
-    }
-
-    private void createCrawledContentTable() throws DbQueryException, DbConnectionException {
-        createTable(Tables.CRAWLED_CONTENT, "digest");
     }
 
     private void createUriQueueTable() throws DbQueryException, DbConnectionException {
@@ -131,14 +125,6 @@ public class CreateNewDb extends TableCreator implements Runnable {
                 configRefPlural(row, Kind.seed.name(), "jobRef"),
                 configRefSingular(row, Kind.seed.name(), "entityRef")));
         createMetaIndexes(Tables.SEEDS);
-    }
-
-    private void createEventTable() throws DbQueryException, DbConnectionException {
-        createTable(Tables.EVENTS);
-        createIndex(Tables.EVENTS, "state_lastModified", e -> r.array(e.g("state"), e.g("activity").nth(0).g("modifiedTime")));
-        createIndex(Tables.EVENTS, "assignee_lastModified", e -> r.array(e.g("assignee"), e.g("activity").nth(0).g("modifiedTime")));
-        createIndex(Tables.EVENTS, "label", true);
-        createIndex(Tables.EVENTS, "lastModified", e -> e.g("activity").nth(0).g("modifiedTime"));
     }
 
     private void createMetaIndexes(Tables table) throws DbQueryException, DbConnectionException {

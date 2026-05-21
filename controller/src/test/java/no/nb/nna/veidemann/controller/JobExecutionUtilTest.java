@@ -141,13 +141,6 @@ class JobExecutionUtilTest {
 
     @Test
     void overrideAnnotation() {
-        Annotation k1 = Annotation.newBuilder().setKey("k1").setValue("v1").build();
-        Annotation k2 = Annotation.newBuilder().setKey("k2").setValue("v2").build();
-        Annotation k2jc1 = Annotation.newBuilder().setKey("{jc1}k2").setValue("v2jc1").build();
-        Annotation k3id1 = Annotation.newBuilder().setKey("{id1}k3").setValue("v3id1").build();
-        Annotation k3 = Annotation.newBuilder().setKey("k3").setValue("v3").build();
-        Annotation k4 = Annotation.newBuilder().setKey("k4").setValue("v4").build();
-
         List<Annotation> annotations = new ArrayList<>();
         annotations.add(Annotation.newBuilder().setKey("k1").setValue("v1").build());
         annotations.add(Annotation.newBuilder().setKey("k2").setValue("v2").build());

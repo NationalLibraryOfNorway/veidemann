@@ -47,7 +47,7 @@ public class HarvesterMock implements AutoCloseable {
     private static final int NUM_HARVESTERS = 400;
     private static final Logger LOG = LoggerFactory.getLogger(HarvesterMock.class);
 
-    public RequestLog requestLog = new RequestLog();
+    public RequestLog<String> requestLog = new RequestLog<>();
     private final RequestMatcher exceptionForUrl = new RequestMatcher(requestLog);
     private final RequestMatcher fetchErrorForUrl = new RequestMatcher(requestLog);
     private final RequestMatcher longFetchTimeForUrl = new RequestMatcher(requestLog);

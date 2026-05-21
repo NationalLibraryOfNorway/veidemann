@@ -27,8 +27,6 @@ dependencies {
     implementation("io.grpc:grpc-services")
     implementation("io.grpc:grpc-netty-shaded")
 
-    // RethinkDB
-    implementation(libs.rethinkdb.driver)
     implementation(libs.gson)
     implementation(libs.snakeyaml)
     

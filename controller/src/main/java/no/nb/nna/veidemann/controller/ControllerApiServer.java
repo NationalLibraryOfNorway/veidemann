@@ -48,6 +48,7 @@ import no.nb.nna.veidemann.commons.auth.IdTokenAuAuServerInterceptor;
 import no.nb.nna.veidemann.commons.auth.IdTokenValidator;
 import no.nb.nna.veidemann.commons.auth.NoopAuAuServerInterceptor;
 import no.nb.nna.veidemann.commons.auth.UserRoleMapper;
+import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.controller.settings.Settings;
 
 public class ControllerApiServer implements AutoCloseable {
@@ -64,6 +65,7 @@ public class ControllerApiServer implements AutoCloseable {
     private static final Duration IDP_RETRY_DELAY = Duration.ofSeconds(20);
 
     final Settings settings;
+    final DbService dbService;
     final UserRoleMapper userRoleMapper;
     final ScopeServiceClient scopeServiceClient;
     final LogServiceClient logServiceClient;
@@ -82,11 +84,13 @@ public class ControllerApiServer implements AutoCloseable {
     }
 
     public ControllerApiServer(Settings settings,
+            DbService dbService,
             UserRoleMapper userRoleMapper,
             ScopeServiceClient scopeServiceClient,
             LogServiceClient logServiceClient) {
         this(
                 settings,
+                dbService,
                 ServerBuilder.forPort(settings.getApiPort()),
                 userRoleMapper,
                 scopeServiceClient,
@@ -94,11 +98,13 @@ public class ControllerApiServer implements AutoCloseable {
     }
 
     public ControllerApiServer(Settings settings,
+            DbService dbService,
             ServerBuilder<?> serverBuilder,
             UserRoleMapper userRoleMapper,
             ScopeServiceClient scopeServiceClient,
             LogServiceClient logServiceClient) {
         this.settings = Objects.requireNonNull(settings, "settings");
+        this.dbService = Objects.requireNonNull(dbService, "dbService");
         this.serverBuilder = Objects.requireNonNull(serverBuilder, "serverBuilder");
         this.userRoleMapper = userRoleMapper; // may be null in tests
         this.scopeServiceClient = scopeServiceClient; // may be null in tests
@@ -126,10 +132,9 @@ public class ControllerApiServer implements AutoCloseable {
         configureTlsIfAvailable();
 
         server = serverBuilder
-                .addService(createService(new ConfigService(scopeServiceClient), interceptors))
-                .addService(createService(new ControllerService(settings, jobExecutionListeners), interceptors))
-                .addService(createService(new ReportService(settings), interceptors))
-                .addService(createService(new EventService(), interceptors))
+            .addService(createService(new ConfigService(dbService.getConfigAdapter(), scopeServiceClient), interceptors))
+            .addService(createService(new ControllerService(settings, dbService.getConfigAdapter(), dbService.getExecutionsAdapter(), jobExecutionListeners), interceptors))
+            .addService(createService(new ReportService(settings, dbService.getExecutionsAdapter(), dbService.getDbQueryAdapter()), interceptors))
                 .addService(createService(new LogService(logServiceClient), interceptors))
                 .build();
 

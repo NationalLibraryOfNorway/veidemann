@@ -53,7 +53,7 @@ public abstract class AuAuServerInterceptor implements ServerInterceptor, AutoCl
         type = type.toLowerCase();
         Iterable<String> authHeaders = requestHeaders.getAll(AUTHORIZATION_KEY);
         if (authHeaders != null) {
-            for (String h : requestHeaders.getAll(AUTHORIZATION_KEY)) {
+            for (String h : authHeaders) {
                 if (h.toLowerCase().startsWith(type)) {
                     String[] parts = h.split("\\s+", 2);
                     if (parts.length == 2) {

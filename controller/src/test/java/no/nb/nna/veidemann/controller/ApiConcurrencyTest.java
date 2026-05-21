@@ -49,7 +49,6 @@ import no.nb.nna.veidemann.api.config.v1.CrawlConfig;
 import no.nb.nna.veidemann.api.config.v1.Kind;
 import no.nb.nna.veidemann.api.controller.v1.ControllerGrpc;
 import no.nb.nna.veidemann.api.controller.v1.CrawlerStatus;
-import no.nb.nna.veidemann.api.controller.v1.RunCrawlReply;
 import no.nb.nna.veidemann.api.controller.v1.RunCrawlRequest;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
@@ -58,6 +57,7 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierImplBase;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
+import no.nb.nna.veidemann.commons.db.DbQueryAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.commons.db.DbServiceSPI;
@@ -77,20 +77,21 @@ public class ApiConcurrencyTest {
         when(dbProviderMock.getConfigAdapter()).thenReturn(configAdapterMock);
         ExecutionsAdapter executionsAdapterMock = mock(ExecutionsAdapter.class);
         when(dbProviderMock.getExecutionsAdapter()).thenReturn(executionsAdapterMock);
+        when(dbProviderMock.getDbQueryAdapter()).thenReturn(mock(DbQueryAdapter.class));
 
         String controllerName = "controller";
         String frontierName = "frontier";
         ManagedChannel controllerChannel = InProcessChannelBuilder.forName(controllerName).build();
-        ManagedChannelBuilder frontierChannel = InProcessChannelBuilder.forName(frontierName);
+        ManagedChannelBuilder<?> frontierChannel = InProcessChannelBuilder.forName(frontierName);
         ExecutorService threadPool = Executors.newCachedThreadPool();
-        ServerBuilder controllerServerBuilder = InProcessServerBuilder.forName(controllerName).executor(threadPool);
-        ServerBuilder frontierServerBuilder = InProcessServerBuilder.forName(frontierName).executor(threadPool);
+        ServerBuilder<?> controllerServerBuilder = InProcessServerBuilder.forName(controllerName).executor(threadPool);
+        ServerBuilder<?> frontierServerBuilder = InProcessServerBuilder.forName(frontierName).executor(threadPool);
 
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
 
-        try (DbService db = DbService.configure(dbProviderMock);
-             ControllerApiServer controller = new ControllerApiServer(settings, controllerServerBuilder, null, null, null);
+           try (DbService db = DbService.configure(dbProviderMock);
+               ControllerApiServer controller = new ControllerApiServer(settings, db, controllerServerBuilder, null, null, null);
              FrontierMock frontier = new FrontierMock(frontierServerBuilder);
              FrontierClient frontierClient = new FrontierClient(frontierChannel, "url")
         ) {
@@ -148,7 +149,7 @@ public class ApiConcurrencyTest {
             controller.start();
             ControllerGrpc.ControllerFutureStub controllerClient = ControllerGrpc.newFutureStub(controllerChannel);
 
-            ListenableFuture<RunCrawlReply> reply = controllerClient.runCrawl(RunCrawlRequest.newBuilder().setJobId(jobConfig1.getId()).build());
+            controllerClient.runCrawl(RunCrawlRequest.newBuilder().setJobId(jobConfig1.getId()).build());
 
             // Execute status request
             ListenableFuture<CrawlerStatus> statusReply = controllerClient.status(Empty.getDefaultInstance());
@@ -170,7 +171,7 @@ public class ApiConcurrencyTest {
         private Server server;
         private ExecutorService executor;
 
-        public FrontierMock(ServerBuilder frontierServerBuilder) {
+        public FrontierMock(ServerBuilder<?> frontierServerBuilder) {
             executor = Executors.newCachedThreadPool();
             AtomicLong countCalls = new AtomicLong(0);
             AtomicInteger concurrentCalls = new AtomicInteger(0);

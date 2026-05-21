@@ -41,7 +41,6 @@ import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.auth.AllowedRoles;
 import no.nb.nna.veidemann.commons.auth.RolesContextKey;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
-import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.commons.db.ExecutionsAdapter;
 import no.nb.nna.veidemann.controller.ControllerApiServer.JobExecutionListener;
 import no.nb.nna.veidemann.controller.settings.Settings;
@@ -70,11 +69,12 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
     private final Settings settings;
     private final List<JobExecutionListener> jobExecutionListeners;
 
-    public ControllerService(Settings settings, List<JobExecutionListener> jobExecutionListeners) {
+    public ControllerService(Settings settings, ConfigAdapter db, ExecutionsAdapter executionsAdapter,
+            List<JobExecutionListener> jobExecutionListeners) {
         this.settings = settings;
         this.jobExecutionListeners = jobExecutionListeners;
-        this.db = DbService.getInstance().getConfigAdapter();
-        this.executionsAdapter = DbService.getInstance().getExecutionsAdapter();
+        this.db = db;
+        this.executionsAdapter = executionsAdapter;
     }
 
     @Override

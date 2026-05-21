@@ -16,8 +16,6 @@ public class GetNextPageHandler {
     private static final long TIMEOUT = 1000 * 30;
 
     public static void onNext(Context ctx, final StreamObserver<PageHarvestSpec> responseObserver) {
-        long start = System.currentTimeMillis();
-
         Span span = ctx.getFrontier().getTracer().buildSpan("requestNextPage")
                 .withTag(Tags.COMPONENT, "Frontier")
                 .withTag(Tags.SPAN_KIND, Tags.SPAN_KIND_SERVER)

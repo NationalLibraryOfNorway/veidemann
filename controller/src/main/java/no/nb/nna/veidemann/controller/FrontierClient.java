@@ -42,7 +42,6 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierBlockingStub;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierFutureStub;
-import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierStub;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.client.GrpcUtil;
 import no.nb.nna.veidemann.db.ProtoUtils;
@@ -57,8 +56,6 @@ public class FrontierClient implements AutoCloseable {
     private final ManagedChannel channel;
 
     private final FrontierBlockingStub blockingStub;
-
-    private final FrontierStub asyncStub;
 
     private final FrontierFutureStub futureStub;
 
@@ -76,7 +73,6 @@ public class FrontierClient implements AutoCloseable {
                 .intercept(tracingInterceptor)
                 .build();
         blockingStub = FrontierGrpc.newBlockingStub(channel);
-        asyncStub = FrontierGrpc.newStub(channel);
         futureStub = FrontierGrpc.newFutureStub(channel);
         JobExecutionUtil.addFrontierClient(supportedSeedType, this);
     }
