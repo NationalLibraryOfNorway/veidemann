@@ -73,7 +73,7 @@ public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTe
                 .setState(CrawlExecutionStatus.State.CREATED)
                 .build();
 
-        Map rMap = ProtoUtils.protoToRethink(status);
+        Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
         rMap.put("lastChangeTime", r.now());
         rMap.put("createdTime", r.now());
 
@@ -88,7 +88,7 @@ public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTe
                 .setLastChangeTime(ProtoUtils.getNowTs())
                 .build();
 
-        Map rMap = ProtoUtils.protoToRethink(status);
+        Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
 
         Update qry = r.table(Tables.EXECUTIONS.name).get(ces.getId()).update(rMap);
         return conn.executeUpdate("db-updateExecutionStatus", qry, CrawlExecutionStatus.class);

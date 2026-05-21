@@ -38,7 +38,7 @@ public class ChangeFeedBaseTest {
 
     @Test
     public void stream() throws TimeoutException {
-        Result<Map<String, Object>> cursorMock = mock(Result.class);
+        Result<Map<String, Object>> cursorMock = mockResult();
         when(cursorMock.hasNext())
                 .thenReturn(true)
                 .thenReturn(true)
@@ -52,7 +52,7 @@ public class ChangeFeedBaseTest {
             .thenReturn(rethinkMap(r.hashMap("id", "id3").with("seed", r.hashMap("disabled", "100"))))
             .thenReturn(rethinkMap(r.hashMap("id", "id4").with("seed", r.hashMap("disabled", false))));
 
-        ChangeFeed<ConfigObject> cf = new ChangeFeedBase<ConfigObject>(RethinkDbResultSet.fromResult(cursorMock)) {
+        try (ChangeFeed<ConfigObject> cf = new ChangeFeedBase<ConfigObject>(RethinkDbResultSet.fromResult(cursorMock)) {
             @Override
             protected Function<Map<String, Object>, ConfigObject> mapper() {
                 return co -> {
@@ -66,15 +66,20 @@ public class ChangeFeedBaseTest {
                     }
                 };
             }
-        };
+        }) {
+            // Expecting only three because 'id3' should fail
+            assertThat(cf.stream()).hasSize(3).extracting("id")
+                    .satisfies(objects -> {
+                        assertThat(objects.get(0)).isEqualTo("id1");
+                        assertThat(objects.get(1)).isEqualTo("id2");
+                        assertThat(objects.get(2)).isEqualTo("id4");
+                    });
+        }
+    }
 
-        // Expecting only three because 'id3' should fail
-        assertThat(cf.stream()).hasSize(3).extracting("id")
-                .satisfies(objects -> {
-                    assertThat(objects.get(0)).isEqualTo("id1");
-                    assertThat(objects.get(1)).isEqualTo("id2");
-                    assertThat(objects.get(2)).isEqualTo("id4");
-                });
+    @SuppressWarnings("unchecked")
+    private static Result<Map<String, Object>> mockResult() {
+        return mock(Result.class);
     }
 
     @SuppressWarnings("unchecked")

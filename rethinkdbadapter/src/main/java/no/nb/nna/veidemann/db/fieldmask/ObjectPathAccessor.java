@@ -30,24 +30,24 @@ import java.util.Map;
 
 public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrMask<T> {
     Map<String, PathElem<T>> referencePaths = new HashMap<>();
-    private PathElem<T> masks = new PathElem(this, "", "");
+    private final PathElem<T> masks = new PathElem<>(this, "", "");
 
     public ObjectPathAccessor(Class<? extends T> type) {
         try {
             Method n = type.getMethod("getDefaultInstance");
-            T referenceObject = (T) n.invoke(null);
+            T referenceObject = castReferenceObject(n.invoke(null));
             createPaths(referenceObject);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public MaskedObject createForFieldMaskProto(FieldMask mask) {
-        return new MaskedObject(this, mask);
+    public MaskedObject<T> createForFieldMaskProto(FieldMask mask) {
+        return new MaskedObject<>(this, mask);
     }
 
-    public MaskedObject createForSingleMask(String mask) {
-        return new MaskedObject(this, mask);
+    public MaskedObject<T> createForSingleMask(String mask) {
+        return new MaskedObject<>(this, mask);
     }
 
     void createPaths(MessageOrBuilder object) {
@@ -56,7 +56,7 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
         }
     }
 
-    void createFieldPath(FieldDescriptor field, PathElem parent, String prefix) {
+    void createFieldPath(FieldDescriptor field, PathElem<T> parent, String prefix) {
         if (field.getType() == Type.MESSAGE && field.getMessageType().getFields().isEmpty()) {
             return;
         }
@@ -67,7 +67,7 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
         }
         fullName += field.getJsonName();
 
-        PathElem e = parent.getOrCreateChild(fullName, field.getJsonName());
+        PathElem<T> e = parent.getOrCreateChild(fullName, field.getJsonName());
         e.descriptor = field;
 
         referencePaths.put(e.fullName, e);
@@ -91,7 +91,7 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
     }
 
     public PathElem<T> getPathDef(String path) {
-        PathElem p = referencePaths.get(path);
+        PathElem<T> p = referencePaths.get(path);
         if (p == null) {
             throw new IllegalArgumentException("Illegal path: " + path);
         }
@@ -102,7 +102,7 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
         return referencePaths.values();
     }
 
-    public PathElem getMasks() {
+    public PathElem<T> getMasks() {
         return masks;
     }
 
@@ -110,7 +110,7 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
         return getValue(getPathDef(path), object);
     }
 
-    public Object getValue(PathElem p, MessageOrBuilder object) {
+    public Object getValue(PathElem<T> p, MessageOrBuilder object) {
         if (!p.parent.name.isEmpty()) {
             object = (MessageOrBuilder) getValue(p.parent, object);
         }
@@ -128,11 +128,11 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
         } else {
             Message.Builder b = ((Message) object).toBuilder();
             innerSetValue(path, path, b, value);
-            return (T) b.build();
+            return buildObject(b);
         }
     }
 
-    private MessageOrBuilder innerSetValue(PathElem destination, PathElem p, Message.Builder object, Object value) {
+    private MessageOrBuilder innerSetValue(PathElem<T> destination, PathElem<T> p, Message.Builder object, Object value) {
         if (!p.parent.name.isEmpty()) {
             object = (Message.Builder) innerSetValue(destination, p.parent, object, value);
         }
@@ -157,5 +157,15 @@ public class ObjectPathAccessor<T extends MessageOrBuilder> implements ObjectOrM
         referencePaths.forEach((k, v) -> sb.append("    ").append(k).append("\n"));
         sb.append('}');
         return sb.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private T castReferenceObject(Object value) {
+        return (T) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private T buildObject(Message.Builder builder) {
+        return (T) builder.build();
     }
 }

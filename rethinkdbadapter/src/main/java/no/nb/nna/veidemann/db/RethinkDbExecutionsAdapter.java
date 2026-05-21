@@ -16,9 +16,7 @@
 
 package no.nb.nna.veidemann.db;
 
-import com.google.protobuf.Message;
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.model.MapObject;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.report.v1.CrawlExecutionsListRequest;
@@ -48,35 +46,34 @@ public class RethinkDbExecutionsAdapter implements ExecutionsAdapter {
 
     @Override
     public JobExecutionStatus createJobExecutionStatus(String jobId) throws DbException {
-        @SuppressWarnings("unchecked")
         Map<String, Object> rMap = ProtoUtils.protoToRethink(JobExecutionStatus.newBuilder()
-                .setJobId(jobId)
-                .setStartTime(ProtoUtils.getNowTs())
-                .setState(JobExecutionStatus.State.RUNNING));
+            .setJobId(jobId)
+            .setStartTime(ProtoUtils.getNowTs())
+            .setState(JobExecutionStatus.State.RUNNING));
 
         return conn.executeInsert("db-saveJobExecutionStatus",
-                r.table(Tables.JOB_EXECUTIONS.name)
-                        .insert(rMap)
-                        .optArg("conflict", (id, oldDoc, newDoc) -> r.branch(
-                                oldDoc.hasFields("endTime"),
-                                newDoc.merge(
-                                        r.hashMap("state", oldDoc.g("state")).with("endTime", oldDoc.g("endTime"))
-                                ),
-                                newDoc
-                        )),
-                JobExecutionStatus.class);
-    }
+            r.table(Tables.JOB_EXECUTIONS.name)
+                .insert(rMap)
+                .optArg("conflict", (id, oldDoc, newDoc) -> r.branch(
+                    oldDoc.hasFields("endTime"),
+                    newDoc.merge(
+                        r.hashMap("state", oldDoc.g("state")).with("endTime", oldDoc.g("endTime"))
+                    ),
+                    newDoc
+                )),
+            JobExecutionStatus.class);
+        }
 
-    @Override
-    public JobExecutionStatus getJobExecutionStatus(String jobExecutionId) throws DbException {
+        @Override
+        public JobExecutionStatus getJobExecutionStatus(String jobExecutionId) throws DbException {
         return conn.executeGet("db-getJobExecutionStatus",
-                r.table(Tables.JOB_EXECUTIONS.name)
+            r.table(Tables.JOB_EXECUTIONS.name)
                 .get(jobExecutionId),
             JobExecutionStatus.class);
-    }
+        }
 
-    @Override
-    public ChangeFeed<JobExecutionStatus> listJobExecutionStatus(JobExecutionsListRequest jobExecutionsListRequest) throws DbException {
+        @Override
+        public ChangeFeed<JobExecutionStatus> listJobExecutionStatus(JobExecutionsListRequest jobExecutionsListRequest) throws DbException {
         ListJobExecutionQueryBuilder q = new ListJobExecutionQueryBuilder(jobExecutionsListRequest);
 
         DbResultSet<Map<String, Object>> res = conn.executeSequence("db-listJobExecutions", q.getListQuery());
@@ -84,49 +81,46 @@ public class RethinkDbExecutionsAdapter implements ExecutionsAdapter {
             @Override
             @SuppressWarnings("unchecked")
             protected Function<Map<String, Object>, JobExecutionStatus> mapper() {
-                return co -> {
-                    // In case of a change feed, the real object is stored in new_val
-                    // If new_val is empty, the object is deleted. We skip those.
-                    if (co.containsKey("new_val")) {
-                        co = (Map<String, Object>) co.get("new_val");
-                        if (co == null) {
-                            return null;
-                        }
-                    }
-                    return ProtoUtils.rethinkToProto(co, JobExecutionStatus.class);
-                };
+            return co -> {
+                if (co.containsKey("new_val")) {
+                co = (Map<String, Object>) co.get("new_val");
+                if (co == null) {
+                    return null;
+                }
+                }
+                return ProtoUtils.rethinkToProto(co, JobExecutionStatus.class);
+            };
             }
         };
-    }
+        }
 
-    @Override
-    public JobExecutionStatus setJobExecutionStateAborted(String jobExecutionId) throws DbException {
+        @Override
+        public JobExecutionStatus setJobExecutionStateAborted(String jobExecutionId) throws DbException {
         JobExecutionStatus result = conn.executeUpdate("db-setJobExecutionStateAborted",
-                r.table(Tables.JOB_EXECUTIONS.name)
-                        .get(jobExecutionId)
-                        .update(
-                                doc -> r.branch(
-                                        doc.hasFields("endTime"),
-                                        r.hashMap(),
-                                        r.hashMap("desiredState", JobExecutionStatus.State.ABORTED_MANUAL.name()))
-                        ),
-                JobExecutionStatus.class);
+            r.table(Tables.JOB_EXECUTIONS.name)
+                .get(jobExecutionId)
+                .update(
+                    doc -> r.branch(
+                        doc.hasFields("endTime"),
+                        r.hashMap(),
+                        r.hashMap("desiredState", JobExecutionStatus.State.ABORTED_MANUAL.name()))
+                ),
+            JobExecutionStatus.class);
 
-        // Set all Crawl Executions which are part of this Job Execution to aborted
         try (DbResultSet<Map<String, String>> res = conn.executeSequence("db-setJobExecutionStateAborted",
-                r.table(Tables.EXECUTIONS.name)
-                        .between(
-                                r.array(jobExecutionId, r.minval()),
-                                r.array(jobExecutionId, r.maxval()))
-                        .optArg("index", "jobExecutionId_seedId")
-                        .pluck("id")
+            r.table(Tables.EXECUTIONS.name)
+                .between(
+                    r.array(jobExecutionId, r.minval()),
+                    r.array(jobExecutionId, r.maxval()))
+                .optArg("index", "jobExecutionId_seedId")
+                .pluck("id")
         )) {
             res.stream().forEach(e -> {
-                try {
-                    setCrawlExecutionStateAborted(e.get("id"), CrawlExecutionStatus.State.ABORTED_MANUAL);
-                } catch (DbException ex) {
-                    LOG.error("Error while aborting Crawl Execution", ex);
-                }
+            try {
+                setCrawlExecutionStateAborted(e.get("id"), CrawlExecutionStatus.State.ABORTED_MANUAL);
+            } catch (DbException ex) {
+                LOG.error("Error while aborting Crawl Execution", ex);
+            }
             });
         }
 
@@ -242,52 +236,6 @@ public class RethinkDbExecutionsAdapter implements ExecutionsAdapter {
             return false;
         }
         return (Boolean) state.computeIfAbsent(key, k -> Boolean.FALSE);
-    }
-
-    private Map<String, Object> summarizeJobExecutionStats(String jobExecutionId) throws DbException {
-        String[] EXECUTIONS_STAT_FIELDS = new String[]{"documentsCrawled", "documentsDenied",
-                "documentsFailed", "documentsOutOfScope", "documentsRetried", "urisCrawled", "bytesCrawled"};
-
-        return conn.executeObject("db-summarizeJobExecutionStats",
-                r.table(Tables.EXECUTIONS.name)
-                        .between(r.array(jobExecutionId, r.minval()), r.array(jobExecutionId, r.maxval()))
-                        .optArg("index", "jobExecutionId_seedId")
-                        .map(doc -> {
-                                    @SuppressWarnings("unchecked")
-                                    MapObject<String, Object> m = (MapObject<String, Object>) (MapObject<?, ?>) r.hashMap();
-                                    for (String f : EXECUTIONS_STAT_FIELDS) {
-                                        m.with(f, doc.getField(f).default_(0));
-                                    }
-                                    for (CrawlExecutionStatus.State s : CrawlExecutionStatus.State.values()) {
-                                        m.with(s.name(), r.branch(doc.getField("state").eq(s.name()), 1, 0));
-                                    }
-                                    return m;
-                                }
-                        )
-                        .reduce((left, right) -> {
-                                    @SuppressWarnings("unchecked")
-                                    MapObject<String, Object> m = (MapObject<String, Object>) (MapObject<?, ?>) r.hashMap();
-                                    for (String f : EXECUTIONS_STAT_FIELDS) {
-                                        m.with(f, left.getField(f).add(right.getField(f)));
-                                    }
-                                    for (CrawlExecutionStatus.State s : CrawlExecutionStatus.State.values()) {
-                                        m.with(s.name(), left.getField(s.name()).add(right.getField(s.name())));
-                                    }
-                                    return m;
-                                }
-                        ).default_((doc) -> {
-                            @SuppressWarnings("unchecked")
-                            MapObject<String, Object> m = (MapObject<String, Object>) (MapObject<?, ?>) r.hashMap();
-                            for (String f : EXECUTIONS_STAT_FIELDS) {
-                                m.with(f, 0);
-                            }
-                            for (CrawlExecutionStatus.State s : CrawlExecutionStatus.State.values()) {
-                                m.with(s.name(), 0);
-                            }
-                            return m;
-                        }
-                )
-        );
     }
 
 }

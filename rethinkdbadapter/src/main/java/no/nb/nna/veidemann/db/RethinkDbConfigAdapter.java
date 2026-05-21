@@ -22,9 +22,8 @@ import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.commons.db.DbResultSet;
 import no.nb.nna.veidemann.db.fieldmask.ObjectPathAccessor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -110,6 +109,8 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
                 checkDependencies(object, Kind.browserConfig, "browserConfig.scriptRef");
                 checkDependencies(object, Kind.crawlJob, "crawlJob.scopeScriptRef");
                 break;
+            case seed:
+                break;
             case crawlEntity:
                 checkDependencies(object, Kind.seed, "seed.entityRef");
                 break;
@@ -134,6 +135,12 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
                 if (object.getId().equals("chg-default")) {
                     throw new DbQueryException("Removal of default Crawl Host Group Config not allowed");
                 }
+                break;
+            case roleMapping:
+                break;
+            case undefined:
+            case UNRECOGNIZED:
+                throw new IllegalArgumentException("Unsupported kind: " + object.getKind());
         }
 
         Map<String, Object> response = conn.executeObject("db-deleteConfigObject",
@@ -191,7 +198,6 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
 
     @Override
     public LogLevels saveLogConfig(LogLevels logLevels) throws DbException {
-        @SuppressWarnings("unchecked")
         Map<String, Object> doc = ProtoUtils.protoToRethink(logLevels);
         doc.put("id", "log_levels");
         return conn.executeInsert("save-logconfig",
@@ -221,19 +227,20 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
         checkConfigRefKind(msg, false);
 
         FieldDescriptor metaField = msg.getDescriptorForType().findFieldByName("meta");
-        @SuppressWarnings("unchecked")
         Map<String, Object> rMap = ProtoUtils.protoToRethink(msg);
 
         if (metaField == null) {
             throw new IllegalArgumentException("Missing meta");
         } else {
+            Map<String, Object> meta = mapValue(rMap.get("meta"));
+
             // Check that name is set if this is a new object
-            if (!rMap.containsKey("id") && (!rMap.containsKey("meta") || !((Map<String, Object>) rMap.get("meta")).containsKey("name"))) {
+            if (!rMap.containsKey("id") && (meta == null || !meta.containsKey("name"))) {
                 throw new IllegalArgumentException("Trying to store a new " + msg.getClass().getSimpleName()
                         + " object, but meta.name is not set.");
             }
 
-            rMap.put("meta", updateMeta((Map<String, Object>) rMap.get("meta")));
+            rMap.put("meta", updateMeta(meta));
 
             return conn.executeInsert("db-save" + msg.getClass().getSimpleName(),
                     r.table(table.name)
@@ -252,12 +259,9 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> updateMeta(Map<String, Object> meta) {
         if (meta == null) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> emptyMeta = (Map<String, Object>) (Map<?, ?>) r.hashMap();
-            meta = emptyMeta;
+            meta = new HashMap<>();
         }
 
         String user = EmailContextKey.email();
@@ -314,6 +318,13 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
      * @throws DbConnectionException
      */
     void checkConfigRefKind(ConfigObject object, boolean update) throws DbQueryException, DbConnectionException {
+        if (update && object.getKind() == Kind.undefined) {
+            if (object.getSpecCase() == SpecCase.SPEC_NOT_SET) {
+                return;
+            }
+            object = object.toBuilder().setKind(Kind.forNumber(object.getSpecCase().getNumber())).build();
+        }
+
         switch (object.getKind()) {
             case crawlEntity:
                 break;
@@ -349,8 +360,16 @@ public class RethinkDbConfigAdapter implements ConfigAdapter {
                 break;
             case collection:
                 break;
+            case undefined:
+            case UNRECOGNIZED:
+                throw new IllegalArgumentException("Unsupported kind: " + object.getKind());
         }
 
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mapValue(Object value) {
+        return value == null ? null : (Map<String, Object>) value;
     }
 
     private void checkConfigRefKind(String fieldName, ConfigRef configRef, Kind expectedKind, boolean mustBePresent, boolean update)

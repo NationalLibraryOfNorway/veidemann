@@ -35,9 +35,9 @@ import java.util.Map;
 import static com.rethinkdb.RethinkDB.r;
 
 public abstract class RethinkDbFieldMasksQueryBuilder<T extends MessageOrBuilder> {
-    private Indexes indexes = new Indexes();
-    private List<String> readOnlyPaths = new ArrayList<>();
-    private List<String> minimumReturnedFields = new ArrayList<>();
+    private final Indexes<T> indexes = new Indexes<>();
+    private final List<String> readOnlyPaths = new ArrayList<>();
+    private final List<String> minimumReturnedFields = new ArrayList<>();
     private final ObjectOrMask<T> maskedObject;
 
     public RethinkDbFieldMasksQueryBuilder(ObjectOrMask<T> maskedObject) {
@@ -106,120 +106,117 @@ public abstract class RethinkDbFieldMasksQueryBuilder<T extends MessageOrBuilder
         return q;
     }
 
-    public List createPluckQuery() {
-        List p = new ArrayList(minimumReturnedFields);
-        maskedObject.getMasks().children.forEach(e -> {
-            innerCreatePluckQuery(p, e);
-        });
-        return p;
+    public List<Object> createPluckQuery() {
+        List<Object> pluckQuery = new ArrayList<>(minimumReturnedFields);
+        maskedObject.getMasks().children.forEach(e -> innerCreatePluckQuery(pluckQuery, e));
+        return pluckQuery;
     }
 
-    private void innerCreatePluckQuery(List p, PathElem<T> e) {
-        if (maskedObject.getPathDef(e.fullName) != null) {
-            p.add(e.name);
+    private void innerCreatePluckQuery(List<Object> pluckQuery, PathElem<T> pathElem) {
+        if (maskedObject.getPathDef(pathElem.fullName) != null) {
+            pluckQuery.add(pathElem.name);
         } else {
-            List cp = r.array();
-            p.add(r.hashMap(e.name, cp));
-            e.children.forEach(c -> innerCreatePluckQuery(cp, c));
+            List<Object> childQuery = r.array();
+            pluckQuery.add(r.hashMap(pathElem.name, childQuery));
+            pathElem.children.forEach(c -> innerCreatePluckQuery(childQuery, c));
         }
     }
 
     public void elems(QueryOptimizer<T> optimizer, T queryTemplate) {
-        for (PathElem<T> p : maskedObject.getPaths()) {
-            Object val = p.getValue(queryTemplate);
-            List values = r.array();
-            if (p.descriptor.isRepeated()) {
-                for (Object v : (List) ProtoUtils.protoFieldToRethink(p.descriptor, val)) {
-                    values.add(v);
+        for (PathElem<T> pathElem : maskedObject.getPaths()) {
+            Object value = pathElem.getValue(queryTemplate);
+            List<Object> values = r.array();
+            if (pathElem.descriptor.isRepeated()) {
+                for (Object entry : (List<?>) ProtoUtils.protoFieldToRethink(pathElem.descriptor, value)) {
+                    values.add(entry);
                 }
             } else {
-                values.add(ProtoUtils.protoFieldToRethink(p.descriptor, val));
+                values.add(ProtoUtils.protoFieldToRethink(pathElem.descriptor, value));
             }
-            optimizer.wantMaskElem(p.fullName, values);
+            optimizer.wantMaskElem(pathElem.fullName, values);
         }
     }
 
     public ReqlFunction1 buildFilterQuery(T queryTemplate) {
         return row -> {
-            ReqlExpr e = row;
+            ReqlExpr expression = row;
             boolean first = true;
-            for (PathElem p : maskedObject.getPaths()) {
+            for (PathElem<T> pathElem : maskedObject.getPaths()) {
                 if (first) {
-                    e = innerBuildFilterQuery(row, p, queryTemplate);
+                    expression = innerBuildFilterQuery(row, pathElem, queryTemplate);
                 } else {
-                    e = e.and(innerBuildFilterQuery(row, p, queryTemplate));
+                    expression = expression.and(innerBuildFilterQuery(row, pathElem, queryTemplate));
                 }
                 first = false;
             }
-            return e;
+            return expression;
         };
     }
 
-    private ReqlExpr innerBuildFilterQuery(ReqlExpr exp, PathElem<T> p, T queryTemplate) {
-        exp = buildGetFieldExpression(p, exp);
-        Object val = p.getValue(queryTemplate);
-        if (p.descriptor.isRepeated()) {
-            List values = r.array();
-            for (Object v : (List) ProtoUtils.protoFieldToRethink(p.descriptor, val)) {
-                values.add(v);
+    private ReqlExpr innerBuildFilterQuery(ReqlExpr expression, PathElem<T> pathElem, T queryTemplate) {
+        expression = buildGetFieldExpression(pathElem, expression);
+        Object value = pathElem.getValue(queryTemplate);
+        if (pathElem.descriptor.isRepeated()) {
+            List<Object> values = r.array();
+            for (Object entry : (List<?>) ProtoUtils.protoFieldToRethink(pathElem.descriptor, value)) {
+                values.add(entry);
             }
-            exp = exp.contains(r.args(values));
+            expression = expression.contains(r.args(values));
         } else {
-            exp = exp.eq(ProtoUtils.protoFieldToRethink(p.descriptor, val));
+            expression = expression.eq(ProtoUtils.protoFieldToRethink(pathElem.descriptor, value));
         }
-        return exp;
+        return expression;
     }
 
-    public ReqlExpr buildGetFieldExpression(PathElem<T> p, ReqlExpr parentExpr) {
-        if (!p.parent.name.isEmpty()) {
-            parentExpr = buildGetFieldExpression(p.parent, parentExpr);
+    public ReqlExpr buildGetFieldExpression(PathElem<T> pathElem, ReqlExpr parentExpr) {
+        if (!pathElem.parent.name.isEmpty()) {
+            parentExpr = buildGetFieldExpression(pathElem.parent, parentExpr);
         }
-        parentExpr = parentExpr.g(p.name);
-        return parentExpr;
+        return parentExpr.g(pathElem.name);
     }
 
     public ReqlFunction1 buildUpdateQuery(T object) {
         return row -> {
-            MapObject p = r.hashMap();
-            for (PathElem e : maskedObject.getMasks().children) {
-                innerBuildUpdateQuery(row, p, e, object);
+            MapObject<Object, Object> updateQuery = r.hashMap();
+            for (PathElem<T> pathElem : maskedObject.getMasks().children) {
+                innerBuildUpdateQuery(row, updateQuery, pathElem, object);
             }
-            return p;
+            return updateQuery;
         };
     }
 
-    private void innerBuildUpdateQuery(ReqlExpr row, Map p, PathElem<T> e, T object) {
-        if (readOnlyPaths.contains(e.fullName)) {
+    private void innerBuildUpdateQuery(ReqlExpr row, Map<Object, Object> updateQuery, PathElem<T> pathElem, T object) {
+        if (readOnlyPaths.contains(pathElem.fullName)) {
             return;
         }
 
-        if (e.descriptor.isRepeated()) {
-            PathElem e2 = maskedObject.getPathDef(e.fullName);
-            if (e2 == null) {
-                p.put(e.name, ProtoUtils.protoFieldToRethink(e.descriptor, e.getValue(object)));
-            } else if (e2.updateType == UpdateType.REPLACE) {
-                p.put(e.name, ProtoUtils.protoFieldToRethink(e.descriptor, e.getValue(object)));
-            } else if (e2.updateType == UpdateType.APPEND) {
-                p.put(e.name, buildGetFieldExpression(e2, row).default_(r.array())
-                        .setUnion(ProtoUtils.protoFieldToRethink(e.descriptor, e.getValue(object))));
+        if (pathElem.descriptor.isRepeated()) {
+            PathElem<T> pathDef = maskedObject.getPathDef(pathElem.fullName);
+            if (pathDef == null || pathDef.updateType == UpdateType.REPLACE) {
+                updateQuery.put(pathElem.name, ProtoUtils.protoFieldToRethink(pathElem.descriptor, pathElem.getValue(object)));
+            } else if (pathDef.updateType == UpdateType.APPEND) {
+                updateQuery.put(pathElem.name, buildGetFieldExpression(pathDef, row).default_(r.array())
+                        .setUnion(ProtoUtils.protoFieldToRethink(pathElem.descriptor, pathElem.getValue(object))));
             } else {
-                p.put(e.name, buildGetFieldExpression(e2, row).default_(r.array())
-                        .setDifference(ProtoUtils.protoFieldToRethink(e.descriptor, e.getValue(object))));
+                updateQuery.put(pathElem.name, buildGetFieldExpression(pathDef, row).default_(r.array())
+                        .setDifference(ProtoUtils.protoFieldToRethink(pathElem.descriptor, pathElem.getValue(object))));
             }
-        } else if (e.descriptor.getType() == Type.MESSAGE) {
-            if (e.descriptor.isRepeated() || e.parent.name.isEmpty() || ((MessageOrBuilder) e.parent.getValue(object)).hasField(e.descriptor)) {
-                if (e.descriptor.getMessageType() == Timestamp.getDescriptor()) {
-                    p.put(e.name, ProtoUtils.protoFieldToRethink(e.descriptor, e.getValue(object)));
+        } else if (pathElem.descriptor.getType() == Type.MESSAGE) {
+            if (pathElem.descriptor.isRepeated()
+                    || pathElem.parent.name.isEmpty()
+                    || ((MessageOrBuilder) pathElem.parent.getValue(object)).hasField(pathElem.descriptor)) {
+                if (pathElem.descriptor.getMessageType() == Timestamp.getDescriptor()) {
+                    updateQuery.put(pathElem.name, ProtoUtils.protoFieldToRethink(pathElem.descriptor, pathElem.getValue(object)));
                 } else {
-                    Map cp = r.hashMap();
-                    p.put(e.name, cp);
-                    e.children.forEach(c -> innerBuildUpdateQuery(row, cp, c, object));
+                    MapObject<Object, Object> childQuery = r.hashMap();
+                    updateQuery.put(pathElem.name, childQuery);
+                    pathElem.children.forEach(c -> innerBuildUpdateQuery(row, childQuery, c, object));
                 }
             } else {
-                p.put(e.name, null);
+                updateQuery.put(pathElem.name, null);
             }
         } else {
-            p.put(e.name, ProtoUtils.protoFieldToRethink(e.descriptor, e.getValue(object)));
+            updateQuery.put(pathElem.name, ProtoUtils.protoFieldToRethink(pathElem.descriptor, pathElem.getValue(object)));
         }
     }
 }

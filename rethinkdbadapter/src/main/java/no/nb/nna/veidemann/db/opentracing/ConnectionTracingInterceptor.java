@@ -27,15 +27,11 @@ import io.opentracing.Tracer;
 import io.opentracing.noop.NoopSpan;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class ConnectionTracingInterceptor extends Connection {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectionTracingInterceptor.class);
 
     public static final String OPERATION_NAME_KEY = "opertaionName";
 

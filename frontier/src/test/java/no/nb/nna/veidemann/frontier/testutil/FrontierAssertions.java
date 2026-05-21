@@ -19,8 +19,8 @@ public class FrontierAssertions {
         return new RedisDataAssert(actual);
     }
 
-    public static CrawlHostGroupAssert assertThat(CrawlHostGroup actual) {
-        return new CrawlHostGroupAssert(actual);
+    public static CrawlHostGroupAssert<?> assertThat(CrawlHostGroup actual) {
+        return new CrawlHostGroupAssert<>(actual);
     }
 
     public static JobExecutionStatusAssert assertThat(JobExecutionStatus actual) {

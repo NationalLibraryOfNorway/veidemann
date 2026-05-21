@@ -52,7 +52,7 @@ public class CaImporter {
         try (InputStream certstream = new BufferedInputStream(new FileInputStream(certfile));) {
             for (Certificate cert : cf.generateCertificates(certstream)) {
                 X509Certificate x509Cert = (X509Certificate) cert;
-                String alias = x509Cert.getSubjectDN().getName();
+                String alias = x509Cert.getSubjectX500Principal().getName();
                 LOG.info("Adding certificate {} to trust store", alias);
                 keystore.setCertificateEntry(alias, cert);
             }

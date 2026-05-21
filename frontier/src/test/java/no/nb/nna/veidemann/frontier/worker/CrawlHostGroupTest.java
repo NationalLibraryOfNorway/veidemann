@@ -43,17 +43,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.BaseConsumer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import redis.clients.jedis.ConnectionPoolConfig;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.providers.PooledConnectionProvider;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -69,10 +69,9 @@ import static org.assertj.core.api.Assertions.within;
 @Tag("redis")
 @Testcontainers
 public class CrawlHostGroupTest {
-    private static final Logger LOG = LoggerFactory.getLogger(CrawlHostGroupTest.class);
-
+        @SuppressWarnings("resource")
     @Container
-    public static GenericContainer redis = new GenericContainer(DockerImageName.parse("redis:5.0.7-alpine"))
+        public static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:5.0.7-alpine"))
             .withExposedPorts(6379);
 
     AutoCloseable jedisResource;
@@ -84,11 +83,14 @@ public class CrawlHostGroupTest {
         String redisHost = redis.getHost();
         Integer redisPort = redis.getFirstMappedPort();
 
-        JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-        jedisPoolConfig.setMaxTotal(24);
-        JedisPool jedisPool = new JedisPool(jedisPoolConfig, redisHost, redisPort);
-        jedisResource = jedisPool;
-        jedisSupplier = jedisPool::getResource;
+                ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
+                poolConfig.setMaxTotal(24);
+                PooledConnectionProvider pooledProvider = new PooledConnectionProvider(
+                                new HostAndPort(redisHost, redisPort),
+                                DefaultJedisClientConfig.builder().build(),
+                                poolConfig);
+                jedisResource = pooledProvider;
+                jedisSupplier = () -> new Jedis(pooledProvider.getConnection());
         redisData = new RedisData(jedisSupplier::get);
     }
 
@@ -409,17 +411,20 @@ public class CrawlHostGroupTest {
     }
 
     public void forOtherTests() {
-        UriAddScript uriAddScript = new UriAddScript();
-        UriRemoveScript uriRemoveScript = new UriRemoveScript();
-        NextUriScript nextUriScript = new NextUriScript();
-        ChgAddScript chgAddScript = new ChgAddScript();
-        ChgNextScript getNextChgScript = new ChgNextScript();
-        ChgReleaseScript releaseChgScript = new ChgReleaseScript();
-        ChgQueueCountScript countChgScript = new ChgQueueCountScript();
-        ChgUpdateBusyTimeoutScript chgUpdateBusyTimeoutScript = new ChgUpdateBusyTimeoutScript();
-        ChgUpdateScript chgUpdateScript = new ChgUpdateScript();
-        ChgGetScript chgGetScript = new ChgGetScript();
-        JobExecutionGetScript jobExecutionGetScript = new JobExecutionGetScript();
-        JobExecutionUpdateScript jobExecutionUpdateScript = new JobExecutionUpdateScript();
+                Object[] scripts = {
+                                new UriAddScript(),
+                                new UriRemoveScript(),
+                                new NextUriScript(),
+                                new ChgAddScript(),
+                                new ChgNextScript(),
+                                new ChgReleaseScript(),
+                                new ChgQueueCountScript(),
+                                new ChgUpdateBusyTimeoutScript(),
+                                new ChgUpdateScript(),
+                                new ChgGetScript(),
+                                new JobExecutionGetScript(),
+                                new JobExecutionUpdateScript()
+                };
+                assertThat(scripts).hasSize(12);
     }
 }

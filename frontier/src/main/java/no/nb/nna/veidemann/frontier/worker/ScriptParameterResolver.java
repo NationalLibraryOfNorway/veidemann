@@ -12,8 +12,6 @@ import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.commons.util.ApiTools;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +24,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class ScriptParameterResolver {
-    private static final Logger LOG = LoggerFactory.getLogger(ScriptParameterResolver.class);
     private final Frontier frontier;
     private final LoadingCache<ConfigRef, Map<String, Annotation>> jobParametersCache;
 

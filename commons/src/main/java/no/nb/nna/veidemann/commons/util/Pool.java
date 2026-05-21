@@ -39,10 +39,15 @@ public class Pool<T> implements AutoCloseable {
         this.afterReturnFunc = afterReturnFunc;
         leases = new BitSet(size);
 
-        pool = new Lease[size];
+        pool = createLeaseArray(size);
         for (int i = 0; i < pool.length; i++) {
             pool[i] = new Lease<>(this, i);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Lease<T>[] createLeaseArray(int size) {
+        return (Lease<T>[]) new Lease<?>[size];
     }
 
     public Lease<T> lease() throws InterruptedException {
@@ -112,9 +117,9 @@ public class Pool<T> implements AutoCloseable {
         private AtomicBoolean leased = new AtomicBoolean(false);
         private T object;
         private final int index;
-        private final Pool pool;
+        private final Pool<T> pool;
 
-        private Lease(Pool pool, int index) {
+        private Lease(Pool<T> pool, int index) {
             this.pool = pool;
             this.index = index;
         }

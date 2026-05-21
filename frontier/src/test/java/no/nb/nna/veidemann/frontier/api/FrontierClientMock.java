@@ -75,7 +75,6 @@ public class FrontierClientMock implements AutoCloseable {
 
         StreamObserver<PageHarvest> requestObserver = asyncStub.pageCompleted(responseObserver);
 
-        QueuedUri fetchUri = pageHarvestSpec.getQueuedUri();
         try {
             PageHarvest.Builder reply = PageHarvest.newBuilder().setSessionToken(pageHarvestSpec.getSessionToken());
 

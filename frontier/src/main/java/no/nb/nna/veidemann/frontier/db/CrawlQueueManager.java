@@ -3,7 +3,6 @@ package no.nb.nna.veidemann.frontier.db;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;

@@ -56,7 +56,8 @@ public class QueryOptimizer<T extends MessageOrBuilder> {
     public void wantMaskElem(String path, List<Object> values) {
         if ("meta.label".equals(path)) {
             values.stream()
-                    .map(v -> ApiTools.buildLabel(((Map<String, String>) v).get("key"), ((Map<String, String>) v).get("value")))
+                    .map(v -> castLabelMap(v))
+                    .map(v -> ApiTools.buildLabel(v.get("key"), v.get("value")))
                     .forEach(l -> snippets.add(new LabelSnippet<>(this.queryBuilder, l)));
             return;
         }
@@ -121,6 +122,11 @@ public class QueryOptimizer<T extends MessageOrBuilder> {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, String> castLabelMap(Object value) {
+        return (Map<String, String>) value;
+    }
+
     Snippet<T> findBestStart() {
         // Find getAll for primary index
         Optional<Snippet<T>> o = snippets.stream()
@@ -168,6 +174,7 @@ public class QueryOptimizer<T extends MessageOrBuilder> {
                                         }
                                     }
                                 }
+
                                 return s2;
                             }
                         }

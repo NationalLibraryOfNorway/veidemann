@@ -69,7 +69,8 @@ import no.nb.nna.veidemann.db.Tables;
 import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+
+import java.util.function.Supplier;
 
 public class CrawlRunner implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(CrawlRunner.class);
@@ -80,10 +81,10 @@ public class CrawlRunner implements AutoCloseable {
     private final ManagedChannel frontierChannel;
     private final FrontierGrpc.FrontierBlockingStub frontierStub;
     private final RethinkDbData rethinkDbData;
-    private final JedisPool jedisPool;
+    private final Supplier<Jedis> jedisSupplier;
     private final ExecutorService submitSeedExecutor = Executors.newFixedThreadPool(8);
 
-    public CrawlRunner(Settings settings, RethinkDbData rethinkDbData, JedisPool jedisPool) {
+    public CrawlRunner(Settings settings, RethinkDbData rethinkDbData, Supplier<Jedis> jedisSupplier) {
         DbService dbService = DbService.getInstance();
         this.configAdapter = dbService.getConfigAdapter();
         this.executionsAdapter = dbService.getExecutionsAdapter();
@@ -95,7 +96,7 @@ public class CrawlRunner implements AutoCloseable {
                 .build();
         this.frontierStub = FrontierGrpc.newBlockingStub(frontierChannel).withWaitForReady();
         this.rethinkDbData = rethinkDbData;
-        this.jedisPool = jedisPool;
+            this.jedisSupplier = jedisSupplier;
     }
 
     public ConfigObject genJob(String name) throws DbException {
@@ -272,7 +273,7 @@ public class CrawlRunner implements AutoCloseable {
                 .pollInterval(1, TimeUnit.SECONDS)
                 .atMost(timeout, unit)
                 .until(() -> {
-                    try (Jedis jedis = jedisPool.getResource()) {
+                    try (Jedis jedis = jedisSupplier.get()) {
                         Set<String> chgKeys = jedis.keys("chg*");
                         if (chgKeys.isEmpty()) {
                             emptyChgKeysCount.incrementAndGet();
@@ -320,7 +321,7 @@ public class CrawlRunner implements AutoCloseable {
                                 @Override
                                 public String value() {
                                     StringBuilder sb = new StringBuilder();
-                                    try (Jedis jedisInner = jedisPool.getResource()) {
+                                    try (Jedis jedisInner = jedisSupplier.get()) {
                                         sb.append(String.format(
                                                 "Crawl is not finished, but redis chg keys are missing.%n"
                                                         + "Remaining REDIS keys: %s%nQueue count total: %s",

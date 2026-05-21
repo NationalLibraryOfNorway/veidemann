@@ -68,7 +68,7 @@ public class IdTokenAuAuServerInterceptor extends AuAuServerInterceptor {
         roles.add(Role.ANY_USER);
 
         String email = (String) claims.getClaim("email");
-        List<String> groups = (List<String>) claims.getClaim("groups");
+        List<String> groups = getGroups(claims);
 
         LOG.debug("E-mail: {}", email);
         LOG.debug("Groups: {}", groups);
@@ -92,5 +92,10 @@ public class IdTokenAuAuServerInterceptor extends AuAuServerInterceptor {
             return claims;
         }
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> getGroups(JWTClaimsSet claims) {
+        return (List<String>) claims.getClaim("groups");
     }
 }

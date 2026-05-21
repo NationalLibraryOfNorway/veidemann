@@ -163,7 +163,7 @@ public class RethinkDbConfigAdapterIT extends AbstractRethinkDbIntegrationTest {
                 .addScriptRef(ApiTools.refForConfig(browserScript1));
 
         // Convert to rethink object and back to ensure nothing gets lost
-        Map rethink = ProtoUtils.protoToRethink(co);
+        Map<String, Object> rethink = ProtoUtils.protoToRethink(co);
         ConfigObject proto = ProtoUtils.rethinkToProto(rethink, ConfigObject.class);
         assertThat(proto).isEqualTo(co.build());
 
@@ -544,7 +544,7 @@ public class RethinkDbConfigAdapterIT extends AbstractRethinkDbIntegrationTest {
                 .addJobRef(ApiTools.refForConfig(crawlJob1));
 
         // Convert to rethink object and back to ensure nothing gets lost
-        Map rethink = ProtoUtils.protoToRethink(co);
+        Map<String, Object> rethink = ProtoUtils.protoToRethink(co);
         ConfigObject proto = ProtoUtils.rethinkToProto(rethink, ConfigObject.class);
         assertThat(proto).isEqualTo(co.build());
 
@@ -609,20 +609,18 @@ public class RethinkDbConfigAdapterIT extends AbstractRethinkDbIntegrationTest {
                 });
 
         // Test list by two jobRefs
-        // TODO: This test returns two objects, but should return just one. Leaves this for now as it is not important
-        //       enough to block release of other bugfixes.
-//        lr = ListRequest.newBuilder()
-//                .setKind(seed);
-//        lr.getQueryTemplateBuilder()
-//                .getSeedBuilder().addJobRef(ApiTools.refForConfig(crawlJob1)).addJobRef(ApiTools.refForConfig(crawlJob2));
-//        lr.getQueryMaskBuilder().addPaths("seed.jobRef");
-//        assertThat(configAdapter.listConfigObjects(lr.build()).stream())
-//                .hasSize(1)
-//                .allSatisfy(s -> {
-//                    assertThat(s.getApiVersion()).isEqualTo("v1");
-//                    assertThat(s.getKind()).isEqualTo(seed);
-//                    assertThat(s.getId()).isEqualTo(seed2.getId());
-//                });
+        lr = ListRequest.newBuilder()
+                .setKind(seed);
+        lr.getQueryTemplateBuilder()
+                .getSeedBuilder().addJobRef(ApiTools.refForConfig(crawlJob1)).addJobRef(ApiTools.refForConfig(crawlJob2));
+        lr.getQueryMaskBuilder().addPaths("seed.jobRef");
+        assertThat(configAdapter.listConfigObjects(lr.build()).stream())
+                .hasSize(1)
+                .allSatisfy(s -> {
+                    assertThat(s.getApiVersion()).isEqualTo("v1");
+                    assertThat(s.getKind()).isEqualTo(seed);
+                    assertThat(s.getId()).isEqualTo(seed2.getId());
+                });
 
         // Test list by id and entityRef
         lr = ListRequest.newBuilder()
@@ -707,7 +705,7 @@ public class RethinkDbConfigAdapterIT extends AbstractRethinkDbIntegrationTest {
                 .addLabelBuilder().setKey("foo").setValue("bar");
 
         // Convert to rethink object and back to ensure nothing gets lost
-        Map rethink = ProtoUtils.protoToRethink(co);
+        Map<String, Object> rethink = ProtoUtils.protoToRethink(co);
         ConfigObject proto = ProtoUtils.rethinkToProto(rethink, ConfigObject.class);
         assertThat(proto).isEqualTo(co.build());
 

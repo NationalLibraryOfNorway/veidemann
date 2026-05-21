@@ -20,15 +20,11 @@ import no.nb.nna.veidemann.api.config.v1.CrawlLimitsConfig;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class LimitsCheck {
-
-    private static final Logger LOG = LoggerFactory.getLogger(LimitsCheck.class);
 
     private LimitsCheck() {
     }
@@ -42,13 +38,8 @@ public class LimitsCheck {
      */
     public static boolean isLimitReached(CrawlLimitsConfig limits, StatusWrapper status) throws DbException {
         if (limits.getMaxBytes() > 0 && status.getBytesCrawled() > limits.getMaxBytes()) {
-            switch (status.getState()) {
-                case CREATED:
-                case FETCHING:
-                case SLEEPING:
-                case UNDEFINED:
-                case UNRECOGNIZED:
-                    status.setState(CrawlExecutionStatus.State.ABORTED_SIZE).saveStatus();
+            if (canAbortForLimit(status.getState())) {
+                status.setState(CrawlExecutionStatus.State.ABORTED_SIZE).saveStatus();
             }
             return true;
         }
@@ -57,13 +48,8 @@ public class LimitsCheck {
                 && Timestamps.between(status.getCreatedTime(), ProtoUtils.getNowTs()).getSeconds() > limits
                 .getMaxDurationS()) {
 
-            switch (status.getState()) {
-                case CREATED:
-                case FETCHING:
-                case SLEEPING:
-                case UNDEFINED:
-                case UNRECOGNIZED:
-                    status.setState(CrawlExecutionStatus.State.ABORTED_TIMEOUT).saveStatus();
+            if (canAbortForLimit(status.getState())) {
+                status.setState(CrawlExecutionStatus.State.ABORTED_TIMEOUT).saveStatus();
             }
             return true;
         }
@@ -78,5 +64,12 @@ public class LimitsCheck {
         } else {
             return true;
         }
+    }
+
+    private static boolean canAbortForLimit(CrawlExecutionStatus.State state) {
+        return switch (state) {
+            case CREATED, FETCHING, SLEEPING, UNDEFINED, UNRECOGNIZED -> true;
+            default -> false;
+        };
     }
 }

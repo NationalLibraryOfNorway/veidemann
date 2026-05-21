@@ -29,11 +29,11 @@ import java.util.Set;
 public class MaskedObject<T extends MessageOrBuilder> implements ObjectOrMask<T> {
     private final ObjectPathAccessor<T> objectDef;
     private final PathElem<T> masks;
-    private Map<String, PathElem<T>> paths = new HashMap<>();
+    private final Map<String, PathElem<T>> paths = new HashMap<>();
 
     private MaskedObject(ObjectPathAccessor<T> objectDef) {
         this.objectDef = objectDef;
-        masks = new PathElem(objectDef, "", "");
+        masks = new PathElem<>(objectDef, "", "");
     }
 
     MaskedObject(ObjectPathAccessor<T> objectDef, FieldMask mask) {
@@ -82,9 +82,9 @@ public class MaskedObject<T extends MessageOrBuilder> implements ObjectOrMask<T>
             throw new IllegalArgumentException("Illegal fieldmask path: " + mask);
         }
 
-        String tokens[] = mask.split("\\.");
+        String[] tokens = mask.split("\\.");
         String fullName = "";
-        PathElem e = masks;
+        PathElem<T> e = masks;
         for (String token : tokens) {
             fullName += token;
             e = e.getOrCreateChild(fullName, token);
@@ -100,7 +100,7 @@ public class MaskedObject<T extends MessageOrBuilder> implements ObjectOrMask<T>
         }
     }
 
-    public ObjectPathAccessor getObjectDef() {
+    public ObjectPathAccessor<T> getObjectDef() {
         return objectDef;
     }
 
@@ -109,7 +109,7 @@ public class MaskedObject<T extends MessageOrBuilder> implements ObjectOrMask<T>
     }
 
     public PathElem<T> getPathDef(String path) {
-        PathElem p = paths.get(path);
+        PathElem<T> p = paths.get(path);
         if (p != null) {
             return p;
         }

@@ -39,7 +39,7 @@ public class ConfigObjectQueryBuilderTest {
                 .build();
 
         ConfigObjectQueryBuilder queryBuilder = new ConfigObjectQueryBuilder(m);
-        List q = queryBuilder.createPluckQuery();
+        List<Object> q = queryBuilder.createPluckQuery();
 
         assertThat(q).containsExactlyInAnyOrder("apiVersion", "kind", "id", "meta",
                 r.hashMap("crawlConfig", r.array(r.hashMap("extra", r.array("createScreenshot")), "priorityWeight")));

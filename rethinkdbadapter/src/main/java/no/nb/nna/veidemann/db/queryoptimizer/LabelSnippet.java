@@ -134,6 +134,8 @@ class LabelSnippet<T extends MessageOrBuilder> extends Snippet<T> {
                             .optArg("right_bound", "closed").optArg("index", chosenIndex.indexName);
                 }
                 break;
+            default:
+                throw new IllegalStateException("Unsupported render type for LabelSnippet: " + renderType);
         }
         return renderNext(qry);
     }

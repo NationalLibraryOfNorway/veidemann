@@ -21,7 +21,6 @@ import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.ConfigObjectOrBuilder;
 import no.nb.nna.veidemann.api.config.v1.Kind;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.assertj.core.api.InstanceOfAssertFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.as;
@@ -37,7 +36,7 @@ public class ObjectPathAccessorTest {
                 .addPaths("meta.foo.bar")
                 .addPaths("test").build();
 
-        ObjectPathAccessor fmd = new ObjectPathAccessor(ConfigObject.class);
+        ObjectPathAccessor<ConfigObject> fmd = new ObjectPathAccessor<>(ConfigObject.class);
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> fmd.createForFieldMaskProto(m))
                 .withMessage("Illegal fieldmask path: meta.foo.bar");
@@ -48,7 +47,7 @@ public class ObjectPathAccessorTest {
         ConfigObject.Builder co = ConfigObject.newBuilder().setApiVersion("v1").setKind(Kind.browserConfig);
         co.getBrowserConfigBuilder().setUserAgent("agent");
 
-        ObjectPathAccessor fmd = new ObjectPathAccessor(ConfigObject.class);
+        ObjectPathAccessor<ConfigObject> fmd = new ObjectPathAccessor<>(ConfigObject.class);
 
         assertThat(fmd.getValue("apiVersion", co.build())).isEqualTo("v1");
         assertThat(fmd.getValue("meta.name", co.build())).isEqualTo("");
@@ -63,7 +62,7 @@ public class ObjectPathAccessorTest {
                 .addPaths("browserConfig.windowHeight")
                 .build();
 
-        MaskedObject fm = fmd.createForFieldMaskProto(m);
+        MaskedObject<ConfigObject> fm = fmd.createForFieldMaskProto(m);
 
         assertThat(fm.getPathDef("apiVersion").getValue(co.build())).isEqualTo("v1");
         assertThat(fm.getPathDef("meta.name").getValue(co.build())).isEqualTo("");
@@ -78,12 +77,7 @@ public class ObjectPathAccessorTest {
     public void setValue() {
         ConfigObject.Builder co = ConfigObject.newBuilder().setApiVersion("v1").setKind(Kind.browserConfig);
 
-        FieldMask m = FieldMask.newBuilder()
-                .addPaths("meta.name")
-                .addPaths("apiVersion")
-                .build();
-
-        ObjectPathAccessor<ConfigObjectOrBuilder> fmd = new ObjectPathAccessor(ConfigObject.class);
+        ObjectPathAccessor<ConfigObjectOrBuilder> fmd = new ObjectPathAccessor<>(ConfigObject.class);
 
         Object o = fmd.setValue("meta.name", co, "foo");
         assertThat(o).isExactlyInstanceOf(ConfigObject.Builder.class)

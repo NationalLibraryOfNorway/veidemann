@@ -21,7 +21,7 @@ import no.nb.nna.veidemann.api.eventhandler.v1.EventObject;
 import no.nb.nna.veidemann.api.eventhandler.v1.EventObjectOrBuilder;
 
 public class EventObjectQueryBuilder extends RethinkDbFieldMasksQueryBuilder<EventObjectOrBuilder> {
-    private final static ObjectPathAccessor OBJ_DEF = new ObjectPathAccessor(EventObject.class);
+    private static final ObjectPathAccessor<EventObjectOrBuilder> OBJ_DEF = new ObjectPathAccessor<>(EventObject.class);
 
     public EventObjectQueryBuilder() {
         super(OBJ_DEF);

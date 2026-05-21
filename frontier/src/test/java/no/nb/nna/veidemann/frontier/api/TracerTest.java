@@ -7,8 +7,6 @@ import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.SeedAndExecutions;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.HashMap;
@@ -22,8 +20,6 @@ import java.util.TreeSet;
 @Tag("redis")
 @Tag("rethinkDb")
 public class TracerTest extends no.nb.nna.veidemann.frontier.testutil.AbstractIntegrationTest {
-    private static final Logger LOG = LoggerFactory.getLogger(TracerTest.class);
-
     /**
      * For now this test only writes the traces to the console. No real checks yet.
      *

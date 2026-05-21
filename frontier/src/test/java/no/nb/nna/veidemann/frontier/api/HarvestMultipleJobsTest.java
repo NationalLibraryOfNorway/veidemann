@@ -7,8 +7,6 @@ import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.RunningCrawl;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.SeedAndExecutions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
@@ -21,8 +19,6 @@ import static no.nb.nna.veidemann.frontier.testutil.FrontierAssertions.assertTha
 @Tag("redis")
 @Tag("rethinkDb")
 public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testutil.AbstractIntegrationTest {
-    private static final Logger LOG = LoggerFactory.getLogger(HarvestMultipleJobsTest.class);
-
     int seedCount = 2;
     int linksPerLevel = 1;
     int maxHopsFromSeed = 1;
@@ -99,7 +95,7 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
         for (int i = 0; i < numberOfJobs; i++) {
             jobs[i] = crawlRunner.genJob("job" + (i + 1));
         }
-        List<SeedAndExecutions>[] seeds = new List[numberOfJobs];
+        List<SeedAndExecutions>[] seeds = newSeedGroups();
         for (int i = 0; i < numberOfJobs; i++) {
             String hostPrefix = String.format("a%03d.seed", i);
             seeds[i] = crawlRunner.genSeeds(seedCount, hostPrefix, jobs[i]);
@@ -125,8 +121,6 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
                             .documentsRetriedEquals(0)
                             .documentsOutOfScopeEquals(seedCount);
                 });
-        String crawlExecutionId1 = seeds[1].get(0).getCrawlExecution(jobs[1]).get().getId();
-
         assertThat(rethinkDbData)
                 .crawlExecutionStatuses().hasSize(seedCount * numberOfJobs)
                 .allSatisfy((id, s) -> {
@@ -166,7 +160,7 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
         for (int i = 0; i < numberOfJobs; i++) {
             jobs[i] = crawlRunner.genJob("job" + (i + 1));
         }
-        List<SeedAndExecutions>[] seeds = new List[numberOfJobs];
+        List<SeedAndExecutions>[] seeds = newSeedGroups();
         int offset = 0;
         for (int i = 0; i < numberOfJobs; i++) {
             String hostPrefix = String.format("a%03d.seed", i);
@@ -231,7 +225,7 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
         harvesterMock.withLinksPerLevel(linksPerLevel);
 
         ConfigObject job = crawlRunner.genJob("job");
-        List<SeedAndExecutions>[] seeds = new List[numberOfJobs];
+        List<SeedAndExecutions>[] seeds = newSeedGroups();
         for (int i = 0; i < numberOfJobs; i++) {
             String hostPrefix = String.format("a%03d.seed", i);
             seeds[i] = crawlRunner.genSeeds(seedCount, hostPrefix, job);
@@ -257,8 +251,6 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
                             .documentsRetriedEquals(0)
                             .documentsOutOfScopeEquals(seedCount);
                 });
-        String crawlExecutionId1 = seeds[1].get(0).getCrawlExecution(job).get().getId();
-
         assertThat(rethinkDbData)
                 .crawlExecutionStatuses().hasSize(seedCount * numberOfJobs)
                 .allSatisfy((id, s) -> {
@@ -317,8 +309,6 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
                             .documentsRetriedEquals(0)
                             .documentsOutOfScopeEquals(seedCount);
                 });
-        String crawlExecutionId1 = seeds.get(0).getCrawlExecution(job).get().getId();
-
         assertThat(rethinkDbData)
                 .crawlExecutionStatuses().hasSize(seedCount * numberOfJobs)
                 .allSatisfy((id, s) -> {
@@ -348,4 +338,9 @@ public class HarvestMultipleJobsTest extends no.nb.nna.veidemann.frontier.testut
         assertThat(redisData)
                 .readyQueue().hasNumberOfElements(0);
     }
+
+        @SuppressWarnings("unchecked")
+        private List<SeedAndExecutions>[] newSeedGroups() {
+                return (List<SeedAndExecutions>[]) new List<?>[numberOfJobs];
+        }
 }

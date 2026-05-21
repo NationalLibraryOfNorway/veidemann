@@ -6,19 +6,17 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import org.assertj.core.api.AbstractAssert;
 
 public class CrawlHostGroupAssert<SELF extends CrawlHostGroupAssert<SELF>> extends AbstractAssert<SELF, CrawlHostGroup> {
+
     protected final SELF myself;
 
-    public CrawlHostGroupAssert(CrawlHostGroup actual, Class<?> selfType) {
-        super(actual, CrawlHostGroupAssert.class);
-        myself = (SELF) selfType.cast(this);
-    }
-
+    @SuppressWarnings("unchecked")
     public CrawlHostGroupAssert(CrawlHostGroup actual) {
-        this(actual, CrawlHostGroupAssert.class);
+        super(actual, (Class<?>) CrawlHostGroupAssert.class);
+        myself = (SELF) this;
     }
 
-    public static CrawlHostGroupAssert assertThat(CrawlHostGroup actual) {
-        return new CrawlHostGroupAssert(actual);
+    public static CrawlHostGroupAssert<?> assertThat(CrawlHostGroup actual) {
+        return new CrawlHostGroupAssert<>(actual);
     }
 
     public SELF isEqualTo(CrawlHostGroup expected) {

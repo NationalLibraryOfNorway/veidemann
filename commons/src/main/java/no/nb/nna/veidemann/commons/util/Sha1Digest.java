@@ -65,7 +65,6 @@ public class Sha1Digest {
     public String getRawDigestString() {
         if (dirty) {
             try {
-                MessageDigest soFar = (MessageDigest) digest.clone();
                 digestString = String.format("%040x", new BigInteger(1, ((MessageDigest) digest.clone()).digest()));
                 dirty = false;
             } catch (CloneNotSupportedException cnse) {

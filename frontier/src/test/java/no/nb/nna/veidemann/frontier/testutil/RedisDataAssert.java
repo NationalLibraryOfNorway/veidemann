@@ -9,6 +9,7 @@ import org.assertj.core.data.TemporalOffset;
 import redis.clients.jedis.resps.Tuple;
 
 import java.time.Instant;
+import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -208,7 +209,12 @@ public class RedisDataAssert extends AbstractAssert<RedisDataAssert, RedisData> 
             return this;
         }
 
-        public DelayQueueElementAssert hasTimestampCloseTo(Timestamp expected, TemporalOffset offset) {
+        public DelayQueueElementAssert hasTimestampCloseTo(Timestamp expected, TemporalOffset<? extends Temporal> offset) {
+            return hasTimestampCloseToUnchecked(expected, offset);
+        }
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private DelayQueueElementAssert hasTimestampCloseToUnchecked(Timestamp expected, TemporalOffset offset) {
             double expectedScore = Long.valueOf(Timestamps.toMillis(expected)).doubleValue();
             Instant expectedTime = Instant.ofEpochMilli(Double.valueOf(expectedScore).longValue());
             Instant actualTime = Instant.ofEpochMilli(Double.valueOf(actual.getScore()).longValue());

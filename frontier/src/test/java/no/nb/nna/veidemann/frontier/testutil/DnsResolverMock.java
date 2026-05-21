@@ -40,7 +40,7 @@ public class DnsResolverMock implements AutoCloseable {
 
     long simulatedLookupTimeMs = 0L;
 
-    public final RequestLog requestLog = new RequestLog();
+    public final RequestLog<String> requestLog = new RequestLog<>();
     private final RequestMatcher exceptionForHost = new RequestMatcher(requestLog);
     private final RequestMatcher fetchErrorForHost = new RequestMatcher(requestLog);
 
@@ -119,6 +119,10 @@ public class DnsResolverMock implements AutoCloseable {
                 ip = InetAddress.getByName(textualIp);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
+            }
+            if (ip == null) {
+                responseObserver.onError(Status.INTERNAL.withDescription("Unable to resolve simulated IP").asRuntimeException());
+                return;
             }
             byte[] bytes = ip.getAddress();
             responseObserver.onNext(ResolveReply.newBuilder()

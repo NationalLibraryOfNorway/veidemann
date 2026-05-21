@@ -307,7 +307,9 @@ public class ControllerServiceTest {
         when(roleMapperMock.getRolesForUser(eq("user@example.com"), anyList(), anyCollection()))
                 .thenReturn(Lists.newArrayList(Role.ANY_USER, Role.READONLY));
 
-        inProcessServer = new ControllerApiServerMock(Settings.load(), idValidatorMock, inProcessServerBuilder, roleMapperMock).start();
+        ControllerApiServerMock server = new ControllerApiServerMock(Settings.load(), idValidatorMock, inProcessServerBuilder, roleMapperMock);
+        server.start();
+        inProcessServer = server;
 
         assertThat(configClient.withCallCredentials(cred).getConfigObject(entityRef))
                 .isSameAs(coEntity);
@@ -341,7 +343,9 @@ public class ControllerServiceTest {
 
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
-        inProcessServer = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null).start();
+                ControllerApiServerMock server = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null);
+                server.start();
+                inProcessServer = server;
 
         assertThat(configClient.getConfigObject(entityRef))
                 .isSameAs(coEntity);
@@ -354,7 +358,9 @@ public class ControllerServiceTest {
     void runCrawlWithSeed() throws DbException, InterruptedException {
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
-        inProcessServer = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null).start();
+                ControllerApiServerMock server = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null);
+                server.start();
+                inProcessServer = server;
         JobExecutionStartedListener jobStarted = new JobExecutionStartedListener();
         inProcessServer.addJobExecutionListener(jobStarted);
 
@@ -379,7 +385,9 @@ public class ControllerServiceTest {
     void runCrawl() throws DbException, InterruptedException {
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
-        inProcessServer = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null).start();
+                ControllerApiServerMock server = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null);
+                server.start();
+                inProcessServer = server;
         JobExecutionStartedListener started = new JobExecutionStartedListener();
         inProcessServer.addJobExecutionListener(started);
 
@@ -408,7 +416,9 @@ public class ControllerServiceTest {
     void runCrawlWithTimeout() throws DbException, InterruptedException {
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
-        inProcessServer = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null).start();
+                ControllerApiServerMock server = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null);
+                server.start();
+                inProcessServer = server;
         JobExecutionStartedListener started = new JobExecutionStartedListener();
         inProcessServer.addJobExecutionListener(started);
 
@@ -434,7 +444,9 @@ public class ControllerServiceTest {
     void runCrawlSeedsMissing() throws DbException, InterruptedException {
         Settings settings = Settings.load();
         settings.setSkipAuthentication(true);
-        inProcessServer = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null).start();
+                ControllerApiServerMock server = new ControllerApiServerMock(settings, null, inProcessServerBuilder, null);
+                server.start();
+                inProcessServer = server;
         JobExecutionStartedListener jobStarted = new JobExecutionStartedListener();
         inProcessServer.addJobExecutionListener(jobStarted);
 
@@ -463,7 +475,7 @@ public class ControllerServiceTest {
             return this;
         }
 
-        public ControllerApiServerMock(Settings settings, IdTokenValidator idValidator, ServerBuilder<?> serverBuilder, UserRoleMapper userRoleMapper) {
+                public ControllerApiServerMock(Settings settings, IdTokenValidator idValidator, ServerBuilder<?> serverBuilder, UserRoleMapper userRoleMapper) {
                         super(settings, ControllerServiceTest.this.db, serverBuilder, userRoleMapper, null, null);
             this.idValidator = idValidator;
         }

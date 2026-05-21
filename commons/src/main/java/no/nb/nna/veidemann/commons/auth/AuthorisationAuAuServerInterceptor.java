@@ -46,13 +46,13 @@ import java.util.Collection;
 public class AuthorisationAuAuServerInterceptor extends AuAuServerInterceptor {
     private static final Logger LOG = LoggerFactory.getLogger(AuthorisationAuAuServerInterceptor.class);
 
-    public static final Listener NOOP_LISTENER = new Listener() {
+    public static final Listener<Object> NOOP_LISTENER = new Listener<>() {
     };
 
     private Grants grants = new Grants();
 
     public AuthorisationAuAuServerInterceptor(BindableService service) {
-        Class serviceClass = service.getClass();
+        Class<? extends BindableService> serviceClass = service.getClass();
 
         String serviceName = service.bindService().getServiceDescriptor().getName();
         Arrays.stream(serviceClass.getDeclaredMethods())
@@ -79,7 +79,7 @@ public class AuthorisationAuAuServerInterceptor extends AuAuServerInterceptor {
         if (!roles.contains(Role.ANY_USER)) {
             if (grants.isRequireAuthenticatedUser(method)) {
                 call.close(Status.UNAUTHENTICATED, new Metadata());
-                return NOOP_LISTENER;
+                return noopListener();
             } else {
                 Context contextWithEmailAndRoles = Context.current()
                         .withValue(RolesContextKey.getKey(), roles);
@@ -126,9 +126,14 @@ public class AuthorisationAuAuServerInterceptor extends AuAuServerInterceptor {
         // Check if user has required role
         if (!grants.isAllowed(method, roles)) {
             call.close(Status.PERMISSION_DENIED, new Metadata());
-            return NOOP_LISTENER;
+            return noopListener();
         }
 
         return next.startCall(call, requestHeaders);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <ReqT> Listener<ReqT> noopListener() {
+        return (Listener<ReqT>) NOOP_LISTENER;
     }
 }

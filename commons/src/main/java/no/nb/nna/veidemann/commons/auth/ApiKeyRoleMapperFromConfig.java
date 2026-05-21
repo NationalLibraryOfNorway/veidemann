@@ -16,13 +16,10 @@
 package no.nb.nna.veidemann.commons.auth;
 
 import no.nb.nna.veidemann.api.config.v1.Role;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
 public class ApiKeyRoleMapperFromConfig implements ApiKeyRoleMapper {
-    private static final Logger LOG = LoggerFactory.getLogger(ApiKeyRoleMapperFromConfig.class);
     private final UserRoleMapper userRoleMapper;
 
     public ApiKeyRoleMapperFromConfig(UserRoleMapper userRoleMapper) {

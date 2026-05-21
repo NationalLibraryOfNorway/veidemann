@@ -17,11 +17,9 @@
 package no.nb.nna.veidemann.commons.auth;
 
 import com.google.protobuf.Empty;
-import io.grpc.Attributes;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
@@ -49,6 +47,8 @@ public class ApiKeyAuAuServerInterceptorTest {
     private ManagedChannel inProcessChannel;
 
     private OosHandlerGrpc.OosHandlerBlockingStub blockingStub;
+    private ApiKeyAuAuServerInterceptor apiKeyAuAuServerInterceptor;
+    private ApiKeyAuAuServerInterceptor apiKeyAuAuServerInterceptor2;
 
     private TestService service;
 
@@ -60,9 +60,9 @@ public class ApiKeyAuAuServerInterceptorTest {
 
         service = new TestService();
         ApiKeyRoleMapper apiKeyRoleMapper = new ApiKeyRoleMapperFromFile("src/test/resources/apikey_rolemapping");
-        ApiKeyAuAuServerInterceptor apiKeyAuAuServerInterceptor = new ApiKeyAuAuServerInterceptor(apiKeyRoleMapper);
+        apiKeyAuAuServerInterceptor = new ApiKeyAuAuServerInterceptor(apiKeyRoleMapper);
         ApiKeyRoleMapper apiKeyRoleMapper2 = new ApiKeyRoleMapperFromFile("src/test/resources/apikey_rolemapping2");
-        ApiKeyAuAuServerInterceptor apiKeyAuAuServerInterceptor2 = new ApiKeyAuAuServerInterceptor(apiKeyRoleMapper2);
+        apiKeyAuAuServerInterceptor2 = new ApiKeyAuAuServerInterceptor(apiKeyRoleMapper2);
         inProcessServer = inProcessServerBuilder
                 .addService(apiKeyAuAuServerInterceptor.intercept(apiKeyAuAuServerInterceptor2.intercept(service)))
                 .build().start();
@@ -72,6 +72,8 @@ public class ApiKeyAuAuServerInterceptorTest {
     public void afterEachTest() {
         inProcessServer.shutdownNow();
         inProcessChannel.shutdownNow();
+        apiKeyAuAuServerInterceptor.close();
+        apiKeyAuAuServerInterceptor2.close();
     }
 
     @Test

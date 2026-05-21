@@ -58,7 +58,7 @@ public class DbInitializerTestIT extends AbstractRethinkDbIntegrationTest {
         long configObjectCount = conn.exec(r.table(Tables.CONFIG.name).count());
         assertThat(configObjectCount).isGreaterThan(0);
 
-        Map o = conn.exec(r.table(Tables.CONFIG.name)
+        Map<String, Object> o = conn.exec(r.table(Tables.CONFIG.name)
                 .group("kind")
                 .count()
                 .ungroup()
@@ -73,29 +73,34 @@ public class DbInitializerTestIT extends AbstractRethinkDbIntegrationTest {
         assertThat(o.get("crawlScheduleConfig")).isEqualTo(3L);
         assertThat(o.get("crawlHostGroupConfig")).isEqualTo(1L);
 
-        try (Result<Map> configObjects = conn.exec(r.table(Tables.CONFIG.name))) {
+        try (Result<Map<String, Object>> configObjects = conn.exec(r.table(Tables.CONFIG.name))) {
             assertThat(configObjects.iterator()).toIterable()
                     .hasSize(17)
-                    .allSatisfy(r -> {
-                        assertThat(r.get("apiVersion")).isEqualTo("v1");
-                        assertThat(r).containsKey("kind");
-                        assertThat(r).containsKey(r.get("kind"));
-                        assertThat(r).containsKey("meta");
-                        assertThat((Map) r.get("meta")).containsKey("name");
+                    .allSatisfy(configObject -> {
+                        assertThat(configObject.get("apiVersion")).isEqualTo("v1");
+                        assertThat(configObject).containsKey("kind");
+                        assertThat(configObject).containsKey((String) configObject.get("kind"));
+                        assertThat(configObject).containsKey("meta");
+                        assertThat(castMap(configObject.get("meta"))).containsKey("name");
                     });
         }
 
-        try (Result<Map> configObjects = conn.exec(r.table(Tables.CONFIG.name)
+        try (Result<Map<String, Object>> configObjects = conn.exec(r.table(Tables.CONFIG.name)
                 .filter(r.hashMap("kind", "browserConfig")))) {
             assertThat(configObjects.iterator()).toIterable()
                     .hasSize(1)
-                    .allSatisfy(r -> {
-                        assertThat(r.get("apiVersion")).isEqualTo("v1");
-                        assertThat(r.get("kind")).isEqualTo("browserConfig");
-                        assertThat(r).containsKey("browserConfig");
-                        assertThat((Map) r.get("browserConfig")).containsEntry("maxInactivityTimeMs", 2000L);
+                    .allSatisfy(configObject -> {
+                        assertThat(configObject.get("apiVersion")).isEqualTo("v1");
+                        assertThat(configObject.get("kind")).isEqualTo("browserConfig");
+                        assertThat(configObject).containsKey("browserConfig");
+                        assertThat(castMap(configObject.get("browserConfig"))).containsEntry("maxInactivityTimeMs", 2000L);
                     });
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castMap(Object value) {
+        return (Map<String, Object>) value;
     }
 
     @Test

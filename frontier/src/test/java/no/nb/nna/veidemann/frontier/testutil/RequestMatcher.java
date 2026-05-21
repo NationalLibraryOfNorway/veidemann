@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.Set;
 
 public class RequestMatcher {
-    final RequestLog requestLog;
+    final RequestLog<String> requestLog;
     final Map<String, Set<Integer>> matchers = new HashMap<>();
 
-    public RequestMatcher(RequestLog requestLog) {
+    public RequestMatcher(RequestLog<String> requestLog) {
         this.requestLog = requestLog;
     }
 

@@ -1,15 +1,14 @@
 package no.nb.nna.veidemann.db.queryoptimizer;
 
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.MessageOrBuilder;
 import com.rethinkdb.gen.ast.ReqlExpr;
 import com.rethinkdb.gen.ast.Table;
-import com.rethinkdb.model.MapObject;
 import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.db.fieldmask.Indexes.Index;
 import no.nb.nna.veidemann.db.fieldmask.RethinkDbFieldMasksQueryBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.rethinkdb.RethinkDB.r;
@@ -81,12 +80,19 @@ class GetAllSnippet<T extends MessageOrBuilder> extends Snippet<T> {
                 qry = ((Table) qry).getAll(values.toArray());
                 break;
             case GET_ALL_INDEX:
+                List<Object> indexValues = values;
                 if ("configRefs".equals(chosenIndex.indexName)) {
-                    values = values.stream()
-                            .map(c -> r.array(((MapObject) c).get("kind"), ((MapObject) c).get("id")))
+                    indexValues = values.stream()
+                            .map(c -> {
+                                Map<String, Object> configRef = asConfigRefMap(c);
+                                return r.array(configRef.get("kind"), configRef.get("id"));
+                            })
                             .collect(Collectors.toList());
                 }
-                qry = ((Table) qry).getAll(values.toArray()).optArg("index", chosenIndex.indexName);
+                qry = ((Table) qry).getAll(indexValues.toArray()).optArg("index", chosenIndex.indexName);
+                if (pathDef.getDescriptor().isRepeated() && values.size() > 1) {
+                    qry = qry.filter(row -> asFilter(row));
+                }
                 break;
             case FILTER:
                 qry = qry.filter(row -> renderAndFilterSnippets(asFilter(row), next, row));
@@ -135,6 +141,15 @@ class GetAllSnippet<T extends MessageOrBuilder> extends Snippet<T> {
                 throw new RuntimeException("Render type '" + renderType + "' not implemented for '" + getClass().getSimpleName() + "'");
         }
         return renderNext(qry);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asConfigRefMap(Object value) {
+        if (value instanceof Map<?, ?> mapValue) {
+            return (Map<String, Object>) mapValue;
+        }
+        throw new IllegalArgumentException("Expected config ref map but got: "
+                + (value == null ? "null" : value.getClass().getName()));
     }
 
     ReqlExpr asFilter(ReqlExpr row) {

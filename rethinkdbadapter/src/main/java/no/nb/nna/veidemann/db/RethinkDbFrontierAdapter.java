@@ -42,7 +42,6 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
                 .setState(CrawlExecutionStatus.State.CREATED)
                 .build();
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> rMap = ProtoUtils.protoToRethink(status);
         rMap.put("lastChangeTime", r.now());
         rMap.put("createdTime", r.now());
@@ -56,7 +55,7 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
     @Override
     public CrawlExecutionStatusUpdate updateCrawlExecutionStatus(CrawlExecutionStatusChange change) throws DbException {
         ReqlFunction1 updateFunc = doc -> {
-            MapObject rMap = r.hashMap("lastChangeTime", r.now());
+            MapObject<Object, Object> rMap = r.hashMap("lastChangeTime", r.now());
 
             switch (change.getState()) {
                 case UNDEFINED:
@@ -129,8 +128,7 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
                 .optArg("return_changes", "always");
 
         Map<String, Object> response = conn.executeObject("db-updateCrawlExecutionStatus", qry);
-        @SuppressWarnings("unchecked")
-        List<Map<String, Map<String, Object>>> changes = (List<Map<String, Map<String, Object>>>) response.get("changes");
+        List<Map<String, Map<String, Object>>> changes = castChanges(response.get("changes"));
         if (changes == null || changes.isEmpty()) {
             throw new IllegalStateException("No changes returned when updating CrawlExecutionStatus " + change.getId());
         }
@@ -162,7 +160,6 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
 
     @Override
     public QueuedUri saveQueuedUri(QueuedUri queuedUri) throws DbException {
-        @SuppressWarnings("unchecked")
         Map<String, Object> rMap = ProtoUtils.protoToRethink(queuedUri);
         Map<String, Object> response = conn.executeObject(
                 "db-saveQueuedUri",
@@ -176,7 +173,6 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
 
     @Override
     public QueuedUri updateQueuedUri(QueuedUri queuedUri) throws DbException {
-        @SuppressWarnings("unchecked")
         Map<String, Object> rMap = ProtoUtils.protoToRethink(queuedUri);
         Map<String, Object> response = conn.executeObject(
                 "db-saveQueuedUri",
@@ -197,9 +193,13 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
     }
 
     private QueuedUri extractQueuedUri(Map<String, Object> response) {
-        @SuppressWarnings("unchecked")
-        List<Map<String, Map<String, Object>>> changes = (List<Map<String, Map<String, Object>>>) response.get("changes");
+        List<Map<String, Map<String, Object>>> changes = castChanges(response.get("changes"));
         Map<String, Object> newDoc = changes.get(0).get("new_val");
         return ProtoUtils.rethinkToProto(newDoc, QueuedUri.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Map<String, Object>>> castChanges(Object value) {
+        return (List<Map<String, Map<String, Object>>>) value;
     }
 }

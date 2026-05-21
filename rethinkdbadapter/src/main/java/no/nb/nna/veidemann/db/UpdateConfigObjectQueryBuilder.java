@@ -21,14 +21,10 @@ import com.rethinkdb.gen.ast.ReqlFunction1;
 import no.nb.nna.veidemann.api.config.v1.UpdateRequest;
 import no.nb.nna.veidemann.commons.auth.EmailContextKey;
 import no.nb.nna.veidemann.db.fieldmask.ConfigObjectQueryBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.rethinkdb.RethinkDB.r;
 
 public class UpdateConfigObjectQueryBuilder {
-    private static final Logger LOG = LoggerFactory.getLogger(UpdateConfigObjectQueryBuilder.class);
-
     ReqlExpr q;
 
     public UpdateConfigObjectQueryBuilder(UpdateRequest request) {

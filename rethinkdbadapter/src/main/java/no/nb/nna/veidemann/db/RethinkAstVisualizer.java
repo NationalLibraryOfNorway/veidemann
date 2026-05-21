@@ -80,7 +80,6 @@ public class RethinkAstVisualizer {
             params = " [" + params + "]";
         }
 
-        String objIndent = makeSubObjIndent(indent, last);
         List<String> optArgsList = getOptArgs(ast).entrySet().stream().sorted(Entry.comparingByKey()).map(e -> {
 
             String s = e.getKey() + ": ";
@@ -100,11 +99,6 @@ public class RethinkAstVisualizer {
         String optArgs = String.join(",\n", optArgsList);
 
         if (!"".equals(optArgs)) {
-            int paramIndentIdx = indent.length() + extraIndent + 3;
-            int endParaIdx = indent.length() + extraIndent;
-            String paramIndent = (objIndent + SPACES).substring(0, paramIndentIdx);
-            String endParaIndent = (objIndent + SPACES).substring(0, endParaIdx);
-
             optArgs = String.join(", ", optArgs.split("\n"));
             optArgs = " {" + optArgs + "}";
         }
@@ -123,14 +117,6 @@ public class RethinkAstVisualizer {
             }
         }
         return sb;
-    }
-
-    private String makeSubObjIndent(String indent, boolean last) {
-        if (indent.endsWith("└──")) {
-            indent = indent.substring(0, indent.length() - 3) + "   ";
-        }
-        indent += (last ? "   " : "│   ") + "   ";
-        return indent;
     }
 
     Arguments getArguments(ReqlAst ast) {

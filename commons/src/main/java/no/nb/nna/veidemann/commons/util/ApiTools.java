@@ -16,7 +16,6 @@
 package no.nb.nna.veidemann.commons.util;
 
 import com.google.protobuf.Descriptors.FieldDescriptor;
-import com.google.protobuf.GeneratedMessageV3.Builder;
 import com.google.protobuf.Message;
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
@@ -28,6 +27,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -137,7 +137,7 @@ public class ApiTools {
          * @param fetchFunc      a function taking a request and returning a result set
          * @param consumer       the function to be applied to all elements of the result
          */
-        public void walk(Builder requestBuilder, CheckedFunction<R, ? extends Message> fetchFunc, Consumer<V> consumer) {
+        public void walk(Message.Builder requestBuilder, CheckedFunction<R, ? extends Message> fetchFunc, Consumer<V> consumer) {
             FieldDescriptor pageField = requestBuilder.getDescriptorForType().findFieldByName("page");
             FieldDescriptor pageSizeField = requestBuilder.getDescriptorForType().findFieldByName("page_size");
 
@@ -151,7 +151,7 @@ public class ApiTools {
 
             int page = 0;
 
-            R request = (R) requestBuilder.setField(pageField, page).build();
+            R request = buildRequest(requestBuilder, pageField, page);
 
             Message resultSet = null;
             try {
@@ -165,20 +165,33 @@ public class ApiTools {
                 throw new IllegalArgumentException("Fetch func returned a response which is not a value list");
             }
 
-            List<V> resultValues = (List<V>) resultSet.getField(resultValuesField);
+            List<V> resultValues = castResultValues(resultSet.getField(resultValuesField));
 
             while (!resultValues.isEmpty()) {
                 for (V obj : resultValues) {
                     consumer.accept(obj);
                 }
-                request = (R) requestBuilder.setField(pageField, ++page).build();
+                request = buildRequest(requestBuilder, pageField, ++page);
                 try {
                     resultSet = fetchFunc.apply(request);
                 } catch (Exception e) {
                     throw new RuntimeException("Fetch func failed");
                 }
-                resultValues = (List) resultSet.getField(resultValuesField);
+                resultValues = castResultValues(resultSet.getField(resultValuesField));
             }
+        }
+
+        @SuppressWarnings("unchecked")
+        private R buildRequest(Message.Builder requestBuilder, FieldDescriptor pageField, int page) {
+            return (R) requestBuilder.setField(pageField, page).build();
+        }
+
+        @SuppressWarnings("unchecked")
+        private List<V> castResultValues(Object values) {
+            if (values == null) {
+                return Collections.emptyList();
+            }
+            return (List<V>) values;
         }
 
         @FunctionalInterface

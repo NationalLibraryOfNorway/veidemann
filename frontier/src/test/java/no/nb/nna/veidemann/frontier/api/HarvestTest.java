@@ -14,8 +14,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
@@ -34,8 +32,6 @@ import redis.clients.jedis.Jedis;
 @Tag("redis")
 @Tag("rethinkDb")
 public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractIntegrationTest {
-    private static final Logger LOG = LoggerFactory.getLogger(HarvestTest.class);
-
     @Test
     public void testOneSuccessfullSeed() throws Exception {
         int seedCount = 1;
@@ -184,7 +180,6 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
     @Test
     public void testHarvesterClosed() throws Exception {
         int seedCount = 3;
-        int linksPerLevel = 3;
         int maxHopsFromSeed = 2;
 
         scopeCheckerServiceMock.withMaxHopsFromSeed(maxHopsFromSeed);
@@ -192,7 +187,9 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
         List<SeedAndExecutions> seeds = crawlRunner.genSeeds(seedCount, "a.seed", job);
 
         harvesterMock.close();
-        harvesterMock = new HarvesterMock(settings).start();
+        HarvesterMock restartedHarvester = new HarvesterMock(settings);
+        restartedHarvester.start();
+        harvesterMock = restartedHarvester;
 
         RunningCrawl crawl = crawlRunner.runCrawl(job, seeds);
         crawlRunner.awaitCrawlFinished(crawl);

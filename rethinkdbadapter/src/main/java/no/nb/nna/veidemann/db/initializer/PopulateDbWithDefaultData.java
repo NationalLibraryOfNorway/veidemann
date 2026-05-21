@@ -146,6 +146,11 @@ public class PopulateDbWithDefaultData implements Runnable {
     <T extends Message> Stream<T> readYamlFile(InputStream in, Class<T> type) {
         Yaml yaml = new Yaml();
         return StreamSupport.stream(yaml.loadAll(in).spliterator(), false)
-                .map(o -> ProtoUtils.rethinkToProto((Map) o, type));
+                .map(o -> ProtoUtils.rethinkToProto(castMap(o), type));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castMap(Object value) {
+        return (Map<String, Object>) value;
     }
 }

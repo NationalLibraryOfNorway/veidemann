@@ -140,6 +140,8 @@ public class UserRoleMapper implements AutoCloseable{
                     LOG.debug("ApiKey {} with roles: {} is expired", rm.getApiKey().getToken(), rm.getRoleList());
                 }
                 break;
+            case EMAILORGROUP_NOT_SET:
+                break;
         }
     }
 
