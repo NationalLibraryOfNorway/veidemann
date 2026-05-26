@@ -2,10 +2,11 @@ package script
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"go.starlark.net/starlark"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
+	"go.starlark.net/starlark"
 )
 
 // Error indicating input was starlark.None type
@@ -62,10 +63,14 @@ func joinArgs(a starlark.Tuple, k []starlark.Tuple) string {
 		if len(a) > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(string(k[0][0].(starlark.String)) + "=" + k[0][1].String())
+		b.WriteString(string(k[0][0].(starlark.String)))
+		b.WriteByte('=')
+		b.WriteString(k[0][1].String())
 		for _, s := range k[1:] {
 			b.WriteString(", ")
-			b.WriteString(string(s[0].(starlark.String)) + "=" + s[1].String())
+			b.WriteString(string(s[0].(starlark.String)))
+			b.WriteByte('=')
+			b.WriteString(s[1].String())
 		}
 	}
 

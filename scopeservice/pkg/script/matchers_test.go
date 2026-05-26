@@ -461,6 +461,101 @@ func Test_isUrl(t *testing.T) {
 	}
 }
 
+func Test_isPathPrefix(t *testing.T) {
+	tests := []testdata{
+		{name: "isPathPrefix1",
+			script: "isPathPrefix('/aa%20bb').then(Include)",
+			qUri: &frontierV1.QueuedUri{
+				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
+			},
+			debug: false,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
+				ExcludeReason: Include.AsInt32(),
+				IncludeCheckUri: &commonsV1.ParsedUri{
+					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
+					Scheme: "http",
+					Host:   "foo.bar",
+					Port:   80,
+					Path:   "/aa%20bb/cc",
+					Query:  "foo&jsessionid=1",
+				},
+				Console: "",
+			}},
+		{name: "isPathPrefix2",
+			script: "isPathPrefix('/bb').then(Include)",
+			qUri: &frontierV1.QueuedUri{
+				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
+			},
+			debug: false,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
+				ExcludeReason: Blocked.AsInt32(),
+				IncludeCheckUri: &commonsV1.ParsedUri{
+					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
+					Scheme: "http",
+					Host:   "foo.bar",
+					Port:   80,
+					Path:   "/aa%20bb/cc",
+					Query:  "foo&jsessionid=1",
+				},
+				Error: &commonsV1.Error{
+					Code:   -5001,
+					Msg:    "Blocked",
+					Detail: "No scope rules matched",
+				},
+				Console: "",
+			}},
+		{name: "isPathPrefix3",
+			script: "isPathPrefix(param('pathPrefix')).then(Include)",
+			qUri: &frontierV1.QueuedUri{
+				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
+				Annotation: []*configV1.Annotation{
+					{Key: "pathPrefix", Value: "/zz /aa%20bb"},
+				},
+			},
+			debug: false,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
+				ExcludeReason: Include.AsInt32(),
+				IncludeCheckUri: &commonsV1.ParsedUri{
+					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
+					Scheme: "http",
+					Host:   "foo.bar",
+					Port:   80,
+					Path:   "/aa%20bb/cc",
+					Query:  "foo&jsessionid=1",
+				},
+				Console: "",
+			}},
+		{name: "urlPath1",
+			script: "test(url().path().startswith('/aa%20bb')).then(Include)",
+			qUri: &frontierV1.QueuedUri{
+				Uri: "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
+			},
+			debug: false,
+			want: &scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_INCLUDE,
+				ExcludeReason: Include.AsInt32(),
+				IncludeCheckUri: &commonsV1.ParsedUri{
+					Href:   "http://foo.bar/aa%20bb/cc?foo&jsessionid=1",
+					Scheme: "http",
+					Host:   "foo.bar",
+					Port:   80,
+					Path:   "/aa%20bb/cc",
+					Query:  "foo&jsessionid=1",
+				},
+				Console: "",
+			}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := RunScopeScript(tt.name, tt.script, tt.qUri, tt.debug)
+			verify(t, got, tt.want)
+		})
+	}
+}
+
 func Test_maxHopsFromSeed(t *testing.T) {
 	tests := []testdata{
 		{name: "maxHopsFromSeed1",

@@ -31,3 +31,12 @@ Space separated string with urls
 isUrl("http://example.com")
 ```
 {{< /funcdef >}}
+
+{{< funcdef def="isPathPrefix(prefix)" >}}
+Takes a space separated string of path prefixes and checks if the candidate URI path starts with one of them.
+The path compared is the canonicalized path.
+
+```
+isPathPrefix("/api/ /static/")
+```
+{{< /funcdef >}}

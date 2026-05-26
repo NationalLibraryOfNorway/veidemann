@@ -7,6 +7,11 @@ date: 2021-03-17T10:07:20+01:00
 Returns a string with the host part of the Url
 {{< /funcdef >}}
 
+{{< funcdef def="urlValue.path()" >}}
+Returns the canonicalized path part of the Url, for example `/articles/archive/`.
+This is useful for custom path filtering such as `test(url().path().startswith("/api/"))`.
+{{< /funcdef >}}
+
 {{< funcdef def="urlValue.port()" >}}
 Returns a string with the port part of the Url
 {{< /funcdef >}}

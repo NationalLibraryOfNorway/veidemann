@@ -74,6 +74,7 @@ func (u *UrlValue) AttrNames() []string {
 
 var urlMethods = map[string]*starlark.Builtin{
 	"host": starlark.NewBuiltin("host", uriGetHost),
+	"path": starlark.NewBuiltin("path", uriGetPath),
 	"port": starlark.NewBuiltin("port", uriGetPort),
 }
 
@@ -93,6 +94,15 @@ func uriGetPort(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw
 
 	u := b.Receiver().(*UrlValue)
 	return starlark.String(u.parsedUri.Port()), nil
+}
+
+func uriGetPath(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+		return nil, err
+	}
+
+	u := b.Receiver().(*UrlValue)
+	return starlark.String(u.parsedUri.Pathname()), nil
 }
 
 var (

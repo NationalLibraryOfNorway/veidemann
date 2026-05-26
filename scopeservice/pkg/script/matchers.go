@@ -14,6 +14,7 @@ func init() {
 	starlark.Universe["isSameHost"] = starlark.NewBuiltin("isSameHost", isSameHost)
 	starlark.Universe["maxHopsFromSeed"] = starlark.NewBuiltin("maxHopsFromSeed", maxHopsFromSeed)
 	starlark.Universe["isUrl"] = starlark.NewBuiltin("isUrl", isUrl)
+	starlark.Universe["isPathPrefix"] = starlark.NewBuiltin("isPathPrefix", isPathPrefix)
 	starlark.Universe["isReferrer"] = starlark.NewBuiltin("isReferrer", isReferrer)
 }
 
@@ -38,13 +39,7 @@ func isScheme(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	}
 	s := strings.TrimRight(qUrl.parsedUri.Protocol(), ":")
 	scheme = strings.ToLower(scheme)
-	match := False
-	for _, t := range strings.Fields(scheme) {
-		if t == s {
-			match = True
-			break
-		}
-	}
+	match := Match(matchToken(s, scheme))
 
 	printDebugf(thread, b, args, kwargs, "scheme=%v, wantScheme=%v, match=%v", s, scheme, match)
 
@@ -62,13 +57,7 @@ func isReferrer(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 	}
 	s := strings.TrimSpace(qUrl.qUri.Referrer)
 	referrer = strings.ToLower(referrer)
-	match := False
-	for _, t := range strings.Fields(referrer) {
-		if t == s {
-			match = True
-			break
-		}
-	}
+	match := Match(matchToken(s, referrer))
 
 	printDebugf(thread, b, args, kwargs, "referrer=%v, wantReferrer=%v, match=%v", s, referrer, match)
 
@@ -82,29 +71,26 @@ func isSameHost(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		return nil, err
 	}
 
-	match := false
 	qUrl := thread.Local(urlKey).(*UrlValue)
 	host := qUrl.parsedUri.Hostname()
 
-	seeds := append(strings.Fields(altSeeds), qUrl.qUri.SeedUri)
-	for _, s := range seeds {
-		if seed, err := ScopeCanonicalizationProfile.Parse(s); err == nil {
-			altSeeds = seed.Hostname()
-			match = host == altSeeds
-			if !match && parameterAsBool(includeSubdomains) {
-				match = strings.HasSuffix(host, "."+altSeeds)
-			}
-			printDebugf(thread, b, args, kwargs, "host=%v, seedHost=%v, match=%v", host, altSeeds, match)
-			if match {
-				break
-			}
-		} else {
-			printDebugf(thread, b, args, kwargs, "Could not parse seed '%v'", s)
-			return nil, IllegalUri.asError(fmt.Sprintf("Could not parse seed '%v'", s))
+	seedHosts, err := canonicalSeedHosts(qUrl.qUri.SeedUri, altSeeds)
+	if err != nil {
+		seedText := strings.SplitN(err.Error(), ":", 2)[0]
+		printDebugf(thread, b, args, kwargs, "Could not parse seed '%v'", seedText)
+		return nil, IllegalUri.asError(fmt.Sprintf("Could not parse seed '%v'", seedText))
+	}
+
+	includeSubs := parameterAsBool(includeSubdomains)
+	for _, seed := range seedHosts {
+		match := matchSameHost(host, seed.Host, includeSubs)
+		printDebugf(thread, b, args, kwargs, "host=%v, seedHost=%v, match=%v", host, seed.Host, match)
+		if match {
+			return True, nil
 		}
 	}
 
-	return Match(match), nil
+	return False, nil
 }
 
 func maxHopsFromSeed(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -115,14 +101,12 @@ func maxHopsFromSeed(thread *starlark.Thread, b *starlark.Builtin, args starlark
 	}
 	qUrl := thread.Local(urlKey).(*UrlValue)
 	discoveryPath := qUrl.qUri.GetDiscoveryPath()
-	if !parameterAsBool(includeRedirects) {
-		discoveryPath = strings.ReplaceAll(discoveryPath, "R", "")
-	}
 
 	var match bool
 
 	if h, err := parameterAsInt64(maxHops); err == nil {
-		match = len(discoveryPath) > int(h)
+		match = exceedsMaxHops(qUrl.qUri.GetDiscoveryPath(), h, parameterAsBool(includeRedirects))
+		discoveryPath = normalizeDiscoveryPath(discoveryPath, parameterAsBool(includeRedirects))
 	} else {
 		if errors.Is(err, None) {
 			return nil, err
@@ -139,20 +123,28 @@ func isUrl(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw
 	}
 	qUrl := thread.Local(urlKey).(*UrlValue)
 
-	match := False
-	for _, ux := range strings.Fields(u) {
-		canon, err := ScopeCanonicalizationProfile.Parse(ux)
-		if err != nil {
-			return nil, err
-		}
-		ux = canon.String()
-		if qUrl.String() == ux {
-			match = True
-			break
-		}
+	matched, err := matchCanonicalURL(qUrl.String(), u)
+	if err != nil {
+		return nil, err
 	}
+	match := Match(matched)
 
 	printDebugf(thread, b, args, kwargs, "test='%v', url=%v, match=%v", u, qUrl.String(), match)
+
+	return match, nil
+}
+
+func isPathPrefix(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var prefixes string
+	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "prefix", &prefixes); err != nil {
+		return nil, err
+	}
+	qUrl := thread.Local(urlKey).(*UrlValue)
+	path := qUrl.parsedUri.Pathname()
+
+	match := Match(matchPathPrefix(path, prefixes))
+
+	printDebugf(thread, b, args, kwargs, "path=%v, prefixes=%v, match=%v", path, prefixes, match)
 
 	return match, nil
 }

@@ -20,6 +20,19 @@ func init() {
 	script.InitializeCanonicalizationProfiles(false)
 }
 
+const defaultScopeScript = `
+isScheme(param('scope_allowedSchemes')).otherwise(Blocked)
+isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeeds')).then(Include, continueEvaluation=True).otherwise(Blocked, continueEvaluation=False)
+maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')).then(TooManyHops)
+isUrl(param('scope_excludedUris')).then(Blocked)`
+
+const defaultScopeScriptWithPathPrefix = `
+isScheme(param('scope_allowedSchemes')).otherwise(Blocked)
+isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeeds')).then(Include, continueEvaluation=True).otherwise(Blocked, continueEvaluation=False)
+maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')).then(TooManyHops)
+isPathPrefix(param('scope_excludedPathPrefixes')).then(Blocked)
+isUrl(param('scope_excludedUris')).then(Blocked)`
+
 func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 	server := &ScopeCheckerService{}
 	qUri := newQUri("http://foo.bar/aa bb/cc?jsessionid=1&foo#bar", "http://foo.bar/", "RL")
@@ -154,25 +167,22 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 func TestFullScript(t *testing.T) {
 	server := &ScopeCheckerService{}
 
-	defaultScript := `
-isScheme(param('scope_allowedSchemes')).otherwise(Blocked)
-isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeed')).then(Include, continueEvaluation=True).otherwise(Blocked, continueEvaluation=False)
-maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')).then(TooManyHops)
-isUrl(param('scope_excludedUris')).then(Blocked)`
-
 	tests := []struct {
-		name  string
-		qUri  *frontierV1.QueuedUri
-		debug bool
-		want  *scopecheckerV1.ScopeCheckResponse
+		name   string
+		script string
+		qUri   *frontierV1.QueuedUri
+		debug  bool
+		want   *scopecheckerV1.ScopeCheckResponse
 	}{
 		{"include",
+			defaultScopeScript,
 			newQUri("http://foo.bar/aa", "http://foo.bar/", "RL"),
 			false,
 			&scopecheckerV1.ScopeCheckResponse{
 				Evaluation: scopecheckerV1.ScopeCheckResponse_INCLUDE,
 			}},
 		{"wrongScheme",
+			defaultScopeScript,
 			newQUri("ftp://foo.bar/aa", "http://foo.bar/", "RL"),
 			false,
 			&scopecheckerV1.ScopeCheckResponse{
@@ -180,6 +190,7 @@ isUrl(param('scope_excludedUris')).then(Blocked)`
 				ExcludeReason: script.Blocked.AsInt32(),
 			}},
 		{"tooManyHops",
+			defaultScopeScript,
 			newQUri("http://foo.bar/aa", "http://foo.bar/", "RLLL"),
 			false,
 			&scopecheckerV1.ScopeCheckResponse{
@@ -187,6 +198,7 @@ isUrl(param('scope_excludedUris')).then(Blocked)`
 				ExcludeReason: script.TooManyHops.AsInt32(),
 			}},
 		{"offHost",
+			defaultScopeScript,
 			newQUri("http://foo2.bar/aa", "http://foo.bar/", "RL"),
 			false,
 			&scopecheckerV1.ScopeCheckResponse{
@@ -194,10 +206,27 @@ isUrl(param('scope_excludedUris')).then(Blocked)`
 				ExcludeReason: script.Blocked.AsInt32(),
 			}},
 		{"altHost",
+			defaultScopeScript,
 			newQUri("http://alt.host.com/aa", "http://foo.bar/", "RL"),
 			false,
 			&scopecheckerV1.ScopeCheckResponse{
 				Evaluation: scopecheckerV1.ScopeCheckResponse_INCLUDE,
+			}},
+		{"excludedUrl",
+			defaultScopeScript,
+			setAnnotation(newQUri("http://foo.bar/aa", "http://foo.bar/", "RL"), "scope_excludedUris", "http://foo.bar/aa"),
+			false,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
+				ExcludeReason: script.Blocked.AsInt32(),
+			}},
+		{"blockedByPathPrefix",
+			defaultScopeScriptWithPathPrefix,
+			setAnnotation(newQUri("http://foo.bar/aa/bb", "http://foo.bar/", "RL"), "scope_excludedPathPrefixes", "/aa"),
+			false,
+			&scopecheckerV1.ScopeCheckResponse{
+				Evaluation:    scopecheckerV1.ScopeCheckResponse_EXCLUDE,
+				ExcludeReason: script.Blocked.AsInt32(),
 			}},
 	}
 	for _, tt := range tests {
@@ -205,7 +234,7 @@ isUrl(param('scope_excludedUris')).then(Blocked)`
 			request := &scopecheckerV1.ScopeCheckRequest{
 				QueuedUri:       tt.qUri,
 				ScopeScriptName: "scope_script",
-				ScopeScript:     defaultScript,
+				ScopeScript:     tt.script,
 				Debug:           tt.debug,
 			}
 
@@ -250,11 +279,23 @@ func newQUri(uri, seed, discoveryPath string) *frontierV1.QueuedUri {
 			{Key: "scope_includeSubdomains", Value: "True"},
 			{Key: "scope_maxHopsFromSeed", Value: "2"},
 			{Key: "scope_hopsIncludeRedirects", Value: "True"},
+			{Key: "scope_excludedPathPrefixes", Value: ""},
 			{Key: "scope_excludedUris", Value: ""},
 			{Key: "scope_allowedSchemes", Value: "http https"},
-			{Key: "scope_altSeed", Value: "alt.host.com"},
+			{Key: "scope_altSeeds", Value: "alt.host.com"},
 		},
 	}
+}
+
+func setAnnotation(qUri *frontierV1.QueuedUri, key, value string) *frontierV1.QueuedUri {
+	for _, annotation := range qUri.Annotation {
+		if annotation.Key == key {
+			annotation.Value = value
+			return qUri
+		}
+	}
+	qUri.Annotation = append(qUri.Annotation, &configV1.Annotation{Key: key, Value: value})
+	return qUri
 }
 
 func formatError(e *commonsV1.Error) string {
