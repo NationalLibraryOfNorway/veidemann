@@ -24,7 +24,7 @@ rethinkdb-driver = "2.4.4"
 slf4j-bom = "2.0.18"
 snakeyaml = "2.6"
 testcontainers-junit-jupiter = "2.0.5"
-typesafe-config = "1.4.8"
+typesafe-config = "1.4.9"
 
 [libraries]
 assertj-bom = { module = "org.assertj:assertj-bom", version.ref = "assertj-bom" }
