@@ -83,66 +83,318 @@ id: 75dfe01a-e9cc-4fd2-8aa5-c04878d9f1a1
 browserScript:
   browserScriptType: ON_LOAD
   script: |
-    function scroll ({ next, count = 100 } = {}) {
-      let c = count;
-      if (typeof count === 'string') {
-        // if count originates from annotation it is string
-        c = parseInt(count, 10)
+    async function scroll({
+      next,
+      count = 100,
+      step,
+      delay = 250,
+      settleDelay = 1000,
+      bottomThreshold = 5,
+      container = document.scrollingElement || document.documentElement || document.body,
+    } = {}) {
+      function asPositiveInt(value, fallback) {
+        const parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
       }
 
-      // height of visible area of window
-      const windowHeight = window.innerHeight
+      const c = asPositiveInt(count, 100);
 
-      // height of scrollable area
-      const scrollHeight = document.documentElement.scrollHeight
+      const scrollStep = asPositiveInt(
+        step,
+        Math.max(300, Math.floor(container.clientHeight * 0.8))
+      );
 
-      // scroll down height of window
-      window.scrollBy(0, windowHeight)
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-      if (c - 1 > 0 && scrollHeight > window.pageYOffset + windowHeight) {
+      const beforeTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const viewportHeight = container.clientHeight;
+      const maxTop = Math.max(0, scrollHeight - viewportHeight);
+
+      const nearBottom =
+        beforeTop + viewportHeight >= scrollHeight - bottomThreshold;
+
+      if (!nearBottom) {
+        container.scrollTop = Math.min(beforeTop + scrollStep, maxTop);
+        await sleep(delay);
+      } else {
+        await sleep(settleDelay);
+      }
+
+      const afterTop = container.scrollTop;
+      const afterScrollHeight = container.scrollHeight;
+
+      const moved = afterTop > beforeTop;
+      const grewWhileSettling = afterScrollHeight > scrollHeight;
+
+      if (c - 1 > 0 && (moved || grewWhileSettling)) {
         return {
           waitForData: true,
           next: 'self',
           data: {
             count: c - 1,
-          }
-        }
+            step: scrollStep,
+          },
+        };
       }
 
       return {
         next,
-        waitForData: true
-      }
+        waitForData: true,
+      };
     }
-
   urlRegexp: []
 kind: browserScript
 meta:
   description: Scroll down count pages
-  label:
-    - key: scope
-      value: default
-  annotation:
-    - key: next
-      value: 0ef72ea7-f145-4908-adaa-ebf50890b09c
   name: scroll.js
 
 ---
 
 apiVersion: v1
-id: 0ef72ea7-f145-4908-adaa-ebf50890b09c
+id: 9d6f6d62-0d7e-4e9c-8a65-0ef0a6b7b001
+kind: browserScript
+meta:
+  description: Preload every URL listed in img/srcset
+  name: preload-srcset-candidates.js
 browserScript:
-  browserScriptType: UNDEFINED
+  browserScriptType: ON_LOAD
   script: |
-    function scrollTo({ x = 0, y = 0 } = {}) {
-      window.scrollTo(x, y)
+    async function preloadSrcsetCandidates({
+      selector = 'img[srcset], img[data-srcset], picture source[srcset], picture source[data-srcset]',
+      includeImgSrc = false,
+      sameOriginOnly = false,
+      urlRegexp = '',
+      concurrency = 6,
+      timeoutMs = 15000,
+      maxCandidates = 0
+    } = {}) {
+      const keepAlive = window.__veidemannPreloadedImages || (window.__veidemannPreloadedImages = []);
+      const urls = [];
+      const seen = new Set();
+
+      function asBool(value) {
+        if (typeof value === 'boolean') return value;
+        return String(value).toLowerCase() === 'true';
+      }
+
+      function asInt(value, fallback) {
+        const parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+      }
+
+      sameOriginOnly = asBool(sameOriginOnly);
+      includeImgSrc = asBool(includeImgSrc);
+      concurrency = asInt(concurrency, 6);
+      timeoutMs = asInt(timeoutMs, 15000);
+      maxCandidates = parseInt(maxCandidates, 10) || 0;
+
+      const allowRe = urlRegexp ? new RegExp(urlRegexp) : null;
+
+      function normalizeUrl(raw) {
+        if (!raw) return null;
+
+        const trimmed = String(raw).trim();
+        if (!trimmed) return null;
+        if (/^(data|blob|javascript):/i.test(trimmed)) return null;
+
+        try {
+          const absolute = new URL(trimmed, document.baseURI).href;
+          const absoluteUrl = new URL(absolute);
+
+          if (sameOriginOnly && absoluteUrl.origin !== location.origin) {
+            return null;
+          }
+          if (allowRe && !allowRe.test(absolute)) {
+            return null;
+          }
+
+          return absolute;
+        } catch {
+          return null;
+        }
+      }
+
+      function extractSrcsetUrls(srcset) {
+        return String(srcset)
+          .split(',')
+          .map(part => part.trim())
+          .filter(Boolean)
+          .map(part => part.split(/\s+/, 1)[0])
+          .map(normalizeUrl)
+          .filter(Boolean);
+      }
+
+      function addUrl(raw) {
+        const normalized = normalizeUrl(raw);
+        if (!normalized || seen.has(normalized)) {
+          return;
+        }
+        seen.add(normalized);
+        urls.push(normalized);
+      }
+
+      for (const el of document.querySelectorAll(selector)) {
+        const srcset = el.getAttribute('srcset');
+        if (srcset) {
+          for (const candidate of extractSrcsetUrls(srcset)) {
+            addUrl(candidate);
+          }
+        }
+
+        if (includeImgSrc && el.tagName === 'IMG') {
+          addUrl(el.getAttribute('src'));
+        }
+      }
+
+      if (maxCandidates > 0 && urls.length > maxCandidates) {
+        urls.length = maxCandidates;
+      }
+
+      function loadImage(url) {
+        return new Promise(resolve => {
+          const img = new Image();
+          let done = false;
+
+          const finish = status => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve({ url, status });
+          };
+
+          const timer = setTimeout(() => finish('timeout'), timeoutMs);
+
+          img.onload = () => finish('loaded');
+          img.onerror = () => finish('error');
+
+          keepAlive.push(img);
+          img.src = url;
+        });
+      }
+
+      const results = [];
+      let nextIndex = 0;
+
+      async function worker() {
+        while (nextIndex < urls.length) {
+          const current = urls[nextIndex++];
+          results.push(await loadImage(current));
+        }
+      }
+
+      const workerCount = Math.min(concurrency, Math.max(urls.length, 1));
+      await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+      const loaded = results.filter(r => r.status === 'loaded').length;
+      const failed = results.length - loaded;
+
+      return {
+        waitForData: true,
+        data: {
+          queued: urls.length,
+          loaded,
+          failed
+        }
+      };
+    }
+  urlRegexp: []
+
+---
+
+apiVersion: v1
+id: 4fe7256a-003d-47fb-a276-8a64c8ebb8b6
+browserScript:
+  browserScriptType: ON_LOAD
+  script: |
+    async function scrollToBottomSafely(options = {}) {
+      const {
+        step = null,
+        delay = 250,
+        settleDelay = 1000,
+        maxIdleRounds = 5,
+        maxScrolls = 1000,
+        maxRounds = 1200,
+        bottomThreshold = 5,
+        container = document.scrollingElement || document.documentElement || document.body,
+      } = options;
+
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      const effectiveStep =
+        step ?? Math.max(1, Math.floor(container.clientHeight * 0.8));
+
+      let lastScrollHeight = container.scrollHeight;
+      let idleRounds = 0;
+      let scrollCount = 0;
+      let rounds = 0;
+
+      while (scrollCount < maxScrolls && rounds < maxRounds) {
+        rounds += 1;
+
+        const currentTop = container.scrollTop;
+        const scrollHeight = container.scrollHeight;
+        const viewportHeight = container.clientHeight;
+        const maxTop = Math.max(0, scrollHeight - viewportHeight);
+
+        const nearBottom =
+          currentTop + viewportHeight >= scrollHeight - bottomThreshold;
+
+        if (nearBottom) {
+          await sleep(settleDelay);
+
+          const newScrollHeight = container.scrollHeight;
+
+          if (newScrollHeight === lastScrollHeight) {
+            idleRounds += 1;
+          } else {
+            idleRounds = 0;
+            lastScrollHeight = newScrollHeight;
+          }
+
+          if (idleRounds >= maxIdleRounds) {
+            return {
+              scrollTop: container.scrollTop,
+              scrollHeight: container.scrollHeight,
+              scrollCount,
+              rounds,
+              stoppedBecause: "bottomSettled",
+            };
+          }
+
+          continue;
+        }
+
+        lastScrollHeight = scrollHeight;
+
+        const nextTop = Math.min(currentTop + effectiveStep, maxTop);
+
+        if (nextTop === currentTop) {
+          idleRounds += 1;
+        } else {
+          container.scrollTop = nextTop;
+          scrollCount += 1;
+          idleRounds = 0;
+        }
+
+        await sleep(delay);
+      }
+
+      return {
+        scrollTop: container.scrollTop,
+        scrollHeight: container.scrollHeight,
+        scrollCount,
+        rounds,
+        stoppedBecause:
+          scrollCount >= maxScrolls ? "maxScrolls" : "maxRounds",
+      };
     }
   urlRegexp: []
 kind: browserScript
 meta:
   annotation: []
-  description: Scroll to (x, y)
+  description: Scroll to bottom of page, waiting for dynamic content to load, with various safety checks to avoid infinite scrolling
   label:
     - key: scope
       value: default
-  name: scrollTo.js
+  name: scrollToBottomSafely.js
