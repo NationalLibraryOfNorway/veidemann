@@ -5,9 +5,9 @@ meta:
   name: "Default"
   description: "Default browser configuration"
 browserConfig:
-  userAgent: "veidemann/1.0"
-  windowWidth: 1280
-  windowHeight: 1024
+  userAgent: "veidemann/development"
+  windowWidth: 1920
+  windowHeight: 1080
   pageLoadTimeoutMs: 180000
   maxInactivityTimeMs: 2000
   scriptSelector:
