@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +30,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
 	"github.com/invopop/yaml"
-	"github.com/rs/zerolog/log"
 )
 
 type options struct {
@@ -99,7 +99,7 @@ type query struct {
 
 // run runs the query command
 func (q *query) run() error {
-	log.Debug().Msgf("Executing query: %s", q.request.GetQuery())
+	slog.Debug("Executing query", "query", q.request.GetQuery())
 
 	var w io.Writer
 	var err error
@@ -165,7 +165,7 @@ func (o *options) parseQuery(args []string) (*query, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Debug().Msgf("Using query definition from file '%s'", filename)
+		slog.Debug("Using query definition from file", "filename", filename)
 		err = readQuery(filename, q)
 		if err != nil {
 			return nil, err

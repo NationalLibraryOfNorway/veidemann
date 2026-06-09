@@ -17,9 +17,9 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/rs/zerolog/log"
 )
 
 type DuplicateReportRecord struct {
@@ -55,19 +55,19 @@ func (d DuplicateKindReporter) Report(w io.Writer) error {
 			rec.Records = append(rec.Records, Record{Id: id})
 		}
 
-		l := log.With().Str("key", rec.Name).Logger()
+		l := slog.With("key", rec.Name)
 
 		b, err := json.Marshal(&rec)
 		if err != nil {
-			l.Error().Err(err).Msg("failed to marshal record to json")
+			l.Error("failed to marshal record to json", "error", err)
 			return
 		}
 		if _, err := w.Write(b); err != nil {
-			l.Error().Err(err).Msg("failed to write record")
+			l.Error("failed to write record", "error", err)
 			return
 		}
 		if _, err := w.Write([]byte{'\n'}); err != nil {
-			log.Error().Err(err).Msg("failed to write record")
+			slog.Error("failed to write record", "error", err)
 			return
 		}
 	}
@@ -77,7 +77,7 @@ func (d DuplicateKindReporter) Report(w io.Writer) error {
 		return err
 	}
 
-	log.Info().Int32("duplicate keys", nrOfDuplicateKeys).Int32("duplicate values", nrOfDuplicateValues).Msg("Duplicate report completed")
+	slog.Info("Duplicate report completed", "duplicateKeys", nrOfDuplicateKeys, "duplicateValues", nrOfDuplicateValues)
 	return nil
 }
 
@@ -118,14 +118,14 @@ func (d SeedReporter) Report(w io.Writer) error {
 		// Avoid memory allocation by reusing the same slice
 		rec.Seeds = rec.Seeds[:0]
 
-		l := log.With().Str("key", rec.Host).Logger()
+		l := slog.With("key", rec.Host)
 
 		for _, id := range ids {
-			l = l.With().Str("id", id).Logger()
+			l = l.With("id", id)
 			ref := &configV1.ConfigRef{Id: id, Kind: configV1.Kind_seed}
 			seed, err := d.Client.GetConfigObject(context.Background(), ref)
 			if err != nil {
-				l.Error().Err(err).Msg("failed to get seed from Veidemann")
+				l.Error("failed to get seed from Veidemann", "error", err)
 				continue
 			}
 			sr := SeedRecord{
@@ -138,7 +138,7 @@ func (d SeedReporter) Report(w io.Writer) error {
 
 			entity, err := d.Client.GetConfigObject(context.Background(), seed.GetSeed().GetEntityRef())
 			if err != nil {
-				l.Warn().Err(err).Str("key", rec.Host).Str("entityId", sr.EntityId).Msg("failed to get entity from Veidemann")
+				l.Warn("failed to get entity from Veidemann", "error", err, "key", rec.Host, "entityId", sr.EntityId)
 				continue
 			}
 			sr.EntityName = entity.GetMeta().GetName()
@@ -147,16 +147,16 @@ func (d SeedReporter) Report(w io.Writer) error {
 
 		b, err := json.Marshal(rec)
 		if err != nil {
-			l.Error().Err(err).Msg("failed to marshal record to json")
+			l.Error("failed to marshal record to json", "error", err)
 			return
 		}
 
 		if _, err := w.Write(b); err != nil {
-			l.Error().Err(err).Msg("failed to write record")
+			l.Error("failed to write record", "error", err)
 			return
 		}
 		if _, err := w.Write([]byte{'\n'}); err != nil {
-			l.Error().Err(err).Msg("failed to write record")
+			l.Error("failed to write record", "error", err)
 			return
 		}
 	}
@@ -165,6 +165,6 @@ func (d SeedReporter) Report(w io.Writer) error {
 		return err
 	}
 
-	log.Info().Int32("duplicate keys", nrOfDuplicateKeys).Int32("duplicate values", nrOfDuplicateValues).Msg("Duplicate report completed")
+	slog.Info("Duplicate report completed", "duplicateKeys", nrOfDuplicateKeys, "duplicateValues", nrOfDuplicateValues)
 	return nil
 }

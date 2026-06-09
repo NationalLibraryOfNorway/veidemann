@@ -16,9 +16,9 @@ package connection
 import (
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/config"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -72,7 +72,7 @@ func clientTransportCredentials() credentials.TransportCredentials {
 	// Create a pool with systems CAs
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
-		log.Warn().Msg("Could not read system trusted certificates, using only the configured ones")
+		slog.Warn("Could not read system trusted certificates, using only the configured ones")
 		certPool = x509.NewCertPool()
 	}
 
@@ -80,12 +80,12 @@ func clientTransportCredentials() credentials.TransportCredentials {
 	if config.GetRootCAs() != "" {
 		rootCABytes := []byte(config.GetRootCAs())
 		if !certPool.AppendCertsFromPEM(rootCABytes) {
-			log.Warn().Msg("no certs found in root CA file")
+			slog.Warn("no certs found in root CA file")
 		}
 	}
 
 	serverNameOverride := config.GetServerNameOverride()
-	log.Debug().Msgf("Using server name override: %s", serverNameOverride)
+	slog.Debug("Using server name override", "serverNameOverride", serverNameOverride)
 
 	return credentials.NewClientTLSFromCert(certPool, serverNameOverride)
 }

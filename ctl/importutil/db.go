@@ -20,13 +20,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/dgraph-io/ristretto/v2/z"
-	"github.com/rs/zerolog/log"
 )
 
 // badgerLogger is a log adapter that implements badger.Logger
@@ -34,20 +34,20 @@ type badgerLogger struct {
 	prefix string
 }
 
-func (l badgerLogger) Errorf(fmt string, args ...any) {
-	log.Error().Msgf(l.prefix+fmt, args...)
+func (l badgerLogger) Errorf(format string, args ...any) {
+	slog.Error(fmt.Sprintf(l.prefix+format, args...))
 }
 
-func (l badgerLogger) Warningf(fmt string, args ...any) {
-	log.Warn().Msgf(l.prefix+fmt, args...)
+func (l badgerLogger) Warningf(format string, args ...any) {
+	slog.Warn(fmt.Sprintf(l.prefix+format, args...))
 }
 
-func (l badgerLogger) Infof(fmt string, args ...any) {
-	log.Debug().Msgf(l.prefix+fmt, args...)
+func (l badgerLogger) Infof(format string, args ...any) {
+	slog.Debug(fmt.Sprintf(l.prefix+format, args...))
 }
 
-func (l badgerLogger) Debugf(fmt string, args ...any) {
-	log.Trace().Msgf(l.prefix+fmt, args...)
+func (l badgerLogger) Debugf(format string, args ...any) {
+	slog.Debug(fmt.Sprintf(l.prefix+format, args...))
 }
 
 type ExistsCode int
@@ -161,7 +161,7 @@ func ImportExisting(db *ImportDb, client configV1.ConfigClient, kind configV1.Ki
 			key, err = keyNormalizer.Normalize(key)
 			if err != nil {
 				failed++
-				log.Error().Err(err).Str("key", msg.GetMeta().GetName()).Str("id", id).Msg("Normalization failed")
+				slog.Error("Normalization failed", "error", err, "key", msg.GetMeta().GetName(), "id", id)
 				continue
 			}
 		}
@@ -171,7 +171,7 @@ func ImportExisting(db *ImportDb, client configV1.ConfigClient, kind configV1.Ki
 			return fmt.Errorf("error writing to db: %w", err)
 		}
 
-		l := log.With().Str("key", key).Str("id", id).Str("kind", kind.String()).Logger()
+		l := slog.With("key", key, "id", id, "kind", kind.String())
 
 		count++
 		switch code {
@@ -179,15 +179,15 @@ func ImportExisting(db *ImportDb, client configV1.ConfigClient, kind configV1.Ki
 			failed++
 		case NewKey:
 			imported++
-			l.Info().Msg("New key imported from Veidemann")
+			l.Info("New key imported from Veidemann")
 		case NewId:
-			l.Info().Msg("New id imported from Veidemann")
+			l.Info("New id imported from Veidemann")
 		case Exists:
-			l.Info().Msg("Already imported from Veidemann")
+			l.Info("Already imported from Veidemann")
 		}
 	}
 	elapsed := time.Since(start)
-	log.Info().Str("kind", kind.String()).Int("total", count).Int("imported", imported).Int("errors", failed).Str("elapsed", elapsed.String()).Msg("Import from Veidemann complete")
+	slog.Info("Import from Veidemann complete", "kind", kind.String(), "total", count, "imported", imported, "errors", failed, "elapsed", elapsed)
 
 	return nil
 }

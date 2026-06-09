@@ -16,6 +16,7 @@ package create
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
@@ -25,7 +26,6 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -73,7 +73,7 @@ func run(o *options) error {
 		sigs := make(chan os.Signal, 2)
 		signal.Notify(sigs, os.Interrupt)
 		sig := <-sigs
-		log.Debug().Msgf("Received %s signal, aborting...", sig)
+		slog.Info("Received signal, aborting", "signal", sig.String())
 		cancel()
 	}()
 
@@ -105,11 +105,7 @@ func run(o *options) error {
 	}
 
 	handleError := func(co *configV1.ConfigObject, err error) {
-		log.Error().Err(err).
-			Str("kind", co.GetKind().String()).
-			Str("meta.name", co.GetMeta().Name).
-			Str("id", co.GetId()).
-			Msg("Failed to save config object")
+		slog.Error("Failed to save config object", "error", err, "kind", co.GetKind().String(), "meta.name", co.GetMeta().Name, "id", co.GetId())
 	}
 
 	var wg sync.WaitGroup
@@ -130,14 +126,14 @@ func run(o *options) error {
 					s, ok := status.FromError(err)
 					if ok && s.Code() == codes.Unauthenticated {
 						// retry if unauthenticated
-						log.Debug().Int("attempts", attempts).Msg("Unauthenticated, retrying...")
+						slog.Debug("Unauthenticated, retrying", "attempts", attempts)
 						continue
 					}
 					if err != nil {
 						handleError(co, err)
 						break
 					}
-					log.Info().Str("kind", r.GetKind().String()).Str("meta.name", r.Meta.Name).Str("id", r.Id).Msg("Saved config object")
+					slog.Info("Saved config object", "kind", r.GetKind().String(), "meta.name", r.Meta.Name, "id", r.Id)
 					break
 				}
 			}

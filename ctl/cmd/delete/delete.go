@@ -18,12 +18,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/apiutil"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -116,7 +116,7 @@ func run(o *options) error {
 			if err != nil {
 				return fmt.Errorf("error getting object: %w", err)
 			}
-			log.Debug().Msgf("Outputing record of kind '%s' with name '%s'", msg.Kind, msg.Meta.Name)
+			slog.Debug("Outputting record", "kind", msg.Kind.String(), "name", msg.Meta.Name)
 			fmt.Printf("%s\n", msg.Meta.Name)
 		}
 		fmt.Printf("Requested count: %v\nTo actually delete, add: --dry-run=false\n", count.Count)
@@ -133,7 +133,7 @@ func run(o *options) error {
 		if err != nil {
 			return fmt.Errorf("error getting object: %w", err)
 		}
-		log.Debug().Msgf("Deleting record of kind '%s' with name '%s'", msg.Kind, msg.Meta.Name)
+		slog.Debug("Deleting record", "kind", msg.Kind.String(), "name", msg.Meta.Name)
 
 		request := &configV1.ConfigObject{
 			ApiVersion: "v1",
@@ -143,14 +143,14 @@ func run(o *options) error {
 
 		r, err := client.DeleteConfigObject(context.Background(), request)
 		if err != nil {
-			log.Error().Err(err).Str("id", msg.Id).Msgf("Could not delete object")
+			slog.Error("Could not delete object", "error", err, "id", msg.Id)
 			continue
 		}
 		if r.Deleted {
 			deleted++
 		}
 	}
-	log.Info().Msgf("Deleted %d objects of %d selected", deleted, count.Count)
+	slog.Info("Deleted selected objects", "deleted", deleted, "selected", count.Count)
 
 	return nil
 }
