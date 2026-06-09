@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/script"
+	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/internal/script"
 
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
@@ -34,7 +34,7 @@ isPathPrefix(param('scope_excludedPathPrefixes')).then(Blocked)
 isUrl(param('scope_excludedUris')).then(Blocked)`
 
 func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
-	server := &ScopeCheckerService{}
+	server := &ScopeChecker{}
 	qUri := newQUri("http://foo.bar/aa bb/cc?jsessionid=1&foo#bar", "http://foo.bar/", "RL")
 	badQUri := newQUri("http://%00foo.bar/aa bb/cc?jsessionid=1&foo#bar", "http://foo.bar/", "RL")
 
@@ -165,7 +165,7 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 }
 
 func TestFullScript(t *testing.T) {
-	server := &ScopeCheckerService{}
+	server := &ScopeChecker{}
 
 	tests := []struct {
 		name   string
@@ -256,6 +256,56 @@ func TestFullScript(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got.Error, tt.want.Error) {
 				t.Errorf("ScopeCheck() error \nGot:\n%v\nWant:\n%v\n", formatError(got.Error), formatError(tt.want.Error))
+			}
+		})
+	}
+}
+
+var result *scopecheckerV1.ScopeCheckResponse
+
+func BenchmarkParse(b *testing.B) {
+	server := &ScopeChecker{}
+	qUri := &frontierV1.QueuedUri{
+		Uri:           "http://foo.bar/aa bb/cc?jsessionid=1&foo#bar",
+		SeedUri:       "http://foo.bar",
+		Ip:            "127.0.0.1",
+		DiscoveryPath: "RL",
+		Referrer:      "http://foo.bar/",
+		Annotation: []*configV1.Annotation{
+			{Key: "testValue", Value: "True"},
+		},
+	}
+
+	tests := []struct {
+		name   string
+		script string
+		qUri   *frontierV1.QueuedUri
+	}{
+		{"1", "test(True).then(ChaffDetection)", qUri},
+		{"2", "test(param(\"testValue\")).then(ChaffDetection)", qUri},
+		{"3", `
+isSameHost().then(ChaffDetection, continueEvaluation=True)
+isScheme('ftp').then(Blocked)
+maxHopsFromSeed(1).then(Include)
+`, qUri},
+	}
+
+	for _, tt := range tests {
+		b.Run(tt.name, func(b *testing.B) {
+			request := &scopecheckerV1.ScopeCheckRequest{
+				QueuedUri:       tt.qUri,
+				ScopeScriptName: "scope_script",
+				ScopeScript:     tt.script,
+			}
+
+			for i := 0; i < b.N; i++ {
+				got, err := server.ScopeCheck(context.TODO(), request)
+				if err == nil {
+					result = got
+					if got.Error != nil {
+						b.Error(got)
+					}
+				}
 			}
 		})
 	}

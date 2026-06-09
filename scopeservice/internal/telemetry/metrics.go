@@ -18,24 +18,31 @@ package telemetry
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+const (
+	metricsNs        = "veidemann"
+	metricsSubsystem = "scopeservice"
 )
 
 var (
-	CanonicalizationsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+	CanonicalizationsTotal = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsNs,
 		Subsystem: metricsSubsystem,
 		Name:      "canonicalizations_total",
 		Help:      "Total URIs canonicalized",
 	})
 
-	ScopechecksTotal = prometheus.NewCounter(prometheus.CounterOpts{
+	ScopechecksTotal = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsNs,
 		Subsystem: metricsSubsystem,
 		Name:      "scopechecks_total",
 		Help:      "Total URIs checked for scope inclusion",
 	})
 
-	ScopecheckResponseTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	ScopecheckResponseTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNs,
 		Subsystem: metricsSubsystem,
 		Name:      "scopecheck_response_total",
@@ -44,7 +51,7 @@ var (
 		[]string{"code"},
 	)
 
-	CompileScriptSeconds = prometheus.NewHistogram(prometheus.HistogramOpts{
+	CompileScriptSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: metricsNs,
 		Subsystem: metricsSubsystem,
 		Name:      "script_compile_seconds",
@@ -52,7 +59,7 @@ var (
 		Buckets:   []float64{.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10, 20, 30, 40, 50, 60, 120, 180, 240},
 	})
 
-	ExecuteScriptSeconds = prometheus.NewHistogram(prometheus.HistogramOpts{
+	ExecuteScriptSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: metricsNs,
 		Subsystem: metricsSubsystem,
 		Name:      "script_execute_seconds",
@@ -61,7 +68,6 @@ var (
 	})
 )
 
-const (
-	metricsNs        = "veidemann"
-	metricsSubsystem = "scopeservice"
-)
+func init() {
+	prometheus.MustRegister(collectors.NewBuildInfoCollector())
+}

@@ -2,17 +2,15 @@ package script
 
 import (
 	"errors"
+	"log/slog"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/pkg/telemetry"
 
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	scopecheckerV1 "github.com/NationalLibraryOfNorway/veidemann/api/scopechecker/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/scopeservice/internal/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/zerolog"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )
@@ -26,8 +24,7 @@ const (
 
 var errEndOfComputation = errors.New("end of computation")
 
-var scriptLogger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().
-	Timestamp().Logger().Level(zerolog.DebugLevel)
+var scriptLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 func newScriptOptions() *syntax.FileOptions {
 	return &syntax.FileOptions{
@@ -55,7 +52,7 @@ func parseScopeURI(qUri *frontierV1.QueuedUri, consoleLog *strings.Builder) (*Ur
 	return qUrl, qUrl.AsCommonsParsedUri(), nil
 }
 
-func compileScopeProgram(name string, src interface{}, options *syntax.FileOptions) (*starlark.Program, error) {
+func compileScopeProgram(name string, src any, options *syntax.FileOptions) (*starlark.Program, error) {
 	t := prometheus.NewTimer(telemetry.CompileScriptSeconds)
 	defer t.ObserveDuration()
 	_, prog, err := starlark.SourceProgramOptions(options, name, src, starlark.StringDict{}.Has)
@@ -70,11 +67,11 @@ func newScopeThread(consoleLog *strings.Builder) *starlark.Thread {
 				line := thread.CallFrame(1).Pos.String() + " " + msg
 				consoleLog.WriteString(line)
 				consoleLog.WriteByte('\n')
-				scriptLogger.Debug().Msg(line)
+				scriptLogger.Debug(line)
 			} else {
 				consoleLog.WriteString(msg)
 				consoleLog.WriteByte('\n')
-				scriptLogger.Debug().Msg(msg)
+				scriptLogger.Debug(msg)
 			}
 		},
 	}
@@ -166,7 +163,7 @@ func responseFromThreadResult(thread *starlark.Thread, includeCheckUri *commonsV
 }
 
 // RunScopeScript runs the Scope checking script and returns the Scope status.
-func RunScopeScript(name string, src interface{}, qUri *frontierV1.QueuedUri, debug bool) *scopecheckerV1.ScopeCheckResponse {
+func RunScopeScript(name string, src any, qUri *frontierV1.QueuedUri, debug bool) *scopecheckerV1.ScopeCheckResponse {
 	options := newScriptOptions()
 	consoleLog := strings.Builder{}
 
