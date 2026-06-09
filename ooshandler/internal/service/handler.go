@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package oos
+package service
 
 import (
 	"bufio"
@@ -119,7 +119,7 @@ func (o *Handler) Handle(uri string) (exists bool) {
 		return false
 	}
 
-	v, _, _ := o.bloomSF.Do(u.Host, func() (interface{}, error) {
+	v, _, _ := o.bloomSF.Do(u.Host, func() (any, error) {
 		exists = o.bloomContains(u)
 		if exists {
 			exists = o.isInFile(u, g)
@@ -133,6 +133,8 @@ func (o *Handler) Handle(uri string) (exists bool) {
 }
 
 func (o *Handler) parseUriAndGroup(uri string) (*url.URL, string, error) {
+	// TODO replace this with better url parsing/sanitization
+
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, "", fmt.Errorf("error parsing uri '%v': %v", uri, err)

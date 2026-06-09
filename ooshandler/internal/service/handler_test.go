@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package oos
+package service
 
 import (
 	"bufio"
@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -115,58 +116,74 @@ func TestHandler_Handle(t *testing.T) {
 	}
 }
 
+const testDataDir = "testdata"
+
 func TestOosHandler_Import(t *testing.T) {
-	indata := "testdata"
-	preimport := filepath.Join(indata, "preimport")
-	fileWithDuplicates := "seeds.txt"
+	t.Parallel()
 
-	wd, _ := os.Getwd()
-	baseDir := filepath.Dir(wd)
-	indata = filepath.Join(baseDir, indata)
-	preimport = filepath.Join(baseDir, preimport)
-	fileWithDuplicates = filepath.Join(indata, fileWithDuplicates)
-
-	oos, err := NewHandler(preimport)
+	oos, err := NewHandler(filepath.Join(testDataDir, "preimport"))
 	if err != nil {
-		t.Fatalf("Could not create OOS handler: %v", err)
+		t.Fatalf("NewHandler() failed: %v", err)
 	}
 
-	f, err := os.Open(fileWithDuplicates)
-	if err != nil {
-		t.Errorf("Could not open file '%v'", fileWithDuplicates)
+	lines := readNonEmptyLines(t, filepath.Join(testDataDir, "seeds.txt"))
+
+	var wg sync.WaitGroup
+	results := make(chan bool, len(lines))
+
+	for _, line := range lines {
+		wg.Go(func() {
+			results <- oos.Handle(line)
+		})
 	}
-	defer func() { _ = f.Close() }()
 
-	i := 0
-	dup := 0
-	buf := bufio.NewReader(f)
-	c := make(chan bool)
+	wg.Wait()
+	close(results)
 
-	for {
-		l, err := buf.ReadString('\n')
-		if err == io.EOF {
-			break
+	var duplicates int
+	for exists := range results {
+		if exists {
+			duplicates++
 		}
-		if err != nil {
-			t.Errorf("Error reading from file: %v", err)
-			break
-		}
+	}
 
-		line := strings.Trim(l, "\n")
+	if duplicates != len(lines) {
+		t.Fatalf("Handle() reported %d/%d pre-imported URIs; want all", duplicates, len(lines))
+	}
+}
+
+func readNonEmptyLines(t *testing.T, path string) []string {
+	t.Helper()
+
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("os.Open(%q) failed: %v", path, err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Fatalf("closing %q failed: %v", path, err)
+		}
+	}()
+
+	var lines []string
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
 
-		i++
-		go func() { c <- oos.Handle(line) }()
+		lines = append(lines, line)
 	}
-	for j := 0; j < i; j++ {
-		exists := <-c
-		if exists {
-			dup++
-		}
+
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("reading %q failed: %v", path, err)
 	}
-	if i != dup {
-		t.Errorf("Expected all %v URIs to be pre imported, but found only %v", i, dup)
+
+	if len(lines) == 0 {
+		t.Fatalf("%q contained no non-empty lines", path)
 	}
+
+	return lines
 }

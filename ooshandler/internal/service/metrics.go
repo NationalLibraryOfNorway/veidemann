@@ -14,31 +14,28 @@
  * limitations under the License.
  */
 
-package metrics
+package service
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors/version"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-const namespace = "veidemann"
+const (
+	namespace = "veidemann"
+	subsystem = "ooshandler"
+)
 
 var (
-	OosRequests = prometheus.NewCounter(prometheus.CounterOpts{
+	OosRequests = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Subsystem: "oos",
+		Subsystem: subsystem,
 		Name:      "requests_total",
 		Help:      "The total number of out of scope uris handled"})
 
-	OosDuplicate = prometheus.NewCounter(prometheus.CounterOpts{
+	OosDuplicate = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Subsystem: "oos",
+		Subsystem: subsystem,
 		Name:      "requests_duplicate_total",
 		Help:      "The total number of out of scope uris already handled"})
 )
-
-func init() {
-	prometheus.MustRegister(version.NewCollector("veidemann_exporter"))
-	prometheus.MustRegister(OosRequests)
-	prometheus.MustRegister(OosDuplicate)
-}
