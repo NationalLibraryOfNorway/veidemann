@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	stdlog "log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strings"
@@ -31,8 +32,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/database"
 	"github.com/opentracing/opentracing-go"
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-client-go"
@@ -68,7 +67,8 @@ func main() {
 
 	err := run(ctx)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Bye bye")
+		slog.Error("Bye bye", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -119,56 +119,52 @@ func run(ctx context.Context) error {
 }
 
 func initLog(level string, format string, logCaller bool) {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-	switch strings.ToLower(level) {
-	case "panic":
-		log.Logger = log.Level(zerolog.PanicLevel)
-	case "fatal":
-		log.Logger = log.Level(zerolog.FatalLevel)
-	case "error":
-		log.Logger = log.Level(zerolog.ErrorLevel)
-	case "warn":
-		log.Logger = log.Level(zerolog.WarnLevel)
-	case "info":
-		log.Logger = log.Level(zerolog.InfoLevel)
-	case "debug":
-		log.Logger = log.Level(zerolog.DebugLevel)
-	case "trace":
-		log.Logger = log.Level(zerolog.TraceLevel)
+	handlerOptions := &slog.HandlerOptions{AddSource: logCaller, Level: parseLogLevel(level)}
+	var handler slog.Handler
+	if strings.EqualFold(format, "json") {
+		handler = slog.NewJSONHandler(os.Stderr, handlerOptions)
+	} else {
+		handler = slog.NewTextHandler(os.Stderr, handlerOptions)
 	}
-
-	if format == "logfmt" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-	}
-
-	if logCaller {
-		log.Logger = log.With().Caller().Logger()
-	}
+	slog.SetDefault(slog.New(handler))
 
 	stdlog.SetFlags(0)
-	stdlog.SetOutput(log.Logger)
 
-	log.Info().Msgf("Setting log level to %s", level)
+	slog.Info("Setting log level", "level", strings.ToLower(level))
 }
 
-// jaegerLogger implements the jaeger.Logger interface using zerolog
+func parseLogLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "panic", "fatal", "error":
+		return slog.LevelError
+	case "warn":
+		return slog.LevelWarn
+	case "info", "debug":
+		return slog.LevelInfo
+	case "trace":
+		return slog.LevelDebug
+	default:
+		return slog.LevelInfo
+	}
+}
+
+// jaegerLogger implements the jaeger.Logger interface using slog.
 type jaegerLogger struct {
-	impl zerolog.Logger
+	impl *slog.Logger
 }
 
 func newJaegerLogger() jaeger.Logger {
 	return &jaegerLogger{
-		impl: log.With().Str("component", "jaeger").Logger(),
+		impl: slog.Default().With("component", "jaeger"),
 	}
 }
 
 func (j jaegerLogger) Error(msg string) {
-	j.impl.Error().Msg(msg)
+	j.impl.Error(msg)
 }
 
 func (j *jaegerLogger) Infof(msg string, args ...interface{}) {
-	j.impl.Info().Msgf(msg, args...)
+	j.impl.Info(fmt.Sprintf(msg, args...))
 }
 
 // InitTracer returns an instance of opentracing.Tracer and io.Closer.

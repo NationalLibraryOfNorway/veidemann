@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/database"
@@ -64,7 +64,7 @@ func (app *App) Run(ctx context.Context) error {
 	init.Go(backoff(ctx, "redis", func() (err error) {
 		err = redisClient.Ping(ctx).Err()
 		if err == nil {
-			log.Info().Str("address", app.RedisOptions.Addrs[0]).Msg("Connected to Redis")
+			slog.Info("Connected to Redis", "address", app.RedisOptions.Addrs[0])
 		}
 		return err
 	}))
@@ -90,7 +90,7 @@ func (app *App) Run(ctx context.Context) error {
 		{"wait-queue", 50 * time.Millisecond, chgWaitQueueWorker(ctx, db)},
 		{"ceid-running-queue", 50 * time.Millisecond, crawlExecutionRunningQueueWorker(ctx, db)},
 	} {
-		log.Info().Dur("delayMs", worker.delay).Msgf("Starting worker: %s", worker.name)
+		slog.Info("Starting worker", "name", worker.name, "delay", worker.delay)
 
 		g.Go(func() error {
 			for {
@@ -140,7 +140,7 @@ func backoff(ctx context.Context, name string, fn func() error) func() error {
 			if err == nil {
 				return nil
 			}
-			log.Warn().Err(err).Dur("backoff", backoff).Str("service", name).Msg("Connection failed, retrying...")
+			slog.Warn("Connection failed, retrying", "error", err, "backoff", backoff, "service", name)
 
 			select {
 			case <-ctx.Done():
