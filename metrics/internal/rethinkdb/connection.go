@@ -18,8 +18,9 @@ package rethinkdb
 
 import (
 	"fmt"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 	"time"
+
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 // connection holds the connection to RethinkDB.

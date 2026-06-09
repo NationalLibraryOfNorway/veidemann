@@ -51,5 +51,7 @@ func registerCollectors(collectUriQueueLength func() float64) {
 			Subsystem: "uri",
 			Name:      "queue_count",
 			Help:      "Number of uris in queue.",
-		}, func() float64 { return collectUriQueueLength() }))
+		},
+		collectUriQueueLength,
+	))
 }

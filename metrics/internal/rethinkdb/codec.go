@@ -28,7 +28,7 @@ import (
 	"gopkg.in/rethinkdb/rethinkdb-go.v6/encoding"
 )
 
-var decodeJobExecutionStatus = func(encoded interface{}, value reflect.Value) error {
+var decodeJobExecutionStatus = func(encoded any, value reflect.Value) error {
 	b, err := json.Marshal(encoded)
 	if err != nil {
 		return fmt.Errorf("failed to marshal encoded value to json: %w", err)
@@ -45,13 +45,13 @@ var decodeJobExecutionStatus = func(encoded interface{}, value reflect.Value) er
 	return nil
 }
 
-var encodeProtoMessage = func(value interface{}) (interface{}, error) {
+var encodeProtoMessage = func(value any) (interface{}, error) {
 	b, err := protojson.Marshal(value.(proto.Message))
 	if err != nil {
 		return nil, fmt.Errorf("error decoding ConfigObject: %w", err)
 	}
 
-	var m map[string]interface{}
+	var m map[string]any
 	err = json.Unmarshal(b, &m)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding proto message: %w", err)
@@ -61,14 +61,14 @@ var encodeProtoMessage = func(value interface{}) (interface{}, error) {
 
 func init() {
 	encoding.SetTypeEncoding(
-		reflect.TypeOf(new(frontierV1.JobExecutionStatus)),
+		reflect.TypeFor[*frontierV1.JobExecutionStatus](),
 		encodeProtoMessage,
 		decodeJobExecutionStatus,
 	)
 	encoding.SetTypeEncoding(
-		reflect.TypeOf(map[string]interface{}{}),
-		func(value interface{}) (i interface{}, err error) {
-			m, ok := value.(map[string]interface{})
+		reflect.TypeFor[map[string]any](),
+		func(value any) (i any, err error) {
+			m, ok := value.(map[string]any)
 			if !ok {
 				return nil, fmt.Errorf("value is not a map[string]interface{}")
 			}
@@ -91,7 +91,7 @@ func init() {
 			}
 			return value, nil
 		},
-		func(encoded interface{}, value reflect.Value) error {
+		func(encoded any, value reflect.Value) error {
 			value.Set(reflect.ValueOf(encoded))
 			return nil
 		},
