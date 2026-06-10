@@ -32,7 +32,7 @@ func Send(fn func(*browsercontrollerV1.DoReply) error, reply *browsercontrollerV
 func Recv(ctx context.Context, fn func() (*browsercontrollerV1.DoRequest, error)) (*browsercontrollerV1.DoRequest, error) {
 	var result *browsercontrollerV1.DoRequest
 	var err error
-	done := make(chan interface{})
+	done := make(chan any)
 
 	go func() {
 		result, err = fn()

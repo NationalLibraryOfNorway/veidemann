@@ -217,34 +217,34 @@ func TestSession_Fetch(t *testing.T) {
 func setupDbMock() *database.MockConnection {
 	dbConn := database.NewMockConnection()
 	dbConn.GetMock().On(r.Table("config").Get("browserConfig1")).Return(
-		map[string]interface{}{
+		map[string]any{
 			"id":   "browserConfig1",
 			"kind": "browserConfig",
-			"meta": map[string]interface{}{
+			"meta": map[string]any{
 				"name":    "browser config 1",
-				"label":   []map[string]interface{}{{"key": "foo", "value": "bar"}},
+				"label":   []map[string]any{{"key": "foo", "value": "bar"}},
 				"created": "2020-04-06T18:17:50.343827619Z",
 			},
-			"browserConfig": map[string]interface{}{
+			"browserConfig": map[string]any{
 				"windowWidth":         1400,
 				"windowHeight":        1280,
 				"maxInactivityTimeMs": 5000,
 				"pageLoadTimeoutMs":   60000,
-				"scriptRef":           []map[string]interface{}{{"kind": "browserScript", "id": "script1"}},
+				"scriptRef":           []map[string]any{{"kind": "browserScript", "id": "script1"}},
 			},
 		},
 		nil,
 	)
 	dbConn.GetMock().On(r.Table("config").Get("script1")).Return(
-		map[string]interface{}{
+		map[string]any{
 			"id":   "script1",
 			"kind": "browserScript",
-			"meta": map[string]interface{}{
+			"meta": map[string]any{
 				"name":        "script1",
 				"description": "script1",
-				"label":       []map[string]interface{}{{"key": "type", "value": "extract_outlinks"}},
+				"label":       []map[string]any{{"key": "type", "value": "extract_outlinks"}},
 			},
-			"browserScript": map[string]interface{}{
+			"browserScript": map[string]any{
 				"browserScriptType": "EXTRACT_OUTLINKS",
 				"script": `
 (function extractOutlinks(frame) {
@@ -280,18 +280,18 @@ func setupDbMock() *database.MockConnection {
 		nil,
 	)
 	dbConn.GetMock().On(r.Table("config").Get("politenessConfig1")).Return(
-		map[string]interface{}{
+		map[string]any{
 			"id":   "politenessConfig1",
 			"kind": "politenessConfig",
-			"meta": map[string]interface{}{
+			"meta": map[string]any{
 				"name":    "politeness config 1",
-				"label":   []map[string]interface{}{{"key": "foo", "value": "bar"}},
+				"label":   []map[string]any{{"key": "foo", "value": "bar"}},
 				"created": "2020-04-06T18:17:50.343827619Z",
 			},
-			"politenessConfig": map[string]interface{}{},
+			"politenessConfig": map[string]any{},
 		}, nil)
-	dbConn.GetMock().On(r.Table("page_log").Insert(r.MockAnything())).Return(map[string]interface{}{}, nil)
-	dbConn.GetMock().On(r.Table("crawl_log").Insert(r.MockAnything())).Return(map[string]interface{}{}, nil)
+	dbConn.GetMock().On(r.Table("page_log").Insert(r.MockAnything())).Return(map[string]any{}, nil)
+	dbConn.GetMock().On(r.Table("crawl_log").Insert(r.MockAnything())).Return(map[string]any{}, nil)
 
 	return dbConn
 }

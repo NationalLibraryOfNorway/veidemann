@@ -34,7 +34,7 @@ type CompletionTimer struct {
 	waitTimer       *time.Timer
 	idleTimer       *time.Timer
 	idleTimeout     time.Time
-	doneChan        chan interface{}
+	doneChan        chan any
 	started         bool
 	done            int32 // 0: not done, 1: success, 2: cancel
 	notifyCount     int32
@@ -50,7 +50,7 @@ func NewCompletionTimer(maxIdleTime, maxTotalTime time.Duration, check func() bo
 		maxIdleTime:  maxIdleTime,
 		maxTotalTime: maxTotalTime,
 		check:        check,
-		doneChan:     make(chan interface{}),
+		doneChan:     make(chan any),
 	}
 }
 

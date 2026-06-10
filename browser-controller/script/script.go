@@ -45,7 +45,7 @@ func Run(
 	execute func(*configV1.ConfigObject, easyjson.RawMessage) (easyjson.RawMessage, error),
 	wait func(),
 ) error {
-	var data map[string]interface{}
+	var data map[string]any
 
 	for len(next) > 0 {
 		script, ok := scripts[next]
@@ -54,7 +54,7 @@ func Run(
 		}
 		name := script.GetMeta().GetName()
 
-		params := make(map[string]interface{})
+		params := make(map[string]any)
 		for _, blueprint := range script.GetMeta().GetAnnotation() {
 			for _, annotation := range annotations {
 				if annotation.Key == blueprint.Key {
@@ -95,7 +95,7 @@ func Run(
 				return fmt.Errorf("failed to unmarshal data from script %s (%s): %w", name, next, err)
 			}
 		} else {
-			data = make(map[string]interface{})
+			data = make(map[string]any)
 		}
 		if rv.WaitForData {
 			wait()

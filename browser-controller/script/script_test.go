@@ -12,7 +12,7 @@ import (
 
 func TestEasyJson(t *testing.T) {
 	var rawMessage easyjson.RawMessage
-	var out map[string]interface{}
+	var out map[string]any
 
 	//goland:noinspection GoNilness
 	if len(rawMessage) > 0 {
@@ -47,8 +47,8 @@ func TestReturnValue(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	// unmarshalArgs takes a JSON object and unmarshals it to a map from string to empty interface
-	unmarshalArgs := func(arguments easyjson.RawMessage) map[string]interface{} {
-		var args map[string]interface{}
+	unmarshalArgs := func(arguments easyjson.RawMessage) map[string]any {
+		var args map[string]any
 		err := json.Unmarshal(arguments, &args)
 		if err != nil {
 			t.Errorf("Failed to unmarshal arguments: %v", err)
@@ -63,7 +63,7 @@ func TestRun(t *testing.T) {
 		// waitCount specifies the number of times the wait function is expected to be called
 		waitCount int
 		// arguments specifies the expected arguments a script received when executed
-		arguments []map[string]interface{}
+		arguments []map[string]any
 		// returnValues specifies the expected return values from execution(s) of a script
 		returnValues []ReturnValue
 	}
@@ -133,7 +133,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"1": {
 					callCount: 2,
-					arguments: []map[string]interface{}{
+					arguments: []map[string]any{
 						{
 							"next": "self",
 						},
@@ -200,7 +200,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"1": {
 					callCount: 2,
-					arguments: []map[string]interface{}{
+					arguments: []map[string]any{
 						{
 							"username": "medium",
 						},
@@ -269,7 +269,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"2": {
 					callCount: 1,
-					arguments: []map[string]interface{}{
+					arguments: []map[string]any{
 						{
 							"next": "3",
 						},
@@ -282,7 +282,7 @@ func TestRun(t *testing.T) {
 				},
 				"3": {
 					callCount:    1,
-					arguments:    []map[string]interface{}{},
+					arguments:    []map[string]any{},
 					returnValues: []ReturnValue{},
 				},
 			},
@@ -307,7 +307,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"4": {
 					callCount: 1,
-					arguments: []map[string]interface{}{},
+					arguments: []map[string]any{},
 					returnValues: []ReturnValue{
 						{
 							WaitForData: true,

@@ -35,9 +35,9 @@ func (sess *Session) initListeners(ctx context.Context) {
 	chromedp.ListenTarget(ctx, sess.listenFunc(ctx))
 }
 
-func (sess *Session) listenFunc(ctx context.Context) func(ev interface{}) {
+func (sess *Session) listenFunc(ctx context.Context) func(ev any) {
 	log := sess.logger
-	return func(ev interface{}) {
+	return func(ev any) {
 		switch ev := ev.(type) {
 		case *network.EventRequestWillBeSent:
 			log.Debug("Request will be sent",
@@ -180,7 +180,7 @@ func (sess *Session) listenFunc(ctx context.Context) func(ev interface{}) {
 	}
 }
 
-func interfaceToString(i interface{}) string {
+func interfaceToString(i any) string {
 	if i == nil {
 		return ""
 	}

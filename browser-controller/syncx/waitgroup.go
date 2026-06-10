@@ -24,8 +24,8 @@ import (
 type WaitGroup struct {
 	ctx     context.Context
 	counter int32
-	done    chan interface{}
-	cancel  chan interface{}
+	done    chan any
+	cancel  chan any
 	state   int32
 }
 
@@ -33,8 +33,8 @@ func NewWaitGroup(ctx context.Context) *WaitGroup {
 	return &WaitGroup{
 		ctx:     ctx,
 		counter: 0,
-		done:    make(chan interface{}),
-		cancel:  make(chan interface{}),
+		done:    make(chan any),
+		cancel:  make(chan any),
 	}
 }
 
