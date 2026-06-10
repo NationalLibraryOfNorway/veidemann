@@ -35,11 +35,7 @@ func Test_WaitGroup_Done(t *testing.T) {
 	wg := NewWaitGroup(context.Background())
 
 	wg.Add(1)
-	go func() {
-		time.AfterFunc(time.Millisecond*100, func() {
-			wg.Done()
-		})
-	}()
+	go time.AfterFunc(time.Millisecond*100, wg.Done)
 
 	err := wg.Wait()
 	if err != nil {
@@ -52,11 +48,7 @@ func Test_WaitGroup_Cancel(t *testing.T) {
 	wg := NewWaitGroup(ctx)
 
 	wg.Add(1)
-	go func() {
-		time.AfterFunc(time.Millisecond*100, func() {
-			cancel()
-		})
-	}()
+	go time.AfterFunc(time.Millisecond*100, cancel)
 
 	err := wg.Wait()
 	if err != ErrExceededMaxTime {
@@ -66,11 +58,7 @@ func Test_WaitGroup_Cancel(t *testing.T) {
 	wg = NewWaitGroup(context.Background())
 
 	wg.Add(1)
-	go func() {
-		time.AfterFunc(time.Millisecond*100, func() {
-			wg.Cancel()
-		})
-	}()
+	go time.AfterFunc(time.Millisecond*100, wg.Cancel)
 
 	err = wg.Wait()
 	if err != ErrCancelled {
@@ -82,11 +70,8 @@ func Test_WaitGroup_After_Done(t *testing.T) {
 	wg := NewWaitGroup(context.Background())
 
 	wg.Add(1)
-	go func() {
-		time.AfterFunc(time.Millisecond*100, func() {
-			wg.Done()
-		})
-	}()
+	go time.AfterFunc(time.Millisecond*100, wg.Done)
+
 	err := wg.Wait()
 	if err != nil {
 		t.Errorf("No error expected. Got: %v", err)

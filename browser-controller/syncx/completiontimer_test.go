@@ -17,7 +17,6 @@
 package syncx
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -38,7 +37,7 @@ func (c *checker) check() bool {
 	return time.Since(c.startTime) > c.okCheckDelay
 }
 
-func Test_completionTimer_WaitForCompletion(t1 *testing.T) {
+func Test_completionTimer_WaitForCompletion(t *testing.T) {
 	tests := []struct {
 		name           string
 		maxIdleTime    time.Duration
@@ -121,16 +120,20 @@ func Test_completionTimer_WaitForCompletion(t1 *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t1.Run(tt.name, func(t1 *testing.T) {
-			t := NewCompletionTimer(tt.maxIdleTime, tt.maxTotalTime, NewChecker(tt.okCheckDelay).check)
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			timer := NewCompletionTimer(tt.maxIdleTime, tt.maxTotalTime, NewChecker(tt.okCheckDelay).check)
 
-			tc := time.NewTicker(tt.notifyInterval)
+			ticker := time.NewTicker(tt.notifyInterval)
+			defer ticker.Stop()
 			stop := make(chan bool)
+			defer close(stop)
+
 			go func() {
 				for {
 					select {
-					case <-tc.C:
-						t.Notify()
+					case <-ticker.C:
+						timer.Notify()
 					case <-stop:
 						return
 					}
@@ -138,21 +141,16 @@ func Test_completionTimer_WaitForCompletion(t1 *testing.T) {
 			}()
 
 			start := time.Now()
-			if err := t.WaitForCompletion(); err != tt.wantErr {
-				t1.Errorf("WaitForCompletion() error = %v, wantErr %v", err, tt.wantErr)
+			if err := timer.WaitForCompletion(); err != tt.wantErr {
+				t.Errorf("WaitForCompletion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			duration := time.Since(start)
-			fmt.Printf("Time: %v\n", duration)
-
 			if duration < tt.minRunTime {
-				t1.Errorf("WaitForCompletion() run time to short = %v, wantMinimum %v", duration, tt.minRunTime)
+				t.Errorf("WaitForCompletion() run time to short = %v, wantMinimum %v", duration, tt.minRunTime)
 			}
 			if duration > tt.maxRunTime {
-				t1.Errorf("WaitForCompletion() run time to long = %v, wantMaximum %v", duration, tt.maxRunTime)
+				t.Errorf("WaitForCompletion() run time to long = %v, wantMaximum %v", duration, tt.maxRunTime)
 			}
-
-			tc.Stop()
-			close(stop)
 		})
 	}
 }

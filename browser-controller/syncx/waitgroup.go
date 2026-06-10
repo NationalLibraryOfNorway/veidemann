@@ -18,52 +18,60 @@ package syncx
 
 import (
 	"context"
-	"sync/atomic"
+	"sync"
 )
 
 type WaitGroup struct {
-	ctx     context.Context
-	counter int32
-	done    chan any
-	cancel  chan any
-	state   int32
+	ctx context.Context
+
+	wg       sync.WaitGroup
+	doneOnce sync.Once
+	done     chan struct{}
+
+	cancelOnce sync.Once
+	cancel     chan struct{}
 }
 
 func NewWaitGroup(ctx context.Context) *WaitGroup {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	return &WaitGroup{
-		ctx:     ctx,
-		counter: 0,
-		done:    make(chan any),
-		cancel:  make(chan any),
+		ctx:    ctx,
+		done:   make(chan struct{}),
+		cancel: make(chan struct{}),
 	}
 }
 
 func (wg *WaitGroup) Add(delta int) {
-	n := atomic.AddInt32(&wg.counter, int32(delta))
-	if n == 0 && atomic.CompareAndSwapInt32(&wg.state, 1, 2) {
-		close(wg.done)
-	}
+	wg.wg.Add(delta)
 }
 
 func (wg *WaitGroup) Done() {
-	wg.Add(-1)
+	wg.wg.Done()
 }
 
-func (wg *WaitGroup) Wait() (err error) {
-	atomic.CompareAndSwapInt32(&wg.state, 0, 1)
-	if atomic.LoadInt32(&wg.counter) == 0 {
-		return nil
-	}
+func (wg *WaitGroup) Wait() error {
+	wg.doneOnce.Do(func() {
+		go func() {
+			wg.wg.Wait()
+			close(wg.done)
+		}()
+	})
+
 	select {
-	case <-wg.ctx.Done():
-		return ErrExceededMaxTime
 	case <-wg.done:
 		return nil
+	case <-wg.ctx.Done():
+		return ErrExceededMaxTime
 	case <-wg.cancel:
 		return ErrCancelled
 	}
 }
 
 func (wg *WaitGroup) Cancel() {
-	close(wg.cancel)
+	wg.cancelOnce.Do(func() {
+		close(wg.cancel)
+	})
 }
