@@ -17,11 +17,11 @@
 package requests
 
 import (
+	"log/slog"
 	"sync"
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
-	"github.com/rs/zerolog/log"
 )
 
 type RequestRegistry interface {
@@ -115,17 +115,9 @@ func (r *requestRegistry) MatchCrawlLogs() bool {
 	for _, l := range r.requests {
 		if l.CrawlLog == nil {
 			unresolved++
-			log.Trace().
-				Str("requestId", l.RequestId).
-				Bool("new", l.GotNew).
-				Bool("complete", l.GotComplete).
-				Msg("Missing crawlLog")
+			slog.Debug("Missing crawlLog", "requestId", l.RequestId, "new", l.GotNew, "complete", l.GotComplete)
 		} else {
-			log.Trace().
-				Str("requestId", l.RequestId).
-				Bool("new", l.GotNew).
-				Bool("complete", l.GotComplete).
-				Msg("Found crawlLog")
+			slog.Debug("Found crawlLog", "requestId", l.RequestId, "new", l.GotNew, "complete", l.GotComplete)
 		}
 	}
 	return unresolved == 0
@@ -177,14 +169,13 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 				rr.CrawlLog.DiscoveryPath = discoveryType
 			}
 		} else {
-			log.Warn().
-				Str("url", rr.Url).
-				Int("index", idx).
-				Str("requestId", rr.RequestId).
-				Str("networkId", rr.NetworkId).
-				Bool("new", rr.GotNew).
-				Bool("complete", rr.GotComplete).
-				Msgf("Missing crawlLog")
+			slog.Warn("Missing crawlLog",
+				"url", rr.Url,
+				"index", idx,
+				"requestId", rr.RequestId,
+				"networkId", rr.NetworkId,
+				"new", rr.GotNew,
+				"complete", rr.GotComplete)
 		}
 	}
 }

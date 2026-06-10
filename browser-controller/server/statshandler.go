@@ -18,9 +18,10 @@ package server
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/stats"
+	"log/slog"
 	"sync/atomic"
+
+	"google.golang.org/grpc/stats"
 )
 
 type myStatsHandler struct {
@@ -38,7 +39,7 @@ func (m *myStatsHandler) HandleRPC(ctx context.Context, stat stats.RPCStats) {
 	case *stats.End:
 		atomic.AddInt32(&m.openRPCs, -1)
 		if v.Error != nil {
-			log.Trace().Msgf("RPC END With error: %v", v.Error)
+			slog.Debug("RPC END With error", "error", v.Error)
 		}
 	}
 }
@@ -51,7 +52,7 @@ func (m *myStatsHandler) HandleConn(ctx context.Context, stat stats.ConnStats) {
 	switch stat.(type) {
 	case *stats.ConnBegin:
 	case *stats.ConnEnd:
-		log.Info().Msgf("gRPC connection ended. Remaining open RPCs: %v", atomic.LoadInt32(&m.openRPCs))
+		slog.Info("gRPC connection ended", "remainingOpenRPCs", atomic.LoadInt32(&m.openRPCs))
 	default:
 	}
 }

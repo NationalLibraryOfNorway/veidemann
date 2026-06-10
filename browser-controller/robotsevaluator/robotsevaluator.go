@@ -18,11 +18,11 @@ package robotsevaluator
 
 import (
 	"context"
+	"log/slog"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -60,7 +60,12 @@ func (r *robotsEvaluator) IsAllowed(ctx context.Context, request *robotsevaluato
 	request.Politeness = resolvedPoliteness
 	reply, err := r.RobotsEvaluatorClient.IsAllowed(ctx, request)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to query robots evaluator")
+		slog.Error("Failed to query robots evaluator, allowing by default",
+			"uri", request.GetUri(),
+			"jeid", request.GetJobExecutionId(),
+			"ceid", request.GetExecutionId(),
+			"error", err)
+
 		return true
 	}
 
@@ -69,13 +74,18 @@ func (r *robotsEvaluator) IsAllowed(ctx context.Context, request *robotsevaluato
 
 func resolvePolicy(politenessConfig *configV1.ConfigObject) (resolvedPoliteness *configV1.ConfigObject, ignore bool) {
 	var resolvedPolicy configV1.PolitenessConfig_RobotsPolicy
+
 	switch politenessConfig.GetPolitenessConfig().GetRobotsPolicy() {
+
 	case configV1.PolitenessConfig_OBEY_ROBOTS_CLASSIC:
 		resolvedPolicy = configV1.PolitenessConfig_OBEY_ROBOTS
+
 	case configV1.PolitenessConfig_CUSTOM_ROBOTS_CLASSIC:
 		resolvedPolicy = configV1.PolitenessConfig_CUSTOM_ROBOTS
+
 	case configV1.PolitenessConfig_CUSTOM_IF_MISSING_CLASSIC:
 		resolvedPolicy = configV1.PolitenessConfig_CUSTOM_IF_MISSING
+
 	default:
 		resolvedPolicy = configV1.PolitenessConfig_IGNORE_ROBOTS
 	}

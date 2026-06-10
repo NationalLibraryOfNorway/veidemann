@@ -20,8 +20,6 @@ import (
 	"errors"
 	"sync/atomic"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 var ErrIdleTimeout = errors.New("idle timeout")
@@ -43,10 +41,6 @@ type CompletionTimer struct {
 }
 
 func NewCompletionTimer(maxIdleTime, maxTotalTime time.Duration, check func() bool) *CompletionTimer {
-	log.Trace().
-		Dur("maxIdleTime", maxIdleTime).
-		Dur("maxTotalTime", maxTotalTime).
-		Msg("Completion timer")
 	if check == nil {
 		check = func() bool {
 			return false

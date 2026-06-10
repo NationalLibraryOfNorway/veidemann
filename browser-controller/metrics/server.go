@@ -19,10 +19,11 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
+	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Server is the Prometheus metrics endpoint for the Browser Controller
@@ -46,7 +47,7 @@ func NewServer(listenInterface string, listenPort int, path string) *Server {
 }
 
 func (a *Server) Start() error {
-	log.Info().Str("address", a.Addr).Msg("Metrics server")
+	slog.Info("Metrics server", "address", a.Addr)
 	if err := a.ListenAndServe(); err != nil {
 		if err != http.ErrServerClosed {
 			return err
@@ -56,7 +57,7 @@ func (a *Server) Start() error {
 }
 
 func (a *Server) Close() error {
-	log.Info().Msg("Shutting down Metrics server")
+	slog.Info("Shutting down Metrics server")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	a.SetKeepAlivesEnabled(false)

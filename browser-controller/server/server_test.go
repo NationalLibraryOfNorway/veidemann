@@ -33,7 +33,6 @@ import (
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
@@ -60,9 +59,6 @@ var provider = flag.String("provider", "docker", "container provider, \"docker\"
 func TestMain(m *testing.M) {
 	// Parse flags
 	flag.Parse()
-
-	// Set log level
-	logger.InitLog("debug", "logfmt", false)
 
 	// setup browser
 	ctx, cancelBrowser := context.WithCancel(context.Background())

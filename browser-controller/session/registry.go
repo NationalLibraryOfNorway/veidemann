@@ -18,11 +18,11 @@ package session
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
-	"github.com/rs/zerolog/log"
 )
 
 type Registry struct {
@@ -107,11 +107,11 @@ func (sr *Registry) CloseWait(timeout time.Duration) {
 		sr.wg.Wait()
 		close(c)
 	}()
-	log.Debug().Msgf("Waiting for %v remaining sessions", sr.CurrentSessions())
+	slog.Debug("Waiting for sessions to finish...", "remainingSessions", sr.CurrentSessions())
 	select {
 	case <-c:
-		log.Debug().Msg("All sessions finished")
+		slog.Debug("All sessions finished")
 	case <-time.After(timeout):
-		log.Warn().Msgf("Timed out waiting for %d sessions to finish.", sr.CurrentSessions())
+		slog.Warn("Timed out waiting for sessions to finish.", "remainingSessions", sr.CurrentSessions())
 	}
 }

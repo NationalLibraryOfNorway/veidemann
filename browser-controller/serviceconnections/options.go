@@ -18,10 +18,10 @@ package serviceconnections
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -85,10 +85,7 @@ func (opts *connectionOptions) connectService() (*grpc.ClientConn, error) {
 		return nil, fmt.Errorf("failed to create gRPC client connection to %s: %w", opts.Addr(), err)
 	}
 
-	log.Info().
-		Str("address", opts.Addr()).
-		Str("service", opts.serviceName).
-		Msg("Client")
+	slog.Info("Client", "address", opts.Addr(), "service", opts.serviceName)
 
 	return conn, nil
 }

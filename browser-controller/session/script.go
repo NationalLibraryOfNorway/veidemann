@@ -19,6 +19,7 @@ package session
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -32,7 +33,6 @@ import (
 	"github.com/mailru/easyjson"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
-	zlog "github.com/rs/zerolog/log"
 )
 
 type sessionScripts struct {
@@ -102,7 +102,7 @@ func (sess *Session) GetReplacementScript(uri string) *configV1.BrowserScript {
 					currentBestMatch = bc.GetBrowserScript()
 				}
 			} else {
-				log.Warn().Msgf("Could not match url for replacement script %v", err)
+				log.Warn("Could not match url for replacement script", "error", err)
 			}
 		}
 	}
@@ -115,17 +115,15 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 	defer span.Finish()
 	span.SetTag("scriptType", scriptType)
 
-	log := sess.logger.With().
-		Str("scriptType", scriptType.String()).
-		Logger()
+	log := sess.logger.With("scriptType", scriptType)
 
 	// wait is executed depending on value returned from script (WaitForData)
 	wait := func() {
 		waitStart := time.Now()
 		_ = sess.netActivityTimer.WaitForCompletion()
-		log.Trace().Msgf("Waited %v for network activity to settle", time.Since(waitStart))
+		log.Debug("Waited for network activity to settle", "duration", time.Since(waitStart))
 		notifyCount := sess.netActivityTimer.Reset()
-		log.Trace().Msgf("Got %d notifications while waiting for network activity to settle", notifyCount)
+		log.Debug("Got notifications while waiting for network activity to settle", "count", notifyCount)
 	}
 
 	var resolveExecutionContextId func() (runtime.ExecutionContextID, error)
@@ -160,19 +158,19 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 		}
 
 		span.SetTag("script.id", id)
-		log := log.With().
-			Str("scriptName", name).
-			Str("scriptId", id).
-			Int64("scriptEci", int64(eci)).
-			Logger()
+		log := log.With(
+			"scriptName", name,
+			"scriptId", id,
+			"scriptEci", int64(eci),
+		)
 
-		log.Debug().Msgf("Calling script %s: %s", name, arguments)
+		log.Debug("Calling script", "arguments", arguments)
 
 		res, err := callScript(ctx, eci, configObject.GetBrowserScript().GetScript(), arguments)
 		if err != nil {
 			span.SetTag("error", true).LogFields(tracelog.Event("error"), tracelog.Error(err))
 		}
-		log.Debug().Msgf("Script %s returned: %s", name, string(res))
+		log.Debug("Script returned", "result", string(res))
 
 		return res, err
 	}
@@ -273,7 +271,7 @@ func match(regExps []string, uri string) bool {
 	for _, urlRegexp := range regExps {
 		re, err := regexp.Compile(urlRegexp)
 		if err != nil {
-			zlog.Error().Msgf("Failed to compile regular expression: %s", urlRegexp)
+			slog.Error("Failed to compile regular expression", "regexp", urlRegexp, "error", err)
 			continue
 		}
 		if match := re.MatchString(normalizedUri); match {

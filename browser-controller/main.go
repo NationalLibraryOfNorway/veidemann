@@ -18,6 +18,9 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strings"
@@ -27,7 +30,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/controller"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/robotsevaluator"
@@ -37,7 +39,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/tracing"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -84,7 +85,6 @@ func main() {
 	pflag.String("metrics-path", "/metrics", "Path for exposing metrics")
 
 	pflag.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
-	pflag.String("log-formatter", "logfmt", "log formatter, available values are logfmt and json")
 	pflag.Bool("log-method", false, "log method names")
 
 	pflag.Parse()
@@ -93,7 +93,8 @@ func main() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse flags")
+		slog.Error("Failed to parse flags", "error", err)
+		os.Exit(1)
 	}
 
 	if viper.GetBool("help") {
@@ -104,26 +105,27 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
-				log.Fatal().Err(err).Msg("Fatal error")
+				slog.Error("Fatal error", "error", err)
+				os.Exit(1)
 			}
 		}
 	}()
 
 	// init logger
-	logger.InitLog(
+	initLogger(
+		os.Stdout,
 		viper.GetString("log-level"),
-		viper.GetString("log-formatter"),
 		viper.GetBool("log-method"),
 	)
 
-	log.Info().Msg("Browser Controller starting...")
+	slog.Info("Browser Controller starting...")
 	defer func() {
-		log.Info().Msg("Browser Controller stopped")
+		slog.Info("Browser Controller stopped")
 	}()
 
 	// setup tracing
 	if tracer, closer, err := tracing.Init("Browser Controller"); err != nil {
-		log.Warn().Err(err).Msg("Failed to initialize tracing")
+		slog.Warn("Failed to initialize tracing", "error", err)
 	} else {
 		defer func() { _ = closer.Close() }()
 		opentracing.SetGlobalTracer(tracer)
@@ -215,7 +217,7 @@ func main() {
 	metricsServer := metrics.NewServer(viper.GetString("metrics-interface"), viper.GetInt("metrics-port"), viper.GetString("metrics-path"))
 	go func() {
 		if err := metricsServer.Start(); err != nil {
-			log.Error().Err(err).Msg("Metrics server failed")
+			slog.Error("Metrics server failed", "error", err)
 			browserController.Shutdown()
 		}
 	}()
@@ -225,11 +227,43 @@ func main() {
 		signals := make(chan os.Signal, 2)
 		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 		sig := <-signals
-		log.Debug().Str("signal", sig.String()).Msg("Received signal")
+		slog.Debug("Received signal", "signal", sig.String())
 		browserController.Shutdown()
 	}()
 
 	if err := browserController.Run(); err != nil {
 		panic(err)
+	}
+}
+
+func initLogger(w io.Writer, level string, source bool) {
+	levelVar := new(slog.LevelVar)
+	levelVar.Set(toLogLevel(level))
+
+	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
+		AddSource: source,
+		Level:     levelVar,
+	})
+
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
+	// Redirect package-level log.Print/log.Printf/etc. to the same slog handler.
+	log.SetOutput(slog.NewLogLogger(handler, slog.LevelInfo).Writer())
+	log.SetFlags(0)
+}
+
+func toLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
 	}
 }

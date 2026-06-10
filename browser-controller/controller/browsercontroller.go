@@ -19,12 +19,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/server"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -71,7 +71,7 @@ func (bc *BrowserController) Run() error {
 	// give api server time to start
 	time.Sleep(time.Millisecond)
 
-	log.Info().Msg("Browser Controller started")
+	slog.Info("Browser Controller started")
 
 	backoff := make(chan time.Time, 1)
 	for {
@@ -80,7 +80,7 @@ func (bc *BrowserController) Run() error {
 			return err
 		case <-backoff:
 			d := 10 * time.Second
-			log.Debug().Dur("durationMs", d).Msg("Next page not found, backing off..")
+			slog.Debug("Next page not found, backing off..", "durationMs", d)
 			time.Sleep(d)
 		default:
 			// get session
@@ -118,7 +118,7 @@ func (bc *BrowserController) Run() error {
 
 				result, fetchErr := sess.Fetch(ctx, phs)
 				if err := bc.opts.frontier.PageCompleted(phs, result, fetchErr); err != nil {
-					log.Error().Err(err).Msg("Error reporting page completed")
+					slog.Error("Error reporting page completed", "error", err)
 				}
 			}()
 		}
@@ -126,6 +126,6 @@ func (bc *BrowserController) Run() error {
 }
 
 func (bc *BrowserController) Shutdown() {
-	log.Info().Msg("Shutting down Browser Controller...")
+	slog.Info("Shutting down Browser Controller...")
 	bc.done <- nil
 }

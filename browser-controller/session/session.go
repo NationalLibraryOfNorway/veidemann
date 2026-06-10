@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"runtime/debug"
@@ -52,8 +53,6 @@ import (
 	"github.com/nlnwa/whatwg-url/url"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
-	"github.com/rs/zerolog"
-	zlog "github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -85,7 +84,7 @@ type Session struct {
 	screenShotWriter screenshotwriter.ScreenshotWriter
 	logWriter        logwriter.LogWriter
 	scripts          *sessionScripts
-	logger           zerolog.Logger
+	logger           *slog.Logger
 }
 
 func newDefaultSession(opts ...Option) *Session {
@@ -104,7 +103,7 @@ func newDefaultSession(opts ...Option) *Session {
 func New(sessionId int, opts ...Option) (*Session, error) {
 	s := newDefaultSession(opts...)
 	s.Id = sessionId
-	s.logger = zlog.Logger.With().Int("session", sessionId).Logger()
+	s.logger = slog.With("session", sessionId)
 
 	ws, err := url.Parse("ws://" + s.browserHost + ":" + strconv.Itoa(s.browserPort))
 	if err != nil {
@@ -135,13 +134,13 @@ func newDirectSession(uri, crawlExecutionId, jobExecutionId string, opts ...Opti
 	sess := newDefaultSession(opts...)
 	sess.Id = 0
 
-	sess.logger = zlog.Logger.With().
-		Str("uri", uri).
-		Str("eid", crawlExecutionId).
-		Str("jid", jobExecutionId).
-		Int("session", sess.Id).
-		Str("userAgent", sess.UserAgent).
-		Logger()
+	sess.logger = slog.With(
+		"uri", uri,
+		"eid", crawlExecutionId,
+		"jid", jobExecutionId,
+		"session", sess.Id,
+		"userAgent", sess.UserAgent,
+	)
 
 	QUri := &frontierV1.QueuedUri{
 		Uri:            uri,
@@ -157,7 +156,7 @@ func (sess *Session) Notify(reqId string) error {
 	log := sess.logger
 
 	if reqId == "" {
-		log.Warn().Msg("Received notify with empty request ID")
+		log.Warn("Received notify with empty request ID")
 	}
 	select {
 	case <-sess.ctx.Done():
@@ -187,10 +186,10 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			tracelog.String("uri", phs.GetQueuedUri().GetUri()),
 			tracelog.String("seed", phs.GetQueuedUri().GetSeedUri()),
 		)
-	sess.logger = sess.logger.With().
-		Str("uri", phs.GetQueuedUri().GetUri()).
-		Str("eid", phs.GetQueuedUri().GetExecutionId()).
-		Logger()
+	sess.logger = sess.logger.With(
+		"uri", phs.GetQueuedUri().GetUri(),
+		"eid", phs.GetQueuedUri().GetExecutionId(),
+	)
 	log := sess.logger
 
 	// Ensure that bugs in implementation is logged and handled
@@ -211,7 +210,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		}
 	}()
 
-	log.Debug().Msg("Start fetch")
+	log.Debug("Start fetch")
 	sess.RequestedUrl = phs.GetQueuedUri()
 	sess.CrawlConfig = phs.GetCrawlConfig().GetCrawlConfig()
 
@@ -321,15 +320,11 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	sess.netActivityTimer.Reset()
 
 	if err := sess.executeScripts(loadCtx, configV1.BrowserScript_ON_NEW_DOCUMENT); err != nil {
-		log.Warn().
-			Str("phase", configV1.BrowserScript_ON_NEW_DOCUMENT.String()).
-			Err(err).Msg("Failed to execute scripts")
+		log.Warn("Failed to execute scripts", "phase", configV1.BrowserScript_ON_NEW_DOCUMENT.String(), "error", err)
 		return nil, fmt.Errorf("failed executing scripts in %v phase: %w", configV1.BrowserScript_ON_NEW_DOCUMENT, err)
 	}
 	if err := sess.executeScripts(loadCtx, configV1.BrowserScript_ON_LOAD); err != nil {
-		log.Warn().
-			Str("phase", configV1.BrowserScript_ON_LOAD.String()).
-			Err(err).Msg("Failed to execute scripts")
+		log.Warn("Failed to execute scripts", "phase", configV1.BrowserScript_ON_LOAD.String(), "error", err)
 	}
 
 	// Wait for frames to finish loading
@@ -348,7 +343,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	// Wait for all outstanding requests to receive a response
 	err = sess.timer.WaitForCompletion()
 	if err != nil {
-		log.Warn().Err(err).Msg("Fetch timed out")
+		log.Warn("Fetch timed out", "error", err)
 	}
 
 	fetchDuration := time.Since(fetchStart)
@@ -359,12 +354,12 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		sess.saveScreenshot()
 	}
 	outlinks := sess.extractOutlinks()
-	log.Debug().Msgf("Found %d outlinks.", len(outlinks))
+	sess.logger.Debug("Found outlinks", "count", len(outlinks))
 	cookies := sess.extractCookies()
 
 	err = chromedp.Cancel(cdpCtx)
 	if err != nil {
-		log.Warn().Err(err).Msg("Close browser")
+		sess.logger.Warn("Close browser", "error", err)
 	}
 
 	var crawlLogCount int32
@@ -378,7 +373,12 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			crawlLogCount++
 			bytesDownloaded += r.CrawlLog.Size
 		} else {
-			log.Trace().Msgf("Skipping write of %v %v %v, From cache %v, Has CrawlLog: %v", r.RequestId, r.Method, r.Url, r.FromCache, r.CrawlLog != nil)
+			log.Debug("Skipping write of resource",
+				"requestId", r.RequestId,
+				"method", r.Method,
+				"url", r.Url,
+				"fromCache", r.FromCache,
+				"hasCrawlLog", r.CrawlLog != nil)
 		}
 
 		if r.CrawlLog != nil {
@@ -397,13 +397,18 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			}
 			resources = append(resources, resource)
 		} else if !r.FromCache {
-			log.Warn().Msgf("No crawllog for resource. Skipping %v %v %v. Got new: %v, Got complete %v", r.RequestId, r.Method, r.Url, r.GotNew, r.GotComplete)
+			log.Warn("No crawllog for resource. Skipping",
+				"requestId", r.RequestId,
+				"method", r.Method,
+				"url", r.Url,
+				"gotNew", r.GotNew,
+				"gotComplete", r.GotComplete)
 		}
 	})
 	if err := sess.logWriter.WriteCrawlLogs(ctx, crawlLogs); err != nil {
-		log.Error().Err(err).Msg("Writing crawl logs")
+		log.Error("Writing crawl logs", "error", err)
 	} else {
-		log.Debug().Msgf("Wrote %d crawlLogs", len(crawlLogs))
+		log.Debug("Wrote %d crawlLogs", "count", len(crawlLogs))
 	}
 
 	if sess.Requests.InitialRequest() != nil && sess.Requests.InitialRequest().CrawlLog != nil {
@@ -423,9 +428,9 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			Outlink:             outlinks,
 		}
 		if err := sess.logWriter.WritePageLog(ctx, pageLog); err != nil {
-			log.Error().Err(err).Msg("Error writing pageLog")
+			log.Error("Error writing pageLog", "error", err)
 		} else {
-			log.Debug().Msg("Pagelog written")
+			log.Debug("Pagelog written")
 		}
 	} else {
 		return nil, fmt.Errorf("missing initial request: %w", err)
@@ -451,7 +456,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		PageFetchTimeMs: fetchDuration.Milliseconds(),
 	}
 
-	log.Debug().Msg("Fetch done")
+	log.Debug("Fetch done")
 	return result, nil
 }
 
@@ -464,10 +469,10 @@ func (sess *Session) cleanWorkspace() {
 
 	r, err := http.NewRequestWithContext(ctx, "DELETE", sess.workspaceEndpoint+"/"+strconv.Itoa(sess.Id), nil)
 	if err != nil {
-		log.Warn().Err(err).Msg("Error creating request for cleaning up workspace")
+		log.Warn("Error creating request for cleaning up workspace", "error", err)
 	}
 	if resp, err := http.DefaultClient.Do(r); err != nil {
-		log.Warn().Err(err).Msg("Error cleaning up workspace")
+		log.Warn("Error cleaning up workspace", "error", err)
 	} else {
 		_ = resp.Body.Close()
 	}
@@ -476,7 +481,7 @@ func (sess *Session) cleanWorkspace() {
 func (sess *Session) getCookieParams(uri *frontierV1.QueuedUri) []*network.CookieParam {
 	log := sess.logger
 
-	log.Debug().Msgf("Restoring %v browser cookies", len(uri.GetCookies()))
+	log.Debug("Restoring %v browser cookies", "count", len(uri.GetCookies()))
 	cookies := make([]*network.CookieParam, len(uri.GetCookies()))
 	for i, c := range uri.GetCookies() {
 		expSec, expNsec := math.Modf(c.Expires)
@@ -526,7 +531,7 @@ func (sess *Session) extractCookies() []*frontierV1.Cookie {
 			return nil
 		}),
 	); err != nil {
-		log.Error().Err(err).Msg("Could not extract cookies")
+		log.Error("Could not extract cookies", "error", err)
 	}
 
 	return result
@@ -539,22 +544,22 @@ func (sess *Session) saveScreenshot() {
 	defer span.Finish()
 	// Skip screenshot of pages loaded from cache
 	if sess.Requests.RootRequest().FromCache {
-		log.Debug().Str("resourceType", sess.Requests.RootRequest().ResourceType).Msgf("Skipping screenshot: from cache")
+		log.Debug("Skipping screenshot: from cache", "resourceType", sess.Requests.RootRequest().ResourceType)
 		return
 	}
 	// Check if page is renderable
 	if sess.Requests.RootRequest().ResourceType != "Document" && sess.Requests.RootRequest().ResourceType != "Image" {
-		log.Debug().Str("resourceType", sess.Requests.RootRequest().ResourceType).Msgf("Skipping screenshot: not renderable")
+		log.Debug("Skipping screenshot: not renderable", "resourceType", sess.Requests.RootRequest().ResourceType)
 		return
 	}
 	// Check if CrawlLog is present for root request
 	if sess.Requests.RootRequest().CrawlLog == nil {
-		log.Debug().Str("resourceType", sess.Requests.RootRequest().ResourceType).Msgf("Skipping screenshot: missing crawlLog")
+		log.Debug("Skipping screenshot: missing crawlLog", "resourceType", sess.Requests.RootRequest().ResourceType)
 		return
 	}
 	// Check if CrawlLog has WarcId
 	if sess.Requests.RootRequest().CrawlLog.WarcId == "" {
-		log.Debug().Str("resourceType", sess.Requests.RootRequest().ResourceType).Msgf("Skipping screenshot: crawlLog has empty warcId")
+		log.Debug("Skipping screenshot: crawlLog has empty warcId", "resourceType", sess.Requests.RootRequest().ResourceType)
 		return
 	}
 	var data []byte
@@ -565,7 +570,7 @@ func (sess *Session) saveScreenshot() {
 		}),
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("Error capturing screenshot")
+		log.Error("Error capturing screenshot", "error", err)
 		return
 	}
 	metadata := screenshotwriter.Metadata{
@@ -575,7 +580,7 @@ func (sess *Session) saveScreenshot() {
 		BrowserVersion: sess.browserVersion,
 	}
 	if err = sess.screenShotWriter.Write(ctx, data, metadata); err != nil {
-		log.Error().Err(err).Msg("Error writing screenshot")
+		log.Error("Error writing screenshot", "error", err)
 		return
 	}
 }
@@ -584,10 +589,10 @@ func (sess *Session) extractOutlinks() []string {
 	var extractedUrls []string
 
 	for _, s := range sess.scripts.Get(configV1.BrowserScript_EXTRACT_OUTLINKS) {
-		log := sess.logger.With().
-			Str("scriptType", configV1.BrowserScript_EXTRACT_OUTLINKS.String()).
-			Str("scriptId", s.GetId()).
-			Logger()
+		log := sess.logger.With(
+			"scriptType", configV1.BrowserScript_EXTRACT_OUTLINKS.String(),
+			"scriptId", s.GetId(),
+		)
 
 		script := s.GetBrowserScript().GetScript()
 		var awaitPromise bool
@@ -606,18 +611,18 @@ func (sess *Session) extractOutlinks() []string {
 			}),
 		)
 		if err != nil {
-			log.Warn().Err(err).Msgf("Failed to evaluate script")
+			log.Warn("Failed to evaluate script", "error", err)
 			continue
 		}
 		if exceptionDetails != nil {
-			log.Warn().Err(exceptionDetails).Msgf("Exception during script evaluation")
+			log.Warn("Exception during script evaluation", "error", exceptionDetails)
 			continue
 		}
 		if res.Value != nil {
 			var links []string
 			err := json.Unmarshal(res.Value, &links)
 			if err != nil {
-				log.Warn().Err(err).Msgf("Failed to unmarshal return value")
+				log.Warn("Failed to unmarshal return value", "error", err)
 				continue
 			}
 

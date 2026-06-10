@@ -20,12 +20,12 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"log/slog"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
-	"github.com/rs/zerolog/log"
 )
 
 type Metadata struct {
@@ -118,7 +118,7 @@ func (s *screenshotWriter) Write(ctx context.Context, data []byte, metadata Meta
 
 	ip := metadata.CrawlLog.IpAddress
 	if ip == "" {
-		log.Warn().Msg("Missing IP address for screenshot, using 127.0.0.1")
+		slog.Warn("Missing IP address for screenshot, using 127.0.0.1")
 		ip = "127.0.0.1"
 	}
 
@@ -139,12 +139,11 @@ func (s *screenshotWriter) Write(ctx context.Context, data []byte, metadata Meta
 	if response, err := stream.CloseAndRecv(); err != nil {
 		return err
 	} else {
-		log.Debug().
-			Str("url", metadata.CrawlLog.GetRequestedUri()).
-			Int32("width", metadata.BrowserConfig.GetWindowWidth()).
-			Int32("height", metadata.BrowserConfig.GetWindowHeight()).
-			Int("records", len(response.GetMeta().GetRecordMeta())).
-			Msg("Screenshot written")
+		slog.Info("Screenshot written",
+			"url", metadata.CrawlLog.GetRequestedUri(),
+			"width", metadata.BrowserConfig.GetWindowWidth(),
+			"height", metadata.BrowserConfig.GetWindowHeight(),
+			"records", len(response.GetMeta().GetRecordMeta()))
 	}
 	return nil
 }

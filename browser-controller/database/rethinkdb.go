@@ -19,11 +19,10 @@ package database
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -34,9 +33,8 @@ type RethinkDbConnection struct {
 	maxRetries   int
 	waitTimeout  time.Duration
 	queryTimeout time.Duration
-	// TODO (unused): maxOpenConnections int
-	batchSize int
-	logger    zerolog.Logger
+	batchSize    int
+	logger       *slog.Logger
 }
 
 type Options struct {
@@ -68,7 +66,7 @@ func NewRethinkDbConnection(opts Options) *RethinkDbConnection {
 		waitTimeout:  60 * time.Second,
 		queryTimeout: opts.QueryTimeout,
 		batchSize:    200,
-		logger:       log.Logger.With().Str("component", "rethinkdb").Logger(),
+		logger:       slog.Default().With("service", "rethinkdb"),
 	}
 }
 
@@ -80,13 +78,13 @@ func (c *RethinkDbConnection) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to RethinkDB at %s: %w", c.connectOpts.Address, err)
 	}
-	c.logger.Info().Msgf("Connected to RethinkDB at %s", c.connectOpts.Address)
+	c.logger.Info("Connected to RethinkDB", "address", c.connectOpts.Address)
 	return nil
 }
 
 // Close closes the RethinkDbConnection
 func (c *RethinkDbConnection) Close() error {
-	c.logger.Info().Msg("Closing connection to RethinkDB")
+	c.logger.Info("Closing connection to RethinkDB")
 	return c.session.(*r.Session).Close()
 }
 
@@ -152,7 +150,7 @@ func (c *RethinkDbConnection) execRead(ctx context.Context, name string, term *r
 // execWithRetry executes given query function repeatedly until successful or max retry limit is reached
 func (c *RethinkDbConnection) execWithRetry(ctx context.Context, name string, q func(ctx context.Context) (*r.Cursor, error)) (cursor *r.Cursor, err error) {
 	attempts := 0
-	log := c.logger.With().Str("operation", name).Logger()
+	log := c.logger.With("operation", name)
 out:
 	for {
 		attempts++
@@ -160,17 +158,17 @@ out:
 		if err == nil {
 			return
 		}
-		log.Warn().Err(err).Int("retries", attempts-1).Msg("")
+		log.Warn("Database operation failed", "error", err, "retries", attempts-1)
 		switch err {
 		case r.ErrQueryTimeout:
 			err := c.wait()
 			if err != nil {
-				log.Warn().Err(err).Msg("Error waiting for database to be ready")
+				log.Warn("Error waiting for database to be ready", "error", err)
 			}
 		case r.ErrConnectionClosed:
 			err := c.Connect()
 			if err != nil {
-				log.Warn().Err(err).Msg("Error trying to reconnect after failed execution")
+				log.Warn("Error trying to reconnect after failed execution", "error", err)
 			}
 		default:
 			break out
