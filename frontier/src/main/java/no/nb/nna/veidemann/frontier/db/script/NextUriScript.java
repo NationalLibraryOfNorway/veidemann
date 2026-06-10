@@ -55,7 +55,7 @@ public class NextUriScript extends RedisJob<NextUriScriptResult> {
 
             // Find the crawl execution with the highest score
             List<Tuple> mResult = jedis.zrangeWithScores(key,
-                    ZRangeParams.zrangeByScoreParams(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY)
+                    ZRangeParams.zrangeByScoreParams(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY)
                             .rev()
                             .limit(0, 1));
             if (mResult.isEmpty()) {
