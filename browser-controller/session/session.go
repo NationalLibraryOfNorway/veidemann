@@ -327,6 +327,10 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		return nil, fmt.Errorf("failed initializing browser: %w", err)
 	}
 
+	if err := sess.registerNewDocumentScripts(sess.ctx); err != nil {
+		return nil, fmt.Errorf("failed to register new document scripts: %w", err)
+	}
+
 	// Navigate
 	fetchStart := time.Now()
 	if err := chromedp.Run(loadCtx,

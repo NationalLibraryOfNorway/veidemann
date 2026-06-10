@@ -13,7 +13,6 @@ func TestJsonRawMessage(t *testing.T) {
 	var rawMessage json.RawMessage
 	var out map[string]any
 
-	//goland:noinspection GoNilness
 	if len(rawMessage) > 0 {
 		err := json.Unmarshal(rawMessage, &out)
 		if err != nil {

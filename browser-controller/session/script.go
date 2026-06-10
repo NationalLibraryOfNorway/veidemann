@@ -22,7 +22,8 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
-	"strings"
+	"sort"
+	"strconv"
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
@@ -33,7 +34,6 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/opentracing/opentracing-go"
-	tracelog "github.com/opentracing/opentracing-go/log"
 )
 
 type sessionScripts struct {
@@ -63,6 +63,41 @@ func (s *sessionScripts) Get(scriptType configV1.BrowserScript_BrowserScriptType
 	return s.scripts[scriptType]
 }
 
+func scriptPriority(configObject *configV1.ConfigObject) int {
+	if configObject == nil || configObject.GetMeta() == nil {
+		return 0
+	}
+
+	for _, label := range configObject.GetMeta().GetLabel() {
+		if label.GetKey() != "priority" {
+			continue
+		}
+
+		priority, err := strconv.Atoi(label.GetValue())
+		if err != nil {
+			return 0
+		}
+		return priority
+	}
+
+	return 0
+}
+
+func orderOnLoadScripts(scripts []*configV1.ConfigObject) {
+	if len(scripts) < 2 {
+		return
+	}
+
+	priorities := make(map[string]int, len(scripts))
+	for _, configObject := range scripts {
+		priorities[configObject.GetId()] = scriptPriority(configObject)
+	}
+
+	sort.SliceStable(scripts, func(i, j int) bool {
+		return priorities[scripts[i].GetId()] > priorities[scripts[j].GetId()]
+	})
+}
+
 func (sess *Session) loadScripts(ctx context.Context) (*sessionScripts, error) {
 	bs := newSessionScripts()
 
@@ -80,6 +115,7 @@ func (sess *Session) loadScripts(ctx context.Context) (*sessionScripts, error) {
 		}
 		bs.scripts[scriptType] = append(bs.scripts[scriptType], s)
 	}
+	orderOnLoadScripts(bs.scripts[configV1.BrowserScript_ON_LOAD])
 	return bs, nil
 }
 
@@ -110,7 +146,37 @@ func (sess *Session) GetReplacementScript(uri string) *configV1.BrowserScript {
 	return currentBestMatch
 }
 
-// executeScripts executes scripts of type scriptType.
+func buildNewDocumentScriptSource(functionDeclaration string, arguments json.RawMessage) string {
+	args := string(arguments)
+	if len(args) == 0 {
+		args = "{}"
+	}
+
+	return fmt.Sprintf(";(() => { const __veidemannFn = (%s); void __veidemannFn(%s); })();", functionDeclaration, args)
+}
+
+func (sess *Session) registerNewDocumentScripts(ctx context.Context) error {
+	for _, configObject := range sess.scripts.Get(configV1.BrowserScript_ON_NEW_DOCUMENT) {
+		arguments, err := script.CompileArguments(configObject, sess.RequestedUrl.Annotation, nil)
+		if err != nil {
+			return fmt.Errorf("failed to prepare init-script arguments for script %s (%s): %w", configObject.GetMeta().GetName(), configObject.GetId(), err)
+		}
+
+		source := buildNewDocumentScriptSource(configObject.GetBrowserScript().GetScript(), arguments)
+		if _, err := page.AddScriptToEvaluateOnNewDocument(source).Do(ctx); err != nil {
+			return fmt.Errorf("failed to register init script %s (%s): %w", configObject.GetMeta().GetName(), configObject.GetId(), err)
+		}
+
+		sess.logger.Info("Registered script",
+			"scriptType", configV1.BrowserScript_ON_NEW_DOCUMENT.String(),
+			"scriptName", configObject.GetMeta().GetName(),
+			"scriptId", configObject.GetId())
+	}
+
+	return nil
+}
+
+// executeScripts executes runtime behavior scripts after navigation.
 func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.BrowserScript_BrowserScriptType) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "execute-scripts")
 	defer span.Finish()
@@ -127,51 +193,41 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 		log.Debug("Got notifications while waiting for network activity to settle", "count", notifyCount)
 	}
 
-	var resolveExecutionContextId func() (runtime.ExecutionContextID, error)
-	switch scriptType {
-	case configV1.BrowserScript_ON_LOAD:
-		// reuse the same execution context for all scripts
-		executionContextID, err := getExecutionContextID(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to get isolated execution context id: %w", err)
-		}
-		resolveExecutionContextId = func() (runtime.ExecutionContextID, error) {
-			return executionContextID, nil
-		}
-	case configV1.BrowserScript_ON_NEW_DOCUMENT:
-		// create new execution context before execution of scripts
-		resolveExecutionContextId = func() (runtime.ExecutionContextID, error) {
-			return getExecutionContextID(ctx)
-		}
-	default:
+	if scriptType != configV1.BrowserScript_ON_LOAD {
 		return fmt.Errorf("script execution for type %v is not implemented", scriptType)
 	}
 
+	// Reuse one isolated world for the whole ON_LOAD phase so script chaining and
+	// stateful page interaction happen in a stable crawler-owned context.
+	executionContextID, err := getExecutionContextID(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get isolated execution context id: %w", err)
+	}
+	resolveExecutionContextId := func() (runtime.ExecutionContextID, error) {
+		return executionContextID, nil
+	}
+
 	execute := func(configObject *configV1.ConfigObject, arguments json.RawMessage) (json.RawMessage, error) {
-		span, ctx := opentracing.StartSpanFromContext(ctx, "execute-script")
-		defer span.Finish()
 		name := configObject.GetMeta().GetName()
 		id := configObject.GetId()
 		eci, err := resolveExecutionContextId()
 		if err != nil {
-			span.SetTag("error", true).LogFields(tracelog.Event("error"), tracelog.Error(err))
 			return nil, fmt.Errorf("failed to resolve execution context id for script %s (%s): %w", name, id, err)
 		}
 
-		span.SetTag("script.id", id)
 		log := log.With(
 			"scriptName", name,
 			"scriptId", id,
 			"scriptEci", int64(eci),
 		)
 
-		log.Debug("Calling script", "arguments", arguments)
-
+		log.Info("Executing script", "arguments", string(arguments))
 		res, err := callScript(ctx, eci, configObject.GetBrowserScript().GetScript(), arguments)
 		if err != nil {
-			span.SetTag("error", true).LogFields(tracelog.Event("error"), tracelog.Error(err))
+			log.Warn("Script execution failed", "error", err)
+		} else {
+			log.Info("Script returned", "result", string(res))
 		}
-		log.Debug("Script returned", "result", string(res))
 
 		return res, err
 	}
@@ -194,15 +250,12 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 // provided arguments via chrome debug protocol.
 //
 // The result value from the debug protocol action is unmarshalled into a
-// ReturnValue struct.
+// ReturnValue struct. Promise results are awaited before the value is returned
+// so scripts may resolve asynchronously without changing their JSON shape.
 //
 // Returns an error: if the debug protocol action fails, if script execution
 // caused an exception, or if unmarshalling of result value fails.
 func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDeclaration string, arguments json.RawMessage) (json.RawMessage, error) {
-	var awaitPromise bool
-	if strings.HasPrefix(functionDeclaration, "async ") {
-		awaitPromise = true
-	}
 	var res *runtime.RemoteObject
 	var exceptionDetails *runtime.ExceptionDetails
 	err := chromedp.Run(ctx,
@@ -212,7 +265,7 @@ func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDec
 				WithArguments([]*runtime.CallArgument{{Value: jsontext.Value(arguments)}}).
 				WithExecutionContextID(eci).
 				WithReturnByValue(true).
-				WithAwaitPromise(awaitPromise).
+				WithAwaitPromise(true).
 				Do(ctx)
 			return err
 		}),
@@ -222,6 +275,33 @@ func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDec
 	}
 	if exceptionDetails != nil {
 		return nil, exceptionDetails
+	}
+
+	return json.RawMessage(res.Value), nil
+}
+
+// evaluateScript evaluates a script expression and awaits Promise results
+// before returning the resolved value.
+func evaluateScript(ctx context.Context, expression string) (json.RawMessage, error) {
+	var res *runtime.RemoteObject
+	var exceptionDetails *runtime.ExceptionDetails
+	err := chromedp.Run(ctx,
+		chromedp.ActionFunc(func(ctx context.Context) (err error) {
+			res, exceptionDetails, err = runtime.Evaluate(expression).
+				WithReturnByValue(true).
+				WithAwaitPromise(true).
+				Do(ctx)
+			return err
+		}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if exceptionDetails != nil {
+		return nil, exceptionDetails
+	}
+	if res == nil || res.Value == nil {
+		return nil, nil
 	}
 
 	return json.RawMessage(res.Value), nil
