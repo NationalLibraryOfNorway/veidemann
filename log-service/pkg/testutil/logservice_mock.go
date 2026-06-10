@@ -27,7 +27,7 @@ func (s *LogServiceMock) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) err
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
-			break
+			return stream.SendAndClose(&emptypb.Empty{})
 		}
 		if err != nil {
 			return err
@@ -36,7 +36,6 @@ func (s *LogServiceMock) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) err
 		s.CrawlLogs = append(s.CrawlLogs, req.GetCrawlLog())
 		s.cl.Unlock()
 	}
-	return nil
 }
 
 func (s *LogServiceMock) WritePageLog(stream logV1.Log_WritePageLogServer) error {
