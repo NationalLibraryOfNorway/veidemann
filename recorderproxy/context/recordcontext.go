@@ -51,24 +51,29 @@ type RecordContext struct {
 	// Will connect a request to a response
 	session int64
 
-	conn              *serviceconnections.Connections
-	ctx               context.Context
-	cwc               *CwcSession
-	bcc               *BccSession
-	Method            string
-	Uri               *url.URL
-	FetchTimesTamp    time.Time
-	Meta              *contentwriterV1.WriteRequest_Meta
-	CrawlLog          *logV1.CrawlLog
-	ReplacementScript *configV1.BrowserScript
-	closed            bool
-	FoundInCache      bool
-	PrecludedByRobots bool
-	done              bool
-	mutex             sync.Mutex
-	InitDone          bool
-	ProxyId           int32
-	log               *logger.Logger
+	conn                      *serviceconnections.Connections
+	ctx                       context.Context
+	cwc                       *CwcSession
+	Method                    string
+	Uri                       *url.URL
+	RequestId                 string
+	CrawlExecutionId          string
+	JobExecutionId            string
+	CollectionRef             *configV1.ConfigRef
+	IpAddress                 string
+	FetchTimesTamp            time.Time
+	Meta                      *contentwriterV1.WriteRequest_Meta
+	CrawlLog                  *logV1.CrawlLog
+	ReplacementScript         *configV1.BrowserScript
+	closed                    bool
+	FoundInCache              bool
+	PrecludedByRobots         bool
+	HasExplicitHarvestHeaders bool
+	done                      bool
+	mutex                     sync.Mutex
+	InitDone                  bool
+	ProxyId                   int32
+	log                       *logger.Logger
 }
 
 // NewRecordContext creates a new RecordContext
@@ -86,8 +91,16 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 	rc.ProxyId = proxyId
 	rc.Method = req.Method
 	rc.Uri = uri
+	rc.HasExplicitHarvestHeaders = req.Header.Get(constants.HeaderCrawlExecutionId) != "" ||
+		req.Header.Get(constants.HeaderJobExecutionId) != "" ||
+		req.Header.Get(constants.HeaderCollectionId) != ""
 
 	resolveIdsFromHttpHeader(rc.ctx, req)
+	rc.RequestId = GetRequestId(rc.ctx)
+	rc.CrawlExecutionId = GetCrawlExecutionId(rc.ctx)
+	rc.JobExecutionId = GetJobExecutionId(rc.ctx)
+	rc.CollectionRef = GetCollectionRef(rc.ctx)
+	rc.IpAddress = GetIp(rc.ctx)
 
 	req.Header.Del(constants.HeaderRequestId)
 	req.Header.Del(constants.HeaderCrawlExecutionId)
@@ -98,12 +111,12 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 	fetchTimeStamp, _ := ptypes.TimestampProto(rc.FetchTimesTamp)
 
 	rc.CrawlLog = &logV1.CrawlLog{
-		JobExecutionId: GetJobExecutionId(rc.ctx),
-		ExecutionId:    GetCrawlExecutionId(rc.ctx),
+		JobExecutionId: rc.JobExecutionId,
+		ExecutionId:    rc.CrawlExecutionId,
 		FetchTimeStamp: fetchTimeStamp,
 		RequestedUri:   uri.String(),
 		Method:         rc.Method,
-		IpAddress:      GetIp(rc.ctx),
+		IpAddress:      rc.IpAddress,
 	}
 
 	rc.InitDone = true
@@ -121,6 +134,25 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 
 func (rc *RecordContext) Session() int64 {
 	return rc.session
+}
+
+func (rc *RecordContext) closeSession() {
+	if rc == nil {
+		return
+	}
+
+	rc.mutex.Lock()
+	if rc.closed {
+		rc.mutex.Unlock()
+		return
+	}
+	rc.closed = true
+	rc.mutex.Unlock()
+
+	atomic.AddInt64(&closedSess, 1)
+	if rc.CloseFunc != nil {
+		rc.CloseFunc()
+	}
 }
 
 func LogWithRecordContext(rc *RecordContext, componentName string) *logger.Logger {
@@ -170,5 +202,4 @@ func resolveIdsFromHttpHeader(ctx context.Context, req *http.Request) {
 			Id:   cid,
 		})
 	}
-	return
 }

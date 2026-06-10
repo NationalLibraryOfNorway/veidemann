@@ -42,25 +42,135 @@ const (
 	ctxKeyIp                 = ctxKey("ip")
 )
 
-var dataAwareMutex sync.RWMutex
+type stateHandle struct {
+	_ byte
+}
 
-func getRecordProxyDataAware(ctx context.Context) map[ctxKey]interface{} {
-	var rpData map[ctxKey]interface{}
-	a := ctx.Value(ctxKeyRecorderProxyAware)
-	if a == nil {
-		logger.Log.Panic("BUG: Tried to get RecordProxyDataAware from uninitialized context")
+type recorderProxyState struct {
+	values map[ctxKey]interface{}
+}
+
+var (
+	dataAwareMutex sync.RWMutex
+	dataAwareState = map[*stateHandle]*recorderProxyState{}
+)
+
+func lookupStateHandle(ctx context.Context) (*stateHandle, bool) {
+	h, ok := ctx.Value(ctxKeyRecorderProxyAware).(*stateHandle)
+	return h, ok
+}
+
+func deleteStateHandle(h *stateHandle) {
+	if h == nil {
+		return
 	}
-	rpData = a.(map[ctxKey]interface{})
-	return rpData
+
+	dataAwareMutex.Lock()
+	defer dataAwareMutex.Unlock()
+	delete(dataAwareState, h)
 }
 
 func RecordProxyDataAware(ctx context.Context) context.Context {
-	a := ctx.Value(ctxKeyRecorderProxyAware)
-	if a == nil {
-		rpData := make(map[ctxKey]interface{}, 4)
-		ctx = context.WithValue(ctx, ctxKeyRecorderProxyAware, rpData)
+	if _, ok := lookupStateHandle(ctx); ok {
+		return ctx
 	}
+
+	return newStateContext(ctx)
+}
+
+func newStateContext(ctx context.Context) context.Context {
+	h := &stateHandle{}
+	if done := ctx.Done(); done != nil {
+		go func() {
+			<-done
+			deleteStateHandle(h)
+		}()
+	}
+
+	return context.WithValue(ctx, ctxKeyRecorderProxyAware, h)
+}
+
+func copySessionMetadata(dst context.Context, src context.Context) {
+	if host := GetHost(src); host != "" {
+		SetHost(dst, host)
+	}
+	if port := GetPort(src); port != "" {
+		SetPort(dst, port)
+	}
+	if uri := GetUri(src); uri != nil {
+		uriCopy := *uri
+		SetUri(dst, &uriCopy)
+	}
+	if crawlExecutionId := GetCrawlExecutionId(src); crawlExecutionId != "" {
+		SetCrawlExecutionId(dst, crawlExecutionId)
+	}
+	if jobExecutionId := GetJobExecutionId(src); jobExecutionId != "" {
+		SetJobExecutionId(dst, jobExecutionId)
+	}
+	if collectionRef := GetCollectionRef(src); collectionRef != nil {
+		SetCollectionRef(dst, collectionRef)
+	}
+}
+
+func CopySessionMetadata(dst context.Context, src context.Context) {
+	copySessionMetadata(dst, src)
+}
+
+func NewRequestContextFrom(ctx context.Context, source context.Context, preserveSessionMetadata bool) context.Context {
+	ctx = newStateContext(ctx)
+
+	if !preserveSessionMetadata {
+		return ctx
+	}
+
+	copySessionMetadata(ctx, source)
+
 	return ctx
+}
+
+func NewRequestContext(ctx context.Context, preserveSessionMetadata bool) context.Context {
+	return NewRequestContextFrom(ctx, ctx, preserveSessionMetadata)
+}
+
+func WithStateHandle(ctx context.Context, source context.Context) context.Context {
+	h, ok := lookupStateHandle(source)
+	if !ok {
+		return ctx
+	}
+	return context.WithValue(ctx, ctxKeyRecorderProxyAware, h)
+}
+
+func ResetRequestState(ctx context.Context, preserveSessionMetadata bool) {
+	h, ok := lookupStateHandle(ctx)
+	if !ok {
+		return
+	}
+
+	dataAwareMutex.Lock()
+	defer dataAwareMutex.Unlock()
+
+	state, found := dataAwareState[h]
+	if !found {
+		state = &recorderProxyState{values: make(map[ctxKey]interface{}, 8)}
+		dataAwareState[h] = state
+	}
+
+	delete(state.values, ctxKeyRCTX)
+	delete(state.values, ctxKeyConnectErr)
+	delete(state.values, ctxKeyRequestId)
+	delete(state.values, ctxKeyIp)
+
+	if !preserveSessionMetadata {
+		delete(state.values, ctxKeyHost)
+		delete(state.values, ctxKeyPort)
+		delete(state.values, ctxKeyUrl)
+	}
+
+	if !preserveSessionMetadata {
+		delete(state.values, ctxKeyCrawlExecutionId)
+		delete(state.values, ctxKeyJobExecutionId)
+		delete(state.values, ctxKeyCollectionRef)
+	}
 }
 
 func SetHost(ctx context.Context, host string) {
@@ -84,12 +194,21 @@ func SetConnectError(ctx context.Context, err error) {
 }
 
 func SetConnectErrorIfNotExists(ctx context.Context, err error) {
+	h, ok := lookupStateHandle(ctx)
+	if !ok {
+		return
+	}
+
 	dataAwareMutex.Lock()
 	defer dataAwareMutex.Unlock()
 
-	a := getRecordProxyDataAware(ctx)
-	if a[ctxKeyConnectErr] == nil {
-		a[ctxKeyConnectErr] = err
+	state, found := dataAwareState[h]
+	if !found {
+		state = &recorderProxyState{values: make(map[ctxKey]interface{}, 8)}
+		dataAwareState[h] = state
+	}
+	if state.values[ctxKeyConnectErr] == nil {
+		state.values[ctxKeyConnectErr] = err
 	}
 }
 
@@ -164,24 +283,41 @@ func GetIp(ctx context.Context) (ip string) {
 }
 
 func getValue(ctx context.Context, key ctxKey) interface{} {
-	a := ctx.Value(ctxKeyRecorderProxyAware)
-	if a == nil {
+	h, ok := lookupStateHandle(ctx)
+	if !ok {
 		return nil
 	}
 
 	dataAwareMutex.RLock()
 	defer dataAwareMutex.RUnlock()
 
-	rpData := a.(map[ctxKey]interface{})
-	return rpData[key]
+	state, found := dataAwareState[h]
+	if !found {
+		return nil
+	}
+	return state.values[key]
 }
 
 func setValue(ctx context.Context, key ctxKey, value interface{}) {
+	h, ok := lookupStateHandle(ctx)
+	if !ok {
+		logger.Log.Panic("BUG: Tried to set RecordProxyDataAware on uninitialized context")
+	}
+
 	dataAwareMutex.Lock()
 	defer dataAwareMutex.Unlock()
 
-	a := getRecordProxyDataAware(ctx)
-	a[key] = value
+	state, found := dataAwareState[h]
+	if !found {
+		state = &recorderProxyState{values: make(map[ctxKey]interface{}, 8)}
+		dataAwareState[h] = state
+	}
+
+	if value == nil {
+		delete(state.values, key)
+		return
+	}
+	state.values[key] = value
 }
 
 func WrapIfNecessary(ctx context.Context) filters.Context {

@@ -17,7 +17,10 @@
 package recorderproxy
 
 import (
+	stdcontext "context"
+	"net"
 	"net/http"
+	"net/url"
 
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -32,10 +35,74 @@ type ContextInitFilter struct {
 	proxyId int32
 }
 
-func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (resp *http.Response, context filters.Context, err error) {
-	l := context2.LogWithContextAndRequest(ctx, req, "FLT:ctx")
+func requestAuthority(req *http.Request) (string, string) {
+	if req == nil {
+		return "", ""
+	}
 
+	if host := req.URL.Hostname(); host != "" {
+		return host, req.URL.Port()
+	}
+
+	if req.Host == "" {
+		return "", ""
+	}
+
+	host, port, err := net.SplitHostPort(req.Host)
+	if err == nil {
+		return host, port
+	}
+
+	return req.Host, ""
+}
+
+func requestBaseURI(ctx filters.Context, req *http.Request) *url.URL {
+	if req == nil {
+		return nil
+	}
+
+	if req.URL.IsAbs() {
+		return &url.URL{Scheme: req.URL.Scheme, Host: req.URL.Host}
+	}
+
+	authority := req.Host
+	if authority != "" {
+		scheme := "http"
+		if ctx.IsMITMing() {
+			scheme = "https"
+		}
+		return &url.URL{Scheme: scheme, Host: authority}
+	}
+
+	if uri := context2.GetUri(ctx); uri != nil && uri.Host != "" {
+		return uri
+	}
+
+	if authority == "" {
+		host := context2.GetHost(ctx)
+		if host == "" {
+			return nil
+		}
+		if port := context2.GetPort(ctx); port != "" {
+			authority = net.JoinHostPort(host, port)
+		} else {
+			authority = host
+		}
+	}
+
+	scheme := "http"
+	if ctx.IsMITMing() {
+		scheme = "https"
+	}
+
+	return &url.URL{Scheme: scheme, Host: authority}
+}
+
+func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (resp *http.Response, context filters.Context, err error) {
 	if req.Method == http.MethodConnect {
+		l := context2.LogWithContextAndRequest(ctx, req, "FLT:ctx")
+		context2.ResetRequestState(ctx, false)
+
 		// Handle HTTPS CONNECT
 		context2.SetHost(ctx, req.URL.Hostname())
 		context2.SetPort(ctx, req.URL.Port())
@@ -53,34 +120,52 @@ func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next f
 		l.Debugf("Converted CONNECT request uri form %v to %v", req.URL, uri)
 		resp, context, err = next(ctx, req)
 	} else {
-		if context2.GetHost(ctx) == "" {
-			context2.SetHost(ctx, req.URL.Hostname())
-			context2.SetPort(ctx, req.URL.Port())
+		connectionCtx := ctx
+		preserveSessionMetadata := ctx.IsMITMing()
+		requestCtx := context2.WrapIfNecessary(context2.NewRequestContext(ctx, preserveSessionMetadata))
+		context2.ResetRequestState(requestCtx, preserveSessionMetadata)
+		l := context2.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
+
+		if host, port := requestAuthority(req); host != "" {
+			context2.SetHost(requestCtx, host)
+			context2.SetPort(requestCtx, port)
+		} else if context2.GetHost(requestCtx) == "" {
+			context2.SetHost(requestCtx, req.URL.Hostname())
+			context2.SetPort(requestCtx, req.URL.Port())
 		}
 
-		uri := context2.GetUri(ctx)
-		if uri != nil {
-			uri = uri.ResolveReference(req.URL)
+		baseURI := requestBaseURI(requestCtx, req)
+		var uri *url.URL
+		if baseURI != nil {
+			uri = baseURI.ResolveReference(req.URL)
 		} else {
 			uri = req.URL
+		}
+		if uri != nil && uri.Host != "" {
+			context2.SetUri(requestCtx, &url.URL{Scheme: uri.Scheme, Host: uri.Host})
 		}
 
 		l.Debugf("Converted GET request uri form %v to %v", req.URL, uri)
 
-		req = req.WithContext(ctx)
+		req = req.WithContext(requestCtx)
 		rc := context2.NewRecordContext()
-		context2.SetRecordContext(ctx, rc)
-		span := opentracing.SpanFromContext(ctx)
+		context2.SetRecordContext(requestCtx, rc)
+		span := opentracing.SpanFromContext(requestCtx)
 		span.LogFields(log.String("event", "Start init record context"))
 		rc.Init(f.proxyId, f.conn, req, uri)
 
-		if e := rc.RegisterNewRequest(ctx); e != nil {
+		if e := rc.RegisterNewRequest(requestCtx); e != nil {
 			span.LogFields(log.String("event", "Failed init record context"), log.Error(e))
-			return handleRequestError(ctx, req, e)
+			return handleRequestError(requestCtx, req, e)
 		}
 		span.LogFields(log.String("event", "Finished init record context"))
 
-		resp, context, err = next(ctx, req)
+		resp, context, err = next(requestCtx, req)
+		if preserveSessionMetadata {
+			context2.CopySessionMetadata(connectionCtx, requestCtx)
+		}
+		var stateSource stdcontext.Context = connectionCtx
+		context = context2.WrapIfNecessary(context2.WithStateHandle(context, stateSource))
 	}
 	return
 }

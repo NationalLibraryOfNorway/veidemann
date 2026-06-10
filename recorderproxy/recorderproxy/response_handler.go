@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -44,21 +45,23 @@ type wrappedResponseBody struct {
 	replacementReader io.Reader
 	mutex             sync.Mutex
 	eof               bool
-	allDataSent       bool
 	log               *logger.Logger
 }
 
-func WrapResponseBody(ctx filters.Context, body io.ReadCloser, statusCode int32, contentType string,
+func WrapResponseBody(ctx filters.Context, rc *context.RecordContext, body io.ReadCloser, statusCode int32, contentType string,
 	recordType contentwriterV1.RecordType, prolog []byte) (*wrappedResponseBody, error) {
+	if body == nil {
+		body = http.NoBody
+	}
 
 	b := &wrappedResponseBody{
 		ReadCloser:    body,
 		ctx:           ctx,
-		recordContext: context.GetRecordContext(ctx),
+		recordContext: rc,
 		recNum:        1,
 		blockCrc:      sha1.New(),
 	}
-	b.log = context.LogWithContext(ctx, "BODY:resp").WithField("url", b.recordContext.Uri.String())
+	b.log = context.LogWithRecordContext(rc, "BODY:resp").WithField("url", b.recordContext.Uri.String())
 
 	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
 		RecordNum: b.recNum,
@@ -83,7 +86,25 @@ func WrapResponseBody(ctx filters.Context, body io.ReadCloser, statusCode int32,
 }
 
 func (b *wrappedResponseBody) Close() (err error) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if b.ReadCloser == nil {
+		return nil
+	}
+
+	prematureClose := !b.eof
+	if prematureClose {
+		b.eof = true
+	}
+
 	err = b.ReadCloser.Close()
+	if prematureClose {
+		cancelMsg := "Veidemann recorder proxy lost connection to client"
+		b.log.WithError(err).Warn("Response body closed before EOF")
+		_ = b.recordContext.SendResponseError(b.ctx, errors.Error(errors.CanceledByBrowser, "CANCELED_BY_BROWSER", cancelMsg))
+		_ = b.recordContext.CancelContentWriter(cancelMsg)
+	}
 	b.log.WithError(err).Debug("Close body")
 	return
 }
@@ -117,7 +138,10 @@ func (b *wrappedResponseBody) Read(p []byte) (n int, err error) {
 
 func (b *wrappedResponseBody) innerRead(r io.Reader, p []byte) (n int, err error) {
 	if b.eof {
-		n, err = r.Read(p)
+		return 0, io.EOF
+	}
+	if r == nil {
+		b.eof = true
 		return 0, io.EOF
 	}
 
@@ -130,8 +154,6 @@ func (b *wrappedResponseBody) innerRead(r io.Reader, p []byte) (n int, err error
 
 	if n > 0 {
 		if !b.recordContext.FoundInCache {
-			_ = b.recordContext.NotifyDataReceived()
-
 			b.size += int64(n)
 			d := p[:n]
 			b.writeCrc(d)
@@ -147,8 +169,6 @@ func (b *wrappedResponseBody) innerRead(r io.Reader, p []byte) (n int, err error
 			b.handleCachedContent()
 			return
 		}
-
-		_ = b.recordContext.NotifyAllDataReceived()
 
 		blockDigest := fmt.Sprintf("sha1:%x", b.blockCrc.Sum(nil))
 		b.recordMeta.Size = b.size

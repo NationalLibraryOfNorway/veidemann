@@ -71,7 +71,6 @@ func (f *RecorderFilter) Apply(ctx filters.Context, req *http.Request, next filt
 		roundTripSpan, roundtripCtx := opentracing.StartSpanFromContext(ctx, "Roundtrip upstream")
 		resp, roundtripCtx, err = next(context2.WrapIfNecessary(roundtripCtx), req)
 		roundTripSpan.Finish()
-
 		if err != nil {
 			return
 		}
@@ -98,18 +97,19 @@ func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span,
 
 	fetchTimeStamp, _ := ptypes.TimestampProto(rc.FetchTimesTamp)
 	uri := rc.Uri
+	rc.IpAddress = context2.GetIp(c)
 
 	req.Header.Set(constants.HeaderAcceptEncoding, "identity")
-	req.Header.Set(constants.HeaderCrawlExecutionId, context2.GetCrawlExecutionId(c))
-	req.Header.Set(constants.HeaderJobExecutionId, context2.GetJobExecutionId(c))
+	req.Header.Set(constants.HeaderCrawlExecutionId, rc.CrawlExecutionId)
+	req.Header.Set(constants.HeaderJobExecutionId, rc.JobExecutionId)
 
 	rc.Meta = &contentwriterV1.WriteRequest_Meta{
 		Meta: &contentwriterV1.WriteRequestMeta{
 			RecordMeta:     map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{},
 			TargetUri:      uri.String(),
-			ExecutionId:    context2.GetCrawlExecutionId(c),
-			IpAddress:      context2.GetIp(c),
-			CollectionRef:  context2.GetCollectionRef(c),
+			ExecutionId:    rc.CrawlExecutionId,
+			IpAddress:      rc.IpAddress,
+			CollectionRef:  rc.CollectionRef,
 			FetchTimeStamp: fetchTimeStamp,
 		},
 	}
@@ -117,7 +117,7 @@ func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span,
 	rc.CrawlLog.RequestedUri = uri.String()
 
 	contentType := req.Header.Get("Content-Type")
-	bodyWrapper, err := WrapRequestBody(c, req.Body, contentType, prolog.Bytes())
+	bodyWrapper, err := WrapRequestBody(c, rc, req.Body, contentType, prolog.Bytes())
 	if err != nil {
 		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
 		return req, e
@@ -154,7 +154,7 @@ func (f *RecorderFilter) filterResponse(c filters.Context, span opentracing.Span
 
 	contentType := resp.Header.Get("Content-Type")
 	statusCode := int32(resp.StatusCode)
-	bodyWrapper, err := WrapResponseBody(c, resp.Body, statusCode, contentType, contentwriterV1.RecordType_RESPONSE, prolog.Bytes())
+	bodyWrapper, err := WrapResponseBody(c, rc, resp.Body, statusCode, contentType, contentwriterV1.RecordType_RESPONSE, prolog.Bytes())
 	if err != nil {
 		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
 		return nil, e

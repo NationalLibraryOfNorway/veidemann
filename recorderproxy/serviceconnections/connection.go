@@ -19,7 +19,7 @@ package serviceconnections
 import (
 	"context"
 
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +36,7 @@ type Connections struct {
 	dnsResolverClientConn       *grpc.ClientConn
 	dnsResolverClient           dnsresolverV1.DnsResolverClient
 	browserControllerClientConn *grpc.ClientConn
-	browserControllerClient     browsercontrollerV1.BrowserControllerClient
+	browserControllerClient     browsercontrollerV2.BrowserControllerClient
 }
 
 func NewConnections(contentWriterOptions, dnsOptions, browserControllerOptions *ConnectionOptions) *Connections {
@@ -71,7 +71,7 @@ func (c *Connections) Connect() error {
 	if err != nil {
 		return err
 	}
-	c.browserControllerClient = browsercontrollerV1.NewBrowserControllerClient(c.browserControllerClientConn)
+	c.browserControllerClient = browsercontrollerV2.NewBrowserControllerClient(c.browserControllerClientConn)
 	log.WithField("component", "gRPC:CWR").Printf("Connected to browser controller")
 
 	return nil
@@ -111,6 +111,6 @@ func (c *Connections) DnsResolverClient() dnsresolverV1.DnsResolverClient {
 	return c.dnsResolverClient
 }
 
-func (c *Connections) BrowserControllerClient() browsercontrollerV1.BrowserControllerClient {
+func (c *Connections) BrowserControllerClient() browsercontrollerV2.BrowserControllerClient {
 	return c.browserControllerClient
 }

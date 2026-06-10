@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
@@ -54,7 +54,7 @@ const bufSize = 1024 * 1024
 type GrpcServiceMock struct {
 	dnsresolverV1.UnimplementedDnsResolverServer
 	contentwriterV1.UnimplementedContentWriterServer
-	browsercontrollerV1.UnimplementedBrowserControllerServer
+	browsercontrollerV2.UnimplementedBrowserControllerServer
 	dnsOpts               *serviceconnections.ConnectionOptions
 	contentWriterOpts     *serviceconnections.ConnectionOptions
 	browserControllerOpts *serviceconnections.ConnectionOptions
@@ -108,9 +108,14 @@ func WithExternalDns(option *serviceconnections.ConnectionOptions) MockOption {
 }
 
 type Requests struct {
-	BrowserControllerRequests []*browsercontrollerV1.DoRequest
+	BrowserControllerRequests []*BrowserControllerRequest
 	DnsResolverRequests       []*dnsresolverV1.ResolveRequest
 	ContentWriterRequests     []*contentwriterV1.WriteRequest
+}
+
+type BrowserControllerRequest struct {
+	RegisterResource *browsercontrollerV2.RegisterResourceRequest
+	CompleteResource *browsercontrollerV2.CompleteResourceRequest
 }
 
 func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
@@ -146,7 +151,7 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 		contentwriterV1.RegisterContentWriterServer(m.Server, m)
 	}
 	if m.browserControllerOpts == nil {
-		browsercontrollerV1.RegisterBrowserControllerServer(m.Server, m)
+		browsercontrollerV2.RegisterBrowserControllerServer(m.Server, m)
 	}
 	go func() {
 		if err := m.Server.Serve(m.lis); err != nil {
@@ -202,13 +207,28 @@ func (s *GrpcServiceMock) bufDialer(context.Context, string) (net.Conn, error) {
 	return s.lis.Dial()
 }
 
-func (s *GrpcServiceMock) addBcRequest(r *browsercontrollerV1.DoRequest) {
+func (s *GrpcServiceMock) addBcRequest(r *BrowserControllerRequest) {
 	s.l.Lock()
+	defer s.l.Unlock()
 
-	logger.LogWithComponent("MOCK:BrowserController").Print(r)
+	switch {
+	case r.RegisterResource != nil:
+		logger.LogWithComponent("MOCK:BrowserController").Print(r.RegisterResource)
+	case r.CompleteResource != nil:
+		logger.LogWithComponent("MOCK:BrowserController").Print(r.CompleteResource)
+	default:
+		logger.LogWithComponent("MOCK:BrowserController").Print(r)
+	}
 
 	s.Requests.BrowserControllerRequests = append(s.Requests.BrowserControllerRequests, r)
-	s.l.Unlock()
+}
+
+func (s *GrpcServiceMock) addBcRegisterRequest(r *browsercontrollerV2.RegisterResourceRequest) {
+	s.addBcRequest(&BrowserControllerRequest{RegisterResource: r})
+}
+
+func (s *GrpcServiceMock) addBcCompleteRequest(r *browsercontrollerV2.CompleteResourceRequest) {
+	s.addBcRequest(&BrowserControllerRequest{CompleteResource: r})
 }
 
 func (s *GrpcServiceMock) addDnsRequest(r *dnsresolverV1.ResolveRequest) {
@@ -355,77 +375,59 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 	}
 }
 
-// Implements BrowserController
-func (s *GrpcServiceMock) Do(server browsercontrollerV1.BrowserController_DoServer) error {
-	for {
-		request, err := server.Recv()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		if s.DoneBC == nil {
-			s.DoneBC = make(chan bool, 200)
-			go func() {
-				<-server.Context().Done()
-				s.DoneBC <- true
-				s.DoneBC = nil
-			}()
-		}
-
-		s.addBcRequest(request)
-
-		switch v := request.Action.(type) {
-		case *browsercontrollerV1.DoRequest_New:
-
-			if strings.HasSuffix(v.New.Uri, "blocked") {
-				_ = server.Send(&browsercontrollerV1.DoReply{
-					Action: &browsercontrollerV1.DoReply_Cancel{
-						Cancel: "Blocked by robots.txt",
-					},
-				})
-				break
-			}
-
-			if strings.HasSuffix(v.New.Uri, "bccerr") {
-				return fmt.Errorf("browser controller error")
-			}
-
-			reply := &browsercontrollerV1.DoReply{
-				Action: &browsercontrollerV1.DoReply_New{
-					New: &browsercontrollerV1.NewReply{
-						CrawlExecutionId: "eid",
-						JobExecutionId:   "jid",
-						CollectionRef: &configV1.ConfigRef{
-							Kind: configV1.Kind_collection,
-							Id:   "col1",
-						},
-					},
-				},
-			}
-			if strings.HasSuffix(v.New.Uri, "replace") {
-				reply.GetNew().ReplacementScript = &configV1.BrowserScript{
-					Script: "replaced",
-				}
-			}
-			_ = server.Send(reply)
-
-			if strings.HasSuffix(v.New.Uri, "cancel") {
-				go func() {
-					time.Sleep(100 * time.Millisecond)
-					_ = server.Send(&browsercontrollerV1.DoReply{
-						Action: &browsercontrollerV1.DoReply_Cancel{
-							Cancel: "Cancelled by browser controller",
-						},
-					})
-				}()
-			}
-		case *browsercontrollerV1.DoRequest_Notify:
-		case *browsercontrollerV1.DoRequest_Completed:
-		default:
-			fmt.Printf("UNKNOWN REQ type %T\n", v)
+func browserControllerRegistered(request *browsercontrollerV2.RegisterResourceRequest) *browsercontrollerV2.ResourceRegistered {
+	registered := &browsercontrollerV2.ResourceRegistered{
+		CrawlExecutionId: request.CrawlExecutionId,
+		JobExecutionId:   request.JobExecutionId,
+		CollectionRef:    request.CollectionRef,
+	}
+	if registered.CrawlExecutionId == "" {
+		registered.CrawlExecutionId = "eid"
+	}
+	if registered.JobExecutionId == "" {
+		registered.JobExecutionId = "jid"
+	}
+	if registered.CollectionRef == nil {
+		registered.CollectionRef = &configV1.ConfigRef{
+			Kind: configV1.Kind_collection,
+			Id:   "col1",
 		}
 	}
+	return registered
+}
+
+func (s *GrpcServiceMock) RegisterResource(ctx context.Context, in *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
+	s.addBcRegisterRequest(in)
+
+	trimmedURI := strings.TrimSuffix(in.Uri, "/")
+	switch {
+	case strings.HasSuffix(trimmedURI, "blocked"):
+		return &browsercontrollerV2.RegisterResourceReply{
+			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Blocked by robots.txt"},
+		}, nil
+	case strings.HasSuffix(trimmedURI, "cancel"):
+		return &browsercontrollerV2.RegisterResourceReply{
+			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Cancelled by browser controller"},
+		}, nil
+	default:
+		return &browsercontrollerV2.RegisterResourceReply{
+			Result: &browsercontrollerV2.RegisterResourceReply_Registered{
+				Registered: browserControllerRegistered(in),
+			},
+		}, nil
+	}
+}
+
+func (s *GrpcServiceMock) CompleteResource(ctx context.Context, in *browsercontrollerV2.CompleteResourceRequest) (*browsercontrollerV2.CompleteResourceReply, error) {
+	s.addBcCompleteRequest(in)
+
+	requestedURI := ""
+	if in.GetCrawlLog() != nil {
+		requestedURI = strings.TrimSuffix(in.GetCrawlLog().GetRequestedUri(), "/")
+	}
+	if strings.HasSuffix(requestedURI, "bccerr") {
+		return nil, fmt.Errorf("browser controller error")
+	}
+
+	return &browsercontrollerV2.CompleteResourceReply{}, nil
 }

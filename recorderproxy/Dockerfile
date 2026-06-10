@@ -1,8 +1,8 @@
 FROM golang:1.26 AS build
 
 WORKDIR /build
+COPY api/ ./api/
 COPY recorderproxy/ ./recorderproxy/
-COPY getlantern-proxy/ ./getlantern-proxy/
 
 WORKDIR /build/recorderproxy
 RUN go mod download

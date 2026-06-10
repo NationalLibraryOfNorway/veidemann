@@ -63,13 +63,16 @@ type wrappedRequestBody struct {
 	eof           bool
 }
 
-func WrapRequestBody(ctx filters.Context, body io.ReadCloser, contentType string,
+func WrapRequestBody(ctx filters.Context, rc *context.RecordContext, body io.ReadCloser, contentType string,
 	prolog []byte) (*wrappedRequestBody, error) {
+	if body == nil {
+		body = http.NoBody
+	}
 
 	b := &wrappedRequestBody{
 		ReadCloser:    body,
 		ctx:           ctx,
-		recordContext: context.GetRecordContext(ctx),
+		recordContext: rc,
 		recNum:        0,
 		blockCrc:      sha1.New(),
 	}
@@ -95,6 +98,9 @@ func WrapRequestBody(ctx filters.Context, body io.ReadCloser, contentType string
 }
 
 func (b *wrappedRequestBody) Close() (err error) {
+	if b.ReadCloser == nil {
+		return nil
+	}
 	err = b.ReadCloser.Close()
 	logger.LogWithComponent("BODY:req").WithError(err).Debug("Close body")
 	return
@@ -105,6 +111,10 @@ func (b *wrappedRequestBody) Read(p []byte) (n int, err error) {
 	defer b.mutex.Unlock()
 
 	if b.eof {
+		return 0, io.EOF
+	}
+	if b.ReadCloser == nil {
+		b.eof = true
 		return 0, io.EOF
 	}
 

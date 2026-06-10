@@ -19,7 +19,6 @@ package recorderproxy
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"strconv"
 	"sync/atomic"
 
@@ -30,8 +29,6 @@ import (
 	"github.com/getlantern/mitm"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 
 	"net"
 	"net/http"
@@ -103,27 +100,6 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 		},
 		OKWaitsForUpstream:  false,
 		OKSendsServerTiming: false,
-		WriteResponseInterceptor: func(ctx filters.Context, downstream io.Writer, req *http.Request, resp *http.Response, invoker proxy.WriteResponseInvoker) error {
-			roundTripSpan, _ := opentracing.StartSpanFromContext(ctx, "Write downstream")
-			ext.HTTPUrl.Set(roundTripSpan, req.URL.String())
-			ext.HTTPMethod.Set(roundTripSpan, req.Method)
-			ext.HTTPStatusCode.Set(roundTripSpan, uint16(resp.StatusCode))
-			ext.SpanKind.Set(roundTripSpan, ext.SpanKindRPCServerEnum)
-			err := invoker(ctx, downstream, req, resp)
-			roundTripSpan.Finish()
-
-			rc := context2.GetRecordContext(ctx)
-			if rc != nil {
-				rc.ResponseCompleted(resp, err)
-				rc.WaitForCompleted()
-			}
-			return err
-		},
-	}
-
-	proxyOpts.InitMITM = func() (interceptor proxy.MITMInterceptor, e error) {
-		i, e := mitm.Configure(proxyOpts.MITMOpts)
-		return &errorForwardingMITMInterceptor{i}, e
 	}
 
 	var err error
@@ -149,19 +125,6 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 	}
 
 	return r
-}
-
-type errorForwardingMITMInterceptor struct {
-	*mitm.Interceptor
-}
-
-func (e *errorForwardingMITMInterceptor) MITM(ctx context.Context, downstream net.Conn, upstream net.Conn) (newDown net.Conn, newUp net.Conn, success bool, err error) {
-	newDown, newUp, success, err = e.Interceptor.MITM(downstream, upstream)
-	if err != nil {
-		context2.SetConnectErrorIfNotExists(ctx, err)
-		err = nil
-	}
-	return
 }
 
 func (proxy *RecorderProxy) Start() {

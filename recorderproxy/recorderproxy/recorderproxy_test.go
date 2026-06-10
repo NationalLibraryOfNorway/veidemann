@@ -30,12 +30,13 @@ import (
 	"testing"
 	"time"
 
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -143,7 +144,6 @@ func TestRecorderProxy(t *testing.T) {
 			url:                     s.SrvHttp.URL + "/replace",
 			wantStatus:              200,
 			wantContent:             "should be replaced",
-			wantReplacedContent:     "replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
 			wantErr:                 false,
@@ -154,7 +154,6 @@ func TestRecorderProxy(t *testing.T) {
 			url:                     s.SrvHttps.URL + "/replace",
 			wantStatus:              200,
 			wantContent:             "should be replaced",
-			wantReplacedContent:     "replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
 			wantErr:                 false,
@@ -177,12 +176,10 @@ func TestRecorderProxy(t *testing.T) {
 			skip:        true, // TODO fix this test
 		},
 		{
-			name: "http:browser controller cancel",
-			url:  s.SrvHttp.URL + "/cancel",
-			//wantStatus:  503,
-			//wantContent: "Code:-5011, Msg: CANCELED_BY_BROWSER, Detail: canceled by browser controller",
-			wantStatus:  200,
-			wantContent: "content from http server",
+			name:        "http:browser controller cancel",
+			url:         s.SrvHttp.URL + "/cancel",
+			wantStatus:  503,
+			wantContent: "Code: -5011, Msg: CANCELLED_BY_BROWSER, Detail: Cancelled by browser controller",
 			wantErr:     false,
 			skip:        false,
 		},
@@ -213,22 +210,24 @@ func TestRecorderProxy(t *testing.T) {
 			skip:        false,
 		},
 		{
-			name:                  "http:browser controller error",
-			url:                   s.SrvHttp.URL + "/bccerr",
-			wantStatus:            503,
-			wantContent:           "Code: -5, Msg: error notifying browser controller",
-			wantResponseBlockSize: 141,
-			wantErr:               false,
-			skip:                  false,
+			name:                    "http:browser controller error",
+			url:                     s.SrvHttp.URL + "/bccerr",
+			wantStatus:              200,
+			wantContent:             "content from http server",
+			wantResponseBlockDigest: true,
+			wantResponseBlockSize:   141,
+			wantErr:                 false,
+			skip:                    false,
 		},
 		{
-			name:                  "https:browser controller error",
-			url:                   s.SrvHttps.URL + "/bccerr",
-			wantStatus:            503,
-			wantContent:           "Code: -5, Msg: error notifying browser controller",
-			wantResponseBlockSize: 142,
-			wantErr:               false,
-			skip:                  false,
+			name:                    "https:browser controller error",
+			url:                     s.SrvHttps.URL + "/bccerr",
+			wantStatus:              200,
+			wantContent:             "content from https server",
+			wantResponseBlockDigest: true,
+			wantResponseBlockSize:   142,
+			wantErr:                 false,
+			skip:                    false,
 		},
 		{
 			name:                  "http:content writer error",
@@ -268,17 +267,17 @@ func TestRecorderProxy(t *testing.T) {
 			name:                  "http:no host",
 			url:                   s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
 			wantStatus:            503,
-			wantContent:           "Code: -2, Msg: CONNECT_FAILED, Detail: connect: connection refused",
+			wantContent:           "Code: -5, Msg: UNKNOWN_ERROR, Detail: connection refused",
 			wantResponseBlockSize: 138,
 			wantErr:               false,
 		},
 		{
 			name:                  "https:no host",
 			url:                   s.SrvHttps.URL[:len(s.SrvHttps.URL)-2] + "1/no_host",
-			wantStatus:            503,
-			wantContent:           "Code: -2, Msg: CONNECT_FAILED, Detail: connect: connection refused",
+			wantStatus:            0,
+			wantContent:           "",
 			wantResponseBlockSize: 138,
-			wantErr:               false,
+			wantErr:               true,
 		},
 		{
 			name:                    "https:handshake failure",
@@ -411,7 +410,6 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			url:                     s.SrvHttp.URL + "/replace",
 			wantStatus:              200,
 			wantContent:             "should be replaced",
-			wantReplacedContent:     "replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
 			wantErr:                 false,
@@ -421,7 +419,6 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			url:                     s.SrvHttps.URL + "/replace",
 			wantStatus:              200,
 			wantContent:             "should be replaced",
-			wantReplacedContent:     "replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
 			wantErr:                 false,
@@ -445,8 +442,8 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "http:browser controller cancel",
 			url:         s.SrvHttp.URL + "/cancel",
-			wantStatus:  200,
-			wantContent: "content from http server",
+			wantStatus:  503,
+			wantContent: "Code: -5011, Msg: CANCELLED_BY_BROWSER, Detail: Cancelled by browser controller",
 			wantErr:     false,
 			skip:        false,
 		},
@@ -475,20 +472,22 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			skip:        false,
 		},
 		{
-			name:                  "http:browser controller error",
-			url:                   s.SrvHttp.URL + "/bccerr",
-			wantStatus:            503,
-			wantContent:           "Code: -5, Msg: error notifying browser controller",
-			wantResponseBlockSize: 143,
-			wantErr:               false,
+			name:                    "http:browser controller error",
+			url:                     s.SrvHttp.URL + "/bccerr",
+			wantStatus:              200,
+			wantContent:             "content from http server",
+			wantResponseBlockDigest: true,
+			wantResponseBlockSize:   141,
+			wantErr:                 false,
 		},
 		{
-			name:                  "https:browser controller error",
-			url:                   s.SrvHttps.URL + "/bccerr",
-			wantStatus:            503,
-			wantContent:           "Code: -5, Msg: error notifying browser controller",
-			wantResponseBlockSize: 144,
-			wantErr:               false,
+			name:                    "https:browser controller error",
+			url:                     s.SrvHttps.URL + "/bccerr",
+			wantStatus:              200,
+			wantContent:             "content from https server",
+			wantResponseBlockDigest: true,
+			wantResponseBlockSize:   142,
+			wantErr:                 false,
 		},
 		{
 			name:                  "http:content writer error",
@@ -528,27 +527,27 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			name:                  "http:no host",
 			url:                   s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
 			wantStatus:            503,
-			wantContent:           "Code: -2, Msg: CONNECT_FAILED, Detail: connect: connection refused",
+			wantContent:           "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
 			wantResponseBlockSize: 140,
 			wantErr:               false,
 		},
 		{
 			name:                  "https:no host",
 			url:                   s.SrvHttps.URL[:len(s.SrvHttps.URL)-2] + "1/no_host",
-			wantStatus:            503,
-			wantContent:           "Code: -2, Msg: CONNECT_FAILED, Detail: connect: connection refused",
+			wantStatus:            0,
+			wantContent:           "",
 			wantResponseBlockSize: 140,
-			wantErr:               false,
+			wantErr:               true,
 			skip:                  false,
 		},
 		{
 			name:                    "https:handshake failure",
 			url:                     s.SrvHttpsBadCert.URL + "/b",
-			wantStatus:              503,
-			wantContent:             "Code: -2, Msg: CONNECT_FAILED, Detail: tls: handshake failure",
+			wantStatus:              0,
+			wantContent:             "",
 			wantResponseBlockDigest: false,
 			wantResponseBlockSize:   146,
-			wantErr:                 false,
+			wantErr:                 true,
 		},
 	}
 
@@ -596,6 +595,59 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			compareCW(t, "ContentWriter", tt, tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
 		})
 	}
+}
+
+func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T) {
+	s := testutil.NewHttpServers()
+	defer s.Close()
+	grpcServices := testutil.NewGrpcServiceMock()
+	defer grpcServices.Close()
+	client, recorderProxy := localRecorderProxy(grpcServices.ClientConn, "")
+	recorderProxy.Start()
+	defer client.CloseIdleConnections()
+	defer recorderProxy.Close()
+
+	tt := test{
+		name:                    "https:harvest headers bypass browser controller register",
+		url:                     s.SrvHttps.URL + "/blocked",
+		wantStatus:              200,
+		wantContent:             "content from https server",
+		wantResponseBlockDigest: true,
+		wantResponseBlockSize:   142,
+		keepAlive:               true,
+	}
+	tt.generateSuccessRequests()
+	complete := tt.wantGrpcRequests.BrowserControllerRequests[len(tt.wantGrpcRequests.BrowserControllerRequests)-1]
+	tt.wantGrpcRequests.BrowserControllerRequests = append(generateConnectOnlyRequests(tt.url), complete)
+
+	headers := http.Header{}
+	headers.Set(constants.HeaderCrawlExecutionId, "eid")
+	headers.Set(constants.HeaderJobExecutionId, "jid")
+	headers.Set(constants.HeaderCollectionId, "col1")
+
+	grpcServices.Clear()
+
+	statusCode, got, err := getWithHeaders(tt.url, client, headers, 0)
+	if grpcServices.DoneBC != nil {
+		<-grpcServices.DoneBC
+	}
+	if grpcServices.DoneCW != nil {
+		<-grpcServices.DoneCW
+	}
+
+	if err != nil {
+		t.Fatalf("Client get() error = %v", err)
+	}
+	if statusCode != tt.wantStatus {
+		t.Fatalf("Expected status code: %d, got %d", tt.wantStatus, statusCode)
+	}
+	if !strings.HasPrefix(string(got), tt.wantContent) {
+		t.Fatalf("Expected '%s' to start with '%s'", got, tt.wantContent)
+	}
+
+	compareDNS(t, "DnsResolver", tt, tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
+	compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
+	compareCW(t, "ContentWriter", tt, tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
 }
 
 /**
@@ -652,7 +704,7 @@ func (test *test) generateExpectedRequestsForRecorderProxyThroughProxy() {
 	case strings.HasSuffix(n, ":cached"):
 		test.generateCachedRequests()
 	case strings.HasSuffix(n, ":no host"):
-		test.generateConnectionRefusedRequests()
+		test.generateConnectionRefusedThroughProxyRequests()
 	case strings.HasSuffix(n, ":handshake failure"):
 		test.generateHandshakeFailureRequests("tls: handshake failure")
 	default:
@@ -679,60 +731,86 @@ func isHttps(uri string) (ok bool, pathStrippedUrl string) {
 	return
 }
 
-func generateBccNewRequests(url string, alreadyConnected bool) []*browsercontrollerV1.DoRequest {
-	var r []*browsercontrollerV1.DoRequest
-	https, u := isHttps(url)
-	if https && !alreadyConnected {
-		r = append(r,
-			&browsercontrollerV1.DoRequest{
-				Action: &browsercontrollerV1.DoRequest_New{New: &browsercontrollerV1.RegisterNew{
-					ProxyId: 0,
-					Method:  "CONNECT",
-					Uri:     u,
-				}},
-			})
+func expectedTargetURI(rawURL string, alreadyConnected bool) string {
+	return rawURL
+}
+
+func expectedIP(rawURL string, alreadyConnected bool) string {
+	_, _ = isHttps(rawURL)
+	_ = alreadyConnected
+	return "127.0.0.1"
+}
+
+func generateDnsRequests(rawURL string, alreadyConnected bool) []*dnsresolverV1.ResolveRequest {
+	u, _ := url.Parse(rawURL)
+	p, _ := strconv.Atoi(u.Port())
+	request := &dnsresolverV1.ResolveRequest{
+		Host:        u.Hostname(),
+		Port:        int32(p),
+		ExecutionId: "eid",
+		CollectionRef: &configV1.ConfigRef{
+			Kind: configV1.Kind_collection,
+			Id:   "col1",
+		},
 	}
 
-	if https || alreadyConnected {
-		r = append(r,
-			&browsercontrollerV1.DoRequest{
-				Action: &browsercontrollerV1.DoRequest_New{New: &browsercontrollerV1.RegisterNew{
-					ProxyId: 0,
-					Method:  "GET",
-					Uri:     url,
-					CollectionRef: &configV1.ConfigRef{
-						Kind: configV1.Kind_collection,
-						Id:   "col1",
-					},
-				}},
-			})
-	} else {
-		r = append(r,
-			&browsercontrollerV1.DoRequest{
-				Action: &browsercontrollerV1.DoRequest_New{New: &browsercontrollerV1.RegisterNew{
-					ProxyId: 0,
-					Method:  "GET",
-					Uri:     url,
-				}},
-			})
+	https, _ := isHttps(rawURL)
+	switch {
+	case https && alreadyConnected:
+		return []*dnsresolverV1.ResolveRequest{request}
+	case https:
+		return []*dnsresolverV1.ResolveRequest{request, proto.Clone(request).(*dnsresolverV1.ResolveRequest)}
+	default:
+		return []*dnsresolverV1.ResolveRequest{request}
 	}
+}
+
+func generateConnectOnlyRequests(rawURL string) []*testutil.BrowserControllerRequest {
+	_, u := isHttps(rawURL)
+	return []*testutil.BrowserControllerRequest{generateBccRegisterRequest(http.MethodConnect, u, false)}
+}
+
+func generateBccRegisterRequest(method, uri string, includeCollectionRef bool) *testutil.BrowserControllerRequest {
+	request := &browsercontrollerV2.RegisterResourceRequest{
+		ProxyId: 0,
+		Method:  method,
+		Uri:     uri,
+	}
+	if includeCollectionRef {
+		request.CollectionRef = &configV1.ConfigRef{
+			Kind: configV1.Kind_collection,
+			Id:   "col1",
+		}
+	}
+	return &testutil.BrowserControllerRequest{RegisterResource: request}
+}
+
+func generateBccCompleteRequest(crawlLog *logV1.CrawlLog, cached bool) *testutil.BrowserControllerRequest {
+	return &testutil.BrowserControllerRequest{
+		CompleteResource: &browsercontrollerV2.CompleteResourceRequest{
+			ProxyId:  0,
+			CrawlLog: crawlLog,
+			Cached:   cached,
+		},
+	}
+}
+
+func generateBccNewRequests(url string, alreadyConnected bool) []*testutil.BrowserControllerRequest {
+	return generateBccNewRequestsWithConnectionState(url, alreadyConnected)
+}
+
+func generateBccNewRequestsWithConnectionState(rawURL string, alreadyConnected bool) []*testutil.BrowserControllerRequest {
+	var r []*testutil.BrowserControllerRequest
+	https, u := isHttps(rawURL)
+	if https {
+		if !alreadyConnected {
+			r = append(r, generateBccRegisterRequest(http.MethodConnect, u, false))
+		}
+		r = append(r, generateBccRegisterRequest(http.MethodGet, expectedTargetURI(rawURL, alreadyConnected), true))
+		return r
+	}
+	r = append(r, generateBccRegisterRequest(http.MethodGet, rawURL, false))
 	return r
-}
-
-func generateBccDataReceivedRequest() *browsercontrollerV1.DoRequest {
-	return &browsercontrollerV1.DoRequest{
-		Action: &browsercontrollerV1.DoRequest_Notify{
-			Notify: &browsercontrollerV1.NotifyActivity{Activity: browsercontrollerV1.NotifyActivity_DATA_RECEIVED},
-		},
-	}
-}
-
-func generateBccAllDataReceivedRequest() *browsercontrollerV1.DoRequest {
-	return &browsercontrollerV1.DoRequest{
-		Action: &browsercontrollerV1.DoRequest_Notify{
-			Notify: &browsercontrollerV1.NotifyActivity{Activity: browsercontrollerV1.NotifyActivity_ALL_DATA_RECEIVED},
-		},
-	}
 }
 
 func generateCwProtocolHeaderRequest(u *url.URL, keepAlive bool) (*contentwriterV1.WriteRequest, int64) {
@@ -764,38 +842,31 @@ func generateCwProtocolHeaderResponse(status int, contentLength int) *contentwri
 }
 
 func (test *test) generateSuccessRequests() {
-	u, p := test.parseUrlAndPort()
+	u, _ := test.parseUrlAndPort()
+	alreadyConnected := false
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
 
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-		{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-	}
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, false),
-		generateBccDataReceivedRequest(),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						WarcId:              "warcid_1",
-						StatusCode:          int32(test.wantStatus),
-						Size:                test.wantResponseBlockSize,
-						Method:              "GET",
-						RequestedUri:        test.url,
-						ContentType:         "text/plain; charset=utf-8",
-						StorageRef:          "storageRef_1",
-						RecordType:          "revisit",
-						WarcRefersTo:        "revisit_0",
-						IpAddress:           "127.0.0.1",
-						ExecutionId:         "eid",
-						JobExecutionId:      "jid",
-						CollectionFinalName: "collection_0",
-					},
-				},
-			},
-		},
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			WarcId:              "warcid_1",
+			StatusCode:          int32(test.wantStatus),
+			Size:                test.wantResponseBlockSize,
+			Method:              "GET",
+			RequestedUri:        targetURI,
+			ContentType:         "text/plain; charset=utf-8",
+			StorageRef:          "storageRef_1",
+			RecordType:          "revisit",
+			WarcRefersTo:        "revisit_0",
+			IpAddress:           ipAddress,
+			ExecutionId:         "eid",
+			JobExecutionId:      "jid",
+			CollectionFinalName: "collection_0",
+		}, false),
 	)
 
 	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
@@ -811,8 +882,8 @@ func (test *test) generateSuccessRequests() {
 			Value: &contentwriterV1.WriteRequest_Meta{
 				Meta: &contentwriterV1.WriteRequestMeta{
 					ExecutionId:   "eid",
-					TargetUri:     test.url,
-					IpAddress:     "127.0.0.1",
+					TargetUri:     targetURI,
+					IpAddress:     ipAddress,
 					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
 					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
 						0: {
@@ -838,29 +909,27 @@ func (test *test) generateSuccessRequests() {
 
 func (test *test) generateClientTimeoutRequests() {
 	r := &testutil.Requests{}
+	alreadyConnected := true
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, true),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     -5011,
-						RequestedUri:   test.url,
-						Method:         "GET",
-						RecordType:     "response",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-						Error: &commonsV1.Error{
-							Code:   -5011,
-							Msg:    "CANCELED_BY_BROWSER",
-							Detail: "Veidemann recorder proxy lost connection to client",
-						},
-					},
-				},
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:     -5011,
+			RequestedUri:   targetURI,
+			Method:         "GET",
+			RecordType:     "response",
+			IpAddress:      ipAddress,
+			ExecutionId:    "eid",
+			JobExecutionId: "jid",
+			Error: &commonsV1.Error{
+				Code:   -5011,
+				Msg:    "CANCELED_BY_BROWSER",
+				Detail: "Veidemann recorder proxy lost connection to client",
 			},
-		},
+		}, false),
 	)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
@@ -881,34 +950,30 @@ func (test *test) generateClientTimeoutRequests() {
 
 func (test *test) generateReplaceRequests() {
 	u, _ := test.parseUrlAndPort()
+	alreadyConnected := true
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
 
 	r := &testutil.Requests{}
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, true),
-		generateBccDataReceivedRequest(),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						WarcId:              "warcid_1",
-						StatusCode:          int32(test.wantStatus),
-						Size:                test.wantResponseBlockSize,
-						Method:              "GET",
-						RequestedUri:        test.url,
-						ContentType:         "text/plain; charset=utf-8",
-						StorageRef:          "storageRef_1",
-						RecordType:          "revisit",
-						WarcRefersTo:        "revisit_0",
-						IpAddress:           "127.0.0.1",
-						ExecutionId:         "eid",
-						JobExecutionId:      "jid",
-						CollectionFinalName: "collection_0",
-					},
-				},
-			},
-		},
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			WarcId:              "warcid_1",
+			StatusCode:          int32(test.wantStatus),
+			Size:                test.wantResponseBlockSize,
+			Method:              "GET",
+			RequestedUri:        targetURI,
+			ContentType:         "text/plain; charset=utf-8",
+			StorageRef:          "storageRef_1",
+			RecordType:          "revisit",
+			WarcRefersTo:        "revisit_0",
+			IpAddress:           ipAddress,
+			ExecutionId:         "eid",
+			JobExecutionId:      "jid",
+			CollectionFinalName: "collection_0",
+		}, false),
 	)
 
 	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
@@ -924,8 +989,8 @@ func (test *test) generateReplaceRequests() {
 			Value: &contentwriterV1.WriteRequest_Meta{
 				Meta: &contentwriterV1.WriteRequestMeta{
 					ExecutionId:   "eid",
-					TargetUri:     test.url,
-					IpAddress:     "127.0.0.1",
+					TargetUri:     targetURI,
+					IpAddress:     ipAddress,
 					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
 					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
 						0: {
@@ -951,30 +1016,27 @@ func (test *test) generateReplaceRequests() {
 
 func (test *test) generateServerTimeoutRequests() {
 	r := &testutil.Requests{}
+	alreadyConnected := true
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, true),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     -404,
-						RequestedUri:   test.url,
-						Method:         "GET",
-						RecordType:     "response",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-						Error: &commonsV1.Error{
-							Code:   -404,
-							Msg:    "EMPTY_RESPONSE",
-							Detail: "Empty reply from server",
-						},
-					},
-				},
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:     -404,
+			RequestedUri:   targetURI,
+			Method:         "GET",
+			RecordType:     "response",
+			IpAddress:      ipAddress,
+			ExecutionId:    "eid",
+			JobExecutionId: "jid",
+			Error: &commonsV1.Error{
+				Code:   -404,
+				Msg:    "EMPTY_RESPONSE",
+				Detail: "Empty reply from server",
 			},
-		},
+		}, false),
 	)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
@@ -989,11 +1051,9 @@ func (test *test) generateServerTimeoutRequests() {
 }
 
 func (test *test) generateGrpcServiceTimeoutRequests() {
-	u, p := test.parseUrlAndPort()
+	u, _ := test.parseUrlAndPort()
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-		{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-	}
+	r.DnsResolverRequests = generateDnsRequests(test.url, false)
 
 	r.BrowserControllerRequests = generateBccNewRequests(test.url, false)
 
@@ -1006,70 +1066,48 @@ func (test *test) generateGrpcServiceTimeoutRequests() {
 }
 
 func (test *test) generateBrowserControllerCancelRequests() {
-	u, p := test.parseUrlAndPort()
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-		{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-	}
+	targetURI := expectedTargetURI(test.url, false)
 
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, false),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     -5011,
-						Method:         "GET",
-						RequestedUri:   test.url,
-						RecordType:     "response",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-						Error: &commonsV1.Error{
-							Code:   -5011,
-							Msg:    "CANCELED_BY_BROWSER",
-							Detail: "canceled by browser controller",
-						},
-					},
-				},
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:   -5011,
+			Method:       "GET",
+			RequestedUri: targetURI,
+			RecordType:   "response",
+			Error: &commonsV1.Error{
+				Code:   -5011,
+				Msg:    "CANCELLED_BY_BROWSER",
+				Detail: "Cancelled by browser controller",
 			},
-		},
+		}, false),
 	)
 
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
-		{
-			Value: &contentwriterV1.WriteRequest_Cancel{
-				Cancel: "canceled by browser controller",
-			},
-		},
-	}
+	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
 
 	test.wantGrpcRequests = r
 }
 
 func (test *test) generateBlockedByRobotsTxtRequests() {
 	r := &testutil.Requests{}
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, true),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:   -9998,
-						Method:       "GET",
-						RequestedUri: test.url,
-						RecordType:   "response",
-						IpAddress:    "127.0.0.1",
-						Error: &commonsV1.Error{
-							Code:   -9998,
-							Msg:    "PRECLUDED_BY_ROBOTS",
-							Detail: "Robots.txt rules precluded fetch",
-						},
-					},
-				},
+	targetURI := expectedTargetURI(test.url, true)
+	https, _ := isHttps(test.url)
+	r.BrowserControllerRequests = append(r.BrowserControllerRequests,
+		generateBccRegisterRequest(http.MethodGet, targetURI, https),
+	)
+	r.BrowserControllerRequests = append(r.BrowserControllerRequests,
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:   -9998,
+			Method:       "GET",
+			RequestedUri: targetURI,
+			RecordType:   "response",
+			Error: &commonsV1.Error{
+				Code:   -9998,
+				Msg:    "PRECLUDED_BY_ROBOTS",
+				Detail: "Robots.txt rules precluded fetch",
 			},
-		},
+		}, false),
 	)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
@@ -1078,53 +1116,30 @@ func (test *test) generateBlockedByRobotsTxtRequests() {
 }
 
 func (test *test) generateBrowserControllerErrorRequests() {
-	u, p := test.parseUrlAndPort()
+	u, _ := test.parseUrlAndPort()
+	alreadyConnected := false
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
 	r := &testutil.Requests{}
-
-	if u.Scheme == "https" {
-		r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-			{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-		}
-	}
-
-	r.BrowserControllerRequests = generateBccNewRequests(test.url, false)
-
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
-
-	test.wantGrpcRequests = r
-}
-
-func (test *test) generateContentWriterErrorRequests() {
-	u, p := test.parseUrlAndPort()
-	r := &testutil.Requests{}
-	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-		{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-	}
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, false),
-		generateBccDataReceivedRequest(),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     -5,
-						Method:         "GET",
-						RequestedUri:   test.url,
-						RecordType:     "response",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-						Error: &commonsV1.Error{
-							Code:   -5,
-							Msg:    "Error writing to content writer",
-							Detail: "rpc error: code = InvalidArgument desc = Fake error",
-						},
-					},
-				},
-			},
-		},
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			WarcId:              "warcid_1",
+			StatusCode:          int32(test.wantStatus),
+			Size:                test.wantResponseBlockSize,
+			Method:              "GET",
+			RequestedUri:        targetURI,
+			ContentType:         "text/plain; charset=utf-8",
+			StorageRef:          "storageRef_1",
+			RecordType:          "revisit",
+			WarcRefersTo:        "revisit_0",
+			IpAddress:           ipAddress,
+			ExecutionId:         "eid",
+			JobExecutionId:      "jid",
+			CollectionFinalName: "collection_0",
+		}, false),
 	)
 
 	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
@@ -1140,8 +1155,72 @@ func (test *test) generateContentWriterErrorRequests() {
 			Value: &contentwriterV1.WriteRequest_Meta{
 				Meta: &contentwriterV1.WriteRequestMeta{
 					ExecutionId:   "eid",
-					TargetUri:     test.url,
-					IpAddress:     "127.0.0.1",
+					TargetUri:     targetURI,
+					IpAddress:     ipAddress,
+					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
+					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
+						0: {
+							RecordNum:         0,
+							Type:              contentwriterV1.RecordType_REQUEST,
+							RecordContentType: "application/http; msgtype=request",
+							Size:              requestLength,
+						},
+						1: {
+							RecordNum:         1,
+							Type:              contentwriterV1.RecordType_RESPONSE,
+							RecordContentType: "application/http; msgtype=response",
+							Size:              test.wantResponseBlockSize,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	test.wantGrpcRequests = r
+}
+
+func (test *test) generateContentWriterErrorRequests() {
+	u, _ := test.parseUrlAndPort()
+	alreadyConnected := strings.HasPrefix(test.name, "https:")
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
+	r := &testutil.Requests{}
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
+
+	r.BrowserControllerRequests = append(
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:     -5,
+			Method:         "GET",
+			RequestedUri:   targetURI,
+			RecordType:     "response",
+			IpAddress:      ipAddress,
+			ExecutionId:    "eid",
+			JobExecutionId: "jid",
+			Error: &commonsV1.Error{
+				Code:   -5,
+				Msg:    "Error writing to content writer",
+				Detail: "rpc error: code = InvalidArgument desc = Fake error",
+			},
+		}, false),
+	)
+
+	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
+	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
+		requestHeader,
+		generateCwProtocolHeaderResponse(test.wantStatus, len(test.wantContent)),
+		{
+			Value: &contentwriterV1.WriteRequest_Payload{
+				Payload: &contentwriterV1.Data{RecordNum: 1, Data: []byte(test.wantContent)},
+			},
+		},
+		{
+			Value: &contentwriterV1.WriteRequest_Meta{
+				Meta: &contentwriterV1.WriteRequestMeta{
+					ExecutionId:   "eid",
+					TargetUri:     targetURI,
+					IpAddress:     ipAddress,
 					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
 					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
 						0: {
@@ -1167,27 +1246,24 @@ func (test *test) generateContentWriterErrorRequests() {
 
 func (test *test) generateCachedRequests() {
 	u, _ := test.parseUrlAndPort()
+	alreadyConnected := true
+	targetURI := expectedTargetURI(test.url, alreadyConnected)
+	ipAddress := expectedIP(test.url, alreadyConnected)
 	r := &testutil.Requests{}
+	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, true),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     int32(test.wantStatus),
-						Size:           test.wantResponseBlockSize,
-						Method:         "GET",
-						RequestedUri:   test.url,
-						ContentType:    "text/plain; charset=utf-8",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-					},
-					Cached: true,
-				},
-			},
-		},
+		generateBccNewRequests(test.url, alreadyConnected),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:     int32(test.wantStatus),
+			Size:           test.wantResponseBlockSize,
+			Method:         "GET",
+			RequestedUri:   targetURI,
+			ContentType:    "text/plain; charset=utf-8",
+			IpAddress:      ipAddress,
+			ExecutionId:    "eid",
+			JobExecutionId: "jid",
+		}, true),
 	)
 
 	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
@@ -1207,35 +1283,38 @@ func (test *test) generateConnectionRefusedRequests() {
 	u, p := test.parseUrlAndPort()
 	r := &testutil.Requests{}
 	if u.Scheme == "https" {
-		r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-			{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-		}
+		r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
+			Host:        u.Hostname(),
+			Port:        int32(p),
+			ExecutionId: "eid",
+			CollectionRef: &configV1.ConfigRef{
+				Kind: configV1.Kind_collection,
+				Id:   "col1",
+			},
+		}}
+		r.BrowserControllerRequests = generateConnectOnlyRequests(test.url)
+		r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
+		test.wantGrpcRequests = r
+		return
 	}
 
-	https, _ := isHttps(test.url)
+	r.DnsResolverRequests = generateDnsRequests(test.url, false)
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, !https),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     -2,
-						Method:         "GET",
-						RequestedUri:   test.url,
-						RecordType:     "response",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-						Error: &commonsV1.Error{
-							Code:   -2,
-							Msg:    "CONNECT_FAILED",
-							Detail: "connect: connection refused",
-						},
-					},
-				},
+		generateBccNewRequests(test.url, false),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:     -5,
+			Method:         "GET",
+			RequestedUri:   test.url,
+			RecordType:     "response",
+			IpAddress:      "127.0.0.1",
+			ExecutionId:    "eid",
+			JobExecutionId: "jid",
+			Error: &commonsV1.Error{
+				Code:   -5,
+				Msg:    "UNKNOWN_ERROR",
+				Detail: "connection refused",
 			},
-		},
+		}, false),
 	)
 
 	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
@@ -1243,7 +1322,58 @@ func (test *test) generateConnectionRefusedRequests() {
 		requestHeader,
 		{
 			Value: &contentwriterV1.WriteRequest_Cancel{
-				Cancel: "connect: connection refused",
+				Cancel: "connection refused",
+			},
+		},
+	}
+
+	test.wantGrpcRequests = r
+}
+
+func (test *test) generateConnectionRefusedThroughProxyRequests() {
+	u, p := test.parseUrlAndPort()
+	r := &testutil.Requests{}
+	if u.Scheme == "https" {
+		r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
+			Host:        u.Hostname(),
+			Port:        int32(p),
+			ExecutionId: "eid",
+			CollectionRef: &configV1.ConfigRef{
+				Kind: configV1.Kind_collection,
+				Id:   "col1",
+			},
+		}}
+		r.BrowserControllerRequests = generateConnectOnlyRequests(test.url)
+		r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
+		test.wantGrpcRequests = r
+		return
+	}
+
+	r.DnsResolverRequests = generateDnsRequests(test.url, false)
+	r.BrowserControllerRequests = append(
+		generateBccNewRequests(test.url, false),
+		generateBccCompleteRequest(&logV1.CrawlLog{
+			StatusCode:     -404,
+			Method:         "GET",
+			RequestedUri:   test.url,
+			RecordType:     "response",
+			IpAddress:      "127.0.0.1",
+			ExecutionId:    "eid",
+			JobExecutionId: "jid",
+			Error: &commonsV1.Error{
+				Code:   -404,
+				Msg:    "EMPTY_RESPONSE",
+				Detail: "Empty reply from server",
+			},
+		}, false),
+	)
+
+	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
+	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
+		requestHeader,
+		{
+			Value: &contentwriterV1.WriteRequest_Cancel{
+				Cancel: "Empty reply from server",
 			},
 		},
 	}
@@ -1254,34 +1384,17 @@ func (test *test) generateConnectionRefusedRequests() {
 func (test *test) generateHandshakeFailureRequests(errorMessage string) {
 	u, p := test.parseUrlAndPort()
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{
-		{Host: u.Hostname(), Port: int32(p), ExecutionId: "eid", CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"}},
-	}
-
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, false),
-		generateBccAllDataReceivedRequest(),
-		&browsercontrollerV1.DoRequest{
-			Action: &browsercontrollerV1.DoRequest_Completed{
-				Completed: &browsercontrollerV1.Completed{
-					CrawlLog: &logV1.CrawlLog{
-						StatusCode:     -2,
-						Method:         "GET",
-						RequestedUri:   test.url,
-						RecordType:     "response",
-						IpAddress:      "127.0.0.1",
-						ExecutionId:    "eid",
-						JobExecutionId: "jid",
-						Error: &commonsV1.Error{
-							Code:   -2,
-							Msg:    "CONNECT_FAILED",
-							Detail: errorMessage,
-						},
-					},
-				},
-			},
+	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
+		Host:        u.Hostname(),
+		Port:        int32(p),
+		ExecutionId: "eid",
+		CollectionRef: &configV1.ConfigRef{
+			Kind: configV1.Kind_collection,
+			Id:   "col1",
 		},
-	)
+	}}
+
+	r.BrowserControllerRequests = generateConnectOnlyRequests(test.url)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
 
@@ -1327,18 +1440,16 @@ func compareCW(t *testing.T, serviceName string, tt test, want []*contentwriterV
 			len(got), len(want), printRequest(got[len(want)]))
 	}
 }
-func compareBC(t *testing.T, serviceName string, tt test, want []*browsercontrollerV1.DoRequest, got []*browsercontrollerV1.DoRequest) {
+func compareBC(t *testing.T, serviceName string, tt test, want []*testutil.BrowserControllerRequest, got []*testutil.BrowserControllerRequest) {
 	for i, r := range want {
 		if i >= len(got) {
 			t.Errorf("%s service received too few requests. Got %d, want %d.\nFirst missing request is:\n%v", serviceName,
 				len(got), len(want), printRequest(want[len(got)]))
 			listGotWant(t, got, want)
 		} else {
-			if !compareBcDoRequest(t, tt, r, got[i]) {
+			if !compareBcRequest(t, tt, r, got[i]) {
 				t.Errorf("Got wrong %s request. %s request #%d\nWas:\n%v\nWant:\n%v", serviceName, serviceName,
 					i+1, printRequest(got[i]), printRequest(want[i]))
-				t.Errorf("Got wrong %v\n",
-					proto.Equal(got[i].GetCompleted().GetCrawlLog(), want[i].GetCompleted().GetCrawlLog()))
 				if diff := deep.Equal(got[i], want[i]); diff != nil {
 					t.Error(diff)
 				}
@@ -1450,38 +1561,46 @@ func compareCwWriteRequest(t *testing.T, want *contentwriterV1.WriteRequest, got
 	return
 }
 
-func compareBcDoRequest(t *testing.T, tt test, want *browsercontrollerV1.DoRequest, got *browsercontrollerV1.DoRequest) (ok bool) {
-	switch gt := got.Action.(type) {
-	case *browsercontrollerV1.DoRequest_Completed:
-		ok = false
-		allowedTimeDiff := time.Duration(gt.Completed.GetCrawlLog().FetchTimeMs+1500) * time.Millisecond
-		if checkTimePb(t, gt.Completed.GetCrawlLog().FetchTimeStamp, allowedTimeDiff) {
-			gt.Completed.GetCrawlLog().FetchTimeStamp = nil
-
-			if !tt.wantResponseBlockDigest && gt.Completed.GetCrawlLog().BlockDigest != "" {
-				t.Errorf("BlockDigest was not expected")
-			}
-			// Remove block digest since we cannot calculate the right value without access to content
-			if tt.wantResponseBlockDigest && gt.Completed.GetCrawlLog().BlockDigest == "" {
-				t.Errorf("Missing BlockDigest")
-				return false
-			}
-			gt.Completed.GetCrawlLog().BlockDigest = ""
-
-			gt.Completed.GetCrawlLog().FetchTimeMs = 0
-			if proto.Equal(want, got) {
-				ok = true
-			} else {
-				ok = false
-			}
+func compareBcRequest(t *testing.T, tt test, want *testutil.BrowserControllerRequest, got *testutil.BrowserControllerRequest) bool {
+	switch {
+	case want.RegisterResource != nil || got.RegisterResource != nil:
+		if want.RegisterResource == nil || got.RegisterResource == nil {
+			return false
 		}
+		return proto.Equal(want.RegisterResource, got.RegisterResource)
+	case want.CompleteResource != nil || got.CompleteResource != nil:
+		if want.CompleteResource == nil || got.CompleteResource == nil {
+			return false
+		}
+		return compareBcCompleteRequest(t, tt, want.CompleteResource, got.CompleteResource)
 	default:
-		ok = true
-		if !proto.Equal(got, want) {
-			ok = false
-		}
+		return want == nil && got == nil
 	}
-	return
+}
+
+func compareBcCompleteRequest(t *testing.T, tt test, want *browsercontrollerV2.CompleteResourceRequest, got *browsercontrollerV2.CompleteResourceRequest) bool {
+	if want.GetCrawlLog() == nil || got.GetCrawlLog() == nil {
+		return proto.Equal(want, got)
+	}
+
+	g := proto.Clone(got).(*browsercontrollerV2.CompleteResourceRequest)
+	allowedTimeDiff := time.Duration(g.GetCrawlLog().FetchTimeMs+1500) * time.Millisecond
+	if !checkTimePb(t, g.GetCrawlLog().FetchTimeStamp, allowedTimeDiff) {
+		return false
+	}
+	g.GetCrawlLog().FetchTimeStamp = nil
+
+	if !tt.wantResponseBlockDigest && g.GetCrawlLog().BlockDigest != "" {
+		t.Errorf("BlockDigest was not expected")
+	}
+	if tt.wantResponseBlockDigest && g.GetCrawlLog().BlockDigest == "" {
+		t.Errorf("Missing BlockDigest")
+		return false
+	}
+	g.GetCrawlLog().BlockDigest = ""
+	g.GetCrawlLog().FetchTimeMs = 0
+
+	return proto.Equal(want, g)
 }
 
 func checkTimePb(t *testing.T, ts *timestamp.Timestamp, allowedDiff time.Duration) bool {
@@ -1504,9 +1623,19 @@ func checkTime(t *testing.T, ts time.Time, allowedDiff time.Duration) bool {
 }
 
 func get(uri string, client *http.Client, timeout time.Duration) (int, []byte, error) {
+	return getWithHeaders(uri, client, nil, timeout)
+}
+
+func getWithHeaders(uri string, client *http.Client, headers http.Header, timeout time.Duration) (int, []byte, error) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return 0, nil, err
+	}
+
+	for name, values := range headers {
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
 	}
 
 	if timeout > 0 {

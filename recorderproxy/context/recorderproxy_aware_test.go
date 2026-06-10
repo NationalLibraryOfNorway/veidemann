@@ -21,6 +21,8 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
 func Test_recordProxyDataAware(t *testing.T) {
@@ -46,76 +48,232 @@ func Test_recordProxyDataAware(t *testing.T) {
 }
 
 func TestGetHost(t *testing.T) {
-	uri, _ := url.Parse("http://www.example.com")
-	ctx1 := context.Background()
-	ctx2 := RecordProxyDataAware(context.Background())
-	ctx3 := RecordProxyDataAware(context.Background())
-	SetUri(ctx2, uri)
-	SetHost(ctx3, "foo")
-	tests := []struct {
-		name string
-		ctx  context.Context
-		want string
-	}{
-		{"No RecorderProxy aware", ctx1, ""},
-		{"No value", ctx2, ""},
-		{"With value", ctx3, "foo"},
+	if got := GetHost(context.Background()); got != "" {
+		t.Fatalf("GetHost() = %v, want empty", got)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetHost(tt.ctx); got != tt.want {
-				t.Errorf("GetHost() = %v, want %v", got, tt.want)
-			}
-		})
+
+	ctx := RecordProxyDataAware(context.Background())
+	if got := GetHost(ctx); got != "" {
+		t.Fatalf("GetHost() = %v, want empty", got)
+	}
+
+	ctx = RecordProxyDataAware(context.Background())
+	SetHost(ctx, "foo")
+	if got := GetHost(ctx); got != "foo" {
+		t.Fatalf("GetHost() = %v, want foo", got)
 	}
 }
 
 func TestGetUrl(t *testing.T) {
 	uri, _ := url.Parse("http://www.example.com")
-	ctx1 := context.Background()
-	ctx2 := RecordProxyDataAware(context.Background())
-	ctx3 := RecordProxyDataAware(context.Background())
-	SetHost(ctx2, "foo")
-	SetUri(ctx3, uri)
-	tests := []struct {
-		name string
-		ctx  context.Context
-		want *url.URL
-	}{
-		{"No RecorderProxy aware", ctx1, nil},
-		{"No value", ctx2, nil},
-		{"With value", ctx3, uri},
+	if got := GetUri(context.Background()); got != nil {
+		t.Fatalf("GetUrl() = %v, want nil", got)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetUri(tt.ctx); got != tt.want {
-				t.Errorf("GetUrl() = %v, want %v", got, tt.want)
-			}
-		})
+
+	ctx := RecordProxyDataAware(context.Background())
+	if got := GetUri(ctx); got != nil {
+		t.Fatalf("GetUrl() = %v, want nil", got)
+	}
+
+	ctx = RecordProxyDataAware(context.Background())
+	SetUri(ctx, uri)
+	if got := GetUri(ctx); got != uri {
+		t.Fatalf("GetUrl() = %v, want %v", got, uri)
 	}
 }
 
 func TestGetRecordContext(t *testing.T) {
-	uri, _ := url.Parse("http://www.example.com")
-	ctx1 := context.Background()
-	ctx2 := RecordProxyDataAware(context.Background())
-	ctx3 := RecordProxyDataAware(context.Background())
-	SetUri(ctx2, uri)
-	SetRecordContext(ctx3, &RecordContext{})
-	tests := []struct {
-		name string
-		ctx  context.Context
-		want *RecordContext
-	}{
-		{"No RecorderProxy aware", ctx1, nil},
-		{"No value", ctx2, nil},
-		{"With value", ctx3, &RecordContext{}},
+	if got := GetRecordContext(context.Background()); got != nil {
+		t.Fatalf("GetRecordContext() = %v, want nil", got)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetRecordContext(tt.ctx); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetRecordContext() = %v, want %v", got, tt.want)
-			}
-		})
+
+	ctx := RecordProxyDataAware(context.Background())
+	if got := GetRecordContext(ctx); got != nil {
+		t.Fatalf("GetRecordContext() = %v, want nil", got)
+	}
+
+	want := &RecordContext{}
+	ctx = RecordProxyDataAware(context.Background())
+	SetRecordContext(ctx, want)
+	if got := GetRecordContext(ctx); got != want {
+		t.Fatalf("GetRecordContext() = %v, want %v", got, want)
+	}
+}
+
+func TestResetRequestStateClearsRequestScopedValues(t *testing.T) {
+	ctx := RecordProxyDataAware(context.Background())
+	uri, _ := url.Parse("http://www.example.com")
+
+	SetHost(ctx, "example.com")
+	SetPort(ctx, "443")
+	SetUri(ctx, uri)
+	SetConnectError(ctx, context.Canceled)
+	SetRequestId(ctx, "req-1")
+	SetIp(ctx, "127.0.0.1")
+	SetCrawlExecutionId(ctx, "ceid")
+	SetJobExecutionId(ctx, "jeid")
+	SetCollectionRef(ctx, nil)
+	SetRecordContext(ctx, &RecordContext{})
+
+	ResetRequestState(ctx, false)
+
+	if got := GetHost(ctx); got != "" {
+		t.Fatalf("GetHost() = %q, want empty", got)
+	}
+	if got := GetPort(ctx); got != "" {
+		t.Fatalf("GetPort() = %q, want empty", got)
+	}
+	if got := GetUri(ctx); got != nil {
+		t.Fatalf("GetUri() = %v, want nil", got)
+	}
+	if got := GetConnectError(ctx); got != nil {
+		t.Fatalf("GetConnectError() = %v, want nil", got)
+	}
+	if got := GetRequestId(ctx); got != "" {
+		t.Fatalf("GetRequestId() = %q, want empty", got)
+	}
+	if got := GetIp(ctx); got != "" {
+		t.Fatalf("GetIp() = %q, want empty", got)
+	}
+	if got := GetRecordContext(ctx); got != nil {
+		t.Fatalf("GetRecordContext() = %v, want nil", got)
+	}
+	if got := GetCrawlExecutionId(ctx); got != "" {
+		t.Fatalf("GetCrawlExecutionId() = %q, want empty", got)
+	}
+	if got := GetJobExecutionId(ctx); got != "" {
+		t.Fatalf("GetJobExecutionId() = %q, want empty", got)
+	}
+}
+
+func TestResetRequestStatePreservesSessionMetadata(t *testing.T) {
+	ctx := RecordProxyDataAware(context.Background())
+	uri, _ := url.Parse("http://www.example.com")
+	collectionRef := &configV1.ConfigRef{Id: "col1"}
+
+	SetHost(ctx, "example.com")
+	SetPort(ctx, "443")
+	SetUri(ctx, uri)
+	SetRequestId(ctx, "req-1")
+	SetCrawlExecutionId(ctx, "ceid")
+	SetJobExecutionId(ctx, "jeid")
+	SetCollectionRef(ctx, collectionRef)
+
+	ResetRequestState(ctx, true)
+
+	if got := GetHost(ctx); got != "example.com" {
+		t.Fatalf("GetHost() = %q, want example.com", got)
+	}
+	if got := GetPort(ctx); got != "443" {
+		t.Fatalf("GetPort() = %q, want 443", got)
+	}
+	if got := GetUri(ctx); got == nil || got.String() != uri.String() {
+		t.Fatalf("GetUri() = %v, want %v", got, uri)
+	}
+	if got := GetRequestId(ctx); got != "" {
+		t.Fatalf("GetRequestId() = %q, want empty", got)
+	}
+	if got := GetCrawlExecutionId(ctx); got != "ceid" {
+		t.Fatalf("GetCrawlExecutionId() = %q, want ceid", got)
+	}
+	if got := GetJobExecutionId(ctx); got != "jeid" {
+		t.Fatalf("GetJobExecutionId() = %q, want jeid", got)
+	}
+	if got := GetCollectionRef(ctx); got == nil || got.Id != "col1" {
+		t.Fatalf("GetCollectionRef() = %v, want col1", got)
+	}
+}
+
+func TestNewRequestContextPreservesSessionMetadataWithoutSharingRequestState(t *testing.T) {
+	parent := RecordProxyDataAware(context.Background())
+	uri, _ := url.Parse("https://www.example.com")
+	collectionRef := &configV1.ConfigRef{Id: "col1"}
+	parentRecordContext := &RecordContext{}
+
+	SetHost(parent, "example.com")
+	SetPort(parent, "443")
+	SetUri(parent, uri)
+	SetCrawlExecutionId(parent, "ceid")
+	SetJobExecutionId(parent, "jeid")
+	SetCollectionRef(parent, collectionRef)
+	SetRequestId(parent, "req-parent")
+	SetIp(parent, "127.0.0.1")
+	SetRecordContext(parent, parentRecordContext)
+
+	child := NewRequestContext(parent, true)
+
+	if got := GetHost(child); got != "example.com" {
+		t.Fatalf("GetHost() = %q, want example.com", got)
+	}
+	if got := GetPort(child); got != "443" {
+		t.Fatalf("GetPort() = %q, want 443", got)
+	}
+	if got := GetUri(child); got == nil || got.String() != uri.String() {
+		t.Fatalf("GetUri() = %v, want %v", got, uri)
+	}
+	if got := GetCrawlExecutionId(child); got != "ceid" {
+		t.Fatalf("GetCrawlExecutionId() = %q, want ceid", got)
+	}
+	if got := GetJobExecutionId(child); got != "jeid" {
+		t.Fatalf("GetJobExecutionId() = %q, want jeid", got)
+	}
+	if got := GetCollectionRef(child); got == nil || got.Id != "col1" {
+		t.Fatalf("GetCollectionRef() = %v, want col1", got)
+	}
+	if got := GetRequestId(child); got != "" {
+		t.Fatalf("GetRequestId() = %q, want empty", got)
+	}
+	if got := GetIp(child); got != "" {
+		t.Fatalf("GetIp() = %q, want empty", got)
+	}
+	if got := GetRecordContext(child); got != nil {
+		t.Fatalf("GetRecordContext() = %v, want nil", got)
+	}
+
+	childRecordContext := &RecordContext{}
+	SetHost(child, "other.example.com")
+	SetRequestId(child, "req-child")
+	SetRecordContext(child, childRecordContext)
+
+	if got := GetHost(parent); got != "example.com" {
+		t.Fatalf("GetHost() on parent = %q, want example.com", got)
+	}
+	if got := GetRequestId(parent); got != "req-parent" {
+		t.Fatalf("GetRequestId() on parent = %q, want req-parent", got)
+	}
+	if got := GetRecordContext(parent); got != parentRecordContext {
+		t.Fatalf("GetRecordContext() on parent = %v, want %v", got, parentRecordContext)
+	}
+	if got := GetUri(child); got == uri {
+		t.Fatal("GetUri() on child returned parent pointer, want copied URL")
+	}
+}
+
+func TestNewRequestContextDropsSessionMetadataWhenNotPreserved(t *testing.T) {
+	parent := RecordProxyDataAware(context.Background())
+	uri, _ := url.Parse("https://www.example.com")
+
+	SetHost(parent, "example.com")
+	SetPort(parent, "443")
+	SetUri(parent, uri)
+	SetCrawlExecutionId(parent, "ceid")
+	SetJobExecutionId(parent, "jeid")
+
+	child := NewRequestContext(parent, false)
+
+	if got := GetHost(child); got != "" {
+		t.Fatalf("GetHost() = %q, want empty", got)
+	}
+	if got := GetPort(child); got != "" {
+		t.Fatalf("GetPort() = %q, want empty", got)
+	}
+	if got := GetUri(child); got != nil {
+		t.Fatalf("GetUri() = %v, want nil", got)
+	}
+	if got := GetCrawlExecutionId(child); got != "" {
+		t.Fatalf("GetCrawlExecutionId() = %q, want empty", got)
+	}
+	if got := GetJobExecutionId(child); got != "" {
+		t.Fatalf("GetJobExecutionId() = %q, want empty", got)
 	}
 }
