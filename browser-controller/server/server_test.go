@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 
 	// setup database mock
 	dbMock := setupDbMock()
-	dbAdapter := database.NewConfigCache(dbMock.RethinkDbConnection, time.Minute)
+	dbAdapter := database.NewConfigAdapter(dbMock.RethinkDbConnection)
 
 	// setup screenshot writer mock
 	screenShotWriter := &testutil.ScreenshotWriterMock{
@@ -112,7 +112,7 @@ func TestMain(m *testing.M) {
 		session.WithBrowserPort(browserPort),
 		session.WithProxyHost(localhost),
 		session.WithProxyPort(6666),
-		session.WithConfigCache(dbAdapter),
+		session.WithConfigAdapter(dbAdapter),
 		session.WithScreenshotWriter(screenShotWriter),
 		session.WithLogWriter(logWriter),
 	)

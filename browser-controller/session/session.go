@@ -80,7 +80,7 @@ type Session struct {
 	CrawlConfig      *configV1.CrawlConfig
 	browserConfig    *configV1.BrowserConfig
 	PolitenessConfig *configV1.ConfigObject
-	configCache      database.ConfigCache
+	configAdapter    database.ConfigAdapter
 	screenShotWriter screenshotwriter.ScreenshotWriter
 	logWriter        logwriter.LogWriter
 	scripts          *sessionScripts
@@ -214,13 +214,13 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	sess.RequestedUrl = phs.GetQueuedUri()
 	sess.CrawlConfig = phs.GetCrawlConfig().GetCrawlConfig()
 
-	bConf, err := sess.configCache.GetConfigObject(ctx, sess.CrawlConfig.BrowserConfigRef)
+	bConf, err := sess.configAdapter.GetConfigObject(ctx, sess.CrawlConfig.BrowserConfigRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get browser config: %v", err)
 	}
 	sess.browserConfig = bConf.GetBrowserConfig()
 
-	sess.PolitenessConfig, err = sess.configCache.GetConfigObject(ctx, sess.CrawlConfig.PolitenessRef)
+	sess.PolitenessConfig, err = sess.configAdapter.GetConfigObject(ctx, sess.CrawlConfig.PolitenessRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get politeness config: %v", err)
 	}

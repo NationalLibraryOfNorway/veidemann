@@ -67,9 +67,9 @@ func WithProxyPort(port int) Option {
 	})
 }
 
-func WithConfigCache(dbAdapter database.ConfigCache) Option {
+func WithConfigAdapter(configAdapter database.ConfigAdapter) Option {
 	return newFuncOption(func(s *Session) {
-		s.configCache = dbAdapter
+		s.configAdapter = configAdapter
 	})
 }
 

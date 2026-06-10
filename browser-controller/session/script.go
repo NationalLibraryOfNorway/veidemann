@@ -65,7 +65,7 @@ func (s *sessionScripts) Get(scriptType configV1.BrowserScript_BrowserScriptType
 func (sess *Session) loadScripts(ctx context.Context) (*sessionScripts, error) {
 	bs := newSessionScripts()
 
-	scripts, err := sess.configCache.GetScripts(ctx, sess.browserConfig)
+	scripts, err := sess.configAdapter.GetScripts(ctx, sess.browserConfig)
 	if err != nil {
 		return nil, err
 	}

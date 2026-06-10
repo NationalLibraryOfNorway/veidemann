@@ -78,7 +78,6 @@ func main() {
 	pflag.Int("db-max-retries", 5, "Max retries when database query fails")
 	pflag.Int("db-max-open-conn", 10, "Max open database connections")
 	pflag.Bool("db-use-opentracing", false, "Use opentracing for database queries")
-	pflag.Duration("db-cache-ttl", 5*time.Minute, "How long to cache results from database")
 
 	pflag.String("metrics-interface", "", "Interface for exposing metrics. Empty means all interfaces")
 	pflag.Int("metrics-port", 9153, "Port for exposing metrics")
@@ -194,7 +193,7 @@ func main() {
 	}
 	defer func() { _ = db.Close() }()
 
-	configCache := database.NewConfigCache(db, viper.GetDuration("db-cache-ttl"))
+	configAdapter := database.NewConfigAdapter(db)
 
 	browserController := controller.New(
 		controller.WithListenInterface(viper.GetString("interface")),
@@ -210,7 +209,7 @@ func main() {
 			session.WithBrowserPort(viper.GetInt("browser-port")),
 			session.WithProxyHost(viper.GetString("proxy-host")),
 			session.WithProxyPort(viper.GetInt("proxy-port")),
-			session.WithConfigCache(configCache),
+			session.WithConfigAdapter(configAdapter),
 		),
 	)
 
