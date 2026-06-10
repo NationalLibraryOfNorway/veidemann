@@ -117,7 +117,7 @@ func (bc *BrowserController) Run() error {
 				defer metrics.ActiveBrowserSessions.Dec()
 
 				result, fetchErr := sess.Fetch(ctx, phs)
-				if err := bc.opts.frontier.PageCompleted(phs, result, fetchErr); err != nil {
+				if err := bc.opts.frontier.PageCompleted(ctx, phs, result, fetchErr); err != nil {
 					slog.Error("Error reporting page completed", "error", err)
 				}
 			}()

@@ -45,7 +45,7 @@ type RenderResult struct {
 type Frontier interface {
 	serviceconnections.Connection
 	GetNextPage(context.Context) (*frontierV1.PageHarvestSpec, error)
-	PageCompleted(*frontierV1.PageHarvestSpec, *RenderResult, error) error
+	PageCompleted(context.Context, *frontierV1.PageHarvestSpec, *RenderResult, error) error
 }
 
 type frontier struct {
@@ -80,11 +80,11 @@ func (f *frontier) GetNextPage(ctx context.Context) (*frontierV1.PageHarvestSpec
 	return harvestSpec, nil
 }
 
-func (f *frontier) PageCompleted(phs *frontierV1.PageHarvestSpec, renderResult *RenderResult, fetchErr error) error {
+func (f *frontier) PageCompleted(ctx context.Context, phs *frontierV1.PageHarvestSpec, renderResult *RenderResult, fetchErr error) error {
 	span := opentracing.StartSpan("page-completed")
 	defer span.Finish()
 
-	ctx := opentracing.ContextWithSpan(context.Background(), span)
+	ctx = opentracing.ContextWithSpan(ctx, span)
 
 	defer metrics.PagesTotal.Inc()
 
