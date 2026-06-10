@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pywb-config
+  labels:
+    app.kubernetes.io/name: pywb
+    app.kubernetes.io/component: pywb
+data:
+  config.yaml: |
+    collections:
+      $root:
+        index_paths: /webarchive/collections/veidemann/indexes
+        archive_paths:
+          - /webarchive/collections/veidemann/archive/
+    autoindex: 30

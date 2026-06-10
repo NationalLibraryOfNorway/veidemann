@@ -38,6 +38,22 @@ spec:
                 name: rethinkdb-admin
                 port:
                   number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: veidemann-browser
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - browser.veidemann.test
+      secretName: veidemann-tls
+  rules:
     - host: "browser.veidemann.test"
       http:
         paths:

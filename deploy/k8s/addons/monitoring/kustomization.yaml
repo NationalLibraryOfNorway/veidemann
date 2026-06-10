@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: default
 
 resources:
+  - dashboards/
   - servicemonitor.yaml
   - redis-servicemonitor.yaml
   - kvrocks-servicemonitor.yaml

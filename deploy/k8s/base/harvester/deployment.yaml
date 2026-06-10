@@ -39,6 +39,16 @@ spec:
             - name: http-metrics
               containerPort: 9301
               protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /readyz
+              port: http-metrics
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
           envFrom:
             - secretRef:
                 name: rethinkdb-env

@@ -19,3 +19,4 @@ resources:
   - log-service/
   - cache/
   - metrics/
+  - pywb/
