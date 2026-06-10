@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package veidemann.api.browsercontroller.v2;
+
+import "config/v1/resources.proto";
+import "log/v1/resources.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2";
+
+service BrowserController {
+    rpc registerResource (RegisterResourceRequest) returns (RegisterResourceReply) {}
+    rpc completeResource (CompleteResourceRequest) returns (CompleteResourceReply) {}
+}
+
+message RegisterResourceRequest {
+    int32 proxy_id = 1;
+    string uri = 2;
+    string crawl_execution_id = 3;
+    string job_execution_id = 4;
+    veidemann.api.config.v1.ConfigRef collection_ref = 5;
+    string method = 6;
+    string request_id = 7;
+}
+
+message ResourceRegistered {
+    string crawl_execution_id = 1;
+    string job_execution_id = 2;
+    veidemann.api.config.v1.ConfigRef collection_ref = 3;
+}
+
+message RegisterResourceReply {
+    oneof result {
+        ResourceRegistered registered = 1;
+        string cancel = 2;
+    }
+}
+
+message CompleteResourceRequest {
+    int32 proxy_id = 1;
+    string request_id = 2;
+    veidemann.api.log.v1.CrawlLog crawl_log = 3;
+    bool cached = 4;
+}
+
+message CompleteResourceReply {
+}
