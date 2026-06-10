@@ -45,6 +45,10 @@ type screenshotWriter struct {
 	contentwriterV1.ContentWriterClient
 }
 
+func screenshotTargetURI(requestedURI string) string {
+	return "screenshot:" + requestedURI
+}
+
 func New(opts ...serviceconnections.ConnectionOption) ScreenshotWriter {
 	return &screenshotWriter{
 		ClientConn: serviceconnections.NewClientConn("ContentWriter", opts...),
@@ -124,7 +128,7 @@ func (s *screenshotWriter) Write(ctx context.Context, data []byte, metadata Meta
 
 	meta := &contentwriterV1.WriteRequest_Meta{Meta: &contentwriterV1.WriteRequestMeta{
 		ExecutionId: metadata.CrawlLog.ExecutionId,
-		TargetUri:   metadata.CrawlLog.RequestedUri,
+		TargetUri:   screenshotTargetURI(metadata.CrawlLog.RequestedUri),
 		RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
 			0: screenshotRecordMeta,
 			1: screenshotMetaRecordMeta,
