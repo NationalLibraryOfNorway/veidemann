@@ -42,8 +42,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
 	"github.com/go-test/deep"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -1529,9 +1527,9 @@ func compareCwWriteRequest(t *testing.T, want *contentwriterV1.WriteRequest, got
 			}
 		}
 	case *contentwriterV1.WriteRequest_Meta:
-		gotT, err := ptypes.Timestamp(got.GetMeta().FetchTimeStamp)
+		gotT := got.GetMeta().FetchTimeStamp.AsTime()
 		wantT := time.Now()
-		if err != nil || wantT.Sub(gotT) > 10*time.Second {
+		if wantT.Sub(gotT) > 10*time.Second {
 			t.Errorf("Date differs to much: Got '%v' which is %v ago\n", gotT, wantT.Sub(gotT))
 			ok = false
 		} else {
@@ -1585,7 +1583,7 @@ func compareBcCompleteRequest(t *testing.T, tt test, want *browsercontrollerV2.C
 
 	g := proto.Clone(got).(*browsercontrollerV2.CompleteResourceRequest)
 	allowedTimeDiff := time.Duration(g.GetCrawlLog().FetchTimeMs+1500) * time.Millisecond
-	if !checkTimePb(t, g.GetCrawlLog().FetchTimeStamp, allowedTimeDiff) {
+	if !checkTime(t, g.GetCrawlLog().FetchTimeStamp.AsTime(), allowedTimeDiff) {
 		return false
 	}
 	g.GetCrawlLog().FetchTimeStamp = nil
@@ -1603,16 +1601,9 @@ func compareBcCompleteRequest(t *testing.T, tt test, want *browsercontrollerV2.C
 	return proto.Equal(want, g)
 }
 
-func checkTimePb(t *testing.T, ts *timestamp.Timestamp, allowedDiff time.Duration) bool {
-	tm, err := ptypes.Timestamp(ts)
-	if err != nil {
-		t.Errorf("Error converting timestamp from protobuf %v: %v\n", ts, err)
-		return false
-	}
-	return checkTime(t, tm, allowedDiff)
-}
+func checkTime(t testing.TB, ts time.Time, allowedDiff time.Duration) bool {
+	t.Helper()
 
-func checkTime(t *testing.T, ts time.Time, allowedDiff time.Duration) bool {
 	wantT := time.Now()
 	if wantT.Sub(ts) > allowedDiff {
 		t.Errorf("Date differs to much: Got '%v' which is %v ago\n", ts, wantT.Sub(ts))

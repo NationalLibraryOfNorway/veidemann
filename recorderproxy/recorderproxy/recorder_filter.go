@@ -28,9 +28,9 @@ import (
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/v3/filters"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // RecorderFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.
@@ -101,7 +101,7 @@ func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Spa
 		return req, e
 	}
 
-	fetchTimeStamp, _ := ptypes.TimestampProto(rc.FetchTimesTamp)
+	fetchTimeStamp := timestamppb.New(rc.FetchTimesTamp)
 	uri := rc.Uri
 	rc.IpAddress = rpcontext.GetIp(ctx)
 

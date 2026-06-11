@@ -30,7 +30,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // session variable must be aligned in i386
@@ -107,12 +107,11 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 	req.Header.Del(constants.HeaderCollectionId)
 
 	rc.FetchTimesTamp = time.Now()
-	fetchTimeStamp, _ := ptypes.TimestampProto(rc.FetchTimesTamp)
 
 	rc.CrawlLog = &logV1.CrawlLog{
 		JobExecutionId: rc.JobExecutionId,
 		ExecutionId:    rc.CrawlExecutionId,
-		FetchTimeStamp: fetchTimeStamp,
+		FetchTimeStamp: timestamppb.New(rc.FetchTimesTamp),
 		RequestedUri:   uri.String(),
 		Method:         rc.Method,
 		IpAddress:      rc.IpAddress,
