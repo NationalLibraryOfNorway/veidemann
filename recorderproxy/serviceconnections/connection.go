@@ -17,6 +17,9 @@
 package serviceconnections
 
 import (
+	"errors"
+	"fmt"
+
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
@@ -93,10 +96,21 @@ func (opts *ConnectionOptions) connectService() (*grpc.ClientConn, error) {
 	return clientConn, err
 }
 
-func (c *Connections) Close() {
-	_ = c.contentWriterClientConn.Close()
-	_ = c.dnsResolverClientConn.Close()
-	_ = c.browserControllerClientConn.Close()
+func (c *Connections) Close() error {
+	cwErr := c.contentWriterClientConn.Close()
+	if cwErr != nil {
+		cwErr = fmt.Errorf("failed to close content writer connection: %w", cwErr)
+	}
+	dnsErr := c.dnsResolverClientConn.Close()
+	if dnsErr != nil {
+		dnsErr = fmt.Errorf("failed to close dns resolver connection: %w", dnsErr)
+	}
+	bcErr := c.browserControllerClientConn.Close()
+	if bcErr != nil {
+		bcErr = fmt.Errorf("failed to close browser controller connection: %w", bcErr)
+	}
+
+	return errors.Join(cwErr, dnsErr, bcErr)
 }
 
 func (c *Connections) ContentWriterClient() contentwriterV1.ContentWriterClient {

@@ -90,7 +90,12 @@ func main() {
 	)
 
 	conn := serviceconnections.NewConnections(contentWriterOpts, dnsOpts, browserControllerOpts)
-	defer conn.Close()
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			slog.Error("Error closing gRPC connections", "error", err)
+		}
+	}()
 
 	err = conn.Connect()
 	if err != nil {
