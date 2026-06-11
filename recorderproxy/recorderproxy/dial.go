@@ -38,7 +38,7 @@ func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, networ
 	timeout := 30 * time.Second
 	deadline, hasDeadline := context.Deadline()
 	if hasDeadline {
-		timeout = deadline.Sub(time.Now())
+		timeout = time.Until(deadline)
 	}
 	if proxy.nextProxy != "" {
 		conn, err = net.DialTimeout(network, proxy.nextProxy, timeout)

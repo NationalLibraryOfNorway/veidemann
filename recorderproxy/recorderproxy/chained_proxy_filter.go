@@ -21,7 +21,7 @@ import (
 	"net/url"
 
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 )
@@ -31,14 +31,15 @@ type ChainedProxyFilter struct {
 	proxy *RecorderProxy
 }
 
-func (f *ChainedProxyFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (resp *http.Response, context filters.Context, err error) {
+func (f *ChainedProxyFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+	ctx := filterContext(cs, req)
 	l := context2.LogWithContextAndRequest(ctx, req, "FLT:chain")
 	span := opentracing.SpanFromContext(ctx)
 
 	if req.Method == http.MethodConnect {
-		resp, context, err = next(ctx, req)
+		resp, nextCS, err = next(cs, req)
 	} else {
-		if context2.GetHost(ctx) == "" || (f.proxy.nextProxy != "" && !ctx.IsMITMing()) {
+		if context2.GetHost(ctx) == "" || (f.proxy.nextProxy != "" && !cs.IsMITMing()) {
 			span.LogFields(log.String("event", "Rewrite request"))
 			rc := context2.GetRecordContext(ctx)
 			uri, err := url.Parse("http:" + rc.Uri.String())
@@ -47,7 +48,7 @@ func (f *ChainedProxyFilter) Apply(ctx filters.Context, req *http.Request, next 
 			}
 			req.URL = uri
 		}
-		resp, context, err = next(ctx, req)
+		resp, nextCS, err = next(cs, req)
 	}
 	return
 }

@@ -25,10 +25,10 @@ import (
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/getlantern/mitm"
-	"github.com/getlantern/proxy"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 
 	"net"
 	"net/http"
@@ -93,9 +93,9 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 			Organization:    "Veidemann Recorder Proxy",
 			CertFile:        "/tmp/rpcert.pem",
 		},
-		OnError: func(ctx filters.Context, req *http.Request, read bool, err error) *http.Response {
+		OnError: func(cs *filters.ConnectionState, req *http.Request, read bool, err error) *http.Response {
 			log.WithError(err).Error("Probably bug. Error handled by OnError should have been handled elsewhere.")
-			res, _, _ := filters.Fail(ctx, req, 500, err)
+			res, _, _ := filters.Fail(cs, req, 500, err)
 			return res
 		},
 		OKWaitsForUpstream:  false,
@@ -103,10 +103,7 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 	}
 
 	var err error
-	r.Proxy, err = proxy.New(proxyOpts)
-	if err != nil {
-		log.Fatal(err)
-	}
+	r.Proxy = proxy.New(proxyOpts)
 
 	r.listener, err = net.Listen("tcp", addr+":"+strconv.Itoa(port))
 	if err != nil {
@@ -141,6 +138,7 @@ func (proxy *RecorderProxy) Start() {
 			conn := WrapConn(co, "down", false)
 			c, cancel := context.WithCancel(context2.RecordProxyDataAware(context.Background()))
 
+			conn.BaseContext = c
 			conn.CancelFunc = cancel
 			go func() {
 				err := proxy.Handle(c, conn, conn)
@@ -182,10 +180,19 @@ func (proxy *RecorderProxy) Close() {
 
 type wrappedConnection struct {
 	net.Conn
-	t          string
-	closed     *int32
-	CancelFunc func()
-	dirOut     bool
+	t           string
+	closed      *int32
+	BaseContext context.Context
+	CancelFunc  func()
+	dirOut      bool
+}
+
+func (conn *wrappedConnection) ProxyContext() context.Context {
+	return conn.BaseContext
+}
+
+func (conn *wrappedConnection) Wrapped() net.Conn {
+	return conn.Conn
 }
 
 func (conn *wrappedConnection) Close() (err error) {

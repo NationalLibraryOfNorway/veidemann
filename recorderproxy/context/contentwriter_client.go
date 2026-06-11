@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 
@@ -96,7 +95,6 @@ func (rc *RecordContext) logConcurrentSend(sendType string, recNum int32, payloa
 		WithField("payloadSize", payloadSize).
 		WithField("seq", seq).
 		WithField("inFlight", inFlight).
-		WithField("stack", string(debug.Stack())).
 		Warn("Concurrent ContentWriter stream send detected")
 }
 
@@ -117,7 +115,6 @@ func (rc *RecordContext) logDuplicateProtocolHeader(recNum int32, seq uint64, he
 		WithField("currentDigest", headerDigest(header)).
 		WithField("previousPreview", headerPreview(previous)).
 		WithField("currentPreview", headerPreview(header)).
-		WithField("stack", string(debug.Stack())).
 		Warn("Duplicate ContentWriter protocol header send attempt detected")
 }
 

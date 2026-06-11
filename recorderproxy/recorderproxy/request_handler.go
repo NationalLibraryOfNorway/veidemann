@@ -17,6 +17,7 @@
 package recorderproxy
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"hash"
@@ -26,35 +27,39 @@ import (
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 )
 
 // handleRequestError creates a short circuit response for requests that fail before or in request handling.
 // Only CrawlLog is sent, nothing is written to content writer.
-func handleRequestError(ctx filters.Context, req *http.Request, reqErr error) (*http.Response, filters.Context, error) {
-	l := context.LogWithContextAndRequest(ctx, req, "REQH")
+func handleRequestError(cs *filters.ConnectionState, req *http.Request, reqErr error) (*http.Response, *filters.ConnectionState, error) {
+	ctx := filterContext(cs, req)
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "REQH")
 	l.WithError(reqErr).Debug("handling request error")
-	rc := context.GetRecordContext(ctx)
+	rc := rpcontext.GetRecordContext(ctx)
+	if rc == nil {
+		return errorResponse(cs, req, reqErr)
+	}
 	e := rc.SendRequestError(ctx, reqErr)
 	_ = rc.CancelContentWriter(errors.Detail(e))
-	return errorResponse(ctx, req, e)
+	return errorResponse(cs, req, e)
 }
 
 // errorResponse creates a response from an error and populates Veidemann specific headers
-func errorResponse(ctx filters.Context, req *http.Request, err error) (*http.Response, filters.Context, error) {
-	resp, c, err := filters.Fail(ctx, req, errors.HttpStatusCode(err), err)
+func errorResponse(cs *filters.ConnectionState, req *http.Request, err error) (*http.Response, *filters.ConnectionState, error) {
+	resp, nextCS, err := filters.Fail(cs, req, errors.HttpStatusCode(err), err)
 	resp.Header.Add(constants.HeaderProxyErrorCode, errors.Code(err).String())
 	resp.Header.Add(constants.HeaderProxyError, errors.Message(err))
-	return resp, c, err
+	return resp, nextCS, err
 }
 
 type wrappedRequestBody struct {
 	io.ReadCloser
-	ctx           filters.Context
-	recordContext *context.RecordContext
+	ctx           context.Context
+	recordContext *rpcontext.RecordContext
 	recNum        int32
 	size          int64
 	blockCrc      hash.Hash
@@ -63,7 +68,7 @@ type wrappedRequestBody struct {
 	eof           bool
 }
 
-func WrapRequestBody(ctx filters.Context, rc *context.RecordContext, body io.ReadCloser, contentType string,
+func WrapRequestBody(ctx context.Context, rc *rpcontext.RecordContext, body io.ReadCloser, contentType string,
 	prolog []byte) (*wrappedRequestBody, error) {
 	if body == nil {
 		body = http.NoBody

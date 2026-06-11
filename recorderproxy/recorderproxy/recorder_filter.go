@@ -18,6 +18,7 @@ package recorderproxy
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strings"
 
@@ -26,7 +27,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -39,21 +40,26 @@ type RecorderFilter struct {
 	hasNextProxy      bool
 }
 
-func (f *RecorderFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (resp *http.Response, context filters.Context, err error) {
+func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+	ctx := filterContext(cs, req)
 	l := context2.LogWithContextAndRequest(ctx, req, "FLT:rec")
 	connectErr := context2.GetConnectError(ctx)
 	if connectErr != nil {
-		resp, context, err = next(ctx, req)
+		resp, nextCS, err = next(cs, req)
 		return
 	}
 
 	if req.Method == http.MethodConnect {
 		// Handle HTTPS CONNECT
-		resp, context, err = next(ctx, req)
+		resp, nextCS, err = next(cs, req)
 		if err != nil {
 			l.WithError(err).Infof("Could not CONNECT to upstream server: %v", req.Host)
 		}
-		resp, ctx, err = filters.ShortCircuit(ctx, req, &http.Response{
+		shortCircuitCS := nextCS
+		if shortCircuitCS == nil {
+			shortCircuitCS = cs
+		}
+		resp, nextCS, err = filters.ShortCircuit(shortCircuitCS, req, &http.Response{
 			StatusCode: http.StatusOK,
 		})
 	} else {
@@ -64,12 +70,12 @@ func (f *RecorderFilter) Apply(ctx filters.Context, req *http.Request, next filt
 
 		req, err = f.filterRequest(ctx, span, req, rc)
 		if err != nil {
-			return handleRequestError(ctx, req, err)
+			return handleRequestError(cs, req, err)
 		}
 
-		context = ctx
 		roundTripSpan, roundtripCtx := opentracing.StartSpanFromContext(ctx, "Roundtrip upstream")
-		resp, roundtripCtx, err = next(context2.WrapIfNecessary(roundtripCtx), req)
+		req = req.WithContext(roundtripCtx)
+		resp, nextCS, err = next(cs, req)
 		roundTripSpan.Finish()
 		if err != nil {
 			return
@@ -77,7 +83,7 @@ func (f *RecorderFilter) Apply(ctx filters.Context, req *http.Request, next filt
 
 		resp, err = f.filterResponse(ctx, span, resp, rc)
 		if err != nil {
-			return handleRequestError(ctx, req, err)
+			return handleRequestError(cs, req, err)
 		}
 
 		span.LogFields(log.String("event", "rec upstream response"))
@@ -85,7 +91,7 @@ func (f *RecorderFilter) Apply(ctx filters.Context, req *http.Request, next filt
 	return
 }
 
-func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span, req *http.Request, rc *context2.RecordContext) (*http.Request, error) {
+func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Span, req *http.Request, rc *context2.RecordContext) (*http.Request, error) {
 	span.LogKV("event", "StartFilterRequest")
 
 	var prolog bytes.Buffer
@@ -97,7 +103,7 @@ func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span,
 
 	fetchTimeStamp, _ := ptypes.TimestampProto(rc.FetchTimesTamp)
 	uri := rc.Uri
-	rc.IpAddress = context2.GetIp(c)
+	rc.IpAddress = context2.GetIp(ctx)
 
 	req.Header.Set(constants.HeaderAcceptEncoding, "identity")
 	req.Header.Set(constants.HeaderCrawlExecutionId, rc.CrawlExecutionId)
@@ -117,7 +123,7 @@ func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span,
 	rc.CrawlLog.RequestedUri = uri.String()
 
 	contentType := req.Header.Get("Content-Type")
-	bodyWrapper, err := WrapRequestBody(c, rc, req.Body, contentType, prolog.Bytes())
+	bodyWrapper, err := WrapRequestBody(ctx, rc, req.Body, contentType, prolog.Bytes())
 	if err != nil {
 		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
 		return req, e
@@ -127,7 +133,7 @@ func (f *RecorderFilter) filterRequest(c filters.Context, span opentracing.Span,
 	return req, nil
 }
 
-func (f *RecorderFilter) filterResponse(c filters.Context, span opentracing.Span, respOrig *http.Response, rc *context2.RecordContext) (*http.Response, error) {
+func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Span, respOrig *http.Response, rc *context2.RecordContext) (*http.Response, error) {
 	span.LogKV("event", "StartFilterResponse")
 
 	resp := respOrig
@@ -154,7 +160,7 @@ func (f *RecorderFilter) filterResponse(c filters.Context, span opentracing.Span
 
 	contentType := resp.Header.Get("Content-Type")
 	statusCode := int32(resp.StatusCode)
-	bodyWrapper, err := WrapResponseBody(c, rc, resp.Body, statusCode, contentType, contentwriterV1.RecordType_RESPONSE, prolog.Bytes())
+	bodyWrapper, err := WrapResponseBody(ctx, rc, resp.Body, statusCode, contentType, contentwriterV1.RecordType_RESPONSE, prolog.Bytes())
 	if err != nil {
 		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
 		return nil, e

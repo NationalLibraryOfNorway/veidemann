@@ -25,7 +25,7 @@ import (
 	errors2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/getlantern/errors"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 )
 
 // ErrorHandlerFilter is a filter which initializes the context with sessions to external services.
@@ -33,30 +33,31 @@ type ErrorHandlerFilter struct {
 	hasNextProxy bool
 }
 
-func (f *ErrorHandlerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (resp *http.Response, context filters.Context, err error) {
+func (f *ErrorHandlerFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+	ctx := filterContext(cs, req)
 	l := context2.LogWithContextAndRequest(ctx, req, "FLT:err")
 
 	connectErr := context2.GetConnectError(ctx)
 	if connectErr != nil {
 		l.WithError(connectErr).WithField("method", req.Method).Debug("Handle connect error")
 		e := f.normalizeError(connectErr, l)
-		return handleRequestError(ctx, req, e)
+		return handleRequestError(cs, req, e)
 	}
 
-	resp, context, err = next(ctx, req)
+	resp, nextCS, err = next(cs, req)
 
 	if err != nil {
 		l.WithError(err).Debug("Handle roundtrip error")
 
 		e := f.normalizeError(err, l)
-		return handleRequestError(ctx, req, e)
+		return handleRequestError(cs, req, e)
 	}
 
 	squidErr := resp.Header.Get("X-Squid-Error")
 	if squidErr != "" {
 		e := handleSquidErrorString(squidErr)
 		if e != nil {
-			return handleRequestError(ctx, req, e)
+			return handleRequestError(cs, req, e)
 		}
 	}
 

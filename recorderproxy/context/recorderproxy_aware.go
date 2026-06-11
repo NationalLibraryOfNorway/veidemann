@@ -23,7 +23,6 @@ import (
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/getlantern/proxy/filters"
 )
 
 type ctxKey string
@@ -138,6 +137,11 @@ func WithStateHandle(ctx context.Context, source context.Context) context.Contex
 		return ctx
 	}
 	return context.WithValue(ctx, ctxKeyRecorderProxyAware, h)
+}
+
+func HasStateHandle(ctx context.Context) bool {
+	_, ok := lookupStateHandle(ctx)
+	return ok
 }
 
 func ResetRequestState(ctx context.Context, preserveSessionMetadata bool) {
@@ -320,11 +324,6 @@ func setValue(ctx context.Context, key ctxKey, value interface{}) {
 	state.values[key] = value
 }
 
-func WrapIfNecessary(ctx context.Context) filters.Context {
-	fc, ok := ctx.(filters.Context)
-	if ok {
-		return fc
-	} else {
-		return filters.AdaptContext(ctx)
-	}
+func WrapIfNecessary(ctx context.Context) context.Context {
+	return ctx
 }

@@ -17,14 +17,14 @@
 package recorderproxy
 
 import (
-	stdcontext "context"
+	"context"
 	"net"
 	"net/http"
 	"net/url"
 
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 )
@@ -56,7 +56,7 @@ func requestAuthority(req *http.Request) (string, string) {
 	return req.Host, ""
 }
 
-func requestBaseURI(ctx filters.Context, req *http.Request) *url.URL {
+func requestBaseURI(ctx context.Context, cs *filters.ConnectionState, req *http.Request) *url.URL {
 	if req == nil {
 		return nil
 	}
@@ -68,7 +68,7 @@ func requestBaseURI(ctx filters.Context, req *http.Request) *url.URL {
 	authority := req.Host
 	if authority != "" {
 		scheme := "http"
-		if ctx.IsMITMing() {
+		if cs.IsMITMing() {
 			scheme = "https"
 		}
 		return &url.URL{Scheme: scheme, Host: authority}
@@ -91,14 +91,15 @@ func requestBaseURI(ctx filters.Context, req *http.Request) *url.URL {
 	}
 
 	scheme := "http"
-	if ctx.IsMITMing() {
+	if cs.IsMITMing() {
 		scheme = "https"
 	}
 
 	return &url.URL{Scheme: scheme, Host: authority}
 }
 
-func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (resp *http.Response, context filters.Context, err error) {
+func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+	ctx := filterContext(cs, req)
 	if req.Method == http.MethodConnect {
 		l := context2.LogWithContextAndRequest(ctx, req, "FLT:ctx")
 		context2.ResetRequestState(ctx, false)
@@ -118,10 +119,10 @@ func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next f
 		context2.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri)
 
 		l.Debugf("Converted CONNECT request uri form %v to %v", req.URL, uri)
-		resp, context, err = next(ctx, req)
+		resp, nextCS, err = next(cs, req)
 	} else {
 		connectionCtx := ctx
-		preserveSessionMetadata := ctx.IsMITMing()
+		preserveSessionMetadata := cs.IsMITMing()
 		requestCtx := context2.WrapIfNecessary(context2.NewRequestContext(ctx, preserveSessionMetadata))
 		context2.ResetRequestState(requestCtx, preserveSessionMetadata)
 		l := context2.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
@@ -134,7 +135,7 @@ func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next f
 			context2.SetPort(requestCtx, req.URL.Port())
 		}
 
-		baseURI := requestBaseURI(requestCtx, req)
+		baseURI := requestBaseURI(requestCtx, cs, req)
 		var uri *url.URL
 		if baseURI != nil {
 			uri = baseURI.ResolveReference(req.URL)
@@ -156,16 +157,15 @@ func (f *ContextInitFilter) Apply(ctx filters.Context, req *http.Request, next f
 
 		if e := rc.RegisterNewRequest(requestCtx); e != nil {
 			span.LogFields(log.String("event", "Failed init record context"), log.Error(e))
-			return handleRequestError(requestCtx, req, e)
+			return handleRequestError(cs, req, e)
 		}
 		span.LogFields(log.String("event", "Finished init record context"))
 
-		resp, context, err = next(requestCtx, req)
+		req = req.WithContext(requestCtx)
+		resp, nextCS, err = next(cs, req)
 		if preserveSessionMetadata {
 			context2.CopySessionMetadata(connectionCtx, requestCtx)
 		}
-		var stateSource stdcontext.Context = connectionCtx
-		context = context2.WrapIfNecessary(context2.WithStateHandle(context, stateSource))
 	}
 	return
 }

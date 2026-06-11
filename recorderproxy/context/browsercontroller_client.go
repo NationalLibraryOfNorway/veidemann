@@ -28,7 +28,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/getlantern/proxy/filters"
 	"github.com/opentracing/opentracing-go"
 	otLog "github.com/opentracing/opentracing-go/log"
 	"google.golang.org/protobuf/proto"
@@ -130,7 +129,7 @@ func (rc *RecordContext) SaveCrawlLog() error {
 	return rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog))
 }
 
-func (rc *RecordContext) SendRequestError(ctx filters.Context, reqErr error) error {
+func (rc *RecordContext) SendRequestError(ctx context.Context, reqErr error) error {
 	l := LogWithContext(rc.ctx, "PROXY:BCC")
 
 	if reqErr == nil {
@@ -147,7 +146,7 @@ func (rc *RecordContext) SendRequestError(ctx filters.Context, reqErr error) err
 	return reqErr
 }
 
-func (rc *RecordContext) SendResponseError(ctx filters.Context, respErr error) error {
+func (rc *RecordContext) SendResponseError(ctx context.Context, respErr error) error {
 	l := LogWithContext(rc.ctx, "PROXY:BCC")
 
 	if respErr == nil {
@@ -165,7 +164,7 @@ func (rc *RecordContext) SendResponseError(ctx filters.Context, respErr error) e
 	return respErr
 }
 
-func (rc *RecordContext) RegisterNewRequest(ctx filters.Context) error {
+func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 	l := LogWithContext(rc.ctx, "PROXY:BCC")
 
 	if rc.shouldBypassBrowserControllerRegister() {
@@ -227,7 +226,7 @@ func (rc *RecordContext) RegisterNewRequest(ctx filters.Context) error {
 	}
 }
 
-func RegisterConnectRequest(ctx filters.Context, conn *serviceconnections.Connections, proxyId int32, req *http.Request, uri *url.URL) {
+func RegisterConnectRequest(ctx context.Context, conn *serviceconnections.Connections, proxyId int32, req *http.Request, uri *url.URL) {
 	l := LogWithContext(ctx, "PROXY:BCC")
 
 	resolveIdsFromHttpHeader(ctx, req)

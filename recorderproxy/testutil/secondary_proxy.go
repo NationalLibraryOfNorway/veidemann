@@ -29,20 +29,20 @@ import (
 	"strings"
 	"time"
 
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 	gerr "github.com/getlantern/errors"
 	"github.com/getlantern/mitm"
-	"github.com/getlantern/proxy"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v3/filters"
 )
 
 var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 
 func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
 	var ff filters.FilterFunc
-	ff = func(ctx filters.Context, req *http.Request, next filters.Next) (r *http.Response, c filters.Context, e error) {
-		r, c, e = next(ctx, req)
+	ff = func(cs *filters.ConnectionState, req *http.Request, next filters.Next) (r *http.Response, nextCS *filters.ConnectionState, e error) {
+		r, nextCS, e = next(cs, req)
 		if e != nil && r != nil && r.StatusCode == 502 && strings.Contains(e.Error(), "connection refused") {
-			r, c, e = filters.Fail(ctx, req, http.StatusServiceUnavailable, e)
+			r, nextCS, e = filters.Fail(cs, req, http.StatusServiceUnavailable, e)
 			r.Header.Add("X-Squid-Error", "ERR_CONNECT_FAIL 111")
 		}
 		return
@@ -50,30 +50,30 @@ func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
 	var downstreamConn net.Conn
 
 	opts := &proxy.Opts{
-		OnError: func(ctx filters.Context, req *http.Request, read bool, err error) (r *http.Response) {
+		OnError: func(cs *filters.ConnectionState, req *http.Request, read bool, err error) (r *http.Response) {
 			var eofRegex = regexp.MustCompile("Unable to round-trip .*: EOF")
 			fmt.Printf("SECOND PROXY ERR: %v %v %v\n", req, read, err)
 			switch s := err.Error(); {
 			case strings.Contains(s, "tls: handshake failure"):
 				fmt.Println("CASE 1")
-				r, _, _ = filters.Fail(ctx, req, 503, errors.New("tls: handshake failure"))
+				r, _, _ = filters.Fail(cs, req, 503, errors.New("tls: handshake failure"))
 				r.Header.Set("X-Squid-Error", "ERR_CONNECT_FAIL 111")
 			case strings.Contains(s, "connect: connection refused"):
 				fmt.Println("CASE 2")
 				//r, _, _ = filters.Fail(ctx, req, 555, errors.New("dial tcp 158.39.123.157:4151: connect: connection refused"))
-				r, _, _ = filters.Fail(ctx, req, 503, err.(gerr.Error).RootCause().(*net.OpError).Err)
+				r, _, _ = filters.Fail(cs, req, 503, err.(gerr.Error).RootCause().(*net.OpError).Err)
 				r.Header.Set("X-Squid-Error", "ERR_CONNECT_FAIL 111")
 			case strings.Contains(s, "first record does not look like a TLS handshake"):
 				fmt.Println("CASE 3")
 				downstreamConn.Write([]byte("HTTP/"))
 			case eofRegex.MatchString(s):
-				r, _, _ = filters.Fail(ctx, req, 502, errors.New("ERR_ZERO_SIZE_OBJECT 0"))
+				r, _, _ = filters.Fail(cs, req, 502, errors.New("ERR_ZERO_SIZE_OBJECT 0"))
 				r.Header.Set("X-Squid-Error", "ERR_ZERO_SIZE_OBJECT 0")
 			default:
 				fmt.Println("CASE default")
 
 				fmt.Printf("SECOND PROXY ERR: %v\n", s)
-				r, _, _ = filters.Fail(ctx, req, 555, err)
+				r, _, _ = filters.Fail(cs, req, 555, err)
 			}
 			return
 		},
@@ -99,7 +99,7 @@ func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
 			return conn, err
 		},
 	}
-	p2, _ := proxy.New(opts)
+	p2 := proxy.New(opts)
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		panic(fmt.Sprintf("Secondary proxy: failed to listen on port %v: %v", 8080, err))

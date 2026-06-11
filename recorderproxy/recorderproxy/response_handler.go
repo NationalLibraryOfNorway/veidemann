@@ -18,6 +18,7 @@ package recorderproxy
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"hash"
@@ -28,16 +29,15 @@ import (
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/getlantern/proxy/filters"
 )
 
 type wrappedResponseBody struct {
 	io.ReadCloser
-	ctx               filters.Context
-	recordContext     *context.RecordContext
+	ctx               context.Context
+	recordContext     *rpcontext.RecordContext
 	recNum            int32
 	size              int64
 	blockCrc          hash.Hash
@@ -48,7 +48,7 @@ type wrappedResponseBody struct {
 	log               *logger.Logger
 }
 
-func WrapResponseBody(ctx filters.Context, rc *context.RecordContext, body io.ReadCloser, statusCode int32, contentType string,
+func WrapResponseBody(ctx context.Context, rc *rpcontext.RecordContext, body io.ReadCloser, statusCode int32, contentType string,
 	recordType contentwriterV1.RecordType, prolog []byte) (*wrappedResponseBody, error) {
 	if body == nil {
 		body = http.NoBody
@@ -61,7 +61,7 @@ func WrapResponseBody(ctx filters.Context, rc *context.RecordContext, body io.Re
 		recNum:        1,
 		blockCrc:      sha1.New(),
 	}
-	b.log = context.LogWithRecordContext(rc, "BODY:resp").WithField("url", b.recordContext.Uri.String())
+	b.log = rpcontext.LogWithRecordContext(rc, "BODY:resp").WithField("url", b.recordContext.Uri.String())
 
 	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
 		RecordNum: b.recNum,
