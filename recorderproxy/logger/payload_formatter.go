@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/sirupsen/logrus"
 )
 
 func FormatPayload(payload []byte, length, cutLength, runesPerLine int) string {
@@ -30,7 +28,7 @@ func FormatPayload(payload []byte, length, cutLength, runesPerLine int) string {
 	}
 	payload = payload[:length]
 
-	if logrus.IsLevelEnabled(logrus.TraceLevel) {
+	if IsLevelEnabled(TraceLevel) {
 		return formatTerminalSafe(payload, runesPerLine)
 	} else {
 		var result string

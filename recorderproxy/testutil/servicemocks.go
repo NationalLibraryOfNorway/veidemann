@@ -39,7 +39,6 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -155,7 +154,7 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 	}
 	go func() {
 		if err := m.Server.Serve(m.lis); err != nil {
-			log.Fatalf("Server exited with error: %v", err)
+			logger.LogWithComponent("MOCK:grpc").Fatalf("Server exited with error: %v", err)
 		}
 	}()
 
@@ -165,21 +164,21 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 		m.contentWriterOpts = serviceconnections.NewConnectionOptions(
 			"ContentWriter",
 			serviceconnections.WithConnectTimeout(1*time.Minute),
-			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("ContentWriter", log.DebugLevel)),
+			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("ContentWriter", logger.DebugLevel)),
 		)
 	}
 	if m.dnsOpts == nil {
 		m.dnsOpts = serviceconnections.NewConnectionOptions(
 			"DnsService",
 			serviceconnections.WithConnectTimeout(1*time.Minute),
-			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("DnsService", log.DebugLevel)),
+			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("DnsService", logger.DebugLevel)),
 		)
 	}
 	if m.browserControllerOpts == nil {
 		m.browserControllerOpts = serviceconnections.NewConnectionOptions(
 			"BrowserController",
 			serviceconnections.WithConnectTimeout(1*time.Minute),
-			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("BrowserController", log.DebugLevel)),
+			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("BrowserController", logger.DebugLevel)),
 		)
 	}
 
@@ -187,7 +186,7 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 
 	err := m.ClientConn.Connect()
 	if err != nil {
-		log.Panicf("Could not connect to services: %v", err)
+		logger.LogWithComponent("MOCK:grpc").Panicf("Could not connect to services: %v", err)
 	}
 
 	return m

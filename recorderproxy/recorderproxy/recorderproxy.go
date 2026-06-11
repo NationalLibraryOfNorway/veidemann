@@ -33,8 +33,6 @@ import (
 	"net"
 	"net/http"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -94,7 +92,7 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 			CertFile:        "/tmp/rpcert.pem",
 		},
 		OnError: func(cs *filters.ConnectionState, req *http.Request, read bool, err error) *http.Response {
-			log.WithError(err).Error("Probably bug. Error handled by OnError should have been handled elsewhere.")
+			logger.LogWithComponent("PROXY").WithError(err).Error("Probably bug. Error handled by OnError should have been handled elsewhere.")
 			res, _, _ := filters.Fail(cs, req, 500, err)
 			return res
 		},
@@ -108,11 +106,11 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 	r.listener, err = net.Listen("tcp", addr+":"+strconv.Itoa(port))
 	if err != nil {
 		if r.listener, err = net.Listen(addr+"tcp6", ":"+strconv.Itoa(port)); err != nil {
-			log.Panicf("failed to listen on port %v: %v", port, err)
+			logger.LogWithComponent("PROXY").Panicf("failed to listen on port %v: %v", port, err)
 		}
 	}
 	if err != nil {
-		log.Fatal(err)
+		logger.LogWithComponent("PROXY").Fatal(err)
 	}
 
 	r.Addr = r.listener.Addr().String()
@@ -125,7 +123,7 @@ func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Co
 }
 
 func (proxy *RecorderProxy) Start() {
-	l := log.WithField("component", "PROXY")
+	l := logger.LogWithComponent("PROXY")
 	l.Infof("Starting proxy %v ...", proxy.id)
 
 	go func() {
@@ -157,7 +155,7 @@ func (proxy *RecorderProxy) Start() {
 }
 
 func (proxy *RecorderProxy) Close() {
-	l := log.WithField("component", "PROXY")
+	l := logger.LogWithComponent("PROXY")
 	l.Infof("Shutting down proxy %v ...", proxy.id)
 
 	proxy.shouldRun = false
@@ -196,7 +194,7 @@ func (conn *wrappedConnection) Wrapped() net.Conn {
 }
 
 func (conn *wrappedConnection) Close() (err error) {
-	l := log.WithField("component", "CONN:"+conn.t)
+	l := logger.LogWithComponent("CONN:" + conn.t)
 	if atomic.CompareAndSwapInt32(conn.closed, 0, 1) {
 		if conn.dirOut {
 			l.Debugf("Close connection %v -> %v\n", conn.LocalAddr(), conn.RemoteAddr())
@@ -212,11 +210,11 @@ func (conn *wrappedConnection) Close() (err error) {
 
 func (conn *wrappedConnection) Read(b []byte) (n int, err error) {
 	n, err = conn.Conn.Read(b)
-	l := log.WithField("component", "CONN:"+conn.t)
+	l := logger.LogWithComponent("CONN:" + conn.t)
 	if err != nil {
 		l = l.WithError(err)
 	}
-	if log.IsLevelEnabled(log.TraceLevel) {
+	if logger.IsLevelEnabled(logger.TraceLevel) {
 		l.Tracef("read:\n%s\n", logger.FormatPayload(b, n, 10, 20))
 	} else {
 		l.Debugf("read: %s", logger.FormatPayload(b, n, 10, 20))
@@ -226,11 +224,11 @@ func (conn *wrappedConnection) Read(b []byte) (n int, err error) {
 
 func (conn *wrappedConnection) Write(b []byte) (n int, err error) {
 	n, err = conn.Conn.Write(b)
-	l := log.WithField("component", "CONN:"+conn.t)
+	l := logger.LogWithComponent("CONN:" + conn.t)
 	if err != nil {
 		l = l.WithError(err)
 	}
-	if log.IsLevelEnabled(log.TraceLevel) {
+	if logger.IsLevelEnabled(logger.TraceLevel) {
 		l.Tracef("write:\n%s\n", logger.FormatPayload(b, n, 10, 20))
 	} else {
 		l.Debugf("write: %s", logger.FormatPayload(b, n, 10, 20))
@@ -239,7 +237,7 @@ func (conn *wrappedConnection) Write(b []byte) (n int, err error) {
 }
 
 func WrapConn(conn net.Conn, label string, dirOut bool) *wrappedConnection {
-	l := log.WithField("component", "CONN:"+label)
+	l := logger.LogWithComponent("CONN:" + label)
 	if dirOut {
 		l.Debugf("New connection %v -> %v\n", conn.LocalAddr(), conn.RemoteAddr())
 	} else {

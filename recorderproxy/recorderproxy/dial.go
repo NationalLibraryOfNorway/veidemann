@@ -28,7 +28,7 @@ import (
 
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/sirupsen/logrus"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -67,7 +67,7 @@ func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, networ
 		}
 	}
 
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+	if logger.IsLevelEnabled(logger.DebugLevel) {
 		conn = WrapConn(conn, "up", true)
 	}
 

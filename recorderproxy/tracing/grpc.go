@@ -22,8 +22,8 @@ import (
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
 )
@@ -33,8 +33,8 @@ type sh struct {
 }
 
 // NewStatsHandler creates a stats.Handler for gRPC which logs all traffic if loglevel is equal or finer than the submitted loglevel
-func NewStatsHandler(serviceName string, loglevel logrus.Level) grpc.DialOption {
-	if logrus.IsLevelEnabled(loglevel) {
+func NewStatsHandler(serviceName string, loglevel logger.Level) grpc.DialOption {
+	if logger.IsLevelEnabled(loglevel) {
 		return grpc.WithStatsHandler(&sh{"gRPC:" + serviceName})
 	} else {
 		return grpc.EmptyDialOption{}
@@ -77,7 +77,7 @@ func (h *sh) HandleRPC(c context.Context, s stats.RPCStats) {
 			case *contentwriterV1.WriteRequest_Meta:
 				context2.LogWithContext(c, h.service).Debug(w.Meta)
 			case *contentwriterV1.WriteRequest_Payload:
-				if logrus.IsLevelEnabled(logrus.TraceLevel) {
+				if logger.IsLevelEnabled(logger.TraceLevel) {
 					context2.LogWithContext(c, h.service).Tracef("payload[%v]: %v", w.Payload.RecordNum, string(w.Payload.Data))
 				} else {
 					context2.LogWithContext(c, h.service).Debugf("payload[%v]: %v bytes", w.Payload.RecordNum, len(w.Payload.Data))

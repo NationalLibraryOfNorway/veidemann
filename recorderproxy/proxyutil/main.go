@@ -30,7 +30,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
 	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -39,7 +38,6 @@ var (
 	acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 	recorderProxy  *recorderproxy.RecorderProxy
 	client         *http.Client
-	log            = logrus.WithField("component", "CMD")
 )
 
 func main() {

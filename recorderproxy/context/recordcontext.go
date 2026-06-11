@@ -31,7 +31,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/golang/protobuf/ptypes"
-	log "github.com/sirupsen/logrus"
 )
 
 // session variable must be aligned in i386
@@ -121,7 +120,7 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 
 	rc.InitDone = true
 
-	rc.log = logger.Log.WithFields(log.Fields{
+	rc.log = logger.Log.WithFields(logger.Fields{
 		"component": "PROXY",
 		"method":    req.Method,
 		"url":       uri.String(),
@@ -178,7 +177,7 @@ func LogWithContextAndRequest(ctx context.Context, req *http.Request, componentN
 	if rc != nil {
 		l = rc.log
 	} else {
-		l = logger.Log.WithFields(log.Fields{
+		l = logger.Log.WithFields(logger.Fields{
 			"method": req.Method,
 			"url":    req.URL.String(),
 		})

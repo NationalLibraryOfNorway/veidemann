@@ -18,8 +18,6 @@ package logger
 
 import (
 	"testing"
-
-	"github.com/sirupsen/logrus"
 )
 
 func TestFormatPayload(t *testing.T) {
@@ -30,18 +28,18 @@ func TestFormatPayload(t *testing.T) {
 	}
 	tests := []struct {
 		name     string
-		logLevel logrus.Level
+		logLevel Level
 		args     args
 		want     string
 	}{
-		{"debug_all", logrus.DebugLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 9, 9}, "abc\xbf\xbfef⌘g (11 bytes)"},
-		{"debug_cut", logrus.DebugLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 6, 9}, "abc\xbf\xbfe ... (11 bytes)"},
-		{"trace_one_line", logrus.TraceLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 10, 9}, "0061 0062 0063 00BD 00B2 0065 0066 2318 0067 abc\xbf\xbfef⌘g"},
-		{"trace_split_line", logrus.TraceLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 5, 10}, "0061 0062 0063 00BD 00B2 0065 0066 2318 0067      abc\xbf\xbfef⌘g"},
+		{"debug_all", DebugLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 9, 9}, "abc\xbf\xbfef⌘g (11 bytes)"},
+		{"debug_cut", DebugLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 6, 9}, "abc\xbf\xbfe ... (11 bytes)"},
+		{"trace_one_line", TraceLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 10, 9}, "0061 0062 0063 00BD 00B2 0065 0066 2318 0067 abc\xbf\xbfef⌘g"},
+		{"trace_split_line", TraceLevel, args{[]byte("abc\xbd\xb2ef\xe2\x8c\x98g"), 5, 10}, "0061 0062 0063 00BD 00B2 0065 0066 2318 0067      abc\xbf\xbfef⌘g"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logrus.SetLevel(tt.logLevel)
+			SetLevel(tt.logLevel)
 			if got := FormatPayload(tt.args.payload, len(tt.args.payload), tt.args.cutLength, tt.args.runesPerLine); got != tt.want {
 				t.Errorf("FormatPayload() = %v, want %v", got, tt.want)
 			}

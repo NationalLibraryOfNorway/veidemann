@@ -22,7 +22,7 @@ import (
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
-	log "github.com/sirupsen/logrus"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"google.golang.org/grpc"
 )
 
@@ -56,7 +56,7 @@ func (c *Connections) Connect() error {
 		return err
 	}
 	c.contentWriterClient = contentwriterV1.NewContentWriterClient(c.contentWriterClientConn)
-	log.WithField("component", "gRPC:CWR").Printf("Connected to contentwriter")
+	logger.LogWithComponent("gRPC:CWR").Print("Connected to contentwriter")
 
 	// Set up DnsResolverClient
 	c.dnsResolverClientConn, err = c.dnsOptions.connectService()
@@ -64,7 +64,7 @@ func (c *Connections) Connect() error {
 		return err
 	}
 	c.dnsResolverClient = dnsresolverV1.NewDnsResolverClient(c.dnsResolverClientConn)
-	log.WithField("component", "gRPC:DNS").Printf("Connected to dns resolver")
+	logger.LogWithComponent("gRPC:DNS").Print("Connected to dns resolver")
 
 	// Set up BrowserControllerClient
 	c.browserControllerClientConn, err = c.browserControllerOptions.connectService()
@@ -72,13 +72,13 @@ func (c *Connections) Connect() error {
 		return err
 	}
 	c.browserControllerClient = browsercontrollerV2.NewBrowserControllerClient(c.browserControllerClientConn)
-	log.WithField("component", "gRPC:CWR").Printf("Connected to browser controller")
+	logger.LogWithComponent("gRPC:BC").Print("Connected to browser controller")
 
 	return nil
 }
 
 func (opts *ConnectionOptions) connectService() (*grpc.ClientConn, error) {
-	log.WithField("component", "PROXY").Printf("Connecting %s at: %s", opts.serviceName, opts.Addr())
+	logger.LogWithComponent("PROXY").Printf("Connecting %s at: %s", opts.serviceName, opts.Addr())
 
 	dialOpts := append(opts.dialOptions,
 		grpc.WithInsecure(),
@@ -92,7 +92,7 @@ func (opts *ConnectionOptions) connectService() (*grpc.ClientConn, error) {
 
 	clientConn, err := grpc.DialContext(dialCtx, opts.Addr(), dialOpts...)
 	if err != nil {
-		log.WithField("component", "PROXY").Errorf("fail to dial %s: %v", opts.serviceName, err)
+		logger.LogWithComponent("PROXY").Errorf("fail to dial %s: %v", opts.serviceName, err)
 	}
 	return clientConn, err
 }

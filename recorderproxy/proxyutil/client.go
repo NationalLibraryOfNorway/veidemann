@@ -22,17 +22,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
-	"github.com/sirupsen/logrus"
 )
 
 func get(url string, client *http.Client, timeout time.Duration) (int, []byte, error) {
-	log := logrus.WithField("component", "CLIENT")
+	log := logger.LogWithComponent("CLIENT")
 	tracer, closer := tracing.Init("Internal test client")
 	if tracer != nil {
 		defer closer.Close()
@@ -62,7 +62,7 @@ func get(url string, client *http.Client, timeout time.Duration) (int, []byte, e
 	t := client.Transport
 	t = &nethttp.Transport{RoundTripper: t}
 	client.Transport = t
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+	if logger.IsLevelEnabled(logger.DebugLevel) {
 		client.Transport, req = recorderproxy.DecorateRequest(client.Transport, req)
 	}
 
@@ -84,7 +84,7 @@ func get(url string, client *http.Client, timeout time.Duration) (int, []byte, e
 }
 
 func onError(span opentracing.Span, err error) (int, []byte, error) {
-	log := logrus.WithField("component", "CLIENT")
+	log := logger.LogWithComponent("CLIENT")
 	// handle errors by recording them in the span
 	span.SetTag(string(ext.Error), true)
 	span.LogKV(otlog.Error(err))
