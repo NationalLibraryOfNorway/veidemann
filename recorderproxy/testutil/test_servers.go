@@ -18,13 +18,13 @@ package testutil
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -96,7 +96,9 @@ func (h ConstantCacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	_, _ = io.WriteString(w, string(h))
 }
 
-func NewHttpServers() *HttpServers {
+func NewHttpServers(t testing.TB) *HttpServers {
+	t.Helper()
+
 	httpMux := http.NewServeMux()
 	httpsMux := http.NewServeMux()
 
@@ -129,9 +131,9 @@ func NewHttpServers() *HttpServers {
 	s.SrvHttps.Config.WriteTimeout = 800 * time.Millisecond
 	s.SrvHttpsBadCert.TLS.Certificates = []tls.Certificate{{}}
 
-	fmt.Printf("HTTP server url:           %v\n", s.SrvHttp.URL)
-	fmt.Printf("HTTPS server url:          %v\n", s.SrvHttps.URL)
-	fmt.Printf("HTTPS bad cert server url: %v\n", s.SrvHttpsBadCert.URL)
+	t.Logf("HTTP server url:           %v\n", s.SrvHttp.URL)
+	t.Logf("HTTPS server url:          %v\n", s.SrvHttps.URL)
+	t.Logf("HTTPS bad cert server url: %v\n", s.SrvHttpsBadCert.URL)
 
 	return s
 }

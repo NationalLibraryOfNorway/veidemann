@@ -69,7 +69,7 @@ func init() {
 }
 
 func TestRecorderProxy(t *testing.T) {
-	s := testutil.NewHttpServers()
+	s := testutil.NewHttpServers(t)
 	defer s.Close()
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
@@ -337,7 +337,7 @@ func TestRecorderProxy(t *testing.T) {
 }
 
 func TestRecorderProxyThroughProxy(t *testing.T) {
-	s := testutil.NewHttpServers()
+	s := testutil.NewHttpServers(t)
 	defer s.Close()
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
@@ -596,7 +596,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 }
 
 func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T) {
-	s := testutil.NewHttpServers()
+	s := testutil.NewHttpServers(t)
 	defer s.Close()
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
