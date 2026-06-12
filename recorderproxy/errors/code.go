@@ -21,13 +21,13 @@ import "strconv"
 // ErrorCode is data type of error codes for different kind of errors
 type ErrorCode int32
 
-// UnknownError is the unknown error
-const RuntimeException ErrorCode = -5
-
+// See https://heritrix.readthedocs.io/en/latest/glossary.html for the original
+// Heritrix error codes.
 const (
 	ConnectFailed      ErrorCode = -2
 	ConnectBroken      ErrorCode = -3
 	HttpTimeout        ErrorCode = -4
+	RuntimeException   ErrorCode = -5
 	DomainLookupFailed ErrorCode = -6
 	EmptyResponse      ErrorCode = -404
 	CanceledByBrowser  ErrorCode = -5011
