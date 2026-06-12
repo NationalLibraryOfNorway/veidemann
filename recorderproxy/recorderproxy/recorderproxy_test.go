@@ -74,8 +74,10 @@ func TestRecorderProxy(t *testing.T) {
 	defer s.Close()
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
-	client, recorderProxy := localRecorderProxy(grpcServices.ClientConn, "")
-	recorderProxy.Start()
+	client, recorderProxy, err := localRecorderProxy(t, grpcServices.ClientConn, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
+	}
 	defer client.CloseIdleConnections()
 	defer recorderProxy.Close()
 
@@ -344,8 +346,10 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 	defer grpcServices.Close()
 	nextProxy, nextProxyAddr := testutil.NewSecondaryProxy(t, s)
 	defer nextProxy.Close()
-	client, recorderProxy := localRecorderProxy(grpcServices.ClientConn, nextProxyAddr)
-	recorderProxy.Start()
+	client, recorderProxy, err := localRecorderProxy(t, grpcServices.ClientConn, nextProxyAddr)
+	if err != nil {
+		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
+	}
 	defer client.CloseIdleConnections()
 	defer recorderProxy.Close()
 
@@ -601,8 +605,10 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 	defer s.Close()
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
-	client, recorderProxy := localRecorderProxy(grpcServices.ClientConn, "")
-	recorderProxy.Start()
+	client, recorderProxy, err := localRecorderProxy(t, grpcServices.ClientConn, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
+	}
 	defer client.CloseIdleConnections()
 	defer recorderProxy.Close()
 
@@ -1653,10 +1659,17 @@ func printRequest(req interface{}) string {
 }
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
-func localRecorderProxy(conn *serviceconnections.Connections, nextProxyAddr string) (client *http.Client, proxy *recorderproxy.RecorderProxy) {
+func localRecorderProxy(t testing.TB, conn *serviceconnections.Connections, nextProxyAddr string) (*http.Client, *recorderproxy.RecorderProxy, error) {
+	t.Helper()
+
 	proxy, err := recorderproxy.NewRecorderProxy(0, "localhost", 0, conn, nextProxyAddr)
 	if err != nil {
-		panic(fmt.Errorf("failed to create recorder proxy: %v", err))
+		return nil, nil, fmt.Errorf("failed to create recorder proxy: %v", err)
+	}
+
+	t.Logf("Local recorder proxy listening on %s", proxy.Addr)
+	if nextProxyAddr != "" {
+		t.Logf("Local recorder proxy forwarding to next proxy at %s", nextProxyAddr)
 	}
 	go func() {
 		if err := proxy.Start(); err != nil {
@@ -1664,10 +1677,13 @@ func localRecorderProxy(conn *serviceconnections.Connections, nextProxyAddr stri
 		}
 	}()
 	proxyUrl, _ := url.Parse("http://" + proxy.Addr)
-	fmt.Printf(" FIRST PROXY URL: %v\n", proxyUrl)
-	fmt.Printf("SECOND PROXY URL: %v\n", nextProxyAddr)
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:   acceptAllCerts,
+			Proxy:             http.ProxyURL(proxyUrl),
+			DisableKeepAlives: false,
+		},
+	}
 
-	tr := &http.Transport{TLSClientConfig: acceptAllCerts, Proxy: http.ProxyURL(proxyUrl), DisableKeepAlives: false}
-	client = &http.Client{Transport: tr}
-	return
+	return client, proxy, nil
 }
