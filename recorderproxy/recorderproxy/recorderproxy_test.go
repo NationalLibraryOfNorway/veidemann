@@ -303,9 +303,9 @@ func TestRecorderProxy(t *testing.T) {
 				t.Skip(tt.name)
 			}
 
-			fmt.Printf("Request %v\n", tt.url)
+			t.Logf("Request %v\n", tt.url)
 			statusCode, got, err := get(tt.url, client, tt.clientTimeout)
-			fmt.Println("GET", statusCode, string(got), err)
+			t.Logf("GET status=%v got=%v error=%v", statusCode, string(got), err)
 			if grpcServices.DoneBC != nil {
 				<-grpcServices.DoneBC
 			}
@@ -565,7 +565,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 				t.Skip(tt.name)
 			}
 
-			fmt.Printf("Request %v\n", tt.url)
+			t.Logf("Request %v\n", tt.url)
 			statusCode, got, err := get(tt.url, client, tt.clientTimeout)
 			if grpcServices.DoneBC != nil {
 				<-grpcServices.DoneBC
