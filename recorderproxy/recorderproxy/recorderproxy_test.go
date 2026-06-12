@@ -341,7 +341,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 	defer s.Close()
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
-	nextProxy, nextProxyAddr := testutil.NewSecondaryProxy(s)
+	nextProxy, nextProxyAddr := testutil.NewSecondaryProxy(t, s)
 	defer nextProxy.Close()
 	client, recorderProxy := localRecorderProxy(grpcServices.ClientConn, nextProxyAddr)
 	recorderProxy.Start()

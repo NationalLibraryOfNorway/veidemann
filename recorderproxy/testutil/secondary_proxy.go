@@ -21,12 +21,12 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"testing"
 	"time"
 
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
@@ -37,7 +37,9 @@ import (
 
 var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 
-func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
+func NewSecondaryProxy(t testing.TB, s *HttpServers) (net.Listener, string) {
+	t.Helper()
+
 	var ff filters.FilterFunc
 	ff = func(cs *filters.ConnectionState, req *http.Request, next filters.Next) (r *http.Response, nextCS *filters.ConnectionState, e error) {
 		r, nextCS, e = next(cs, req)
@@ -52,27 +54,20 @@ func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
 	opts := &proxy.Opts{
 		OnError: func(cs *filters.ConnectionState, req *http.Request, read bool, err error) (r *http.Response) {
 			var eofRegex = regexp.MustCompile("Unable to round-trip .*: EOF")
-			fmt.Printf("SECOND PROXY ERR: %v %v %v\n", req, read, err)
+			t.Logf("Second Proxy: OnError: req: %v, read: %v, err: %v", req, read, err)
 			switch s := err.Error(); {
 			case strings.Contains(s, "tls: handshake failure"):
-				fmt.Println("CASE 1")
 				r, _, _ = filters.Fail(cs, req, 503, errors.New("tls: handshake failure"))
 				r.Header.Set("X-Squid-Error", "ERR_CONNECT_FAIL 111")
 			case strings.Contains(s, "connect: connection refused"):
-				fmt.Println("CASE 2")
-				//r, _, _ = filters.Fail(ctx, req, 555, errors.New("dial tcp 158.39.123.157:4151: connect: connection refused"))
 				r, _, _ = filters.Fail(cs, req, 503, err.(gerr.Error).RootCause().(*net.OpError).Err)
 				r.Header.Set("X-Squid-Error", "ERR_CONNECT_FAIL 111")
 			case strings.Contains(s, "first record does not look like a TLS handshake"):
-				fmt.Println("CASE 3")
 				downstreamConn.Write([]byte("HTTP/"))
 			case eofRegex.MatchString(s):
 				r, _, _ = filters.Fail(cs, req, 502, errors.New("ERR_ZERO_SIZE_OBJECT 0"))
 				r.Header.Set("X-Squid-Error", "ERR_ZERO_SIZE_OBJECT 0")
 			default:
-				fmt.Println("CASE default")
-
-				fmt.Printf("SECOND PROXY ERR: %v\n", s)
 				r, _, _ = filters.Fail(cs, req, 555, err)
 			}
 			return
@@ -111,14 +106,18 @@ func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
 			var err error
 			downstreamConn, err = l.Accept()
 			if err != nil {
-				log.Printf("unable to accept: %v", err)
+				if errors.Is(err, net.ErrClosed) {
+					t.Log("Secondary proxy: listener closed")
+					return
+				}
+				t.Logf("Secondary proxy: unable to accept: %v", err)
 				break
 			}
-			downstreamConn = &badCertConn{Conn: downstreamConn, s: s}
+			downstreamConn = &badCertConn{Conn: downstreamConn, s: s, t: t}
 			go func() {
 				err := p2.Handle(context.Background(), downstreamConn, downstreamConn)
 				if err != nil {
-					log.Printf("SP error handling request: %v", err)
+					t.Logf("Secondary proxy: error handling request: %v", err)
 				}
 			}()
 		}
@@ -133,6 +132,7 @@ type badCertConn struct {
 	s                   *HttpServers
 	readCount           int
 	shouldReturnBadCert bool
+	t                   testing.TB
 }
 
 func (conn *badCertConn) Read(b []byte) (n int, err error) {
@@ -144,7 +144,7 @@ func (conn *badCertConn) Read(b []byte) (n int, err error) {
 			conn.shouldReturnBadCert = true
 		}
 		if conn.shouldReturnBadCert && conn.readCount == 2 {
-			fmt.Println("Sending bad certificate")
+			conn.t.Log("Second Proxy: Sending bad certificate")
 			conn.Write([]byte("HTTP/"))
 		}
 	}
