@@ -82,7 +82,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "http:success",
 			url:                     s.SrvHttp.URL + "/a",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from http server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   141,
@@ -92,7 +92,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "https:success",
 			url:                     s.SrvHttps.URL + "/b",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from https server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   142,
@@ -120,7 +120,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "http:not found",
 			url:                     s.SrvHttp.URL + "/c",
-			wantStatus:              404,
+			wantStatus:              http.StatusNotFound,
 			wantContent:             "404 page not found\n",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   176,
@@ -130,7 +130,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "https:not found",
 			url:                     s.SrvHttps.URL + "/c",
-			wantStatus:              404,
+			wantStatus:              http.StatusNotFound,
 			wantContent:             "404 page not found\n",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   176,
@@ -140,7 +140,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "http:replace",
 			url:                     s.SrvHttp.URL + "/replace",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "should be replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
@@ -150,7 +150,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "https:replace",
 			url:                     s.SrvHttps.URL + "/replace",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "should be replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
@@ -160,7 +160,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:        "http:server timeout",
 			url:         s.SrvHttp.URL + "/extraslow",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
 			wantErr:     false,
 			skip:        false,
@@ -168,7 +168,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:        "https:server timeout",
 			url:         s.SrvHttps.URL + "/extraslow",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
 			wantErr:     false,
 			skip:        true, // TODO fix this test
@@ -176,7 +176,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:        "http:browser controller cancel",
 			url:         s.SrvHttp.URL + "/cancel",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -5011, Msg: CANCELLED_BY_BROWSER, Detail: Cancelled by browser controller",
 			wantErr:     false,
 			skip:        false,
@@ -186,7 +186,7 @@ func TestRecorderProxy(t *testing.T) {
 			url:  s.SrvHttps.URL + "/cancel",
 			//wantStatus:  503,
 			//wantContent: "Code:-5011, Msg: CANCELED_BY_BROWSER, Detail: canceled by browser controller",
-			wantStatus:  200,
+			wantStatus:  http.StatusOK,
 			wantContent: "content from https server",
 			wantErr:     false,
 			skip:        true, // TODO fix this test
@@ -194,7 +194,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:        "http:blocked by robots.txt",
 			url:         s.SrvHttp.URL + "/blocked",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
 			wantErr:     false,
 			skip:        false,
@@ -202,7 +202,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:        "https:blocked by robots.txt",
 			url:         s.SrvHttps.URL + "/blocked",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
 			wantErr:     false,
 			skip:        false,
@@ -210,7 +210,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "http:browser controller error",
 			url:                     s.SrvHttp.URL + "/bccerr",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from http server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   141,
@@ -220,7 +220,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "https:browser controller error",
 			url:                     s.SrvHttps.URL + "/bccerr",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from https server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   142,
@@ -230,7 +230,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                  "http:content writer error",
 			url:                   s.SrvHttp.URL + "/cwerr",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from http server",
 			wantResponseBlockSize: 141,
 			wantErr:               false,
@@ -239,7 +239,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                  "https:content writer error",
 			url:                   s.SrvHttps.URL + "/cwerr",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from https server",
 			wantResponseBlockSize: 142,
 			wantErr:               false,
@@ -248,7 +248,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                  "http:cached",
 			url:                   s.SrvHttp.URL + "/cached",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from http server",
 			wantResponseBlockSize: 219,
 			wantErr:               false,
@@ -256,7 +256,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                  "https:cached",
 			url:                   s.SrvHttps.URL + "/cached",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from https server",
 			wantResponseBlockSize: 219,
 			wantErr:               false,
@@ -264,7 +264,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                  "http:no host",
 			url:                   s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
-			wantStatus:            503,
+			wantStatus:            http.StatusServiceUnavailable,
 			wantContent:           "Code: -5, Msg: UNKNOWN_ERROR, Detail: connection refused",
 			wantResponseBlockSize: 138,
 			wantErr:               false,
@@ -280,7 +280,7 @@ func TestRecorderProxy(t *testing.T) {
 		{
 			name:                    "https:handshake failure",
 			url:                     s.SrvHttpsBadCert.URL + "/b",
-			wantStatus:              503,
+			wantStatus:              http.StatusServiceUnavailable,
 			wantContent:             "Code: -2, Msg: CONNECT_FAILED, Detail: tls: handshake failure",
 			wantResponseBlockDigest: false,
 			wantResponseBlockSize:   144,
@@ -352,7 +352,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "http:success",
 			url:                     s.SrvHttp.URL + "/a",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from http server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   141,
@@ -361,7 +361,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "https:success",
 			url:                     s.SrvHttps.URL + "/b",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from https server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   142,
@@ -388,7 +388,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "http:not found",
 			url:                     s.SrvHttp.URL + "/c",
-			wantStatus:              404,
+			wantStatus:              http.StatusNotFound,
 			wantContent:             "404 page not found\n",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   176,
@@ -397,7 +397,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "https:not found",
 			url:                     s.SrvHttps.URL + "/c",
-			wantStatus:              404,
+			wantStatus:              http.StatusNotFound,
 			wantContent:             "404 page not found\n",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   176,
@@ -406,7 +406,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "http:replace",
 			url:                     s.SrvHttp.URL + "/replace",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "should be replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
@@ -415,7 +415,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "https:replace",
 			url:                     s.SrvHttps.URL + "/replace",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "should be replaced",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   135,
@@ -424,7 +424,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "http:server timeout",
 			url:         s.SrvHttp.URL + "/extraslow",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
 			wantErr:     false,
 			skip:        false,
@@ -432,7 +432,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "https:server timeout",
 			url:         s.SrvHttps.URL + "/extraslow",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
 			wantErr:     false,
 			skip:        true, // TODO fix this test
@@ -440,7 +440,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "http:browser controller cancel",
 			url:         s.SrvHttp.URL + "/cancel",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -5011, Msg: CANCELLED_BY_BROWSER, Detail: Cancelled by browser controller",
 			wantErr:     false,
 			skip:        false,
@@ -448,7 +448,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "https:browser controller cancel",
 			url:         s.SrvHttps.URL + "/cancel",
-			wantStatus:  200,
+			wantStatus:  http.StatusOK,
 			wantContent: "content from https server",
 			wantErr:     false,
 			skip:        true, // TODO fix this test
@@ -456,7 +456,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "http:blocked by robots.txt",
 			url:         s.SrvHttp.URL + "/blocked",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
 			wantErr:     false,
 			skip:        false,
@@ -464,7 +464,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:        "https:blocked by robots.txt",
 			url:         s.SrvHttps.URL + "/blocked",
-			wantStatus:  503,
+			wantStatus:  http.StatusServiceUnavailable,
 			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
 			wantErr:     false,
 			skip:        false,
@@ -472,7 +472,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "http:browser controller error",
 			url:                     s.SrvHttp.URL + "/bccerr",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from http server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   141,
@@ -481,7 +481,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                    "https:browser controller error",
 			url:                     s.SrvHttps.URL + "/bccerr",
-			wantStatus:              200,
+			wantStatus:              http.StatusOK,
 			wantContent:             "content from https server",
 			wantResponseBlockDigest: true,
 			wantResponseBlockSize:   142,
@@ -490,7 +490,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                  "http:content writer error",
 			url:                   s.SrvHttp.URL + "/cwerr",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from http server",
 			wantResponseBlockSize: 141,
 			wantErr:               false,
@@ -499,7 +499,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                  "https:content writer error",
 			url:                   s.SrvHttps.URL + "/cwerr",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from https server",
 			wantResponseBlockSize: 142,
 			wantErr:               false,
@@ -508,7 +508,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                  "http:cached",
 			url:                   s.SrvHttp.URL + "/cached",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from http server",
 			wantResponseBlockSize: 219,
 			wantErr:               false,
@@ -516,7 +516,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                  "https:cached",
 			url:                   s.SrvHttps.URL + "/cached",
-			wantStatus:            200,
+			wantStatus:            http.StatusOK,
 			wantContent:           "content from https server",
 			wantResponseBlockSize: 219,
 			wantErr:               false,
@@ -524,7 +524,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		{
 			name:                  "http:no host",
 			url:                   s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
-			wantStatus:            503,
+			wantStatus:            http.StatusServiceUnavailable,
 			wantContent:           "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
 			wantResponseBlockSize: 140,
 			wantErr:               false,
@@ -608,7 +608,7 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 	tt := test{
 		name:                    "https:harvest headers bypass browser controller register",
 		url:                     s.SrvHttps.URL + "/blocked",
-		wantStatus:              200,
+		wantStatus:              http.StatusOK,
 		wantContent:             "content from https server",
 		wantResponseBlockDigest: true,
 		wantResponseBlockSize:   142,
