@@ -37,6 +37,7 @@ import (
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -915,7 +916,7 @@ func (test *test) generateClientTimeoutRequests() {
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, alreadyConnected),
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     -5011,
+			StatusCode:     errors.CanceledByBrowser.Int32(),
 			RequestedUri:   targetURI,
 			Method:         "GET",
 			RecordType:     "response",
@@ -923,7 +924,7 @@ func (test *test) generateClientTimeoutRequests() {
 			ExecutionId:    "eid",
 			JobExecutionId: "jid",
 			Error: &commonsV1.Error{
-				Code:   -5011,
+				Code:   errors.CanceledByBrowser.Int32(),
 				Msg:    "CANCELED_BY_BROWSER",
 				Detail: "Veidemann recorder proxy lost connection to client",
 			},
@@ -1022,7 +1023,7 @@ func (test *test) generateServerTimeoutRequests() {
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, alreadyConnected),
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     -404,
+			StatusCode:     errors.EmptyResponse.Int32(),
 			RequestedUri:   targetURI,
 			Method:         "GET",
 			RecordType:     "response",
@@ -1070,12 +1071,12 @@ func (test *test) generateBrowserControllerCancelRequests() {
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, false),
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:   -5011,
+			StatusCode:   errors.CanceledByBrowser.Int32(),
 			Method:       "GET",
 			RequestedUri: targetURI,
 			RecordType:   "response",
 			Error: &commonsV1.Error{
-				Code:   -5011,
+				Code:   errors.CanceledByBrowser.Int32(),
 				Msg:    "CANCELLED_BY_BROWSER",
 				Detail: "Cancelled by browser controller",
 			},
@@ -1096,12 +1097,12 @@ func (test *test) generateBlockedByRobotsTxtRequests() {
 	)
 	r.BrowserControllerRequests = append(r.BrowserControllerRequests,
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:   -9998,
+			StatusCode:   errors.PrecludedByRobots.Int32(),
 			Method:       "GET",
 			RequestedUri: targetURI,
 			RecordType:   "response",
 			Error: &commonsV1.Error{
-				Code:   -9998,
+				Code:   errors.PrecludedByRobots.Int32(),
 				Msg:    "PRECLUDED_BY_ROBOTS",
 				Detail: "Robots.txt rules precluded fetch",
 			},
@@ -1189,7 +1190,7 @@ func (test *test) generateContentWriterErrorRequests() {
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, alreadyConnected),
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     -5,
+			StatusCode:     errors.RuntimeException.Int32(),
 			Method:         "GET",
 			RequestedUri:   targetURI,
 			RecordType:     "response",
@@ -1197,7 +1198,7 @@ func (test *test) generateContentWriterErrorRequests() {
 			ExecutionId:    "eid",
 			JobExecutionId: "jid",
 			Error: &commonsV1.Error{
-				Code:   -5,
+				Code:   errors.RuntimeException.Int32(),
 				Msg:    "Error writing to content writer",
 				Detail: "rpc error: code = InvalidArgument desc = Fake error",
 			},
@@ -1300,7 +1301,7 @@ func (test *test) generateConnectionRefusedRequests() {
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, false),
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     -5,
+			StatusCode:     errors.RuntimeException.Int32(),
 			Method:         "GET",
 			RequestedUri:   test.url,
 			RecordType:     "response",
@@ -1351,7 +1352,7 @@ func (test *test) generateConnectionRefusedThroughProxyRequests() {
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, false),
 		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     -404,
+			StatusCode:     errors.EmptyResponse.Int32(),
 			Method:         "GET",
 			RequestedUri:   test.url,
 			RecordType:     "response",
