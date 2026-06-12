@@ -18,7 +18,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -72,7 +72,7 @@ func get(url string, client *http.Client, timeout time.Duration) (int, []byte, e
 		onError(span, err)
 		return 0, nil, err
 	}
-	txt, err := ioutil.ReadAll(resp.Body)
+	txt, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 
 	if err != nil {

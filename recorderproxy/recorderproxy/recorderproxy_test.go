@@ -20,7 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -1639,7 +1639,7 @@ func getWithHeaders(uri string, client *http.Client, headers http.Header, timeou
 	if err != nil {
 		return 0, nil, err
 	}
-	txt, err := ioutil.ReadAll(resp.Body)
+	txt, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		return 0, nil, err
