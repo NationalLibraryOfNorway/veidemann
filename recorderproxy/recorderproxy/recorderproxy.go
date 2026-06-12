@@ -52,7 +52,7 @@ type RecorderProxy struct {
 	shouldRun         bool
 }
 
-func NewRecorderProxy(id int, addr string, port int, conn *serviceconnections.Connections, connectionTimeout time.Duration, nextProxyAddr string) *RecorderProxy {
+func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Connections, nextProxyAddr string) *RecorderProxy {
 	port += id
 
 	r := &RecorderProxy{

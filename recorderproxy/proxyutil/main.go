@@ -119,7 +119,7 @@ func main() {
 }
 
 func newProxy(mock *testutil.GrpcServiceMock) (*recorderproxy.RecorderProxy, *http.Client) {
-	p := recorderproxy.NewRecorderProxy(0, viper.GetString("interface"), viper.GetInt("port"), mock.ClientConn, 1*time.Minute, viper.GetString("proxy"))
+	p := recorderproxy.NewRecorderProxy(0, viper.GetString("interface"), viper.GetInt("port"), mock.ClientConn, viper.GetString("proxy"))
 
 	p.Start()
 

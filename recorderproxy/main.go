@@ -103,7 +103,7 @@ func main() {
 	firstPort := viper.GetInt("port")
 	proxyCount := viper.GetInt("proxy-count")
 	for i := 0; i < proxyCount; i++ {
-		r := recorderproxy.NewRecorderProxy(i, iface, firstPort, conn, timeout, cacheAddr)
+		r := recorderproxy.NewRecorderProxy(i, iface, firstPort, conn, cacheAddr)
 		r.Start()
 		startedProxies = append(startedProxies, r)
 	}
