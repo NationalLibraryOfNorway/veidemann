@@ -332,9 +332,9 @@ func TestRecorderProxy(t *testing.T) {
 					return
 				}
 			}
-			compareDNS(t, "DnsResolver", tt, tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
+			compareDNS(t, "DnsResolver", tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
 			compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
-			compareCW(t, "ContentWriter", tt, tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
+			compareCW(t, "ContentWriter", tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
 		})
 	}
 }
@@ -593,9 +593,9 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 					return
 				}
 			}
-			compareDNS(t, "DnsResolver", tt, tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
+			compareDNS(t, "DnsResolver", tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
 			compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
-			compareCW(t, "ContentWriter", tt, tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
+			compareCW(t, "ContentWriter", tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
 		})
 	}
 }
@@ -650,9 +650,9 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 		t.Fatalf("Expected '%s' to start with '%s'", got, tt.wantContent)
 	}
 
-	compareDNS(t, "DnsResolver", tt, tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
+	compareDNS(t, "DnsResolver", tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
 	compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
-	compareCW(t, "ContentWriter", tt, tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
+	compareCW(t, "ContentWriter", tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
 }
 
 /**
@@ -682,7 +682,7 @@ func (test *test) generateExpectedRequests() {
 	case strings.HasSuffix(n, ":no host"):
 		test.generateConnectionRefusedRequests()
 	case strings.HasSuffix(n, ":handshake failure"):
-		test.generateHandshakeFailureRequests("tls: handshake failure")
+		test.generateHandshakeFailureRequests()
 	default:
 		test.generateSuccessRequests()
 	}
@@ -711,7 +711,7 @@ func (test *test) generateExpectedRequestsForRecorderProxyThroughProxy() {
 	case strings.HasSuffix(n, ":no host"):
 		test.generateConnectionRefusedThroughProxyRequests()
 	case strings.HasSuffix(n, ":handshake failure"):
-		test.generateHandshakeFailureRequests("tls: handshake failure")
+		test.generateHandshakeFailureRequests()
 	default:
 		test.generateSuccessRequests()
 	}
@@ -736,13 +736,7 @@ func isHttps(uri string) (ok bool, pathStrippedUrl string) {
 	return
 }
 
-func expectedTargetURI(rawURL string, alreadyConnected bool) string {
-	return rawURL
-}
-
-func expectedIP(rawURL string, alreadyConnected bool) string {
-	_, _ = isHttps(rawURL)
-	_ = alreadyConnected
+func expectedIP(_ string) string {
 	return "127.0.0.1"
 }
 
@@ -811,7 +805,7 @@ func generateBccNewRequestsWithConnectionState(rawURL string, alreadyConnected b
 		if !alreadyConnected {
 			r = append(r, generateBccRegisterRequest(http.MethodConnect, u, false))
 		}
-		r = append(r, generateBccRegisterRequest(http.MethodGet, expectedTargetURI(rawURL, alreadyConnected), true))
+		r = append(r, generateBccRegisterRequest(http.MethodGet, rawURL, true))
 		return r
 	}
 	r = append(r, generateBccRegisterRequest(http.MethodGet, rawURL, false))
@@ -849,8 +843,8 @@ func generateCwProtocolHeaderResponse(status int, contentLength int) *contentwri
 func (test *test) generateSuccessRequests() {
 	u, _ := test.parseUrlAndPort()
 	alreadyConnected := false
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 
 	r := &testutil.Requests{}
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
@@ -915,8 +909,8 @@ func (test *test) generateSuccessRequests() {
 func (test *test) generateClientTimeoutRequests() {
 	r := &testutil.Requests{}
 	alreadyConnected := true
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
@@ -956,8 +950,8 @@ func (test *test) generateClientTimeoutRequests() {
 func (test *test) generateReplaceRequests() {
 	u, _ := test.parseUrlAndPort()
 	alreadyConnected := true
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 
 	r := &testutil.Requests{}
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
@@ -1022,8 +1016,8 @@ func (test *test) generateReplaceRequests() {
 func (test *test) generateServerTimeoutRequests() {
 	r := &testutil.Requests{}
 	alreadyConnected := true
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
@@ -1072,7 +1066,7 @@ func (test *test) generateGrpcServiceTimeoutRequests() {
 
 func (test *test) generateBrowserControllerCancelRequests() {
 	r := &testutil.Requests{}
-	targetURI := expectedTargetURI(test.url, false)
+	targetURI := test.url
 
 	r.BrowserControllerRequests = append(
 		generateBccNewRequests(test.url, false),
@@ -1096,7 +1090,7 @@ func (test *test) generateBrowserControllerCancelRequests() {
 
 func (test *test) generateBlockedByRobotsTxtRequests() {
 	r := &testutil.Requests{}
-	targetURI := expectedTargetURI(test.url, true)
+	targetURI := test.url
 	https, _ := isHttps(test.url)
 	r.BrowserControllerRequests = append(r.BrowserControllerRequests,
 		generateBccRegisterRequest(http.MethodGet, targetURI, https),
@@ -1123,8 +1117,8 @@ func (test *test) generateBlockedByRobotsTxtRequests() {
 func (test *test) generateBrowserControllerErrorRequests() {
 	u, _ := test.parseUrlAndPort()
 	alreadyConnected := false
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 	r := &testutil.Requests{}
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
@@ -1188,8 +1182,8 @@ func (test *test) generateBrowserControllerErrorRequests() {
 func (test *test) generateContentWriterErrorRequests() {
 	u, _ := test.parseUrlAndPort()
 	alreadyConnected := strings.HasPrefix(test.name, "https:")
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 	r := &testutil.Requests{}
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
@@ -1252,8 +1246,8 @@ func (test *test) generateContentWriterErrorRequests() {
 func (test *test) generateCachedRequests() {
 	u, _ := test.parseUrlAndPort()
 	alreadyConnected := true
-	targetURI := expectedTargetURI(test.url, alreadyConnected)
-	ipAddress := expectedIP(test.url, alreadyConnected)
+	targetURI := test.url
+	ipAddress := expectedIP(test.url)
 	r := &testutil.Requests{}
 	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
 
@@ -1386,7 +1380,7 @@ func (test *test) generateConnectionRefusedThroughProxyRequests() {
 	test.wantGrpcRequests = r
 }
 
-func (test *test) generateHandshakeFailureRequests(errorMessage string) {
+func (test *test) generateHandshakeFailureRequests() {
 	u, p := test.parseUrlAndPort()
 	r := &testutil.Requests{}
 	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
@@ -1406,7 +1400,7 @@ func (test *test) generateHandshakeFailureRequests(errorMessage string) {
 	test.wantGrpcRequests = r
 }
 
-func compareCW(t *testing.T, serviceName string, tt test, want []*contentwriterV1.WriteRequest, got []*contentwriterV1.WriteRequest) {
+func compareCW(t *testing.T, serviceName string, want []*contentwriterV1.WriteRequest, got []*contentwriterV1.WriteRequest) {
 	if len(want) == 0 && len(got) == 0 {
 		return
 	}
@@ -1478,7 +1472,7 @@ func listGotWant(t *testing.T, got, want interface{}) {
 	}
 }
 
-func compareDNS(t *testing.T, serviceName string, tt test, want []*dnsresolverV1.ResolveRequest, got []*dnsresolverV1.ResolveRequest) {
+func compareDNS(t *testing.T, serviceName string, want []*dnsresolverV1.ResolveRequest, got []*dnsresolverV1.ResolveRequest) {
 	for i, r := range want {
 		if i >= len(got) {
 			t.Errorf("%s service received too few requests. Got %d, want %d.\nFirst missing request is:\n%v", serviceName,
