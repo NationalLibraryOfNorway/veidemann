@@ -93,7 +93,7 @@ func NewSecondaryProxy(s *HttpServers) (net.Listener, string) {
 			timeout := 30 * time.Second
 			deadline, hasDeadline := context.Deadline()
 			if hasDeadline {
-				timeout = deadline.Sub(time.Now())
+				timeout = time.Until(deadline)
 			}
 			conn, err = net.DialTimeout(network, addr, timeout)
 			return conn, err
