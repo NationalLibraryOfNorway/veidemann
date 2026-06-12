@@ -1,64 +1,56 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/opentracing/opentracing-go"
-	flag "github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"github.com/spf13/pflag"
 	"github.com/uber/jaeger-client-go/config"
 )
 
-var startedProxies []*recorderproxy.RecorderProxy
+var (
+	name    = "recorderproxy"
+	version = ""
+	commit  = ""
+	date    = ""
+)
 
 func main() {
-	flag.BoolP("help", "h", false, "Usage instructions")
-	flag.String("interface", "", "interface this proxy listens to. No value means all interfaces.")
-	flag.Int("port", 8080, "first proxy listen port")
-	flag.Int("proxy-count", 10, "number of proxies to start")
-	flag.String("content-writer-host", "localhost", "Content writer host")
-	flag.String("content-writer-port", "7777", "Content writer port")
-	flag.String("dns-resolver-host", "localhost", "DNS resolver host")
-	flag.String("dns-resolver-port", "7778", "DNS resolver port")
-	flag.String("browser-controller-host", "localhost", "Browser controller host")
-	flag.String("browser-controller-port", "7779", "Browser controller port")
-	flag.String("ca", "", "Path to CA certificate used for signing client connections")
-	flag.String("ca-key", "", "Path to private key for CA certificate used for signing client connections")
-	flag.String("cache-host", "", "Cache host")
-	flag.String("cache-port", "", "Cache port")
-	flag.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
-	flag.String("log-formatter", "text", "log formatter, available values are text, logfmt and json")
-	flag.Bool("log-method", false, "log method name")
-	flag.Parse()
-
-	replacer := strings.NewReplacer("-", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	viper.AutomaticEnv()
-	err := viper.BindPFlags(flag.CommandLine)
+	err := run()
 	if err != nil {
-		logger.LogWithComponent("INIT").Errorf("Could not parse flags: %s", err)
+		slog.Error("Bye", "error", err)
 		os.Exit(1)
 	}
+	slog.Info("Goodbye!")
+}
 
-	if viper.GetBool("help") {
-		flag.Usage()
-		return
-	}
-
-	err = logger.InitLog(viper.GetString("log-level"), viper.GetString("log-formatter"), viper.GetBool("log-method"))
+func run() error {
+	opts, err := parseFlags()
 	if err != nil {
-		logger.LogWithComponent("INIT").Errorf("Could not init logger: %s", err)
-		flag.Usage()
-		os.Exit(1)
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
+
+	if opts.Help() {
+		pflag.Usage()
+		return nil
+	}
+
+	err = logger.InitLog(opts.LogLevel(), opts.LogFormatter(), opts.LogMethod())
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	slog.Info(name, "version", version, "commit", commit, "date", date)
 
 	closer := initTracer(name)
 	if closer != nil {
@@ -70,22 +62,20 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	cacheAddr := viper.GetString("cache-host") + ":" + viper.GetString("cache-port")
-
 	contentWriterOpts := serviceconnections.NewConnectionOptions(
 		"ContentWriter",
-		serviceconnections.WithHost(viper.GetString("content-writer-host")),
-		serviceconnections.WithPort(viper.GetString("content-writer-port")),
+		serviceconnections.WithHost(opts.ContentWriterHost()),
+		serviceconnections.WithPort(opts.ContentWriterPort()),
 	)
 	dnsOpts := serviceconnections.NewConnectionOptions(
 		"DnsService",
-		serviceconnections.WithHost(viper.GetString("dns-resolver-host")),
-		serviceconnections.WithPort(viper.GetString("dns-resolver-port")),
+		serviceconnections.WithHost(opts.DnsResolverHost()),
+		serviceconnections.WithPort(opts.DnsResolverPort()),
 	)
 	browserControllerOpts := serviceconnections.NewConnectionOptions(
 		"BrowserController",
-		serviceconnections.WithHost(viper.GetString("browser-controller-host")),
-		serviceconnections.WithPort(viper.GetString("browser-controller-port")),
+		serviceconnections.WithHost(opts.BrowserControllerHost()),
+		serviceconnections.WithPort(opts.BrowserControllerPort()),
 	)
 
 	conn := serviceconnections.NewConnections(contentWriterOpts, dnsOpts, browserControllerOpts)
@@ -98,19 +88,24 @@ func main() {
 
 	err = conn.Connect()
 	if err != nil {
-		log.Fatalf("Could not connect to services: %v", err)
+		return fmt.Errorf("failed to connect to services: %w", err)
 	}
 
-	fmt.Printf("Using cache at %s\n", cacheAddr)
+	cacheAddr := opts.CacheHost() + ":" + opts.CachePort()
+	slog.Info("Using cache", "address", cacheAddr)
 
-	iface := viper.GetString("interface")
-	firstPort := viper.GetInt("port")
-	proxyCount := viper.GetInt("proxy-count")
-	for i := 0; i < proxyCount; i++ {
+	iface := opts.Interface()
+	firstPort := opts.Port()
+	proxyCount := opts.ProxyCount()
+
+	var startedProxies []*recorderproxy.RecorderProxy
+
+	for i := range proxyCount {
 		r, err := recorderproxy.NewRecorderProxy(i, iface, firstPort, conn, cacheAddr)
 		if err != nil {
-			log.Fatalf("Failed to create recorder proxy: %v: %v", i, err)
+			return fmt.Errorf("failed to create recorder proxy %v: %w", i, err)
 		}
+		slog.Info("Proxy is listening ...", "id", i, "address", r.Addr)
 
 		go func() {
 			err := r.Start()
@@ -122,24 +117,21 @@ func main() {
 		startedProxies = append(startedProxies, r)
 	}
 
-	fmt.Printf("Veidemann recorder proxy started\n")
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	func() {
-		for sig := range c {
-			// sig is a ^C, handle it
-			fmt.Printf("SIG: %v\n", sig)
-			close()
-			return
+	slog.Info("Server ready", "proxies", proxyCount)
+	<-ctx.Done()
+	slog.Info("Server shutting down")
+
+	for i, r := range startedProxies {
+		err = r.Close()
+		if err != nil {
+			slog.Error("Error closing recorder proxy", "error", err, "id", i)
 		}
-	}()
-}
-
-func close() {
-	for _, r := range startedProxies {
-		r.Close()
 	}
+
+	return nil
 }
 
 // initTracer initializes the global OpenTracing tracer using Jaeger configuration from environment variables.
