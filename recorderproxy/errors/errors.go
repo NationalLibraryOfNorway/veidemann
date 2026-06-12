@@ -17,12 +17,11 @@
 package errors
 
 import (
+	stderrors "errors"
 	"fmt"
 	"net/http"
 
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
-
-	gerrs "github.com/pkg/errors"
 )
 
 // ProxyError is the struct of recorder proxy error
@@ -30,8 +29,8 @@ type ProxyError struct {
 	code       ErrorCode
 	message    string
 	detail     string
-	cause      error // the root cause for this error
-	statusCode int   // http status code
+	cause      error
+	statusCode int
 }
 
 func (e *ProxyError) Error() string {
@@ -39,11 +38,14 @@ func (e *ProxyError) Error() string {
 	if e.detail != "" {
 		errMsg = errMsg + ", Detail: " + e.detail
 	}
-	if nil == e.cause {
-		return errMsg
+	if e.cause != nil {
+		return errMsg + ", Cause: " + e.cause.Error()
 	}
+	return errMsg
+}
 
-	return errMsg + ", Cause: " + e.cause.Error()
+func (e *ProxyError) Unwrap() error {
+	return e.cause
 }
 
 func (e *ProxyError) Cause() error {
@@ -62,39 +64,72 @@ func (e *ProxyError) Detail() string {
 	return e.detail
 }
 
-func (e *ProxyError) HttpStatusCode() string {
-	return e.detail
+func (e *ProxyError) HttpStatusCode() int {
+	return e.statusCode
 }
 
 // Cause returns the cause error of this error
 func Cause(err error) error {
-	return gerrs.Cause(err)
+	if err == nil {
+		return nil
+	}
+
+	for {
+		type causer interface {
+			Cause() error
+		}
+
+		if c, ok := err.(causer); ok {
+			next := c.Cause()
+			if next == nil {
+				return err
+			}
+			err = next
+			continue
+		}
+
+		next := stderrors.Unwrap(err)
+		if next == nil {
+			return err
+		}
+
+		err = next
+	}
 }
 
 // Code returns the error code
 func Code(err error) ErrorCode {
+	if err == nil {
+		return RuntimeException
+	}
+
 	type coder interface {
 		Code() ErrorCode
 	}
 
-	cd, ok := err.(coder)
-	if !ok {
+	var c coder
+	if !stderrors.As(err, &c) {
 		return RuntimeException
 	}
-	return cd.Code()
+
+	return c.Code()
 }
 
 // Message returns the error message
 func Message(err error) string {
-	type msg interface {
+	if err == nil {
+		return ""
+	}
+
+	type messenger interface {
 		Message() string
 	}
 
-	m, ok := err.(msg)
-	if !ok {
-		fmt.Printf("ERROR FROM MSG: %v\n", err)
+	var m messenger
+	if !stderrors.As(err, &m) {
 		return err.Error()
 	}
+
 	return m.Message()
 }
 
