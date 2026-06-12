@@ -11,10 +11,10 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
 	"github.com/opentracing/opentracing-go"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/uber/jaeger-client-go/config"
 )
 
 var startedProxies []*recorderproxy.RecorderProxy
@@ -60,9 +60,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	tracer, closer := tracing.Init("Recorder Proxy")
-	if tracer != nil {
-		opentracing.SetGlobalTracer(tracer)
+	closer := initTracer(name)
+	if closer != nil {
 		defer func() { _ = closer.Close() }()
 	}
 
@@ -141,4 +140,23 @@ func close() {
 	for _, r := range startedProxies {
 		r.Close()
 	}
+}
+
+// initTracer initializes the global OpenTracing tracer using Jaeger configuration from environment variables.
+func initTracer(service string) io.Closer {
+	cfg, err := config.FromEnv()
+	if err != nil {
+		return nil
+	}
+
+	if cfg.ServiceName == "" {
+		cfg.ServiceName = service
+	}
+
+	tracer, closer, err := cfg.NewTracer()
+	if err == nil {
+		opentracing.SetGlobalTracer(tracer)
+	}
+
+	return closer
 }
