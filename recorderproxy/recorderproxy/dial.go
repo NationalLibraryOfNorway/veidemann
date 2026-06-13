@@ -23,7 +23,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
@@ -32,39 +31,33 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, network, addr string) (conn net.Conn, err error) {
-	log := rpcontext.LogWithContext(context, "Dialer")
-	log.Debugf("dial upstream %v, is connect request: %v\n", addr, isConnect)
-	timeout := 30 * time.Second
-	deadline, hasDeadline := context.Deadline()
-	if hasDeadline {
-		timeout = time.Until(deadline)
-	}
+func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, addr string) (net.Conn, error) {
+	log := rpcontext.LogWithContext(ctx, "Dialer")
+	log.Debugf("dial upstream %v, is connect request: %v", addr, isConnect)
+
+	timeout := dialTimeout(ctx, 30*time.Second)
+
+	dialAddr := addr
 	if proxy.nextProxy != "" {
-		conn, err = net.DialTimeout(network, proxy.nextProxy, timeout)
-		if err != nil {
-			log.Errorf("Could not dial next proxy at %v: %v\n", proxy.nextProxy, err)
-			rpcontext.SetConnectError(context, err)
-			return conn, nil
+		dialAddr = proxy.nextProxy
+	}
+
+	conn, err := net.DialTimeout(network, dialAddr, timeout)
+	if err != nil {
+		rpcontext.SetConnectError(ctx, err)
+
+		if proxy.nextProxy != "" {
+			log.Errorf("could not dial next proxy at %v: %v", proxy.nextProxy, err)
+			return nil, nil
 		}
-	} else {
-		conn, err = net.DialTimeout(network, addr, timeout)
-		if err != nil {
-			log.Errorf("Could not dial %v: %v\n", addr, err)
-			rpcontext.SetConnectError(context, err)
-			if isConnect {
-				l := bufconn.Listen(0)
-				go func() {
-					c, _ := l.Accept()
-					c.Close()
-				}()
-				conn, _ = l.Dial()
-				conn = WrapConn(conn, "fake", true)
-				return conn, nil
-			} else {
-				return conn, err
-			}
+
+		log.Errorf("Failed to dial %v: %v", addr, err)
+
+		if isConnect {
+			return fakeConnectConn(), nil
 		}
+
+		return nil, err
 	}
 
 	if logger.IsLevelEnabled(logger.DebugLevel) {
@@ -72,105 +65,102 @@ func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, networ
 	}
 
 	if isConnect && proxy.nextProxy != "" {
-		ctx := rpcontext.WrapIfNecessary(context)
-		uri := rpcontext.GetUri(ctx)
-		req := NewConnectReq(uri.Host)
-		log.Debugf("sending CONNECT for host %v to upstream proxy", req.URL)
-		err = req.Write(conn)
-		if err != nil {
-			log.WithError(err).Warn("error while writing CONNECT request to upstream proxy")
-			return
-		}
-		r := bufio.NewReader(conn)
-		var resp *http.Response
-		resp, err = http.ReadResponse(r, req)
-		if err != nil {
-			log.WithError(err).Warn("error while reading CONNECT response from upstream proxy")
-			return
-		}
-		log.Debugf("response status from CONNECT request to upstream proxy was: %v", resp.Status)
-
-		squidErr := resp.Header.Get("X-Squid-Error")
-		if squidErr != "" {
-			err := handleSquidErrorString(squidErr)
-			if err != nil {
-				rpcontext.SetConnectError(context, err)
-				err = nil
-			}
+		if err := proxy.sendConnectToNextProxy(ctx, conn, log); err != nil {
 			return conn, err
 		}
-
-		if resp.StatusCode != 200 {
-			rpcontext.SetConnectError(context, errors.Error(errors.RuntimeException,
-				fmt.Sprintf("could not connect too upstream proxy (%d)", resp.StatusCode), squidErr))
-			return conn, nil
-		}
 	}
-	return conn, err
+
+	return conn, nil
 }
 
-func NewConnectReq(addr string) *http.Request {
-	req := new(http.Request)
-	req.Method = "CONNECT"
-	req.RequestURI = addr
-	req.Proto = "HTTP/1.1"
-	rawurl := req.RequestURI
-	var ok bool
-	if req.ProtoMajor, req.ProtoMinor, ok = http.ParseHTTPVersion(req.Proto); !ok {
-		fmt.Printf("malformed HTTP version: %v\n", req.Proto)
+func dialTimeout(ctx context.Context, fallback time.Duration) time.Duration {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return fallback
 	}
 
-	// CONNECT requests are used two different ways, and neither uses a full URL:
-	// The standard use is to tunnel HTTPS through an HTTP proxy.
-	// It looks like "CONNECT www.google.com:443 HTTP/1.1", and the parameter is
-	// just the authority section of a URL. This information should go in req.URL.Host.
-	//
-	// The net/rpc package also uses CONNECT, but there the parameter is a path
-	// that starts with a slash. It can be parsed with the regular URL parser,
-	// and the path will end up in req.URL.Path, where it needs to be in order for
-	// RPC to work.
-	justAuthority := req.Method == "CONNECT" && !strings.HasPrefix(rawurl, "/")
-	if justAuthority {
-		rawurl = "http://" + rawurl
+	timeout := time.Until(deadline)
+	if timeout <= 0 {
+		return 0
 	}
 
-	var err error
-	if req.URL, err = url.ParseRequestURI(rawurl); err != nil {
-		fmt.Println(err)
+	return timeout
+}
+
+func fakeConnectConn() net.Conn {
+	l := bufconn.Listen(0)
+
+	go func() {
+		c, err := l.Accept()
+		if err == nil {
+			_ = c.Close()
+		}
+		_ = l.Close()
+	}()
+
+	conn, _ := l.Dial()
+	return WrapConn(conn, "fake", true)
+}
+
+func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net.Conn, log *logger.Logger) error {
+	wrappedCtx := rpcontext.WrapIfNecessary(ctx)
+	uri := rpcontext.GetUri(wrappedCtx)
+
+	req := NewConnectReq(uri.Host)
+	log.Debugf("sending CONNECT for host %v to upstream proxy", req.URL)
+
+	if err := req.Write(conn); err != nil {
+		log.WithError(err).Warn("error while writing CONNECT request to upstream proxy")
+		return err
 	}
-	uri, _ := url.Parse("http:" + addr)
-	req.URL = uri
-	req.URL.Host = req.RequestURI
 
-	if justAuthority {
-		// Strip the bogus "http://" back off.
-		req.URL.Scheme = ""
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		log.WithError(err).Warn("error while reading CONNECT response from upstream proxy")
+		return err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	log.Debugf("response status from CONNECT request to upstream proxy was: %v", resp.Status)
+
+	squidErr := resp.Header.Get("X-Squid-Error")
+	if squidErr != "" {
+		if err := handleSquidErrorString(squidErr); err != nil {
+			rpcontext.SetConnectError(ctx, err)
+		}
+		return nil
 	}
 
-	// RFC 7230, section 5.3: Must treat
-	//	GET /index.html HTTP/1.1
-	//	Host: www.google.com
-	// and
-	//	GET http://www.google.com/index.html HTTP/1.1
-	//	Host: doesntmatter
-	// the same. In the second case, any Host line is ignored.
-	req.Host = req.URL.Host
-	//if req.Host == "" {
-	//	req.Host = req.Header.get("Host")
-	//}
-	//if deleteHostHeader {
-	//	delete(req.Header, "Host")
-	//}
-	//
-	//fixPragmaCacheControl(req.Header)
-	req.URL.RequestURI()
+	if resp.StatusCode != http.StatusOK {
+		rpcontext.SetConnectError(ctx, errors.Error(
+			errors.RuntimeException,
+			fmt.Sprintf("could not connect to upstream proxy (%d)", resp.StatusCode),
+			squidErr,
+		))
+		return nil
+	}
 
-	////req.Header.Add("Host", context2.GetHost(ctx) + ":" + context2.GetPort(ctx))
-	//req.Header.Add("Proxy-Connection", "keep-alive")
-	//req.RequestURI = uri.RequestURI()
-	//req.Host = context2.GetUri(ctx).Host
-	//
-	//log.Warnf("URI: '%v' '%v' %v, %v\n", req.Method, req.RequestURI, req.Header, uri.RequestURI())
+	return nil
+}
 
-	return req
+func NewConnectReq(authority string) *http.Request {
+	if authority == "" {
+		panic("BUG: empty CONNECT authority")
+	}
+
+	return &http.Request{
+		Method: http.MethodConnect,
+		URL: &url.URL{
+			Scheme: "http",
+			Opaque: authority,
+			Host:   authority,
+		},
+		Host:       authority,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+	}
 }
