@@ -27,7 +27,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
@@ -163,21 +162,21 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 	if m.contentWriterOpts == nil {
 		m.contentWriterOpts = serviceconnections.NewConnectionOptions(
 			"ContentWriter",
-			serviceconnections.WithConnectTimeout(1*time.Minute),
+			serviceconnections.WithHost("passthrough://bufnet"),
 			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("ContentWriter", logger.DebugLevel)),
 		)
 	}
 	if m.dnsOpts == nil {
 		m.dnsOpts = serviceconnections.NewConnectionOptions(
 			"DnsService",
-			serviceconnections.WithConnectTimeout(1*time.Minute),
+			serviceconnections.WithHost("passthrough://bufnet"),
 			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("DnsService", logger.DebugLevel)),
 		)
 	}
 	if m.browserControllerOpts == nil {
 		m.browserControllerOpts = serviceconnections.NewConnectionOptions(
 			"BrowserController",
-			serviceconnections.WithConnectTimeout(1*time.Minute),
+			serviceconnections.WithHost("passthrough://bufnet"),
 			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("BrowserController", logger.DebugLevel)),
 		)
 	}

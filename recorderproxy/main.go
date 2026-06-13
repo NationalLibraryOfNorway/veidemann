@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
@@ -31,7 +30,6 @@ func main() {
 	flag.String("dns-resolver-port", "7778", "DNS resolver port")
 	flag.String("browser-controller-host", "localhost", "Browser controller host")
 	flag.String("browser-controller-port", "7779", "Browser controller port")
-	flag.Duration("timeout", 10*time.Minute, "Timeout used for connecting to GRPC services")
 	flag.String("ca", "", "Path to CA certificate used for signing client connections")
 	flag.String("ca-key", "", "Path to private key for CA certificate used for signing client connections")
 	flag.String("cache-host", "", "Cache host")
@@ -73,24 +71,20 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	timeout := viper.GetDuration("timeout")
 	cacheAddr := viper.GetString("cache-host") + ":" + viper.GetString("cache-port")
 
 	contentWriterOpts := serviceconnections.NewConnectionOptions(
 		"ContentWriter",
-		serviceconnections.WithConnectTimeout(timeout),
 		serviceconnections.WithHost(viper.GetString("content-writer-host")),
 		serviceconnections.WithPort(viper.GetString("content-writer-port")),
 	)
 	dnsOpts := serviceconnections.NewConnectionOptions(
 		"DnsService",
-		serviceconnections.WithConnectTimeout(timeout),
 		serviceconnections.WithHost(viper.GetString("dns-resolver-host")),
 		serviceconnections.WithPort(viper.GetString("dns-resolver-port")),
 	)
 	browserControllerOpts := serviceconnections.NewConnectionOptions(
 		"BrowserController",
-		serviceconnections.WithConnectTimeout(timeout),
 		serviceconnections.WithHost(viper.GetString("browser-controller-host")),
 		serviceconnections.WithPort(viper.GetString("browser-controller-port")),
 	)

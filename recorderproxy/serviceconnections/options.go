@@ -17,19 +17,16 @@
 package serviceconnections
 
 import (
-	"time"
-
 	"google.golang.org/grpc"
 )
 
 // connectionOptions configure a connection. connectionOptions are set by the ConnectionOption
 // values passed to NewConnectionOptions.
 type ConnectionOptions struct {
-	serviceName    string
-	host           string
-	port           string
-	connectTimeout time.Duration
-	dialOptions    []grpc.DialOption
+	serviceName string
+	host        string
+	port        string
+	dialOptions []grpc.DialOption
 }
 
 func (c *ConnectionOptions) Addr() string {
@@ -90,11 +87,5 @@ func WithPort(port string) ConnectionOption {
 func WithDialOptions(dialOption ...grpc.DialOption) ConnectionOption {
 	return newFuncConnectionOption(func(c *ConnectionOptions) {
 		c.dialOptions = dialOption
-	})
-}
-
-func WithConnectTimeout(connectTimeout time.Duration) ConnectionOption {
-	return newFuncConnectionOption(func(c *ConnectionOptions) {
-		c.connectTimeout = connectTimeout
 	})
 }
