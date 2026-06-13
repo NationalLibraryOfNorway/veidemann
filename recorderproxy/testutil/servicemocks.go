@@ -255,10 +255,6 @@ func (s *GrpcServiceMock) addCwRequest(r *contentwriterV1.WriteRequest) {
 	s.l.Unlock()
 }
 
-func (s *GrpcServiceMock) clear() {
-	s.Requests = &Requests{}
-}
-
 // Implements DNS service
 func (s *GrpcServiceMock) Resolve(ctx context.Context, in *dnsresolverV1.ResolveRequest) (*dnsresolverV1.ResolveReply, error) {
 	s.addDnsRequest(in)
@@ -303,7 +299,6 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 			})
 		}
 		if err != nil {
-			fmt.Printf("Unknown Error in ContentWriter communication %v\n", err)
 			return err
 		}
 
@@ -368,7 +363,7 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 		case *contentwriterV1.WriteRequest_Cancel:
 			gotCancel = true
 		default:
-			fmt.Printf("UNKNOWN REQ type %T\n", v)
+			panic(fmt.Sprintf("UNKNOWN REQ type %T\n", v))
 		}
 	}
 }
