@@ -147,26 +147,20 @@ func (proxy *RecorderProxy) Start() error {
 	return proxy.listener.Close()
 }
 
-func (proxy *RecorderProxy) Close() {
+func (proxy *RecorderProxy) Close() error {
 	l := logger.LogWithComponent("PROXY")
 	l.Infof("Shutting down proxy %v ...", proxy.id)
 
 	proxy.shouldRun = false
-	var lo int64
-	for {
-		openSessions := rpcontext.OpenSessions()
-		if openSessions > 0 {
-			if openSessions != lo {
-				l.Infof("Waiting for %d sessions to complete", openSessions)
-			}
-			lo = openSessions
-			time.Sleep(200 * time.Millisecond)
-		} else {
-			break
+	var prev int64
+	for openSessions := rpcontext.OpenSessions(); openSessions > 0; prev = openSessions {
+		if openSessions != prev {
+			l.Infof("Waiting for %d sessions to complete", openSessions)
 		}
+		time.Sleep(200 * time.Millisecond)
 	}
 
-	l.Infof("Proxy %v shut down", proxy.id)
+	return proxy.listener.Close()
 }
 
 type wrappedConnection struct {
