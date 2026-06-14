@@ -107,7 +107,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to create recorder proxy: %v: %v", i, err)
 		}
-		r.Start()
+
+		go func() {
+			err := r.Start()
+			if err != nil {
+				log.Printf("Recorder proxy %d stopped: %v", i, err)
+			}
+		}()
+
 		startedProxies = append(startedProxies, r)
 	}
 

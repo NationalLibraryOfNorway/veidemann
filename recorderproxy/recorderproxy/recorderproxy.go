@@ -19,11 +19,11 @@ package recorderproxy
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"sync/atomic"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
@@ -78,8 +78,7 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 	}
 
 	proxyOpts := &proxy.Opts{
-		Dial: r.Dial,
-		//IdleTimeout: 3 * time.Second,
+		Dial:   r.Dial,
 		Filter: filterChain,
 		ShouldMITM: func(req *http.Request, upstreamAddr string) bool {
 			return true
@@ -119,36 +118,33 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 	return r, nil
 }
 
-func (proxy *RecorderProxy) Start() {
+func (proxy *RecorderProxy) Start() error {
 	l := logger.LogWithComponent("PROXY")
 	l.Infof("Starting proxy %v ...", proxy.id)
 
-	go func() {
-		for proxy.shouldRun {
-			co, err := proxy.listener.Accept()
-			if err != nil {
-				l.Errorf("unable to accept: %v", err)
-			}
-
-			conn := WrapConn(co, "down", false)
-			c, cancel := context.WithCancel(rpcontext.RecordProxyDataAware(context.Background()))
-
-			conn.BaseContext = c
-			conn.CancelFunc = cancel
-			go func() {
-				err := proxy.Handle(c, conn, conn)
-				if err != nil && errors.Code(err) == errors.RuntimeException {
-					l.Errorf("Error handling request: %v", err)
-				}
-			}()
-		}
-		err := proxy.listener.Close()
+	for proxy.shouldRun {
+		co, err := proxy.listener.Accept()
 		if err != nil {
-			l.Fatal(err)
+			if errors.Is(err, net.ErrClosed) {
+				return nil
+			}
+			return fmt.Errorf("Failed to accept connection: %w", err)
 		}
-	}()
 
-	l.Infof("Proxy %v started, listening on %v\n", proxy.id, proxy.Addr)
+		conn := WrapConn(co, "down", false)
+		c, cancel := context.WithCancel(rpcontext.RecordProxyDataAware(context.Background()))
+
+		conn.BaseContext = c
+		conn.CancelFunc = cancel
+		go func() {
+			err := proxy.Handle(c, conn, conn)
+			if err != nil {
+				l.Errorf("Error handling request: %v", err)
+			}
+		}()
+	}
+
+	return proxy.listener.Close()
 }
 
 func (proxy *RecorderProxy) Close() {

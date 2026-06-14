@@ -123,7 +123,12 @@ func newProxy(mock *testutil.GrpcServiceMock) (*recorderproxy.RecorderProxy, *ht
 	if err != nil {
 		panic(fmt.Errorf("Failed to create recorder proxy: %v", err))
 	}
-	p.Start()
+	go func() {
+		err := p.Start()
+		if err != nil {
+			logger.LogWithComponent("PROXY").WithError(err).Error("Error starting recorder proxy")
+		}
+	}()
 
 	proxyUrl, _ := url.Parse("http://" + p.Addr)
 	tr := &http.Transport{TLSClientConfig: acceptAllCerts, Proxy: http.ProxyURL(proxyUrl), DisableKeepAlives: false}

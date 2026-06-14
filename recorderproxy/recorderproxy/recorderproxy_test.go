@@ -1657,7 +1657,11 @@ func localRecorderProxy(conn *serviceconnections.Connections, nextProxyAddr stri
 	if err != nil {
 		panic(fmt.Errorf("failed to create recorder proxy: %v", err))
 	}
-	proxy.Start()
+	go func() {
+		if err := proxy.Start(); err != nil {
+			panic(err)
+		}
+	}()
 	proxyUrl, _ := url.Parse("http://" + proxy.Addr)
 	fmt.Printf(" FIRST PROXY URL: %v\n", proxyUrl)
 	fmt.Printf("SECOND PROXY URL: %v\n", nextProxyAddr)
