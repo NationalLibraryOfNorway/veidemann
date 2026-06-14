@@ -19,7 +19,7 @@ package recorderproxy
 import (
 	"context"
 	"crypto/tls"
-	"strconv"
+	"fmt"
 	"sync/atomic"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
@@ -52,7 +52,7 @@ type RecorderProxy struct {
 	shouldRun         bool
 }
 
-func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Connections, nextProxyAddr string) *RecorderProxy {
+func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Connections, nextProxyAddr string) (*RecorderProxy, error) {
 	port += id
 
 	r := &RecorderProxy{
@@ -103,14 +103,11 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 	var err error
 	r.Proxy = proxy.New(proxyOpts)
 
-	r.listener, err = net.Listen("tcp", addr+":"+strconv.Itoa(port))
+	addr := fmt.Sprintf("%s:%d", host, port)
+
+	r.listener, err = net.Listen("tcp", addr)
 	if err != nil {
-		if r.listener, err = net.Listen(addr+"tcp6", ":"+strconv.Itoa(port)); err != nil {
-			logger.LogWithComponent("PROXY").Panicf("failed to listen on port %v: %v", port, err)
-		}
-	}
-	if err != nil {
-		logger.LogWithComponent("PROXY").Fatal(err)
+		return nil, fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
 	r.Addr = r.listener.Addr().String()
@@ -119,7 +116,7 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 		chainedProxyFilter.proxy = r
 	}
 
-	return r
+	return r, nil
 }
 
 func (proxy *RecorderProxy) Start() {

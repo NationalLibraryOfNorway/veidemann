@@ -119,8 +119,10 @@ func main() {
 }
 
 func newProxy(mock *testutil.GrpcServiceMock) (*recorderproxy.RecorderProxy, *http.Client) {
-	p := recorderproxy.NewRecorderProxy(0, viper.GetString("interface"), viper.GetInt("port"), mock.ClientConn, viper.GetString("proxy"))
-
+	p, err := recorderproxy.NewRecorderProxy(0, viper.GetString("interface"), viper.GetInt("port"), mock.ClientConn, viper.GetString("proxy"))
+	if err != nil {
+		panic(fmt.Errorf("Failed to create recorder proxy: %v", err))
+	}
 	p.Start()
 
 	proxyUrl, _ := url.Parse("http://" + p.Addr)

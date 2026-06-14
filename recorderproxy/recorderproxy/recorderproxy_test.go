@@ -1653,7 +1653,10 @@ func printRequest(req interface{}) string {
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
 func localRecorderProxy(conn *serviceconnections.Connections, nextProxyAddr string) (client *http.Client, proxy *recorderproxy.RecorderProxy) {
-	proxy = recorderproxy.NewRecorderProxy(0, "localhost", 0, conn, nextProxyAddr)
+	proxy, err := recorderproxy.NewRecorderProxy(0, "localhost", 0, conn, nextProxyAddr)
+	if err != nil {
+		panic(fmt.Errorf("failed to create recorder proxy: %v", err))
+	}
 	proxy.Start()
 	proxyUrl, _ := url.Parse("http://" + proxy.Addr)
 	fmt.Printf(" FIRST PROXY URL: %v\n", proxyUrl)
