@@ -23,7 +23,7 @@ import (
 	"strconv"
 
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/v3/filters"
 	"github.com/opentracing/opentracing-go"
@@ -37,16 +37,16 @@ type DnsLookupFilter struct {
 
 func (f *DnsLookupFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
-	l := context2.LogWithContextAndRequest(ctx, req, "FLT:dns")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:dns")
 
-	ip := context2.GetIp(ctx)
-	host := context2.GetHost(ctx)
-	port := context2.GetPort(ctx)
+	ip := rpcontext.GetIp(ctx)
+	host := rpcontext.GetHost(ctx)
+	port := rpcontext.GetPort(ctx)
 	if ip == "" && host != "" {
 		if e := f.resolve(ctx, host, port); e != nil {
 			return handleRequestError(cs, req, e)
 		}
-		l.Debugf("resolved '%v' to '%v'", host, context2.GetIp(ctx))
+		l.Debugf("resolved '%v' to '%v'", host, rpcontext.GetIp(ctx))
 	}
 	resp, nextCS, err = next(cs, req)
 	return
@@ -65,8 +65,8 @@ func (f *DnsLookupFilter) resolve(ctx context.Context, host, port string) (err e
 		}
 	}
 	dnsReq := &dnsresolverV1.ResolveRequest{
-		ExecutionId:   context2.GetCrawlExecutionId(ctx),
-		CollectionRef: context2.GetCollectionRef(ctx),
+		ExecutionId:   rpcontext.GetCrawlExecutionId(ctx),
+		CollectionRef: rpcontext.GetCollectionRef(ctx),
 		Host:          host,
 		Port:          int32(p),
 	}
@@ -78,6 +78,6 @@ func (f *DnsLookupFilter) resolve(ctx context.Context, host, port string) (err e
 		return
 	}
 
-	context2.SetIp(ctx, dnsResp.TextualIp)
+	rpcontext.SetIp(ctx, dnsResp.TextualIp)
 	return
 }

@@ -26,14 +26,14 @@ import (
 	"strings"
 	"time"
 
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"google.golang.org/grpc/test/bufconn"
 )
 
 func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, network, addr string) (conn net.Conn, err error) {
-	log := context2.LogWithContext(context, "Dialer")
+	log := rpcontext.LogWithContext(context, "Dialer")
 	log.Debugf("dial upstream %v, is connect request: %v\n", addr, isConnect)
 	timeout := 30 * time.Second
 	deadline, hasDeadline := context.Deadline()
@@ -44,14 +44,14 @@ func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, networ
 		conn, err = net.DialTimeout(network, proxy.nextProxy, timeout)
 		if err != nil {
 			log.Errorf("Could not dial next proxy at %v: %v\n", proxy.nextProxy, err)
-			context2.SetConnectError(context, err)
+			rpcontext.SetConnectError(context, err)
 			return conn, nil
 		}
 	} else {
 		conn, err = net.DialTimeout(network, addr, timeout)
 		if err != nil {
 			log.Errorf("Could not dial %v: %v\n", addr, err)
-			context2.SetConnectError(context, err)
+			rpcontext.SetConnectError(context, err)
 			if isConnect {
 				l := bufconn.Listen(0)
 				go func() {
@@ -72,8 +72,8 @@ func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, networ
 	}
 
 	if isConnect && proxy.nextProxy != "" {
-		ctx := context2.WrapIfNecessary(context)
-		uri := context2.GetUri(ctx)
+		ctx := rpcontext.WrapIfNecessary(context)
+		uri := rpcontext.GetUri(ctx)
 		req := NewConnectReq(uri.Host)
 		log.Debugf("sending CONNECT for host %v to upstream proxy", req.URL)
 		err = req.Write(conn)
@@ -94,14 +94,14 @@ func (proxy *RecorderProxy) Dial(context context.Context, isConnect bool, networ
 		if squidErr != "" {
 			err := handleSquidErrorString(squidErr)
 			if err != nil {
-				context2.SetConnectError(context, err)
+				rpcontext.SetConnectError(context, err)
 				err = nil
 			}
 			return conn, err
 		}
 
 		if resp.StatusCode != 200 {
-			context2.SetConnectError(context, errors.Error(errors.RuntimeException,
+			rpcontext.SetConnectError(context, errors.Error(errors.RuntimeException,
 				fmt.Sprintf("could not connect too upstream proxy (%d)", resp.StatusCode), squidErr))
 			return conn, nil
 		}

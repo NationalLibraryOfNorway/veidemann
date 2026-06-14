@@ -18,7 +18,7 @@ package context
 
 import (
 	"context"
-	errors2 "errors"
+	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -26,14 +26,14 @@ import (
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/opentracing/opentracing-go"
 	otLog "github.com/opentracing/opentracing-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
-var AlreadyCompleted = errors2.New("already completed")
+var AlreadyCompleted = errors.New("already completed")
 
 func cloneCrawlLog(crawlLog *logV1.CrawlLog) *logV1.CrawlLog {
 	if crawlLog == nil {
@@ -52,7 +52,7 @@ func registerResource(ctx context.Context, conn *serviceconnections.Connections,
 
 	reply, err := conn.BrowserControllerClient().RegisterResource(rpcCtx, request)
 	if err != nil {
-		return nil, errors.WrapInternalError(err, errors.RuntimeException, "Error register with browser controller", err.Error())
+		return nil, rperrors.WrapInternalError(err, rperrors.RuntimeException, "Error register with browser controller", err.Error())
 	}
 	return reply, nil
 }
@@ -67,7 +67,7 @@ func completeResource(ctx context.Context, conn *serviceconnections.Connections,
 
 	_, err := conn.BrowserControllerClient().CompleteResource(rpcCtx, request)
 	if err != nil {
-		return errors.WrapInternalError(err, errors.RuntimeException, "error sending crawl log to browser controller", err.Error())
+		return rperrors.WrapInternalError(err, rperrors.RuntimeException, "error sending crawl log to browser controller", err.Error())
 	}
 	return nil
 }
@@ -87,7 +87,7 @@ func (rc *RecordContext) shouldBypassBrowserControllerRegister() bool {
 }
 
 func (rc *RecordContext) shouldSkipBrowserControllerComplete(cl *logV1.CrawlLog) bool {
-	return rc.ProxyId != 0 && rc.RequestId == "" && cl != nil && cl.StatusCode == int32(errors.CanceledByBrowser)
+	return rc.ProxyId != 0 && rc.RequestId == "" && cl != nil && cl.StatusCode == int32(rperrors.CanceledByBrowser)
 }
 
 func (rc *RecordContext) finalizeCrawlLog(cl *logV1.CrawlLog) error {
@@ -136,11 +136,11 @@ func (rc *RecordContext) SendRequestError(ctx context.Context, reqErr error) err
 		l.Panic("BUG: SendRequestError with nil error")
 	}
 
-	rc.CrawlLog.StatusCode = int32(errors.Code(reqErr))
+	rc.CrawlLog.StatusCode = int32(rperrors.Code(reqErr))
 	rc.CrawlLog.RecordType = constants.RecordResponse
-	rc.CrawlLog.Error = errors.AsCommonsError(reqErr)
+	rc.CrawlLog.Error = rperrors.AsCommonsError(reqErr)
 
-	if err := rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog)); err != nil && !errors2.Is(err, AlreadyCompleted) {
+	if err := rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog)); err != nil && !errors.Is(err, AlreadyCompleted) {
 		return err
 	}
 	return reqErr
@@ -153,12 +153,12 @@ func (rc *RecordContext) SendResponseError(ctx context.Context, respErr error) e
 		l.Panic("BUG: SendResponseError with nil error")
 	}
 
-	rc.CrawlLog.StatusCode = int32(errors.Code(respErr))
+	rc.CrawlLog.StatusCode = int32(rperrors.Code(respErr))
 	rc.CrawlLog.RecordType = constants.RecordResponse
 	rc.CrawlLog.ContentType = ""
-	rc.CrawlLog.Error = errors.AsCommonsError(respErr)
+	rc.CrawlLog.Error = rperrors.AsCommonsError(respErr)
 
-	if err := rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog)); err != nil && !errors2.Is(err, AlreadyCompleted) {
+	if err := rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog)); err != nil && !errors.Is(err, AlreadyCompleted) {
 		return err
 	}
 	return respErr
@@ -209,9 +209,9 @@ func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 	case *browsercontrollerV2.RegisterResourceReply_Cancel:
 		if result.Cancel == "Blocked by robots.txt" {
 			rc.PrecludedByRobots = true
-			return errors.Error(errors.PrecludedByRobots, "PRECLUDED_BY_ROBOTS", "Robots.txt rules precluded fetch")
+			return rperrors.Error(rperrors.PrecludedByRobots, "PRECLUDED_BY_ROBOTS", "Robots.txt rules precluded fetch")
 		}
-		return errors.Error(errors.CanceledByBrowser, "CANCELLED_BY_BROWSER", result.Cancel)
+		return rperrors.Error(rperrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", result.Cancel)
 	case *browsercontrollerV2.RegisterResourceReply_Registered:
 		applyRegisteredState(rc.ctx, result.Registered)
 		rc.ReplacementScript = nil
@@ -222,7 +222,7 @@ func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 		rc.CrawlLog.ExecutionId = rc.CrawlExecutionId
 		return nil
 	default:
-		return errors.Error(errors.RuntimeException, "INVALID_BROWSER_CONTROLLER_REPLY", "Browser controller returned an invalid register reply")
+		return rperrors.Error(rperrors.RuntimeException, "INVALID_BROWSER_CONTROLLER_REPLY", "Browser controller returned an invalid register reply")
 	}
 }
 

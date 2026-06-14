@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"net/url"
 
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/getlantern/proxy/v3/filters"
 	"github.com/opentracing/opentracing-go"
@@ -74,16 +74,16 @@ func requestBaseURI(ctx context.Context, cs *filters.ConnectionState, req *http.
 		return &url.URL{Scheme: scheme, Host: authority}
 	}
 
-	if uri := context2.GetUri(ctx); uri != nil && uri.Host != "" {
+	if uri := rpcontext.GetUri(ctx); uri != nil && uri.Host != "" {
 		return uri
 	}
 
 	if authority == "" {
-		host := context2.GetHost(ctx)
+		host := rpcontext.GetHost(ctx)
 		if host == "" {
 			return nil
 		}
-		if port := context2.GetPort(ctx); port != "" {
+		if port := rpcontext.GetPort(ctx); port != "" {
 			authority = net.JoinHostPort(host, port)
 		} else {
 			authority = host
@@ -101,12 +101,12 @@ func requestBaseURI(ctx context.Context, cs *filters.ConnectionState, req *http.
 func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
 	if req.Method == http.MethodConnect {
-		l := context2.LogWithContextAndRequest(ctx, req, "FLT:ctx")
-		context2.ResetRequestState(ctx, false)
+		l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:ctx")
+		rpcontext.ResetRequestState(ctx, false)
 
 		// Handle HTTPS CONNECT
-		context2.SetHost(ctx, req.URL.Hostname())
-		context2.SetPort(ctx, req.URL.Port())
+		rpcontext.SetHost(ctx, req.URL.Hostname())
+		rpcontext.SetPort(ctx, req.URL.Port())
 
 		// Copy URI by value and add scheme
 		uv := *req.URL
@@ -115,24 +115,24 @@ func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request
 
 		req = req.WithContext(ctx)
 
-		context2.SetUri(ctx, uri)
-		context2.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri)
+		rpcontext.SetUri(ctx, uri)
+		rpcontext.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri)
 
 		l.Debugf("Converted CONNECT request uri form %v to %v", req.URL, uri)
 		resp, nextCS, err = next(cs, req)
 	} else {
 		connectionCtx := ctx
 		preserveSessionMetadata := cs.IsMITMing()
-		requestCtx := context2.WrapIfNecessary(context2.NewRequestContext(ctx, preserveSessionMetadata))
-		context2.ResetRequestState(requestCtx, preserveSessionMetadata)
-		l := context2.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
+		requestCtx := rpcontext.WrapIfNecessary(rpcontext.NewRequestContext(ctx, preserveSessionMetadata))
+		rpcontext.ResetRequestState(requestCtx, preserveSessionMetadata)
+		l := rpcontext.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
 
 		if host, port := requestAuthority(req); host != "" {
-			context2.SetHost(requestCtx, host)
-			context2.SetPort(requestCtx, port)
-		} else if context2.GetHost(requestCtx) == "" {
-			context2.SetHost(requestCtx, req.URL.Hostname())
-			context2.SetPort(requestCtx, req.URL.Port())
+			rpcontext.SetHost(requestCtx, host)
+			rpcontext.SetPort(requestCtx, port)
+		} else if rpcontext.GetHost(requestCtx) == "" {
+			rpcontext.SetHost(requestCtx, req.URL.Hostname())
+			rpcontext.SetPort(requestCtx, req.URL.Port())
 		}
 
 		baseURI := requestBaseURI(requestCtx, cs, req)
@@ -143,14 +143,14 @@ func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request
 			uri = req.URL
 		}
 		if uri != nil && uri.Host != "" {
-			context2.SetUri(requestCtx, &url.URL{Scheme: uri.Scheme, Host: uri.Host})
+			rpcontext.SetUri(requestCtx, &url.URL{Scheme: uri.Scheme, Host: uri.Host})
 		}
 
 		l.Debugf("Converted GET request uri form %v to %v", req.URL, uri)
 
 		req = req.WithContext(requestCtx)
-		rc := context2.NewRecordContext()
-		context2.SetRecordContext(requestCtx, rc)
+		rc := rpcontext.NewRecordContext()
+		rpcontext.SetRecordContext(requestCtx, rc)
 		span := opentracing.SpanFromContext(requestCtx)
 		span.LogFields(log.String("event", "Start init record context"))
 		rc.Init(f.proxyId, f.conn, req, uri)
@@ -164,7 +164,7 @@ func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request
 		req = req.WithContext(requestCtx)
 		resp, nextCS, err = next(cs, req)
 		if preserveSessionMetadata {
-			context2.CopySessionMetadata(connectionCtx, requestCtx)
+			rpcontext.CopySessionMetadata(connectionCtx, requestCtx)
 		}
 	}
 	return

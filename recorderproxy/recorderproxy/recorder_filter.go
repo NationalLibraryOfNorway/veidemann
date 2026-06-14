@@ -25,7 +25,7 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/v3/filters"
 	"github.com/golang/protobuf/ptypes"
@@ -42,8 +42,8 @@ type RecorderFilter struct {
 
 func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
-	l := context2.LogWithContextAndRequest(ctx, req, "FLT:rec")
-	connectErr := context2.GetConnectError(ctx)
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:rec")
+	connectErr := rpcontext.GetConnectError(ctx)
 	if connectErr != nil {
 		resp, nextCS, err = next(cs, req)
 		return
@@ -63,7 +63,7 @@ func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, n
 			StatusCode: http.StatusOK,
 		})
 	} else {
-		rc := context2.GetRecordContext(ctx)
+		rc := rpcontext.GetRecordContext(ctx)
 		span := opentracing.SpanFromContext(ctx)
 
 		span.LogFields(log.String("event", "rec upstream request"))
@@ -91,7 +91,7 @@ func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, n
 	return
 }
 
-func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Span, req *http.Request, rc *context2.RecordContext) (*http.Request, error) {
+func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Span, req *http.Request, rc *rpcontext.RecordContext) (*http.Request, error) {
 	span.LogKV("event", "StartFilterRequest")
 
 	var prolog bytes.Buffer
@@ -103,7 +103,7 @@ func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Spa
 
 	fetchTimeStamp, _ := ptypes.TimestampProto(rc.FetchTimesTamp)
 	uri := rc.Uri
-	rc.IpAddress = context2.GetIp(ctx)
+	rc.IpAddress = rpcontext.GetIp(ctx)
 
 	req.Header.Set(constants.HeaderAcceptEncoding, "identity")
 	req.Header.Set(constants.HeaderCrawlExecutionId, rc.CrawlExecutionId)
@@ -133,7 +133,7 @@ func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Spa
 	return req, nil
 }
 
-func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Span, respOrig *http.Response, rc *context2.RecordContext) (*http.Response, error) {
+func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Span, respOrig *http.Response, rc *rpcontext.RecordContext) (*http.Response, error) {
 	span.LogKV("event", "StartFilterResponse")
 
 	resp := respOrig
@@ -147,7 +147,7 @@ func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Sp
 
 	if isFromCache(resp) {
 		span.LogKV("event", "Loaded from cache")
-		context2.LogWithRecordContext(rc, "FLT:rec").Info("Loaded from cache")
+		rpcontext.LogWithRecordContext(rc, "FLT:rec").Info("Loaded from cache")
 		rc.FoundInCache = true
 	}
 
@@ -167,7 +167,7 @@ func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Sp
 	}
 
 	if rc.ReplacementScript != nil {
-		context2.LogWithRecordContext(rc, "FLT:rec").Info("Replacement script")
+		rpcontext.LogWithRecordContext(rc, "FLT:rec").Info("Replacement script")
 		resp.ContentLength = int64(len(rc.ReplacementScript.Script))
 	}
 	resp.Body = bodyWrapper

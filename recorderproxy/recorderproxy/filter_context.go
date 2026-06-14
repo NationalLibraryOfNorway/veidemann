@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v3/filters"
 )
@@ -34,15 +34,15 @@ func proxyContextFromConn(conn net.Conn) context.Context {
 func filterContext(cs *filters.ConnectionState, req *http.Request) context.Context {
 	if req != nil {
 		requestCtx := req.Context()
-		if context2.HasStateHandle(requestCtx) {
+		if rpcontext.HasStateHandle(requestCtx) {
 			return requestCtx
 		}
 		if cs != nil {
 			if baseCtx := proxyContextFromConn(cs.Downstream()); baseCtx != nil {
-				return context2.WithStateHandle(requestCtx, baseCtx)
+				return rpcontext.WithStateHandle(requestCtx, baseCtx)
 			}
 		}
-		return context2.RecordProxyDataAware(requestCtx)
+		return rpcontext.RecordProxyDataAware(requestCtx)
 	}
 
 	if cs != nil {
@@ -51,5 +51,5 @@ func filterContext(cs *filters.ConnectionState, req *http.Request) context.Conte
 		}
 	}
 
-	return context2.RecordProxyDataAware(context.Background())
+	return rpcontext.RecordProxyDataAware(context.Background())
 }

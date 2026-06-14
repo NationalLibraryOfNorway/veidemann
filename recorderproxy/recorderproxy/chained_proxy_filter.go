@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"net/url"
 
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/getlantern/proxy/v3/filters"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -33,15 +33,15 @@ type ChainedProxyFilter struct {
 
 func (f *ChainedProxyFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
-	l := context2.LogWithContextAndRequest(ctx, req, "FLT:chain")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:chain")
 	span := opentracing.SpanFromContext(ctx)
 
 	if req.Method == http.MethodConnect {
 		resp, nextCS, err = next(cs, req)
 	} else {
-		if context2.GetHost(ctx) == "" || (f.proxy.nextProxy != "" && !cs.IsMITMing()) {
+		if rpcontext.GetHost(ctx) == "" || (f.proxy.nextProxy != "" && !cs.IsMITMing()) {
 			span.LogFields(log.String("event", "Rewrite request"))
-			rc := context2.GetRecordContext(ctx)
+			rc := rpcontext.GetRecordContext(ctx)
 			uri, err := url.Parse("http:" + rc.Uri.String())
 			if err != nil {
 				l.WithError(err).Warnf("Error parsing uri for chained proxy: %v", "http:"+rc.Uri.String())

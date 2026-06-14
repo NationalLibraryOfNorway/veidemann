@@ -21,10 +21,10 @@ import (
 	"net"
 	"net/http"
 
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	errors2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/getlantern/errors"
+	glerrors "github.com/getlantern/errors"
 	"github.com/getlantern/proxy/v3/filters"
 )
 
@@ -35,9 +35,9 @@ type ErrorHandlerFilter struct {
 
 func (f *ErrorHandlerFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
-	l := context2.LogWithContextAndRequest(ctx, req, "FLT:err")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:err")
 
-	connectErr := context2.GetConnectError(ctx)
+	connectErr := rpcontext.GetConnectError(ctx)
 	if connectErr != nil {
 		l.WithError(connectErr).WithField("method", req.Method).Debug("Handle connect error")
 		e := f.normalizeError(connectErr, l)
@@ -68,21 +68,21 @@ func (f *ErrorHandlerFilter) normalizeError(err error, l *logger.Logger) error {
 	l = l.WithError(err)
 	l.Tracef("Normalize error (type: %T): %v", err, err)
 	switch e := err.(type) {
-	case *errors2.ProxyError:
+	case *rperrors.ProxyError:
 		return e
 	case *net.OpError:
 		return f.normalizeNetOpError(e, l)
 	case tls.RecordHeaderError:
-		return errors2.Wrap(&e, errors2.ConnectFailed, "CONNECT_FAILED", "tls: handshake failure")
-	case errors.Error:
+		return rperrors.Wrap(&e, rperrors.ConnectFailed, "CONNECT_FAILED", "tls: handshake failure")
+	case glerrors.Error:
 		return f.normalizeGetlanternProxyError(e, l)
 	default:
 		switch s := e.Error(); {
 		case s == "EOF":
-			return errors2.Wrap(e, errors2.EmptyResponse, "EMPTY_RESPONSE", "Empty reply from server")
+			return rperrors.Wrap(e, rperrors.EmptyResponse, "EMPTY_RESPONSE", "Empty reply from server")
 		default:
 			l.Debugf("Unknown error (type: %T): %v. Returning -5 UNKNOWN_ERROR", err, err)
-			return errors2.Wrap(e, errors2.RuntimeException, "UNKNOWN_ERROR", s)
+			return rperrors.Wrap(e, rperrors.RuntimeException, "UNKNOWN_ERROR", s)
 		}
 	}
 }
@@ -92,17 +92,17 @@ func (f *ErrorHandlerFilter) normalizeNetOpError(err *net.OpError, l *logger.Log
 	var e error
 	switch err.Op {
 	case "dial":
-		e = errors2.Wrap(err.Err, errors2.ConnectFailed, "CONNECT_FAILED", err.Err.Error())
+		e = rperrors.Wrap(err.Err, rperrors.ConnectFailed, "CONNECT_FAILED", err.Err.Error())
 	case "remote error":
-		e = errors2.Wrap(err.Err, errors2.ConnectFailed, "CONNECT_FAILED", err.Err.Error())
+		e = rperrors.Wrap(err.Err, rperrors.ConnectFailed, "CONNECT_FAILED", err.Err.Error())
 	default:
 		l.Debugf("Unknown error operation (type: %T): %v. Returning -2 CONNECT_FAILED", err, err)
-		e = errors2.Wrap(err, errors2.ConnectFailed, "CONNECT_FAILED", err.Error())
+		e = rperrors.Wrap(err, rperrors.ConnectFailed, "CONNECT_FAILED", err.Error())
 	}
 	return e
 }
 
-func (f *ErrorHandlerFilter) normalizeGetlanternProxyError(err errors.Error, l *logger.Logger) error {
+func (f *ErrorHandlerFilter) normalizeGetlanternProxyError(err glerrors.Error, l *logger.Logger) error {
 	l.Tracef("Normalize getlantern error (type: %T) (root cause type: %T): %v", err, err.RootCause(), err.ErrorClean())
 	switch e := err.RootCause().(type) {
 	case *net.OpError:
@@ -110,10 +110,10 @@ func (f *ErrorHandlerFilter) normalizeGetlanternProxyError(err errors.Error, l *
 	default:
 		switch s := e.Error(); {
 		case s == "EOF":
-			return errors2.Wrap(e, errors2.EmptyResponse, "EMPTY_RESPONSE", "Empty reply from server")
+			return rperrors.Wrap(e, rperrors.EmptyResponse, "EMPTY_RESPONSE", "Empty reply from server")
 		default:
 			l.Debugf("Unknown root cause (type: %T) for proxy err '%s': %v. Returning -5 UNKNOWN_ERROR", err.RootCause(), err.ErrorClean(), err.RootCause())
-			return errors2.Wrap(e, errors2.RuntimeException, "UNKNOWN_ERROR", s)
+			return rperrors.Wrap(e, rperrors.RuntimeException, "UNKNOWN_ERROR", s)
 		}
 	}
 }

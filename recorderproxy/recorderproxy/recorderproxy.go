@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	context2 "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
@@ -134,7 +134,7 @@ func (proxy *RecorderProxy) Start() {
 			}
 
 			conn := WrapConn(co, "down", false)
-			c, cancel := context.WithCancel(context2.RecordProxyDataAware(context.Background()))
+			c, cancel := context.WithCancel(rpcontext.RecordProxyDataAware(context.Background()))
 
 			conn.BaseContext = c
 			conn.CancelFunc = cancel
@@ -161,7 +161,7 @@ func (proxy *RecorderProxy) Close() {
 	proxy.shouldRun = false
 	var lo int64
 	for {
-		openSessions := context2.OpenSessions()
+		openSessions := rpcontext.OpenSessions()
 		if openSessions > 0 {
 			if openSessions != lo {
 				l.Infof("Waiting for %d sessions to complete", openSessions)

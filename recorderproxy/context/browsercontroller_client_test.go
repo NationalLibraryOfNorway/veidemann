@@ -8,7 +8,7 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	proxyerrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
 )
 
@@ -26,9 +26,9 @@ func TestSendRequestErrorSkipsCompleteForCanceledProxyRequestWithoutRequestID(t 
 	}
 	rc := rpcontext.NewRecordContext().Init(1, grpcServices.ClientConn, req, uri)
 
-	err = rc.SendRequestError(nil, proxyerrors.Error(proxyerrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Cancelled by browser controller"))
-	if proxyerrors.Code(err) != proxyerrors.CanceledByBrowser {
-		t.Fatalf("SendRequestError() code = %v, want %v", proxyerrors.Code(err), proxyerrors.CanceledByBrowser)
+	err = rc.SendRequestError(stdcontext.TODO(), rperrors.Error(rperrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Cancelled by browser controller"))
+	if rperrors.Code(err) != rperrors.CanceledByBrowser {
+		t.Fatalf("SendRequestError() code = %v, want %v", rperrors.Code(err), rperrors.CanceledByBrowser)
 	}
 
 	if got := len(grpcServices.Requests.BrowserControllerRequests); got != 0 {
@@ -51,9 +51,9 @@ func TestSendRequestErrorCompletesCanceledTrackedRequest(t *testing.T) {
 	req.Header.Set(constants.HeaderRequestId, "interception-job-1.0")
 	rc := rpcontext.NewRecordContext().Init(1, grpcServices.ClientConn, req, uri)
 
-	err = rc.SendRequestError(nil, proxyerrors.Error(proxyerrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Cancelled by browser controller"))
-	if proxyerrors.Code(err) != proxyerrors.CanceledByBrowser {
-		t.Fatalf("SendRequestError() code = %v, want %v", proxyerrors.Code(err), proxyerrors.CanceledByBrowser)
+	err = rc.SendRequestError(stdcontext.TODO(), rperrors.Error(rperrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Cancelled by browser controller"))
+	if rperrors.Code(err) != rperrors.CanceledByBrowser {
+		t.Fatalf("SendRequestError() code = %v, want %v", rperrors.Code(err), rperrors.CanceledByBrowser)
 	}
 
 	if got := len(grpcServices.Requests.BrowserControllerRequests); got != 1 {
@@ -66,7 +66,7 @@ func TestSendRequestErrorCompletesCanceledTrackedRequest(t *testing.T) {
 	if complete.RequestId != "interception-job-1.0" {
 		t.Fatalf("CompleteResource requestId = %q, want %q", complete.RequestId, "interception-job-1.0")
 	}
-	if complete.CrawlLog.GetStatusCode() != int32(proxyerrors.CanceledByBrowser) {
-		t.Fatalf("CompleteResource status = %d, want %d", complete.CrawlLog.GetStatusCode(), proxyerrors.CanceledByBrowser)
+	if complete.CrawlLog.GetStatusCode() != int32(rperrors.CanceledByBrowser) {
+		t.Fatalf("CompleteResource status = %d, want %d", complete.CrawlLog.GetStatusCode(), rperrors.CanceledByBrowser)
 	}
 }
