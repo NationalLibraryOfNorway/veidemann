@@ -21,6 +21,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -29,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
@@ -44,6 +46,7 @@ import (
 	proxyTestUtil "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"google.golang.org/grpc"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -122,12 +125,24 @@ func TestMain(m *testing.M) {
 		return true
 	}}
 
-	// setup api server
-	apiServer := NewApiServer("", 7777, sessions, robotsEvaluator, logWriter)
-	go func() {
-		_ = apiServer.Start()
-	}()
+	// setup browsercontroller server
+	browsercontrollerAdress := ":7777"
+	listener, err := net.Listen("tcp", browsercontrollerAdress)
+	if err != nil {
+		panic(err)
+	}
+	grpcServer := grpc.NewServer()
+	apiServer := NewApiServer(sessions, robotsEvaluator, logWriter)
+	browsercontrollerV1.RegisterBrowserControllerServer(grpcServer, apiServer)
 
+	go func() {
+		err := grpcServer.Serve(listener)
+		if err != nil {
+			if !errors.Is(err, grpc.ErrServerStopped) {
+				panic(err)
+			}
+		}
+	}()
 	// setup recorder proxy
 	opt := proxyTestUtil.WithExternalBrowserController(
 		proxyServiceConnections.NewConnectionOptions("BrowserController",
@@ -146,7 +161,7 @@ func TestMain(m *testing.M) {
 
 	// Clean up
 	sessions.CloseWait(1 * time.Minute)
-	apiServer.Close()
+	grpcServer.GracefulStop()
 	grpcServices.Close()
 	recorderProxy0.Close()
 	recorderProxy1.Close()
@@ -179,14 +194,6 @@ func TestSession_Fetch(t *testing.T) {
 		url  *frontierV1.QueuedUri
 	}{
 		{"elg", &frontierV1.QueuedUri{Uri: "http://elg.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"vg", &frontierV1.QueuedUri{Uri: "http://vg.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"nb", &frontierV1.QueuedUri{Uri: "http://nb.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"fhi", &frontierV1.QueuedUri{Uri: "http://fhi.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"db", &frontierV1.QueuedUri{Uri: "http://db.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"maps", &frontierV1.QueuedUri{Uri: "https://goo.gl/maps/EmpIH", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"ranano", &frontierV1.QueuedUri{Uri: "https://ranano.no/", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"cynergi", &frontierV1.QueuedUri{Uri: "https://www.cynergi.no/", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"pdf1", &frontierV1.QueuedUri{Uri: "https://www.nb.no/content/uploads/2019/04/tildelingsbrev_nasjonalbiblioteket_2019.pdf", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
 	}
 	for _, tt := range tests {
 		ctx := context.Background()

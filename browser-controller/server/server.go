@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"runtime/debug"
 	"time"
 
@@ -35,7 +34,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
 	"github.com/opentracing/opentracing-go"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -44,53 +42,17 @@ import (
 type ApiServer struct {
 	browsercontrollerV1.UnimplementedBrowserControllerServer
 	sessions        *session.Registry
-	ln              net.Listener
-	listenAddr      net.Addr
-	addr            string
-	grpcServer      *grpc.Server
 	robotsEvaluator robotsevaluator.RobotsEvaluator
 	logWriter       logwriter.LogWriter
 }
 
-// NewApiServer returns a new instance of ApiServer listening on the given port
-func NewApiServer(listenInterface string, listenPort int, sessions *session.Registry, robotsEvaluator robotsevaluator.RobotsEvaluator, logWriter logwriter.LogWriter) *ApiServer {
+func NewApiServer(sessions *session.Registry, robotsEvaluator robotsevaluator.RobotsEvaluator, logWriter logwriter.LogWriter) *ApiServer {
 	a := &ApiServer{
 		sessions:        sessions,
-		addr:            fmt.Sprintf("%s:%d", listenInterface, listenPort),
 		robotsEvaluator: robotsEvaluator,
 		logWriter:       logWriter,
 	}
 	return a
-}
-
-func (a *ApiServer) Start() error {
-	ln, err := net.Listen("tcp", a.addr)
-	if err != nil {
-		return fmt.Errorf("failed to start API server: %w", err)
-	}
-
-	a.ln = ln
-	a.listenAddr = ln.Addr()
-
-	opts := []grpc.ServerOption{
-		grpc.StatsHandler(&myStatsHandler{}),
-	}
-	a.grpcServer = grpc.NewServer(opts...)
-	browsercontrollerV1.RegisterBrowserControllerServer(a.grpcServer, a)
-
-	slog.Info("API server listening", "address", a.addr)
-	return a.grpcServer.Serve(ln)
-}
-
-func (a *ApiServer) Close() {
-	slog.Info("Shutting down API server")
-
-	// Set a timer to fire a hard shutdown if graceful shutdown doesn't return
-	t := time.AfterFunc(time.Minute, a.grpcServer.Stop)
-
-	// Do a graceful shutdown
-	a.grpcServer.GracefulStop()
-	t.Stop()
 }
 
 // Implements BrowserController
