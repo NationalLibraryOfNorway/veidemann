@@ -67,7 +67,6 @@ func main() {
 
 	pflag.String("robots-evaluator-host", "veidemann-robotsevaluator-service", "Robots evaluator host")
 	pflag.Int("robots-evaluator-port", 7053, "Robots evaluator port")
-	pflag.Duration("connect-timeout", 10*time.Second, "Timeout used for connecting to GRPC services")
 
 	pflag.String("db-host", "rethinkdb-proxy", "DB host")
 	pflag.Int("db-port", 28015, "DB port")
@@ -130,10 +129,7 @@ func main() {
 		opentracing.SetGlobalTracer(tracer)
 	}
 
-	connectTimeout := viper.GetDuration("connect-timeout")
-
 	screenshotWriter := screenshotwriter.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
 		serviceconnections.WithHost(viper.GetString("content-writer-host")),
 		serviceconnections.WithPort(viper.GetInt("content-writer-port")),
 	)
@@ -143,7 +139,6 @@ func main() {
 	defer func() { _ = screenshotWriter.Close() }()
 
 	frontier := frontier.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
 		serviceconnections.WithHost(viper.GetString("frontier-host")),
 		serviceconnections.WithPort(viper.GetInt("frontier-port")),
 		serviceconnections.WithDialOptions(
@@ -157,7 +152,6 @@ func main() {
 	defer func() { _ = frontier.Close() }()
 
 	robotsEvaluator := robotsevaluator.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
 		serviceconnections.WithHost(viper.GetString("robots-evaluator-host")),
 		serviceconnections.WithPort(viper.GetInt("robots-evaluator-port")),
 	)
@@ -167,7 +161,6 @@ func main() {
 	defer func() { _ = robotsEvaluator.Close() }()
 
 	logWriter := logwriter.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
 		serviceconnections.WithHost(viper.GetString("log-service-host")),
 		serviceconnections.WithPort(viper.GetInt("log-service-port")),
 	)

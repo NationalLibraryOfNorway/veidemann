@@ -19,8 +19,6 @@ package serviceconnections
 import (
 	"fmt"
 	"log/slog"
-	"strconv"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -29,15 +27,14 @@ import (
 // connectionOptions configure a connection. connectionOptions are set by the ConnectionOption
 // values passed to NewConnectionOptions.
 type connectionOptions struct {
-	serviceName    string
-	host           string
-	port           int
-	connectTimeout time.Duration
-	dialOptions    []grpc.DialOption
+	serviceName string
+	host        string
+	port        int
+	dialOptions []grpc.DialOption
 }
 
 func (opts *connectionOptions) Addr() string {
-	return opts.host + ":" + strconv.Itoa(opts.port)
+	return fmt.Sprintf("%s:%d", opts.host, opts.port)
 }
 
 // ConnectionOption configures how to connectService to a service.
@@ -69,8 +66,7 @@ func newFuncConnectionOption(f func(*connectionOptions)) *funcConnectionOption {
 
 func defaultConnectionOptions(serviceName string) connectionOptions {
 	return connectionOptions{
-		serviceName:    serviceName,
-		connectTimeout: 10 * time.Second,
+		serviceName: serviceName,
 	}
 }
 
@@ -105,11 +101,5 @@ func WithPort(port int) ConnectionOption {
 func WithDialOptions(dialOption ...grpc.DialOption) ConnectionOption {
 	return newFuncConnectionOption(func(c *connectionOptions) {
 		c.dialOptions = dialOption
-	})
-}
-
-func WithConnectTimeout(connectTimeout time.Duration) ConnectionOption {
-	return newFuncConnectionOption(func(c *connectionOptions) {
-		c.connectTimeout = connectTimeout
 	})
 }
