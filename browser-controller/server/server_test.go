@@ -43,7 +43,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	proxyServiceConnections "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	proxyTestUtil "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
-	"github.com/sirupsen/logrus"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -61,9 +60,6 @@ var provider = flag.String("provider", "docker", "container provider, \"docker\"
 func TestMain(m *testing.M) {
 	// Parse flags
 	flag.Parse()
-
-	// Set recorderproxy log level to warn to avoid too much output
-	logrus.SetLevel(logrus.WarnLevel)
 
 	// Set log level
 	logger.InitLog("debug", "logfmt", false)
