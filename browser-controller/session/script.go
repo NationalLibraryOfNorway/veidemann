@@ -18,6 +18,7 @@ package session
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -30,7 +31,7 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
-	"github.com/mailru/easyjson"
+	"github.com/go-json-experiment/json/jsontext"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
 )
@@ -146,7 +147,7 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 		return fmt.Errorf("script execution for type %v is not implemented", scriptType)
 	}
 
-	execute := func(configObject *configV1.ConfigObject, arguments easyjson.RawMessage) (easyjson.RawMessage, error) {
+	execute := func(configObject *configV1.ConfigObject, arguments json.RawMessage) (json.RawMessage, error) {
 		span, ctx := opentracing.StartSpanFromContext(ctx, "execute-script")
 		defer span.Finish()
 		name := configObject.GetMeta().GetName()
@@ -197,7 +198,7 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 //
 // Returns an error: if the debug protocol action fails, if script execution
 // caused an exception, or if unmarshalling of result value fails.
-func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDeclaration string, arguments easyjson.RawMessage) (easyjson.RawMessage, error) {
+func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDeclaration string, arguments json.RawMessage) (json.RawMessage, error) {
 	var awaitPromise bool
 	if strings.HasPrefix(functionDeclaration, "async ") {
 		awaitPromise = true
@@ -208,7 +209,7 @@ func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDec
 		chromedp.ActionFunc(func(ctx context.Context) (err error) {
 			res, exceptionDetails, err = runtime.
 				CallFunctionOn(functionDeclaration).
-				WithArguments([]*runtime.CallArgument{{Value: arguments}}).
+				WithArguments([]*runtime.CallArgument{{Value: jsontext.Value(arguments)}}).
 				WithExecutionContextID(eci).
 				WithReturnByValue(true).
 				WithAwaitPromise(awaitPromise).
@@ -223,7 +224,7 @@ func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDec
 		return nil, exceptionDetails
 	}
 
-	return res.Value, nil
+	return json.RawMessage(res.Value), nil
 }
 
 // getExecutionContextID creates an isolated world from the root frame and returns

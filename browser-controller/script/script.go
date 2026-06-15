@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/mailru/easyjson"
 )
 
 // ReturnValue is the return value format for scripts of type
@@ -17,7 +16,7 @@ type ReturnValue struct {
 	// Next specifies the ID of a script to be executed next.
 	Next string `json:"next,omitempty"`
 	// Data specifies arguments to a potential next script.
-	Data easyjson.RawMessage `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // String implements the Stringer interface
@@ -42,7 +41,7 @@ func Run(
 	next string,
 	scripts map[string]*configV1.ConfigObject,
 	annotations []*configV1.Annotation,
-	execute func(*configV1.ConfigObject, easyjson.RawMessage) (easyjson.RawMessage, error),
+	execute func(*configV1.ConfigObject, json.RawMessage) (json.RawMessage, error),
 	wait func(),
 ) error {
 	var data map[string]any

@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/mailru/easyjson"
 )
 
-func TestEasyJson(t *testing.T) {
-	var rawMessage easyjson.RawMessage
+func TestJsonRawMessage(t *testing.T) {
+	var rawMessage json.RawMessage
 	var out map[string]any
 
 	//goland:noinspection GoNilness
@@ -23,7 +22,7 @@ func TestEasyJson(t *testing.T) {
 	}
 
 	var rv ReturnValue
-	err := json.Unmarshal(easyjson.RawMessage("{}"), &rv)
+	err := json.Unmarshal(json.RawMessage("{}"), &rv)
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +46,7 @@ func TestReturnValue(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	// unmarshalArgs takes a JSON object and unmarshals it to a map from string to empty interface
-	unmarshalArgs := func(arguments easyjson.RawMessage) map[string]any {
+	unmarshalArgs := func(arguments json.RawMessage) map[string]any {
 		var args map[string]any
 		err := json.Unmarshal(arguments, &args)
 		if err != nil {
@@ -117,7 +116,7 @@ func TestRun(t *testing.T) {
 					},
 					func() function {
 						count := 2
-						return func(message easyjson.RawMessage) (easyjson.RawMessage, error) {
+						return func(message json.RawMessage) (json.RawMessage, error) {
 							count--
 							args := unmarshalArgs(message)
 							next := args["next"].(string)
@@ -183,7 +182,7 @@ func TestRun(t *testing.T) {
 							t.Errorf("Failed to marshal data: %v", err)
 						}
 						count := 2
-						return func(_ easyjson.RawMessage) (easyjson.RawMessage, error) {
+						return func(_ json.RawMessage) (json.RawMessage, error) {
 							count--
 							if count > 0 {
 								return json.Marshal(ReturnValue{
@@ -244,7 +243,7 @@ func TestRun(t *testing.T) {
 							},
 						},
 					},
-					func(message easyjson.RawMessage) (easyjson.RawMessage, error) {
+					func(message json.RawMessage) (json.RawMessage, error) {
 						args := unmarshalArgs(message)
 						next := args["next"].(string)
 						rv := ReturnValue{Next: next}
@@ -260,7 +259,7 @@ func TestRun(t *testing.T) {
 							Description: "A script to be scheduled by #2",
 						},
 					},
-					func(_ easyjson.RawMessage) (easyjson.RawMessage, error) {
+					func(_ json.RawMessage) (json.RawMessage, error) {
 						return nil, nil
 					},
 				},
@@ -298,7 +297,7 @@ func TestRun(t *testing.T) {
 							Name: "four.js",
 						},
 					},
-					func(_ easyjson.RawMessage) (easyjson.RawMessage, error) {
+					func(_ json.RawMessage) (json.RawMessage, error) {
 						return json.Marshal(ReturnValue{WaitForData: true})
 					},
 				},
@@ -428,11 +427,11 @@ func TestWaiter(t *testing.T) {
 }
 
 type metric struct {
-	arguments easyjson.RawMessage
-	result    easyjson.RawMessage
+	arguments json.RawMessage
+	result    json.RawMessage
 }
 
-type function func(message easyjson.RawMessage) (easyjson.RawMessage, error)
+type function func(message json.RawMessage) (json.RawMessage, error)
 
 // A scriptExecutor is a function executor that records some metrics about functions that are executed.
 type scriptExecutor struct {
@@ -449,7 +448,7 @@ func newScriptExecutor(functions map[string]function) *scriptExecutor {
 	}
 }
 
-func (e *scriptExecutor) execute(script *configV1.ConfigObject, arguments easyjson.RawMessage) (easyjson.RawMessage, error) {
+func (e *scriptExecutor) execute(script *configV1.ConfigObject, arguments json.RawMessage) (json.RawMessage, error) {
 	name := script.GetMeta().GetName()
 	id := script.GetId()
 

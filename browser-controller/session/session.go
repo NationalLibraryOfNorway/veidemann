@@ -302,7 +302,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	fetchStart := time.Now()
 	if err := chromedp.Run(loadCtx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			_, _, _, err := page.Navigate(sess.RequestedUrl.Uri).WithTransitionType(page.TransitionTypeOther).Do(ctx)
+			_, _, _, _, err := page.Navigate(sess.RequestedUrl.Uri).WithTransitionType(page.TransitionTypeOther).Do(ctx)
 			return err
 		}),
 	); err != nil {
@@ -508,7 +508,7 @@ func (sess *Session) extractCookies() []*frontierV1.Cookie {
 
 	if err := chromedp.Run(sess.ctx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			cookies, err := network.GetAllCookies().Do(ctx)
+			cookies, err := network.GetCookies().Do(ctx)
 			if err != nil {
 				return err
 			}
