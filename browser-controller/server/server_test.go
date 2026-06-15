@@ -43,7 +43,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	proxyServiceConnections "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	proxyTestUtil "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
-	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -357,11 +356,10 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 	if err != nil {
 		return
 	}
-	var browserPort nat.Port
-	browserPort, err = browserless.MappedPort(ctx, "3000/tcp")
+	browserPort, err := browserless.MappedPort(ctx, "3000/tcp")
 	if err != nil {
 		return
 	}
-	port = browserPort.Int()
+	port = int(browserPort.Num())
 	return
 }
