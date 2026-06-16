@@ -23,6 +23,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"net/url"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -50,13 +51,50 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/device"
 	"github.com/google/uuid"
-	"github.com/nlnwa/whatwg-url/url"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+var defaultChromiumLaunchArgs = []string{
+	"--disable-background-networking",
+	"--disable-background-mode",
+	"--disable-client-side-phishing-detection",
+	"--disable-component-update",
+	"--disable-component-extensions-with-background-pages",
+	"--disable-default-apps",
+	"--disable-domain-reliability",
+	"--disable-extensions",
+	"--disable-features=AutofillServerCommunication,OptimizationHints,MediaRouter,Translate,InterestFeedContentSuggestions",
+	"--disable-gaia-services",
+	"--disable-sync",
+	"--metrics-recording-only",
+	"--no-default-browser-check",
+	"--no-first-run",
+	"--no-service-autorun",
+	"--password-store=basic",
+	"--safebrowsing-disable-auto-update",
+	"--use-mock-keychain",
+}
+
+type defaultViewPort struct {
+	DeviceScaleFactor float64 `json:"deviceScaleFactor"`
+	HasTouch          bool    `json:"hasTouch"`
+	IsMobile          bool    `json:"isMobile"`
+	IsLandscape       bool    `json:"isLandscape"`
+	Height            int     `json:"height"`
+	Width             int     `json:"width"`
+}
+
+type launch struct {
+	Headless            bool            `json:"headless"`
+	Args                []string        `json:"args"`
+	AcceptInsecureCerts bool            `json:"acceptInsecureCerts,omitempty"`
+	IgnoreHTTPSErrors   bool            `json:"ignoreHTTPSErrors,omitempty"`
+	DefaultViewport     defaultViewPort `json:"defaultViewport,omitzero"`
+}
 
 type Session struct {
 	Id                int
@@ -105,27 +143,18 @@ func New(sessionId int, opts ...Option) (*Session, error) {
 	s.Id = sessionId
 	s.logger = slog.With("session", sessionId)
 
-	ws, err := url.Parse("ws://" + s.browserHost + ":" + strconv.Itoa(s.browserPort))
+	browserWsEndpoint, err := s.compileBrowserWebsocketEndpoint()
 	if err != nil {
 		return nil, err
 	}
-	query := ws.SearchParams()
-	if s.proxyHost != "" {
-		proxy := "http://" + s.proxyHost + ":" + strconv.Itoa(s.proxyPort+s.Id)
-		query.Set("--proxy-server", proxy)
-	}
-	query.Append("--ignore-certificate-errors", "")
-	query.Append("headless", "true")
-	query.Append("timeout", strconv.Itoa(s.browserTimeout))
-	query.Append("trackingId", strconv.Itoa(s.Id))
+	s.browserWsEndpoint = browserWsEndpoint
 
-	s.browserWsEndpoint = ws.String()
-
-	work, err := url.Parse("http://" + s.browserHost + ":" + strconv.Itoa(s.browserPort) + "/workspace")
+	workspaceUrl := fmt.Sprintf("http://%s:%d/workspace", s.browserHost, s.browserPort)
+	workspaceEndpoint, err := url.Parse(workspaceUrl)
 	if err != nil {
 		return nil, err
 	}
-	s.workspaceEndpoint = work.String()
+	s.workspaceEndpoint = workspaceEndpoint.String()
 
 	return s, nil
 }
@@ -458,6 +487,46 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 
 	log.Debug("Fetch done")
 	return result, nil
+}
+
+func (sess *Session) compileBrowserWebsocketEndpoint() (string, error) {
+	browserWsUrl := fmt.Sprintf("ws://%s:%d", sess.browserHost, sess.browserPort)
+	browserWsEndpoint, err := url.Parse(browserWsUrl)
+	if err != nil {
+		return "", err
+	}
+
+	args := append([]string{}, defaultChromiumLaunchArgs...)
+
+	if sess.proxyHost != "" {
+		proxy := "http://" + sess.proxyHost + ":" + strconv.Itoa(sess.proxyPort+sess.Id)
+		args = append(args,
+			"--proxy-server="+proxy,
+			"--proxy-bypass-list=<-loopback>",
+		)
+	}
+
+	launch := launch{
+		Headless:            true,
+		Args:                args,
+		AcceptInsecureCerts: true,
+		IgnoreHTTPSErrors:   true,
+	}
+
+	b, err := json.Marshal(launch)
+	if err != nil {
+		return "", err
+	}
+
+	q := browserWsEndpoint.Query()
+
+	q.Set("timeout", strconv.Itoa(sess.browserTimeout))
+	q.Set("trackingId", strconv.Itoa(sess.Id))
+	q.Set("launch", string(b))
+
+	browserWsEndpoint.RawQuery = q.Encode()
+
+	return browserWsEndpoint.String(), nil
 }
 
 // cleanWorkspace removes downloaded resources in browser container
