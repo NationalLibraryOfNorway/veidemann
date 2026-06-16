@@ -36,146 +36,185 @@ func (sess *Session) initListeners(ctx context.Context) {
 }
 
 func (sess *Session) listenFunc(ctx context.Context) func(ev any) {
-	log := sess.logger
 	return func(ev any) {
 		switch ev := ev.(type) {
 		case *network.EventRequestWillBeSent:
-			log.Debug("Request will be sent",
-				"requestID", ev.RequestID,
-				"type", ev.Type,
-				"frameID", ev.FrameID,
-				"initiator", ev.Initiator.Type,
-				"loaderID", ev.LoaderID,
-				"documentURL", ev.DocumentURL)
-			if req := sess.Requests.GetByNetworkId(ev.RequestID.String()); req != nil {
-				req.Initiator = ev.Initiator.Type.String()
-			}
+			sess.onNetworkEventRequestWillBeSent(ctx, ev)
+
 		case *network.EventLoadingFailed:
-			log.Debug("Loading failed",
-				"type", ev.Type,
-				"errorText", ev.ErrorText,
-				"blockedReason", ev.BlockedReason,
-				"canceled", ev.Canceled,
-				"requestID", ev.RequestID)
+			sess.onNetworkEventLoadingFailed(ctx, ev)
+
 		case *page.EventFrameStartedLoading:
-			log.Debug("Frame started loading", "frameID", ev.FrameID)
-			sess.Requests.NotifyLoadStart()
+			sess.onPageEventFrameStartedLoading(ctx, ev)
+
 		case *page.EventFrameStoppedLoading:
-			log.Debug("Frame stopped loading", "frameID", ev.FrameID)
-			sess.Requests.NotifyLoadFinished()
+			sess.onPageEventFrameStoppedLoading(ctx, ev)
+
 		case *page.EventFileChooserOpened:
-			log.Warn("File chooser opened", "backendNodeID", ev.BackendNodeID, "frameID", ev.FrameID, "mode", ev.Mode)
+			sess.onPageEventFileChooserOpened(ctx, ev)
+
 		case *page.EventJavascriptDialogOpening:
-			log.Debug("Javascript dialog opening", "message", ev.Message)
-			go func() {
-				accept := ev.Type == "alert"
-				if err := chromedp.Run(ctx,
-					page.HandleJavaScriptDialog(accept),
-				); err != nil {
-					log.Error("Could not handle JavaScript dialog", "error", err)
-				}
-			}()
+			go sess.onPageEventJavascriptDialogOpening(ctx, ev)
+
 		case *target.EventTargetCreated:
-			log.Debug("Target created",
-				"targetID", ev.TargetInfo.TargetID,
-				"openerID", ev.TargetInfo.OpenerID,
-				"browserContextID", ev.TargetInfo.BrowserContextID,
-				"type", ev.TargetInfo.Type,
-				"title", ev.TargetInfo.Title,
-				"url", ev.TargetInfo.URL,
-				"attached", ev.TargetInfo.Attached)
-			newCtx, _ := chromedp.NewContext(ctx, chromedp.WithTargetID(ev.TargetInfo.TargetID))
-			go func() {
-				<-ctx.Done()
-				_ = chromedp.Cancel(newCtx)
-			}()
-			if err := chromedp.Run(newCtx); err != nil {
-				log.Warn("Failed connecting to new target", "error", err)
-			}
+			sess.onTargetEventTargetCreated(ctx, ev)
 
-			var actions []chromedp.Action
-
-			switch ev.TargetInfo.Type {
-			case "service_worker":
-				actions = []chromedp.Action{
-					fetch.Enable(),
-					runtime.Enable(),
-					target.SetAutoAttach(true, false).WithFlatten(true),
-					runtime.RunIfWaitingForDebugger(),
-					network.SetCacheDisabled(true),
-					network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
-				}
-			case "worker":
-				actions = []chromedp.Action{
-					runtime.Enable(),
-					target.SetAutoAttach(true, false).WithFlatten(true),
-					runtime.RunIfWaitingForDebugger(),
-					network.SetCacheDisabled(true),
-				}
-			default:
-				actions = []chromedp.Action{
-					fetch.Enable(),
-					runtime.Enable(),
-					target.SetAutoAttach(true, false).WithFlatten(true),
-					runtime.RunIfWaitingForDebugger(),
-					network.Enable(),
-					page.Enable(),
-					network.SetCacheDisabled(true),
-					security.SetIgnoreCertificateErrors(true),
-					network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
-				}
-			}
-
-			go func() {
-				if err := chromedp.Run(newCtx, actions...); err != nil {
-					log.Error("Failed initializing new target", "error", err)
-				}
-
-				chromedp.ListenTarget(newCtx, sess.listenFunc(newCtx))
-			}()
-			err := sess.Notify(ev.TargetInfo.TargetID.String())
-			if err != nil {
-				log.Error("Failed to notify session of new target", "error", err)
-			}
 		case *fetch.EventRequestPaused:
-			go func() {
-				continueRequest := fetch.ContinueRequest(ev.RequestID)
-				if ev.ResponseStatusCode == 0 && ev.ResponseErrorReason == "" {
-					continueRequest = continueRequest.WithURL(ev.Request.URL).WithMethod(ev.Request.Method)
-					req := &requests.Request{
-						Method:       ev.Request.Method,
-						Url:          url.Normalize(ev.Request.URL + ev.Request.URLFragment),
-						RequestId:    ev.RequestID.String(),
-						NetworkId:    ev.NetworkID.String(),
-						Referrer:     interfaceToString(ev.Request.Headers["Referer"]),
-						ResourceType: ev.ResourceType.String(),
-					}
+			go sess.onFetchEventRequestPaused(ctx, ev)
+		}
+	}
+}
 
-					sess.Requests.AddRequest(req)
+func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *network.EventRequestWillBeSent) {
+	sess.logger.Debug("Request will be sent",
+		"requestID", ev.RequestID,
+		"type", ev.Type,
+		"frameID", ev.FrameID,
+		"initiator", ev.Initiator.Type,
+		"loaderID", ev.LoaderID,
+		"documentURL", ev.DocumentURL)
+	if req := sess.Requests.GetByNetworkId(ev.RequestID.String()); req != nil {
+		req.Initiator = ev.Initiator.Type.String()
+	}
+}
 
-					if ev.Request.Headers["veidemann_reqid"] != nil {
-						delete(ev.Request.Headers, "veidemann_reqid")
-					}
-					h := make([]*fetch.HeaderEntry, len(ev.Request.Headers)+1)
-					i := 0
-					for k, v := range ev.Request.Headers {
-						h[i] = &fetch.HeaderEntry{Name: k, Value: interfaceToString(v)}
-						i++
-					}
-					h[i] = &fetch.HeaderEntry{Name: "veidemann_reqid", Value: ev.RequestID.String()}
-					continueRequest = continueRequest.WithHeaders(h)
-				} else {
-					log.Debug("RESPONSE REQUEST", "statusCode", ev.ResponseStatusCode, "errorReason", ev.ResponseErrorReason, "url", ev.Request.URL)
-				}
-				if err := chromedp.Run(ctx, continueRequest); err != nil {
-					log.Debug("Failed sending continue", "error", err)
-				} else {
-					err = sess.Notify(ev.RequestID.String())
-					if err != nil {
-						log.Error("Failed to notify session after request continuation", "error", err)
-					}
-				}
-			}()
+func (sess *Session) onNetworkEventLoadingFailed(_ context.Context, ev *network.EventLoadingFailed) {
+	sess.logger.Debug("Loading failed",
+		"type", ev.Type,
+		"errorText", ev.ErrorText,
+		"blockedReason", ev.BlockedReason,
+		"canceled", ev.Canceled,
+		"requestID", ev.RequestID)
+
+}
+
+func (sess *Session) onPageEventFrameStartedLoading(_ context.Context, ev *page.EventFrameStartedLoading) {
+	sess.logger.Debug("Frame started loading", "frameID", ev.FrameID)
+	sess.Requests.NotifyLoadStart()
+}
+
+func (sess *Session) onPageEventFrameStoppedLoading(_ context.Context, ev *page.EventFrameStoppedLoading) {
+	sess.logger.Debug("Frame stopped loading", "frameID", ev.FrameID)
+	sess.Requests.NotifyLoadFinished()
+}
+
+func (sess *Session) onPageEventFileChooserOpened(_ context.Context, ev *page.EventFileChooserOpened) {
+	sess.logger.Warn("File chooser opened", "backendNodeID", ev.BackendNodeID, "frameID", ev.FrameID, "mode", ev.Mode)
+
+}
+
+func (sess *Session) onPageEventJavascriptDialogOpening(ctx context.Context, ev *page.EventJavascriptDialogOpening) {
+	log := sess.logger
+	log.Debug("Javascript dialog opening", "message", ev.Message)
+	accept := ev.Type == "alert"
+	if err := chromedp.Run(ctx,
+		page.HandleJavaScriptDialog(accept),
+	); err != nil {
+		log.Error("Could not handle JavaScript dialog", "error", err)
+	}
+}
+
+func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.EventTargetCreated) {
+	log := sess.logger
+	log.Debug("Target created",
+		"targetID", ev.TargetInfo.TargetID,
+		"openerID", ev.TargetInfo.OpenerID,
+		"browserContextID", ev.TargetInfo.BrowserContextID,
+		"type", ev.TargetInfo.Type,
+		"title", ev.TargetInfo.Title,
+		"url", ev.TargetInfo.URL,
+		"attached", ev.TargetInfo.Attached)
+	newCtx, _ := chromedp.NewContext(ctx, chromedp.WithTargetID(ev.TargetInfo.TargetID))
+	go func() {
+		<-ctx.Done()
+		_ = chromedp.Cancel(newCtx)
+	}()
+	if err := chromedp.Run(newCtx); err != nil {
+		log.Warn("Failed connecting to new target", "error", err)
+	}
+
+	var actions []chromedp.Action
+
+	switch ev.TargetInfo.Type {
+	case "service_worker":
+		actions = []chromedp.Action{
+			fetch.Enable(),
+			runtime.Enable(),
+			target.SetAutoAttach(true, false).WithFlatten(true),
+			runtime.RunIfWaitingForDebugger(),
+			network.SetCacheDisabled(true),
+			network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
+		}
+	case "worker":
+		actions = []chromedp.Action{
+			runtime.Enable(),
+			target.SetAutoAttach(true, false).WithFlatten(true),
+			runtime.RunIfWaitingForDebugger(),
+			network.SetCacheDisabled(true),
+		}
+	default:
+		actions = []chromedp.Action{
+			fetch.Enable(),
+			runtime.Enable(),
+			target.SetAutoAttach(true, false).WithFlatten(true),
+			runtime.RunIfWaitingForDebugger(),
+			network.Enable(),
+			page.Enable(),
+			network.SetCacheDisabled(true),
+			security.SetIgnoreCertificateErrors(true),
+			network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
+		}
+	}
+
+	go func() {
+		if err := chromedp.Run(newCtx, actions...); err != nil {
+			log.Error("Failed initializing new target", "error", err)
+		}
+
+		chromedp.ListenTarget(newCtx, sess.listenFunc(newCtx))
+	}()
+	err := sess.Notify(ev.TargetInfo.TargetID.String())
+	if err != nil {
+		log.Error("Failed to notify session of new target", "error", err)
+	}
+}
+
+func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.EventRequestPaused) {
+	log := sess.logger
+	continueRequest := fetch.ContinueRequest(ev.RequestID)
+	if ev.ResponseStatusCode == 0 && ev.ResponseErrorReason == "" {
+		continueRequest = continueRequest.WithURL(ev.Request.URL).WithMethod(ev.Request.Method)
+		req := &requests.Request{
+			Method:       ev.Request.Method,
+			Url:          url.Normalize(ev.Request.URL + ev.Request.URLFragment),
+			RequestId:    ev.RequestID.String(),
+			NetworkId:    ev.NetworkID.String(),
+			Referrer:     interfaceToString(ev.Request.Headers["Referer"]),
+			ResourceType: ev.ResourceType.String(),
+		}
+
+		sess.Requests.AddRequest(req)
+
+		if ev.Request.Headers["veidemann_reqid"] != nil {
+			delete(ev.Request.Headers, "veidemann_reqid")
+		}
+		h := make([]*fetch.HeaderEntry, len(ev.Request.Headers)+1)
+		i := 0
+		for k, v := range ev.Request.Headers {
+			h[i] = &fetch.HeaderEntry{Name: k, Value: interfaceToString(v)}
+			i++
+		}
+		h[i] = &fetch.HeaderEntry{Name: "veidemann_reqid", Value: ev.RequestID.String()}
+		continueRequest = continueRequest.WithHeaders(h)
+	} else {
+		log.Debug("RESPONSE REQUEST", "statusCode", ev.ResponseStatusCode, "errorReason", ev.ResponseErrorReason, "url", ev.Request.URL)
+	}
+	if err := chromedp.Run(ctx, continueRequest); err != nil {
+		log.Debug("Failed sending continue", "error", err)
+	} else {
+		err = sess.Notify(ev.RequestID.String())
+		if err != nil {
+			log.Error("Failed to notify session after request continuation", "error", err)
 		}
 	}
 }
