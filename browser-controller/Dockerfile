@@ -1,10 +1,8 @@
 FROM golang:1.26 AS build
 
 WORKDIR /build
-COPY browser-controller/ ./browser-controller/
-COPY getlantern-proxy/ ./getlantern-proxy/
+COPY . .
 
-WORKDIR /build/browser-controller
 RUN go mod download
 # -trimpath remove file system paths from executable
 # -ldflags arguments passed to go tool link:
@@ -14,7 +12,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" .
 
 FROM gcr.io/distroless/base-debian12
 
-COPY --from=build /build/browser-controller/browser-controller /
+COPY --from=build /build/browser-controller /
 
 # api server
 EXPOSE 8080/tcp

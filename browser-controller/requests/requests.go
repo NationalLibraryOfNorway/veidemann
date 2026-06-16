@@ -17,6 +17,7 @@
 package requests
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 
@@ -28,6 +29,8 @@ type RequestRegistry interface {
 	NotifyLoadStart()
 	NotifyLoadFinished()
 	AddRequest(req *Request)
+	GetOrAddRequest(req *Request) (*Request, bool)
+	RemoveRequest(req *Request) bool
 	GetByNetworkId(id string) *Request
 	GetByRequestId(id string) *Request
 	GetByUrl(url string, onlyNew bool) *Request
@@ -39,10 +42,11 @@ type RequestRegistry interface {
 }
 
 type requestRegistry struct {
-	done        *syncx.WaitGroup
-	mu          sync.Mutex
-	requests    []*Request
-	rootRequest *Request
+	done         *syncx.WaitGroup
+	mu           sync.Mutex
+	requests     []*Request
+	rootRequest  *Request
+	lastMatchLog string
 }
 
 func (r *requestRegistry) InitialRequest() *Request {
@@ -73,6 +77,46 @@ func (r *requestRegistry) AddRequest(req *Request) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.requests = append(r.requests, req)
+}
+
+func (r *requestRegistry) GetOrAddRequest(req *Request) (*Request, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, existing := range r.requests {
+		if req.RequestId != "" && existing.RequestId == req.RequestId {
+			return existing, false
+		}
+		if req.NetworkId != "" && existing.NetworkId == req.NetworkId {
+			return existing, false
+		}
+	}
+
+	r.requests = append(r.requests, req)
+	return req, true
+}
+
+func (r *requestRegistry) RemoveRequest(req *Request) bool {
+	if req == nil {
+		return false
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, existing := range r.requests {
+		if existing != req {
+			continue
+		}
+
+		r.requests = append(r.requests[:i], r.requests[i+1:]...)
+		if r.rootRequest == req {
+			r.rootRequest = nil
+		}
+		return true
+	}
+
+	return false
 }
 
 func (r *requestRegistry) GetByNetworkId(id string) *Request {
@@ -111,16 +155,24 @@ func (r *requestRegistry) GetByUrl(url string, onlyNew bool) *Request {
 }
 
 func (r *requestRegistry) MatchCrawlLogs() bool {
-	unresolved := 0
-	for _, l := range r.requests {
-		if l.CrawlLog == nil {
-			unresolved++
-			slog.Debug("Missing crawlLog", "requestId", l.RequestId, "new", l.GotNew, "complete", l.GotComplete)
-		} else {
-			slog.Debug("Found crawlLog", "requestId", l.RequestId, "new", l.GotNew, "complete", l.GotComplete)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	snapshot := buildCrawlLogMatchSnapshot(r.requests)
+	if signature := snapshot.signature(); signature != r.lastMatchLog {
+		eventLog := slog.Default().With(
+			"blockingRequests", snapshot.blockingCount,
+			"resolvedRequests", snapshot.resolvedCount,
+			"missingRequests", snapshot.unresolvedCount,
+			"ignoredRequests", snapshot.ignoredCount,
+		)
+		if len(snapshot.missingRequestIDs) > 0 {
+			eventLog = eventLog.With("missingRequestIds", snapshot.missingRequestIDs)
 		}
+		eventLog.Debug("CrawlLog match status")
+		r.lastMatchLog = signature
 	}
-	return unresolved == 0
+	return snapshot.unresolvedCount == 0
 }
 
 func (r *requestRegistry) Walk(w func(*Request)) {
@@ -169,6 +221,13 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 				rr.CrawlLog.DiscoveryPath = discoveryType
 			}
 		} else {
+			if !rr.BlocksPageCompletion() {
+				slog.Info("Skipping missing crawlLog for non-blocking request",
+					"url", rr.Url,
+					"requestId", rr.RequestId,
+					"resourceType", rr.ResourceType)
+				continue
+			}
 			slog.Warn("Missing crawlLog",
 				"url", rr.Url,
 				"index", idx,
@@ -178,4 +237,38 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 				"complete", rr.GotComplete)
 		}
 	}
+}
+
+const maxLoggedMissingRequestIDs = 8
+
+type crawlLogMatchSnapshot struct {
+	blockingCount     int
+	resolvedCount     int
+	unresolvedCount   int
+	ignoredCount      int
+	missingRequestIDs []string
+}
+
+func (s crawlLogMatchSnapshot) signature() string {
+	return fmt.Sprintf("%d|%d|%d|%d|%v", s.blockingCount, s.resolvedCount, s.unresolvedCount, s.ignoredCount, s.missingRequestIDs)
+}
+
+func buildCrawlLogMatchSnapshot(requests []*Request) crawlLogMatchSnapshot {
+	snapshot := crawlLogMatchSnapshot{}
+	for _, req := range requests {
+		if !req.BlocksPageCompletion() {
+			snapshot.ignoredCount++
+			continue
+		}
+		snapshot.blockingCount++
+		if req.CrawlLog == nil {
+			snapshot.unresolvedCount++
+			if len(snapshot.missingRequestIDs) < maxLoggedMissingRequestIDs {
+				snapshot.missingRequestIDs = append(snapshot.missingRequestIDs, req.RequestId)
+			}
+			continue
+		}
+		snapshot.resolvedCount++
+	}
+	return snapshot
 }

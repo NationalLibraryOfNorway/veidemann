@@ -40,3 +40,27 @@ type Request struct {
 	// It is also true if the request is a redirect from the top level request.
 	// TODO (unused): rootResource bool
 }
+
+func (r *Request) BlocksPageCompletion() bool {
+	if r == nil {
+		return false
+	}
+
+	switch r.ResourceType {
+	case "Ping",
+		"EventSource",
+		"WebSocket",
+		"CSPViolationReport",
+		"Preflight",
+		"XHR",
+		"Fetch",
+		"Manifest",
+		"SignedExchange",
+		"FedCM",
+		"Other",
+		"Prefetch":
+		return false
+	default:
+		return true
+	}
+}

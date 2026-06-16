@@ -32,7 +32,7 @@ import (
 	"testing"
 	"time"
 
-	browsercontrollerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
@@ -53,16 +53,25 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
-// sessions is a registry of sessions
-var sessions *session.Registry
+var (
+	// sessions is a registry of sessions
+	sessions *session.Registry
 
-// localhost is the ip address of the host machine
-var localhost = GetOutboundIP().String()
+	// localhost is the ip address of the host machine
+	localhost = GetOutboundIP().String()
 
-var fixtureSiteBaseURL string
+	fixtureSiteBaseURL string
 
-// provider is a flag to select container provider
-var provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
+	// provider is a flag to select container provider
+	provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
+)
+
+const (
+	logServicePort        = 5002
+	browserControllerPort = 7777
+	proxyPort             = 6666
+	maxSessions           = 2
+)
 
 func TestMain(m *testing.M) {
 	// Parse flags
@@ -113,11 +122,11 @@ func TestMain(m *testing.M) {
 	}
 
 	// setup log service mock
-	logServiceMock := logServiceTestUtil.NewLogServiceMock(5002)
+	logServiceMock := logServiceTestUtil.NewLogServiceMock(logServicePort)
 
 	// setup writer client
 	logWriter := logwriter.New(
-		serviceconnections.WithPort(5002),
+		serviceconnections.WithPort(logServicePort),
 	)
 	if err := logWriter.Connect(); err != nil {
 		panic(err)
@@ -125,11 +134,11 @@ func TestMain(m *testing.M) {
 
 	// setup sessions
 	sessions = session.NewRegistry(
-		2,
+		maxSessions,
 		session.WithBrowserHost(browserHost),
 		session.WithBrowserPort(browserPort),
 		session.WithProxyHost(localhost),
-		session.WithProxyPort(6666),
+		session.WithProxyPort(proxyPort),
 		session.WithConfigAdapter(dbAdapter),
 		session.WithScreenshotWriter(screenShotWriter),
 		session.WithLogWriter(logWriter),
@@ -141,14 +150,14 @@ func TestMain(m *testing.M) {
 	}}
 
 	// setup browsercontroller server
-	browsercontrollerAdress := ":7777"
+	browsercontrollerAdress := fmt.Sprintf(":%d", browserControllerPort)
 	listener, err := net.Listen("tcp", browsercontrollerAdress)
 	if err != nil {
 		panic(err)
 	}
 	grpcServer := grpc.NewServer()
 	apiServer := NewApiServer(sessions, robotsEvaluator, logWriter)
-	browsercontrollerV1.RegisterBrowserControllerServer(grpcServer, apiServer)
+	browsercontrollerV2.RegisterBrowserControllerServer(grpcServer, apiServer)
 
 	go func() {
 		err := grpcServer.Serve(listener)
@@ -162,9 +171,7 @@ func TestMain(m *testing.M) {
 	// setup recorder proxy
 	opt := proxyTestUtil.WithExternalBrowserController(
 		proxyServiceConnections.NewConnectionOptions("BrowserController",
-			proxyServiceConnections.WithHost("localhost"),
-			proxyServiceConnections.WithPort("7777"),
-			proxyServiceConnections.WithConnectTimeout(10*time.Second),
+			proxyServiceConnections.WithPort(fmt.Sprintf("%d", browserControllerPort)),
 		),
 	)
 	grpcServices := proxyTestUtil.NewGrpcServiceMock(opt)
@@ -176,12 +183,12 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// Clean up
-	sessions.CloseWait(1 * time.Minute)
+	sessions.Close()
 	grpcServer.GracefulStop()
 	grpcServices.Close()
-	recorderProxy0.Close()
-	recorderProxy1.Close()
-	recorderProxy2.Close()
+	recorderProxy0.Shutdown(context.TODO())
+	recorderProxy1.Shutdown(context.TODO())
+	recorderProxy2.Shutdown(context.TODO())
 	_ = screenShotWriter.Close()
 	_ = dbMock.Close()
 	_ = logWriter.Close()
@@ -460,10 +467,16 @@ func setupDbMock() *database.MockConnection {
 }
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
-func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string) (proxy *recorderproxy.RecorderProxy) {
-	proxy = recorderproxy.NewRecorderProxy(id, "0.0.0.0", 6666, conn, 5*time.Second, nextProxyAddr)
-	proxy.Start()
-	return
+func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string) *recorderproxy.RecorderProxy {
+	proxy := recorderproxy.NewRecorderProxy(id, conn, nextProxyAddr)
+
+	ln, err := proxy.Listen("", proxyPort)
+	if err != nil {
+		panic(err)
+	}
+	go proxy.Serve(ln)
+
+	return proxy
 }
 
 // GetOutboundIP returrns the preferred outbound ip of this machine
@@ -492,7 +505,7 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 			Env: map[string]string{
 				"DEBUG": "*",
 			},
-			Image:        testcontainersupport.BrowserlessChrome,
+			Image:        testcontainersupport.BrowserlessChromium,
 			ExposedPorts: []string{"3000/tcp"},
 			WaitingFor:   wait.ForListeningPort("3000/tcp"),
 		},

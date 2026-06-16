@@ -31,7 +31,7 @@ import (
 	"syscall"
 	"time"
 
-	browserControllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v1"
+	browserControllerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/controller"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
@@ -186,7 +186,7 @@ func run() error {
 		session.WithProxyPort(opts.ProxyPort()),
 		session.WithConfigAdapter(configAdapter),
 	)
-	defer sessions.CloseWait(5 * time.Minute)
+	defer sessions.Close()
 
 	telemetryAddr := fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort())
 	telemetryListener, err := net.Listen("tcp", telemetryAddr)
@@ -225,7 +225,7 @@ func run() error {
 
 	grpcServer := grpc.NewServer()
 	serverImpl := server.NewApiServer(sessions, robotsEvaluator, logWriter)
-	browserControllerV1.RegisterBrowserControllerServer(grpcServer, serverImpl)
+	browserControllerV2.RegisterBrowserControllerServer(grpcServer, serverImpl)
 
 	// Start gRPC server
 	g.Go(func() error {

@@ -10,6 +10,16 @@ Need to use the context of the monorepo root when building the container:
 
     go test ./...
 
+## Browser scripts
+
+Runtime-invoked browser scripts may return either their final JSON value or a Promise resolving to that value.
+
+- `ON_LOAD` scripts are executed via the Chrome runtime `CallFunctionOn` API and may resolve asynchronously to the usual `{waitForData, next, data}` object.
+- `EXTRACT_OUTLINKS` scripts are executed via the Chrome runtime `Evaluate` API and may resolve asynchronously to the usual `[]string` outlink list.
+- Plain functions that return `Promise.resolve(...)` are supported in addition to `async` functions.
+
+`ON_NEW_DOCUMENT` scripts are different: they are injected with `page.AddScriptToEvaluateOnNewDocument` and run fire-and-forget, so their return values are not observed by browser-controller.
+
 ## Run integration test
 
 The integration test is useful to validate compatibility between the `browserless` container image and the `chromedp` library.

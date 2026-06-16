@@ -18,20 +18,18 @@ package session
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"sync"
-	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
 )
 
 type Registry struct {
 	sessions []*Session
+	opts     []Option
 	pool     chan int
 	mu       sync.Mutex
-	opts     []Option
-	wg       *sync.WaitGroup
-	// TODO (unused): createdSessions int32
+	wg       sync.WaitGroup
 }
 
 func NewRegistry(maxSessions int, opts ...Option) (sr *Registry) {
@@ -39,7 +37,6 @@ func NewRegistry(maxSessions int, opts ...Option) (sr *Registry) {
 		sessions: make([]*Session, maxSessions),
 		pool:     make(chan int, maxSessions-1),
 		opts:     opts,
-		wg:       &sync.WaitGroup{},
 	}
 	for i := 1; i < maxSessions; i++ {
 		sr.pool <- i
@@ -51,27 +48,27 @@ func NewRegistry(maxSessions int, opts ...Option) (sr *Registry) {
 // GetNextAvailable returns next session from the pool.
 func (sr *Registry) GetNextAvailable(ctx context.Context) (*Session, error) {
 	var i int
+
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case i = <-sr.pool:
+		sr.wg.Add(1)
 	}
+
+	sess := newSession(i, sr.opts...)
+
 	sr.mu.Lock()
-	defer sr.mu.Unlock()
-	sess, err := New(i, sr.opts...)
-	if err != nil {
-		return nil, err
-	}
-	sr.wg.Add(1)
 	sr.sessions[i] = sess
+	sr.mu.Unlock()
+
 	return sess, nil
 }
 
-func (sr *Registry) NewDirectSession(uri, crawlExecutionId, jobExecutionId string) (*Session, error) {
-	return newDirectSession(uri, crawlExecutionId, jobExecutionId, sr.opts...)
-}
-
 func (sr *Registry) Get(sessId int) *Session {
+	if sessId < 0 || sessId >= len(sr.sessions) {
+		panic(fmt.Sprintf("BUG: session registry (Get): session id is out of slice range: %d", sessId))
+	}
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 	s := sr.sessions[sessId]
@@ -79,39 +76,16 @@ func (sr *Registry) Get(sessId int) *Session {
 }
 
 func (sr *Registry) Release(sess *Session) {
+	if sess.Id < 0 || sess.Id >= len(sr.sessions) {
+		panic(fmt.Sprintf("BUG: session registry (Release): session id is out of slice range: %d", sess.Id))
+	}
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-
 	sr.sessions[sess.Id] = nil
-	sr.wg.Done()
 	sr.pool <- sess.Id
+	sr.wg.Done()
 }
 
-func (sr *Registry) MaxSessions() int {
-	return len(sr.sessions)
-}
-
-func (sr *Registry) CurrentSessions() int {
-	c := 0
-	for _, s := range sr.sessions {
-		if s != nil {
-			c++
-		}
-	}
-	return c
-}
-
-func (sr *Registry) CloseWait(timeout time.Duration) {
-	c := make(chan struct{})
-	go func() {
-		sr.wg.Wait()
-		close(c)
-	}()
-	slog.Debug("Waiting for sessions to finish...", "remainingSessions", sr.CurrentSessions())
-	select {
-	case <-c:
-		slog.Debug("All sessions finished")
-	case <-time.After(timeout):
-		slog.Warn("Timed out waiting for sessions to finish.", "remainingSessions", sr.CurrentSessions())
-	}
+func (sr *Registry) Close() {
+	sr.wg.Wait()
 }
