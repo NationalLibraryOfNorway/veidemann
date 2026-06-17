@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -45,18 +46,16 @@ var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 type RecorderProxy struct {
 	proxy.Proxy
 	id                int32
-	Addr              string
 	conn              *serviceconnections.Connections
 	ConnectionTimeout time.Duration
 	nextProxy         string
-	listener          net.Listener
-	closeOnce         sync.Once
-	closeErr          error
+	mu                sync.Mutex
+	ln                net.Listener
+	shuttingDown      bool
+	once              sync.Once
 }
 
-func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Connections, nextProxyAddr string) (*RecorderProxy, error) {
-	port += id
-
+func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAddr string) *RecorderProxy {
 	r := &RecorderProxy{
 		id:        int32(id),
 		conn:      conn,
@@ -65,16 +64,25 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 
 	filterChain := filters.Join(
 		&NonproxyFilter{},
-		&ContextInitFilter{conn, int32(id)},
-		&DnsLookupFilter{conn.DnsResolverClient()},
-		&RecorderFilter{int32(id), conn.DnsResolverClient(), nextProxyAddr != ""},
-		&ErrorHandlerFilter{nextProxyAddr != ""},
+		&ContextInitFilter{
+			conn:    conn,
+			proxyId: int32(id),
+		},
+		&DnsLookupFilter{
+			DnsResolverClient: conn.DnsResolverClient(),
+		},
+		&RecorderFilter{
+			proxyId:           int32(id),
+			DnsResolverClient: conn.DnsResolverClient(),
+			hasNextProxy:      nextProxyAddr != "",
+		},
+		&ErrorHandlerFilter{
+			hasNextProxy: nextProxyAddr != "",
+		},
 	)
 
-	var chainedProxyFilter *ChainedProxyFilter
 	if nextProxyAddr != "" {
-		chainedProxyFilter = &ChainedProxyFilter{}
-		filterChain = filterChain.Append(chainedProxyFilter)
+		filterChain = filterChain.Append(&ChainedProxyFilter{proxy: r})
 	}
 
 	proxyOpts := &proxy.Opts{
@@ -99,33 +107,32 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 		OKSendsServerTiming: false,
 	}
 
-	var err error
 	r.Proxy = proxy.New(proxyOpts)
 
-	addr := fmt.Sprintf("%s:%d", host, port)
-
-	r.listener, err = net.Listen("tcp", addr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to listen on %s: %w", addr, err)
-	}
-
-	r.Addr = r.listener.Addr().String()
-
-	if chainedProxyFilter != nil {
-		chainedProxyFilter.proxy = r
-	}
-
-	return r, nil
+	return r
 }
 
-func (proxy *RecorderProxy) Start() error {
-	l := logger.LogWithComponent("PROXY")
-	l.Infof("Starting proxy %v ...", proxy.id)
+func (proxy *RecorderProxy) Listen(host string, port int) (net.Listener, error) {
+	portStr := strconv.Itoa(port + int(proxy.id))
+	addr := net.JoinHostPort(host, portStr)
+	return net.Listen("tcp", addr)
+}
+
+func (proxy *RecorderProxy) Serve(ln net.Listener) error {
+	proxy.mu.Lock()
+	if proxy.shuttingDown {
+		proxy.mu.Unlock()
+		_ = ln.Close()
+		return net.ErrClosed
+	}
+
+	proxy.ln = ln
+	proxy.mu.Unlock()
 
 	for {
-		co, err := proxy.listener.Accept()
+		co, err := ln.Accept()
 		if err != nil {
-			if errors.Is(err, net.ErrClosed) {
+			if errors.Is(err, net.ErrClosed) || proxy.isShuttingDown() {
 				return nil
 			}
 			return fmt.Errorf("failed to accept connection: %w", err)
@@ -142,36 +149,57 @@ func (proxy *RecorderProxy) Start() error {
 
 			err := proxy.Handle(c, conn, conn)
 			if err != nil {
-				l.Errorf("Error handling request: %v", err)
+				logger.LogWithComponent("PROXY").WithError(err).Error("Error handling request")
 			}
 		}()
 	}
 }
 
-func (proxy *RecorderProxy) Close() error {
-	l := logger.LogWithComponent("PROXY")
-	l.Infof("Shutting down proxy %v ...", proxy.id)
+func (proxy *RecorderProxy) Shutdown(ctx context.Context) error {
+	proxy.mu.Lock()
 
-	proxy.closeOnce.Do(func() {
-		proxy.closeErr = proxy.listener.Close()
-	})
+	proxy.shuttingDown = true
+	ln := proxy.ln
+	proxy.ln = nil
 
-	if proxy.closeErr != nil && !errors.Is(proxy.closeErr, net.ErrClosed) {
-		return fmt.Errorf("failed to close listener: %w", proxy.closeErr)
-	}
+	proxy.mu.Unlock()
 
-	openSessions := rpcontext.OpenSessions()
-	var prev int64
-	for openSessions > 0 {
-		if openSessions != prev {
-			l.Infof("Waiting for %d sessions to complete", openSessions)
-			time.Sleep(200 * time.Millisecond)
+	if ln != nil {
+		if err := ln.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+			return err
 		}
-		prev = openSessions
-		openSessions = rpcontext.OpenSessions()
 	}
 
-	return nil
+	return proxy.waitOpenSessions(ctx)
+}
+
+func (proxy *RecorderProxy) isShuttingDown() bool {
+	proxy.mu.Lock()
+	defer proxy.mu.Unlock()
+	return proxy.shuttingDown
+}
+
+func (proxy *RecorderProxy) waitOpenSessions(ctx context.Context) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	var prev int64 = -1
+
+	for {
+		openSessions := rpcontext.OpenSessions()
+		if openSessions == 0 {
+			return nil
+		}
+		if openSessions != prev {
+			logger.LogWithComponent("PROXY").Infof("Waiting for %d sessions to complete", openSessions)
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 type wrappedConnection struct {

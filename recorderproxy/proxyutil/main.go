@@ -17,8 +17,8 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -65,64 +65,68 @@ func main() {
 		return
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	grpcServices := testutil.NewGrpcServiceMock()
+
 	if flag.NArg() == 0 {
 		recorderProxy, _ = newProxy(grpcServices)
-		defer recorderProxy.Close()
+		defer recorderProxy.Shutdown(ctx)
 	} else {
 		for _, url := range flag.Args() {
-			recorderProxy, client = newProxy(grpcServices)
-			defer recorderProxy.Close()
-
-			clientTimeout := 5000 * time.Second
-
-			statusCode, got, err := get(url, client, clientTimeout)
-			if grpcServices.DoneBC != nil {
-				<-grpcServices.DoneBC
-			}
-			if grpcServices.DoneCW != nil {
-				<-grpcServices.DoneCW
-			}
-
-			logger.LogWithComponent("CLIENT").Infof("Status: %v", statusCode)
-
-			if len(got) > 0 {
-				logger.LogWithComponent("CLIENT").Printf("Content: %s... (%d bytes)\n\n", got[0:10], len(got))
-			}
-
-			if err != nil {
-				logger.LogWithComponent("CLIENT").WithError(err).Error("Invalid request")
-			}
+			getWithProxy(ctx, url, grpcServices)
 		}
 	}
 
 	if viper.GetBool("keep-running") {
-		// Run until interrupted
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		func() {
-			for sig := range c {
-				// sig is a ^C, handle it
-				fmt.Printf("\nSIG: %v\n", sig)
-				return
-			}
-		}()
+		<-ctx.Done()
+	}
+}
+
+func getWithProxy(ctx context.Context, url string, grpcServices *testutil.GrpcServiceMock) {
+	recorderProxy, client = newProxy(grpcServices)
+	defer recorderProxy.Shutdown(ctx)
+
+	clientTimeout := 5000 * time.Second
+
+	statusCode, got, err := get(url, client, clientTimeout)
+	if grpcServices.DoneBC != nil {
+		<-grpcServices.DoneBC
+	}
+	if grpcServices.DoneCW != nil {
+		<-grpcServices.DoneCW
+	}
+
+	logger.LogWithComponent("CLIENT").Infof("Status: %v", statusCode)
+
+	if len(got) > 0 {
+		logger.LogWithComponent("CLIENT").Printf("Content: %s... (%d bytes)\n\n", got[0:10], len(got))
+	}
+
+	if err != nil {
+		logger.LogWithComponent("CLIENT").WithError(err).Error("Invalid request")
 	}
 }
 
 func newProxy(mock *testutil.GrpcServiceMock) (*recorderproxy.RecorderProxy, *http.Client) {
-	p, err := recorderproxy.NewRecorderProxy(0, viper.GetString("interface"), viper.GetInt("port"), mock.ClientConn, viper.GetString("proxy"))
+	host := viper.GetString("interface")
+	port := viper.GetInt("port")
+	nextProxy := viper.GetString("proxy")
+	p := recorderproxy.NewRecorderProxy(0, mock.ClientConn, nextProxy)
+
+	ln, err := p.Listen(host, port)
 	if err != nil {
-		panic(fmt.Errorf("Failed to create recorder proxy: %v", err))
+		panic(err)
 	}
 	go func() {
-		err := p.Start()
+		err := p.Serve(ln)
 		if err != nil {
 			logger.LogWithComponent("PROXY").WithError(err).Error("Error starting recorder proxy")
 		}
 	}()
 
-	proxyUrl, _ := url.Parse("http://" + p.Addr)
+	proxyUrl, _ := url.Parse("http://" + ln.Addr().String())
 	tr := &http.Transport{TLSClientConfig: acceptAllCerts, Proxy: http.ProxyURL(proxyUrl), DisableKeepAlives: false}
 	client := &http.Client{Transport: tr}
 

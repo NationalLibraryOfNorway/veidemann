@@ -92,14 +92,17 @@ func run() error {
 	var startedProxies []*recorderproxy.RecorderProxy
 
 	for i := range proxyCount {
-		r, err := recorderproxy.NewRecorderProxy(i, iface, firstPort, conn, cacheAddr)
+		r := recorderproxy.NewRecorderProxy(i, conn, cacheAddr)
+
+		ln, err := r.Listen(iface, firstPort)
 		if err != nil {
-			return fmt.Errorf("failed to create recorder proxy %v: %w", i, err)
+			return fmt.Errorf("failed to listen (proxy %v): %w", i, err)
 		}
-		slog.Info("Proxy is listening ...", "id", i, "address", r.Addr)
+
+		slog.Info("Proxy is listening ...", "id", i, "address", ln.Addr())
 
 		go func() {
-			err := r.Start()
+			err := r.Serve(ln)
 			if err != nil {
 				slog.Error("Recorder proxy stopped", "id", i, "error", err)
 			}
@@ -115,8 +118,10 @@ func run() error {
 	<-ctx.Done()
 	slog.Info("Server shutting down")
 
+	shutdownCtx := context.TODO()
+
 	for i, r := range startedProxies {
-		err = r.Close()
+		err = r.Shutdown(shutdownCtx)
 		if err != nil {
 			slog.Error("Error closing recorder proxy", "error", err, "id", i)
 		}

@@ -19,8 +19,10 @@ package recorderproxy_test
 import (
 	"context"
 	"crypto/tls"
+	stderrors "errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -79,7 +81,7 @@ func TestRecorderProxy(t *testing.T) {
 		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
 	}
 	defer client.CloseIdleConnections()
-	defer recorderProxy.Close()
+	defer recorderProxy.Shutdown(context.TODO())
 
 	tests := []test{
 		{
@@ -351,7 +353,7 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
 	}
 	defer client.CloseIdleConnections()
-	defer recorderProxy.Close()
+	defer recorderProxy.Shutdown(context.TODO())
 
 	tests := []test{
 		{
@@ -610,7 +612,7 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
 	}
 	defer client.CloseIdleConnections()
-	defer recorderProxy.Close()
+	defer recorderProxy.Shutdown(context.TODO())
 
 	tt := test{
 		name:                    "https:harvest headers bypass browser controller register",
@@ -1656,21 +1658,31 @@ func printRequest(req interface{}) string {
 func localRecorderProxy(t testing.TB, conn *serviceconnections.Connections, nextProxyAddr string) (*http.Client, *recorderproxy.RecorderProxy, error) {
 	t.Helper()
 
-	proxy, err := recorderproxy.NewRecorderProxy(0, "localhost", 0, conn, nextProxyAddr)
+	host := "localhost"
+	port := 0
+
+	proxy := recorderproxy.NewRecorderProxy(0, conn, nextProxyAddr)
+
+	ln, err := proxy.Listen(host, port)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create recorder proxy: %v", err)
 	}
 
-	t.Logf("Local recorder proxy listening on %s", proxy.Addr)
+	proxyAddr := ln.Addr().String()
+
+	t.Logf("Local recorder proxy listening on %s", proxyAddr)
+
 	if nextProxyAddr != "" {
 		t.Logf("Local recorder proxy forwarding to next proxy at %s", nextProxyAddr)
 	}
+
 	go func() {
-		if err := proxy.Start(); err != nil {
+		if err := proxy.Serve(ln); err != nil && !stderrors.Is(err, net.ErrClosed) {
 			panic(err)
 		}
 	}()
-	proxyUrl, _ := url.Parse("http://" + proxy.Addr)
+
+	proxyUrl, _ := url.Parse("http://" + proxyAddr)
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig:   acceptAllCerts,
