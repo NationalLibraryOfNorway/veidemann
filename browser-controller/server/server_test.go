@@ -27,6 +27,8 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -35,6 +37,7 @@ import (
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
+	testcontainersupport "github.com/NationalLibraryOfNorway/veidemann/browser-controller/internal/testcontainers"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
@@ -56,6 +59,8 @@ var sessions *session.Registry
 // localhost is the ip address of the host machine
 var localhost = GetOutboundIP().String()
 
+var fixtureSiteBaseURL string
+
 // provider is a flag to select container provider
 var provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
 
@@ -70,6 +75,16 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+
+	// setup local fixture site
+	fixtureSite, err := setupFixtureSite(ctx)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = fixtureSite.Close()
+	}()
+	fixtureSiteBaseURL = fixtureSite.baseURL
 
 	// setup database mock
 	dbMock := setupDbMock()
@@ -143,6 +158,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}()
+
 	// setup recorder proxy
 	opt := proxyTestUtil.WithExternalBrowserController(
 		proxyServiceConnections.NewConnectionOptions("BrowserController",
@@ -185,40 +201,180 @@ func TestSession_Fetch(t *testing.T) {
 			BrowserConfigRef: &configV1.ConfigRef{Id: "browserConfig1"},
 			PolitenessRef:    &configV1.ConfigRef{Id: "politenessConfig1"},
 			CollectionRef:    &configV1.ConfigRef{Id: "collectionConfig1"},
-			Extra:            &configV1.ExtraConfig{CreateScreenshot: true},
+			Extra:            &configV1.ExtraConfig{CreateScreenshot: false},
 		}},
 	}
 
 	tests := []struct {
-		name string
-		url  *frontierV1.QueuedUri
+		name             string
+		baseURL          string
+		path             string
+		expectedOutlinks []string
+		skipReason       string
 	}{
-		{"elg", &frontierV1.QueuedUri{Uri: "http://elg.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
+		{"static-outlink", fixtureSiteBaseURL, "/index.html", []string{fixtureSiteBaseURL + "/linked.html"}, ""},
+		{
+			"worker-outlink",
+			fixtureSiteBaseURL,
+			"/worker.html",
+			[]string{fixtureSiteBaseURL + "/worker-hit.html"},
+			"",
+		},
 	}
 	for _, tt := range tests {
 		ctx := context.Background()
 		t.Run(tt.name, func(t *testing.T) {
-			// Get next available session
+			if tt.skipReason != "" {
+				t.Skip(tt.skipReason)
+			}
+			if tt.baseURL == "" {
+				t.Fatal("fixture site base URL was not initialized")
+			}
+
+			qUri := &frontierV1.QueuedUri{Uri: tt.baseURL + tt.path, DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}
+
 			s, err := sessions.GetNextAvailable(ctx)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 			defer sessions.Release(s)
 
+			t.Logf("Acquired session: %v", s.Id)
+
 			// Fetch page
-			result, err := s.Fetch(context.Background(), &frontierV1.PageHarvestSpec{
-				QueuedUri:    tt.url,
+			phs := &frontierV1.PageHarvestSpec{
+				QueuedUri:    qUri,
 				CrawlConfig:  conf,
 				SessionToken: "test",
-			})
-			if err != nil {
-				t.Error(err)
-			} else {
-				t.Logf("Resource count: %v, Time: %v\n", result.UriCount, result.PageFetchTimeMs)
 			}
-			time.Sleep(time.Second * 4)
+
+			t.Logf("Starting fetch test for %v", phs)
+
+			result, err := s.Fetch(context.Background(), phs)
+			t.Log("Session.Fetch returned")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.UriCount == 0 {
+				t.Fatalf("expected at least one resource for %s", qUri.Uri)
+			}
+			for _, want := range tt.expectedOutlinks {
+				if !hasOutlink(result.Outlinks, want) {
+					t.Fatalf("missing outlink %q, got %v", want, outlinkStrings(result.Outlinks))
+				}
+			}
+			t.Logf("Resource count: %v, outlinks: %v, Time: %v\n", result.UriCount, outlinkStrings(result.Outlinks), result.PageFetchTimeMs)
 		})
 	}
+}
+
+type fixtureSite struct {
+	baseURL string
+	ctx     context.Context
+	ctr     testcontainers.Container
+}
+
+func (s *fixtureSite) Close() error {
+	ctx, cancel := context.WithTimeout(s.ctx, 5*time.Second)
+	defer cancel()
+	return s.ctr.Terminate(ctx)
+}
+
+func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
+	root, err := fixtureSiteRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	providerType, skipReaper := containerProvider()
+	fixtureContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ProviderType: providerType,
+		ContainerRequest: testcontainers.ContainerRequest{
+			SkipReaper:   skipReaper,
+			Image:        "nginx:1.27-alpine",
+			ExposedPorts: []string{"80/tcp"},
+			WaitingFor:   wait.ForListeningPort("80/tcp"),
+			Files:        fixtureSiteFiles(root),
+		},
+		Started: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	host, err := fixtureContainer.Host(ctx)
+	if err != nil {
+		_ = fixtureContainer.Terminate(ctx)
+		return nil, err
+	}
+	if host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	}
+
+	port, err := fixtureContainer.MappedPort(ctx, "80/tcp")
+	if err != nil {
+		_ = fixtureContainer.Terminate(ctx)
+		return nil, err
+	}
+
+	return &fixtureSite{
+		baseURL: fmt.Sprintf("http://%s:%d", host, port.Num()),
+		ctx:     ctx,
+		ctr:     fixtureContainer,
+	}, nil
+}
+
+func fixtureSiteRoot() (string, error) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", fmt.Errorf("failed resolving server test path")
+	}
+	return filepath.Join(filepath.Dir(currentFile), "testdata", "site"), nil
+}
+
+func fixtureSiteFiles(root string) []testcontainers.ContainerFile {
+	files := []string{
+		"index.html",
+		"linked.html",
+		"worker.html",
+		"worker.js",
+		"worker-data.json",
+		"worker-hit.html",
+	}
+
+	result := make([]testcontainers.ContainerFile, 0, len(files))
+	for _, fileName := range files {
+		result = append(result, testcontainers.ContainerFile{
+			HostFilePath:      filepath.Join(root, fileName),
+			ContainerFilePath: filepath.Join("/usr/share/nginx/html", fileName),
+			FileMode:          0o644,
+		})
+	}
+	return result
+}
+
+func containerProvider() (testcontainers.ProviderType, bool) {
+	if *provider == "podman" {
+		return testcontainers.ProviderPodman, true
+	}
+	return testcontainers.ProviderDocker, false
+}
+
+func hasOutlink(outlinks []*frontierV1.QueuedUri, want string) bool {
+	for _, outlink := range outlinks {
+		if outlink.GetUri() == want {
+			return true
+		}
+	}
+	return false
+}
+
+func outlinkStrings(outlinks []*frontierV1.QueuedUri) []string {
+	result := make([]string, 0, len(outlinks))
+	for _, outlink := range outlinks {
+		result = append(result, outlink.GetUri())
+	}
+	return result
 }
 
 func setupDbMock() *database.MockConnection {
@@ -326,14 +482,8 @@ func GetOutboundIP() net.IP {
 
 func setupBrowser(ctx context.Context) (host string, port int, err error) {
 	// Determine container provider
-	skipReaper := false
-	var providerType testcontainers.ProviderType
-	if *provider == "podman" {
-		providerType = testcontainers.ProviderPodman
-		skipReaper = true
-	} else {
-		providerType = testcontainers.ProviderDocker
-	}
+	providerType, skipReaper := containerProvider()
+
 	// Start browserless container
 	browserless, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ProviderType: providerType,
@@ -342,7 +492,7 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 			Env: map[string]string{
 				"DEBUG": "*",
 			},
-			Image:        "browserless/chrome:1.36.0-puppeteer-3.3.0",
+			Image:        testcontainersupport.BrowserlessChrome,
 			ExposedPorts: []string{"3000/tcp"},
 			WaitingFor:   wait.ForListeningPort("3000/tcp"),
 		},
@@ -354,6 +504,9 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 	host, err = browserless.Host(ctx)
 	if err != nil {
 		return
+	}
+	if host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
 	}
 	browserPort, err := browserless.MappedPort(ctx, "3000/tcp")
 	if err != nil {
