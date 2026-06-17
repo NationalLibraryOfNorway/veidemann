@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -110,7 +109,7 @@ func run() error {
 		go func() {
 			err := r.Start()
 			if err != nil {
-				log.Printf("Recorder proxy %d stopped: %v", i, err)
+				slog.Error("Recorder proxy stopped", "id", i, "error", err)
 			}
 		}()
 
