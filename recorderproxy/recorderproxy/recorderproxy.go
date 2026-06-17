@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
@@ -49,7 +50,8 @@ type RecorderProxy struct {
 	ConnectionTimeout time.Duration
 	nextProxy         string
 	listener          net.Listener
-	shouldRun         bool
+	closeOnce         sync.Once
+	closeErr          error
 }
 
 func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Connections, nextProxyAddr string) (*RecorderProxy, error) {
@@ -59,7 +61,6 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 		id:        int32(id),
 		conn:      conn,
 		nextProxy: nextProxyAddr,
-		shouldRun: true,
 	}
 
 	filterChain := filters.Join(
@@ -122,13 +123,13 @@ func (proxy *RecorderProxy) Start() error {
 	l := logger.LogWithComponent("PROXY")
 	l.Infof("Starting proxy %v ...", proxy.id)
 
-	for proxy.shouldRun {
+	for {
 		co, err := proxy.listener.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
 				return nil
 			}
-			return fmt.Errorf("Failed to accept connection: %w", err)
+			return fmt.Errorf("failed to accept connection: %w", err)
 		}
 
 		conn := WrapConn(co, "down", false)
@@ -136,31 +137,42 @@ func (proxy *RecorderProxy) Start() error {
 
 		conn.BaseContext = c
 		conn.CancelFunc = cancel
+
 		go func() {
+			defer cancel()
+
 			err := proxy.Handle(c, conn, conn)
 			if err != nil {
 				l.Errorf("Error handling request: %v", err)
 			}
 		}()
 	}
-
-	return proxy.listener.Close()
 }
 
 func (proxy *RecorderProxy) Close() error {
 	l := logger.LogWithComponent("PROXY")
 	l.Infof("Shutting down proxy %v ...", proxy.id)
 
-	proxy.shouldRun = false
-	var prev int64
-	for openSessions := rpcontext.OpenSessions(); openSessions > 0; prev = openSessions {
-		if openSessions != prev {
-			l.Infof("Waiting for %d sessions to complete", openSessions)
-		}
-		time.Sleep(200 * time.Millisecond)
+	proxy.closeOnce.Do(func() {
+		proxy.closeErr = proxy.listener.Close()
+	})
+
+	if proxy.closeErr != nil && !errors.Is(proxy.closeErr, net.ErrClosed) {
+		return fmt.Errorf("failed to close listener: %w", proxy.closeErr)
 	}
 
-	return proxy.listener.Close()
+	openSessions := rpcontext.OpenSessions()
+	var prev int64
+	for openSessions > 0 {
+		if openSessions != prev {
+			l.Infof("Waiting for %d sessions to complete", openSessions)
+			time.Sleep(200 * time.Millisecond)
+		}
+		prev = openSessions
+		openSessions = rpcontext.OpenSessions()
+	}
+
+	return nil
 }
 
 type wrappedConnection struct {
