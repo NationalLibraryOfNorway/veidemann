@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -337,7 +338,7 @@ func copyHeadersForForwarding(dst, src http.Header) {
 		case "Transfer-Encoding":
 		case "Upgrade":
 		default:
-			if !contains(k, extraHopByHopHeaders) {
+			if !slices.Contains(extraHopByHopHeaders, k) {
 				for _, v := range vv {
 					dst.Add(k, v)
 				}
@@ -350,15 +351,6 @@ func copyHeadersForForwarding(dst, src http.Header) {
 		dst.Set("Connection", pc)
 	}
 	dst.Del("Proxy-Connection")
-}
-
-func contains(k string, items []string) bool {
-	for _, item := range items {
-		if k == item {
-			return true
-		}
-	}
-	return false
 }
 
 func isUnexpected(err error) bool {
