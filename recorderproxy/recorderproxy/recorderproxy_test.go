@@ -1402,7 +1402,9 @@ func (test *test) generateHandshakeFailureRequests() {
 	test.wantGrpcRequests = r
 }
 
-func compareCW(t *testing.T, serviceName string, want []*contentwriterV1.WriteRequest, got []*contentwriterV1.WriteRequest) {
+func compareCW(t testing.TB, serviceName string, want []*contentwriterV1.WriteRequest, got []*contentwriterV1.WriteRequest) {
+	t.Helper()
+
 	if len(want) == 0 && len(got) == 0 {
 		return
 	}
@@ -1441,7 +1443,10 @@ func compareCW(t *testing.T, serviceName string, want []*contentwriterV1.WriteRe
 			len(got), len(want), printRequest(got[len(want)]))
 	}
 }
-func compareBC(t *testing.T, serviceName string, tt test, want []*testutil.BrowserControllerRequest, got []*testutil.BrowserControllerRequest) {
+
+func compareBC(t testing.TB, serviceName string, tt test, want []*testutil.BrowserControllerRequest, got []*testutil.BrowserControllerRequest) {
+	t.Helper()
+
 	for i, r := range want {
 		if i >= len(got) {
 			t.Errorf("%s service received too few requests. Got %d, want %d.\nFirst missing request is:\n%v", serviceName,
@@ -1463,7 +1468,9 @@ func compareBC(t *testing.T, serviceName string, tt test, want []*testutil.Brows
 		listGotWant(t, got, want)
 	}
 }
-func listGotWant(t *testing.T, got, want interface{}) {
+func listGotWant(t testing.TB, got, want interface{}) {
+	t.Helper()
+
 	g := reflect.ValueOf(got)
 	for i := 0; i < g.Len(); i++ {
 		t.Errorf(" GOT: %v", g.Index(i))
@@ -1474,7 +1481,9 @@ func listGotWant(t *testing.T, got, want interface{}) {
 	}
 }
 
-func compareDNS(t *testing.T, serviceName string, want []*dnsresolverV1.ResolveRequest, got []*dnsresolverV1.ResolveRequest) {
+func compareDNS(t testing.TB, serviceName string, want []*dnsresolverV1.ResolveRequest, got []*dnsresolverV1.ResolveRequest) {
+	t.Helper()
+
 	for i, r := range want {
 		if i >= len(got) {
 			t.Errorf("%s service received too few requests. Got %d, want %d.\nFirst missing request is:\n%v", serviceName,
@@ -1494,7 +1503,9 @@ func compareDNS(t *testing.T, serviceName string, want []*dnsresolverV1.ResolveR
 
 var dateRe = regexp.MustCompile(`(?sm)^(.*Date: )([^\r\n]+)(.*)$`)
 
-func compareCwWriteRequest(t *testing.T, want *contentwriterV1.WriteRequest, got *contentwriterV1.WriteRequest) (ok bool) {
+func compareCwWriteRequest(t testing.TB, want *contentwriterV1.WriteRequest, got *contentwriterV1.WriteRequest) (ok bool) {
+	t.Helper()
+
 	switch wt := want.Value.(type) {
 	case *contentwriterV1.WriteRequest_ProtocolHeader:
 		wantBytes := wt.ProtocolHeader.Data
@@ -1562,7 +1573,9 @@ func compareCwWriteRequest(t *testing.T, want *contentwriterV1.WriteRequest, got
 	return
 }
 
-func compareBcRequest(t *testing.T, tt test, want *testutil.BrowserControllerRequest, got *testutil.BrowserControllerRequest) bool {
+func compareBcRequest(t testing.TB, tt test, want *testutil.BrowserControllerRequest, got *testutil.BrowserControllerRequest) bool {
+	t.Helper()
+
 	switch {
 	case want.RegisterResource != nil || got.RegisterResource != nil:
 		if want.RegisterResource == nil || got.RegisterResource == nil {
@@ -1579,7 +1592,9 @@ func compareBcRequest(t *testing.T, tt test, want *testutil.BrowserControllerReq
 	}
 }
 
-func compareBcCompleteRequest(t *testing.T, tt test, want *browsercontrollerV2.CompleteResourceRequest, got *browsercontrollerV2.CompleteResourceRequest) bool {
+func compareBcCompleteRequest(t testing.TB, tt test, want *browsercontrollerV2.CompleteResourceRequest, got *browsercontrollerV2.CompleteResourceRequest) bool {
+	t.Helper()
+
 	if want.GetCrawlLog() == nil || got.GetCrawlLog() == nil {
 		return proto.Equal(want, got)
 	}
