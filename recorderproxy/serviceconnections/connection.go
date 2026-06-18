@@ -84,8 +84,6 @@ func (opts *ConnectionOptions) connectService() (*grpc.ClientConn, error) {
 
 	dialOpts := append(opts.dialOptions,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		//grpc.WithStreamInterceptor(grpc_opentracing.StreamClientInterceptor()),
-		//grpc.WithUnaryInterceptor(grpc_opentracing.UnaryClientInterceptor()),
 	)
 
 	clientConn, err := grpc.NewClient(opts.Addr(), dialOpts...)

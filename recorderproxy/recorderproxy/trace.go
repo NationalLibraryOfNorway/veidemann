@@ -22,8 +22,6 @@ import (
 	"net/http/httptrace"
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 func DecorateRequest(roundTripper http.RoundTripper, req *http.Request) (http.RoundTripper, *http.Request) {
@@ -92,10 +90,6 @@ func (t *transport) ConnectDone(network, addr string, err error) {
 
 func (t *transport) TLSHandshakeStart() {
 	t.log.Debugf("TLS Handshake start")
-	span := opentracing.SpanFromContext(t.current.Context())
-	span.LogFields(
-		log.String("event", "TLSHandshakeStart"),
-	)
 }
 
 func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
@@ -103,11 +97,4 @@ func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
 	for _, c := range state.PeerCertificates {
 		t.log.Debugf("TLS peer cert: %v\n", c.Issuer)
 	}
-	span := opentracing.SpanFromContext(t.current.Context())
-	span.LogFields(
-		log.String("event", "TLSHandshakeDone"),
-		log.String("host", state.ServerName),
-		log.Bool("complete", state.HandshakeComplete),
-		log.Error(err),
-	)
 }

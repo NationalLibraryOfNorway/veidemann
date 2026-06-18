@@ -35,9 +35,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -117,8 +114,6 @@ type BrowserControllerRequest struct {
 }
 
 func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
-	tracer, _ := tracing.Init("Service Mocks")
-
 	m := &GrpcServiceMock{
 		lis:      bufconn.Listen(bufSize),
 		l:        &sync.Mutex{},
@@ -131,16 +126,7 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 
 	m.contextDialer = grpc.WithContextDialer(m.bufDialer)
 
-	m.Server = grpc.NewServer(
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		)),
-	)
+	m.Server = grpc.NewServer()
 
 	if m.dnsOpts == nil {
 		dnsresolverV1.RegisterDnsResolverServer(m.Server, m)

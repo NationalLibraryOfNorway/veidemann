@@ -28,8 +28,6 @@ import (
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/v3/filters"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -64,36 +62,26 @@ func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, n
 		})
 	} else {
 		rc := rpcontext.GetRecordContext(ctx)
-		span := opentracing.SpanFromContext(ctx)
 
-		span.LogFields(log.String("event", "rec upstream request"))
-
-		req, err = f.filterRequest(ctx, span, req, rc)
+		req, err = f.filterRequest(ctx, req, rc)
 		if err != nil {
 			return handleRequestError(cs, req, err)
 		}
 
-		roundTripSpan, roundtripCtx := opentracing.StartSpanFromContext(ctx, "Roundtrip upstream")
-		req = req.WithContext(roundtripCtx)
 		resp, nextCS, err = next(cs, req)
-		roundTripSpan.Finish()
 		if err != nil {
 			return
 		}
 
-		resp, err = f.filterResponse(ctx, span, resp, rc)
+		resp, err = f.filterResponse(ctx, resp, rc)
 		if err != nil {
 			return handleRequestError(cs, req, err)
 		}
-
-		span.LogFields(log.String("event", "rec upstream response"))
 	}
 	return
 }
 
-func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Span, req *http.Request, rc *rpcontext.RecordContext) (*http.Request, error) {
-	span.LogKV("event", "StartFilterRequest")
-
+func (f *RecorderFilter) filterRequest(ctx context.Context, req *http.Request, rc *rpcontext.RecordContext) (*http.Request, error) {
 	var prolog bytes.Buffer
 	err := writeRequestProlog(req, &prolog)
 	if err != nil {
@@ -133,9 +121,7 @@ func (f *RecorderFilter) filterRequest(ctx context.Context, span opentracing.Spa
 	return req, nil
 }
 
-func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Span, respOrig *http.Response, rc *rpcontext.RecordContext) (*http.Response, error) {
-	span.LogKV("event", "StartFilterResponse")
-
+func (f *RecorderFilter) filterResponse(ctx context.Context, respOrig *http.Response, rc *rpcontext.RecordContext) (*http.Response, error) {
 	resp := respOrig
 	if resp == nil {
 		panic(http.ErrAbortHandler)
@@ -146,7 +132,6 @@ func (f *RecorderFilter) filterResponse(ctx context.Context, span opentracing.Sp
 	}
 
 	if isFromCache(resp) {
-		span.LogKV("event", "Loaded from cache")
 		rpcontext.LogWithRecordContext(rc, "FLT:rec").Info("Loaded from cache")
 		rc.FoundInCache = true
 	}

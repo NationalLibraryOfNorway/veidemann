@@ -28,8 +28,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
-	"github.com/opentracing/opentracing-go"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -60,12 +58,6 @@ func main() {
 		logger.LogWithComponent("INIT").Errorf("Could not init logger: %s", err)
 		flag.Usage()
 		os.Exit(1)
-	}
-
-	tracer, closer := tracing.Init("Recorder Proxy")
-	if tracer != nil {
-		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
 	}
 
 	if viper.GetBool("help") {

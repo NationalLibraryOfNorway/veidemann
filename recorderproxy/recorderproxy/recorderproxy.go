@@ -65,7 +65,6 @@ func NewRecorderProxy(id int, host string, port int, conn *serviceconnections.Co
 
 	filterChain := filters.Join(
 		&NonproxyFilter{},
-		&TracingInitFilter{},
 		&ContextInitFilter{conn, int32(id)},
 		&DnsLookupFilter{conn.DnsResolverClient()},
 		&RecorderFilter{int32(id), conn.DnsResolverClient(), nextProxyAddr != ""},

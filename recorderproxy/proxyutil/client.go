@@ -24,21 +24,10 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
-	"github.com/opentracing-contrib/go-stdlib/nethttp"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	otlog "github.com/opentracing/opentracing-go/log"
 )
 
 func get(url string, client *http.Client, timeout time.Duration) (int, []byte, error) {
 	log := logger.LogWithComponent("CLIENT")
-	tracer, closer := tracing.Init("Internal test client")
-	if tracer != nil {
-		defer closer.Close()
-	}
-	span := tracer.StartSpan("Client Request")
-	defer span.Finish()
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -50,18 +39,7 @@ func get(url string, client *http.Client, timeout time.Duration) (int, []byte, e
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	req = req.WithContext(opentracing.ContextWithSpan(req.Context(), span))
 
-	options := []nethttp.ClientOption{
-		nethttp.ClientTrace(true),
-		nethttp.InjectSpanContext(true),
-	}
-	req, ht := nethttp.TraceRequest(tracer, req, options...)
-	defer ht.Finish()
-
-	t := client.Transport
-	t = &nethttp.Transport{RoundTripper: t}
-	client.Transport = t
 	if logger.IsLevelEnabled(logger.DebugLevel) {
 		client.Transport, req = recorderproxy.DecorateRequest(client.Transport, req)
 	}
@@ -69,25 +47,14 @@ func get(url string, client *http.Client, timeout time.Duration) (int, []byte, e
 	log.Infof("submitting request: %v %v %v", req.Method, req.URL, req.Proto)
 	resp, err := client.Do(req)
 	if err != nil {
-		onError(span, err)
 		return 0, nil, err
 	}
 	txt, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 
 	if err != nil {
-		onError(span, err)
 		return 0, nil, err
 	}
 
 	return resp.StatusCode, txt, nil
-}
-
-func onError(span opentracing.Span, err error) (int, []byte, error) {
-	log := logger.LogWithComponent("CLIENT")
-	// handle errors by recording them in the span
-	span.SetTag(string(ext.Error), true)
-	span.LogKV(otlog.Error(err))
-	log.Error(err)
-	return 0, nil, err
 }

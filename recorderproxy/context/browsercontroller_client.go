@@ -28,8 +28,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/opentracing/opentracing-go"
-	otLog "github.com/opentracing/opentracing-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -46,10 +44,6 @@ func registerResource(ctx context.Context, conn *serviceconnections.Connections,
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		rpcCtx = opentracing.ContextWithSpan(rpcCtx, span)
-	}
-
 	reply, err := conn.BrowserControllerClient().RegisterResource(rpcCtx, request)
 	if err != nil {
 		return nil, rperrors.WrapInternalError(err, rperrors.RuntimeException, "Error register with browser controller", err.Error())
@@ -60,10 +54,6 @@ func registerResource(ctx context.Context, conn *serviceconnections.Connections,
 func completeResource(ctx context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.CompleteResourceRequest) error {
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		rpcCtx = opentracing.ContextWithSpan(rpcCtx, span)
-	}
 
 	_, err := conn.BrowserControllerClient().CompleteResource(rpcCtx, request)
 	if err != nil {
@@ -111,15 +101,6 @@ func (rc *RecordContext) finalizeCrawlLog(cl *logV1.CrawlLog) error {
 		RequestId: rc.RequestId,
 		CrawlLog:  cl,
 		Cached:    rc.FoundInCache,
-	}
-
-	if span := opentracing.SpanFromContext(rc.ctx); span != nil {
-		span.LogFields(
-			otLog.String("event", "CompleteResource"),
-			otLog.Int32("ProxyId", rc.ProxyId),
-			otLog.String("Uri", cl.RequestedUri),
-			otLog.String("RequestId", request.RequestId),
-		)
 	}
 
 	return completeResource(rc.ctx, rc.conn, request)
@@ -180,23 +161,6 @@ func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 		CrawlExecutionId: rc.CrawlExecutionId,
 		JobExecutionId:   rc.JobExecutionId,
 		CollectionRef:    rc.CollectionRef,
-	}
-
-	if span := opentracing.SpanFromContext(rc.ctx); span != nil {
-		fields := []otLog.Field{
-			otLog.String("event", "Send RegisterResource request"),
-			otLog.Int32("ProxyId", rc.ProxyId),
-			otLog.String("Uri", rc.Uri.String()),
-			otLog.String("RequestId", request.RequestId),
-			otLog.String("CrawlExecutionId", request.CrawlExecutionId),
-			otLog.String("JobExecutionId", request.JobExecutionId),
-		}
-		if request.CollectionRef != nil {
-			fields = append(fields, otLog.String("CollectionId", request.CollectionRef.Id))
-		} else {
-			fields = append(fields, otLog.String("CollectionId", ""))
-		}
-		span.LogFields(fields...)
 	}
 
 	reply, err := registerResource(rc.ctx, rc.conn, request)

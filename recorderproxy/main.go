@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,9 +11,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/pflag"
-	"github.com/uber/jaeger-client-go/config"
 )
 
 var (
@@ -50,11 +47,6 @@ func run() error {
 	}
 
 	slog.Info(name, "version", version, "commit", commit, "date", date)
-
-	closer := initTracer(name)
-	if closer != nil {
-		defer func() { _ = closer.Close() }()
-	}
 
 	//err := recorderproxy.SetCA(viper.GetString("ca"), viper.GetString("ca-key"))
 	//if err != nil {
@@ -131,23 +123,4 @@ func run() error {
 	}
 
 	return nil
-}
-
-// initTracer initializes the global OpenTracing tracer using Jaeger configuration from environment variables.
-func initTracer(service string) io.Closer {
-	cfg, err := config.FromEnv()
-	if err != nil {
-		return nil
-	}
-
-	if cfg.ServiceName == "" {
-		cfg.ServiceName = service
-	}
-
-	tracer, closer, err := cfg.NewTracer()
-	if err == nil {
-		opentracing.SetGlobalTracer(tracer)
-	}
-
-	return closer
 }

@@ -22,8 +22,6 @@ import (
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/getlantern/proxy/v3/filters"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 // ChainedProxyFilter is a filter which rewrites request to support chained proxies.
@@ -34,13 +32,11 @@ type ChainedProxyFilter struct {
 func (f *ChainedProxyFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
 	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:chain")
-	span := opentracing.SpanFromContext(ctx)
 
 	if req.Method == http.MethodConnect {
 		resp, nextCS, err = next(cs, req)
 	} else {
 		if rpcontext.GetHost(ctx) == "" || (f.proxy.nextProxy != "" && !cs.IsMITMing()) {
-			span.LogFields(log.String("event", "Rewrite request"))
 			rc := rpcontext.GetRecordContext(ctx)
 			uri, err := url.Parse("http:" + rc.Uri.String())
 			if err != nil {

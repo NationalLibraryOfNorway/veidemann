@@ -25,8 +25,6 @@ import (
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/getlantern/proxy/v3/filters"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 // ContextInitFilter is a filter which initializes the context with sessions to external services.
@@ -151,15 +149,11 @@ func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request
 		req = req.WithContext(requestCtx)
 		rc := rpcontext.NewRecordContext()
 		rpcontext.SetRecordContext(requestCtx, rc)
-		span := opentracing.SpanFromContext(requestCtx)
-		span.LogFields(log.String("event", "Start init record context"))
 		rc.Init(f.proxyId, f.conn, req, uri)
 
 		if e := rc.RegisterNewRequest(requestCtx); e != nil {
-			span.LogFields(log.String("event", "Failed init record context"), log.Error(e))
 			return handleRequestError(cs, req, e)
 		}
-		span.LogFields(log.String("event", "Finished init record context"))
 
 		req = req.WithContext(requestCtx)
 		resp, nextCS, err = next(cs, req)

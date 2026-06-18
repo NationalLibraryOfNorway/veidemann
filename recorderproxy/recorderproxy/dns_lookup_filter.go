@@ -26,7 +26,6 @@ import (
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/v3/filters"
-	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc/status"
 )
 
@@ -53,9 +52,6 @@ func (f *DnsLookupFilter) Apply(cs *filters.ConnectionState, req *http.Request, 
 }
 
 func (f *DnsLookupFilter) resolve(ctx context.Context, host, port string) (err error) {
-	span, c := opentracing.StartSpanFromContext(ctx, "Resolve DNS")
-	defer span.Finish()
-
 	var p = 0
 	if port != "" {
 		p, err = strconv.Atoi(port)
@@ -71,7 +67,7 @@ func (f *DnsLookupFilter) resolve(ctx context.Context, host, port string) (err e
 		Port:          int32(p),
 	}
 
-	dnsResp, err := f.DnsResolverClient.Resolve(c, dnsReq)
+	dnsResp, err := f.DnsResolverClient.Resolve(ctx, dnsReq)
 	s := status.Convert(err)
 	if err != nil {
 		err = errors.Wrap(err, errors.DomainLookupFailed, fmt.Sprintf("Got 'no such host' from DNS for host: %s, port: %s", host, port), s.Message())

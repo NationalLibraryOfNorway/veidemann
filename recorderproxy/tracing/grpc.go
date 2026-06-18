@@ -18,12 +18,10 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
 )
@@ -47,24 +45,15 @@ func (h *sh) TagRPC(c context.Context, i *stats.RPCTagInfo) context.Context {
 }
 
 func (h *sh) HandleRPC(c context.Context, s stats.RPCStats) {
-	span := opentracing.SpanFromContext(c)
 	switch v := s.(type) {
 	case *stats.Begin:
 		rpcontext.LogWithContext(c, h.service).Debugf("Begin HandleRPC: %v", v.BeginTime)
-		span.LogKV("event", fmt.Sprintf("%s Begin", h.service))
 	case *stats.End:
 		rpcontext.LogWithContext(c, h.service).Debugf("End HandleRPC: %v, %v, %v", v.BeginTime, v.EndTime, v.Error)
-		span.LogKV("event", fmt.Sprintf("%s End %v", h.service, v.Trailer))
 	case *stats.InHeader:
 		rpcontext.LogWithContext(c, h.service).Debugf("InHeader HandleRPC: %v", v)
 	case *stats.InPayload:
 		rpcontext.LogWithContext(c, h.service).Debugf("InPayload HandleRPC: %T", v.Payload)
-		span.LogKV(
-			"xx", fmt.Sprintf("%T", v.Payload),
-			"data", fmt.Sprintf("%v", v.Payload),
-			"component", h.service,
-			"direction", "in",
-		)
 	case *stats.InTrailer:
 		rpcontext.LogWithContext(c, h.service).Debugf("InTrailer HandleRPC: %v", v)
 	case *stats.OutHeader:
@@ -90,12 +79,6 @@ func (h *sh) HandleRPC(c context.Context, s stats.RPCStats) {
 		default:
 			rpcontext.LogWithContext(c, h.service).Debugf("OutPayload HandleRPC: %T", v.Payload)
 		}
-		span.LogKV(
-			"xx", fmt.Sprintf("%T", v.Payload),
-			"data", fmt.Sprintf("%v", v.Payload),
-			"component", h.service,
-			"direction", "out",
-		)
 	case *stats.OutTrailer:
 		rpcontext.LogWithContext(c, h.service).Debugf("OutTrailer HandleRPC: %v", v)
 	default:
