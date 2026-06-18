@@ -817,7 +817,7 @@ func generateCwProtocolHeaderRequest(u *url.URL, keepAlive bool) (*contentwriter
 	if !keepAlive {
 		k = "Connection: close\r\n"
 	}
-	header := []byte(fmt.Sprintf("GET %s HTTP/1.1\r\nHost: %s:%s\r\nAccept-Encoding: gzip\r\n%sUser-Agent: Go-http-client/1.1\r\n\r\n", u.RequestURI(), u.Hostname(), u.Port(), k))
+	header := fmt.Appendf(nil, "GET %s HTTP/1.1\r\nHost: %s:%s\r\nAccept-Encoding: gzip\r\n%sUser-Agent: Go-http-client/1.1\r\n\r\n", u.RequestURI(), u.Hostname(), u.Port(), k)
 	req := &contentwriterV1.WriteRequest{
 		Value: &contentwriterV1.WriteRequest_ProtocolHeader{
 			ProtocolHeader: &contentwriterV1.Data{RecordNum: 0, Data: header},
@@ -831,7 +831,7 @@ func generateCwProtocolHeaderResponse(status int, contentLength int) *contentwri
 	if status == 404 {
 		nosniffHeader = "X-Content-Type-Options: nosniff\r\n"
 	}
-	header := []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\nContent-Length: %d\r\nContent-Type: text/plain; charset=utf-8\r\nDate: Wed, 15 May 2019 12:41:02 GMT\r\n%s\r\n", status, http.StatusText(status), contentLength, nosniffHeader))
+	header := fmt.Appendf(nil, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\nContent-Type: text/plain; charset=utf-8\r\nDate: Wed, 15 May 2019 12:41:02 GMT\r\n%s\r\n", status, http.StatusText(status), contentLength, nosniffHeader)
 	req := &contentwriterV1.WriteRequest{
 		Value: &contentwriterV1.WriteRequest_ProtocolHeader{
 			ProtocolHeader: &contentwriterV1.Data{RecordNum: 1, Data: header},
