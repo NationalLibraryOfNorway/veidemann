@@ -125,12 +125,11 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 		_ = ln.Close()
 		return net.ErrClosed
 	}
-
 	proxy.ln = ln
 	proxy.mu.Unlock()
 
 	for {
-		co, err := ln.Accept()
+		conn, err := ln.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) || proxy.isShuttingDown() {
 				return nil
@@ -138,16 +137,13 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 			return fmt.Errorf("failed to accept connection: %w", err)
 		}
 
-		conn := WrapConn(co, "down", false)
-		c, cancel := context.WithCancel(rpcontext.RecordProxyDataAware(context.Background()))
+		ctx, cancel := context.WithCancel(rpcontext.RecordProxyDataAware(context.Background()))
 
-		conn.BaseContext = c
-		conn.CancelFunc = cancel
+		wrappedConn := WrapConn(conn, "down", false)
+		wrappedConn.baseCtx, wrappedConn.cancelFunc = ctx, cancel
 
 		go func() {
-			defer cancel()
-
-			err := proxy.Handle(c, conn, conn)
+			err := proxy.Handle(ctx, wrappedConn, wrappedConn)
 			if err != nil {
 				logger.LogWithComponent("PROXY").WithError(err).Error("Error handling request")
 			}
@@ -204,15 +200,15 @@ func (proxy *RecorderProxy) waitOpenSessions(ctx context.Context) error {
 
 type wrappedConnection struct {
 	net.Conn
-	t           string
-	closed      *int32
-	BaseContext context.Context
-	CancelFunc  func()
-	dirOut      bool
+	t          string
+	closed     atomic.Int32
+	baseCtx    context.Context
+	cancelFunc func()
+	dirOut     bool
 }
 
 func (conn *wrappedConnection) ProxyContext() context.Context {
-	return conn.BaseContext
+	return conn.baseCtx
 }
 
 func (conn *wrappedConnection) Wrapped() net.Conn {
@@ -220,17 +216,22 @@ func (conn *wrappedConnection) Wrapped() net.Conn {
 }
 
 func (conn *wrappedConnection) Close() (err error) {
-	l := logger.LogWithComponent("CONN:" + conn.t)
-	if atomic.CompareAndSwapInt32(conn.closed, 0, 1) {
-		if conn.dirOut {
-			l.Debugf("Close connection %v -> %v\n", conn.LocalAddr(), conn.RemoteAddr())
-		} else {
-			l.Debugf("Close connection %v -> %v\n", conn.RemoteAddr(), conn.LocalAddr())
-		}
-		if conn.CancelFunc != nil {
-			conn.CancelFunc()
-		}
+	isClosed := !conn.closed.CompareAndSwap(0, 1)
+	if isClosed {
+		return nil
 	}
+
+	l := logger.LogWithComponent("CONN:" + conn.t)
+	if conn.dirOut {
+		l.Debugf("Close connection %v -> %v\n", conn.LocalAddr(), conn.RemoteAddr())
+	} else {
+		l.Debugf("Close connection %v -> %v\n", conn.RemoteAddr(), conn.LocalAddr())
+	}
+
+	if conn.cancelFunc != nil {
+		conn.cancelFunc()
+	}
+
 	return conn.Conn.Close()
 }
 
@@ -269,6 +270,5 @@ func WrapConn(conn net.Conn, label string, dirOut bool) *wrappedConnection {
 	} else {
 		l.Debugf("New connection %v -> %v\n", conn.RemoteAddr(), conn.LocalAddr())
 	}
-	i := int32(0)
-	return &wrappedConnection{Conn: conn, t: label, dirOut: dirOut, closed: &i}
+	return &wrappedConnection{Conn: conn, t: label, dirOut: dirOut}
 }
