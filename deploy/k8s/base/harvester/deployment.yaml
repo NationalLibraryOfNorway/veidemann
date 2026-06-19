@@ -130,8 +130,7 @@ spec:
             - name: LOG_LEVEL
               value: WARN
         - name: browser
-          image: ghcr.io/browserless/chromium:v2.51.2
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/browserless/chromium:v2.55.0
           ports:
             - containerPort: 3000
               name: debug
