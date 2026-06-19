@@ -14,7 +14,7 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	golang.org/x/net v0.55.0
+	golang.org/x/net v0.56.0
 	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.11
 )
