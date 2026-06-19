@@ -50,12 +50,13 @@ type GrpcServiceMock struct {
 	dnsresolverV1.UnimplementedDnsResolverServer
 	contentwriterV1.UnimplementedContentWriterServer
 	browsercontrollerV2.UnimplementedBrowserControllerServer
+
 	dnsOpts               *serviceconnections.ConnectionOptions
 	contentWriterOpts     *serviceconnections.ConnectionOptions
 	browserControllerOpts *serviceconnections.ConnectionOptions
 	lis                   *bufconn.Listener
-	l                     *sync.Mutex
-	Requests              *Requests
+	mu                    sync.Mutex
+	Requests              Requests
 	DoneBC                chan bool
 	DoneCW                chan bool
 	contextDialer         grpc.DialOption
@@ -115,9 +116,7 @@ type BrowserControllerRequest struct {
 
 func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 	m := &GrpcServiceMock{
-		lis:      bufconn.Listen(bufSize),
-		l:        &sync.Mutex{},
-		Requests: &Requests{},
+		lis: bufconn.Listen(bufSize),
 	}
 
 	for _, opt := range opts {
@@ -184,7 +183,7 @@ func (s *GrpcServiceMock) Close() {
 }
 
 func (s *GrpcServiceMock) Clear() {
-	s.Requests = &Requests{}
+	s.Requests = Requests{}
 }
 
 func (s *GrpcServiceMock) bufDialer(context.Context, string) (net.Conn, error) {
@@ -192,8 +191,8 @@ func (s *GrpcServiceMock) bufDialer(context.Context, string) (net.Conn, error) {
 }
 
 func (s *GrpcServiceMock) addBcRequest(r *BrowserControllerRequest) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	switch {
 	case r.RegisterResource != nil:
@@ -216,16 +215,16 @@ func (s *GrpcServiceMock) addBcCompleteRequest(r *browsercontrollerV2.CompleteRe
 }
 
 func (s *GrpcServiceMock) addDnsRequest(r *dnsresolverV1.ResolveRequest) {
-	s.l.Lock()
+	s.mu.Lock()
 
 	logger.LogWithComponent("MOCK:DNSResolver").Print(r)
 
 	s.Requests.DnsResolverRequests = append(s.Requests.DnsResolverRequests, r)
-	s.l.Unlock()
+	s.mu.Unlock()
 }
 
 func (s *GrpcServiceMock) addCwRequest(r *contentwriterV1.WriteRequest) {
-	s.l.Lock()
+	s.mu.Lock()
 
 	switch v := r.Value.(type) {
 	case *contentwriterV1.WriteRequest_Payload:
@@ -238,7 +237,7 @@ func (s *GrpcServiceMock) addCwRequest(r *contentwriterV1.WriteRequest) {
 	}
 
 	s.Requests.ContentWriterRequests = append(s.Requests.ContentWriterRequests, r)
-	s.l.Unlock()
+	s.mu.Unlock()
 }
 
 // Implements DNS service
