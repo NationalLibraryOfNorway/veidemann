@@ -21,7 +21,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RejectedExecutionException;
@@ -31,9 +30,6 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -92,8 +88,6 @@ public class Frontier implements AutoCloseable {
 
     private final CrawlQueueManager crawlQueueManager;
 
-    private final LoadingCache<ConfigRef, ConfigObject> configCache;
-
     private final ScriptParameterResolver scriptParameterResolver;
 
     private final ForkJoinPool postFetchThreadPool;
@@ -149,17 +143,6 @@ public class Frontier implements AutoCloseable {
                 TimeUnit.SECONDS);
 
         this.crawlQueueManager = new CrawlQueueManager(this, frontierAdapter, jedisSupplier);
-
-        this.configCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .build(new CacheLoader<>() {
-                    @Override
-                    public ConfigObject load(ConfigRef key) throws DbException {
-                        ConfigObject co = configAdapter.getConfigObject(key);
-                        return co != null ? co : ConfigObject.getDefaultInstance();
-                    }
-                });
-
         this.scriptParameterResolver = new ScriptParameterResolver(this);
     }
 
@@ -406,8 +389,8 @@ public class Frontier implements AutoCloseable {
 
     public ConfigObject getConfig(ConfigRef ref) throws DbQueryException {
         try {
-            return configCache.get(ref);
-        } catch (ExecutionException e) {
+            return configAdapter.getConfigObject(ref);
+        } catch (DbException e) {
             throw new DbQueryException(e);
         }
     }
