@@ -28,13 +28,13 @@ import (
 )
 
 type ContentWriterService struct {
-	configCache        database.ConfigAdapter
+	configAdapter      database.ConfigAdapter
 	warcWriterRegistry *warcWriterRegistry
 	recordOptions      []gowarc.WarcRecordOption
 }
 
 func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteServer) (err error) {
-	ctx := newWriteSessionContext(s.configCache, s.recordOptions)
+	ctx := newWriteSessionContext(s.configAdapter, s.recordOptions)
 	defer ctx.cancelSession()
 	defer func() {
 		if err != nil {

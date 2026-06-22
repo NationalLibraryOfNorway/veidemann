@@ -36,7 +36,6 @@ type App struct {
 	UploadScanInterval   time.Duration
 	UploadTimeout        time.Duration
 	DbOptions            database.Options
-	ConfigCacheTTL       time.Duration
 	RedisOptions         *redis.Options
 	RedisFailoverOptions *redis.FailoverOptions
 	RecordOptions        []gowarc.WarcRecordOption
@@ -141,13 +140,13 @@ func (app *App) Run(ctx context.Context) error {
 		}
 	}
 
-	configAdapter := database.NewConfigCache(rethinkdb, app.ConfigCacheTTL)
+	configAdapter := rethinkdb
 	contentAdapter := &database.CrawledContentHashCache{Client: redisClient}
 	warcWriterRegistry := newWarcWriterRegistry(writerOpts, configAdapter, contentAdapter)
 
 	service := &ContentWriterService{
 		warcWriterRegistry: warcWriterRegistry,
-		configCache:        configAdapter,
+		configAdapter:      configAdapter,
 		recordOptions:      app.RecordOptions,
 	}
 

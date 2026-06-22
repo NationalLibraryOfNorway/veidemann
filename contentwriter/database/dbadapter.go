@@ -32,31 +32,3 @@ type ContentAdapter interface {
 type ConfigAdapter interface {
 	GetConfigObject(context.Context, *configV1.ConfigRef) (*configV1.ConfigObject, error)
 }
-
-type configCache struct {
-	db    ConfigAdapter
-	cache *cache
-}
-
-func NewConfigCache(db ConfigAdapter, ttl time.Duration) ConfigAdapter {
-	return &configCache{
-		db:    db,
-		cache: newCache(ttl),
-	}
-}
-
-func (cc *configCache) GetConfigObject(ctx context.Context, ref *configV1.ConfigRef) (*configV1.ConfigObject, error) {
-	cached := cc.cache.Get(ref.Id)
-	if cached != nil {
-		return cached, nil
-	}
-
-	result, err := cc.db.GetConfigObject(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	cc.cache.Set(result.Id, result)
-
-	return result, nil
-}
