@@ -21,10 +21,16 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -58,7 +64,10 @@ var (
 	sessions *session.Registry
 
 	// localhost is the ip address of the host machine
-	localhost = GetOutboundIP().String()
+	localhost = func() string {
+		localIP, _ := getOutboundIP("8.8.8.8:80")
+		return localIP.String()
+	}()
 
 	fixtureSiteBaseURL string
 
@@ -340,6 +349,8 @@ func fixtureSiteRoot() (string, error) {
 }
 
 func fixtureSiteFiles(root string) []testcontainers.ContainerFile {
+	var result []testcontainers.ContainerFile
+
 	files := []string{
 		"index.html",
 		"linked.html",
@@ -349,7 +360,6 @@ func fixtureSiteFiles(root string) []testcontainers.ContainerFile {
 		"worker-hit.html",
 	}
 
-	result := make([]testcontainers.ContainerFile, 0, len(files))
 	for _, fileName := range files {
 		result = append(result, testcontainers.ContainerFile{
 			HostFilePath:      filepath.Join(root, fileName),
@@ -479,18 +489,22 @@ func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextP
 	return proxy
 }
 
-// GetOutboundIP returrns the preferred outbound ip of this machine
-func GetOutboundIP() net.IP {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+// getOutboundIP returrns the preferred outbound ip of this machine
+func getOutboundIP(dst string) (net.IP, error) {
+	conn, err := net.Dial("udp4", dst)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("dial udp %q: %w", dst, err)
 	}
 	defer func() {
 		_ = conn.Close()
 	}()
 
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP
+	localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		return nil, fmt.Errorf("unexpected local addr type: %T", conn.LocalAddr())
+	}
+
+	return localAddr.IP, nil
 }
 
 func setupBrowser(ctx context.Context) (host string, port int, err error) {
@@ -527,4 +541,95 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 	}
 	port = int(browserPort.Num())
 	return
+}
+
+func writeFixtureCertFiles(dir string) (certPath, keyPath string, err error) {
+	cert, err := generateLocalhostCert()
+	if err != nil {
+		return "", "", err
+	}
+
+	certPath = filepath.Join(dir, "localhost.crt")
+	keyPath = filepath.Join(dir, "localhost.key")
+
+	if err := os.WriteFile(certPath, cert.CertPEM, 0644); err != nil {
+		return "", "", err
+	}
+	if err := os.WriteFile(keyPath, cert.KeyPEM, 0600); err != nil {
+		return "", "", err
+	}
+
+	return
+}
+
+type tlsCertPEM struct {
+	CertPEM []byte
+	KeyPEM  []byte
+}
+
+func generateLocalhostCert() (*tlsCertPEM, error) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl := x509.Certificate{
+		SerialNumber: serial,
+		Subject: pkix.Name{
+			CommonName: "localhost",
+		},
+
+		NotBefore: time.Now().Add(-time.Minute),
+		NotAfter:  time.Now().Add(24 * time.Hour),
+
+		KeyUsage: x509.KeyUsageKeyEncipherment |
+			x509.KeyUsageDigitalSignature |
+			x509.KeyUsageCertSign,
+
+		ExtKeyUsage: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+		},
+
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+
+		DNSNames: []string{
+			"localhost",
+		},
+		IPAddresses: []net.IP{
+			net.ParseIP("127.0.0.1"),
+			net.ParseIP("::1"),
+		},
+	}
+
+	der, err := x509.CreateCertificate(
+		rand.Reader,
+		&tmpl,
+		&tmpl,
+		&priv.PublicKey,
+		priv,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: der,
+	})
+
+	keyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(priv),
+	})
+
+	return &tlsCertPEM{
+		CertPEM: certPEM,
+		KeyPEM:  keyPEM,
+	}, nil
 }

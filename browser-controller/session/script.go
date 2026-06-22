@@ -222,13 +222,13 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 			"scriptId", id,
 			"scriptEci", int64(eci),
 		)
+		log.Debug("Executing script", "arguments", string(arguments))
 
-		log.Info("Executing script", "arguments", string(arguments))
 		res, err := callScript(ctx, eci, configObject.GetBrowserScript().GetScript(), arguments)
 		if err != nil {
 			log.Warn("Script execution failed", "error", err)
 		} else {
-			log.Info("Script returned", "result", string(res))
+			log.Debug("Script returned", "result", string(res))
 		}
 
 		return res, err

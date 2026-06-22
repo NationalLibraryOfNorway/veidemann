@@ -19,14 +19,19 @@ package server
 import (
 	"context"
 	"log/slog"
+	"net/http"
 
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/robotsevaluator"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
+)
+
+const (
+	cancelledByBrowserController = "Cancelled by browser controller"
+	blockedByRobots              = "Blocked by robots.txt"
 )
 
 // ApiServer implements the gRPC API for the browser controller. It is responsible for handling requests from the browser and forwarding them to the appropriate session. It also handles robots.txt evaluation and logging of crawl logs.
@@ -49,14 +54,18 @@ func NewApiServer(sessions *session.Registry, robotsEvaluator robotsevaluator.Ro
 func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
 	proxyId := int(request.GetProxyId())
 
-	slog.Debug("Register resource",
+	log := slog.With(
 		"proxyId", request.GetProxyId(),
 		"method", request.GetMethod(),
 		"uri", request.GetUri(),
 		"requestId", request.GetRequestId(),
 		"crawlExecutionId", request.GetCrawlExecutionId(),
 		"jobExecutionId", request.GetJobExecutionId(),
-		"collectionRef", request.GetCollectionRef())
+		"collectionRef", request.GetCollectionRef(),
+		"component", "server.RegisterResource",
+	)
+
+	log.Debug("Register resource request")
 
 	if proxyId == 0 {
 		return &browsercontrollerV2.RegisterResourceReply{
@@ -71,85 +80,14 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 	}
 
 	sess := a.sessions.Get(proxyId)
-
 	if sess == nil {
-		slog.Warn("Cancelling nil session", "proxyId", request.GetProxyId(), "method", request.GetMethod(), "uri", request.GetUri())
+		log.Debug("Cancelling nil session")
 		return &browsercontrollerV2.RegisterResourceReply{
-			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Cancelled by browser controller"},
+			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: cancelledByBrowserController},
 		}, nil
 	}
 
-	robotsRequest := &robotsevaluatorV1.IsAllowedRequest{
-		JobExecutionId: sess.RequestedUrl.JobExecutionId,
-		ExecutionId:    sess.RequestedUrl.ExecutionId,
-		Uri:            request.GetUri(),
-		UserAgent:      sess.UserAgent,
-		Politeness:     sess.PolitenessConfig,
-		CollectionRef:  sess.CrawlConfig.CollectionRef,
-	}
-	isAllowedByRobots := a.robotsEvaluator.IsAllowed(ctx, robotsRequest)
-
-	slog.Debug("Robots evaluator result",
-		"uri", request.GetUri(),
-		"jeid", sess.RequestedUrl.JobExecutionId,
-		"ceid", sess.RequestedUrl.ExecutionId,
-		"policy", sess.PolitenessConfig.GetPolitenessConfig().GetRobotsPolicy(),
-		"allowed", isAllowedByRobots)
-
-	if !isAllowedByRobots {
-		if request.GetRequestId() != "" {
-			if req := sess.Requests.GetByRequestId(request.GetRequestId()); req != nil {
-				req.GotNew = true
-				if err := sess.NotifyRequest(req); err != nil {
-					return nil, err
-				}
-			}
-		}
-		return &browsercontrollerV2.RegisterResourceReply{
-			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Blocked by robots.txt"},
-		}, nil
-	}
-
-	var req *requests.Request
-	if request.RequestId == "" {
-		normalizedURL := url.Normalize(request.Uri)
-		switch request.Method {
-		case "CONNECT":
-			return &browsercontrollerV2.RegisterResourceReply{
-				Result: &browsercontrollerV2.RegisterResourceReply_Registered{
-					Registered: &browsercontrollerV2.ResourceRegistered{
-						CrawlExecutionId: sess.RequestedUrl.ExecutionId,
-						JobExecutionId:   sess.RequestedUrl.JobExecutionId,
-						CollectionRef:    sess.CrawlConfig.CollectionRef,
-					},
-				},
-			}, nil
-		case "OPTIONS":
-			req = sess.Requests.GetByUrl(normalizedURL, true)
-			if req == nil {
-				slog.Info("No new request found", "requestId", request.RequestId, "method", request.Method, "url", normalizedURL, "hasFulfilledRequest", sess.Requests.GetByUrl(normalizedURL, false) != nil)
-			} else {
-				req.GotNew = true
-			}
-		default:
-			slog.Debug("New request from proxy without ID", "method", request.Method, "uri", request.Uri)
-			return &browsercontrollerV2.RegisterResourceReply{
-				Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Cancelled by browser controller"},
-			}, nil
-		}
-	} else {
-		req = sess.Requests.GetByRequestId(request.RequestId)
-		if req == nil {
-			slog.Warn("No request found", "requestId", request.RequestId)
-		} else {
-			req.GotNew = true
-			if err := sess.NotifyRequest(req); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return &browsercontrollerV2.RegisterResourceReply{
+	reply := &browsercontrollerV2.RegisterResourceReply{
 		Result: &browsercontrollerV2.RegisterResourceReply_Registered{
 			Registered: &browsercontrollerV2.ResourceRegistered{
 				CrawlExecutionId: sess.RequestedUrl.ExecutionId,
@@ -157,57 +95,131 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 				CollectionRef:    sess.CrawlConfig.CollectionRef,
 			},
 		},
-	}, nil
+	}
+
+	if request.RequestId == "" {
+		switch request.Method {
+
+		case http.MethodConnect:
+			return reply, nil
+
+		case http.MethodOptions:
+			normalizedURL := url.Normalize(request.Uri)
+			req := sess.Requests.GetByUrl(normalizedURL, true)
+			if req != nil {
+				req := sess.Requests.GotComplete(req.ID)
+				if err := sess.NotifyRequest(req); err != nil {
+					return nil, err
+				}
+			}
+			return reply, nil
+
+		default:
+			return &browsercontrollerV2.RegisterResourceReply{
+				Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: cancelledByBrowserController},
+			}, nil
+		}
+	}
+
+	isAllowedByRobots := a.isAllowedByRobots(ctx, sess, request.GetUri())
+	if !isAllowedByRobots {
+		req := sess.Requests.GotComplete(request.GetRequestId())
+		if req != nil {
+			if err := sess.Notify(request.GetRequestId()); err != nil {
+				return nil, err
+			}
+		}
+		return &browsercontrollerV2.RegisterResourceReply{
+			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: blockedByRobots},
+		}, nil
+	}
+
+	req := sess.Requests.GotNew(request.GetRequestId())
+	if req != nil {
+		if err := sess.NotifyRequest(req); err != nil {
+			return nil, err
+		}
+	} else {
+		log.Warn("No request found in reqistry")
+	}
+
+	return reply, nil
 }
 
 func (a *ApiServer) CompleteResource(ctx context.Context, request *browsercontrollerV2.CompleteResourceRequest) (*browsercontrollerV2.CompleteResourceReply, error) {
-	slog.Debug("Request completed", "statusCode", request.CrawlLog.StatusCode, "method", request.CrawlLog.Method, "uri", request.CrawlLog.RequestedUri)
+	proxyID := int(request.GetProxyId())
 
-	proxyId := int(request.ProxyId)
+	log := slog.With(
+		"id", request.GetRequestId(),
+		"statusCode", request.GetCrawlLog().GetStatusCode(),
+		"method", request.GetCrawlLog().GetMethod(),
+		"uri", request.GetCrawlLog().GetRequestedUri(),
+		"proxyID", proxyID,
+		"cached", request.GetCached(),
+		"component", "server.CompleteResource",
+	)
 
-	if proxyId == 0 {
-		if !request.Cached && request.GetCrawlLog().GetWarcId() != "" {
+	log.Debug("Complete resource request")
+
+	if proxyID == 0 {
+		if !request.GetCached() && request.GetCrawlLog().GetWarcId() != "" {
 			if err := a.logWriter.WriteCrawlLog(ctx, request.GetCrawlLog()); err != nil {
-				slog.Error("Failed writing crawlLog for direct session", "error", err)
+				log.Error("Failed writing crawlLog", "error", err)
 			}
 		}
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
 	}
 
-	sess := a.sessions.Get(proxyId)
-
+	sess := a.sessions.Get(proxyID)
 	if sess == nil {
-		slog.Warn("Missing session", "warcId", request.GetCrawlLog().GetWarcId(), "method", request.GetCrawlLog().GetMethod(), "uri", request.GetCrawlLog().GetRequestedUri())
+		log.Warn("Missing session", "request", request)
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
 	}
 
-	if sess.Requests == nil {
-		slog.Warn("Missing request registry", "warcId", request.GetCrawlLog().GetWarcId(), "method", request.GetCrawlLog().GetMethod(), "uri", request.GetCrawlLog().GetRequestedUri())
-		return &browsercontrollerV2.CompleteResourceReply{}, nil
-	}
-
-	req := sess.Requests.GetByRequestId(request.RequestId)
+	req := sess.Requests.CompleteRequest(request.GetRequestId(), request.GetCrawlLog(), request.GetCached())
 	if req == nil {
 		switch request.GetCrawlLog().GetMethod() {
-		case "OPTIONS", "CONNECT":
+		case http.MethodOptions, http.MethodConnect:
+			log.Warn("Completed connect request")
+
 		default:
-			slog.Error("Missing reqId", "method", request.GetCrawlLog().GetMethod(), "statusCode", request.GetCrawlLog().GetStatusCode(), "uri", request.GetCrawlLog().GetRequestedUri(), "cached", request.Cached)
+			log.Warn("Request not found in registry")
 		}
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
 	}
 
-	req.CrawlLog = request.GetCrawlLog()
-	if request.Cached {
-		if initialRequest := sess.Requests.InitialRequest(); initialRequest != nil && initialRequest.RequestId == req.RequestId {
-			slog.Info("Aborting fetch")
-			_ = sess.AbortFetch()
+	if request.GetCached() {
+		if initialRequest := sess.Requests.InitialRequest(); initialRequest != nil && initialRequest.ID == req.ID {
+			log.Warn("Aborting fetch because cached request is same as initial request")
+			if err := sess.AbortFetch(); err != nil {
+				log.Warn("Failed to abort fetch")
+			}
 		}
-		req.FromCache = true
 	}
-	req.GotComplete = true
+
 	if err := sess.NotifyRequest(req); err != nil {
 		return nil, err
 	}
 
 	return &browsercontrollerV2.CompleteResourceReply{}, nil
+}
+
+func (a *ApiServer) isAllowedByRobots(ctx context.Context, sess *session.Session, uri string) bool {
+	isAllowedByRobots := a.robotsEvaluator.IsAllowed(ctx, &robotsevaluatorV1.IsAllowedRequest{
+		JobExecutionId: sess.RequestedUrl.JobExecutionId,
+		ExecutionId:    sess.RequestedUrl.ExecutionId,
+		Uri:            uri,
+		UserAgent:      sess.UserAgent,
+		Politeness:     sess.PolitenessConfig,
+		CollectionRef:  sess.CrawlConfig.CollectionRef,
+	})
+
+	slog.Debug("Robots evaluator result",
+		"uri", uri,
+		"jeid", sess.RequestedUrl.JobExecutionId,
+		"ceid", sess.RequestedUrl.ExecutionId,
+		"policy", sess.PolitenessConfig.GetPolitenessConfig().GetRobotsPolicy(),
+		"allowed", isAllowedByRobots)
+
+	return isAllowedByRobots
 }

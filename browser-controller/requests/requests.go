@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 )
 
@@ -31,10 +32,12 @@ type RequestRegistry interface {
 	AddRequest(req *Request)
 	GetOrAddRequest(req *Request) (*Request, bool)
 	RemoveRequest(req *Request) bool
-	GetByNetworkId(id string) *Request
-	GetByRequestId(id string) *Request
+	GetByID(id string) *Request
 	GetByUrl(url string, onlyNew bool) *Request
 	MatchCrawlLogs() bool
+	GotNew(id string) *Request
+	GotComplete(id string) *Request
+	CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request
 	Walk(w func(*Request))
 	InitialRequest() *Request
 	RootRequest() *Request
@@ -42,27 +45,39 @@ type RequestRegistry interface {
 }
 
 type requestRegistry struct {
-	done         *syncx.WaitGroup
-	mu           sync.Mutex
-	requests     []*Request
+	done *syncx.WaitGroup
+
+	mu       sync.Mutex
+	requests []*Request
+	byID     map[string]*Request
+
 	rootRequest  *Request
 	lastMatchLog string
 }
 
 func (r *requestRegistry) InitialRequest() *Request {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(r.requests) == 0 {
+		return nil
+	}
+
 	return r.requests[0]
 }
 
 func (r *requestRegistry) RootRequest() *Request {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	return r.rootRequest
 }
 
 func NewRegistry(done *syncx.WaitGroup) RequestRegistry {
-	r := &requestRegistry{
+	return &requestRegistry{
 		done: done,
+		byID: make(map[string]*Request),
 	}
-
-	return r
 }
 
 func (r *requestRegistry) NotifyLoadStart() {
@@ -74,25 +89,42 @@ func (r *requestRegistry) NotifyLoadFinished() {
 }
 
 func (r *requestRegistry) AddRequest(req *Request) {
+	if req == nil || req.ID == "" {
+		panic("request must have canonical ID")
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.requests = append(r.requests, req)
+	r.byID[req.ID] = req
+}
+
+func (r *requestRegistry) GetByID(id string) *Request {
+	if id == "" {
+		return nil
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.byID[id]
 }
 
 func (r *requestRegistry) GetOrAddRequest(req *Request) (*Request, bool) {
+	if req == nil || req.ID == "" {
+		panic("request must have canonical ID")
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for _, existing := range r.requests {
-		if req.RequestId != "" && existing.RequestId == req.RequestId {
-			return existing, false
-		}
-		if req.NetworkId != "" && existing.NetworkId == req.NetworkId {
-			return existing, false
-		}
+	if existing, ok := r.byID[req.ID]; ok {
+		mergeRequest(existing, req)
+		return existing, false
 	}
 
 	r.requests = append(r.requests, req)
+	r.byID[req.ID] = req
 	return req, true
 }
 
@@ -104,54 +136,77 @@ func (r *requestRegistry) RemoveRequest(req *Request) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for i, existing := range r.requests {
-		if existing != req {
-			continue
-		}
-
-		r.requests = append(r.requests[:i], r.requests[i+1:]...)
-		if r.rootRequest == req {
-			r.rootRequest = nil
-		}
-		return true
+	if _, ok := r.byID[req.ID]; !ok {
+		return false
 	}
 
-	return false
-}
-
-func (r *requestRegistry) GetByNetworkId(id string) *Request {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, req := range r.requests {
-		if req.NetworkId == id {
-			return req
+	delete(r.byID, req.ID)
+	n := -1
+	for i, c := range r.requests {
+		if c.ID == req.ID {
+			n = i
+			break
 		}
 	}
-	return nil
-}
-
-func (r *requestRegistry) GetByRequestId(id string) *Request {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, req := range r.requests {
-		if req.RequestId == id {
-			return req
-		}
+	if n > -1 {
+		r.requests[n] = r.requests[len(r.requests)-1]
+		r.requests = r.requests[:len(r.requests)-1]
 	}
-	return nil
+	return true
 }
 
 func (r *requestRegistry) GetByUrl(url string, onlyNew bool) *Request {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, req := range r.requests {
-		if req.Url == url {
+		if req.URL == url {
 			if !onlyNew || !req.GotNew {
 				return req
 			}
 		}
 	}
 	return nil
+}
+
+func (r *requestRegistry) GotNew(id string) *Request {
+	return r.mark(id, func(req *Request) {
+		req.GotNew = true
+	})
+}
+
+func (r *requestRegistry) GotComplete(id string) *Request {
+	return r.mark(id, func(req *Request) {
+		req.GotComplete = true
+	})
+}
+
+func (r *requestRegistry) CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request {
+	return r.mark(id, func(req *Request) {
+		req.CrawlLog = crawlLog
+		req.GotComplete = true
+
+		if cached {
+			req.FromCache = true
+		}
+	})
+}
+
+func (r *requestRegistry) mark(id string, fn func(*Request)) *Request {
+	if id == "" {
+		return nil
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	req := r.byID[id]
+	if req == nil {
+		return nil
+	}
+
+	fn(req)
+
+	return req
 }
 
 func (r *requestRegistry) MatchCrawlLogs() bool {
@@ -166,10 +221,10 @@ func (r *requestRegistry) MatchCrawlLogs() bool {
 			"missingRequests", snapshot.unresolvedCount,
 			"ignoredRequests", snapshot.ignoredCount,
 		)
-		if len(snapshot.missingRequestIDs) > 0 {
-			eventLog = eventLog.With("missingRequestIds", snapshot.missingRequestIDs)
+		if len(snapshot.missingRequests) > 0 {
+			eventLog = eventLog.With("missingRequests", snapshot.missingRequests)
 		}
-		eventLog.Debug("CrawlLog match status")
+		eventLog.Info("Match crawl")
 		r.lastMatchLog = signature
 	}
 	return snapshot.unresolvedCount == 0
@@ -184,91 +239,148 @@ func (r *requestRegistry) Walk(w func(*Request)) {
 }
 
 func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) {
-	urls := make(map[string]*Request)
-	ids := make(map[string]*Request)
-	r.rootRequest = r.requests[0]
-	for idx, rr := range r.requests {
-		urls[rr.Url] = rr
-		if p, ok := ids[rr.NetworkId]; ok {
-			rr.RedirectParent = p
-			if p == r.rootRequest {
-				r.rootRequest = rr
-			}
-		}
-		ids[rr.NetworkId] = rr
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-		if rr.CrawlLog != nil {
-			rr.CrawlLog.Referrer = rr.Referrer
-			referrerRequest := urls[rr.Referrer]
+	if len(r.requests) == 0 {
+		return
+	}
 
-			var discoveryType string
-			if idx == 0 {
-				discoveryType = requestedUrl.DiscoveryPath
-			} else if rr.Initiator == "script" {
-				// Resource is loaded by a script
-				discoveryType = "X"
-			} else if rr.RedirectParent != nil {
-				discoveryType = "R"
-			} else {
-				discoveryType = "E"
-			}
+	byURL := make(map[string]*Request, len(r.requests))
 
-			if rr.RedirectParent != nil && rr.RedirectParent.CrawlLog != nil {
-				rr.CrawlLog.DiscoveryPath = rr.RedirectParent.CrawlLog.DiscoveryPath + discoveryType
-			} else if referrerRequest != nil && referrerRequest.CrawlLog != nil {
-				rr.CrawlLog.DiscoveryPath = referrerRequest.CrawlLog.DiscoveryPath + discoveryType
-			} else {
-				rr.CrawlLog.DiscoveryPath = discoveryType
-			}
-		} else {
-			if !rr.BlocksPageCompletion() {
-				slog.Info("Skipping missing crawlLog for non-blocking request",
-					"url", rr.Url,
-					"requestId", rr.RequestId,
-					"resourceType", rr.ResourceType)
-				continue
-			}
-			slog.Warn("Missing crawlLog",
-				"url", rr.Url,
-				"index", idx,
-				"requestId", rr.RequestId,
-				"networkId", rr.NetworkId,
-				"new", rr.GotNew,
-				"complete", rr.GotComplete)
+	for _, req := range r.requests {
+		if req.URL != "" {
+			byURL[req.URL] = req
 		}
 	}
+
+	r.rootRequest = r.requests[0]
+
+	for idx, rr := range r.requests {
+		// Find the root request
+		if rr.Redirected && rr.RedirectFromURL != "" {
+			if parent := byURL[rr.RedirectFromURL]; parent != nil && parent != rr {
+				rr.RedirectParent = parent
+
+				if parent == r.rootRequest {
+					r.rootRequest = rr
+				}
+			}
+		}
+
+		if rr.CrawlLog == nil {
+			if !rr.BlocksPageCompletion() {
+				slog.Info("Skipping missing crawlLog for non-blocking request",
+					"id", rr.ID,
+					"url", rr.URL,
+					"fetchRequestId", rr.FetchRequestID,
+					"networkId", rr.NetworkID,
+					"resourceType", rr.ResourceType,
+					"fromCache", rr.FromCache,
+				)
+			} else {
+				slog.Warn("Missing crawlLog",
+					"id", rr.ID,
+					"url", rr.URL,
+					"index", idx,
+					"fetchRequestId", rr.FetchRequestID,
+					"networkId", rr.NetworkID,
+					"new", rr.GotNew,
+					"complete", rr.GotComplete,
+					"fromCache", rr.FromCache,
+				)
+			}
+			continue
+		}
+
+		rr.CrawlLog.Referrer = rr.Referrer
+
+		referrerRequest := byURL[rr.Referrer]
+
+		discoveryType := discoveryTypeForRequest(idx, rr, requestedUrl)
+
+		switch {
+		case rr.RedirectParent != nil && rr.RedirectParent.CrawlLog != nil:
+			rr.CrawlLog.DiscoveryPath = rr.RedirectParent.CrawlLog.DiscoveryPath + discoveryType
+
+		case referrerRequest != nil && referrerRequest.CrawlLog != nil:
+			rr.CrawlLog.DiscoveryPath = referrerRequest.CrawlLog.DiscoveryPath + discoveryType
+
+		default:
+			rr.CrawlLog.DiscoveryPath = discoveryType
+		}
+	}
+}
+
+func discoveryTypeForRequest(idx int, req *Request, requestedUrl *frontierV1.QueuedUri) string {
+	if idx == 0 {
+		return requestedUrl.DiscoveryPath
+	}
+
+	if req.Initiator == "script" {
+		return "X"
+	}
+
+	if req.RedirectParent != nil || req.Redirected {
+		return "R"
+	}
+
+	return "E"
 }
 
 const maxLoggedMissingRequestIDs = 8
 
 type crawlLogMatchSnapshot struct {
-	blockingCount     int
-	resolvedCount     int
-	unresolvedCount   int
-	ignoredCount      int
-	missingRequestIDs []string
+	blockingCount   int
+	resolvedCount   int
+	unresolvedCount int
+	ignoredCount    int
+	missingRequests []Request
 }
 
 func (s crawlLogMatchSnapshot) signature() string {
-	return fmt.Sprintf("%d|%d|%d|%d|%v", s.blockingCount, s.resolvedCount, s.unresolvedCount, s.ignoredCount, s.missingRequestIDs)
+	return fmt.Sprintf(
+		"%d|%d|%d|%d|%v",
+		s.blockingCount,
+		s.resolvedCount,
+		s.unresolvedCount,
+		s.ignoredCount,
+		s.missingRequests,
+	)
 }
 
 func buildCrawlLogMatchSnapshot(requests []*Request) crawlLogMatchSnapshot {
 	snapshot := crawlLogMatchSnapshot{}
+
 	for _, req := range requests {
 		if !req.BlocksPageCompletion() {
 			snapshot.ignoredCount++
 			continue
 		}
+
 		snapshot.blockingCount++
+
 		if req.CrawlLog == nil {
 			snapshot.unresolvedCount++
-			if len(snapshot.missingRequestIDs) < maxLoggedMissingRequestIDs {
-				snapshot.missingRequestIDs = append(snapshot.missingRequestIDs, req.RequestId)
+
+			if len(snapshot.missingRequests) < maxLoggedMissingRequestIDs {
+				snapshot.missingRequests = append(snapshot.missingRequests, Request{
+					ID:             req.ID,
+					FetchRequestID: req.FetchRequestID,
+					NetworkID:      req.NetworkID,
+					URL:            req.URL,
+					ResourceType:   req.ResourceType,
+					GotNew:         req.GotNew,
+					GotComplete:    req.GotComplete,
+					FromCache:      req.FromCache,
+				})
 			}
+
 			continue
 		}
+
 		snapshot.resolvedCount++
 	}
+
 	return snapshot
 }

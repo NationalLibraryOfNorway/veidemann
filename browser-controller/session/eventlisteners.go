@@ -19,7 +19,6 @@ package session
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
@@ -52,13 +51,13 @@ func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev a
 		switch ev := ev.(type) {
 
 		case *network.EventRequestWillBeSent:
-			sess.onNetworkEventRequestWillBeSent(ctx, ev)
+			sess.onNetworkEventRequestWillBeSent(ctx, ev, listenerID)
 
 		case *network.EventLoadingFinished:
-			sess.onNetworkEventLoadingFinished(ctx, ev)
+			sess.onNetworkEventLoadingFinished(ctx, ev, listenerID)
 
 		case *network.EventDataReceived:
-			sess.onNetworkEventDataReceived(ctx, ev)
+			sess.onNetworkEventDataReceived(ctx, ev, listenerID)
 
 		case *network.EventLoadingFailed:
 			sess.onNetworkEventLoadingFailed(ctx, ev, listenerID)
@@ -90,44 +89,86 @@ func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev a
 	}
 }
 
-func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *network.EventRequestWillBeSent) {
-	if sess.networkTracker != nil {
-		sess.networkTracker.noteRequestStart(ev)
-	}
-	sess.loggerOrDefault().Debug("Request will be sent",
-		"requestId", ev.RequestID.String(),
+func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *network.EventRequestWillBeSent, listenerID int64) {
+	id := logicalIDFromNetworkWillBeSent(ev)
+
+	log := sess.loggerOrDefault().With(
+		"id", id,
+		"listenerID", listenerID,
 		"resourceType", ev.Type.String(),
-		"frameId", string(ev.FrameID),
+		"frameID", string(ev.FrameID),
 		"initiator", ev.Initiator.Type.String(),
-		"loaderId", string(ev.LoaderID),
-		"documentURL", ev.DocumentURL)
-	if req := sess.Requests.GetByNetworkId(ev.RequestID.String()); req != nil {
-		req.Initiator = ev.Initiator.Type.String()
+		"loaderID", string(ev.LoaderID),
+		"documentURL", ev.DocumentURL,
+		"redirectFromURL", redirectFromURL(ev),
+		"url", ev.Request.URL,
+		"method", ev.Request.Method,
+	)
+
+	if id == "" {
+		log.Warn("Network event has no id")
+		return
+	}
+
+	if !sess.acceptingRequests() {
+		return
+	}
+
+	req, added := sess.Requests.GetOrAddRequest(requestFromNetworkWillBeSent(ev))
+	if added {
+		sess.networkTracker.noteRequestStart(ev)
+		log.Debug("Session.onNetworkEventRequestWillBeSent",
+			"id", req.ID,
+			"added", added,
+			"fetchRequestID", req.FetchRequestID,
+			"networkID", req.NetworkID,
+			"url", req.URL,
+			"initiator", req.Initiator,
+			"redirected", req.Redirected,
+			"redirectFromURL", req.RedirectFromURL)
 	}
 }
 
-func (sess *Session) onNetworkEventLoadingFinished(_ context.Context, ev *network.EventLoadingFinished) {
-	if sess.networkTracker != nil {
-		sess.networkTracker.noteRequestDone(ev.RequestID)
-	}
+func (sess *Session) onNetworkEventLoadingFinished(_ context.Context, ev *network.EventLoadingFinished, listenerID int64) {
+	sess.networkTracker.noteRequestDone(ev.RequestID)
+
+	id := string(ev.RequestID)
+
+	log := sess.loggerOrDefault().With(
+		"listenerId", listenerID,
+		"id", id,
+		"requestID", ev.RequestID,
+		"encodedDataLength", ev.EncodedDataLength,
+	)
+
+	_ = sess.Requests.GotComplete(id)
+	log.Debug("Loading finished")
 }
 
-func (sess *Session) onNetworkEventDataReceived(_ context.Context, ev *network.EventDataReceived) {
-	if sess.networkTracker != nil {
-		sess.networkTracker.noteRequestData(ev.RequestID)
-	}
+func (sess *Session) onNetworkEventDataReceived(_ context.Context, ev *network.EventDataReceived, _ int64) {
+	sess.networkTracker.noteRequestData(ev.RequestID)
 }
 
-func (sess *Session) onNetworkEventLoadingFailed(ctx context.Context, ev *network.EventLoadingFailed, listenerID int64) {
-	if sess.networkTracker != nil {
-		sess.networkTracker.noteRequestDone(ev.RequestID)
-	}
-	sess.loggerOrDefault().Debug("Loading failed",
+func (sess *Session) onNetworkEventLoadingFailed(_ context.Context, ev *network.EventLoadingFailed, listenerID int64) {
+	sess.networkTracker.noteRequestDone(ev.RequestID)
+
+	log := sess.loggerOrDefault().With(
+		"listenerId", listenerID,
+		"requestID", ev.RequestID,
 		"type", ev.Type,
 		"errorText", ev.ErrorText,
 		"blockedReason", ev.BlockedReason,
 		"canceled", ev.Canceled,
-		"requestID", ev.RequestID)
+	)
+
+	id := string(ev.RequestID)
+
+	// TODO should it be completed when failed ?
+	req := sess.Requests.GotComplete(id)
+	if req != nil {
+		log = log.With("url", req.URL)
+	}
+	log.Warn("Loading failed")
 }
 
 func (sess *Session) onPageEventFrameStartedLoading(ctx context.Context, ev *page.EventFrameStartedLoading, listenerID int64) {
@@ -219,9 +260,11 @@ func (sess *Session) onPageEventFileChooserOpened(_ context.Context, ev *page.Ev
 }
 
 func (sess *Session) onPageEventJavascriptDialogOpening(ctx context.Context, ev *page.EventJavascriptDialogOpening, listenerID int64) {
-	log := sess.loggerOrDefault().With("listenerID", listenerID)
-
-	log.Debug("Javascript dialog opening", "message", ev.Message)
+	log := sess.loggerOrDefault().With(
+		"listenerID", listenerID,
+		"url", ev.URL,
+	)
+	log.Info("Javascript dialog opening", "message", ev.Message)
 	accept := ev.Type == "alert"
 	if err := chromedp.Run(ctx, page.HandleJavaScriptDialog(accept)); err != nil {
 		log.Error("Failed to handle JavaScript dialog", "error", err)
@@ -268,98 +311,157 @@ func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.
 }
 
 func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.EventRequestPaused, listenerID int64) {
-	log := sess.loggerOrDefault().With("listenerID", listenerID)
-
-	var req *requests.Request
-	added := false
-
-	if sess.networkTracker != nil && ev.ResponseStatusCode == 0 && ev.ResponseErrorReason == "" {
-		sess.networkTracker.noteObservedRequestStart(ev.ResourceType, ev.Request.URL, ev.FrameID != "", ev.NetworkID)
+	if !sess.acceptingRequests() {
+		sess.quiescePausedRequest(ctx, ev)
+		return
 	}
 
-	if !sess.acceptingRequests() {
-		if err := sess.finalizePausedRequest(ctx, ev); err != nil {
-			log.Debug("Failed to quiesce paused request during shutdown", "error", err, "targetId", targetIDFromContext(ctx), "fetchRequestId", ev.RequestID.String())
+	id := logicalIDFromFetchPaused(ev)
+
+	log := sess.loggerOrDefault().With(
+		"listenerID", listenerID,
+		"id", id,
+		"fetchRequestID", ev.RequestID,
+		"networkID", ev.NetworkID,
+		"targetID", targetIDFromContext(ctx),
+		"url", ev.Request.URL,
+		"method", ev.Request.Method,
+		"resourceType", ev.ResourceType.String(),
+	)
+
+	log.Debug("Session.onFetchEventRequestPaused")
+
+	isResponseStage := ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != ""
+	if isResponseStage {
+		if err := sess.continuePausedRequest(ctx, ev, nil); err != nil {
+			log.Warn("Failed to continue paused request",
+				"statusCode", ev.ResponseStatusCode,
+				"errorReason", ev.ResponseErrorReason,
+				"error", err)
 		}
 		return
 	}
 
-	continueRequest := fetch.ContinueRequest(ev.RequestID)
-	if ev.ResponseStatusCode == 0 && ev.ResponseErrorReason == "" {
-		continueRequest = continueRequest.WithURL(ev.Request.URL).WithMethod(ev.Request.Method)
-		candidate := &requests.Request{
-			Method:       ev.Request.Method,
-			Url:          url.Normalize(ev.Request.URL + ev.Request.URLFragment),
-			RequestId:    ev.RequestID.String(),
-			NetworkId:    ev.NetworkID.String(),
-			Referrer:     interfaceToString(ev.Request.Headers["Referer"]),
-			ResourceType: ev.ResourceType.String(),
-		}
-		if !sess.acceptingRequests() {
-			if err := sess.finalizePausedRequest(ctx, ev); err != nil {
-				log.Debug("Failed to quiesce paused request during shutdown", "error", err, "targetId", targetIDFromContext(ctx), "fetchRequestId", ev.RequestID.String())
-			}
-			return
-		}
+	sess.networkTracker.noteObservedRequestStart(
+		ev.ResourceType,
+		ev.Request.URL,
+		ev.FrameID != "",
+		ev.NetworkID,
+	)
 
-		req = sess.findRootRequestReuseCandidate(candidate)
-		if req == nil {
-			req, added = sess.Requests.GetOrAddRequest(candidate)
-		} else {
-			added = false
-		}
-		if added {
-			log.Debug("Registered paused request",
-				"targetId", targetIDFromContext(ctx),
-				"fetchRequestId", candidate.RequestId,
-				"networkId", candidate.NetworkId,
-				"logicalRequestId", req.RequestId,
-				"method", req.Method,
-				"resourceType", req.ResourceType,
-				"url", req.Url)
-		}
-		if !added && req != nil && req.RequestId != candidate.RequestId {
-			log.Debug("Reusing paused request registration",
-				"targetId", targetIDFromContext(ctx),
-				"fetchRequestId", candidate.RequestId,
-				"reusedRequestId", req.RequestId,
-				"networkId", candidate.NetworkId,
-				"url", candidate.Url)
-		}
+	req, added := sess.Requests.GetOrAddRequest(requestFromFetchPaused(ev))
 
-		if ev.Request.Headers["veidemann_reqid"] != nil {
-			delete(ev.Request.Headers, "veidemann_reqid")
-		}
-		h := make([]*fetch.HeaderEntry, len(ev.Request.Headers)+1)
-		i := 0
-		for k, v := range ev.Request.Headers {
-			h[i] = &fetch.HeaderEntry{Name: k, Value: interfaceToString(v)}
-			i++
-		}
-		h[i] = &fetch.HeaderEntry{Name: "veidemann_reqid", Value: req.RequestId}
-		continueRequest = continueRequest.WithHeaders(h)
+	if added {
+		log.Warn("FETCH add request", "req", req)
 	} else {
-		log.Debug("Response request", "statusCode", ev.ResponseStatusCode, "errorReason", ev.ResponseErrorReason, "url", ev.Request.URL)
+		log.Debug("FETCH reuse request", "req", req)
 	}
-	if err := chromedp.Run(ctx, continueRequest); err != nil {
+
+	if err := sess.continuePausedRequest(ctx, ev, req); err != nil {
 		rolledBack := sess.rollbackPausedRequest(req, added)
-		if sess.networkTracker != nil && ev.ResponseStatusCode == 0 && ev.ResponseErrorReason == "" {
-			sess.networkTracker.noteRequestDone(ev.NetworkID)
-		}
+		log.Warn("Rolled back paused request after continue failure",
+			"rolledBack", rolledBack,
+			"added", added,
+			"error", err)
+
+		sess.networkTracker.noteRequestDone(ev.NetworkID)
+
 		if rolledBack && isInvalidInterceptionIDError(err) {
 			log.Debug("Ignored continue failure for rolled-back paused request", "error", err)
-		} else {
-			log.Debug("Failed sending continue", "error", err)
 		}
-	} else {
-		if req != nil {
-			err = sess.NotifyRequest(req)
-		} else {
-			err = sess.Notify(interfaceToString(ev.RequestID))
+
+		return
+	}
+
+	if req != nil {
+		if err := sess.NotifyRequest(req); err != nil {
+			log.Error("Failed to notify session after request continuation",
+				"id", req.ID,
+				"fetchRequestID", req.FetchRequestID,
+				"networkID", req.NetworkID,
+				"error", err)
 		}
-		if err != nil {
-			log.Error("Failed to notify session after request continuation", "error", err)
+		return
+	}
+
+	if err := sess.Notify(id); err != nil {
+		log.Error("Failed to notify session after request continuation",
+			"error", err)
+	}
+}
+
+func (sess *Session) continuePausedRequest(
+	ctx context.Context,
+	ev *fetch.EventRequestPaused,
+	req *requests.Request,
+) error {
+	continueRequest := fetch.ContinueRequest(ev.RequestID)
+
+	// Preserve original URL/method if you really need to. If you are not modifying
+	// them, this is optional. Keeping it here matches your current behavior.
+	continueRequest = continueRequest.
+		WithURL(ev.Request.URL).
+		WithMethod(ev.Request.Method)
+
+	headers := buildFetchHeaders(ev, req)
+	if len(headers) > 0 {
+		continueRequest = continueRequest.WithHeaders(headers)
+	}
+
+	return chromedp.Run(ctx, continueRequest)
+}
+
+func (sess *Session) failPausedRequest(
+	ctx context.Context,
+	ev *fetch.EventRequestPaused,
+	reason network.ErrorReason,
+) {
+	if err := chromedp.Run(ctx, fetch.FailRequest(ev.RequestID, reason)); err != nil {
+		sess.loggerOrDefault().Debug("Failed to fail paused request",
+			"fetchRequestID", ev.RequestID,
+			"networkID", ev.NetworkID,
+			"url", ev.Request.URL,
+			"method", ev.Request.Method,
+			"reason", reason.String(),
+			"error", err)
+	}
+}
+
+func buildFetchHeaders(ev *fetch.EventRequestPaused, req *requests.Request) []*fetch.HeaderEntry {
+	headerCount := len(ev.Request.Headers)
+
+	if req != nil && req.ID != "" {
+		headerCount++
+	}
+
+	headers := make([]*fetch.HeaderEntry, 0, headerCount)
+
+	for k, v := range ev.Request.Headers {
+		if strings.EqualFold(k, "veidemann_reqid") {
+			continue
 		}
+
+		headers = append(headers, &fetch.HeaderEntry{
+			Name:  k,
+			Value: interfaceToString(v),
+		})
+	}
+
+	if req != nil && req.ID != "" {
+		headers = append(headers, &fetch.HeaderEntry{
+			Name:  "veidemann_reqid",
+			Value: req.ID,
+		})
+	}
+
+	return headers
+}
+
+func (sess *Session) quiescePausedRequest(ctx context.Context, ev *fetch.EventRequestPaused) {
+	if err := sess.finalizePausedRequest(ctx, ev); err != nil {
+		sess.loggerOrDefault().Debug("Failed to quiesce paused request",
+			"error", err,
+			"targetID", targetIDFromContext(ctx))
 	}
 }
 
@@ -442,29 +544,6 @@ func (sess *Session) initChildTarget(ctx context.Context, targetID target.ID, ta
 	}()
 }
 
-func (sess *Session) findRootRequestReuseCandidate(req *requests.Request) *requests.Request {
-	if sess.RequestedUrl == nil {
-		return nil
-	}
-	if req.NetworkId != "" || req.Url != sess.RequestedUrl.Uri || req.Method != http.MethodGet {
-		return nil
-	}
-
-	initial := sess.Requests.InitialRequest()
-	if initial != nil && initial.Url == req.Url && initial.Method == req.Method {
-		return initial
-	}
-
-	existing := sess.Requests.GetByUrl(req.Url, false)
-	if existing == nil {
-		return nil
-	}
-	if existing.Method != req.Method {
-		return nil
-	}
-	return existing
-}
-
 func (sess *Session) finalizePausedRequest(ctx context.Context, ev *fetch.EventRequestPaused) error {
 	if ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != "" {
 		return chromedp.Run(ctx, fetch.ContinueRequest(ev.RequestID))
@@ -480,15 +559,15 @@ func (sess *Session) rollbackPausedRequest(req *requests.Request, added bool) bo
 	if !added || req == nil || sess.Requests == nil {
 		return false
 	}
-	if initial := sess.Requests.InitialRequest(); initial == req {
-		return false
-	}
+
 	if !sess.Requests.RemoveRequest(req) {
 		return false
 	}
+
 	if req.BlocksPageCompletion() && sess.timer != nil {
-		_ = sess.Notify(req.RequestId)
+		_ = sess.Notify(req.ID)
 	}
+
 	return true
 }
 
@@ -497,4 +576,57 @@ func interfaceToString(i any) string {
 		return ""
 	}
 	return fmt.Sprintf("%v", i)
+}
+
+func logicalIDFromFetchPaused(ev *fetch.EventRequestPaused) string {
+	id := string(ev.NetworkID)
+	if id == "" {
+		id = string(ev.RequestID)
+	}
+	return id
+}
+
+func requestFromFetchPaused(ev *fetch.EventRequestPaused) *requests.Request {
+	id := logicalIDFromFetchPaused(ev)
+
+	return &requests.Request{
+		ID:             id,
+		FetchRequestID: string(ev.RequestID),
+		NetworkID:      string(ev.NetworkID),
+		URL:            ev.Request.URL,
+		Method:         ev.Request.Method,
+		ResourceType:   string(ev.ResourceType),
+	}
+}
+
+func logicalIDFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) string {
+	return string(ev.RequestID)
+}
+
+func requestFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) *requests.Request {
+	id := logicalIDFromNetworkWillBeSent(ev)
+
+	req := &requests.Request{
+		ID:           id,
+		NetworkID:    id,
+		URL:          url.Normalize(ev.Request.URL),
+		Method:       ev.Request.Method,
+		ResourceType: ev.Type.String(),
+		Initiator:    ev.Initiator.Type.String(),
+		Referrer:     interfaceToString(ev.Request.Headers["Referer"]),
+	}
+
+	if redirectUrl := redirectFromURL(ev); redirectUrl != "" {
+		req.Redirected = true
+		req.RedirectFromURL = redirectUrl
+	}
+
+	return req
+}
+
+func redirectFromURL(ev *network.EventRequestWillBeSent) string {
+	if ev == nil || ev.RedirectResponse == nil {
+		return ""
+	}
+	return ev.RedirectResponse.URL
 }

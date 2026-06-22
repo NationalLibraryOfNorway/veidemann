@@ -68,9 +68,7 @@ func (bc BrowserController) Run(ctx context.Context) error {
 	}()
 
 	backoffTimer := time.NewTimer(0)
-	if !backoffTimer.Stop() {
-		<-backoffTimer.C
-	}
+	backoffTimer.Stop()
 
 	for {
 		if err := ctx.Err(); err != nil {

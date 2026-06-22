@@ -18,8 +18,9 @@ package session
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
-	stderrors "errors"
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -36,7 +37,7 @@ import (
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
+	bcerrors "github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
@@ -100,13 +101,12 @@ type launch struct {
 }
 
 type Session struct {
-	ctx              context.Context
-	Requests         requests.RequestRegistry
-	configAdapter    database.ConfigAdapter
-	screenShotWriter screenshotwriter.ScreenshotWriter
-	logWriter        logwriter.LogWriter
-	logger           *slog.Logger
-
+	ctx               context.Context
+	Requests          requests.RequestRegistry
+	configAdapter     database.ConfigAdapter
+	screenShotWriter  screenshotwriter.ScreenshotWriter
+	logWriter         logwriter.LogWriter
+	logger            *slog.Logger
 	browserHost       string
 	proxyHost         string
 	browserWsEndpoint string
@@ -143,10 +143,12 @@ type Session struct {
 
 func newDefaultSession(opts ...Option) *Session {
 	s := &Session{
-		browserHost:    "localhost",
-		browserPort:    3000,
-		browserTimeout: 500 * 1000,
-		proxyPort:      3000,
+		browserHost:        "localhost",
+		browserPort:        3000,
+		browserTimeout:     500 * 1000,
+		proxyPort:          3000,
+		networkTracker:     newNetworkActivityTracker(),
+		initializedTargets: make(map[target.ID]struct{}),
 	}
 	for _, opt := range opts {
 		opt.apply(s)
@@ -174,6 +176,7 @@ func (sess *Session) Notify(reqId string) error {
 
 	if reqId == "" {
 		log.Warn("Received notify with empty request ID")
+		return nil
 	}
 	select {
 	case <-sess.ctx.Done():
@@ -190,7 +193,7 @@ func (sess *Session) NotifyRequest(req *requests.Request) error {
 	if req == nil || !req.BlocksPageCompletion() {
 		return nil
 	}
-	return sess.Notify(req.RequestId)
+	return sess.Notify(req.ID)
 }
 
 func (sess *Session) startAcceptingRequests() {
@@ -249,7 +252,7 @@ func (sess *Session) compileBrowserWebsocketEndpoint() (string, error) {
 
 	q.Set("timeout", strconv.Itoa(sess.browserTimeout))
 	q.Set("trackingId", strconv.Itoa(sess.Id))
-	q.Set("launch", string(b))
+	q.Set("launch", base64.StdEncoding.EncodeToString(b))
 
 	browserWsEndpoint.RawQuery = q.Encode()
 
@@ -292,8 +295,6 @@ func (sess *Session) loadFetchConfig(ctx context.Context, phs *frontierV1.PageHa
 func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxIdleTime time.Duration) (context.Context, context.Context, func(), error) {
 	log := sess.loggerOrDefault()
 
-	log.Info("Starting browser session", "browserWsEndpoint", sess.browserWsEndpoint)
-
 	allocatorContext, allocatorCancel := chromedp.NewRemoteAllocator(ctx, sess.browserWsEndpoint, chromedp.NoModifyURL)
 	cdpCtx, cdpCancel := chromedp.NewContext(allocatorContext)
 	sess.ctx = cdpCtx
@@ -318,15 +319,13 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 		sess.UserAgent += " " + sess.browserConfig.UserAgent
 	}
 
-	log.Info("Browser info", "version", browserVersion, "userAgent", sess.UserAgent)
+	log.Debug("Browser session", "version", browserVersion, "userAgent", sess.UserAgent, "endpoint", sess.browserWsEndpoint)
 
 	loadCtx, loadCancel := context.WithTimeout(sess.ctx, maxTotalTime)
 	sess.loadCancel = loadCancel
 
 	sess.frameWg = syncx.NewWaitGroup(loadCtx)
 	sess.Requests = requests.NewRegistry(sess.frameWg)
-	sess.networkTracker = newNetworkActivityTracker()
-	sess.initializedTargets = make(map[target.ID]struct{})
 	sess.startAcceptingRequests()
 
 	sess.initListeners(cdpCtx)
@@ -363,7 +362,7 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 		loadCancel()
 		cdpCancel()
 		allocatorCancel()
-		return nil, nil, nil, fmt.Errorf("failed initializing browser: %w", err)
+		return nil, nil, nil, err
 	}
 
 	cleanup := func() {
@@ -393,9 +392,9 @@ func (sess *Session) classifyNavigationError(err error) error {
 	initialRequest := sess.Requests.InitialRequest()
 
 	switch {
-	case stderrors.Is(err, context.Canceled) && initialRequest != nil && initialRequest.FromCache:
+	case errors.Is(err, context.Canceled) && initialRequest != nil && initialRequest.FromCache:
 		return cacheHitFetchError(sess.RequestedUrl.Uri)
-	case stderrors.Is(err, context.DeadlineExceeded):
+	case errors.Is(err, context.DeadlineExceeded):
 		return pageloadTimeoutError(sess.RequestedUrl.Uri, "navigation")
 	default:
 		return fmt.Errorf("failed to navigate: %w", err)
@@ -406,19 +405,26 @@ func (sess *Session) waitForInitialPageLoad() (error, bool) {
 	log := sess.loggerOrDefault()
 
 	waitErr := sess.frameWg.Wait()
-	if fetchErr, returnNow := classifyFrameWaitError(sess.Requests.InitialRequest(), sess.RequestedUrl.Uri, waitErr); returnNow {
-		return fetchErr, true
-	} else if fetchErr != nil {
-		if loadingFrames := sess.loadingFrameSnapshot(); len(loadingFrames) > 0 {
-			log.Warn("Frames still marked as loading at timeout", "loadingFrames", loadingFrames)
-		} else {
-			log.Warn("No frames remained marked as loading at timeout")
-		}
-		log.Warn("Timed out while waiting for frames to finish loading", "error", fetchErr)
-		return fetchErr, false
+	if waitErr == nil {
+		return nil, false
+	}
+	fetchErr, returnNow := classifyFrameWaitError(sess.Requests.InitialRequest(), sess.RequestedUrl.Uri, waitErr)
+	if fetchErr == nil {
+		return nil, false
 	}
 
-	return nil, false
+	if returnNow {
+		return fetchErr, true
+	}
+
+	if loadingFrames := sess.loadingFrameSnapshot(); len(loadingFrames) > 0 {
+		log.Warn("Frames still marked as loading at timeout", "loadingFrames", loadingFrames)
+	} else {
+		log.Warn("No frames remained marked as loading at timeout")
+	}
+	log.Warn("Timed out while waiting for frames to finish loading", "error", fetchErr)
+	return fetchErr, false
+
 }
 
 func (sess *Session) runOnLoadBehavior(loadCtx context.Context) {
@@ -459,7 +465,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		return nil, err
 	}
 
-	log.Info("Start fetch", "maxIdleTime", maxIdleTime, "maxTotalTime", maxTotalTime)
+	log.Info("Start fetch", "maxIdleTime", fmt.Sprintf("%.2fs", maxIdleTime.Seconds()), "maxTotalTime", fmt.Sprintf("%.2fs", maxTotalTime.Seconds()))
 	fetchStart := time.Now()
 
 	cdpCtx, loadCtx, cleanup, err := sess.startBrowserSession(ctx, maxTotalTime, maxIdleTime)
@@ -491,10 +497,12 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	if err != nil {
 		log.Warn("Timed out while waiting for outstanding requests", "error", err)
 		waitErr := classifyCompletionWaitError(sess.RequestedUrl.Uri, err)
-		if fetchErr == nil {
-			fetchErr = waitErr
-		} else {
-			fetchErr = stderrors.Join(fetchErr, waitErr)
+		if waitErr != nil {
+			if fetchErr == nil {
+				fetchErr = waitErr
+			} else {
+				fetchErr = errors.Join(fetchErr, waitErr)
+			}
 		}
 	}
 
@@ -507,25 +515,16 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		}
 	}
 
-	sess.Requests.FinalizeResponses(sess.RequestedUrl)
-
 	if sess.CrawlConfig.GetExtra().CreateScreenshot {
 		sess.saveScreenshot()
-		if fetchErr == nil {
-			if waitErr := sess.waitForSettledNetworkAndRequests(loadCtx, maxIdleTime); waitErr != nil {
-				log.Info("Timed out while waiting for screenshot-triggered activity to settle", "error", waitErr)
-			}
-		}
 	}
 
-	if fetchErr == nil {
-		sess.stopAcceptingRequests()
-	}
+	// 	sess.stopAcceptingRequests()
 
 	sess.Requests.FinalizeResponses(sess.RequestedUrl)
 
-	outlinks := sess.extractOutlinks()
 	cookies := sess.extractCookies()
+	outlinks := sess.extractOutlinks()
 
 	fetchDuration := time.Since(fetchStart)
 
@@ -534,11 +533,13 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		log.Warn("Cancel CDP context", "error", err)
 	}
 
-	if sess.Requests.InitialRequest() == nil || sess.Requests.InitialRequest().CrawlLog == nil {
-		return nil, fmt.Errorf("missing initial request: %w", err)
-	}
-
 	initialRequest := sess.Requests.InitialRequest()
+	if initialRequest == nil {
+		return nil, errors.New("missing initial request")
+	}
+	if initialRequest.CrawlLog == nil {
+		return nil, errors.New("initial request has no crawllog")
+	}
 
 	var crawlLogCount int32
 	var bytesDownloaded int64
@@ -546,53 +547,55 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	var crawlLogs []*logV1.CrawlLog
 
 	sess.Requests.Walk(func(r *requests.Request) {
+		log := log.With(
+			"requestId", r.ID,
+			"method", r.Method,
+			"url", r.URL,
+			"fromCache", r.FromCache,
+			"hasCrawlLog", r.CrawlLog != nil,
+			"gotNew", r.GotNew,
+			"gotComplete", r.GotComplete,
+		)
+		if r.CrawlLog == nil {
+			if !r.FromCache && r.BlocksPageCompletion() {
+				log.Warn("No crawllog for resource")
+			}
+			return
+		}
+
 		if r.CrawlLog.GetWarcId() != "" {
 			crawlLogs = append(crawlLogs, r.CrawlLog)
 			crawlLogCount++
 			bytesDownloaded += r.CrawlLog.Size
 		} else {
-			log.Debug("Skipping write",
-				"requestId", r.RequestId,
-				"method", r.Method,
-				"url", r.Url,
-				"fromCache", r.FromCache,
-				"hasCrawlLog", r.CrawlLog != nil)
+			log.Warn("Crawl log in registry without warc ID")
 		}
 
-		if r.CrawlLog != nil {
-			resource := &logV1.PageLog_Resource{
-				Uri:           r.Url,
-				FromCache:     r.FromCache,
-				Renderable:    false,
-				ResourceType:  r.ResourceType,
-				ContentType:   r.CrawlLog.ContentType,
-				StatusCode:    r.CrawlLog.StatusCode,
-				DiscoveryPath: r.CrawlLog.DiscoveryPath,
-				WarcId:        r.CrawlLog.WarcId,
-				Referrer:      r.Referrer,
-				Error:         r.CrawlLog.Error,
-				Method:        r.Method,
-			}
-			resources = append(resources, resource)
-		} else if !r.FromCache && r.BlocksPageCompletion() {
-			log.Warn("No crawllog for resource",
-				"requestId", r.RequestId,
-				"method", r.Method,
-				"url", r.Url,
-				"gotNew", r.GotNew,
-				"gotComplete", r.GotComplete)
+		resource := &logV1.PageLog_Resource{
+			Uri:           r.URL,
+			FromCache:     r.FromCache,
+			Renderable:    false,
+			ResourceType:  r.ResourceType,
+			ContentType:   r.CrawlLog.GetContentType(),
+			StatusCode:    r.CrawlLog.GetStatusCode(),
+			DiscoveryPath: r.CrawlLog.GetDiscoveryPath(),
+			WarcId:        r.CrawlLog.GetWarcId(),
+			Referrer:      r.Referrer,
+			Error:         r.CrawlLog.GetError(),
+			Method:        r.Method,
 		}
+		resources = append(resources, resource)
 	})
 	if err := sess.logWriter.WriteCrawlLogs(ctx, crawlLogs); err != nil {
 		log.Error("Failed to write crawl logs", "error", err)
 	}
 
-	warcId := initialRequest.CrawlLog.WarcId
-	if warcId == "" {
-		warcId = uuid.New().String()
+	pageWarcID := initialRequest.CrawlLog.GetWarcId()
+	if pageWarcID == "" {
+		pageWarcID = uuid.New().String()
 	}
 	pageLog := &logV1.PageLog{
-		WarcId:              warcId,
+		WarcId:              pageWarcID,
 		Uri:                 sess.RequestedUrl.Uri,
 		ExecutionId:         sess.RequestedUrl.ExecutionId,
 		Referrer:            initialRequest.Referrer,
@@ -613,7 +616,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			DiscoveredTimeStamp: timestamppb.Now(),
 			Uri:                 uri,
 			DiscoveryPath:       sess.Requests.RootRequest().CrawlLog.DiscoveryPath + "L",
-			Referrer:            sess.Requests.RootRequest().Url,
+			Referrer:            sess.Requests.RootRequest().URL,
 			Cookies:             cookies,
 			JobExecutionId:      sess.RequestedUrl.JobExecutionId,
 		}
@@ -626,13 +629,17 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		PageFetchTimeMs: fetchDuration.Milliseconds(),
 	}
 
-	log.Info("Fetch done",
+	attrs := []any{
 		"bytesDownloaded", bytesDownloaded,
 		"outlinks", len(outlinks),
 		"crawllogs", len(crawlLogs),
 		"resources", len(resources),
-		"durationS", fetchDuration.Seconds(),
-	)
+		"duration", fmt.Sprintf("%.2fs", fetchDuration.Seconds()),
+	}
+	if fetchErr != nil {
+		attrs = append(attrs, "error", fetchErr)
+	}
+	log.Info("Fetch done", attrs...)
 
 	return result, fetchErr
 }
@@ -788,7 +795,7 @@ func (sess *Session) extractOutlinks() []string {
 		for _, link := range links {
 			link = strings.TrimSpace(link)
 			link = strings.Trim(link, "\"\\")
-			if link != "" && link != sess.Requests.RootRequest().Url {
+			if link != "" && link != sess.Requests.RootRequest().URL {
 				extractedUrls = append(extractedUrls, link)
 			}
 		}
@@ -805,9 +812,6 @@ func (sess *Session) AbortFetch() error {
 }
 
 func (sess *Session) waitForNetworkIdle(ctx context.Context, maxIdleTime time.Duration) error {
-	if sess.networkTracker == nil {
-		return nil
-	}
 	return sess.networkTracker.waitForIdle(ctx, networkSettleIdleTime(maxIdleTime))
 }
 
@@ -905,7 +909,7 @@ func (sess *Session) loadingFrameSnapshot() map[string]int {
 	return snapshot
 }
 
-func recoverFetchError(r any) errors.FetchError {
+func recoverFetchError(r any) bcerrors.FetchError {
 	fetchErr := recoveredAsFetchError(r)
 
 	// Keep original stack-detail behavior.
@@ -914,21 +918,21 @@ func recoverFetchError(r any) errors.FetchError {
 	return fetchErr
 }
 
-func recoveredAsFetchError(r any) errors.FetchError {
+func recoveredAsFetchError(r any) bcerrors.FetchError {
 	if err, ok := r.(error); ok {
-		var fetchErr errors.FetchError
-		if stderrors.As(err, &fetchErr) {
+		var fetchErr bcerrors.FetchError
+		if errors.As(err, &fetchErr) {
 			return fetchErr
 		}
 
-		return errors.New(-5, "Runtime error", err.Error())
+		return bcerrors.New(-5, "Runtime error", err.Error())
 	}
 
-	return errors.New(-5, "Runtime error", fmt.Sprintf("%v", r))
+	return bcerrors.New(-5, "Runtime error", fmt.Sprintf("%v", r))
 }
 
 func cacheHitFetchError(uri string) error {
-	return errors.New(-4100, "Already seen", "Initial request was found in cache. Url: "+uri)
+	return bcerrors.New(-4100, "Already seen", "Initial request was found in cache. Url: "+uri)
 }
 
 func pageloadTimeoutError(uri, phase string) error {
@@ -936,7 +940,7 @@ func pageloadTimeoutError(uri, phase string) error {
 	if phase != "" {
 		detail = fmt.Sprintf("Pageload timed out while waiting for %s. Url: %s", phase, uri)
 	}
-	return errors.New(-5004, "Runtime exceeded", detail)
+	return bcerrors.New(-5004, "Runtime exceeded", detail)
 }
 
 func classifyFrameWaitError(initialRequest *requests.Request, uri string, waitErr error) (error, bool) {

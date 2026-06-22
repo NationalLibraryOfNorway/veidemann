@@ -89,14 +89,14 @@ func (t *networkActivityTracker) noteRequestStart(ev *network.EventRequestWillBe
 	t.noteObservedRequestStart(ev.Type, ev.Request.URL, ev.FrameID != "" || ev.LoaderID != "", ev.RequestID)
 }
 
-func (t *networkActivityTracker) noteObservedRequestStart(resourceType network.ResourceType, rawURL string, hasContext bool, requestID network.RequestID) {
+func (t *networkActivityTracker) noteObservedRequestStart(resourceType network.ResourceType, rawURL string, hasContext bool, networkID network.RequestID) {
 	if !shouldTrackObservedRequest(resourceType, rawURL, hasContext) {
 		return
 	}
 
 	t.mu.Lock()
-	if requestID != "" {
-		t.inflight[requestID] = resourceType
+	if networkID != "" {
+		t.inflight[networkID] = resourceType
 	}
 	t.lastChange = time.Now()
 	t.mu.Unlock()
@@ -163,14 +163,10 @@ func (t *networkActivityTracker) waitForIdle(ctx context.Context, idleTime time.
 
 		select {
 		case <-ctx.Done():
-			if !waitTimer.Stop() {
-				<-waitTimer.C
-			}
+			waitTimer.Stop()
 			return contextWaitError(ctx.Err())
 		case <-updates:
-			if !waitTimer.Stop() {
-				<-waitTimer.C
-			}
+			waitTimer.Stop()
 		case <-waitTimer.C:
 			return nil
 		}
