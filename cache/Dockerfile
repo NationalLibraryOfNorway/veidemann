@@ -21,7 +21,7 @@ RUN certtool --generate-privkey --outfile tls.key \
         --outfile tls.crt
 
 
-FROM docker.io/ubuntu:resolute-20260421
+FROM docker.io/ubuntu:resolute-20260627
 
 ENV TZ=UTC
 ENV DNS_SERVERS="8.8.8.8 8.8.4.4"
