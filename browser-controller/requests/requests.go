@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"unicode/utf8"
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
@@ -269,10 +270,12 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 		}
 
 		if rr.CrawlLog == nil {
+			loggedURL, urlLength := boundedURLForLog(rr.URL)
 			if !rr.BlocksPageCompletion() {
 				slog.Info("Skipping missing crawlLog for non-blocking request",
 					"id", rr.ID,
-					"url", rr.URL,
+					"url", loggedURL,
+					"urlLength", urlLength,
 					"fetchRequestId", rr.FetchRequestID,
 					"networkId", rr.NetworkID,
 					"resourceType", rr.ResourceType,
@@ -281,7 +284,8 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 			} else {
 				slog.Warn("Missing crawlLog",
 					"id", rr.ID,
-					"url", rr.URL,
+					"url", loggedURL,
+					"urlLength", urlLength,
 					"index", idx,
 					"fetchRequestId", rr.FetchRequestID,
 					"networkId", rr.NetworkID,
@@ -329,13 +333,40 @@ func discoveryTypeForRequest(idx int, req *Request, requestedUrl *frontierV1.Que
 }
 
 const maxLoggedMissingRequestIDs = 8
+const maxLoggedURLBytes = 512
+
+func boundedURLForLog(rawURL string) (string, int) {
+	originalLength := len(rawURL)
+	if originalLength <= maxLoggedURLBytes {
+		return rawURL, originalLength
+	}
+
+	const ellipsis = "…"
+	end := maxLoggedURLBytes - len(ellipsis)
+	for end > 0 && !utf8.RuneStart(rawURL[end]) {
+		end--
+	}
+	return rawURL[:end] + ellipsis, originalLength
+}
 
 type crawlLogMatchSnapshot struct {
 	blockingCount   int
 	resolvedCount   int
 	unresolvedCount int
 	ignoredCount    int
-	missingRequests []Request
+	missingRequests []missingRequestSummary
+}
+
+type missingRequestSummary struct {
+	ID             string
+	FetchRequestID string
+	NetworkID      string
+	URL            string
+	URLLength      int
+	ResourceType   string
+	GotNew         bool
+	GotComplete    bool
+	FromCache      bool
 }
 
 func (s crawlLogMatchSnapshot) signature() string {
@@ -364,11 +395,13 @@ func buildCrawlLogMatchSnapshot(requests []*Request) crawlLogMatchSnapshot {
 			snapshot.unresolvedCount++
 
 			if len(snapshot.missingRequests) < maxLoggedMissingRequestIDs {
-				snapshot.missingRequests = append(snapshot.missingRequests, Request{
+				loggedURL, urlLength := boundedURLForLog(req.URL)
+				snapshot.missingRequests = append(snapshot.missingRequests, missingRequestSummary{
 					ID:             req.ID,
 					FetchRequestID: req.FetchRequestID,
 					NetworkID:      req.NetworkID,
-					URL:            req.URL,
+					URL:            loggedURL,
+					URLLength:      urlLength,
 					ResourceType:   req.ResourceType,
 					GotNew:         req.GotNew,
 					GotComplete:    req.GotComplete,

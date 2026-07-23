@@ -4,11 +4,54 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 )
+
+func TestBoundedURLForLog(t *testing.T) {
+	t.Run("short URL", func(t *testing.T) {
+		const rawURL = "https://example.com/image.png"
+		got, length := boundedURLForLog(rawURL)
+		if got != rawURL {
+			t.Fatalf("boundedURLForLog() = %q, want %q", got, rawURL)
+		}
+		if length != len(rawURL) {
+			t.Fatalf("length = %d, want %d", length, len(rawURL))
+		}
+	})
+
+	t.Run("long URL", func(t *testing.T) {
+		rawURL := "https://example.com/" + strings.Repeat("a", maxLoggedURLBytes)
+		got, length := boundedURLForLog(rawURL)
+		if len(got) > maxLoggedURLBytes {
+			t.Fatalf("bounded URL length = %d, want at most %d", len(got), maxLoggedURLBytes)
+		}
+		if !strings.HasSuffix(got, "…") {
+			t.Fatalf("bounded URL %q does not end with an ellipsis", got)
+		}
+		if length != len(rawURL) {
+			t.Fatalf("length = %d, want %d", length, len(rawURL))
+		}
+	})
+
+	t.Run("unicode boundary", func(t *testing.T) {
+		rawURL := strings.Repeat("a", maxLoggedURLBytes-4) + "øtail"
+		got, length := boundedURLForLog(rawURL)
+		if !strings.HasSuffix(got, "…") {
+			t.Fatalf("bounded URL %q does not end with an ellipsis", got)
+		}
+		if !utf8.ValidString(got) {
+			t.Fatalf("bounded URL is not valid UTF-8: %q", got)
+		}
+		if length != len(rawURL) {
+			t.Fatalf("length = %d, want %d", length, len(rawURL))
+		}
+	})
+}
 
 func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
 	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
@@ -233,12 +276,13 @@ func TestBuildCrawlLogMatchSnapshotSummarizesRequests(t *testing.T) {
 		t.Fatalf("ignoredCount = %d, want 2", snapshot.ignoredCount)
 	}
 
-	want := []Request{
+	want := []missingRequestSummary{
 		{
 			ID:             "network-2",
 			FetchRequestID: "interception-job-2.0",
 			NetworkID:      "network-2",
 			URL:            "https://example.com/image.png",
+			URLLength:      len("https://example.com/image.png"),
 			ResourceType:   "Image",
 			GotNew:         true,
 			GotComplete:    false,
@@ -279,11 +323,12 @@ func TestBuildCrawlLogMatchSnapshotLimitsMissingRequests(t *testing.T) {
 	for i, missing := range snapshot.missingRequests {
 		n := i + 1
 
-		want := Request{
+		want := missingRequestSummary{
 			ID:             fmt.Sprintf("network-%d", n),
 			FetchRequestID: fmt.Sprintf("interception-job-%d.0", n),
 			NetworkID:      fmt.Sprintf("network-%d", n),
 			URL:            fmt.Sprintf("https://example.com/image-%d.png", n),
+			URLLength:      len(fmt.Sprintf("https://example.com/image-%d.png", n)),
 			ResourceType:   "Image",
 			GotNew:         true,
 			GotComplete:    false,
