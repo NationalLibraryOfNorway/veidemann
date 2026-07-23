@@ -30,11 +30,11 @@ import (
 
 // HttpServers contains test servers for HTTP and HTTPS
 type HttpServers struct {
-	httpsMux        *http.ServeMux
-	httpMux         *http.ServeMux
-	SrvHttp         *httptest.Server
-	SrvHttps        *httptest.Server
-	SrvHttpsBadCert *httptest.Server
+	httpsMux          *http.ServeMux
+	httpMux           *http.ServeMux
+	SrvHttp           *httptest.Server
+	SrvHttps          *httptest.Server
+	SrvHttpsBrokenTLS *httptest.Server
 }
 
 func replaceIpWithHostname(server *httptest.Server) *httptest.Server {
@@ -104,8 +104,6 @@ func NewHttpServers(t testing.TB) *HttpServers {
 
 	httpMux.Handle("/a", ConstantHandler("content from http server"))
 	httpsMux.Handle("/b", ConstantHandler("content from https server"))
-	httpMux.Handle("/replace", ConstantHandler("should be replaced"))
-	httpsMux.Handle("/replace", ConstantHandler("should be replaced"))
 	httpMux.Handle("/slow", NewConstantSlowHandler("content from http server", 600))
 	httpsMux.Handle("/slow", NewConstantSlowHandler("content from https server", 600))
 	httpMux.Handle("/extraslow", NewConstantSlowHandler("content from http server", 1000))
@@ -122,18 +120,18 @@ func NewHttpServers(t testing.TB) *HttpServers {
 	httpsMux.Handle("/cached", ConstantCacheHandler("content from https server"))
 
 	s := &HttpServers{
-		SrvHttp:         NewHttpServer(httpMux),
-		SrvHttps:        NewHttpsServer(httpsMux),
-		SrvHttpsBadCert: NewHttpsServer(httpsMux),
+		SrvHttp:           NewHttpServer(httpMux),
+		SrvHttps:          NewHttpsServer(httpsMux),
+		SrvHttpsBrokenTLS: NewHttpsServer(httpsMux),
 	}
 
 	s.SrvHttp.Config.WriteTimeout = 800 * time.Millisecond
 	s.SrvHttps.Config.WriteTimeout = 800 * time.Millisecond
-	s.SrvHttpsBadCert.TLS.Certificates = []tls.Certificate{{}}
+	s.SrvHttpsBrokenTLS.TLS.Certificates = []tls.Certificate{{}}
 
 	t.Logf("HTTP server url:           %v\n", s.SrvHttp.URL)
 	t.Logf("HTTPS server url:          %v\n", s.SrvHttps.URL)
-	t.Logf("HTTPS bad cert server url: %v\n", s.SrvHttpsBadCert.URL)
+	t.Logf("HTTPS bad cert server url: %v\n", s.SrvHttpsBrokenTLS.URL)
 
 	return s
 }
@@ -141,5 +139,5 @@ func NewHttpServers(t testing.TB) *HttpServers {
 func (s *HttpServers) Close() {
 	s.SrvHttp.Close()
 	s.SrvHttps.Close()
-	s.SrvHttpsBadCert.Close()
+	s.SrvHttpsBrokenTLS.Close()
 }

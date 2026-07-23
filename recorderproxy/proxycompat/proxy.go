@@ -29,6 +29,8 @@ var log = golog.LoggerFor("proxycompat")
 
 type DialFunc func(ctx context.Context, isCONNECT bool, network, addr string) (conn net.Conn, err error)
 
+type OnErrorFunc func(cs *filters.ConnectionState, req *http.Request, phase ErrorPhase, err error) *http.Response
+
 type Proxy interface {
 	Handle(dialCtx context.Context, in io.Reader, conn net.Conn) error
 	Connect(dialCtx context.Context, in io.Reader, conn net.Conn, origin string) error
@@ -48,7 +50,7 @@ type Opts struct {
 
 	BufferSource BufferSource
 	Filter       filters.Filter
-	OnError      func(cs *filters.ConnectionState, req *http.Request, read bool, err error) *http.Response
+	OnError      OnErrorFunc
 
 	OKWaitsForUpstream  bool
 	OKSendsServerTiming bool
@@ -168,4 +170,13 @@ func (opts *Opts) addIdleKeepAlive(header http.Header) {
 	if opts.IdleTimeout > 0 {
 		header.Set("Keep-Alive", fmt.Sprintf("timeout=%d", int(opts.IdleTimeout.Seconds())-2))
 	}
+}
+
+func defaultOnError(
+	cs *filters.ConnectionState,
+	req *http.Request,
+	phase ErrorPhase,
+	err error,
+) *http.Response {
+	return nil
 }

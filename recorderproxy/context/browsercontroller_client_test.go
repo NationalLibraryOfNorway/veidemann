@@ -26,7 +26,7 @@ func TestSendRequestErrorSkipsCompleteForCanceledProxyRequestWithoutRequestID(t 
 	}
 	rc := rpcontext.NewRecordContext().Init(1, grpcServices.ClientConn, req, uri)
 
-	err = rc.SendRequestError(stdcontext.TODO(), rperrors.Error(rperrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Cancelled by browser controller"))
+	err = rc.SendRequestError(stdcontext.TODO(), rperrors.Error(rperrors.CanceledByBrowser, "CANCELED_BY_BROWSER", "Cancelled by browser controller"))
 	if rperrors.Code(err) != rperrors.CanceledByBrowser {
 		t.Fatalf("SendRequestError() code = %v, want %v", rperrors.Code(err), rperrors.CanceledByBrowser)
 	}
@@ -51,7 +51,7 @@ func TestSendRequestErrorCompletesCanceledTrackedRequest(t *testing.T) {
 	req.Header.Set(constants.HeaderRequestId, "interception-job-1.0")
 	rc := rpcontext.NewRecordContext().Init(1, grpcServices.ClientConn, req, uri)
 
-	err = rc.SendRequestError(stdcontext.TODO(), rperrors.Error(rperrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", "Cancelled by browser controller"))
+	err = rc.SendRequestError(stdcontext.TODO(), rperrors.Error(rperrors.CanceledByBrowser, "CANCELED_BY_BROWSER", "Cancelled by browser controller"))
 	if rperrors.Code(err) != rperrors.CanceledByBrowser {
 		t.Fatalf("SendRequestError() code = %v, want %v", rperrors.Code(err), rperrors.CanceledByBrowser)
 	}

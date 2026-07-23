@@ -23,7 +23,6 @@ import (
 	"hash"
 	"io"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -196,11 +195,11 @@ func (s *GrpcServiceMock) addBcRequest(r *BrowserControllerRequest) {
 
 	switch {
 	case r.RegisterResource != nil:
-		logger.LogWithComponent("MOCK:BrowserController").Print(r.RegisterResource)
+		logger.LogWithComponent("MOCK:BrowserController").Print("Register resource: ", r.RegisterResource)
 	case r.CompleteResource != nil:
-		logger.LogWithComponent("MOCK:BrowserController").Print(r.CompleteResource)
+		logger.LogWithComponent("MOCK:BrowserController").Print("Complete resource: ", r.CompleteResource)
 	default:
-		logger.LogWithComponent("MOCK:BrowserController").Print(r)
+		panic("BUG: Invalid request")
 	}
 
 	s.Requests.BrowserControllerRequests = append(s.Requests.BrowserControllerRequests, r)
@@ -217,7 +216,7 @@ func (s *GrpcServiceMock) addBcCompleteRequest(r *browsercontrollerV2.CompleteRe
 func (s *GrpcServiceMock) addDnsRequest(r *dnsresolverV1.ResolveRequest) {
 	s.mu.Lock()
 
-	logger.LogWithComponent("MOCK:DNSResolver").Print(r)
+	logger.LogWithComponent("MOCK:DNSResolver").Print("Resolve ", r)
 
 	s.Requests.DnsResolverRequests = append(s.Requests.DnsResolverRequests, r)
 	s.mu.Unlock()
@@ -229,11 +228,11 @@ func (s *GrpcServiceMock) addCwRequest(r *contentwriterV1.WriteRequest) {
 	switch v := r.Value.(type) {
 	case *contentwriterV1.WriteRequest_Payload:
 		logger.LogWithComponent("MOCK:ContentWriter").
-			Printf("payload:<record_num:%d data:\"%s... (%d bytes)\" >\n",
+			Printf("Write: payload:<record_num:%d data:\"%s... (%d bytes)\" >\n",
 				v.Payload.RecordNum, v.Payload.Data[0:5], len(v.Payload.Data))
 
 	default:
-		logger.LogWithComponent("MOCK:ContentWriter").Print(r)
+		logger.LogWithComponent("MOCK:ContentWriter").Print("Write: ", r)
 	}
 
 	s.Requests.ContentWriterRequests = append(s.Requests.ContentWriterRequests, r)
@@ -258,7 +257,6 @@ func (s *GrpcServiceMock) Resolve(ctx context.Context, in *dnsresolverV1.Resolve
 			}
 		}
 	}
-	fmt.Fprintf(os.Stderr, "Could not get IP: %v\n", err)
 	return nil, err
 }
 
@@ -374,6 +372,7 @@ func browserControllerRegistered(request *browsercontrollerV2.RegisterResourceRe
 	return registered
 }
 
+// RegisterResource implements part of the browser controller server API
 func (s *GrpcServiceMock) RegisterResource(ctx context.Context, in *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
 	s.addBcRegisterRequest(in)
 
@@ -396,6 +395,7 @@ func (s *GrpcServiceMock) RegisterResource(ctx context.Context, in *browsercontr
 	}
 }
 
+// CompleteResource implements part of the browser controller server API
 func (s *GrpcServiceMock) CompleteResource(ctx context.Context, in *browsercontrollerV2.CompleteResourceRequest) (*browsercontrollerV2.CompleteResourceReply, error) {
 	s.addBcCompleteRequest(in)
 

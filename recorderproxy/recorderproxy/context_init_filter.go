@@ -21,8 +21,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/getlantern/proxy/v3/filters"
 )
@@ -97,69 +99,117 @@ func requestBaseURI(ctx context.Context, cs *filters.ConnectionState, req *http.
 }
 
 func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
-	ctx := filterContext(cs, req)
 	if req.Method == http.MethodConnect {
-		l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:ctx")
-		rpcontext.ResetRequestState(ctx, false)
-
-		// Handle HTTPS CONNECT
-		rpcontext.SetHost(ctx, req.URL.Hostname())
-		rpcontext.SetPort(ctx, req.URL.Port())
-
-		// Copy URI by value and add scheme
-		uv := *req.URL
-		uri := &uv
-		uri.Scheme = "https"
-
-		req = req.WithContext(ctx)
-
-		rpcontext.SetUri(ctx, uri)
-		rpcontext.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri)
-
-		l.Debugf("Converted CONNECT request uri form %v to %v", req.URL, uri)
-		resp, nextCS, err = next(cs, req)
+		return f.applyConnect(cs, req, next)
 	} else {
-		connectionCtx := ctx
-		preserveSessionMetadata := cs.IsMITMing()
-		requestCtx := rpcontext.WrapIfNecessary(rpcontext.NewRequestContext(ctx, preserveSessionMetadata))
-		rpcontext.ResetRequestState(requestCtx, preserveSessionMetadata)
-		l := rpcontext.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
+		return f.apply(cs, req, next)
+	}
+}
 
-		if host, port := requestAuthority(req); host != "" {
-			rpcontext.SetHost(requestCtx, host)
-			rpcontext.SetPort(requestCtx, port)
-		} else if rpcontext.GetHost(requestCtx) == "" {
-			rpcontext.SetHost(requestCtx, req.URL.Hostname())
-			rpcontext.SetPort(requestCtx, req.URL.Port())
+func (f *ContextInitFilter) applyConnect(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+	ctx := filterContext(cs, req)
+
+	host, port, hostPort := connectAuthority(req)
+	uri := &url.URL{
+		Scheme: "https",
+		Host:   hostPort,
+	}
+
+	rpcontext.ResetRequestState(ctx, false)
+	rpcontext.SetHost(ctx, host)
+	rpcontext.SetPort(ctx, port)
+	rpcontext.SetUri(ctx, uri)
+
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:ctx")
+
+	if err := rpcontext.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri); err != nil {
+		if rperrors.IsBrowserControllerCancel(err) {
+			l.WithError(err).Info("CONNECT denied by browser controller")
+			return Deny(cs, req, http.StatusForbidden, "Cancelled by browser controller")
 		}
 
-		baseURI := requestBaseURI(requestCtx, cs, req)
-		var uri *url.URL
-		if baseURI != nil {
-			uri = baseURI.ResolveReference(req.URL)
-		} else {
-			uri = req.URL
-		}
-		if uri != nil && uri.Host != "" {
-			rpcontext.SetUri(requestCtx, &url.URL{Scheme: uri.Scheme, Host: uri.Host})
-		}
+		l.WithError(err).Warn("Failed to register CONNECT request")
+		return nil, cs, err
+	}
 
-		l.Debugf("Converted GET request uri form %v to %v", req.URL, uri)
+	req = req.WithContext(ctx)
 
-		req = req.WithContext(requestCtx)
-		rc := rpcontext.NewRecordContext()
-		rpcontext.SetRecordContext(requestCtx, rc)
-		rc.Init(f.proxyId, f.conn, req, uri)
+	l.Debug("Context initialized")
 
-		if e := rc.RegisterNewRequest(requestCtx); e != nil {
-			return handleRequestError(cs, req, e)
+	return next(cs, req)
+}
+
+func (f *ContextInitFilter) apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+	ctx := filterContext(cs, req)
+
+	connectionCtx := ctx
+
+	preserveSessionMetadata := cs.IsMITMing()
+	requestCtx := rpcontext.WrapIfNecessary(rpcontext.NewRequestContext(ctx, preserveSessionMetadata))
+
+	rpcontext.ResetRequestState(requestCtx, preserveSessionMetadata)
+	if host, port := requestAuthority(req); host != "" {
+		rpcontext.SetHost(requestCtx, host)
+		rpcontext.SetPort(requestCtx, port)
+	} else if rpcontext.GetHost(requestCtx) == "" {
+		rpcontext.SetHost(requestCtx, req.URL.Hostname())
+		rpcontext.SetPort(requestCtx, req.URL.Port())
+	}
+
+	l := rpcontext.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
+
+	baseURI := requestBaseURI(requestCtx, cs, req)
+	var uri *url.URL
+	if baseURI != nil {
+		uri = baseURI.ResolveReference(req.URL)
+	} else {
+		uri = req.URL
+	}
+	if uri != nil && uri.Host != "" {
+		newUri := &url.URL{Scheme: uri.Scheme, Host: uri.Host}
+		rpcontext.SetUri(requestCtx, newUri)
+	}
+
+	req = req.WithContext(requestCtx)
+
+	rc := rpcontext.NewRecordContext()
+	rpcontext.SetRecordContext(requestCtx, rc)
+	rc.Init(f.proxyId, f.conn, req, uri)
+
+	if e := rc.RegisterNewRequest(requestCtx); e != nil {
+		if rperrors.IsBrowserControllerCancel(e) {
+			l.WithError(e).Info("Request denied by browser controller")
+			return Deny(cs, req, http.StatusForbidden, "Cancelled by browser controller")
 		}
+		return handleRequestError(cs, req, e)
+	}
 
-		req = req.WithContext(requestCtx)
-		resp, nextCS, err = next(cs, req)
-		if preserveSessionMetadata {
-			rpcontext.CopySessionMetadata(connectionCtx, requestCtx)
-		}
+	req = req.WithContext(requestCtx)
+	resp, nextCS, err = next(cs, req)
+
+	if preserveSessionMetadata {
+		rpcontext.CopySessionMetadata(connectionCtx, requestCtx)
 	}
 	return
+}
+
+func connectAuthority(req *http.Request) (host string, port string, hostPort string) {
+	hostPort = req.Host
+
+	if hostPort == "" && req.URL != nil {
+		hostPort = req.URL.Host
+	}
+
+	if hostPort == "" && req.URL != nil {
+		hostPort = req.URL.Opaque
+	}
+
+	hostPort = strings.ToLower(strings.TrimSpace(hostPort))
+
+	h, p, err := net.SplitHostPort(hostPort)
+	if err == nil {
+		return h, p, net.JoinHostPort(h, p)
+	}
+
+	return hostPort, "443", net.JoinHostPort(hostPort, "443")
 }

@@ -18,7 +18,7 @@ import (
 )
 
 func (proxy *proxy) Handle(dialCtx context.Context, downstreamIn io.Reader, downstream net.Conn) (err error) {
-	return proxy.handle(dialCtx, downstreamIn, downstream, nil, true, false, false)
+	return proxy.handle(dialCtx, downstreamIn, downstream, nil, nil, true, false, false)
 }
 
 func safeClose(conn net.Conn) {
@@ -50,7 +50,16 @@ func (proxy *proxy) logInitialReadError(downstream net.Conn, err error) error {
 	return log.Errorf("%v from %v - Initial ReadRequest Error", err, r)
 }
 
-func (proxy *proxy) handle(dialCtx context.Context, downstreamIn io.Reader, downstream net.Conn, upstream net.Conn, respondOK bool, mitming bool, tunneledHTTP bool) (err error) {
+func (proxy *proxy) handle(
+	dialCtx context.Context,
+	downstreamIn io.Reader,
+	downstream net.Conn,
+	upstream net.Conn,
+	upstreamFailure error,
+	respondOK bool,
+	mitming bool,
+	tunneledHTTP bool,
+) (err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			safeClose(downstream)
@@ -69,7 +78,7 @@ func (proxy *proxy) handle(dialCtx context.Context, downstreamIn io.Reader, down
 	if err != nil {
 		if isUnexpected(err) {
 			cs := filters.NewConnectionState(nil, nil, downstream)
-			errResp := proxy.OnError(cs, req, true, err)
+			errResp := proxy.OnError(cs, req, PhaseReadRequest, err)
 			if errResp != nil {
 				_ = proxy.writeResponse(downstream, req, errResp)
 			}
@@ -91,6 +100,10 @@ func (proxy *proxy) handle(dialCtx context.Context, downstreamIn io.Reader, down
 	var next filters.Next
 	if req.Method == http.MethodConnect {
 		next = proxy.nextCONNECT(dialCtx, respondOK)
+	} else if upstreamFailure != nil {
+		next = func(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+			return nil, cs, upstreamFailure
+		}
 	} else {
 		var tr idleClosingTransport
 		if upstream != nil {
@@ -139,7 +152,10 @@ func (proxy *proxy) nextNonCONNECT(tr idleClosingTransport) filters.Next {
 		resp, err := tr.RoundTrip(modifiedReq)
 		handleResponseAware(cs, modifiedReq, resp, err)
 		if err != nil {
-			err = gerrors.New("Unable to round-trip http request to upstream: %v", err)
+			err = NewPhaseError(
+				PhaseHTTPRoundTrip,
+				gerrors.New("Unable to round-trip http request to upstream: %v", err),
+			)
 		}
 		return resp, cs, err
 	}
@@ -165,7 +181,7 @@ func (proxy *proxy) processRequests(dialCtx context.Context, cs *filters.Connect
 		}
 		resp, cs, err = proxy.Filter.Apply(cs, req, next)
 		if err != nil && resp == nil {
-			resp = proxy.OnError(cs, req, false, err)
+			resp = proxy.OnError(cs, req, PhaseFilter, err)
 			if resp != nil {
 				log.Debugf("Closing client connection on error: %v", err)
 				resp.Close = true
@@ -175,6 +191,7 @@ func (proxy *proxy) processRequests(dialCtx context.Context, cs *filters.Connect
 		if resp != nil {
 			writeErr := proxy.writeResponse(downstream, req, resp)
 			if writeErr != nil {
+				proxy.OnError(cs, req, PhaseResponseWrite, writeErr)
 				if isUnexpected(writeErr) {
 					return log.Errorf("Unable to write response to downstream: %v", writeErr)
 				}
@@ -211,7 +228,7 @@ func (proxy *proxy) processRequests(dialCtx context.Context, cs *filters.Connect
 		req, readErr = http.ReadRequest(downstreamBuffered)
 		if readErr != nil {
 			if isUnexpected(readErr) {
-				errResp := proxy.OnError(cs, req, true, readErr)
+				errResp := proxy.OnError(cs, req, PhaseReadRequest, readErr)
 				if errResp != nil {
 					_ = proxy.writeResponse(downstream, req, errResp)
 				}
@@ -376,10 +393,6 @@ func isUnexpected(err error) bool {
 
 func defaultFilter(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	return next(cs, req)
-}
-
-func defaultOnError(cs *filters.ConnectionState, req *http.Request, read bool, err error) *http.Response {
-	return nil
 }
 
 type idleClosingTransport interface {

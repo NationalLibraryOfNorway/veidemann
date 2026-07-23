@@ -40,7 +40,7 @@ func cloneCrawlLog(crawlLog *logV1.CrawlLog) *logV1.CrawlLog {
 	return proto.Clone(crawlLog).(*logV1.CrawlLog)
 }
 
-func registerResource(ctx context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
+func registerResource(_ context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -51,7 +51,7 @@ func registerResource(ctx context.Context, conn *serviceconnections.Connections,
 	return reply, nil
 }
 
-func completeResource(ctx context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.CompleteResourceRequest) error {
+func completeResource(_ context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.CompleteResourceRequest) error {
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -175,7 +175,7 @@ func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 			rc.PrecludedByRobots = true
 			return rperrors.Error(rperrors.PrecludedByRobots, "PRECLUDED_BY_ROBOTS", "Robots.txt rules precluded fetch")
 		}
-		return rperrors.Error(rperrors.CanceledByBrowser, "CANCELLED_BY_BROWSER", result.Cancel)
+		return rperrors.Error(rperrors.CanceledByBrowser, "CANCELED_BY_BROWSER", result.Cancel)
 	case *browsercontrollerV2.RegisterResourceReply_Registered:
 		applyRegisteredState(rc.ctx, result.Registered)
 		rc.ReplacementScript = nil
@@ -190,29 +190,30 @@ func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 	}
 }
 
-func RegisterConnectRequest(ctx context.Context, conn *serviceconnections.Connections, proxyId int32, req *http.Request, uri *url.URL) {
+func RegisterConnectRequest(ctx context.Context, conn *serviceconnections.Connections, proxyId int32, req *http.Request, uri *url.URL) error {
 	l := LogWithContext(ctx, "PROXY:BCC")
 
 	resolveIdsFromHttpHeader(ctx, req)
 
 	reply, err := registerResource(ctx, conn, &browsercontrollerV2.RegisterResourceRequest{
-		ProxyId:          proxyId,
-		Method:           http.MethodConnect,
-		Uri:              uri.String(),
-		RequestId:        GetRequestId(ctx),
-		CrawlExecutionId: GetCrawlExecutionId(ctx),
-		JobExecutionId:   GetJobExecutionId(ctx),
-		CollectionRef:    GetCollectionRef(ctx),
+		ProxyId:   proxyId,
+		Method:    http.MethodConnect,
+		Uri:       uri.String(),
+		RequestId: GetRequestId(ctx),
 	})
 	if err != nil {
 		l.WithError(err).Warn("Error registering CONNECT request with browser controller")
-		return
+		return err
 	}
 
 	switch result := reply.Result.(type) {
 	case *browsercontrollerV2.RegisterResourceReply_Registered:
 		applyRegisteredState(ctx, result.Registered)
+
 	case *browsercontrollerV2.RegisterResourceReply_Cancel:
 		l.Infof("CONNECT request canceled by browser controller: %s", result.Cancel)
+		return &rperrors.BrowserControllerCancelError{Reason: result.Cancel}
 	}
+
+	return nil
 }

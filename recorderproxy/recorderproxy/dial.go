@@ -28,7 +28,7 @@ import (
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"google.golang.org/grpc/test/bufconn"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 )
 
 func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, addr string) (net.Conn, error) {
@@ -44,18 +44,12 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 
 	conn, err := net.DialTimeout(network, dialAddr, timeout)
 	if err != nil {
-		rpcontext.SetConnectError(ctx, err)
-
 		if proxy.nextProxy != "" {
 			log.Errorf("could not dial next proxy at %v: %v", proxy.nextProxy, err)
-			return nil, nil
+			return nil, err
 		}
 
 		log.Errorf("Failed to dial %v: %v", addr, err)
-
-		if isConnect {
-			return fakeConnectConn(), nil
-		}
 
 		return nil, err
 	}
@@ -66,7 +60,7 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 
 	if isConnect && proxy.nextProxy != "" {
 		if err := proxy.sendConnectToNextProxy(ctx, conn, log); err != nil {
-			return conn, err
+			return conn, proxycompat.NewPhaseError(proxycompat.PhaseUpstreamProxyConnect, err)
 		}
 	}
 
@@ -85,21 +79,6 @@ func dialTimeout(ctx context.Context, fallback time.Duration) time.Duration {
 	}
 
 	return timeout
-}
-
-func fakeConnectConn() net.Conn {
-	l := bufconn.Listen(0)
-
-	go func() {
-		c, err := l.Accept()
-		if err == nil {
-			_ = c.Close()
-		}
-		_ = l.Close()
-	}()
-
-	conn, _ := l.Dial()
-	return WrapConn(conn, "fake", true)
 }
 
 func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net.Conn, log *logger.Logger) error {
@@ -127,19 +106,15 @@ func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net
 
 	squidErr := resp.Header.Get("X-Squid-Error")
 	if squidErr != "" {
-		if err := handleSquidErrorString(squidErr); err != nil {
-			rpcontext.SetConnectError(ctx, err)
-		}
-		return nil
+		return handleSquidErrorString(squidErr)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		rpcontext.SetConnectError(ctx, errors.Error(
+		return errors.Error(
 			errors.RuntimeException,
 			fmt.Sprintf("could not connect to upstream proxy (%d)", resp.StatusCode),
 			squidErr,
-		))
-		return nil
+		)
 	}
 
 	return nil

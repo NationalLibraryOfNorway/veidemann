@@ -52,23 +52,43 @@ var (
 	acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 )
 
+type clientWant struct {
+	status     int
+	bodyPrefix string
+	err        bool
+}
+
+type recordWant struct {
+	statusCode          int
+	errorCode           errors.ErrorCode
+	errorMsg            string
+	errorDetailContains string
+	responseBlockDigest *bool
+	responseBlockSize   *int
+}
+
 type test struct {
-	name                    string
-	url                     string
-	wantStatus              int
-	wantContent             string
-	wantReplacedContent     string
-	wantResponseBlockDigest bool
-	wantResponseBlockSize   int64
-	wantGrpcRequests        *testutil.Requests
-	wantErr                 bool
-	clientTimeout           time.Duration
-	skip                    bool
-	keepAlive               bool
+	name          string
+	url           string
+	clientTimeout time.Duration
+	keepAlive     bool
+
+	wantClient clientWant
+	wantRecord recordWant
+
+	wantGrpcRequests *testutil.Requests
 }
 
 func init() {
 	logger.InitLog("info", "text", false)
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
+func intPtr(v int) *int {
+	return &v
 }
 
 func TestRecorderProxy(t *testing.T) {
@@ -82,215 +102,301 @@ func TestRecorderProxy(t *testing.T) {
 	}
 	defer client.CloseIdleConnections()
 	defer recorderProxy.Shutdown(context.TODO())
-
 	tests := []test{
 		{
-			name:                    "http:success",
-			url:                     s.SrvHttp.URL + "/a",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from http server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   141,
-			wantErr:                 false,
-			skip:                    false,
+			name: "http:success",
+			url:  s.SrvHttp.URL + "/a",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from http server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusOK,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(141),
+			},
 		},
 		{
-			name:                    "https:success",
-			url:                     s.SrvHttps.URL + "/b",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from https server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   142,
-			wantErr:                 false,
-			skip:                    false,
+			name: "https:success",
+			url:  s.SrvHttps.URL + "/b",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from https server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusOK,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(142),
+			},
 		},
 		{
-			name:          "http:client timeout",
-			url:           s.SrvHttp.URL + "/slow",
-			wantStatus:    0,
-			wantContent:   "",
-			wantErr:       true,
+			name: "http:client timeout",
+			url:  s.SrvHttp.URL + "/slow",
+			wantClient: clientWant{
+				status:     0,
+				bodyPrefix: "",
+				err:        true,
+			},
 			clientTimeout: 500 * time.Millisecond,
-			skip:          false,
 		},
 		{
-			name:          "https:client timeout",
-			url:           s.SrvHttps.URL + "/slow",
-			wantStatus:    0,
-			wantContent:   "",
-			wantErr:       true,
+			name: "https:client timeout",
+			url:  s.SrvHttps.URL + "/slow",
+			wantClient: clientWant{
+				status:     0,
+				bodyPrefix: "",
+				err:        true,
+			},
 			clientTimeout: 500 * time.Millisecond,
-			skip:          false,
 		},
 		{
-			name:                    "http:not found",
-			url:                     s.SrvHttp.URL + "/c",
-			wantStatus:              http.StatusNotFound,
-			wantContent:             "404 page not found\n",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   176,
-			wantErr:                 false,
-			skip:                    false,
+			name: "http:not found",
+			url:  s.SrvHttp.URL + "/c",
+			wantClient: clientWant{
+				status:     http.StatusNotFound,
+				bodyPrefix: "404 page not found\n",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusNotFound,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(176),
+			},
 		},
 		{
-			name:                    "https:not found",
-			url:                     s.SrvHttps.URL + "/c",
-			wantStatus:              http.StatusNotFound,
-			wantContent:             "404 page not found\n",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   176,
-			wantErr:                 false,
-			skip:                    false,
+			name: "https:not found",
+			url:  s.SrvHttps.URL + "/c",
+			wantClient: clientWant{
+				status:     http.StatusNotFound,
+				bodyPrefix: "404 page not found\n",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusNotFound,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(176),
+			},
 		},
 		{
-			name:                    "http:replace",
-			url:                     s.SrvHttp.URL + "/replace",
-			wantStatus:              http.StatusOK,
-			wantContent:             "should be replaced",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   135,
-			wantErr:                 false,
-			skip:                    false,
+			name: "http:server timeout",
+			url:  s.SrvHttp.URL + "/extraslow",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.EmptyResponse,
+				errorMsg:            "EMPTY_RESPONSE",
+				errorDetailContains: "Empty reply from server",
+			},
 		},
 		{
-			name:                    "https:replace",
-			url:                     s.SrvHttps.URL + "/replace",
-			wantStatus:              http.StatusOK,
-			wantContent:             "should be replaced",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   135,
-			wantErr:                 false,
-			skip:                    false,
+			name: "https:server timeout",
+			url:  s.SrvHttps.URL + "/extraslow",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -5, Msg: UNKNOWN_ERROR, Detail: tls: bad record MAC",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.RuntimeException,
+				errorMsg:            "UNKNOWN_ERROR",
+				errorDetailContains: "tls: bad record MAC",
+			},
 		},
 		{
-			name:        "http:server timeout",
-			url:         s.SrvHttp.URL + "/extraslow",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
-			wantErr:     false,
-			skip:        false,
-		},
-		{
-			name:        "https:server timeout",
-			url:         s.SrvHttps.URL + "/extraslow",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
-			wantErr:     false,
-			skip:        true, // TODO fix this test
-		},
-		{
-			name:        "http:browser controller cancel",
-			url:         s.SrvHttp.URL + "/cancel",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -5011, Msg: CANCELLED_BY_BROWSER, Detail: Cancelled by browser controller",
-			wantErr:     false,
-			skip:        false,
+			name: "http:browser controller cancel",
+			url:  s.SrvHttp.URL + "/cancel",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -5011, Msg: CANCELED_BY_BROWSER, Detail: Cancelled by browser controller",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.CanceledByBrowser,
+				errorMsg:            "CANCELED_BY_BROWSER",
+				errorDetailContains: "Cancelled by browser controller",
+			},
 		},
 		{
 			name: "https:browser controller cancel",
 			url:  s.SrvHttps.URL + "/cancel",
-			//wantStatus:  503,
-			//wantContent: "Code:-5011, Msg: CANCELED_BY_BROWSER, Detail: canceled by browser controller",
-			wantStatus:  http.StatusOK,
-			wantContent: "content from https server",
-			wantErr:     false,
-			skip:        true, // TODO fix this test
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -5011, Msg: CANCELED_BY_BROWSER, Detail: Cancelled by browser controller",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.CanceledByBrowser,
+				errorMsg:            "CANCELED_BY_BROWSER",
+				errorDetailContains: "Cancelled by browser controller",
+			},
 		},
 		{
-			name:        "http:blocked by robots.txt",
-			url:         s.SrvHttp.URL + "/blocked",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
-			wantErr:     false,
-			skip:        false,
+			name: "http:blocked by robots.txt",
+			url:  s.SrvHttp.URL + "/blocked",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.PrecludedByRobots,
+				errorMsg:            "PRECLUDED_BY_ROBOTS",
+				errorDetailContains: "Robots.txt rules precluded fetch",
+			},
 		},
 		{
-			name:        "https:blocked by robots.txt",
-			url:         s.SrvHttps.URL + "/blocked",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
-			wantErr:     false,
-			skip:        false,
+			name: "https:blocked by robots.txt",
+			url:  s.SrvHttps.URL + "/blocked",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.PrecludedByRobots,
+				errorMsg:            "PRECLUDED_BY_ROBOTS",
+				errorDetailContains: "Robots.txt rules precluded fetch",
+			},
 		},
 		{
-			name:                    "http:browser controller error",
-			url:                     s.SrvHttp.URL + "/bccerr",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from http server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   141,
-			wantErr:                 false,
-			skip:                    false,
+			name: "http:browser controller error",
+			url:  s.SrvHttp.URL + "/bccerr",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from http server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusOK,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(141),
+			},
 		},
 		{
-			name:                    "https:browser controller error",
-			url:                     s.SrvHttps.URL + "/bccerr",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from https server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   142,
-			wantErr:                 false,
-			skip:                    false,
+			name: "https:browser controller error",
+			url:  s.SrvHttps.URL + "/bccerr",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from https server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusOK,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(142),
+			},
 		},
 		{
-			name:                  "http:content writer error",
-			url:                   s.SrvHttp.URL + "/cwerr",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from http server",
-			wantResponseBlockSize: 141,
-			wantErr:               false,
-			skip:                  false,
+			name: "http:content writer error",
+			url:  s.SrvHttp.URL + "/cwerr",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from http server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(141),
+			},
 		},
 		{
-			name:                  "https:content writer error",
-			url:                   s.SrvHttps.URL + "/cwerr",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from https server",
-			wantResponseBlockSize: 142,
-			wantErr:               false,
-			skip:                  false,
+			name: "https:content writer error",
+			url:  s.SrvHttps.URL + "/cwerr",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from https server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(142),
+			},
 		},
 		{
-			name:                  "http:cached",
-			url:                   s.SrvHttp.URL + "/cached",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from http server",
-			wantResponseBlockSize: 219,
-			wantErr:               false,
+			name: "http:cached",
+			url:  s.SrvHttp.URL + "/cached",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from http server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(243),
+			},
 		},
 		{
-			name:                  "https:cached",
-			url:                   s.SrvHttps.URL + "/cached",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from https server",
-			wantResponseBlockSize: 219,
-			wantErr:               false,
+			name: "https:cached",
+			url:  s.SrvHttps.URL + "/cached",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from https server",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(244),
+			},
 		},
 		{
-			name:                  "http:no host",
-			url:                   s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
-			wantStatus:            http.StatusServiceUnavailable,
-			wantContent:           "Code: -5, Msg: UNKNOWN_ERROR, Detail: connection refused",
-			wantResponseBlockSize: 138,
-			wantErr:               false,
+			name: "http:no host",
+			url:  s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -2, Msg: CONNECT_FAILED, Detail: connection refused",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.ConnectFailed,
+				errorMsg:            "CONNECT_FAILED",
+				errorDetailContains: "connection refused",
+				responseBlockSize:   intPtr(138),
+			},
 		},
 		{
-			name:                  "https:no host",
-			url:                   s.SrvHttps.URL[:len(s.SrvHttps.URL)-2] + "1/no_host",
-			wantStatus:            0,
-			wantContent:           "",
-			wantResponseBlockSize: 138,
-			wantErr:               true,
+			name: "https:no host",
+			url:  s.SrvHttps.URL[:len(s.SrvHttps.URL)-2] + "1/no_host",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -2, Msg: CONNECT_FAILED, Detail: connection refused",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.ConnectFailed,
+				errorMsg:            "CONNECT_FAILED",
+				errorDetailContains: "connection refused",
+				responseBlockSize:   intPtr(138),
+			},
 		},
 		{
-			name:                    "https:handshake failure",
-			url:                     s.SrvHttpsBadCert.URL + "/b",
-			wantStatus:              http.StatusServiceUnavailable,
-			wantContent:             "Code: -2, Msg: CONNECT_FAILED, Detail: tls: handshake failure",
-			wantResponseBlockDigest: false,
-			wantResponseBlockSize:   144,
-			wantErr:                 false,
-			skip:                    true, // TODO fix this test
+			name: "https:upstream tls handshake failure",
+			url:  s.SrvHttpsBrokenTLS.URL + "/b",
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: "Code: -2, Msg: CONNECT_FAILED, Detail: tls: handshake failure",
+				err:        false,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           errors.ConnectFailed,
+				errorMsg:            "CONNECT_FAILED",
+				errorDetailContains: "tls: handshake failure",
+				responseBlockDigest: boolPtr(false),
+				responseBlockSize:   intPtr(144),
+			},
 		},
 	}
 
@@ -301,13 +407,9 @@ func TestRecorderProxy(t *testing.T) {
 		grpcServices.Clear()
 
 		t.Run(strconv.Itoa(i)+": "+tt.name, func(t *testing.T) {
-			if tt.skip {
-				t.Skip(tt.name)
-			}
-
-			t.Logf("Request %v\n", tt.url)
 			statusCode, got, err := get(tt.url, client, tt.clientTimeout)
-			t.Logf("GET status=%v got=%v error=%v", statusCode, string(got), err)
+			t.Logf("GET url=%v status=%v got=%v error=%v", tt.url, statusCode, string(got), err)
+
 			if grpcServices.DoneBC != nil {
 				<-grpcServices.DoneBC
 			}
@@ -315,28 +417,48 @@ func TestRecorderProxy(t *testing.T) {
 				<-grpcServices.DoneCW
 			}
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Client get() error = %v, wantErr %v (%v, %s)", err, tt.wantErr, statusCode, got)
+			if (err != nil) != tt.wantClient.err {
+				t.Errorf(
+					"Client get() error = %v, wantErr %v (%v, %s)",
+					err,
+					tt.wantClient.err,
+					statusCode,
+					got,
+				)
 				return
 			}
-			if statusCode != tt.wantStatus {
-				t.Errorf("Expected status code: %d, got %d", tt.wantStatus, statusCode)
+
+			if statusCode != tt.wantClient.status {
+				t.Errorf("Expected status code: %d, got %d", tt.wantClient.status, statusCode)
 				return
 			}
-			if tt.wantReplacedContent == "" {
-				if !strings.HasPrefix(string(got), tt.wantContent) {
-					t.Errorf("Expected '%s' to start with '%s'", got, tt.wantContent)
-					return
-				}
-			} else {
-				if string(got) != tt.wantReplacedContent {
-					t.Errorf("Expected '%s', got '%s'", tt.wantReplacedContent, got)
-					return
-				}
+
+			if !strings.HasPrefix(string(got), tt.wantClient.bodyPrefix) {
+				t.Errorf("Expected '%s' to start with '%s'", got, tt.wantClient.bodyPrefix)
+				return
 			}
-			compareDNS(t, "DnsResolver", tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
-			compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
-			compareCW(t, "ContentWriter", tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
+
+			compareDNS(
+				t,
+				"DnsResolver",
+				tt.wantGrpcRequests.DnsResolverRequests,
+				grpcServices.Requests.DnsResolverRequests,
+			)
+
+			compareBC(
+				t,
+				"BrowserController",
+				tt,
+				tt.wantGrpcRequests.BrowserControllerRequests,
+				grpcServices.Requests.BrowserControllerRequests,
+			)
+
+			compareCW(
+				t,
+				"ContentWriter",
+				tt.wantGrpcRequests.ContentWriterRequests,
+				grpcServices.Requests.ContentWriterRequests,
+			)
 		})
 	}
 }
@@ -344,10 +466,13 @@ func TestRecorderProxy(t *testing.T) {
 func TestRecorderProxyThroughProxy(t *testing.T) {
 	s := testutil.NewHttpServers(t)
 	defer s.Close()
+
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
+
 	nextProxy, nextProxyAddr := testutil.NewSecondaryProxy(t, s)
 	defer nextProxy.Close()
+
 	client, recorderProxy, err := localRecorderProxy(t, grpcServices.ClientConn, nextProxyAddr)
 	if err != nil {
 		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
@@ -355,220 +480,196 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 	defer client.CloseIdleConnections()
 	defer recorderProxy.Shutdown(context.TODO())
 
+	success := func(name, rawURL string, status int, body string, blockSize int) test {
+		return test{
+			name: name,
+			url:  rawURL,
+			wantClient: clientWant{
+				status:     status,
+				bodyPrefix: body,
+			},
+			wantRecord: recordWant{
+				statusCode:          status,
+				responseBlockDigest: boolPtr(true),
+				responseBlockSize:   intPtr(blockSize),
+			},
+		}
+	}
+	errorResult := func(
+		name, rawURL, body string,
+		code errors.ErrorCode,
+		message, detail string,
+	) test {
+		return test{
+			name: name,
+			url:  rawURL,
+			wantClient: clientWant{
+				status:     http.StatusServiceUnavailable,
+				bodyPrefix: body,
+			},
+			wantRecord: recordWant{
+				statusCode:          http.StatusServiceUnavailable,
+				errorCode:           code,
+				errorMsg:            message,
+				errorDetailContains: detail,
+			},
+		}
+	}
+
 	tests := []test{
+		success("http:success", s.SrvHttp.URL+"/a", http.StatusOK, "content from http server", 141),
+		success("https:success", s.SrvHttps.URL+"/b", http.StatusOK, "content from https server", 142),
 		{
-			name:                    "http:success",
-			url:                     s.SrvHttp.URL + "/a",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from http server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   141,
-			wantErr:                 false,
-		},
-		{
-			name:                    "https:success",
-			url:                     s.SrvHttps.URL + "/b",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from https server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   142,
-			wantErr:                 false,
-		},
-		{
-			name:          "http:client timeout",
-			url:           s.SrvHttp.URL + "/slow",
-			wantStatus:    0,
-			wantContent:   "",
-			wantErr:       true,
+			name: "http:client timeout",
+			url:  s.SrvHttp.URL + "/slow",
+			wantClient: clientWant{
+				err: true,
+			},
 			clientTimeout: 500 * time.Millisecond,
-			skip:          false,
 		},
 		{
-			name:          "https:client timeout",
-			url:           s.SrvHttps.URL + "/slow",
-			wantStatus:    0,
-			wantContent:   "",
-			wantErr:       true,
+			name: "https:client timeout",
+			url:  s.SrvHttps.URL + "/slow",
+			wantClient: clientWant{
+				err: true,
+			},
 			clientTimeout: 500 * time.Millisecond,
-			skip:          false,
+		},
+		success("http:not found", s.SrvHttp.URL+"/c", http.StatusNotFound, "404 page not found\n", 176),
+		success("https:not found", s.SrvHttps.URL+"/c", http.StatusNotFound, "404 page not found\n", 176),
+		errorResult(
+			"http:server timeout",
+			s.SrvHttp.URL+"/extraslow",
+			"Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
+			errors.EmptyResponse,
+			"EMPTY_RESPONSE",
+			"Empty reply from server",
+		),
+		errorResult(
+			"https:server timeout",
+			s.SrvHttps.URL+"/extraslow",
+			"Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
+			errors.EmptyResponse,
+			"EMPTY_RESPONSE",
+			"Empty reply from server",
+		),
+		errorResult(
+			"http:browser controller cancel",
+			s.SrvHttp.URL+"/cancel",
+			"Code: -5011, Msg: CANCELED_BY_BROWSER, Detail: Cancelled by browser controller",
+			errors.CanceledByBrowser,
+			"CANCELED_BY_BROWSER",
+			"Cancelled by browser controller",
+		),
+		errorResult(
+			"https:browser controller cancel",
+			s.SrvHttps.URL+"/cancel",
+			"Code: -5011, Msg: CANCELED_BY_BROWSER, Detail: Cancelled by browser controller",
+			errors.CanceledByBrowser,
+			"CANCELED_BY_BROWSER",
+			"Cancelled by browser controller",
+		),
+		errorResult(
+			"http:blocked by robots.txt",
+			s.SrvHttp.URL+"/blocked",
+			"Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
+			errors.PrecludedByRobots,
+			"PRECLUDED_BY_ROBOTS",
+			"Robots.txt rules precluded fetch",
+		),
+		errorResult(
+			"https:blocked by robots.txt",
+			s.SrvHttps.URL+"/blocked",
+			"Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
+			errors.PrecludedByRobots,
+			"PRECLUDED_BY_ROBOTS",
+			"Robots.txt rules precluded fetch",
+		),
+		success("http:browser controller error", s.SrvHttp.URL+"/bccerr", http.StatusOK, "content from http server", 141),
+		success("https:browser controller error", s.SrvHttps.URL+"/bccerr", http.StatusOK, "content from https server", 142),
+		{
+			name: "http:content writer error",
+			url:  s.SrvHttp.URL + "/cwerr",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from http server",
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(141),
+			},
 		},
 		{
-			name:                    "http:not found",
-			url:                     s.SrvHttp.URL + "/c",
-			wantStatus:              http.StatusNotFound,
-			wantContent:             "404 page not found\n",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   176,
-			wantErr:                 false,
+			name: "https:content writer error",
+			url:  s.SrvHttps.URL + "/cwerr",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from https server",
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(142),
+			},
 		},
 		{
-			name:                    "https:not found",
-			url:                     s.SrvHttps.URL + "/c",
-			wantStatus:              http.StatusNotFound,
-			wantContent:             "404 page not found\n",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   176,
-			wantErr:                 false,
+			name: "http:cached",
+			url:  s.SrvHttp.URL + "/cached",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from http server",
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(243),
+			},
 		},
 		{
-			name:                    "http:replace",
-			url:                     s.SrvHttp.URL + "/replace",
-			wantStatus:              http.StatusOK,
-			wantContent:             "should be replaced",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   135,
-			wantErr:                 false,
+			name: "https:cached",
+			url:  s.SrvHttps.URL + "/cached",
+			wantClient: clientWant{
+				status:     http.StatusOK,
+				bodyPrefix: "content from https server",
+			},
+			wantRecord: recordWant{
+				statusCode:        http.StatusOK,
+				responseBlockSize: intPtr(244),
+			},
 		},
-		{
-			name:                    "https:replace",
-			url:                     s.SrvHttps.URL + "/replace",
-			wantStatus:              http.StatusOK,
-			wantContent:             "should be replaced",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   135,
-			wantErr:                 false,
-		},
-		{
-			name:        "http:server timeout",
-			url:         s.SrvHttp.URL + "/extraslow",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
-			wantErr:     false,
-			skip:        false,
-		},
-		{
-			name:        "https:server timeout",
-			url:         s.SrvHttps.URL + "/extraslow",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
-			wantErr:     false,
-			skip:        true, // TODO fix this test
-		},
-		{
-			name:        "http:browser controller cancel",
-			url:         s.SrvHttp.URL + "/cancel",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -5011, Msg: CANCELLED_BY_BROWSER, Detail: Cancelled by browser controller",
-			wantErr:     false,
-			skip:        false,
-		},
-		{
-			name:        "https:browser controller cancel",
-			url:         s.SrvHttps.URL + "/cancel",
-			wantStatus:  http.StatusOK,
-			wantContent: "content from https server",
-			wantErr:     false,
-			skip:        true, // TODO fix this test
-		},
-		{
-			name:        "http:blocked by robots.txt",
-			url:         s.SrvHttp.URL + "/blocked",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
-			wantErr:     false,
-			skip:        false,
-		},
-		{
-			name:        "https:blocked by robots.txt",
-			url:         s.SrvHttps.URL + "/blocked",
-			wantStatus:  http.StatusServiceUnavailable,
-			wantContent: "Code: -9998, Msg: PRECLUDED_BY_ROBOTS, Detail: Robots.txt rules precluded fetch",
-			wantErr:     false,
-			skip:        false,
-		},
-		{
-			name:                    "http:browser controller error",
-			url:                     s.SrvHttp.URL + "/bccerr",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from http server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   141,
-			wantErr:                 false,
-		},
-		{
-			name:                    "https:browser controller error",
-			url:                     s.SrvHttps.URL + "/bccerr",
-			wantStatus:              http.StatusOK,
-			wantContent:             "content from https server",
-			wantResponseBlockDigest: true,
-			wantResponseBlockSize:   142,
-			wantErr:                 false,
-		},
-		{
-			name:                  "http:content writer error",
-			url:                   s.SrvHttp.URL + "/cwerr",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from http server",
-			wantResponseBlockSize: 141,
-			wantErr:               false,
-			skip:                  false,
-		},
-		{
-			name:                  "https:content writer error",
-			url:                   s.SrvHttps.URL + "/cwerr",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from https server",
-			wantResponseBlockSize: 142,
-			wantErr:               false,
-			skip:                  false,
-		},
-		{
-			name:                  "http:cached",
-			url:                   s.SrvHttp.URL + "/cached",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from http server",
-			wantResponseBlockSize: 219,
-			wantErr:               false,
-		},
-		{
-			name:                  "https:cached",
-			url:                   s.SrvHttps.URL + "/cached",
-			wantStatus:            http.StatusOK,
-			wantContent:           "content from https server",
-			wantResponseBlockSize: 219,
-			wantErr:               false,
-		},
-		{
-			name:                  "http:no host",
-			url:                   s.SrvHttp.URL[:len(s.SrvHttp.URL)-2] + "1/no_host",
-			wantStatus:            http.StatusServiceUnavailable,
-			wantContent:           "Code: -404, Msg: EMPTY_RESPONSE, Detail: Empty reply from server",
-			wantResponseBlockSize: 140,
-			wantErr:               false,
-		},
-		{
-			name:                  "https:no host",
-			url:                   s.SrvHttps.URL[:len(s.SrvHttps.URL)-2] + "1/no_host",
-			wantStatus:            0,
-			wantContent:           "",
-			wantResponseBlockSize: 140,
-			wantErr:               true,
-			skip:                  false,
-		},
-		{
-			name:                    "https:handshake failure",
-			url:                     s.SrvHttpsBadCert.URL + "/b",
-			wantStatus:              0,
-			wantContent:             "",
-			wantResponseBlockDigest: false,
-			wantResponseBlockSize:   146,
-			wantErr:                 true,
-		},
+		errorResult(
+			"http:no host",
+			s.SrvHttp.URL[:len(s.SrvHttp.URL)-2]+"1/no_host",
+			"Code: -2, Msg: CONNECT_FAILED, Detail: connection refused",
+			errors.ConnectFailed,
+			"CONNECT_FAILED",
+			"connection refused",
+		),
+		errorResult(
+			"https:no host",
+			s.SrvHttps.URL[:len(s.SrvHttps.URL)-2]+"1/no_host",
+			"Code: -2, Msg: CONNECT_FAILED, Detail: connection refused",
+			errors.ConnectFailed,
+			"CONNECT_FAILED",
+			"connection refused",
+		),
+		errorResult(
+			"https:upstream tls handshake failure",
+			s.SrvHttpsBrokenTLS.URL+"/b",
+			"Code: -2, Msg: CONNECT_FAILED, Detail: tls: handshake failure",
+			errors.ConnectFailed,
+			"CONNECT_FAILED",
+			"tls: handshake failure",
+		),
 	}
 
 	for i, tt := range tests {
 		tt.keepAlive = true
-
 		tt.generateExpectedRequestsForRecorderProxyThroughProxy()
 		grpcServices.Clear()
 
 		t.Run(strconv.Itoa(i)+": "+tt.name, func(t *testing.T) {
-			if tt.skip {
-				t.Skip(tt.name)
-			}
-
-			t.Logf("Request %v\n", tt.url)
 			statusCode, got, err := get(tt.url, client, tt.clientTimeout)
+			t.Logf("GET url=%v status=%v got=%v error=%v", tt.url, statusCode, string(got), err)
+
 			if grpcServices.DoneBC != nil {
 				<-grpcServices.DoneBC
 			}
@@ -576,25 +677,25 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 				<-grpcServices.DoneCW
 			}
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Client get() error = %v, wantErr %v (%v, %s)", err, tt.wantErr, statusCode, got)
+			if (err != nil) != tt.wantClient.err {
+				t.Errorf(
+					"Client get() error = %v, wantErr %v (%v, %s)",
+					err,
+					tt.wantClient.err,
+					statusCode,
+					got,
+				)
 				return
 			}
-			if statusCode != tt.wantStatus {
-				t.Errorf("Expected status code: %d, got %d", tt.wantStatus, statusCode)
+			if statusCode != tt.wantClient.status {
+				t.Errorf("Expected status code: %d, got %d", tt.wantClient.status, statusCode)
 				return
 			}
-			if tt.wantReplacedContent == "" {
-				if !strings.HasPrefix(string(got), tt.wantContent) {
-					t.Errorf("Expected '%s' to start with '%s'", got, tt.wantContent)
-					return
-				}
-			} else {
-				if string(got) != tt.wantReplacedContent {
-					t.Errorf("Expected '%s', got '%s'", tt.wantReplacedContent, got)
-					return
-				}
+			if !strings.HasPrefix(string(got), tt.wantClient.bodyPrefix) {
+				t.Errorf("Expected '%s' to start with '%s'", got, tt.wantClient.bodyPrefix)
+				return
 			}
+
 			compareDNS(t, "DnsResolver", tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
 			compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
 			compareCW(t, "ContentWriter", tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
@@ -605,8 +706,10 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T) {
 	s := testutil.NewHttpServers(t)
 	defer s.Close()
+
 	grpcServices := testutil.NewGrpcServiceMock()
 	defer grpcServices.Close()
+
 	client, recorderProxy, err := localRecorderProxy(t, grpcServices.ClientConn, "")
 	if err != nil {
 		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
@@ -615,15 +718,24 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 	defer recorderProxy.Shutdown(context.TODO())
 
 	tt := test{
-		name:                    "https:harvest headers bypass browser controller register",
-		url:                     s.SrvHttps.URL + "/blocked",
-		wantStatus:              http.StatusOK,
-		wantContent:             "content from https server",
-		wantResponseBlockDigest: true,
-		wantResponseBlockSize:   142,
-		keepAlive:               true,
+		name: "https:harvest headers bypass browser controller register",
+		url:  s.SrvHttps.URL + "/blocked",
+		wantClient: clientWant{
+			status:     http.StatusOK,
+			bodyPrefix: "content from https server",
+		},
+		wantRecord: recordWant{
+			statusCode:          http.StatusOK,
+			responseBlockDigest: boolPtr(true),
+			responseBlockSize:   intPtr(142),
+		},
+		keepAlive: true,
 	}
 	tt.generateSuccessRequests()
+
+	// Explicit crawl metadata makes the inner GET self-contained, so it does
+	// not need BrowserController registration. CONNECT registration and the
+	// authoritative completion still happen normally.
 	complete := tt.wantGrpcRequests.BrowserControllerRequests[len(tt.wantGrpcRequests.BrowserControllerRequests)-1]
 	tt.wantGrpcRequests.BrowserControllerRequests = append(generateConnectOnlyRequests(tt.url), complete)
 
@@ -645,11 +757,11 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 	if err != nil {
 		t.Fatalf("Client get() error = %v", err)
 	}
-	if statusCode != tt.wantStatus {
-		t.Fatalf("Expected status code: %d, got %d", tt.wantStatus, statusCode)
+	if statusCode != tt.wantClient.status {
+		t.Fatalf("Expected status code: %d, got %d", tt.wantClient.status, statusCode)
 	}
-	if !strings.HasPrefix(string(got), tt.wantContent) {
-		t.Fatalf("Expected '%s' to start with '%s'", got, tt.wantContent)
+	if !strings.HasPrefix(string(got), tt.wantClient.bodyPrefix) {
+		t.Fatalf("Expected '%s' to start with '%s'", got, tt.wantClient.bodyPrefix)
 	}
 
 	compareDNS(t, "DnsResolver", tt.wantGrpcRequests.DnsResolverRequests, grpcServices.Requests.DnsResolverRequests)
@@ -661,68 +773,131 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
  * Helper functions
  */
 
-func (test *test) generateExpectedRequests() {
-	switch n := test.name; {
+func (tt *test) generateExpectedRequests() {
+	switch n := tt.name; {
 	case strings.HasSuffix(n, ":client timeout"):
-		test.generateClientTimeoutRequests()
+		tt.generateClientTimeoutRequests()
 	case strings.HasSuffix(n, ":replace"):
-		test.generateReplaceRequests()
+		tt.generateReplaceRequests()
 	case strings.HasSuffix(n, ":server timeout"):
-		test.generateServerTimeoutRequests()
+		tt.generateServerTimeoutRequests()
 	case strings.HasSuffix(n, ":grpc service timeout"):
-		test.generateGrpcServiceTimeoutRequests()
+		tt.generateGrpcServiceTimeoutRequests()
 	case strings.HasSuffix(n, ":browser controller cancel"):
-		test.generateBrowserControllerCancelRequests()
+		tt.generateBrowserControllerCancelRequests()
 	case strings.HasSuffix(n, ":blocked by robots.txt"):
-		test.generateBlockedByRobotsTxtRequests()
+		tt.generateBlockedByRobotsTxtRequests()
 	case strings.HasSuffix(n, ":browser controller error"):
-		test.generateBrowserControllerErrorRequests()
+		tt.generateBrowserControllerErrorRequests()
 	case strings.HasSuffix(n, ":content writer error"):
-		test.generateContentWriterErrorRequests()
+		tt.generateContentWriterErrorRequests()
 	case strings.HasSuffix(n, ":cached"):
-		test.generateCachedRequests()
+		tt.generateCachedRequests()
 	case strings.HasSuffix(n, ":no host"):
-		test.generateConnectionRefusedRequests()
-	case strings.HasSuffix(n, ":handshake failure"):
-		test.generateHandshakeFailureRequests()
+		tt.generateConnectionRefusedRequests()
+	case strings.HasSuffix(n, "handshake failure"):
+		tt.generateHandshakeFailureRequests()
 	default:
-		test.generateSuccessRequests()
+		tt.generateSuccessRequests()
 	}
 }
 
-func (test *test) generateExpectedRequestsForRecorderProxyThroughProxy() {
-	switch n := test.name; {
+func (tt *test) generateExpectedRequestsForRecorderProxyThroughProxy() {
+	switch n := tt.name; {
 	case strings.HasSuffix(n, ":client timeout"):
-		test.generateClientTimeoutRequests()
+		tt.generateClientTimeoutRequests()
 	case strings.HasSuffix(n, ":replace"):
-		test.generateReplaceRequests()
+		tt.generateReplaceRequests()
 	case strings.HasSuffix(n, ":server timeout"):
-		test.generateServerTimeoutRequests()
+		tt.generateServerTimeoutRequests()
 	case strings.HasSuffix(n, ":grpc service timeout"):
-		test.generateGrpcServiceTimeoutRequests()
+		tt.generateGrpcServiceTimeoutRequests()
 	case strings.HasSuffix(n, ":browser controller cancel"):
-		test.generateBrowserControllerCancelRequests()
+		tt.generateBrowserControllerCancelRequests()
 	case strings.HasSuffix(n, ":blocked by robots.txt"):
-		test.generateBlockedByRobotsTxtRequests()
+		tt.generateBlockedByRobotsTxtRequests()
 	case strings.HasSuffix(n, ":browser controller error"):
-		test.generateBrowserControllerErrorRequests()
+		tt.generateBrowserControllerErrorRequests()
 	case strings.HasSuffix(n, ":content writer error"):
-		test.generateContentWriterErrorRequests()
+		tt.generateContentWriterErrorRequests()
 	case strings.HasSuffix(n, ":cached"):
-		test.generateCachedRequests()
+		tt.generateCachedRequests()
 	case strings.HasSuffix(n, ":no host"):
-		test.generateConnectionRefusedThroughProxyRequests()
-	case strings.HasSuffix(n, ":handshake failure"):
-		test.generateHandshakeFailureRequests()
+		tt.generateConnectionRefusedThroughProxyRequests()
+	case strings.HasSuffix(n, "handshake failure"):
+		tt.generateHandshakeFailureRequests()
 	default:
-		test.generateSuccessRequests()
+		tt.generateSuccessRequests()
 	}
 }
 
-func (test *test) parseUrlAndPort() (*url.URL, int) {
-	u, _ := url.Parse(test.url)
+func (tt *test) parseUrlAndPort() (*url.URL, int) {
+	u, _ := url.Parse(tt.url)
 	p, _ := strconv.Atoi(u.Port())
 	return u, p
+}
+
+func (tt *test) clientStatus() int {
+	return tt.wantClient.status
+}
+
+func (tt *test) clientBodyPrefix() string {
+	return tt.wantClient.bodyPrefix
+}
+
+func (tt *test) clientBodyLen() int {
+	return len(tt.wantClient.bodyPrefix)
+}
+
+func (tt *test) recordHTTPStatus() int32 {
+	if tt.wantRecord.statusCode != 0 {
+		return int32(tt.wantRecord.statusCode)
+	}
+	return int32(tt.wantClient.status)
+}
+
+func (tt *test) recordBlockSize() int64 {
+	if tt.wantRecord.responseBlockSize == nil {
+		return 0
+	}
+	return int64(*tt.wantRecord.responseBlockSize)
+}
+
+func (tt *test) recordBlockSizeInt32() int32 {
+	return int32(tt.recordBlockSize())
+}
+
+func (tt *test) recordErrorCode(fallback errors.ErrorCode) int32 {
+	if tt.wantRecord.errorCode != 0 {
+		return tt.wantRecord.errorCode.Int32()
+	}
+	return fallback.Int32()
+}
+
+func (tt *test) recordErrorMsg(fallback string) string {
+	if tt.wantRecord.errorMsg != "" {
+		return tt.wantRecord.errorMsg
+	}
+	return fallback
+}
+
+func (tt *test) recordErrorDetail(fallback string) string {
+	if tt.wantRecord.errorDetailContains != "" {
+		return tt.wantRecord.errorDetailContains
+	}
+	return fallback
+}
+
+func (tt *test) recordError(
+	fallbackCode errors.ErrorCode,
+	fallbackMsg string,
+	fallbackDetail string,
+) *commonsV1.Error {
+	return &commonsV1.Error{
+		Code:   tt.recordErrorCode(fallbackCode),
+		Msg:    tt.recordErrorMsg(fallbackMsg),
+		Detail: tt.recordErrorDetail(fallbackDetail),
+	}
 }
 
 func isHttps(uri string) (ok bool, pathStrippedUrl string) {
@@ -760,7 +935,10 @@ func generateDnsRequests(rawURL string, alreadyConnected bool) []*dnsresolverV1.
 	case https && alreadyConnected:
 		return []*dnsresolverV1.ResolveRequest{request}
 	case https:
-		return []*dnsresolverV1.ResolveRequest{request, proto.Clone(request).(*dnsresolverV1.ResolveRequest)}
+		return []*dnsresolverV1.ResolveRequest{
+			request,
+			proto.Clone(request).(*dnsresolverV1.ResolveRequest),
+		}
 	default:
 		return []*dnsresolverV1.ResolveRequest{request}
 	}
@@ -768,7 +946,9 @@ func generateDnsRequests(rawURL string, alreadyConnected bool) []*dnsresolverV1.
 
 func generateConnectOnlyRequests(rawURL string) []*testutil.BrowserControllerRequest {
 	_, u := isHttps(rawURL)
-	return []*testutil.BrowserControllerRequest{generateBccRegisterRequest(http.MethodConnect, u, false)}
+	return []*testutil.BrowserControllerRequest{
+		generateBccRegisterRequest(http.MethodConnect, u, false),
+	}
 }
 
 func generateBccRegisterRequest(method, uri string, includeCollectionRef bool) *testutil.BrowserControllerRequest {
@@ -796,12 +976,13 @@ func generateBccCompleteRequest(crawlLog *logV1.CrawlLog, cached bool) *testutil
 	}
 }
 
-func generateBccNewRequests(url string, alreadyConnected bool) []*testutil.BrowserControllerRequest {
-	return generateBccNewRequestsWithConnectionState(url, alreadyConnected)
+func generateBccNewRequests(rawURL string, alreadyConnected bool) []*testutil.BrowserControllerRequest {
+	return generateBccNewRequestsWithConnectionState(rawURL, alreadyConnected)
 }
 
 func generateBccNewRequestsWithConnectionState(rawURL string, alreadyConnected bool) []*testutil.BrowserControllerRequest {
 	var r []*testutil.BrowserControllerRequest
+
 	https, u := isHttps(rawURL)
 	if https {
 		if !alreadyConnected {
@@ -810,6 +991,7 @@ func generateBccNewRequestsWithConnectionState(rawURL string, alreadyConnected b
 		r = append(r, generateBccRegisterRequest(http.MethodGet, rawURL, true))
 		return r
 	}
+
 	r = append(r, generateBccRegisterRequest(http.MethodGet, rawURL, false))
 	return r
 }
@@ -819,10 +1001,22 @@ func generateCwProtocolHeaderRequest(u *url.URL, keepAlive bool) (*contentwriter
 	if !keepAlive {
 		k = "Connection: close\r\n"
 	}
-	header := fmt.Appendf(nil, "GET %s HTTP/1.1\r\nHost: %s:%s\r\nAccept-Encoding: gzip\r\n%sUser-Agent: Go-http-client/1.1\r\n\r\n", u.RequestURI(), u.Hostname(), u.Port(), k)
+
+	header := fmt.Appendf(
+		nil,
+		"GET %s HTTP/1.1\r\nHost: %s:%s\r\nAccept-Encoding: gzip\r\n%sUser-Agent: Go-http-client/1.1\r\n\r\n",
+		u.RequestURI(),
+		u.Hostname(),
+		u.Port(),
+		k,
+	)
+
 	req := &contentwriterV1.WriteRequest{
 		Value: &contentwriterV1.WriteRequest_ProtocolHeader{
-			ProtocolHeader: &contentwriterV1.Data{RecordNum: 0, Data: header},
+			ProtocolHeader: &contentwriterV1.Data{
+				RecordNum: 0,
+				Data:      header,
+			},
 		},
 	}
 	return req, int64(len(header))
@@ -830,115 +1024,205 @@ func generateCwProtocolHeaderRequest(u *url.URL, keepAlive bool) (*contentwriter
 
 func generateCwProtocolHeaderResponse(status int, contentLength int) *contentwriterV1.WriteRequest {
 	nosniffHeader := ""
-	if status == 404 {
+	if status == http.StatusNotFound {
 		nosniffHeader = "X-Content-Type-Options: nosniff\r\n"
 	}
-	header := fmt.Appendf(nil, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\nContent-Type: text/plain; charset=utf-8\r\nDate: Wed, 15 May 2019 12:41:02 GMT\r\n%s\r\n", status, http.StatusText(status), contentLength, nosniffHeader)
-	req := &contentwriterV1.WriteRequest{
-		Value: &contentwriterV1.WriteRequest_ProtocolHeader{
-			ProtocolHeader: &contentwriterV1.Data{RecordNum: 1, Data: header},
-		},
-	}
-	return req
-}
 
-func (test *test) generateSuccessRequests() {
-	u, _ := test.parseUrlAndPort()
-	alreadyConnected := false
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
-
-	r := &testutil.Requests{}
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
-
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			WarcId:              "warcid_1",
-			StatusCode:          int32(test.wantStatus),
-			Size:                test.wantResponseBlockSize,
-			Method:              "GET",
-			RequestedUri:        targetURI,
-			ContentType:         "text/plain; charset=utf-8",
-			StorageRef:          "storageRef_1",
-			RecordType:          "revisit",
-			WarcRefersTo:        "revisit_0",
-			IpAddress:           ipAddress,
-			ExecutionId:         "eid",
-			JobExecutionId:      "jid",
-			CollectionFinalName: "collection_0",
-		}, false),
+	header := fmt.Appendf(
+		nil,
+		"HTTP/1.1 %d %s\r\nContent-Length: %d\r\nContent-Type: text/plain; charset=utf-8\r\nDate: Wed, 15 May 2019 12:41:02 GMT\r\n%s\r\n",
+		status,
+		http.StatusText(status),
+		contentLength,
+		nosniffHeader,
 	)
 
-	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
-		requestHeader,
-		generateCwProtocolHeaderResponse(test.wantStatus, len(test.wantContent)),
-		{
-			Value: &contentwriterV1.WriteRequest_Payload{
-				Payload: &contentwriterV1.Data{RecordNum: 1, Data: []byte(test.wantContent)},
+	return &contentwriterV1.WriteRequest{
+		Value: &contentwriterV1.WriteRequest_ProtocolHeader{
+			ProtocolHeader: &contentwriterV1.Data{
+				RecordNum: 1,
+				Data:      header,
 			},
 		},
+	}
+}
+
+func (tt *test) successCrawlLog(targetURI, ipAddress string) *logV1.CrawlLog {
+	return &logV1.CrawlLog{
+		WarcId:              "warcid_1",
+		StatusCode:          tt.recordHTTPStatus(),
+		Size:                tt.recordBlockSize(),
+		Method:              "GET",
+		RequestedUri:        targetURI,
+		ContentType:         "text/plain; charset=utf-8",
+		StorageRef:          "storageRef_1",
+		RecordType:          "revisit",
+		WarcRefersTo:        "revisit_0",
+		IpAddress:           ipAddress,
+		ExecutionId:         "eid",
+		JobExecutionId:      "jid",
+		CollectionFinalName: "collection_0",
+	}
+}
+
+func (tt *test) cachedCrawlLog(targetURI, ipAddress string) *logV1.CrawlLog {
+	return &logV1.CrawlLog{
+		StatusCode:     tt.recordHTTPStatus(),
+		Size:           tt.recordBlockSize(),
+		Method:         "GET",
+		RequestedUri:   targetURI,
+		ContentType:    "text/plain; charset=utf-8",
+		IpAddress:      ipAddress,
+		ExecutionId:    "eid",
+		JobExecutionId: "jid",
+	}
+}
+
+func (tt *test) errorCrawlLog(
+	targetURI string,
+	ipAddress string,
+	code errors.ErrorCode,
+	msg string,
+	detail string,
+) *logV1.CrawlLog {
+	return &logV1.CrawlLog{
+		StatusCode:     tt.recordErrorCode(code),
+		RequestedUri:   targetURI,
+		Method:         "GET",
+		RecordType:     "response",
+		IpAddress:      ipAddress,
+		ExecutionId:    "eid",
+		JobExecutionId: "jid",
+		Error:          tt.recordError(code, msg, detail),
+	}
+}
+
+func (tt *test) clientGoneCrawlLog(targetURI, ipAddress string) *logV1.CrawlLog {
+	return &logV1.CrawlLog{
+		StatusCode:     errors.CanceledByBrowser.Int32(),
+		RequestedUri:   targetURI,
+		Method:         "GET",
+		RecordType:     "response",
+		IpAddress:      ipAddress,
+		ExecutionId:    "eid",
+		JobExecutionId: "jid",
+		Error: &commonsV1.Error{
+			Code:   errors.CanceledByBrowser.Int32(),
+			Msg:    "CANCELED_BY_BROWSER",
+			Detail: "Veidemann recorder proxy lost connection to client",
+		},
+	}
+}
+
+func (tt *test) contentWriterRequests(
+	u *url.URL,
+	targetURI string,
+	ipAddress string,
+	includeMeta bool,
+) []*contentwriterV1.WriteRequest {
+	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, tt.keepAlive)
+
+	requests := []*contentwriterV1.WriteRequest{
+		requestHeader,
+		generateCwProtocolHeaderResponse(tt.clientStatus(), tt.clientBodyLen()),
 		{
-			Value: &contentwriterV1.WriteRequest_Meta{
-				Meta: &contentwriterV1.WriteRequestMeta{
-					ExecutionId:   "eid",
-					TargetUri:     targetURI,
-					IpAddress:     ipAddress,
-					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
-					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
-						0: {
-							RecordNum:         0,
-							Type:              contentwriterV1.RecordType_REQUEST,
-							RecordContentType: "application/http; msgtype=request",
-							Size:              requestLength,
-						},
-						1: {
-							RecordNum:         1,
-							Type:              contentwriterV1.RecordType_RESPONSE,
-							RecordContentType: "application/http; msgtype=response",
-							Size:              test.wantResponseBlockSize,
-						},
-					},
+			Value: &contentwriterV1.WriteRequest_Payload{
+				Payload: &contentwriterV1.Data{
+					RecordNum: 1,
+					Data:      []byte(tt.clientBodyPrefix()),
 				},
 			},
 		},
 	}
 
-	test.wantGrpcRequests = r
-}
+	if !includeMeta {
+		return requests
+	}
 
-func (test *test) generateClientTimeoutRequests() {
-	r := &testutil.Requests{}
-	alreadyConnected := true
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
-
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     errors.CanceledByBrowser.Int32(),
-			RequestedUri:   targetURI,
-			Method:         "GET",
-			RecordType:     "response",
-			IpAddress:      ipAddress,
-			ExecutionId:    "eid",
-			JobExecutionId: "jid",
-			Error: &commonsV1.Error{
-				Code:   errors.CanceledByBrowser.Int32(),
-				Msg:    "CANCELED_BY_BROWSER",
-				Detail: "Veidemann recorder proxy lost connection to client",
-			},
-		}, false),
-	)
-
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
-		{
-			Value: &contentwriterV1.WriteRequest_ProtocolHeader{
-				ProtocolHeader: &contentwriterV1.Data{RecordNum: 1, Data: []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\nContent-Length: %d\r\nContent-Type: text/plain; charset=utf-8\r\nDate: Wed, 15 May 2019 12:41:02 GMT\r\n\r\n", test.wantStatus, http.StatusText(test.wantStatus), len(test.wantContent)))},
+	requests = append(requests, &contentwriterV1.WriteRequest{
+		Value: &contentwriterV1.WriteRequest_Meta{
+			Meta: &contentwriterV1.WriteRequestMeta{
+				ExecutionId:   "eid",
+				TargetUri:     targetURI,
+				IpAddress:     ipAddress,
+				CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
+				RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
+					0: {
+						RecordNum:         0,
+						Type:              contentwriterV1.RecordType_REQUEST,
+						RecordContentType: "application/http; msgtype=request",
+						Size:              requestLength,
+					},
+					1: {
+						RecordNum:         1,
+						Type:              contentwriterV1.RecordType_RESPONSE,
+						RecordContentType: "application/http; msgtype=response",
+						Size:              tt.recordBlockSize(),
+					},
+				},
 			},
 		},
+	})
+
+	return requests
+}
+
+func (tt *test) generateRecordedHTTPResponseRequests(alreadyConnected bool) {
+	u, _ := tt.parseUrlAndPort()
+	targetURI := tt.url
+	ipAddress := expectedIP(tt.url)
+
+	r := &testutil.Requests{}
+	r.DnsResolverRequests = generateDnsRequests(tt.url, alreadyConnected)
+
+	r.BrowserControllerRequests = append(
+		generateBccNewRequests(tt.url, alreadyConnected),
+		generateBccCompleteRequest(tt.successCrawlLog(targetURI, ipAddress), false),
+	)
+
+	r.ContentWriterRequests = tt.contentWriterRequests(u, targetURI, ipAddress, true)
+
+	tt.wantGrpcRequests = r
+}
+
+func (tt *test) generateSuccessRequests() {
+	tt.generateRecordedHTTPResponseRequests(false)
+}
+
+func (tt *test) generateReplaceRequests() {
+	tt.generateRecordedHTTPResponseRequests(true)
+}
+
+func (tt *test) generateBrowserControllerErrorRequests() {
+	tt.generateRecordedHTTPResponseRequests(false)
+}
+
+func (tt *test) generateClientTimeoutRequests() {
+	u, _ := tt.parseUrlAndPort()
+
+	r := &testutil.Requests{}
+
+	alreadyConnected := strings.HasPrefix(tt.name, "https:")
+	targetURI := tt.url
+	ipAddress := expectedIP(tt.url)
+
+	r.DnsResolverRequests = generateDnsRequests(tt.url, alreadyConnected)
+
+	r.BrowserControllerRequests = append(
+		generateBccNewRequests(tt.url, alreadyConnected),
+		generateBccCompleteRequest(tt.clientGoneCrawlLog(targetURI, ipAddress), false),
+	)
+
+	requestHeader, _ := generateCwProtocolHeaderRequest(u, tt.keepAlive)
+
+	upstreamBody := "content from http server"
+	if strings.HasPrefix(tt.name, "https:") {
+		upstreamBody = "content from https server"
+	}
+
+	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
+		requestHeader,
+		generateCwProtocolHeaderResponse(http.StatusOK, len(upstreamBody)),
 		{
 			Value: &contentwriterV1.WriteRequest_Cancel{
 				Cancel: "Veidemann recorder proxy lost connection to client",
@@ -946,328 +1230,166 @@ func (test *test) generateClientTimeoutRequests() {
 		},
 	}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateReplaceRequests() {
-	u, _ := test.parseUrlAndPort()
-	alreadyConnected := true
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
-
+func (tt *test) generateServerTimeoutRequests() {
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
+
+	alreadyConnected := strings.HasPrefix(tt.name, "https:")
+	targetURI := tt.url
+	ipAddress := expectedIP(tt.url)
+
+	r.DnsResolverRequests = generateDnsRequests(tt.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			WarcId:              "warcid_1",
-			StatusCode:          int32(test.wantStatus),
-			Size:                test.wantResponseBlockSize,
-			Method:              "GET",
-			RequestedUri:        targetURI,
-			ContentType:         "text/plain; charset=utf-8",
-			StorageRef:          "storageRef_1",
-			RecordType:          "revisit",
-			WarcRefersTo:        "revisit_0",
-			IpAddress:           ipAddress,
-			ExecutionId:         "eid",
-			JobExecutionId:      "jid",
-			CollectionFinalName: "collection_0",
-		}, false),
-	)
-
-	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
-		requestHeader,
-		generateCwProtocolHeaderResponse(test.wantStatus, len(test.wantContent)),
-		{
-			Value: &contentwriterV1.WriteRequest_Payload{
-				Payload: &contentwriterV1.Data{RecordNum: 1, Data: []byte(test.wantContent)},
-			},
-		},
-		{
-			Value: &contentwriterV1.WriteRequest_Meta{
-				Meta: &contentwriterV1.WriteRequestMeta{
-					ExecutionId:   "eid",
-					TargetUri:     targetURI,
-					IpAddress:     ipAddress,
-					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
-					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
-						0: {
-							RecordNum:         0,
-							Type:              contentwriterV1.RecordType_REQUEST,
-							RecordContentType: "application/http; msgtype=request",
-							Size:              requestLength,
-						},
-						1: {
-							RecordNum:         1,
-							Type:              contentwriterV1.RecordType_RESPONSE,
-							RecordContentType: "application/http; msgtype=response",
-							Size:              test.wantResponseBlockSize,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	test.wantGrpcRequests = r
-}
-
-func (test *test) generateServerTimeoutRequests() {
-	r := &testutil.Requests{}
-	alreadyConnected := true
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
-
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     errors.EmptyResponse.Int32(),
-			RequestedUri:   targetURI,
-			Method:         "GET",
-			RecordType:     "response",
-			IpAddress:      ipAddress,
-			ExecutionId:    "eid",
-			JobExecutionId: "jid",
-			Error: &commonsV1.Error{
-				Code:   -404,
-				Msg:    "EMPTY_RESPONSE",
-				Detail: "Empty reply from server",
-			},
-		}, false),
+		generateBccNewRequests(tt.url, alreadyConnected),
+		generateBccCompleteRequest(
+			tt.errorCrawlLog(
+				targetURI,
+				ipAddress,
+				errors.EmptyResponse,
+				"EMPTY_RESPONSE",
+				"Empty reply from server",
+			),
+			false,
+		),
 	)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
 		{
 			Value: &contentwriterV1.WriteRequest_Cancel{
-				Cancel: "Empty reply from server",
+				Cancel: tt.recordErrorDetail("Empty reply from server"),
 			},
 		},
 	}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateGrpcServiceTimeoutRequests() {
-	u, _ := test.parseUrlAndPort()
+func (tt *test) generateGrpcServiceTimeoutRequests() {
+	u, _ := tt.parseUrlAndPort()
+
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = generateDnsRequests(test.url, false)
+	r.DnsResolverRequests = generateDnsRequests(tt.url, false)
+	r.BrowserControllerRequests = generateBccNewRequests(tt.url, false)
 
-	r.BrowserControllerRequests = generateBccNewRequests(test.url, false)
-
-	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
+	requestHeader, _ := generateCwProtocolHeaderRequest(u, tt.keepAlive)
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
 		requestHeader,
 	}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateBrowserControllerCancelRequests() {
+func (tt *test) generateBrowserControllerCancelRequests() {
 	r := &testutil.Requests{}
-	targetURI := test.url
+
+	targetURI := tt.url
+	ipAddress := ""
+	if https, _ := isHttps(tt.url); https {
+		// CONNECT is registered and resolved before BrowserController sees and
+		// cancels the inner HTTPS request.
+		r.DnsResolverRequests = generateDnsRequests(tt.url, true)
+	}
+
+	crawlLog := tt.errorCrawlLog(
+		targetURI,
+		ipAddress,
+		errors.CanceledByBrowser,
+		"CANCELED_BY_BROWSER",
+		"Cancelled by browser controller",
+	)
+	crawlLog.ExecutionId = ""
+	crawlLog.JobExecutionId = ""
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, false),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:   errors.CanceledByBrowser.Int32(),
-			Method:       "GET",
-			RequestedUri: targetURI,
-			RecordType:   "response",
-			Error: &commonsV1.Error{
-				Code:   errors.CanceledByBrowser.Int32(),
-				Msg:    "CANCELLED_BY_BROWSER",
-				Detail: "Cancelled by browser controller",
-			},
-		}, false),
+		generateBccNewRequests(tt.url, false),
+		generateBccCompleteRequest(crawlLog, false),
 	)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateBlockedByRobotsTxtRequests() {
+func (tt *test) generateBlockedByRobotsTxtRequests() {
 	r := &testutil.Requests{}
-	targetURI := test.url
-	https, _ := isHttps(test.url)
-	r.BrowserControllerRequests = append(r.BrowserControllerRequests,
-		generateBccRegisterRequest(http.MethodGet, targetURI, https),
+
+	targetURI := tt.url
+	ipAddress := ""
+	https, _ := isHttps(tt.url)
+	if https {
+		r.DnsResolverRequests = generateDnsRequests(tt.url, true)
+	}
+
+	r.BrowserControllerRequests = generateBccNewRequests(tt.url, false)
+
+	crawlLog := tt.errorCrawlLog(
+		targetURI,
+		ipAddress,
+		errors.PrecludedByRobots,
+		"PRECLUDED_BY_ROBOTS",
+		"Robots.txt rules precluded fetch",
 	)
-	r.BrowserControllerRequests = append(r.BrowserControllerRequests,
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:   errors.PrecludedByRobots.Int32(),
-			Method:       "GET",
-			RequestedUri: targetURI,
-			RecordType:   "response",
-			Error: &commonsV1.Error{
-				Code:   errors.PrecludedByRobots.Int32(),
-				Msg:    "PRECLUDED_BY_ROBOTS",
-				Detail: "Robots.txt rules precluded fetch",
-			},
-		}, false),
+	crawlLog.ExecutionId = ""
+	crawlLog.JobExecutionId = ""
+
+	r.BrowserControllerRequests = append(
+		r.BrowserControllerRequests,
+		generateBccCompleteRequest(crawlLog, false),
 	)
 
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateBrowserControllerErrorRequests() {
-	u, _ := test.parseUrlAndPort()
+func (tt *test) generateContentWriterErrorRequests() {
+	u, _ := tt.parseUrlAndPort()
+
+	alreadyConnected := strings.HasPrefix(tt.name, "https:")
+	targetURI := tt.url
+	ipAddress := expectedIP(tt.url)
+
+	r := &testutil.Requests{}
+	r.DnsResolverRequests = generateDnsRequests(tt.url, alreadyConnected)
+
+	r.BrowserControllerRequests = append(
+		generateBccNewRequests(tt.url, alreadyConnected),
+		generateBccCompleteRequest(
+			tt.errorCrawlLog(
+				targetURI,
+				ipAddress,
+				errors.RuntimeException,
+				"Error writing to content writer",
+				"rpc error: code = InvalidArgument desc = Fake error",
+			),
+			false,
+		),
+	)
+
+	r.ContentWriterRequests = tt.contentWriterRequests(u, targetURI, ipAddress, true)
+
+	tt.wantGrpcRequests = r
+}
+
+func (tt *test) generateCachedRequests() {
+	u, _ := tt.parseUrlAndPort()
+
 	alreadyConnected := false
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
+	targetURI := tt.url
+	ipAddress := expectedIP(tt.url)
+
 	r := &testutil.Requests{}
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
+	r.DnsResolverRequests = generateDnsRequests(tt.url, alreadyConnected)
 
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			WarcId:              "warcid_1",
-			StatusCode:          int32(test.wantStatus),
-			Size:                test.wantResponseBlockSize,
-			Method:              "GET",
-			RequestedUri:        targetURI,
-			ContentType:         "text/plain; charset=utf-8",
-			StorageRef:          "storageRef_1",
-			RecordType:          "revisit",
-			WarcRefersTo:        "revisit_0",
-			IpAddress:           ipAddress,
-			ExecutionId:         "eid",
-			JobExecutionId:      "jid",
-			CollectionFinalName: "collection_0",
-		}, false),
+		generateBccNewRequests(tt.url, alreadyConnected),
+		generateBccCompleteRequest(tt.cachedCrawlLog(targetURI, ipAddress), true),
 	)
 
-	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
-		requestHeader,
-		generateCwProtocolHeaderResponse(test.wantStatus, len(test.wantContent)),
-		{
-			Value: &contentwriterV1.WriteRequest_Payload{
-				Payload: &contentwriterV1.Data{RecordNum: 1, Data: []byte(test.wantContent)},
-			},
-		},
-		{
-			Value: &contentwriterV1.WriteRequest_Meta{
-				Meta: &contentwriterV1.WriteRequestMeta{
-					ExecutionId:   "eid",
-					TargetUri:     targetURI,
-					IpAddress:     ipAddress,
-					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
-					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
-						0: {
-							RecordNum:         0,
-							Type:              contentwriterV1.RecordType_REQUEST,
-							RecordContentType: "application/http; msgtype=request",
-							Size:              requestLength,
-						},
-						1: {
-							RecordNum:         1,
-							Type:              contentwriterV1.RecordType_RESPONSE,
-							RecordContentType: "application/http; msgtype=response",
-							Size:              test.wantResponseBlockSize,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	test.wantGrpcRequests = r
-}
-
-func (test *test) generateContentWriterErrorRequests() {
-	u, _ := test.parseUrlAndPort()
-	alreadyConnected := strings.HasPrefix(test.name, "https:")
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
-	r := &testutil.Requests{}
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
-
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     errors.RuntimeException.Int32(),
-			Method:         "GET",
-			RequestedUri:   targetURI,
-			RecordType:     "response",
-			IpAddress:      ipAddress,
-			ExecutionId:    "eid",
-			JobExecutionId: "jid",
-			Error: &commonsV1.Error{
-				Code:   errors.RuntimeException.Int32(),
-				Msg:    "Error writing to content writer",
-				Detail: "rpc error: code = InvalidArgument desc = Fake error",
-			},
-		}, false),
-	)
-
-	requestHeader, requestLength := generateCwProtocolHeaderRequest(u, test.keepAlive)
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
-		requestHeader,
-		generateCwProtocolHeaderResponse(test.wantStatus, len(test.wantContent)),
-		{
-			Value: &contentwriterV1.WriteRequest_Payload{
-				Payload: &contentwriterV1.Data{RecordNum: 1, Data: []byte(test.wantContent)},
-			},
-		},
-		{
-			Value: &contentwriterV1.WriteRequest_Meta{
-				Meta: &contentwriterV1.WriteRequestMeta{
-					ExecutionId:   "eid",
-					TargetUri:     targetURI,
-					IpAddress:     ipAddress,
-					CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "col1"},
-					RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{
-						0: {
-							RecordNum:         0,
-							Type:              contentwriterV1.RecordType_REQUEST,
-							RecordContentType: "application/http; msgtype=request",
-							Size:              requestLength,
-						},
-						1: {
-							RecordNum:         1,
-							Type:              contentwriterV1.RecordType_RESPONSE,
-							RecordContentType: "application/http; msgtype=response",
-							Size:              test.wantResponseBlockSize,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	test.wantGrpcRequests = r
-}
-
-func (test *test) generateCachedRequests() {
-	u, _ := test.parseUrlAndPort()
-	alreadyConnected := true
-	targetURI := test.url
-	ipAddress := expectedIP(test.url)
-	r := &testutil.Requests{}
-	r.DnsResolverRequests = generateDnsRequests(test.url, alreadyConnected)
-
-	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, alreadyConnected),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     int32(test.wantStatus),
-			Size:           test.wantResponseBlockSize,
-			Method:         "GET",
-			RequestedUri:   targetURI,
-			ContentType:    "text/plain; charset=utf-8",
-			IpAddress:      ipAddress,
-			ExecutionId:    "eid",
-			JobExecutionId: "jid",
-		}, true),
-	)
-
-	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
+	requestHeader, _ := generateCwProtocolHeaderRequest(u, tt.keepAlive)
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
 		requestHeader,
 		{
@@ -1277,129 +1399,78 @@ func (test *test) generateCachedRequests() {
 		},
 	}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateConnectionRefusedRequests() {
-	u, p := test.parseUrlAndPort()
-	r := &testutil.Requests{}
-	if u.Scheme == "https" {
-		r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
-			Host:        u.Hostname(),
-			Port:        int32(p),
-			ExecutionId: "eid",
-			CollectionRef: &configV1.ConfigRef{
-				Kind: configV1.Kind_collection,
-				Id:   "col1",
-			},
-		}}
-		r.BrowserControllerRequests = generateConnectOnlyRequests(test.url)
-		r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
-		test.wantGrpcRequests = r
-		return
-	}
+func (tt *test) generateConnectionRefusedRequests() {
+	u, _ := tt.parseUrlAndPort()
 
-	r.DnsResolverRequests = generateDnsRequests(test.url, false)
+	r := &testutil.Requests{}
+
+	r.DnsResolverRequests = generateDnsRequests(tt.url, false)
+
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, false),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     errors.RuntimeException.Int32(),
-			Method:         "GET",
-			RequestedUri:   test.url,
-			RecordType:     "response",
-			IpAddress:      "127.0.0.1",
-			ExecutionId:    "eid",
-			JobExecutionId: "jid",
-			Error: &commonsV1.Error{
-				Code:   -5,
-				Msg:    "UNKNOWN_ERROR",
-				Detail: "connection refused",
-			},
-		}, false),
+		generateBccNewRequests(tt.url, false),
+		generateBccCompleteRequest(
+			tt.errorCrawlLog(
+				tt.url,
+				"127.0.0.1",
+				errors.ConnectFailed,
+				"CONNECT_FAILED",
+				"connection refused",
+			),
+			false,
+		),
 	)
 
-	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
+	requestHeader, _ := generateCwProtocolHeaderRequest(u, tt.keepAlive)
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
 		requestHeader,
 		{
 			Value: &contentwriterV1.WriteRequest_Cancel{
-				Cancel: "connection refused",
+				Cancel: tt.recordErrorDetail("connection refused"),
 			},
 		},
 	}
 
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
-func (test *test) generateConnectionRefusedThroughProxyRequests() {
-	u, p := test.parseUrlAndPort()
-	r := &testutil.Requests{}
-	if u.Scheme == "https" {
-		r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
-			Host:        u.Hostname(),
-			Port:        int32(p),
-			ExecutionId: "eid",
-			CollectionRef: &configV1.ConfigRef{
-				Kind: configV1.Kind_collection,
-				Id:   "col1",
-			},
-		}}
-		r.BrowserControllerRequests = generateConnectOnlyRequests(test.url)
-		r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
-		test.wantGrpcRequests = r
-		return
-	}
+func (tt *test) generateConnectionRefusedThroughProxyRequests() {
+	tt.generateConnectionRefusedRequests()
+}
 
-	r.DnsResolverRequests = generateDnsRequests(test.url, false)
+func (tt *test) generateHandshakeFailureRequests() {
+	u, _ := tt.parseUrlAndPort()
+
+	r := &testutil.Requests{}
+
+	r.DnsResolverRequests = generateDnsRequests(tt.url, false)
 	r.BrowserControllerRequests = append(
-		generateBccNewRequests(test.url, false),
-		generateBccCompleteRequest(&logV1.CrawlLog{
-			StatusCode:     errors.EmptyResponse.Int32(),
-			Method:         "GET",
-			RequestedUri:   test.url,
-			RecordType:     "response",
-			IpAddress:      "127.0.0.1",
-			ExecutionId:    "eid",
-			JobExecutionId: "jid",
-			Error: &commonsV1.Error{
-				Code:   -404,
-				Msg:    "EMPTY_RESPONSE",
-				Detail: "Empty reply from server",
-			},
-		}, false),
+		generateBccNewRequests(tt.url, false),
+		generateBccCompleteRequest(
+			tt.errorCrawlLog(
+				tt.url,
+				"127.0.0.1",
+				errors.ConnectFailed,
+				"CONNECT_FAILED",
+				"tls: handshake failure",
+			),
+			false,
+		),
 	)
 
-	requestHeader, _ := generateCwProtocolHeaderRequest(u, test.keepAlive)
+	requestHeader, _ := generateCwProtocolHeaderRequest(u, tt.keepAlive)
 	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{
 		requestHeader,
 		{
 			Value: &contentwriterV1.WriteRequest_Cancel{
-				Cancel: "Empty reply from server",
+				Cancel: tt.recordErrorDetail("tls: handshake failure"),
 			},
 		},
 	}
 
-	test.wantGrpcRequests = r
-}
-
-func (test *test) generateHandshakeFailureRequests() {
-	u, p := test.parseUrlAndPort()
-	r := &testutil.Requests{}
-	r.DnsResolverRequests = []*dnsresolverV1.ResolveRequest{{
-		Host:        u.Hostname(),
-		Port:        int32(p),
-		ExecutionId: "eid",
-		CollectionRef: &configV1.ConfigRef{
-			Kind: configV1.Kind_collection,
-			Id:   "col1",
-		},
-	}}
-
-	r.BrowserControllerRequests = generateConnectOnlyRequests(test.url)
-
-	r.ContentWriterRequests = []*contentwriterV1.WriteRequest{}
-
-	test.wantGrpcRequests = r
+	tt.wantGrpcRequests = r
 }
 
 func compareCW(t testing.TB, serviceName string, want []*contentwriterV1.WriteRequest, got []*contentwriterV1.WriteRequest) {
@@ -1592,7 +1663,12 @@ func compareBcRequest(t testing.TB, tt test, want *testutil.BrowserControllerReq
 	}
 }
 
-func compareBcCompleteRequest(t testing.TB, tt test, want *browsercontrollerV2.CompleteResourceRequest, got *browsercontrollerV2.CompleteResourceRequest) bool {
+func compareBcCompleteRequest(
+	t testing.TB,
+	tt test,
+	want *browsercontrollerV2.CompleteResourceRequest,
+	got *browsercontrollerV2.CompleteResourceRequest,
+) bool {
 	t.Helper()
 
 	if want.GetCrawlLog() == nil || got.GetCrawlLog() == nil {
@@ -1600,19 +1676,28 @@ func compareBcCompleteRequest(t testing.TB, tt test, want *browsercontrollerV2.C
 	}
 
 	g := proto.Clone(got).(*browsercontrollerV2.CompleteResourceRequest)
+
 	allowedTimeDiff := time.Duration(g.GetCrawlLog().FetchTimeMs+1500) * time.Millisecond
 	if !checkTime(t, g.GetCrawlLog().FetchTimeStamp.AsTime(), allowedTimeDiff) {
 		return false
 	}
 	g.GetCrawlLog().FetchTimeStamp = nil
 
-	if !tt.wantResponseBlockDigest && g.GetCrawlLog().BlockDigest != "" {
-		t.Errorf("BlockDigest was not expected")
+	if tt.wantRecord.responseBlockDigest != nil {
+		wantDigest := *tt.wantRecord.responseBlockDigest
+		gotDigest := g.GetCrawlLog().BlockDigest != ""
+
+		if wantDigest && !gotDigest {
+			t.Errorf("Missing BlockDigest")
+			return false
+		}
+
+		if !wantDigest && gotDigest {
+			t.Errorf("BlockDigest was not expected")
+			return false
+		}
 	}
-	if tt.wantResponseBlockDigest && g.GetCrawlLog().BlockDigest == "" {
-		t.Errorf("Missing BlockDigest")
-		return false
-	}
+
 	g.GetCrawlLog().BlockDigest = ""
 	g.GetCrawlLog().FetchTimeMs = 0
 

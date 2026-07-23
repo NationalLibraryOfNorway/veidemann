@@ -33,7 +33,6 @@ const (
 	ctxKeyHost               = ctxKey("host")
 	ctxKeyPort               = ctxKey("port")
 	ctxKeyUrl                = ctxKey("url")
-	ctxKeyConnectErr         = ctxKey("connectErr")
 	ctxKeyRequestId          = ctxKey("reqid")
 	ctxKeyCrawlExecutionId   = ctxKey("eid")
 	ctxKeyJobExecutionId     = ctxKey("jid")
@@ -160,7 +159,6 @@ func ResetRequestState(ctx context.Context, preserveSessionMetadata bool) {
 	}
 
 	delete(state.values, ctxKeyRCTX)
-	delete(state.values, ctxKeyConnectErr)
 	delete(state.values, ctxKeyRequestId)
 	delete(state.values, ctxKeyIp)
 
@@ -191,29 +189,6 @@ func SetUri(ctx context.Context, uri *url.URL) {
 
 func SetRecordContext(ctx context.Context, rc *RecordContext) {
 	setValue(ctx, ctxKeyRCTX, rc)
-}
-
-func SetConnectError(ctx context.Context, err error) {
-	setValue(ctx, ctxKeyConnectErr, err)
-}
-
-func SetConnectErrorIfNotExists(ctx context.Context, err error) {
-	h, ok := lookupStateHandle(ctx)
-	if !ok {
-		return
-	}
-
-	dataAwareMutex.Lock()
-	defer dataAwareMutex.Unlock()
-
-	state, found := dataAwareState[h]
-	if !found {
-		state = &recorderProxyState{values: make(map[ctxKey]interface{}, 8)}
-		dataAwareState[h] = state
-	}
-	if state.values[ctxKeyConnectErr] == nil {
-		state.values[ctxKeyConnectErr] = err
-	}
 }
 
 func SetRequestId(ctx context.Context, reqid string) {
@@ -253,11 +228,6 @@ func GetUri(ctx context.Context) (uri *url.URL) {
 
 func GetRecordContext(ctx context.Context) (recordContext *RecordContext) {
 	recordContext, _ = getValue(ctx, ctxKeyRCTX).(*RecordContext)
-	return
-}
-
-func GetConnectError(ctx context.Context) (err error) {
-	err, _ = getValue(ctx, ctxKeyConnectErr).(error)
 	return
 }
 

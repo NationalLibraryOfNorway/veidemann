@@ -5,6 +5,7 @@
 *.so
 *.dylib
 /veidemann-recorderproxy
+/proxy
 
 # Test binary, build with `go test -c`
 *.test

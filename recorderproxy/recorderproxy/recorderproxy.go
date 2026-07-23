@@ -64,20 +64,24 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 
 	filterChain := filters.Join(
 		&NonproxyFilter{},
+
+		// Initializes request and connection metadata.
 		&ContextInitFilter{
 			conn:    conn,
 			proxyId: int32(id),
 		},
+
+		// Must wrap DNS, recorder, and transport filters.
+		&ErrorHandlerFilter{},
+
 		&DnsLookupFilter{
 			DnsResolverClient: conn.DnsResolverClient(),
 		},
+
 		&RecorderFilter{
 			proxyId:           int32(id),
 			DnsResolverClient: conn.DnsResolverClient(),
 			hasNextProxy:      nextProxyAddr != "",
-		},
-		&ErrorHandlerFilter{
-			hasNextProxy: nextProxyAddr != "",
 		},
 	)
 
@@ -98,8 +102,21 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 			Organization:    "Veidemann Recorder Proxy",
 			CertFile:        "/tmp/rpcert.pem",
 		},
-		OnError: func(cs *filters.ConnectionState, req *http.Request, read bool, err error) *http.Response {
-			logger.LogWithComponent("PROXY").WithError(err).Error("Probably bug. Error handled by OnError should have been handled elsewhere.")
+		OnError: func(cs *filters.ConnectionState, req *http.Request, phase proxy.ErrorPhase, err error) *http.Response {
+			phasedErr := err
+			if proxy.Phase(phasedErr) == "" {
+				phasedErr = proxy.NewPhaseError(phase, err)
+			}
+			failure := classifyFailure(phasedErr, FailureScopeConnection)
+			logger.LogWithComponent("PROXY").
+				WithField("phase", failure.Phase).
+				WithField("scope", failure.Scope).
+				WithField("code", failure.Code).
+				WithError(err).
+				Error("Connection failure outside a recordable HTTP request")
+			if phase != proxy.PhaseFilter && phase != proxy.PhaseReadRequest {
+				return nil
+			}
 			res, _, _ := filters.Fail(cs, req, 500, err)
 			return res
 		},

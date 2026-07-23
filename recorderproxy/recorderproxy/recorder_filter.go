@@ -17,18 +17,12 @@
 package recorderproxy
 
 import (
-	"bytes"
 	"context"
 	"net/http"
-	"strings"
 
-	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/getlantern/proxy/v3/filters"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // RecorderFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.
@@ -40,137 +34,43 @@ type RecorderFilter struct {
 
 func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
 	ctx := filterContext(cs, req)
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:rec")
-	connectErr := rpcontext.GetConnectError(ctx)
-	if connectErr != nil {
-		resp, nextCS, err = next(cs, req)
+
+	if req.Method == http.MethodConnect {
+		return next(cs, req)
+	}
+
+	rc := rpcontext.GetRecordContext(ctx)
+
+	req, err = f.filterRequest(ctx, req, rc)
+	if err != nil {
+		return handleRequestError(cs, req, err)
+	}
+
+	resp, nextCS, err = next(cs, req)
+	if err != nil {
 		return
 	}
 
-	if req.Method == http.MethodConnect {
-		// Handle HTTPS CONNECT
-		resp, nextCS, err = next(cs, req)
-		if err != nil {
-			l.WithError(err).Infof("Could not CONNECT to upstream server: %v", req.Host)
-		}
-		shortCircuitCS := nextCS
-		if shortCircuitCS == nil {
-			shortCircuitCS = cs
-		}
-		resp, nextCS, err = filters.ShortCircuit(shortCircuitCS, req, &http.Response{
-			StatusCode: http.StatusOK,
-		})
-	} else {
-		rc := rpcontext.GetRecordContext(ctx)
-
-		req, err = f.filterRequest(ctx, req, rc)
-		if err != nil {
-			return handleRequestError(cs, req, err)
-		}
-
-		resp, nextCS, err = next(cs, req)
-		if err != nil {
-			return
-		}
-
-		resp, err = f.filterResponse(ctx, resp, rc)
-		if err != nil {
-			return handleRequestError(cs, req, err)
-		}
+	resp, err = f.filterResponse(ctx, resp, rc)
+	if err != nil {
+		return handleRequestError(cs, req, err)
 	}
+
 	return
 }
 
-func (f *RecorderFilter) filterRequest(ctx context.Context, req *http.Request, rc *rpcontext.RecordContext) (*http.Request, error) {
-	var prolog bytes.Buffer
-	err := writeRequestProlog(req, &prolog)
-	if err != nil {
-		e := errors.WrapInternalError(err, errors.RuntimeException, "Unable to write request headers", err.Error())
-		return req, e
-	}
-
-	fetchTimeStamp := timestamppb.New(rc.FetchTimesTamp)
-	uri := rc.Uri
-	rc.IpAddress = rpcontext.GetIp(ctx)
-
-	req.Header.Set(constants.HeaderAcceptEncoding, "identity")
-	req.Header.Set(constants.HeaderCrawlExecutionId, rc.CrawlExecutionId)
-	req.Header.Set(constants.HeaderJobExecutionId, rc.JobExecutionId)
-
-	rc.Meta = &contentwriterV1.WriteRequest_Meta{
-		Meta: &contentwriterV1.WriteRequestMeta{
-			RecordMeta:     map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{},
-			TargetUri:      uri.String(),
-			ExecutionId:    rc.CrawlExecutionId,
-			IpAddress:      rc.IpAddress,
-			CollectionRef:  rc.CollectionRef,
-			FetchTimeStamp: fetchTimeStamp,
-		},
-	}
-
-	rc.CrawlLog.RequestedUri = uri.String()
-
-	contentType := req.Header.Get("Content-Type")
-	bodyWrapper, err := WrapRequestBody(ctx, rc, req.Body, contentType, prolog.Bytes())
-	if err != nil {
-		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
-		return req, e
-	}
-	req.Body = bodyWrapper
-
-	return req, nil
+func (f *RecorderFilter) filterRequest(
+	ctx context.Context,
+	req *http.Request,
+	rc *rpcontext.RecordContext,
+) (*http.Request, error) {
+	return newRequestRecorder(ctx, rc).Wrap(req)
 }
 
-func (f *RecorderFilter) filterResponse(ctx context.Context, respOrig *http.Response, rc *rpcontext.RecordContext) (*http.Response, error) {
-	resp := respOrig
-	if resp == nil {
-		panic(http.ErrAbortHandler)
-	}
-
-	if rc.Error != nil && strings.HasPrefix(rc.Error.Error(), "unknown error from browser controller") {
-		return resp, nil
-	}
-
-	if isFromCache(resp) {
-		rpcontext.LogWithRecordContext(rc, "FLT:rec").Info("Loaded from cache")
-		rc.FoundInCache = true
-	}
-
-	var prolog bytes.Buffer
-	err := writeResponseProlog(resp, &prolog)
-	if err != nil {
-		e := errors.WrapInternalError(err, errors.RuntimeException, "Unable to write response headers", err.Error())
-		return resp, e
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-	statusCode := int32(resp.StatusCode)
-	bodyWrapper, err := WrapResponseBody(ctx, rc, resp.Body, statusCode, contentType, contentwriterV1.RecordType_RESPONSE, prolog.Bytes())
-	if err != nil {
-		e := errors.WrapInternalError(err, errors.RuntimeException, "Veidemann proxy lost connection to GRPC services", err.Error())
-		return nil, e
-	}
-
-	if rc.ReplacementScript != nil {
-		rpcontext.LogWithRecordContext(rc, "FLT:rec").Info("Replacement script")
-		resp.ContentLength = int64(len(rc.ReplacementScript.Script))
-	}
-	resp.Body = bodyWrapper
-
-	return resp, nil
-}
-
-func isFromCache(resp *http.Response) bool {
-	cacheHeaders := resp.Header["X-Cache"]
-	if cacheHeaders == nil {
-		return false
-	}
-
-	for _, v := range cacheHeaders {
-		if strings.Contains(v, "HIT from veidemann_cache") {
-			return true
-		}
-	}
-
-	return false
+func (f *RecorderFilter) filterResponse(
+	ctx context.Context,
+	respOrig *http.Response,
+	rc *rpcontext.RecordContext,
+) (*http.Response, error) {
+	return newResponseRecorder(ctx, rc).Wrap(respOrig)
 }

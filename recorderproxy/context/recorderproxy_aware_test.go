@@ -107,7 +107,6 @@ func TestResetRequestStateClearsRequestScopedValues(t *testing.T) {
 	SetHost(ctx, "example.com")
 	SetPort(ctx, "443")
 	SetUri(ctx, uri)
-	SetConnectError(ctx, context.Canceled)
 	SetRequestId(ctx, "req-1")
 	SetIp(ctx, "127.0.0.1")
 	SetCrawlExecutionId(ctx, "ceid")
@@ -125,9 +124,6 @@ func TestResetRequestStateClearsRequestScopedValues(t *testing.T) {
 	}
 	if got := GetUri(ctx); got != nil {
 		t.Fatalf("GetUri() = %v, want nil", got)
-	}
-	if got := GetConnectError(ctx); got != nil {
-		t.Fatalf("GetConnectError() = %v, want nil", got)
 	}
 	if got := GetRequestId(ctx); got != "" {
 		t.Fatalf("GetRequestId() = %q, want empty", got)

@@ -28,131 +28,220 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/getlantern/proxy/v3/filters"
 )
 
-// handleRequestError creates a short circuit response for requests that fail before or in request handling.
-// Only CrawlLog is sent, nothing is written to content writer.
-func handleRequestError(cs *filters.ConnectionState, req *http.Request, reqErr error) (*http.Response, *filters.ConnectionState, error) {
-	ctx := filterContext(cs, req)
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "REQH")
-	l.WithError(reqErr).Debug("handling request error")
-	rc := rpcontext.GetRecordContext(ctx)
-	if rc == nil {
-		return errorResponse(cs, req, reqErr)
-	}
-	e := rc.SendRequestError(ctx, reqErr)
-	_ = rc.CancelContentWriter(errors.Detail(e))
-	return errorResponse(cs, req, e)
-}
-
-// errorResponse creates a response from an error and populates Veidemann specific headers
-func errorResponse(cs *filters.ConnectionState, req *http.Request, err error) (*http.Response, *filters.ConnectionState, error) {
-	resp, nextCS, err := filters.Fail(cs, req, errors.HttpStatusCode(err), err)
-	resp.Header.Add(constants.HeaderProxyErrorCode, errors.Code(err).String())
-	resp.Header.Add(constants.HeaderProxyError, errors.Message(err))
-	return resp, nextCS, err
-}
+const requestRecordNum int32 = 0
 
 type wrappedRequestBody struct {
 	io.ReadCloser
+
 	ctx           context.Context
 	recordContext *rpcontext.RecordContext
-	recNum        int32
-	size          int64
-	blockCrc      hash.Hash
-	recordMeta    *contentwriterV1.WriteRequestMeta_RecordMeta
-	mutex         sync.Mutex
-	eof           bool
+	log           *logger.Logger
+
+	recNum      int32
+	size        int64
+	blockDigest hash.Hash
+	recordMeta  *contentwriterV1.WriteRequestMeta_RecordMeta
+
+	mu     sync.Mutex
+	eof    bool
+	closed bool
+	failed error
 }
 
-func WrapRequestBody(ctx context.Context, rc *rpcontext.RecordContext, body io.ReadCloser, contentType string,
-	prolog []byte) (*wrappedRequestBody, error) {
+func WrapRequestBody(
+	ctx context.Context,
+	rc *rpcontext.RecordContext,
+	body io.ReadCloser,
+	contentType string,
+	prolog []byte,
+) (*wrappedRequestBody, error) {
 	if body == nil {
 		body = http.NoBody
+	}
+
+	if err := ensureRequestRecordContext(rc); err != nil {
+		return nil, err
 	}
 
 	b := &wrappedRequestBody{
 		ReadCloser:    body,
 		ctx:           ctx,
 		recordContext: rc,
-		recNum:        0,
-		blockCrc:      sha1.New(),
+		recNum:        requestRecordNum,
+		size:          int64(len(prolog)),
+		blockDigest:   sha1.New(),
 	}
+
+	b.log = rpcontext.
+		LogWithRecordContext(rc, "BODY:req").
+		WithField("url", rc.Uri.String())
 
 	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
-		RecordNum: b.recNum,
-		Type:      contentwriterV1.RecordType_REQUEST,
+		RecordNum:         b.recNum,
+		Type:              contentwriterV1.RecordType_REQUEST,
+		RecordContentType: constants.RecordContentTypeRequest,
 	}
-	b.recordMeta.RecordContentType = constants.RecordContentTypeRequest
-	b.recordContext.Meta.Meta.RecordMeta[b.recNum] = b.recordMeta
-	b.recordContext.CrawlLog.StatusCode = -1
-	b.recordContext.CrawlLog.ContentType = contentType
 
-	b.size = int64(len(prolog))
-	b.blockCrc.Write(prolog)
+	rc.Meta.Meta.RecordMeta[b.recNum] = b.recordMeta
+	rc.CrawlLog.StatusCode = -1
+	rc.CrawlLog.ContentType = contentType
 
-	err := b.recordContext.SendProtocolHeader(b.recNum, prolog)
-	if err != nil {
-		return nil, fmt.Errorf("error writing payload to content writer: %v", err)
+	_, _ = b.blockDigest.Write(prolog)
+
+	if err := rc.SendProtocolHeader(b.recNum, prolog); err != nil {
+		return nil, fmt.Errorf("error writing request protocol header to content writer: %w", err)
 	}
 
 	return b, nil
 }
 
-func (b *wrappedRequestBody) Close() (err error) {
-	if b.ReadCloser == nil {
+func ensureRequestRecordContext(rc *rpcontext.RecordContext) error {
+	if rc == nil {
+		return fmt.Errorf("record context is nil")
+	}
+	if rc.Uri == nil {
+		return fmt.Errorf("record context uri is nil")
+	}
+	if rc.CrawlLog == nil {
+		return fmt.Errorf("record context crawl log is nil")
+	}
+	if rc.Meta == nil || rc.Meta.Meta == nil {
+		return fmt.Errorf("record context meta is nil")
+	}
+	if rc.Meta.Meta.RecordMeta == nil {
+		rc.Meta.Meta.RecordMeta = map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{}
+	}
+
+	return nil
+}
+
+func (b *wrappedRequestBody) Read(p []byte) (int, error) {
+	r, err := b.reader()
+	if err != nil {
+		return 0, err
+	}
+
+	n, readErr := r.Read(p)
+	b.logRead(n, readErr)
+
+	if n > 0 {
+		if err := b.recordPayload(p[:n]); err != nil {
+			b.setFailed(err)
+			return n, err
+		}
+	}
+
+	if readErr == io.EOF {
+		b.finishRecord()
+	}
+
+	return n, readErr
+}
+
+func (b *wrappedRequestBody) reader() (io.Reader, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	switch {
+	case b.closed:
+		return nil, http.ErrBodyReadAfterClose
+	case b.failed != nil:
+		return nil, b.failed
+	case b.eof:
+		return nil, io.EOF
+	case b.ReadCloser == nil:
+		b.eof = true
+		return nil, io.EOF
+	default:
+		return b.ReadCloser, nil
+	}
+}
+
+func (b *wrappedRequestBody) Close() error {
+	rc := b.closeState()
+
+	var err error
+	if rc != nil {
+		err = rc.Close()
+	}
+
+	if err != nil {
+		b.log.WithError(err).Debug("Close body")
+	} else {
+		b.log.Debug("Close body")
+	}
+
+	return err
+}
+
+func (b *wrappedRequestBody) closeState() io.Closer {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.closed {
 		return nil
 	}
-	err = b.ReadCloser.Close()
-	logger.LogWithComponent("BODY:req").WithError(err).Debug("Close body")
-	return
+
+	b.closed = true
+	return b.ReadCloser
 }
 
-func (b *wrappedRequestBody) Read(p []byte) (n int, err error) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
+func (b *wrappedRequestBody) logRead(n int, err error) {
+	if err != nil && err != io.EOF {
+		b.log.WithError(err).Warnf("Inner read %d", n)
+		return
+	}
+
+	b.log.Tracef("Inner read %d", n)
+}
+
+func (b *wrappedRequestBody) recordPayload(data []byte) error {
+	b.mu.Lock()
+
+	b.size += int64(len(data))
+	_, _ = b.blockDigest.Write(data)
+
+	recNum := b.recNum
+	rc := b.recordContext
+
+	b.mu.Unlock()
+
+	if err := rc.SendPayload(recNum, data); err != nil {
+		b.log.WithError(err).Error("Error writing request payload")
+		return err
+	}
+
+	return nil
+}
+
+func (b *wrappedRequestBody) finishRecord() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	if b.eof {
-		return 0, io.EOF
-	}
-	if b.ReadCloser == nil {
-		b.eof = true
-		return 0, io.EOF
+		return
 	}
 
-	n, err = b.ReadCloser.Read(p)
-	if n > 0 {
-		b.size += int64(n)
-		d := p[:n]
-		b.writeCrc(d)
-		err2 := b.recordContext.SendPayload(b.recNum, d)
-		if err2 != nil {
-			logger.Log.Errorf("Error writing payload: %v", err2)
-		}
-		//b.recordContext.HandleErr("Error writing payload to content writer", err2)
-	}
-	if err == io.EOF {
-		b.eof = true
+	b.eof = true
 
-		blockDigest := fmt.Sprintf("sha1:%x", b.blockCrc.Sum(nil))
-		b.recordMeta.Size = b.size
-		b.recordMeta.BlockDigest = blockDigest
-	}
-	return
+	blockDigest := fmt.Sprintf("sha1:%x", b.blockDigest.Sum(nil))
+
+	b.recordMeta.Size = b.size
+	b.recordMeta.BlockDigest = blockDigest
 }
 
-func (b *wrappedRequestBody) writeCrc(d []byte) error {
-	l := len(d)
-	c := 0
-	for c < l {
-		n, err := b.blockCrc.Write(d[c:])
-		if err != nil {
-			return err
-		}
-		c += n
+func (b *wrappedRequestBody) setFailed(err error) {
+	if err == nil {
+		return
 	}
-	return nil
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.failed == nil {
+		b.failed = err
+	}
 }

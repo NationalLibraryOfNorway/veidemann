@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// DnsLookupFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.
+// DnsLookupFilter
 type DnsLookupFilter struct {
 	DnsResolverClient dnsresolverV1.DnsResolverClient
 }

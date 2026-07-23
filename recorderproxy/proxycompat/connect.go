@@ -94,18 +94,27 @@ func noopCancel() {}
 
 func (proxy *proxy) Connect(dialCtx context.Context, in io.Reader, conn net.Conn, origin string) error {
 	pin := io.MultiReader(strings.NewReader(fmt.Sprintf(connectRequest, origin, origin)), in)
-	return proxy.handle(dialCtx, pin, conn, nil, false, false, false)
+	return proxy.handle(dialCtx, pin, conn, nil, nil, false, false, false)
 }
 
 func (proxy *proxy) proceedWithConnect(
 	dialCtx context.Context, req *http.Request,
 	upstreamAddr string, upstream net.Conn, downstream net.Conn, respondOK bool) error {
 
+	var upstreamFailure error
+	var upstreamFailurePhase ErrorPhase
+
 	if upstream == nil {
-		var dialErr error
-		upstream, dialErr = proxy.Dial(dialCtx, true, "tcp", upstreamAddr)
-		if dialErr != nil {
-			return dialErr
+		upstream, upstreamFailure = proxy.Dial(dialCtx, true, "tcp", upstreamAddr)
+		upstreamFailurePhase = PhaseConnectDial
+		if upstreamFailure != nil {
+			if phase := Phase(upstreamFailure); phase != "" {
+				upstreamFailurePhase = phase
+			}
+			if upstream != nil {
+				_ = upstream.Close()
+			}
+			upstream = newUnavailableUpstreamConn(upstreamFailure)
 		}
 	}
 	defer func() {
@@ -118,7 +127,23 @@ func (proxy *proxy) proceedWithConnect(
 	if proxy.ShouldMITM != nil && proxy.ShouldMITM(req, upstreamAddr) {
 		downstreamMITM, upstreamMITM, mitming, err := proxy.mitmIC.MITM(downstream, upstream)
 		if err != nil {
-			return fmt.Errorf("unable to MITM connection: %w", err)
+			phase := PhaseDownstreamTLS
+			failure := fmt.Errorf("unable to MITM connection: %w", err)
+			if downstreamMITM != nil && mitming {
+				phase = PhaseUpstreamTLS
+			}
+			if upstreamFailure != nil {
+				phase = upstreamFailurePhase
+				failure = upstreamFailure
+			}
+
+			if downstreamMITM != nil && mitming {
+				downstream = wrapConn(downstreamMITM, downstream)
+				return proxy.handleFailedMITMRequest(dialCtx, downstream, respondOK, phase, failure)
+			}
+
+			proxy.OnError(filters.NewConnectionState(req, nil, downstream), req, phase, failure)
+			return NewPhaseError(phase, failure)
 		}
 		downstream = wrapConn(downstreamMITM, downstream)
 		upstream = wrapConn(upstreamMITM, upstream)
@@ -132,7 +157,7 @@ func (proxy *proxy) proceedWithConnect(
 			}
 			if peekReqErr == nil {
 				fullDownstream := io.MultiReader(rr, downstream)
-				return proxy.handle(dialCtx, fullDownstream, downstream, upstream, respondOK, true, true)
+				return proxy.handle(dialCtx, fullDownstream, downstream, upstream, nil, respondOK, true, true)
 			}
 		}
 	}
@@ -151,12 +176,43 @@ func (proxy *proxy) proceedWithConnect(
 
 	writeErr, readErr := netx.BidiCopy(upstream, downstream, *bufOut, *bufIn)
 	if isUnexpected(readErr) {
-		return fmt.Errorf("error piping data to downstream: %w", readErr)
+		return NewPhaseError(PhaseTunnel, fmt.Errorf("error piping data to downstream: %w", readErr))
 	}
 	if isUnexpected(writeErr) {
 		return fmt.Errorf("error piping data to upstream at %v: %w", upstream.RemoteAddr(), writeErr)
 	}
 	return nil
+}
+
+func (proxy *proxy) handleFailedMITMRequest(
+	dialCtx context.Context,
+	downstream net.Conn,
+	respondOK bool,
+	phase ErrorPhase,
+	failure error,
+) error {
+	downstreamRR := reconn.Wrap(downstream, maxHTTPSize)
+	_, readErr := http.ReadRequest(bufio.NewReader(downstreamRR))
+	rr, rereadErr := downstreamRR.Rereader()
+	if rereadErr != nil {
+		return NewPhaseError(PhaseInnerHTTPRequest, fmt.Errorf("unable to re-read data: %w", rereadErr))
+	}
+	if readErr != nil {
+		proxy.OnError(filters.NewConnectionState(nil, nil, downstream), nil, PhaseInnerHTTPRequest, readErr)
+		return NewPhaseError(PhaseInnerHTTPRequest, readErr)
+	}
+
+	fullDownstream := io.MultiReader(rr, downstream)
+	return proxy.handle(
+		dialCtx,
+		fullDownstream,
+		downstream,
+		nil,
+		NewPhaseError(phase, failure),
+		respondOK,
+		true,
+		true,
+	)
 }
 
 func badGateway(cs *filters.ConnectionState, req *http.Request, err error) (*http.Response, *filters.ConnectionState, error) {
