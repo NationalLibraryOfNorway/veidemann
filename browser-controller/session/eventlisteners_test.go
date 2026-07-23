@@ -4,10 +4,54 @@ import (
 	"errors"
 	"testing"
 
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/target"
 )
+
+func TestLoadingFailedThenRecorderCompletionKeepsRecorderCrawlLog(t *testing.T) {
+	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	req, added := registry.GetOrAddRequest(&requests.Request{
+		ID:           "request-1",
+		NetworkID:    "request-1",
+		URL:          "https://example.com/",
+		Method:       "GET",
+		ResourceType: "Document",
+		GotNew:       true,
+	})
+	if !added {
+		t.Fatal("initial request was not added")
+	}
+
+	sess := &Session{
+		Requests:       registry,
+		networkTracker: newNetworkActivityTracker(),
+	}
+	sess.onNetworkEventLoadingFailed(t.Context(), &network.EventLoadingFailed{
+		RequestID: network.RequestID(req.ID),
+		Type:      network.ResourceTypeDocument,
+		ErrorText: "net::ERR_CONNECTION_REFUSED",
+	}, 1)
+
+	if !req.GotComplete {
+		t.Fatal("loadingFailed did not complete the initial request")
+	}
+	if req.CrawlLog != nil {
+		t.Fatalf("loadingFailed fabricated a crawl log: %#v", req.CrawlLog)
+	}
+
+	recorderLog := &logV1.CrawlLog{RequestedUri: req.URL, StatusCode: -2}
+	registry.CompleteRequest(req.ID, recorderLog, false)
+
+	if req.CrawlLog != recorderLog {
+		t.Fatalf("recorder crawl log was not retained: got %#v, want %#v", req.CrawlLog, recorderLog)
+	}
+	if registry.InitialRequest() != req || !registry.InitialRequest().GotComplete {
+		t.Fatal("initial request was not complete after recorder completion")
+	}
+}
 
 func TestMarkTargetInitialized(t *testing.T) {
 	sess := &Session{}
