@@ -2,11 +2,11 @@ package session
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
+	browserurl "github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
 	"github.com/chromedp/cdproto/network"
 )
 
@@ -68,18 +68,10 @@ func shouldTrackNetworkResource(resourceType network.ResourceType, rawURL string
 		return false
 	}
 
-	urlLower := strings.ToLower(rawURL)
-	switch {
-	case strings.HasPrefix(urlLower, "data:"),
-		strings.HasPrefix(urlLower, "blob:"),
-		strings.HasPrefix(urlLower, "chrome:"),
-		strings.HasPrefix(urlLower, "devtools:"),
-		strings.HasPrefix(urlLower, "about:"),
-		strings.HasPrefix(urlLower, "javascript:"):
+	if browserurl.IsBrowserLocal(rawURL) {
 		return false
-	default:
-		return true
 	}
+	return true
 }
 
 func (t *networkActivityTracker) noteRequestStart(ev *network.EventRequestWillBeSent) {

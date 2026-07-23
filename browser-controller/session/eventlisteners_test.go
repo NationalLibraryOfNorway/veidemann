@@ -7,9 +7,82 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
+	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/target"
 )
+
+func TestNetworkRequestRegistrationIgnoresBrowserLocalURLs(t *testing.T) {
+	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	sess := &Session{
+		Requests:       registry,
+		networkTracker: newNetworkActivityTracker(),
+	}
+	sess.startAcceptingRequests()
+
+	sess.onNetworkEventRequestWillBeSent(t.Context(), &network.EventRequestWillBeSent{
+		RequestID: network.RequestID("local-1"),
+		Request:   &network.Request{URL: "data:image/png;base64,AAAA", Method: "GET"},
+		Initiator: &network.Initiator{Type: network.InitiatorTypeParser},
+		Type:      network.ResourceTypeImage,
+	}, 1)
+
+	if got := registry.GetByID("local-1"); got != nil {
+		t.Fatalf("browser-local request was registered: %#v", got)
+	}
+}
+
+func TestNetworkRequestRegistrationPreservesCanonicalMerge(t *testing.T) {
+	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	sess := &Session{
+		Requests:       registry,
+		networkTracker: newNetworkActivityTracker(),
+	}
+	sess.startAcceptingRequests()
+
+	sess.onNetworkEventRequestWillBeSent(t.Context(), &network.EventRequestWillBeSent{
+		RequestID: network.RequestID("network-1"),
+		Request:   &network.Request{URL: "https://example.com/image.png", Method: "GET"},
+		Initiator: &network.Initiator{Type: network.InitiatorTypeParser},
+		Type:      network.ResourceTypeImage,
+	}, 1)
+
+	fromNetwork := registry.GetByID("network-1")
+	if fromNetwork == nil {
+		t.Fatal("network request was not registered")
+	}
+	fromFetch, added := registry.GetOrAddRequest(&requests.Request{
+		ID:             "network-1",
+		FetchRequestID: "interception-1",
+		NetworkID:      "network-1",
+		URL:            "https://example.com/image.png",
+		Method:         "GET",
+		ResourceType:   "Image",
+	})
+	if added {
+		t.Fatal("Fetch observation created a duplicate registry entry")
+	}
+	if fromFetch != fromNetwork {
+		t.Fatal("Fetch observation did not merge with the canonical Network request")
+	}
+	if fromFetch.FetchRequestID != "interception-1" {
+		t.Fatalf("FetchRequestID = %q, want interception-1", fromFetch.FetchRequestID)
+	}
+}
+
+func TestRequestFromFetchPausedIdentifiesBrowserLocalURL(t *testing.T) {
+	ev := &fetch.EventRequestPaused{
+		RequestID:    fetch.RequestID("interception-1"),
+		NetworkID:    network.RequestID("network-1"),
+		Request:      &network.Request{URL: "blob:https://example.com/id", Method: "GET"},
+		ResourceType: network.ResourceTypeScript,
+	}
+
+	if !url.IsBrowserLocal(ev.Request.URL) {
+		t.Fatal("browser-local Fetch request was not identified before registration")
+	}
+}
 
 func TestLoadingFailedThenRecorderCompletionKeepsRecorderCrawlLog(t *testing.T) {
 	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))

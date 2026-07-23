@@ -113,6 +113,10 @@ func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *netw
 	if !sess.acceptingRequests() {
 		return
 	}
+	if url.IsBrowserLocal(ev.Request.URL) {
+		log.Debug("Ignoring browser-local network request")
+		return
+	}
 
 	req, added := sess.Requests.GetOrAddRequest(requestFromNetworkWillBeSent(ev))
 	if added {
@@ -349,12 +353,16 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 		ev.NetworkID,
 	)
 
-	req, added := sess.Requests.GetOrAddRequest(requestFromFetchPaused(ev))
-
-	if added {
-		log.Warn("FETCH add request", "req", req)
-	} else {
-		log.Debug("FETCH reuse request", "req", req)
+	browserLocal := url.IsBrowserLocal(ev.Request.URL)
+	var req *requests.Request
+	added := false
+	if !browserLocal {
+		req, added = sess.Requests.GetOrAddRequest(requestFromFetchPaused(ev))
+		if added {
+			log.Debug("FETCH add request", "req", req)
+		} else {
+			log.Debug("FETCH reuse request", "req", req)
+		}
 	}
 
 	if err := sess.continuePausedRequest(ctx, ev, req); err != nil {
@@ -370,6 +378,10 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 			log.Debug("Ignored continue failure for rolled-back paused request", "error", err)
 		}
 
+		return
+	}
+	if browserLocal {
+		log.Debug("Continued browser-local request without registering it")
 		return
 	}
 
