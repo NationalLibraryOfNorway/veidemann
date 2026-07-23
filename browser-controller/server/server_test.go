@@ -69,7 +69,8 @@ var (
 		return localIP.String()
 	}()
 
-	fixtureSiteBaseURL string
+	fixtureSiteHTTPBaseURL  string
+	fixtureSiteHTTPSBaseURL string
 
 	// provider is a flag to select container provider
 	provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
@@ -102,7 +103,8 @@ func TestMain(m *testing.M) {
 	defer func() {
 		_ = fixtureSite.Close()
 	}()
-	fixtureSiteBaseURL = fixtureSite.baseURL
+	fixtureSiteHTTPBaseURL = fixtureSite.httpBaseURL
+	fixtureSiteHTTPSBaseURL = fixtureSite.httpsBaseURL
 
 	// setup database mock
 	dbMock := setupDbMock()
@@ -228,12 +230,13 @@ func TestSession_Fetch(t *testing.T) {
 		expectedOutlinks []string
 		skipReason       string
 	}{
-		{"static-outlink", fixtureSiteBaseURL, "/index.html", []string{fixtureSiteBaseURL + "/linked.html"}, ""},
+		{"http-static-outlink", fixtureSiteHTTPBaseURL, "/index.html", []string{fixtureSiteHTTPBaseURL + "/linked.html"}, ""},
+		{"https-static-outlink", fixtureSiteHTTPSBaseURL, "/index.html", []string{fixtureSiteHTTPSBaseURL + "/linked.html"}, ""},
 		{
-			"worker-outlink",
-			fixtureSiteBaseURL,
+			"http-worker-outlink",
+			fixtureSiteHTTPBaseURL,
 			"/worker.html",
-			[]string{fixtureSiteBaseURL + "/worker-hit.html"},
+			[]string{fixtureSiteHTTPBaseURL + "/worker-hit.html"},
 			"",
 		},
 	}
@@ -285,9 +288,10 @@ func TestSession_Fetch(t *testing.T) {
 }
 
 type fixtureSite struct {
-	baseURL string
-	ctx     context.Context
-	ctr     testcontainers.Container
+	httpBaseURL  string
+	httpsBaseURL string
+	ctx          context.Context
+	ctr          testcontainers.Container
 }
 
 func (s *fixtureSite) Close() error {
@@ -301,6 +305,18 @@ func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
 	if err != nil {
 		return nil, err
 	}
+	certDir, err := os.MkdirTemp("", "veidemann-fixture-certs-")
+	if err != nil {
+		return nil, fmt.Errorf("create fixture certificate directory: %w", err)
+	}
+	defer func() {
+		_ = os.RemoveAll(certDir)
+	}()
+
+	certPath, keyPath, err := writeFixtureCertFiles(certDir)
+	if err != nil {
+		return nil, fmt.Errorf("create fixture certificate: %w", err)
+	}
 
 	providerType, skipReaper := containerProvider()
 	fixtureContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -308,9 +324,12 @@ func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
 		ContainerRequest: testcontainers.ContainerRequest{
 			SkipReaper:   skipReaper,
 			Image:        "nginx:1.27-alpine",
-			ExposedPorts: []string{"80/tcp"},
-			WaitingFor:   wait.ForListeningPort("80/tcp"),
-			Files:        fixtureSiteFiles(root),
+			ExposedPorts: []string{"80/tcp", "443/tcp"},
+			WaitingFor: wait.ForAll(
+				wait.ForListeningPort("80/tcp"),
+				wait.ForListeningPort("443/tcp"),
+			),
+			Files: fixtureSiteFiles(root, certPath, keyPath),
 		},
 		Started: true,
 	})
@@ -318,25 +337,22 @@ func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
 		return nil, err
 	}
 
-	host, err := fixtureContainer.Host(ctx)
+	httpPort, err := fixtureContainer.MappedPort(ctx, "80/tcp")
 	if err != nil {
 		_ = fixtureContainer.Terminate(ctx)
 		return nil, err
 	}
-	if host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
-	}
-
-	port, err := fixtureContainer.MappedPort(ctx, "80/tcp")
+	httpsPort, err := fixtureContainer.MappedPort(ctx, "443/tcp")
 	if err != nil {
 		_ = fixtureContainer.Terminate(ctx)
 		return nil, err
 	}
 
 	return &fixtureSite{
-		baseURL: fmt.Sprintf("http://%s:%d", host, port.Num()),
-		ctx:     ctx,
-		ctr:     fixtureContainer,
+		httpBaseURL:  fmt.Sprintf("http://localhost:%d", httpPort.Num()),
+		httpsBaseURL: fmt.Sprintf("https://localhost:%d", httpsPort.Num()),
+		ctx:          ctx,
+		ctr:          fixtureContainer,
 	}, nil
 }
 
@@ -348,8 +364,25 @@ func fixtureSiteRoot() (string, error) {
 	return filepath.Join(filepath.Dir(currentFile), "testdata", "site"), nil
 }
 
-func fixtureSiteFiles(root string) []testcontainers.ContainerFile {
+func fixtureSiteFiles(root, certPath, keyPath string) []testcontainers.ContainerFile {
 	var result []testcontainers.ContainerFile
+	result = append(result,
+		testcontainers.ContainerFile{
+			HostFilePath:      filepath.Join(root, "..", "default.conf"),
+			ContainerFilePath: "/etc/nginx/conf.d/default.conf",
+			FileMode:          0o644,
+		},
+		testcontainers.ContainerFile{
+			HostFilePath:      certPath,
+			ContainerFilePath: "/etc/nginx/certs/localhost.crt",
+			FileMode:          0o644,
+		},
+		testcontainers.ContainerFile{
+			HostFilePath:      keyPath,
+			ContainerFilePath: "/etc/nginx/certs/localhost.key",
+			FileMode:          0o600,
+		},
+	)
 
 	files := []string{
 		"index.html",

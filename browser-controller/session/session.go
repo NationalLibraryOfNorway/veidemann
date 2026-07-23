@@ -74,6 +74,7 @@ var defaultChromiumLaunchArgs = []string{
 	"--disable-features=AutofillServerCommunication,OptimizationHints,MediaRouter,Translate,InterestFeedContentSuggestions",
 	"--disable-gaia-services",
 	"--disable-sync",
+	"--ignore-certificate-errors",
 	"--metrics-recording-only",
 	"--no-default-browser-check",
 	"--no-first-run",
@@ -96,7 +97,6 @@ type launch struct {
 	Headless            bool            `json:"headless"`
 	Args                []string        `json:"args"`
 	AcceptInsecureCerts bool            `json:"acceptInsecureCerts,omitempty"`
-	IgnoreHTTPSErrors   bool            `json:"ignoreHTTPSErrors,omitempty"`
 	DefaultViewport     defaultViewPort `json:"defaultViewport,omitzero"`
 }
 
@@ -240,7 +240,6 @@ func (sess *Session) compileBrowserWebsocketEndpoint() (string, error) {
 		Headless:            true,
 		Args:                args,
 		AcceptInsecureCerts: true,
-		IgnoreHTTPSErrors:   true,
 	}
 
 	b, err := json.Marshal(launch)
