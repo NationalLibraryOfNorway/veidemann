@@ -1,5 +1,9 @@
 # Veidemann Agent Guide
 
+## Scope
+
+These instructions apply to the entire repository. More specific `AGENTS.md` files may add or override instructions for their subtree.
+
 ## Project Overview
 
 Veidemann is a multi-language monorepo. The repository contains:
@@ -10,6 +14,14 @@ Veidemann is a multi-language monorepo. The repository contains:
 - Kubernetes deployment manifests under `deploy/k8s`
 
 Treat the repository as a collection of independent build units. Do not assume one top-level build command covers every Go module or frontend workflow.
+
+## Tooling
+
+Read [docs/agents/tools.md](docs/agents/tools.md) before running repository
+commands.
+
+Use repository-provided wrappers and task runners instead of invoking underlying
+tools directly. Do not install global dependencies.
 
 ## Build And Test Commands
 
@@ -78,3 +90,7 @@ Always render the affected Kustomize base or overlay after editing manifests.
 - Mention which module or manifest set you validated.
 - Call out operational risks for stateful or security-sensitive changes.
 - If a change adds a new required secret, config map value, or manual recovery step, update the relevant README in the same change.
+
+## Detailed references
+
+- [Tooling and commands](docs/agents/tools.md)
