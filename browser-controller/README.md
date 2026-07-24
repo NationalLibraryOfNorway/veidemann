@@ -28,6 +28,23 @@ The integration test is useful to validate compatibility between the `browserles
 
     go test --tags=integration -run TestSession_Fetch ./server
 
+### Diagnose lazy images on a URL
+
+The browser-only diagnostic runs without recorderproxy or the other Veidemann
+services. It compares DOM image state with Chrome network events and prints a
+bounded JSON report. It is skipped unless `-diagnostic-url` is provided.
+
+    go test --tags=integration -run '^TestURLDiagnostics$' -v ./session -args \
+      -diagnostic-url=https://www.nb.no/ \
+      -diagnostic-target='20260624GKG116' \
+      -diagnostic-modes=isolated-scroll,main-scroll,scroll-into-view,eager
+
+Add `foreground-scroll` to compare the normal hidden browserless target with a
+target activated through CDP `Page.bringToFront`.
+
+Use the full `TestSession_Fetch` harness when Chrome reports an image request
+but the corresponding crawl log or WARC record is missing.
+
 ### Using podman
 
 > Note that you have to manually clean up containers after every run with using podman as container provider because the container reaper (ryuk) is disabled.
