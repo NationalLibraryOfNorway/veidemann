@@ -167,7 +167,7 @@ func (sess *Session) registerNewDocumentScripts(ctx context.Context) error {
 			return fmt.Errorf("failed to register init script %s (%s): %w", configObject.GetMeta().GetName(), configObject.GetId(), err)
 		}
 
-		sess.logger.Info("Registered script",
+		sess.logger.Debug("Registered script",
 			"scriptType", configV1.BrowserScript_ON_NEW_DOCUMENT.String(),
 			"scriptName", configObject.GetMeta().GetName(),
 			"scriptId", configObject.GetId())
@@ -210,6 +210,7 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 	}
 
 	execute := func(configObject *configV1.ConfigObject, arguments json.RawMessage) (json.RawMessage, error) {
+		scriptStart := time.Now()
 		name := configObject.GetMeta().GetName()
 		id := configObject.GetId()
 		eci, err := resolveExecutionContextId()
@@ -222,13 +223,11 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 			"scriptId", id,
 			"scriptEci", int64(eci),
 		)
-		log.Debug("Executing script", "arguments", string(arguments))
-
 		res, err := callScript(ctx, eci, configObject.GetBrowserScript().GetScript(), arguments)
 		if err != nil {
-			log.Warn("Script execution failed", "error", err)
+			log.Warn("Script execution failed", "duration", time.Since(scriptStart), "outcome", "failure", "error", err)
 		} else {
-			log.Debug("Script returned", "result", string(res))
+			log.Debug("Script execution completed", "duration", time.Since(scriptStart), "outcome", "success")
 		}
 
 		return res, err

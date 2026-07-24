@@ -91,6 +91,9 @@ func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev a
 
 func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *network.EventRequestWillBeSent, listenerID int64) {
 	id := logicalIDFromNetworkWillBeSent(ev)
+	loggedURL, urlLength := requests.BoundedURLForLog(ev.Request.URL)
+	documentURL, documentURLLength := requests.BoundedURLForLog(ev.DocumentURL)
+	redirectURL, redirectURLLength := requests.BoundedURLForLog(redirectFromURL(ev))
 
 	log := sess.loggerOrDefault().With(
 		"id", id,
@@ -99,9 +102,12 @@ func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *netw
 		"frameID", string(ev.FrameID),
 		"initiator", ev.Initiator.Type.String(),
 		"loaderID", string(ev.LoaderID),
-		"documentURL", ev.DocumentURL,
-		"redirectFromURL", redirectFromURL(ev),
-		"url", ev.Request.URL,
+		"documentURL", documentURL,
+		"documentURLLength", documentURLLength,
+		"redirectFromURL", redirectURL,
+		"redirectFromURLLength", redirectURLLength,
+		"url", loggedURL,
+		"urlLength", urlLength,
 		"method", ev.Request.Method,
 	)
 
@@ -118,18 +124,9 @@ func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *netw
 		return
 	}
 
-	req, added := sess.Requests.GetOrAddRequest(requestFromNetworkWillBeSent(ev))
+	_, added := sess.Requests.GetOrAddRequest(requestFromNetworkWillBeSent(ev))
 	if added {
 		sess.networkTracker.noteRequestStart(ev)
-		log.Debug("Session.onNetworkEventRequestWillBeSent",
-			"id", req.ID,
-			"added", added,
-			"fetchRequestID", req.FetchRequestID,
-			"networkID", req.NetworkID,
-			"url", req.URL,
-			"initiator", req.Initiator,
-			"redirected", req.Redirected,
-			"redirectFromURL", req.RedirectFromURL)
 	}
 }
 
@@ -138,15 +135,7 @@ func (sess *Session) onNetworkEventLoadingFinished(_ context.Context, ev *networ
 
 	id := string(ev.RequestID)
 
-	log := sess.loggerOrDefault().With(
-		"listenerId", listenerID,
-		"id", id,
-		"requestID", ev.RequestID,
-		"encodedDataLength", ev.EncodedDataLength,
-	)
-
 	_ = sess.Requests.GotComplete(id)
-	log.Debug("Loading finished")
 }
 
 func (sess *Session) onNetworkEventDataReceived(_ context.Context, ev *network.EventDataReceived, _ int64) {
@@ -170,9 +159,10 @@ func (sess *Session) onNetworkEventLoadingFailed(_ context.Context, ev *network.
 	// TODO should it be completed when failed ?
 	req := sess.Requests.GotComplete(id)
 	if req != nil {
-		log = log.With("url", req.URL)
+		loggedURL, urlLength := requests.BoundedURLForLog(req.URL)
+		log = log.With("url", loggedURL, "urlLength", urlLength)
 	}
-	log.Warn("Loading failed")
+	log.Log(context.Background(), resourceFailureLogLevel(req, ev.Type.String()), "Loading failed")
 }
 
 func (sess *Session) onPageEventFrameStartedLoading(ctx context.Context, ev *page.EventFrameStartedLoading, listenerID int64) {
@@ -268,7 +258,7 @@ func (sess *Session) onPageEventJavascriptDialogOpening(ctx context.Context, ev 
 		"listenerID", listenerID,
 		"url", ev.URL,
 	)
-	log.Info("Javascript dialog opening", "message", ev.Message)
+	log.Debug("Javascript dialog opening", "message", ev.Message)
 	accept := ev.Type == "alert"
 	if err := chromedp.Run(ctx, page.HandleJavaScriptDialog(accept)); err != nil {
 		log.Error("Failed to handle JavaScript dialog", "error", err)
@@ -321,6 +311,7 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 	}
 
 	id := logicalIDFromFetchPaused(ev)
+	loggedURL, urlLength := requests.BoundedURLForLog(ev.Request.URL)
 
 	log := sess.loggerOrDefault().With(
 		"listenerID", listenerID,
@@ -328,12 +319,11 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 		"fetchRequestID", ev.RequestID,
 		"networkID", ev.NetworkID,
 		"targetID", targetIDFromContext(ctx),
-		"url", ev.Request.URL,
+		"url", loggedURL,
+		"urlLength", urlLength,
 		"method", ev.Request.Method,
 		"resourceType", ev.ResourceType.String(),
 	)
-
-	log.Debug("Session.onFetchEventRequestPaused")
 
 	isResponseStage := ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != ""
 	if isResponseStage {
@@ -358,11 +348,6 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 	added := false
 	if !browserLocal {
 		req, added = sess.Requests.GetOrAddRequest(requestFromFetchPaused(ev))
-		if added {
-			log.Debug("FETCH add request", "req", req)
-		} else {
-			log.Debug("FETCH reuse request", "req", req)
-		}
 	}
 
 	if err := sess.continuePausedRequest(ctx, ev, req); err != nil {

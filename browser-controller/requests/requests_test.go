@@ -16,9 +16,9 @@ import (
 func TestBoundedURLForLog(t *testing.T) {
 	t.Run("short URL", func(t *testing.T) {
 		const rawURL = "https://example.com/image.png"
-		got, length := boundedURLForLog(rawURL)
+		got, length := BoundedURLForLog(rawURL)
 		if got != rawURL {
-			t.Fatalf("boundedURLForLog() = %q, want %q", got, rawURL)
+			t.Fatalf("BoundedURLForLog() = %q, want %q", got, rawURL)
 		}
 		if length != len(rawURL) {
 			t.Fatalf("length = %d, want %d", length, len(rawURL))
@@ -27,7 +27,7 @@ func TestBoundedURLForLog(t *testing.T) {
 
 	t.Run("long URL", func(t *testing.T) {
 		rawURL := "https://example.com/" + strings.Repeat("a", maxLoggedURLBytes)
-		got, length := boundedURLForLog(rawURL)
+		got, length := BoundedURLForLog(rawURL)
 		if len(got) > maxLoggedURLBytes {
 			t.Fatalf("bounded URL length = %d, want at most %d", len(got), maxLoggedURLBytes)
 		}
@@ -41,7 +41,7 @@ func TestBoundedURLForLog(t *testing.T) {
 
 	t.Run("unicode boundary", func(t *testing.T) {
 		rawURL := strings.Repeat("a", maxLoggedURLBytes-4) + "øtail"
-		got, length := boundedURLForLog(rawURL)
+		got, length := BoundedURLForLog(rawURL)
 		if !strings.HasSuffix(got, "…") {
 			t.Fatalf("bounded URL %q does not end with an ellipsis", got)
 		}
@@ -52,6 +52,56 @@ func TestBoundedURLForLog(t *testing.T) {
 			t.Fatalf("length = %d, want %d", length, len(rawURL))
 		}
 	})
+}
+
+func TestResourceLogAttrs(t *testing.T) {
+	req := &Request{
+		ID:             "network-1",
+		FetchRequestID: "fetch-1",
+		NetworkID:      "network-1",
+		URL:            "https://example.com/image.png",
+		Method:         "GET",
+		ResourceType:   "Image",
+		Initiator:      "parser",
+		GotNew:         true,
+		GotComplete:    true,
+		CrawlLog: &logV1.CrawlLog{
+			StatusCode: 200,
+			WarcId:     "warc-1",
+		},
+	}
+
+	attrs := attrsByName(resourceLogAttrs(req))
+	for name, want := range map[string]any{
+		"requestId":      "network-1",
+		"fetchRequestId": "fetch-1",
+		"networkId":      "network-1",
+		"url":            req.URL,
+		"urlLength":      len(req.URL),
+		"hasCrawlLog":    true,
+		"statusCode":     int32(200),
+		"warcId":         "warc-1",
+	} {
+		if got := attrs[name]; !reflect.DeepEqual(got, want) {
+			t.Errorf("attribute %q = %#v, want %#v", name, got, want)
+		}
+	}
+
+	missing := attrsByName(resourceLogAttrs(&Request{ID: "missing-1", URL: req.URL}))
+	if got := missing["hasCrawlLog"]; got != false {
+		t.Errorf("hasCrawlLog = %#v, want false", got)
+	}
+	if _, ok := missing["statusCode"]; ok {
+		t.Error("missing resource unexpectedly has statusCode")
+	}
+}
+
+func attrsByName(attrs []any) map[string]any {
+	result := make(map[string]any, len(attrs)/2)
+	for i := 0; i < len(attrs); i += 2 {
+		result[attrs[i].(string)] = attrs[i+1]
+	}
+	return result
 }
 
 func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {

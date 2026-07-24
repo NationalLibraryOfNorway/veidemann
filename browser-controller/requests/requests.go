@@ -29,9 +29,13 @@ import (
 )
 
 type ResponseSnapshot struct {
-	InitialRequest *Request
-	RootRequest    *Request
-	Requests       []*Request
+	InitialRequest  *Request
+	RootRequest     *Request
+	Requests        []*Request
+	BlockingCount   int
+	ResolvedCount   int
+	UnresolvedCount int
+	IgnoredCount    int
 }
 
 type RequestRegistry interface {
@@ -54,6 +58,7 @@ type RequestRegistry interface {
 
 type requestRegistry struct {
 	done *syncx.WaitGroup
+	log  *slog.Logger
 
 	mu       sync.Mutex
 	requests []*Request
@@ -80,9 +85,14 @@ func (r *requestRegistry) RootRequestSnapshot() *Request {
 	return cloneRequest(resolveRootRequest(r.requests, false))
 }
 
-func NewRegistry(done *syncx.WaitGroup) RequestRegistry {
+func NewRegistry(done *syncx.WaitGroup, loggers ...*slog.Logger) RequestRegistry {
+	logger := slog.Default()
+	if len(loggers) > 0 && loggers[0] != nil {
+		logger = loggers[0]
+	}
 	return &requestRegistry{
 		done: done,
+		log:  logger,
 		byID: make(map[string]*Request),
 	}
 }
@@ -222,7 +232,7 @@ func (r *requestRegistry) MatchCrawlLogs() bool {
 
 	snapshot := buildCrawlLogMatchSnapshot(r.requests)
 	if signature := snapshot.signature(); signature != r.lastMatchLog {
-		eventLog := slog.Default().With(
+		eventLog := r.log.With(
 			"blockingRequests", snapshot.blockingCount,
 			"resolvedRequests", snapshot.resolvedCount,
 			"missingRequests", snapshot.unresolvedCount,
@@ -231,7 +241,7 @@ func (r *requestRegistry) MatchCrawlLogs() bool {
 		if len(snapshot.missingRequests) > 0 {
 			eventLog = eventLog.With("missingRequests", snapshot.missingRequests)
 		}
-		eventLog.Info("Match crawl")
+		eventLog.Debug("Match crawl")
 		r.lastMatchLog = signature
 	}
 	return snapshot.unresolvedCount == 0
@@ -253,30 +263,12 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 	byURL := requestsByURL(snapshot.Requests)
 
 	for idx, rr := range snapshot.Requests {
+		resourceLog := r.log.With(resourceLogAttrs(rr)...)
 		if rr.CrawlLog == nil {
-			loggedURL, urlLength := boundedURLForLog(rr.URL)
-			if !rr.BlocksPageCompletion() {
-				slog.Info("Skipping missing crawlLog for non-blocking request",
-					"id", rr.ID,
-					"url", loggedURL,
-					"urlLength", urlLength,
-					"fetchRequestId", rr.FetchRequestID,
-					"networkId", rr.NetworkID,
-					"resourceType", rr.ResourceType,
-					"fromCache", rr.FromCache,
-				)
+			if rr.BlocksPageCompletion() {
+				resourceLog.Warn("Missing crawlLog", "index", idx)
 			} else {
-				slog.Warn("Missing crawlLog",
-					"id", rr.ID,
-					"url", loggedURL,
-					"urlLength", urlLength,
-					"index", idx,
-					"fetchRequestId", rr.FetchRequestID,
-					"networkId", rr.NetworkID,
-					"new", rr.GotNew,
-					"complete", rr.GotComplete,
-					"fromCache", rr.FromCache,
-				)
+				resourceLog.Debug("Resource finalized")
 			}
 			continue
 		}
@@ -297,6 +289,11 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 		default:
 			rr.CrawlLog.DiscoveryPath = discoveryType
 		}
+		if rr.CrawlLog.GetWarcId() == "" {
+			resourceLog.Warn("Crawl log in registry without WARC ID")
+		} else {
+			resourceLog.Debug("Resource finalized")
+		}
 	}
 
 	return snapshot
@@ -314,6 +311,11 @@ func (r *requestRegistry) snapshotLocked() *ResponseSnapshot {
 	}
 	snapshot.InitialRequest = snapshot.Requests[0]
 	snapshot.RootRequest = resolveRootRequest(snapshot.Requests, true)
+	match := buildCrawlLogMatchSnapshot(snapshot.Requests)
+	snapshot.BlockingCount = match.blockingCount
+	snapshot.ResolvedCount = match.resolvedCount
+	snapshot.UnresolvedCount = match.unresolvedCount
+	snapshot.IgnoredCount = match.ignoredCount
 	return snapshot
 }
 
@@ -384,7 +386,8 @@ func discoveryTypeForRequest(idx int, req *Request, requestedUrl *frontierV1.Que
 const maxLoggedMissingRequestIDs = 8
 const maxLoggedURLBytes = 512
 
-func boundedURLForLog(rawURL string) (string, int) {
+// BoundedURLForLog truncates a URL for logging and returns its original byte length.
+func BoundedURLForLog(rawURL string) (string, int) {
 	originalLength := len(rawURL)
 	if originalLength <= maxLoggedURLBytes {
 		return rawURL, originalLength
@@ -396,6 +399,36 @@ func boundedURLForLog(rawURL string) (string, int) {
 		end--
 	}
 	return rawURL[:end] + ellipsis, originalLength
+}
+
+func resourceLogAttrs(req *Request) []any {
+	loggedURL, urlLength := BoundedURLForLog(req.URL)
+	redirectFromURL, redirectFromURLLength := BoundedURLForLog(req.RedirectFromURL)
+	attrs := []any{
+		"requestId", req.ID,
+		"networkId", req.NetworkID,
+		"fetchRequestId", req.FetchRequestID,
+		"url", loggedURL,
+		"urlLength", urlLength,
+		"method", req.Method,
+		"resourceType", req.ResourceType,
+		"initiator", req.Initiator,
+		"fromCache", req.FromCache,
+		"redirected", req.Redirected,
+		"redirectFromUrl", redirectFromURL,
+		"redirectFromUrlLength", redirectFromURLLength,
+		"gotNew", req.GotNew,
+		"gotComplete", req.GotComplete,
+		"hasCrawlLog", req.CrawlLog != nil,
+	}
+	if req.CrawlLog != nil {
+		attrs = append(attrs,
+			"statusCode", req.CrawlLog.GetStatusCode(),
+			"crawlLogError", req.CrawlLog.GetError(),
+			"warcId", req.CrawlLog.GetWarcId(),
+		)
+	}
+	return attrs
 }
 
 type crawlLogMatchSnapshot struct {
@@ -444,7 +477,7 @@ func buildCrawlLogMatchSnapshot(requests []*Request) crawlLogMatchSnapshot {
 			snapshot.unresolvedCount++
 
 			if len(snapshot.missingRequests) < maxLoggedMissingRequestIDs {
-				loggedURL, urlLength := boundedURLForLog(req.URL)
+				loggedURL, urlLength := BoundedURLForLog(req.URL)
 				snapshot.missingRequests = append(snapshot.missingRequests, missingRequestSummary{
 					ID:             req.ID,
 					FetchRequestID: req.FetchRequestID,

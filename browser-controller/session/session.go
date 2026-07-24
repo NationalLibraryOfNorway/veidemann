@@ -159,7 +159,7 @@ func newDefaultSession(opts ...Option) *Session {
 func newSession(sessionId int, opts ...Option) *Session {
 	sess := newDefaultSession(opts...)
 	sess.Id = sessionId
-	sess.loggerOrDefault().With("session", sessionId)
+	sess.logger = sess.loggerOrDefault().With("session", sessionId)
 
 	return sess
 }
@@ -295,7 +295,9 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 	log := sess.loggerOrDefault()
 
 	allocatorContext, allocatorCancel := chromedp.NewRemoteAllocator(ctx, sess.browserWsEndpoint, chromedp.NoModifyURL)
-	cdpCtx, cdpCancel := chromedp.NewContext(allocatorContext)
+	cdpCtx, cdpCancel := chromedp.NewContext(allocatorContext,
+		chromedp.WithErrorf(chromedpErrorf(log)),
+	)
 	sess.ctx = cdpCtx
 
 	var browserUserAgent string
@@ -324,7 +326,7 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 	sess.loadCancel = loadCancel
 
 	sess.frameWg = syncx.NewWaitGroup(loadCtx)
-	sess.Requests = requests.NewRegistry(sess.frameWg)
+	sess.Requests = requests.NewRegistry(sess.frameWg, log)
 	sess.startAcceptingRequests()
 
 	sess.initListeners(cdpCtx)
@@ -511,7 +513,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		// Only force-stop the page on error or timeout. On the success path, keep
 		// the page alive through screenshot capture so late image loads can finish.
 		if stopErr := sess.stopLoading(); stopErr != nil {
-			log.Info("Failed to stop loading before finalizing fetch", "error", stopErr)
+			log.Warn("Failed to stop loading before finalizing fetch", "error", stopErr)
 		}
 	}
 
@@ -556,19 +558,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	var crawlLogs []*logV1.CrawlLog
 
 	for _, r := range responses.Requests {
-		log := log.With(
-			"requestId", r.ID,
-			"method", r.Method,
-			"url", r.URL,
-			"fromCache", r.FromCache,
-			"hasCrawlLog", r.CrawlLog != nil,
-			"gotNew", r.GotNew,
-			"gotComplete", r.GotComplete,
-		)
 		if r.CrawlLog == nil {
-			if !r.FromCache && r.BlocksPageCompletion() {
-				log.Warn("No crawllog for resource")
-			}
 			continue
 		}
 
@@ -576,8 +566,6 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			crawlLogs = append(crawlLogs, r.CrawlLog)
 			crawlLogCount++
 			bytesDownloaded += r.CrawlLog.Size
-		} else {
-			log.Warn("Crawl log in registry without warc ID")
 		}
 
 		resource := &logV1.PageLog_Resource{
@@ -643,6 +631,10 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		"outlinks", len(outlinks),
 		"crawllogs", len(crawlLogs),
 		"resources", len(resources),
+		"blockingRequests", responses.BlockingCount,
+		"resolvedRequests", responses.ResolvedCount,
+		"unresolvedRequests", responses.UnresolvedCount,
+		"ignoredRequests", responses.IgnoredCount,
 		"duration", fmt.Sprintf("%.2fs", fetchDuration.Seconds()),
 	}
 	if fetchErr != nil {
@@ -657,7 +649,7 @@ func (sess *Session) getCookieParams(uri *frontierV1.QueuedUri) []*network.Cooki
 	log := sess.loggerOrDefault()
 
 	if cookieCount := len(uri.GetCookies()); cookieCount > 0 {
-		log.Info("Restoring browser cookies", "cookieCount", cookieCount)
+		log.Debug("Restoring browser cookies", "cookieCount", cookieCount)
 	}
 	cookies := make([]*network.CookieParam, len(uri.GetCookies()))
 	for i, c := range uri.GetCookies() {
@@ -783,27 +775,31 @@ func (sess *Session) extractOutlinks(rootRequest *requests.Request) []string {
 	var extractedUrls []string
 
 	for _, s := range sess.scripts.Get(configV1.BrowserScript_EXTRACT_OUTLINKS) {
+		scriptStart := time.Now()
 		log := sess.loggerOrDefault().With(
 			"scriptType", configV1.BrowserScript_EXTRACT_OUTLINKS.String(),
+			"scriptName", s.GetMeta().GetName(),
 			"scriptId", s.GetId(),
 		)
 
 		script := s.GetBrowserScript().GetScript()
 		res, err := evaluateScript(sess.ctx, script)
 		if err != nil {
-			log.Warn("Failed to evaluate script", "error", err)
+			log.Warn("Script execution failed", "duration", time.Since(scriptStart), "outcome", "failure", "error", err)
 			continue
 		}
 		if res == nil {
+			log.Debug("Script execution completed", "duration", time.Since(scriptStart), "outcome", "success", "resultCount", 0)
 			continue
 		}
 
 		var links []string
 		err = json.Unmarshal(res, &links)
 		if err != nil {
-			log.Warn("Failed to unmarshal return value", "error", err)
+			log.Warn("Script result decoding failed", "duration", time.Since(scriptStart), "outcome", "failure", "error", err)
 			continue
 		}
+		log.Debug("Script execution completed", "duration", time.Since(scriptStart), "outcome", "success", "resultCount", len(links))
 
 		for _, link := range links {
 			link = strings.TrimSpace(link)

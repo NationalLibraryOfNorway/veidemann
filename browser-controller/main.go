@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -285,7 +286,7 @@ func initLogger(w io.Writer, level string, source bool) {
 }
 
 func toLogLevel(level string) slog.Level {
-	switch level {
+	switch strings.ToLower(level) {
 	case "debug":
 		return slog.LevelDebug
 	case "info":
