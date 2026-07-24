@@ -220,6 +220,9 @@ func (sess *Session) Context() context.Context {
 }
 
 func (sess *Session) compileBrowserWebsocketEndpoint() (string, error) {
+	// Browserless accepts launch configuration on its WebSocket endpoint. A
+	// direct CDP backend must resolve its debugger endpoint separately instead
+	// of reusing these provider-specific query parameters.
 	browserWsUrl := fmt.Sprintf("ws://%s:%d", sess.browserHost, sess.browserPort)
 	browserWsEndpoint, err := url.Parse(browserWsUrl)
 	if err != nil {
@@ -355,7 +358,7 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 		chromedp.Emulate(deviceInfo),
 		fetch.Enable(),
 		network.Enable(),
-		page.Enable(),
+		chromedp.ActionFunc(prepareRemotePage),
 		network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
 		runtime.Enable(),
 		target.SetAutoAttach(true, false).WithFlatten(true),
@@ -373,6 +376,19 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 	}
 
 	return cdpCtx, loadCtx, cleanup, nil
+}
+
+// prepareRemotePage establishes the page lifecycle state expected by fetch
+// scripts. Remote browser backends may leave a newly created target in the
+// background, which suppresses visibility-dependent browser behavior.
+func prepareRemotePage(ctx context.Context) error {
+	if err := page.Enable().Do(ctx); err != nil {
+		return fmt.Errorf("enable page domain: %w", err)
+	}
+	if err := page.BringToFront().Do(ctx); err != nil {
+		return fmt.Errorf("bring remote page to front: %w", err)
+	}
+	return nil
 }
 
 func (sess *Session) navigate(loadCtx context.Context) error {
