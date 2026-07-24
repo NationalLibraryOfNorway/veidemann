@@ -25,7 +25,14 @@ import (
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
+	"google.golang.org/protobuf/proto"
 )
+
+type ResponseSnapshot struct {
+	InitialRequest *Request
+	RootRequest    *Request
+	Requests       []*Request
+}
 
 type RequestRegistry interface {
 	NotifyLoadStart()
@@ -41,8 +48,8 @@ type RequestRegistry interface {
 	CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request
 	Walk(w func(*Request))
 	InitialRequest() *Request
-	RootRequest() *Request
-	FinalizeResponses(requestedUrl *frontierV1.QueuedUri)
+	RootRequestSnapshot() *Request
+	FinalizeResponses(requestedUrl *frontierV1.QueuedUri) *ResponseSnapshot
 }
 
 type requestRegistry struct {
@@ -52,7 +59,6 @@ type requestRegistry struct {
 	requests []*Request
 	byID     map[string]*Request
 
-	rootRequest  *Request
 	lastMatchLog string
 }
 
@@ -67,11 +73,11 @@ func (r *requestRegistry) InitialRequest() *Request {
 	return r.requests[0]
 }
 
-func (r *requestRegistry) RootRequest() *Request {
+func (r *requestRegistry) RootRequestSnapshot() *Request {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.rootRequest
+	return cloneRequest(resolveRootRequest(r.requests, false))
 }
 
 func NewRegistry(done *syncx.WaitGroup) RequestRegistry {
@@ -239,36 +245,14 @@ func (r *requestRegistry) Walk(w func(*Request)) {
 	}
 }
 
-func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) {
+func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) *ResponseSnapshot {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if len(r.requests) == 0 {
-		return
-	}
+	snapshot := r.snapshotLocked()
+	byURL := requestsByURL(snapshot.Requests)
 
-	byURL := make(map[string]*Request, len(r.requests))
-
-	for _, req := range r.requests {
-		if req.URL != "" {
-			byURL[req.URL] = req
-		}
-	}
-
-	r.rootRequest = r.requests[0]
-
-	for idx, rr := range r.requests {
-		// Find the root request
-		if rr.Redirected && rr.RedirectFromURL != "" {
-			if parent := byURL[rr.RedirectFromURL]; parent != nil && parent != rr {
-				rr.RedirectParent = parent
-
-				if parent == r.rootRequest {
-					r.rootRequest = rr
-				}
-			}
-		}
-
+	for idx, rr := range snapshot.Requests {
 		if rr.CrawlLog == nil {
 			loggedURL, urlLength := boundedURLForLog(rr.URL)
 			if !rr.BlocksPageCompletion() {
@@ -314,6 +298,71 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 			rr.CrawlLog.DiscoveryPath = discoveryType
 		}
 	}
+
+	return snapshot
+}
+
+func (r *requestRegistry) snapshotLocked() *ResponseSnapshot {
+	snapshot := &ResponseSnapshot{}
+	if len(r.requests) == 0 {
+		return snapshot
+	}
+
+	snapshot.Requests = make([]*Request, len(r.requests))
+	for idx, req := range r.requests {
+		snapshot.Requests[idx] = cloneRequest(req)
+	}
+	snapshot.InitialRequest = snapshot.Requests[0]
+	snapshot.RootRequest = resolveRootRequest(snapshot.Requests, true)
+	return snapshot
+}
+
+func resolveRootRequest(requests []*Request, linkParents bool) *Request {
+	if len(requests) == 0 {
+		return nil
+	}
+
+	rootRequest := requests[0]
+	byURL := requestsByURL(requests)
+	for _, req := range requests {
+		if !req.Redirected || req.RedirectFromURL == "" {
+			continue
+		}
+		parent := byURL[req.RedirectFromURL]
+		if parent == nil || parent == req {
+			continue
+		}
+		if linkParents {
+			req.RedirectParent = parent
+		}
+		if parent == rootRequest {
+			rootRequest = req
+		}
+	}
+	return rootRequest
+}
+
+func cloneRequest(req *Request) *Request {
+	if req == nil {
+		return nil
+	}
+
+	clone := *req
+	clone.RedirectParent = nil
+	if req.CrawlLog != nil {
+		clone.CrawlLog = proto.Clone(req.CrawlLog).(*logV1.CrawlLog)
+	}
+	return &clone
+}
+
+func requestsByURL(requests []*Request) map[string]*Request {
+	byURL := make(map[string]*Request, len(requests))
+	for _, req := range requests {
+		if req.URL != "" {
+			byURL[req.URL] = req
+		}
+	}
+	return byURL
 }
 
 func discoveryTypeForRequest(idx int, req *Request, requestedUrl *frontierV1.QueuedUri) string {

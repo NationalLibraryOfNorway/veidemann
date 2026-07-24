@@ -8,6 +8,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 )
@@ -89,6 +90,91 @@ func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
 	})
 	if count != 1 {
 		t.Fatalf("request count = %d, want 1", count)
+	}
+}
+
+func TestRootRequestSnapshotResolvesRedirectRoot(t *testing.T) {
+	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	initial := &Request{
+		ID:           "network-1",
+		URL:          "https://example.com/old",
+		ResourceType: "Document",
+	}
+	redirect := &Request{
+		ID:              "network-2",
+		URL:             "https://example.com/new",
+		ResourceType:    "Document",
+		Redirected:      true,
+		RedirectFromURL: initial.URL,
+	}
+	registry.AddRequest(initial)
+	registry.AddRequest(redirect)
+
+	root := registry.RootRequestSnapshot()
+
+	if root == nil || root.ID != redirect.ID {
+		t.Fatal("redirect target was not selected as the root request")
+	}
+	if root == redirect {
+		t.Fatal("root snapshot retained pointers into the live registry")
+	}
+	if redirect.RedirectParent != nil {
+		t.Fatal("root snapshot mutated the live redirect relationship")
+	}
+	if initial.CrawlLog != nil || redirect.CrawlLog != nil {
+		t.Fatal("root snapshot mutated the live registry")
+	}
+}
+
+func TestFinalizeResponsesReturnsIndependentSnapshot(t *testing.T) {
+	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	initialLog := &logV1.CrawlLog{WarcId: "warc-1", Size: 10}
+	initial := &Request{
+		ID:           "network-1",
+		URL:          "https://example.com/",
+		Method:       "GET",
+		ResourceType: "Document",
+		GotNew:       true,
+		GotComplete:  true,
+		CrawlLog:     initialLog,
+	}
+	late := &Request{
+		ID:           "network-2",
+		URL:          "https://example.com/late.js",
+		Method:       "GET",
+		ResourceType: "Script",
+		GotNew:       true,
+	}
+	registry.AddRequest(initial)
+	registry.AddRequest(late)
+
+	snapshot := registry.FinalizeResponses(&frontierV1.QueuedUri{DiscoveryPath: "L"})
+	if snapshot.InitialRequest == initial || snapshot.RootRequest == initial {
+		t.Fatal("final snapshot retained pointers into the live registry")
+	}
+	if snapshot.InitialRequest.CrawlLog == initialLog {
+		t.Fatal("final snapshot retained the live crawl log")
+	}
+	if got := snapshot.InitialRequest.CrawlLog.GetDiscoveryPath(); got != "L" {
+		t.Fatalf("initial discovery path = %q, want L", got)
+	}
+	if snapshot.Requests[1].CrawlLog != nil {
+		t.Fatal("unfinished request unexpectedly had a crawl log in the snapshot")
+	}
+
+	lateLog := &logV1.CrawlLog{WarcId: "warc-2", Size: 20}
+	registry.CompleteRequest(late.ID, lateLog, false)
+	initialLog.Size = 99
+	if snapshot.Requests[1].CrawlLog != nil {
+		t.Fatal("late completion mutated the finalized snapshot")
+	}
+	if got := snapshot.InitialRequest.CrawlLog.GetSize(); got != 10 {
+		t.Fatalf("snapshot crawl log size = %d, want 10", got)
+	}
+
+	next := registry.FinalizeResponses(&frontierV1.QueuedUri{DiscoveryPath: "L"})
+	if next.Requests[1].CrawlLog == nil {
+		t.Fatal("completion before finalization was not included")
 	}
 }
 

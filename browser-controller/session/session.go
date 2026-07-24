@@ -472,6 +472,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		return nil, err
 	}
 	defer cleanup()
+	defer sess.stopAcceptingRequests()
 
 	if err := sess.registerNewDocumentScripts(loadCtx); err != nil {
 		return nil, err
@@ -514,38 +515,47 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		}
 	}
 
+	rootSnapshot := sess.Requests.RootRequestSnapshot()
+
 	if sess.CrawlConfig.GetExtra().CreateScreenshot {
-		sess.saveScreenshot()
+		screenshotCtx, cancelScreenshot := context.WithTimeout(loadCtx, maxIdleTime)
+		sess.saveScreenshot(screenshotCtx, rootSnapshot)
+		cancelScreenshot()
 	}
 
-	// 	sess.stopAcceptingRequests()
-
-	sess.Requests.FinalizeResponses(sess.RequestedUrl)
-
 	cookies := sess.extractCookies()
-	outlinks := sess.extractOutlinks()
+	outlinks := sess.extractOutlinks(rootSnapshot)
 
-	fetchDuration := time.Since(fetchStart)
+	sess.stopAcceptingRequests()
+	if stopErr := sess.stopLoading(); stopErr != nil {
+		log.Debug("Failed to stop loading during fetch teardown", "error", stopErr)
+	}
 
 	err = chromedp.Cancel(cdpCtx)
 	if err != nil {
 		log.Warn("Cancel CDP context", "error", err)
 	}
 
-	initialRequest := sess.Requests.InitialRequest()
+	responses := sess.Requests.FinalizeResponses(sess.RequestedUrl)
+	initialRequest := responses.InitialRequest
 	if initialRequest == nil {
 		return nil, errors.New("missing initial request")
 	}
 	if initialRequest.CrawlLog == nil {
 		return nil, errors.New("initial request has no crawllog")
 	}
+	rootRequest := responses.RootRequest
+	if rootRequest == nil || rootRequest.CrawlLog == nil {
+		return nil, errors.New("root request has no crawllog")
+	}
+	fetchDuration := time.Since(fetchStart)
 
 	var crawlLogCount int32
 	var bytesDownloaded int64
 	var resources []*logV1.PageLog_Resource
 	var crawlLogs []*logV1.CrawlLog
 
-	sess.Requests.Walk(func(r *requests.Request) {
+	for _, r := range responses.Requests {
 		log := log.With(
 			"requestId", r.ID,
 			"method", r.Method,
@@ -559,7 +569,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			if !r.FromCache && r.BlocksPageCompletion() {
 				log.Warn("No crawllog for resource")
 			}
-			return
+			continue
 		}
 
 		if r.CrawlLog.GetWarcId() != "" {
@@ -584,7 +594,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			Method:        r.Method,
 		}
 		resources = append(resources, resource)
-	})
+	}
 	if err := sess.logWriter.WriteCrawlLogs(ctx, crawlLogs); err != nil {
 		log.Error("Failed to write crawl logs", "error", err)
 	}
@@ -614,8 +624,8 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 			ExecutionId:         sess.RequestedUrl.ExecutionId,
 			DiscoveredTimeStamp: timestamppb.Now(),
 			Uri:                 uri,
-			DiscoveryPath:       sess.Requests.RootRequest().CrawlLog.DiscoveryPath + "L",
-			Referrer:            sess.Requests.RootRequest().URL,
+			DiscoveryPath:       rootRequest.CrawlLog.DiscoveryPath + "L",
+			Referrer:            rootRequest.URL,
 			Cookies:             cookies,
 			JobExecutionId:      sess.RequestedUrl.JobExecutionId,
 		}
@@ -624,7 +634,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		BytesDownloaded: bytesDownloaded,
 		UriCount:        crawlLogCount,
 		Outlinks:        qUris,
-		Error:           sess.Requests.InitialRequest().CrawlLog.Error,
+		Error:           initialRequest.CrawlLog.Error,
 		PageFetchTimeMs: fetchDuration.Milliseconds(),
 	}
 
@@ -704,29 +714,33 @@ func (sess *Session) extractCookies() []*frontierV1.Cookie {
 	return result
 }
 
-func (sess *Session) saveScreenshot() {
+func (sess *Session) saveScreenshot(ctx context.Context, rootRequest *requests.Request) {
 	log := sess.loggerOrDefault()
+	if rootRequest == nil {
+		log.Debug("Skipping screenshot: missing root request")
+		return
+	}
 
-	span, ctx := opentracing.StartSpanFromContext(sess.ctx, "screenshot")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "screenshot")
 	defer span.Finish()
 	// Skip screenshot of pages loaded from cache
-	if sess.Requests.RootRequest().FromCache {
-		log.Debug("Skipping screenshot: from cache", "resourceType", sess.Requests.RootRequest().ResourceType)
+	if rootRequest.FromCache {
+		log.Debug("Skipping screenshot: from cache", "resourceType", rootRequest.ResourceType)
 		return
 	}
 	// Check if page is renderable
-	if sess.Requests.RootRequest().ResourceType != "Document" && sess.Requests.RootRequest().ResourceType != "Image" {
-		log.Debug("Skipping screenshot: not renderable", "resourceType", sess.Requests.RootRequest().ResourceType)
+	if rootRequest.ResourceType != "Document" && rootRequest.ResourceType != "Image" {
+		log.Debug("Skipping screenshot: not renderable", "resourceType", rootRequest.ResourceType)
 		return
 	}
 	// Check if CrawlLog is present for root request
-	if sess.Requests.RootRequest().CrawlLog == nil {
-		log.Debug("Skipping screenshot: missing crawlLog", "resourceType", sess.Requests.RootRequest().ResourceType)
+	if rootRequest.CrawlLog == nil {
+		log.Debug("Skipping screenshot: missing crawlLog", "resourceType", rootRequest.ResourceType)
 		return
 	}
 	// Check if CrawlLog has WarcId
-	if sess.Requests.RootRequest().CrawlLog.WarcId == "" {
-		log.Debug("Skipping screenshot: crawlLog has empty warcId", "resourceType", sess.Requests.RootRequest().ResourceType)
+	if rootRequest.CrawlLog.WarcId == "" {
+		log.Debug("Skipping screenshot: crawlLog has empty warcId", "resourceType", rootRequest.ResourceType)
 		return
 	}
 	var data []byte
@@ -755,7 +769,7 @@ func (sess *Session) saveScreenshot() {
 	}
 	metadata := screenshotwriter.Metadata{
 		CrawlConfig:    sess.CrawlConfig,
-		CrawlLog:       sess.Requests.RootRequest().CrawlLog,
+		CrawlLog:       rootRequest.CrawlLog,
 		BrowserConfig:  sess.browserConfig,
 		BrowserVersion: sess.browserVersion,
 	}
@@ -765,7 +779,7 @@ func (sess *Session) saveScreenshot() {
 	}
 }
 
-func (sess *Session) extractOutlinks() []string {
+func (sess *Session) extractOutlinks(rootRequest *requests.Request) []string {
 	var extractedUrls []string
 
 	for _, s := range sess.scripts.Get(configV1.BrowserScript_EXTRACT_OUTLINKS) {
@@ -794,7 +808,7 @@ func (sess *Session) extractOutlinks() []string {
 		for _, link := range links {
 			link = strings.TrimSpace(link)
 			link = strings.Trim(link, "\"\\")
-			if link != "" && link != sess.Requests.RootRequest().URL {
+			if link != "" && (rootRequest == nil || link != rootRequest.URL) {
 				extractedUrls = append(extractedUrls, link)
 			}
 		}

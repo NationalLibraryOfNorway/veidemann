@@ -35,6 +35,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -197,9 +198,17 @@ func TestMain(m *testing.M) {
 	sessions.Close()
 	grpcServer.GracefulStop()
 	grpcServices.Close()
-	recorderProxy0.Shutdown(context.TODO())
-	recorderProxy1.Shutdown(context.TODO())
-	recorderProxy2.Shutdown(context.TODO())
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	var shutdownWg sync.WaitGroup
+	for _, proxy := range []*recorderproxy.RecorderProxy{recorderProxy0, recorderProxy1, recorderProxy2} {
+		shutdownWg.Add(1)
+		go func() {
+			defer shutdownWg.Done()
+			_ = proxy.Shutdown(shutdownCtx)
+		}()
+	}
+	shutdownWg.Wait()
+	cancelShutdown()
 	_ = screenShotWriter.Close()
 	_ = dbMock.Close()
 	_ = logWriter.Close()
@@ -228,16 +237,20 @@ func TestSession_Fetch(t *testing.T) {
 		baseURL          string
 		path             string
 		expectedOutlinks []string
+		createScreenshot bool
+		expectedUriCount int32
+		maxDuration      time.Duration
 		skipReason       string
 	}{
-		{"http-static-outlink", fixtureSiteHTTPBaseURL, "/index.html", []string{fixtureSiteHTTPBaseURL + "/linked.html"}, ""},
-		{"https-static-outlink", fixtureSiteHTTPSBaseURL, "/index.html", []string{fixtureSiteHTTPSBaseURL + "/linked.html"}, ""},
+		{name: "http-static-outlink", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}},
+		{name: "https-static-outlink", baseURL: fixtureSiteHTTPSBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPSBaseURL + "/linked.html"}},
+		{name: "http-screenshot", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}, createScreenshot: true, maxDuration: 20 * time.Second},
+		{name: "http-eventsource-cutoff", baseURL: fixtureSiteHTTPBaseURL, path: "/eventsource.html", expectedUriCount: 1, maxDuration: 20 * time.Second},
 		{
-			"http-worker-outlink",
-			fixtureSiteHTTPBaseURL,
-			"/worker.html",
-			[]string{fixtureSiteHTTPBaseURL + "/worker-hit.html"},
-			"",
+			name:             "http-worker-outlink",
+			baseURL:          fixtureSiteHTTPBaseURL,
+			path:             "/worker.html",
+			expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/worker-hit.html"},
 		},
 	}
 	for _, tt := range tests {
@@ -261,6 +274,7 @@ func TestSession_Fetch(t *testing.T) {
 			t.Logf("Acquired session: %v", s.Id)
 
 			// Fetch page
+			conf.GetCrawlConfig().GetExtra().CreateScreenshot = tt.createScreenshot
 			phs := &frontierV1.PageHarvestSpec{
 				QueuedUri:    qUri,
 				CrawlConfig:  conf,
@@ -269,13 +283,21 @@ func TestSession_Fetch(t *testing.T) {
 
 			t.Logf("Starting fetch test for %v", phs)
 
+			fetchStart := time.Now()
 			result, err := s.Fetch(context.Background(), phs)
+			fetchDuration := time.Since(fetchStart)
 			t.Log("Session.Fetch returned")
 			if err != nil {
 				t.Fatal(err)
 			}
 			if result.UriCount == 0 {
 				t.Fatalf("expected at least one resource for %s", qUri.Uri)
+			}
+			if tt.expectedUriCount != 0 && result.UriCount != tt.expectedUriCount {
+				t.Fatalf("resource count = %d, want %d", result.UriCount, tt.expectedUriCount)
+			}
+			if tt.maxDuration > 0 && fetchDuration > tt.maxDuration {
+				t.Fatalf("fetch duration = %v, want at most %v", fetchDuration, tt.maxDuration)
 			}
 			for _, want := range tt.expectedOutlinks {
 				if !hasOutlink(result.Outlinks, want) {
@@ -385,6 +407,8 @@ func fixtureSiteFiles(root, certPath, keyPath string) []testcontainers.Container
 	)
 
 	files := []string{
+		"events.txt",
+		"eventsource.html",
 		"index.html",
 		"linked.html",
 		"worker.html",

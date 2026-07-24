@@ -32,7 +32,19 @@ import (
 const (
 	cancelledByBrowserController = "Cancelled by browser controller"
 	blockedByRobots              = "Blocked by robots.txt"
+	canceledByBrowserStatusCode  = -5011
 )
+
+func canceledRegistrationReply() *browsercontrollerV2.RegisterResourceReply {
+	return &browsercontrollerV2.RegisterResourceReply{
+		Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: cancelledByBrowserController},
+	}
+}
+
+func isCanceledByBrowser(request *browsercontrollerV2.CompleteResourceRequest) bool {
+	return request.GetCrawlLog().GetStatusCode() == canceledByBrowserStatusCode ||
+		request.GetCrawlLog().GetError().GetMsg() == "CANCELED_BY_BROWSER"
+}
 
 // ApiServer implements the gRPC API for the browser controller. It is responsible for handling requests from the browser and forwarding them to the appropriate session. It also handles robots.txt evaluation and logging of crawl logs.
 type ApiServer struct {
@@ -82,11 +94,12 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 	sess := a.sessions.Get(proxyId)
 	if sess == nil {
 		log.Debug("Cancelling nil session")
-		return &browsercontrollerV2.RegisterResourceReply{
-			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: cancelledByBrowserController},
-		}, nil
+		return canceledRegistrationReply(), nil
 	}
-
+	if request.GetCrawlExecutionId() != "" && request.GetCrawlExecutionId() != sess.RequestedUrl.GetExecutionId() {
+		log.Debug("Cancelling stale resource registration", "activeExecutionId", sess.RequestedUrl.GetExecutionId())
+		return canceledRegistrationReply(), nil
+	}
 	reply := &browsercontrollerV2.RegisterResourceReply{
 		Result: &browsercontrollerV2.RegisterResourceReply_Registered{
 			Registered: &browsercontrollerV2.ResourceRegistered{
@@ -107,7 +120,7 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 			normalizedURL := url.Normalize(request.Uri)
 			req := sess.Requests.GetByUrl(normalizedURL, true)
 			if req != nil {
-				req := sess.Requests.GotComplete(req.ID)
+				req = sess.Requests.GotComplete(req.ID)
 				if err := sess.NotifyRequest(req); err != nil {
 					return nil, err
 				}
@@ -115,9 +128,7 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 			return reply, nil
 
 		default:
-			return &browsercontrollerV2.RegisterResourceReply{
-				Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: cancelledByBrowserController},
-			}, nil
+			return canceledRegistrationReply(), nil
 		}
 	}
 
@@ -140,7 +151,7 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 			return nil, err
 		}
 	} else {
-		log.Warn("No request found in reqistry")
+		log.Warn("No request found in registry")
 	}
 
 	return reply, nil
@@ -172,7 +183,19 @@ func (a *ApiServer) CompleteResource(ctx context.Context, request *browsercontro
 
 	sess := a.sessions.Get(proxyID)
 	if sess == nil {
-		log.Warn("Missing session", "request", request)
+		if isCanceledByBrowser(request) {
+			log.Debug("Discarding late browser-canceled resource for released session")
+		} else {
+			log.Warn("Missing session", "request", request)
+		}
+		return &browsercontrollerV2.CompleteResourceReply{}, nil
+	}
+	if executionID := request.GetCrawlLog().GetExecutionId(); executionID != "" && executionID != sess.RequestedUrl.GetExecutionId() {
+		if isCanceledByBrowser(request) {
+			log.Debug("Discarding stale browser-canceled resource", "activeExecutionId", sess.RequestedUrl.GetExecutionId())
+		} else {
+			log.Warn("Discarding stale resource completion", "activeExecutionId", sess.RequestedUrl.GetExecutionId())
+		}
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
 	}
 
