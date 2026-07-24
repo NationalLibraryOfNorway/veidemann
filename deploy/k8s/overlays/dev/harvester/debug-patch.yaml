@@ -14,7 +14,7 @@ spec:
         - name: browser-controller
           env:
             - name: LOG_LEVEL
-              value: INFO
+              value: DEBUG
         # - name: browser
         #   volumeMounts:
         #     - name: chromium-policy
