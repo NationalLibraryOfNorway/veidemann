@@ -175,7 +175,7 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 		revisitKey := revisitKeys[i]
 
 		if res.Err != nil {
-			slog.Error("Error writing record", "error", res.Err, "record", fmt.Sprintf("%s", rec))
+			slog.Error("Error writing record", "error", res.Err, "record", rec)
 		}
 		// If writing records failed. Set err to the first error
 		if err == nil && res.Err != nil {
