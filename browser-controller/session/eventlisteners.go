@@ -408,22 +408,6 @@ func (sess *Session) continuePausedRequest(
 	return chromedp.Run(ctx, continueRequest)
 }
 
-func (sess *Session) failPausedRequest(
-	ctx context.Context,
-	ev *fetch.EventRequestPaused,
-	reason network.ErrorReason,
-) {
-	if err := chromedp.Run(ctx, fetch.FailRequest(ev.RequestID, reason)); err != nil {
-		sess.loggerOrDefault().Debug("Failed to fail paused request",
-			"fetchRequestID", ev.RequestID,
-			"networkID", ev.NetworkID,
-			"url", ev.Request.URL,
-			"method", ev.Request.Method,
-			"reason", reason.String(),
-			"error", err)
-	}
-}
-
 func buildFetchHeaders(ev *fetch.EventRequestPaused, req *requests.Request) []*fetch.HeaderEntry {
 	headerCount := len(ev.Request.Headers)
 
