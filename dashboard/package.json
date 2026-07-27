@@ -86,7 +86,7 @@
     "ng-extract-i18n-merge": "^3.3.0",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.59.4",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "ngx-filesize": {
