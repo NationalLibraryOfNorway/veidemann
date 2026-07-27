@@ -68,10 +68,7 @@ func shouldTrackNetworkResource(resourceType network.ResourceType, rawURL string
 		return false
 	}
 
-	if browserurl.IsBrowserLocal(rawURL) {
-		return false
-	}
-	return true
+	return !browserurl.IsBrowserLocal(rawURL)
 }
 
 func (t *networkActivityTracker) noteRequestStart(ev *network.EventRequestWillBeSent) {

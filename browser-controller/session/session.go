@@ -129,7 +129,6 @@ type Session struct {
 
 	initializedTargetsMu sync.Mutex
 	loadingFramesMu      sync.Mutex
-	imageAbortMu         sync.Mutex
 
 	listenerSeq atomic.Int64
 
