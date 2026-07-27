@@ -17,6 +17,7 @@
 package server
 
 import (
+	"log/slog"
 	"sync"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
@@ -24,7 +25,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/nlnwa/gowarc"
-	"github.com/rs/zerolog/log"
 )
 
 type WarcWriter interface {
@@ -69,7 +69,7 @@ func (w *warcWriterRegistry) Close() {
 	for _, ww := range w.warcWriters {
 		err := ww.Close()
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to close WarcWriter")
+			slog.Error("Failed to close WarcWriter", "error", err)
 		}
 	}
 }

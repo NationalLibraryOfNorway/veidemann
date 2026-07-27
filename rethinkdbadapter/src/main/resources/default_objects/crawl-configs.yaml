@@ -19,5 +19,4 @@ crawlConfig:
     kind: "politenessConfig"
     id: "3c80fe91-98ca-44a1-b240-ead10990b686"
   extra:
-    extractText: true
     createScreenshot: true

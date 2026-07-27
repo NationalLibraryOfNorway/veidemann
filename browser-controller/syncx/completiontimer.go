@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package syncx
 
 import (
 	"errors"
-	"sync/atomic"
+	"sync"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 var ErrIdleTimeout = errors.New("idle timeout")
@@ -29,104 +26,150 @@ var ErrExceededMaxTime = errors.New("exceeded max time")
 var ErrCancelled = errors.New("cancelled")
 
 type CompletionTimer struct {
-	maxIdleTime     time.Duration
-	maxTotalTime    time.Duration
-	check           func() bool
-	lastCheckResult bool
-	waitTimer       *time.Timer
-	idleTimer       *time.Timer
-	idleTimeout     time.Time
-	doneChan        chan interface{}
-	started         bool
-	done            int32 // 0: not done, 1: success, 2: cancel
-	notifyCount     int32
+	maxIdleTime  time.Duration
+	maxTotalTime time.Duration
+	check        func() bool
+
+	mu          sync.Mutex
+	waiting     bool
+	cancelled   bool
+	notifyCount int32
+
+	notifyCh chan struct{}
+	cancelCh chan struct{}
 }
 
 func NewCompletionTimer(maxIdleTime, maxTotalTime time.Duration, check func() bool) *CompletionTimer {
-	log.Trace().
-		Dur("maxIdleTime", maxIdleTime).
-		Dur("maxTotalTime", maxTotalTime).
-		Msg("Completion timer")
 	if check == nil {
-		check = func() bool {
-			return false
-		}
+		check = func() bool { return false }
 	}
+
 	return &CompletionTimer{
 		maxIdleTime:  maxIdleTime,
 		maxTotalTime: maxTotalTime,
 		check:        check,
-		doneChan:     make(chan interface{}),
+		notifyCh:     make(chan struct{}, 1),
+		cancelCh:     make(chan struct{}),
 	}
 }
 
 func (t *CompletionTimer) Notify() {
-	atomic.AddInt32(&t.notifyCount, 1)
-	t.idleTimeout = time.Now().Add(t.maxIdleTime)
+	t.mu.Lock()
+	t.notifyCount++
+	t.mu.Unlock()
 
-	if !t.started {
-		return
-	}
-
-	t.lastCheckResult = t.check()
-	if t.lastCheckResult {
-		if atomic.CompareAndSwapInt32(&t.done, 0, 1) {
-			close(t.doneChan)
-			return
-		}
+	select {
+	case t.notifyCh <- struct{}{}:
+	default:
 	}
 }
 
-func (t *CompletionTimer) WaitForCompletion() (err error) {
-	t.lastCheckResult = t.check()
-	if t.lastCheckResult {
-		return
+func (t *CompletionTimer) WaitForCompletion() error {
+	cancelCh, err := t.beginWait()
+	if err != nil {
+		return err
 	}
-	t.waitTimer = time.NewTimer(t.maxTotalTime)
-	t.idleTimeout = time.Now().Add(t.maxIdleTime)
-	t.idleTimer = time.NewTimer(t.maxIdleTime)
-	t.started = true
+	defer t.endWait()
+
+	if t.check() {
+		return nil
+	}
+
+	totalTimer := time.NewTimer(t.maxTotalTime)
+	defer totalTimer.Stop()
+
+	idleTimer := time.NewTimer(t.maxIdleTime)
+	defer idleTimer.Stop()
 
 	for {
 		select {
-		case <-t.waitTimer.C:
-			t.lastCheckResult = t.check()
-			if t.lastCheckResult {
-				return
-			} else {
-				return ErrExceededMaxTime
+		case <-t.notifyCh:
+			if t.check() {
+				return nil
 			}
-		case <-t.idleTimer.C:
-			t.lastCheckResult = t.check()
-			if t.lastCheckResult {
-				return
-			} else {
-				if time.Now().After(t.idleTimeout) {
-					return ErrIdleTimeout
-				} else {
-					t.idleTimer = time.NewTimer(time.Until(t.idleTimeout))
-				}
+
+			idleTimer.Stop()
+			idleTimer.Reset(t.maxIdleTime)
+
+		case <-idleTimer.C:
+			if t.check() {
+				return nil
 			}
-		case <-t.doneChan:
-			if atomic.LoadInt32(&t.done) == 1 {
-				return
-			} else {
-				return ErrCancelled
+			return ErrIdleTimeout
+
+		case <-totalTimer.C:
+			if t.check() {
+				return nil
 			}
+			return ErrExceededMaxTime
+
+		case <-cancelCh:
+			return ErrCancelled
 		}
 	}
 }
 
 func (t *CompletionTimer) Cancel() {
-	if atomic.CompareAndSwapInt32(&t.done, 0, 2) {
-		close(t.doneChan)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.cancelled {
+		return
 	}
+
+	t.cancelled = true
+	close(t.cancelCh)
 }
 
-// Reset lets the completion timer do a new WaitForCompletion if the previous returned an IdleTimeout
-// Reset returns the number of notifications received since last reset
+// Reset prepares the timer for another WaitForCompletion call.
+// It returns the number of notifications received since the previous reset.
 func (t *CompletionTimer) Reset() int32 {
-	atomic.CompareAndSwapInt32(&t.done, 1, 0)
-	t.started = false
-	return atomic.SwapInt32(&t.notifyCount, 0)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.waiting {
+		panic("CompletionTimer: Reset during WaitForCompletion")
+	}
+
+	count := t.notifyCount
+	t.notifyCount = 0
+
+	t.cancelled = false
+	t.cancelCh = make(chan struct{})
+
+	drain(t.notifyCh)
+
+	return count
+}
+
+func (t *CompletionTimer) beginWait() (<-chan struct{}, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.waiting {
+		panic("CompletionTimer: concurrent WaitForCompletion")
+	}
+
+	if t.cancelled {
+		return nil, ErrCancelled
+	}
+
+	t.waiting = true
+	return t.cancelCh, nil
+}
+
+func (t *CompletionTimer) endWait() {
+	t.mu.Lock()
+	t.waiting = false
+	t.mu.Unlock()
+}
+
+func drain[T any](ch <-chan T) {
+	for {
+		select {
+		case <-ch:
+		default:
+			return
+		}
+	}
 }

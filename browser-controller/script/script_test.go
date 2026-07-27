@@ -7,14 +7,12 @@ import (
 	"testing"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/mailru/easyjson"
 )
 
-func TestEasyJson(t *testing.T) {
-	var rawMessage easyjson.RawMessage
-	var out map[string]interface{}
+func TestJsonRawMessage(t *testing.T) {
+	var rawMessage json.RawMessage
+	var out map[string]any
 
-	//goland:noinspection GoNilness
 	if len(rawMessage) > 0 {
 		err := json.Unmarshal(rawMessage, &out)
 		if err != nil {
@@ -23,7 +21,7 @@ func TestEasyJson(t *testing.T) {
 	}
 
 	var rv ReturnValue
-	err := json.Unmarshal(easyjson.RawMessage("{}"), &rv)
+	err := json.Unmarshal(json.RawMessage("{}"), &rv)
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,8 +45,8 @@ func TestReturnValue(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	// unmarshalArgs takes a JSON object and unmarshals it to a map from string to empty interface
-	unmarshalArgs := func(arguments easyjson.RawMessage) map[string]interface{} {
-		var args map[string]interface{}
+	unmarshalArgs := func(arguments json.RawMessage) map[string]any {
+		var args map[string]any
 		err := json.Unmarshal(arguments, &args)
 		if err != nil {
 			t.Errorf("Failed to unmarshal arguments: %v", err)
@@ -63,7 +61,7 @@ func TestRun(t *testing.T) {
 		// waitCount specifies the number of times the wait function is expected to be called
 		waitCount int
 		// arguments specifies the expected arguments a script received when executed
-		arguments []map[string]interface{}
+		arguments []map[string]any
 		// returnValues specifies the expected return values from execution(s) of a script
 		returnValues []ReturnValue
 	}
@@ -117,7 +115,7 @@ func TestRun(t *testing.T) {
 					},
 					func() function {
 						count := 2
-						return func(message easyjson.RawMessage) (easyjson.RawMessage, error) {
+						return func(message json.RawMessage) (json.RawMessage, error) {
 							count--
 							args := unmarshalArgs(message)
 							next := args["next"].(string)
@@ -133,7 +131,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"1": {
 					callCount: 2,
-					arguments: []map[string]interface{}{
+					arguments: []map[string]any{
 						{
 							"next": "self",
 						},
@@ -183,7 +181,7 @@ func TestRun(t *testing.T) {
 							t.Errorf("Failed to marshal data: %v", err)
 						}
 						count := 2
-						return func(_ easyjson.RawMessage) (easyjson.RawMessage, error) {
+						return func(_ json.RawMessage) (json.RawMessage, error) {
 							count--
 							if count > 0 {
 								return json.Marshal(ReturnValue{
@@ -200,7 +198,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"1": {
 					callCount: 2,
-					arguments: []map[string]interface{}{
+					arguments: []map[string]any{
 						{
 							"username": "medium",
 						},
@@ -244,7 +242,7 @@ func TestRun(t *testing.T) {
 							},
 						},
 					},
-					func(message easyjson.RawMessage) (easyjson.RawMessage, error) {
+					func(message json.RawMessage) (json.RawMessage, error) {
 						args := unmarshalArgs(message)
 						next := args["next"].(string)
 						rv := ReturnValue{Next: next}
@@ -260,7 +258,7 @@ func TestRun(t *testing.T) {
 							Description: "A script to be scheduled by #2",
 						},
 					},
-					func(_ easyjson.RawMessage) (easyjson.RawMessage, error) {
+					func(_ json.RawMessage) (json.RawMessage, error) {
 						return nil, nil
 					},
 				},
@@ -269,7 +267,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"2": {
 					callCount: 1,
-					arguments: []map[string]interface{}{
+					arguments: []map[string]any{
 						{
 							"next": "3",
 						},
@@ -282,7 +280,7 @@ func TestRun(t *testing.T) {
 				},
 				"3": {
 					callCount:    1,
-					arguments:    []map[string]interface{}{},
+					arguments:    []map[string]any{},
 					returnValues: []ReturnValue{},
 				},
 			},
@@ -298,7 +296,7 @@ func TestRun(t *testing.T) {
 							Name: "four.js",
 						},
 					},
-					func(_ easyjson.RawMessage) (easyjson.RawMessage, error) {
+					func(_ json.RawMessage) (json.RawMessage, error) {
 						return json.Marshal(ReturnValue{WaitForData: true})
 					},
 				},
@@ -307,7 +305,7 @@ func TestRun(t *testing.T) {
 			expectations: map[string]expectation{
 				"4": {
 					callCount: 1,
-					arguments: []map[string]interface{}{},
+					arguments: []map[string]any{},
 					returnValues: []ReturnValue{
 						{
 							WaitForData: true,
@@ -428,11 +426,11 @@ func TestWaiter(t *testing.T) {
 }
 
 type metric struct {
-	arguments easyjson.RawMessage
-	result    easyjson.RawMessage
+	arguments json.RawMessage
+	result    json.RawMessage
 }
 
-type function func(message easyjson.RawMessage) (easyjson.RawMessage, error)
+type function func(message json.RawMessage) (json.RawMessage, error)
 
 // A scriptExecutor is a function executor that records some metrics about functions that are executed.
 type scriptExecutor struct {
@@ -449,7 +447,7 @@ func newScriptExecutor(functions map[string]function) *scriptExecutor {
 	}
 }
 
-func (e *scriptExecutor) execute(script *configV1.ConfigObject, arguments easyjson.RawMessage) (easyjson.RawMessage, error) {
+func (e *scriptExecutor) execute(script *configV1.ConfigObject, arguments json.RawMessage) (json.RawMessage, error) {
 	name := script.GetMeta().GetName()
 	id := script.GetId()
 

@@ -34,7 +34,7 @@ spec:
               name: http
               protocol: TCP
           volumeMounts:
-            - mountPath: /usr/share/nginx/app/veidemann/assets/config.json
+            - mountPath: /usr/share/nginx/app/veidemann/public/config.json
               subPath: config.json
               name: config
           readinessProbe:

@@ -17,120 +17,114 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/metrics/internal/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/metrics/internal/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/metrics/internal/metrics"
 	"github.com/NationalLibraryOfNorway/veidemann/metrics/internal/rethinkdb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const indexContent = `<!DOCTYPE html>
-<html lang="en">
-<head><title>Veidemann Exporter</title></head>
-<body>
-<h1>Veidemann Exporter</h1>
-<p><a href="/metrics">Metrics</a></p>
-</body>
-</html>`
+var (
+	name    = "metrics"
+	version = ""
+	commit  = ""
+	date    = ""
+)
 
 func main() {
-	pflag.String("host", "", "Host")
-	pflag.Int("port", 9301, "Port")
+	err := run()
+	if err != nil {
+		slog.Error("Bye!", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Goodbye!")
+}
 
-	pflag.String("db-host", "rethinkdb-proxy", "Database host")
-	pflag.Int("db-port", 28015, "Database port")
-	pflag.String("db-name", "veidemann", "Database name")
-	pflag.String("db-username", "admin", "Database username")
-	pflag.String("db-password", "", "Database password")
-
-	pflag.String("frontier-host", "veidemann-frontier", "Frontier host")
-	pflag.Int("frontier-port", 7700, "Frontier port")
-
-	pflag.String("log-level", "info", "Log level; available levels are panic, fatal, error, warn, info, debug and trace")
-	pflag.String("log-formatter", "logfmt", "Log formatter; available values are logfmt and json")
-	pflag.Bool("log-method", false, "Log method names or not")
-
-	pflag.Parse()
-
-	_ = viper.BindPFlags(pflag.CommandLine)
-	replacer := strings.NewReplacer("-", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	viper.AutomaticEnv()
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse flags")
+func run() error {
+	err := parseFlags()
+	if err != nil {
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	logger.InitLog(viper.GetString("log-level"), viper.GetString("log-formatter"), viper.GetBool("log-method"))
+	opts := Options{}
+
+	initLogger(os.Stdout, opts.LogLevel(), opts.LogMethod())
+
+	slog.Info("Service version", "name", name, "version", version, "commit", commit, "date", date)
 
 	db := rethinkdb.NewConnection(
-		viper.GetString("db-host"),
-		viper.GetInt("db-port"),
-		viper.GetString("db-username"),
-		viper.GetString("db-password"),
-		viper.GetString("db-name"),
+		opts.DBHost(),
+		opts.DBPort(),
+		opts.DBUsername(),
+		opts.DBPassword(),
+		opts.DBName(),
 		1*time.Minute)
-	if err := db.Connect(); err != nil {
-		log.Fatal().Err(err).
-			Str("host", viper.GetString("db-host")).
-			Int("port", viper.GetInt("db-port")).
-			Msg("Failed to connect to RethinkDB")
+	err = db.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to RethinkDB: %w", err)
 	}
 	defer func() { _ = db.Close() }()
-	log.Info().
-		Str("host", viper.GetString("db-host")).
-		Int("port", viper.GetInt("db-port")).
-		Msg("Connected to RethinkDB")
+
+	slog.Info("Connected to RethinkDB", "host", opts.DBHost(), "port", opts.DBPort())
 
 	if err := db.Verify(); err != nil {
 		_ = db.Close()
-		log.Fatal().Err(err).Msg("Database is not initialized")
+		return fmt.Errorf("database is not initialized: %w", err)
 	}
 
-	frontierAddress := fmt.Sprintf("%s:%d", viper.GetString("frontier-host"), viper.GetInt("frontier-port"))
-	conn, err := grpc.NewClient(frontierAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	frontierAddress := fmt.Sprintf("%s:%d", opts.FrontierHost(), opts.FrontierPort())
+	frontierConn, err := grpc.NewClient(frontierAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatal().Err(err).Str("address", frontierAddress).Msg("Failed to create frontier client")
+		return fmt.Errorf("failed to create frontier client: %w", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() { _ = frontierConn.Close() }()
 
-	log.Info().Str("address", frontierAddress).Msg("Frontier channel created")
+	slog.Info("Frontier client created", "address", frontierAddress)
 
-	exp := metrics.New(db, frontier.New(conn))
-	exp.Run(30 * time.Second)
+	mux := http.NewServeMux()
+	mux.Handle(opts.MetricsPath(), promhttp.Handler())
+	mux.Handle(opts.ReadyPath(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(indexContent))
-	})
-	http.Handle("/metrics", promhttp.Handler())
-	addr := fmt.Sprintf("%s:%d", viper.GetString("host"), viper.GetInt("port"))
-	server := &http.Server{Addr: addr}
+	server := &http.Server{
+		Addr:    opts.Address(),
+		Handler: mux,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	exporter := metrics.New(db, frontier.New(frontierConn), 30*time.Second)
+	exporter.Start(ctx)
+	defer exporter.Stop()
 
 	go func() {
-		signals := make(chan os.Signal, 2)
-		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-		sig := <-signals
-		log.Info().Str("signal", sig.String()).Msg("Shutting down")
-		_ = server.Close()
+		err := server.ListenAndServe()
+		if !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Metrics server stopped", "error", err)
+		}
 	}()
 
-	// Serve metrics
-	log.Info().Str("address", addr).Msg("Server listening")
-	err = server.ListenAndServe()
-	if errors.Is(err, http.ErrServerClosed) {
-		log.Err(err).Msg("")
-	}
+	slog.Info("Metrics server listening", "address", opts.Address())
+
+	<-ctx.Done()
+
+	slog.Info("Shutting down gracefully")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return server.Shutdown(shutdownCtx)
 }

@@ -19,11 +19,10 @@ package database
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/rs/zerolog"
-	zlog "github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -35,7 +34,7 @@ type RethinkDbConnection struct {
 	waitTimeout  time.Duration
 	queryTimeout time.Duration
 	batchSize    int
-	logger       zerolog.Logger
+	logger       *slog.Logger
 }
 
 type Options struct {
@@ -67,27 +66,34 @@ func NewRethinkDbConnection(opts Options) *RethinkDbConnection {
 		waitTimeout:  60 * time.Second,
 		queryTimeout: opts.QueryTimeout,
 		batchSize:    200,
-		logger:       zlog.With().Str("component", "rethinkdb").Logger(),
+		logger:       slog.Default().With("component", "rethinkdb"),
 	}
+}
+
+func (c *RethinkDbConnection) loggerOrDefault() *slog.Logger {
+	if c == nil || c.logger == nil {
+		return slog.Default().With("component", "rethinkdb")
+	}
+	return c.logger
 }
 
 // Connect establishes connections
 func (c *RethinkDbConnection) Connect() error {
-	log := c.logger
+	log := c.loggerOrDefault()
 	var err error
 	// Set up database RethinkDbConnection
 	c.session, err = r.Connect(c.connectOpts)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RethinkDB at %s: %w", c.connectOpts.Address, err)
 	}
-	log.Info().Msgf("Connected to RethinkDB at %s", c.connectOpts.Address)
+	log.Info("Connected to RethinkDB", "address", c.connectOpts.Address)
 	return nil
 }
 
 // Close closes the RethinkDbConnection
 func (c *RethinkDbConnection) Close() error {
-	log := c.logger
-	log.Info().Msgf("Closing connection to RethinkDB")
+	log := c.loggerOrDefault()
+	log.Info("Closing connection to RethinkDB")
 	return c.session.(*r.Session).Close()
 }
 
@@ -121,7 +127,7 @@ func (c *RethinkDbConnection) execRead(ctx context.Context, name string, term *r
 // execWithRetry executes given query function repeatedly until successful or max retry limit is reached
 func (c *RethinkDbConnection) execWithRetry(ctx context.Context, name string, q func(ctx context.Context) (*r.Cursor, error)) (cursor *r.Cursor, err error) {
 	attempts := 0
-	log := c.logger.With().Str("operation", name).Logger()
+	log := c.loggerOrDefault().With("operation", name)
 out:
 	for {
 		attempts++
@@ -129,17 +135,17 @@ out:
 		if err == nil {
 			return
 		}
-		log.Warn().Err(err).Int("retries", attempts-1).Msg("Failed to execute query")
+		log.Warn("Failed to execute query", "error", err, "retries", attempts-1)
 		switch err {
 		case r.ErrQueryTimeout:
 			err := c.wait()
 			if err != nil {
-				log.Warn().Err(err).Msg("Timed out waiting for database to be ready")
+				log.Warn("Timed out waiting for database to be ready", "error", err)
 			}
 		case r.ErrConnectionClosed:
 			err := c.Connect()
 			if err != nil {
-				log.Warn().Err(err).Msg("Failed to reconnect database")
+				log.Warn("Failed to reconnect database", "error", err)
 			}
 		default:
 			break out

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -19,7 +20,6 @@ import (
 	"github.com/nlnwa/gowarc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -36,7 +36,6 @@ type App struct {
 	UploadScanInterval   time.Duration
 	UploadTimeout        time.Duration
 	DbOptions            database.Options
-	ConfigCacheTTL       time.Duration
 	RedisOptions         *redis.Options
 	RedisFailoverOptions *redis.FailoverOptions
 	RecordOptions        []gowarc.WarcRecordOption
@@ -74,11 +73,11 @@ func (app *App) Run(ctx context.Context) error {
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("telemetry server: %w", err)
 		}
-		log.Warn().Err(err).Msg("Telemetry server stopped")
+		slog.Warn("Telemetry server stopped", "error", err)
 		return nil
 	})
 
-	log.Info().Str("address", app.TelemetryAddr).Msg("Telemetry server listening")
+	slog.Info("Telemetry server listening", "address", app.TelemetryAddr)
 
 	rethinkdb := database.NewRethinkDbConnection(app.DbOptions)
 	defer func() {
@@ -108,7 +107,7 @@ func (app *App) Run(ctx context.Context) error {
 	init.Go(backoff(ictx, "redis", func() (err error) {
 		err = redisClient.Ping(ictx).Err()
 		if err == nil {
-			log.Info().Str("address", redisTarget).Msg("Connected to Redis")
+			slog.Info("Connected to Redis", "address", redisTarget)
 		}
 		return err
 	}))
@@ -141,13 +140,13 @@ func (app *App) Run(ctx context.Context) error {
 		}
 	}
 
-	configAdapter := database.NewConfigCache(rethinkdb, app.ConfigCacheTTL)
+	configAdapter := rethinkdb
 	contentAdapter := &database.CrawledContentHashCache{Client: redisClient}
 	warcWriterRegistry := newWarcWriterRegistry(writerOpts, configAdapter, contentAdapter)
 
 	service := &ContentWriterService{
 		warcWriterRegistry: warcWriterRegistry,
-		configCache:        configAdapter,
+		configAdapter:      configAdapter,
 		recordOptions:      app.RecordOptions,
 	}
 
@@ -159,7 +158,7 @@ func (app *App) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to listen on %s: %w", app.Addr, err)
 	}
 
-	log.Info().Msgf("gRPC server listening on %s", app.Addr)
+	slog.Info("gRPC server listening", "address", app.Addr)
 
 	g.Go(func() error { return grpcServer.Serve(listener) })
 
@@ -181,9 +180,9 @@ func (app *App) Run(ctx context.Context) error {
 	app.ready.Store(false)
 
 	if backgroundFailure {
-		log.Warn().Msg("Shutting down after background task failure")
+		slog.Warn("Shutting down after background task failure")
 	} else {
-		log.Warn().Err(ctx.Err()).Msg("Shutting down")
+		slog.Warn("Shutting down", "error", ctx.Err())
 	}
 
 	grpcServer.GracefulStop()
@@ -230,8 +229,7 @@ func backoff(ctx context.Context, name string, fn func() error) func() error {
 				return nil
 			}
 
-			log.Warn().Err(err).Dur("backoff", backoff).Str("service", name).
-				Msg("Connection failed, retrying...")
+			slog.Warn("Connection failed, retrying", "error", err, "backoff", backoff, "service", name)
 
 			timer := time.NewTimer(backoff)
 			select {

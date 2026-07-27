@@ -16,6 +16,7 @@ package duplicatereport
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/importutil"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -120,7 +120,7 @@ func run(o *options) error {
 
 	// Import existing into state database
 	if !o.SkipImport {
-		log.Info().Str("kind", o.Kind.String()).Msg("Importing from Veidemann...")
+		slog.Info("Importing from Veidemann", "kind", o.Kind.String())
 		err = importutil.ImportExisting(stateDb, client, o.Kind, keyNormalizer)
 		if err != nil {
 			return fmt.Errorf("failed to import '%v': %w", o.Kind, err)

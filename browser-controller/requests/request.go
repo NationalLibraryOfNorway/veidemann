@@ -21,22 +21,104 @@ import (
 )
 
 type Request struct {
-	Method         string
-	Url            string
-	RequestId      string
-	NetworkId      string
-	CrawlLog       *logV1.CrawlLog
-	GotNew         bool
-	GotComplete    bool
-	Initiator      string
-	ResourceType   string
-	Referrer       string
+	ID string // canonical internal ID: NetworkID when available, else FetchRequestID
+
+	FetchRequestID string // only for Fetch.continue/fail/fulfill
+	NetworkID      string // Network.RequestID / Fetch.NetworkID
+
+	URL         string
+	OriginalURL string
+	Method      string
+
+	ResourceType string
+	Referrer     string
+	Initiator    string
+
+	GotNew      bool
+	GotComplete bool
+	CrawlLog    *logV1.CrawlLog
+
+	Redirected      bool
+	RedirectFromURL string
+
 	RedirectParent *Request
 	FromCache      bool
-	////final BaseSpan parentSpan;
-	////Span span;
+}
 
-	// True if this request is for the top level request.
-	// It is also true if the request is a redirect from the top level request.
-	// TODO (unused): rootResource bool
+func (r *Request) BlocksPageCompletion() bool {
+	if r == nil {
+		return false
+	}
+
+	if !r.GotNew {
+		return false
+	}
+
+	switch r.ResourceType {
+	case "Ping",
+		"EventSource",
+		"WebSocket",
+		"CSPViolationReport",
+		"Preflight",
+		"XHR",
+		"Fetch",
+		"Manifest",
+		"SignedExchange",
+		"FedCM",
+		"Other",
+		"Prefetch":
+		return false
+	default:
+		return true
+	}
+}
+
+func mergeRequest(dst, src *Request) {
+	if dst.ID == "" {
+		dst.ID = src.ID
+	}
+	if dst.FetchRequestID == "" {
+		dst.FetchRequestID = src.FetchRequestID
+	}
+	if dst.NetworkID == "" {
+		dst.NetworkID = src.NetworkID
+	}
+
+	if src.URL != "" {
+		if dst.OriginalURL == "" {
+			dst.OriginalURL = src.URL
+		}
+		dst.URL = src.URL
+	}
+
+	if dst.Method == "" {
+		dst.Method = src.Method
+	}
+	if dst.ResourceType == "" {
+		dst.ResourceType = src.ResourceType
+	}
+	if dst.Referrer == "" {
+		dst.Referrer = src.Referrer
+	}
+	if dst.Initiator == "" {
+		dst.Initiator = src.Initiator
+	}
+
+	if src.Redirected {
+		dst.Redirected = true
+		if dst.RedirectFromURL == "" {
+			dst.RedirectFromURL = src.RedirectFromURL
+		}
+	}
+
+	dst.GotNew = dst.GotNew || src.GotNew
+	dst.GotComplete = dst.GotComplete || src.GotComplete
+	dst.FromCache = dst.FromCache || src.FromCache
+
+	if dst.CrawlLog == nil {
+		dst.CrawlLog = src.CrawlLog
+	}
+	if dst.RedirectParent == nil {
+		dst.RedirectParent = src.RedirectParent
+	}
 }

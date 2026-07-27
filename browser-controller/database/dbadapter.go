@@ -20,12 +20,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 )
 
-type ConfigCache interface {
+type ConfigAdapter interface {
 	GetConfigObject(context.Context, *configV1.ConfigRef) (*configV1.ConfigObject, error)
 	GetScripts(context.Context, *configV1.BrowserConfig) ([]*configV1.ConfigObject, error)
 }
@@ -35,57 +34,32 @@ type DbAdapter interface {
 	GetConfigsForSelector(context.Context, configV1.Kind, *configV1.Label) ([]*configV1.ConfigObject, error)
 }
 
-type configCache struct {
-	db    DbAdapter
-	cache *cache
+type configAdapter struct {
+	db DbAdapter
 }
 
-func NewConfigCache(db DbAdapter, ttl time.Duration) ConfigCache {
-	return &configCache{
-		db:    db,
-		cache: newCache(ttl),
+func NewConfigAdapter(db DbAdapter) ConfigAdapter {
+	return &configAdapter{
+		db: db,
 	}
 }
 
-func (cc *configCache) GetConfigObject(ctx context.Context, ref *configV1.ConfigRef) (*configV1.ConfigObject, error) {
-	cached := cc.cache.Get(ref.Id)
-	if cached != nil {
-		return cached, nil
-	}
-
-	result, err := cc.db.GetConfigObject(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	cc.cache.Set(result.Id, result)
-
-	return result, nil
+func (cc *configAdapter) GetConfigObject(ctx context.Context, ref *configV1.ConfigRef) (*configV1.ConfigObject, error) {
+	return cc.db.GetConfigObject(ctx, ref)
 }
 
 // getConfigsForSelector fetches configObjects by selector string (key:value)
-func (cc *configCache) getConfigsForSelector(ctx context.Context, selector string) ([]*configV1.ConfigObject, error) {
-	cached := cc.cache.GetMany(selector)
-	if cached != nil {
-		return cached, nil
-	}
-
+func (cc *configAdapter) getConfigsForSelector(ctx context.Context, selector string) ([]*configV1.ConfigObject, error) {
 	t := strings.Split(selector, ":")
 	label := &configV1.Label{
 		Key:   t[0],
 		Value: t[1],
 	}
 
-	res, err := cc.db.GetConfigsForSelector(ctx, configV1.Kind_browserScript, label)
-	if err != nil {
-		return nil, err
-	}
-	cc.cache.SetMany(selector, res)
-
-	return res, nil
+	return cc.db.GetConfigsForSelector(ctx, configV1.Kind_browserScript, label)
 }
 
-func (cc *configCache) GetScripts(ctx context.Context, browserConfig *configV1.BrowserConfig) ([]*configV1.ConfigObject, error) {
+func (cc *configAdapter) GetScripts(ctx context.Context, browserConfig *configV1.BrowserConfig) ([]*configV1.ConfigObject, error) {
 	var scripts []*configV1.ConfigObject
 	for _, scriptRef := range browserConfig.ScriptRef {
 		script, err := cc.GetConfigObject(ctx, scriptRef)

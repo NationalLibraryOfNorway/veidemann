@@ -18,114 +18,119 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
+	"sync"
 	"time"
 
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/server"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+type SessionRegister interface {
+	GetNextAvailable(ctx context.Context) (*session.Session, error)
+	Release(*session.Session)
+}
+
+type Frontier interface {
+	GetNextPage(context.Context) (*frontierV1.PageHarvestSpec, error)
+	PageCompleted(context.Context, *frontierV1.PageHarvestSpec, *frontier.RenderResult, error) error
+}
+
 type BrowserController struct {
-	opts browserControllerOptions
-	done chan error
+	sessions      SessionRegister
+	frontier      Frontier
+	fetchTimeout  time.Duration
+	reportTimeout time.Duration
 }
 
-func New(opts ...BrowserControllerOption) *BrowserController {
-	bc := &BrowserController{
-		opts: defaultBrowserControllerOptions(),
-		done: make(chan error, 1),
+func New(session SessionRegister, frontier Frontier, fetchTimeout, reportTimeout time.Duration) BrowserController {
+	return BrowserController{
+		sessions:      session,
+		frontier:      frontier,
+		fetchTimeout:  fetchTimeout,
+		reportTimeout: reportTimeout,
 	}
-	for _, opt := range opts {
-		opt.apply(&bc.opts)
-	}
-	return bc
 }
 
-func (bc *BrowserController) Run() error {
-	sessions := session.NewRegistry(
-		bc.opts.maxSessions,
-		bc.opts.sessionOpts...,
-	)
-
-	// ctx is used to signal (via cancellation) if the api server stops unexpectedly
-	ctx, cancel := context.WithCancel(context.Background())
-	apiServer := server.NewApiServer(bc.opts.listenInterface, bc.opts.listenPort, sessions, bc.opts.robotsEvaluator, bc.opts.logWriter)
-	go func() {
-		if err := apiServer.Start(); err != nil {
-			bc.done <- fmt.Errorf("API server stopped: %w", err)
-			cancel()
-		}
-	}()
-	defer apiServer.Close()
+func (bc BrowserController) Run(ctx context.Context) error {
+	var wg sync.WaitGroup
 
 	defer func() {
-		sessions.CloseWait(bc.opts.closeTimeout)
-		metrics.ActiveBrowserSessions.Set(0)
-		metrics.BrowserSessions.Set(0)
+		slog.Info("Waiting for active browser sessions to complete")
+		wg.Wait()
+		slog.Info("All active browser sessions completed")
 	}()
 
-	// give api server time to start
-	time.Sleep(time.Millisecond)
+	backoffTimer := time.NewTimer(0)
+	backoffTimer.Stop()
 
-	log.Info().Msg("Browser Controller started")
-
-	backoff := make(chan time.Time, 1)
 	for {
-		select {
-		case err := <-bc.done:
+		if err := ctx.Err(); err != nil {
 			return err
-		case <-backoff:
-			d := 10 * time.Second
-			log.Debug().Dur("durationMs", d).Msg("Next page not found, backing off..")
-			time.Sleep(d)
-		default:
-			// get session
-			sess, err := sessions.GetNextAvailable(ctx)
-			if err != nil {
-				switch err {
-				case context.Canceled:
-					continue
-				default:
-					return fmt.Errorf("failed to get next session: %w", err)
-				}
-			}
-
-			// get a page to fetch
-			phs, err := bc.opts.frontier.GetNextPage(ctx)
-			if err != nil {
-				sessions.Release(sess)
-				if st, ok := status.FromError(err); ok {
-					switch st.Code() {
-					case codes.NotFound:
-						backoff <- time.Now()
-						continue
-					}
-				}
-				return fmt.Errorf("failed to get next page: %w", err)
-			}
-
-			// fetch and report
-			go func() {
-				sess := sess
-				phs := phs
-				defer sessions.Release(sess)
-				metrics.ActiveBrowserSessions.Inc()
-				defer metrics.ActiveBrowserSessions.Dec()
-
-				result, fetchErr := sess.Fetch(ctx, phs)
-				if err := bc.opts.frontier.PageCompleted(phs, result, fetchErr); err != nil {
-					log.Error().Err(err).Msg("Error reporting page completed")
-				}
-			}()
 		}
+
+		sess, err := bc.sessions.GetNextAvailable(ctx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return err
+			}
+			return fmt.Errorf("failed to get next session: %w", err)
+		}
+
+		phs, err := bc.frontier.GetNextPage(ctx)
+		if err != nil {
+			bc.sessions.Release(sess)
+
+			if errors.Is(err, context.Canceled) {
+				return err
+			}
+
+			if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
+				d := 10 * time.Second
+				slog.Debug("Next page not found, backing off", "durationMs", d.Milliseconds())
+
+				backoffTimer.Reset(d)
+
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-backoffTimer.C:
+					continue
+				}
+			}
+
+			return fmt.Errorf("failed to get next page: %w", err)
+		}
+
+		wg.Go(func() {
+			defer bc.sessions.Release(sess)
+
+			bc.RunFetch(ctx, sess, phs)
+		})
 	}
 }
 
-func (bc *BrowserController) Shutdown() {
-	log.Info().Msg("Shutting down Browser Controller...")
-	bc.done <- nil
+func (bc BrowserController) RunFetch(ctx context.Context, sess *session.Session, phs *frontierV1.PageHarvestSpec) {
+	metrics.ActiveBrowserSessions.Inc()
+	defer metrics.ActiveBrowserSessions.Dec()
+
+	ctx = context.WithoutCancel(ctx)
+
+	fetchCtx, cancelFetch := context.WithTimeout(ctx, bc.fetchTimeout)
+	defer cancelFetch()
+
+	result, fetchErr := sess.Fetch(fetchCtx, phs)
+
+	reportCtx, cancelReport := context.WithTimeout(ctx, bc.reportTimeout)
+	defer cancelReport()
+
+	if err := bc.frontier.PageCompleted(reportCtx, phs, result, fetchErr); err != nil {
+		slog.Error("failed to report page completed", "error", err)
+	}
 }

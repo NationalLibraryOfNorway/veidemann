@@ -19,9 +19,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers/database"
-	"github.com/rs/zerolog/log"
 )
 
 // chgWaitQueueWorker returns a worker that moves crawl host groups from wait to ready queue.
@@ -30,7 +30,7 @@ func chgWaitQueueWorker(ctx context.Context, db database.Database) func() error 
 		if moved, err := db.MoveWaitToReady(ctx); err != nil {
 			return fmt.Errorf("error moving crawl host groups from wait queue to ready queue: %w", err)
 		} else if moved > 0 {
-			log.Debug().Msgf("%d crawl host group(s) is ready", moved)
+			slog.Debug("Crawl host groups ready", "count", moved)
 		}
 		return nil
 	}
@@ -42,7 +42,7 @@ func chgBusyQueueWorker(ctx context.Context, db database.Database) func() error 
 		if moved, err := db.MoveBusyToTimeout(ctx); err != nil {
 			return fmt.Errorf("error moving crawl host groups from busy queue to timeout queue: %w", err)
 		} else if moved > 0 {
-			log.Debug().Msgf("%d crawl host group(s) timed out", moved)
+			slog.Debug("Crawl host groups timed out", "count", moved)
 		}
 		return nil
 	}
@@ -54,7 +54,7 @@ func removeUriQueueWorker(ctx context.Context, db database.Database) func() erro
 		if removed, err := db.RemoveFromUriQueue(ctx); err != nil {
 			return err
 		} else if removed > 0 {
-			log.Debug().Msgf("Removed %d queued uris", removed)
+			slog.Debug("Removed queued URIs", "count", removed)
 		}
 		return nil
 	}
@@ -66,7 +66,7 @@ func crawlExecutionRunningQueueWorker(ctx context.Context, db database.Database)
 		if moved, err := db.MoveRunningToTimeout(ctx); err != nil {
 			return fmt.Errorf("error moving crawl executions from running to timeout queue: %w", err)
 		} else if moved > 0 {
-			log.Debug().Msgf("%d crawl execution(s) timed out", moved)
+			slog.Debug("Crawl executions timed out", "count", moved)
 		}
 		return nil
 	}
@@ -78,7 +78,7 @@ func crawlExecutionTimeoutQueueWorker(ctx context.Context, db database.Database)
 		if timeouts, err := db.TimeoutCrawlExecutions(ctx); err != nil {
 			return fmt.Errorf("time out crawl executions: %w", err)
 		} else if timeouts > 0 {
-			log.Debug().Msgf("%d crawl execution(s) timed out", timeouts)
+			slog.Debug("Timed out crawl executions", "count", timeouts)
 		}
 		return nil
 	}
@@ -90,7 +90,7 @@ func updateJobExecutions(ctx context.Context, db database.Database) func() error
 		if count, err := db.UpdateJobExecutions(ctx); err != nil {
 			return fmt.Errorf("failed to update job executions: %w", err)
 		} else if count > 0 {
-			log.Debug().Msgf("Updated %d job execution(s)", count)
+			slog.Debug("Updated job executions", "count", count)
 		}
 		return nil
 	}

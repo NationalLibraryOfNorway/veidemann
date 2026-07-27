@@ -17,219 +17,304 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"io"
+	"log"
+	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	browserControllerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/controller"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/robotsevaluator"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/server"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/tracing"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"github.com/uber/jaeger-client-go/config"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
+var (
+	name    = "browser-controller"
+	version = ""
+	commit  = ""
+	date    = ""
+)
+
+const readyPath = "/readyz"
+
 func main() {
-	pflag.BoolP("help", "h", false, "Usage instructions")
-	pflag.String("interface", "", "interface the browser controller api listens to. No value means all interfaces.")
-	pflag.Int("port", 8080, "port the browser controller api listens to.")
-	pflag.Int("proxy-count", 10, "max number of simultaneous sessions. Must match RecorderProxy's proxy-count setting.")
+	err := run()
+	if err != nil {
+		slog.Error("Bye", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Goodbye!")
+}
 
-	pflag.String("browser-host", "localhost", "Browser host")
-	pflag.Int("browser-port", 3000, "Browser port")
-
-	pflag.String("proxy-host", "localhost", "Recorder proxy host")
-	pflag.Int("proxy-port", 9900, "Recorder proxy port")
-
-	pflag.String("content-writer-host", "veidemann-contentwriter", "Content writer host")
-	pflag.Int("content-writer-port", 8082, "Content writer port")
-
-	pflag.String("frontier-host", "veidemann-frontier", "Frontier host")
-	pflag.Int("frontier-port", 7700, "Frontier port")
-
-	pflag.String("log-service-host", "veidemann-log-service", "Log service host")
-	pflag.Int("log-service-port", 8080, "Log service port")
-
-	pflag.String("robots-evaluator-host", "veidemann-robotsevaluator-service", "Robots evaluator host")
-	pflag.Int("robots-evaluator-port", 7053, "Robots evaluator port")
-	pflag.Duration("connect-timeout", 10*time.Second, "Timeout used for connecting to GRPC services")
-
-	pflag.String("db-host", "rethinkdb-proxy", "DB host")
-	pflag.Int("db-port", 28015, "DB port")
-	pflag.String("db-name", "veidemann", "DB name")
-	pflag.String("db-user", "", "Database username")
-	pflag.String("db-password", "", "Database password")
-	pflag.Duration("db-query-timeout", 1*time.Minute, "Database query timeout")
-	pflag.Int("db-max-retries", 5, "Max retries when database query fails")
-	pflag.Int("db-max-open-conn", 10, "Max open database connections")
-	pflag.Bool("db-use-opentracing", false, "Use opentracing for database queries")
-	pflag.Duration("db-cache-ttl", 5*time.Minute, "How long to cache results from database")
-
-	pflag.String("metrics-interface", "", "Interface for exposing metrics. Empty means all interfaces")
-	pflag.Int("metrics-port", 9153, "Port for exposing metrics")
-	pflag.String("metrics-path", "/metrics", "Path for exposing metrics")
-
-	pflag.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
-	pflag.String("log-formatter", "logfmt", "log formatter, available values are logfmt and json")
-	pflag.Bool("log-method", false, "log method names")
-
-	pflag.Parse()
-
-	viper.SetDefault("ContentDir", "content")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse flags")
+func run() error {
+	opts, err := parseFlags()
+	if err != nil {
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	if viper.GetBool("help") {
+	if opts.Help() {
 		pflag.Usage()
-		return
+		return nil
 	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			if err, ok := r.(error); ok {
-				log.Fatal().Err(err).Msg("Fatal error")
-			}
-		}
-	}()
 
 	// init logger
-	logger.InitLog(
-		viper.GetString("log-level"),
-		viper.GetString("log-formatter"),
-		viper.GetBool("log-method"),
+	initLogger(
+		os.Stdout,
+		opts.LogLevel(),
+		opts.LogMethod(),
 	)
 
-	log.Info().Msg("Browser Controller starting...")
-	defer func() {
-		log.Info().Msg("Browser Controller stopped")
-	}()
+	slog.Info(name, "version", version, "commit", commit, "date", date)
 
-	// setup tracing
-	if tracer, closer, err := tracing.Init("Browser Controller"); err != nil {
-		log.Warn().Err(err).Msg("Failed to initialize tracing")
-	} else {
+	closer := initTracer(name)
+	if closer != nil {
 		defer func() { _ = closer.Close() }()
-		opentracing.SetGlobalTracer(tracer)
 	}
 
-	connectTimeout := viper.GetDuration("connect-timeout")
-
 	screenshotWriter := screenshotwriter.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
-		serviceconnections.WithHost(viper.GetString("content-writer-host")),
-		serviceconnections.WithPort(viper.GetInt("content-writer-port")),
+		serviceconnections.WithHost(opts.ContentWriterHost()),
+		serviceconnections.WithPort(opts.ContentWriterPort()),
 	)
-	if err := screenshotWriter.Connect(); err != nil {
-		panic(err)
+	err = screenshotWriter.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to content writer: %w", err)
 	}
 	defer func() { _ = screenshotWriter.Close() }()
 
+	tracer := opentracing.GlobalTracer()
 	frontier := frontier.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
-		serviceconnections.WithHost(viper.GetString("frontier-host")),
-		serviceconnections.WithPort(viper.GetInt("frontier-port")),
+		serviceconnections.WithHost(opts.FrontierHost()),
+		serviceconnections.WithPort(opts.FrontierPort()),
 		serviceconnections.WithDialOptions(
-			grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer())),
-			grpc.WithStreamInterceptor(otgrpc.OpenTracingStreamClientInterceptor(opentracing.GlobalTracer())),
+			grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)),
 		),
 	)
-	if err := frontier.Connect(); err != nil {
-		panic(err)
+	err = frontier.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to frontier: %w", err)
 	}
 	defer func() { _ = frontier.Close() }()
 
 	robotsEvaluator := robotsevaluator.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
-		serviceconnections.WithHost(viper.GetString("robots-evaluator-host")),
-		serviceconnections.WithPort(viper.GetInt("robots-evaluator-port")),
+		serviceconnections.WithHost(opts.RobotsEvaluatorHost()),
+		serviceconnections.WithPort(opts.RobotsEvaluatorPort()),
 	)
-	if err := robotsEvaluator.Connect(); err != nil {
-		panic(err)
+	err = robotsEvaluator.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to robots evaluator: %w", err)
 	}
 	defer func() { _ = robotsEvaluator.Close() }()
 
 	logWriter := logwriter.New(
-		serviceconnections.WithConnectTimeout(connectTimeout),
-		serviceconnections.WithHost(viper.GetString("log-service-host")),
-		serviceconnections.WithPort(viper.GetInt("log-service-port")),
+		serviceconnections.WithHost(opts.LogServiceHost()),
+		serviceconnections.WithPort(opts.LogServicePort()),
 	)
-	if err := logWriter.Connect(); err != nil {
-		panic(err)
+	err = logWriter.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to log service: %w", err)
 	}
 	defer func() { _ = logWriter.Close() }()
 
 	db := database.NewRethinkDbConnection(
 		database.Options{
-			Address:            fmt.Sprintf("%s:%d", viper.GetString("db-host"), viper.GetInt("db-port")),
-			Username:           viper.GetString("db-user"),
-			Password:           viper.GetString("db-password"),
-			Database:           viper.GetString("db-name"),
-			QueryTimeout:       viper.GetDuration("db-query-timeout"),
-			MaxOpenConnections: viper.GetInt("db-max-open-conn"),
-			MaxRetries:         viper.GetInt("db-max-retries"),
-			UseOpenTracing:     viper.GetBool("db-use-opentracing"),
+			Address:            fmt.Sprintf("%s:%d", opts.DBHost(), opts.DBPort()),
+			Username:           opts.DBUser(),
+			Password:           opts.DBPassword(),
+			Database:           opts.DBName(),
+			QueryTimeout:       opts.DBQueryTimeout(),
+			MaxOpenConnections: opts.DBMaxOpenConn(),
+			MaxRetries:         opts.DBMaxRetries(),
+			UseOpenTracing:     opts.DBUseOpentracing(),
 		},
 	)
-	if err := db.Connect(); err != nil {
-		panic(err)
+	err = db.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	configCache := database.NewConfigCache(db, viper.GetDuration("db-cache-ttl"))
+	configAdapter := database.NewConfigAdapter(db)
 
-	browserController := controller.New(
-		controller.WithListenInterface(viper.GetString("interface")),
-		controller.WithListenPort(viper.GetInt("port")),
-		controller.WithMaxConcurrentSessions(viper.GetInt("proxy-count")),
-		controller.WithFrontier(frontier),
-		controller.WithRobotsEvaluator(robotsEvaluator),
-		controller.WithLogWriter(logWriter),
-		controller.WithSessionOptions(
-			session.WithLogWriter(logWriter),
-			session.WithScreenshotWriter(screenshotWriter),
-			session.WithBrowserHost(viper.GetString("browser-host")),
-			session.WithBrowserPort(viper.GetInt("browser-port")),
-			session.WithProxyHost(viper.GetString("proxy-host")),
-			session.WithProxyPort(viper.GetInt("proxy-port")),
-			session.WithConfigCache(configCache),
-		),
-	)
+	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	metricsServer := metrics.NewServer(viper.GetString("metrics-interface"), viper.GetInt("metrics-port"), viper.GetString("metrics-path"))
-	go func() {
-		if err := metricsServer.Start(); err != nil {
-			log.Error().Err(err).Msg("Metrics server failed")
-			browserController.Shutdown()
+	g, ctx := errgroup.WithContext(rootCtx)
+
+	var ready atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc(readyPath, func(w http.ResponseWriter, r *http.Request) {
+		if !ready.Load() {
+			http.Error(w, "not ready", http.StatusServiceUnavailable)
+			return
 		}
-	}()
-	defer func() { _ = metricsServer.Close() }()
 
-	go func() {
-		signals := make(chan os.Signal, 2)
-		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-		sig := <-signals
-		log.Debug().Str("signal", sig.String()).Msg("Received signal")
-		browserController.Shutdown()
-	}()
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	mux.Handle(opts.MetricsPath(), promhttp.Handler())
 
-	if err := browserController.Run(); err != nil {
-		panic(err)
+	sessions := session.NewRegistry(
+		opts.ProxyCount(),
+		session.WithLogWriter(logWriter),
+		session.WithScreenshotWriter(screenshotWriter),
+		session.WithBrowserHost(opts.BrowserHost()),
+		session.WithBrowserPort(opts.BrowserPort()),
+		session.WithProxyHost(opts.ProxyHost()),
+		session.WithProxyPort(opts.ProxyPort()),
+		session.WithConfigAdapter(configAdapter),
+	)
+	defer sessions.Close()
+
+	telemetryAddr := fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort())
+	telemetryListener, err := net.Listen("tcp", telemetryAddr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on telemetry address %s: %w", telemetryAddr, err)
 	}
+	defer func() { _ = telemetryListener.Close() }()
+
+	slog.Info("Telemetry server listening", "address", telemetryAddr)
+
+	telemetryServer := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort()),
+		Handler: mux,
+		BaseContext: func(net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	// Start telemetry server
+	g.Go(func() error {
+		err := telemetryServer.Serve(telemetryListener)
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	})
+
+	grpcAddr := fmt.Sprintf("%s:%d", opts.Interface(), opts.Port())
+	listener, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", grpcAddr, err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	slog.Info("gRPC server listening", "address", grpcAddr)
+
+	grpcServer := grpc.NewServer()
+	serverImpl := server.NewApiServer(sessions, robotsEvaluator, logWriter)
+	browserControllerV2.RegisterBrowserControllerServer(grpcServer, serverImpl)
+
+	// Start gRPC server
+	g.Go(func() error {
+		err := grpcServer.Serve(listener)
+		if errors.Is(err, grpc.ErrServerStopped) {
+			return nil
+		}
+		return err
+	})
+
+	mainLoop := controller.New(sessions, frontier, opts.FetchTimeout(), opts.ReportTimeout())
+
+	// Browser controller main loop
+	g.Go(func() error {
+		err := mainLoop.Run(ctx)
+
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
+
+		return err
+	})
+
+	ready.Store(true)
+	slog.Info("Server ready")
+
+	<-ctx.Done()
+
+	ready.Store(false)
+	slog.Info("Server shutting down")
+
+	grpcServer.GracefulStop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_ = telemetryServer.Shutdown(shutdownCtx)
+
+	return g.Wait()
+}
+
+func initLogger(w io.Writer, level string, source bool) {
+	levelVar := new(slog.LevelVar)
+	levelVar.Set(toLogLevel(level))
+
+	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
+		AddSource: source,
+		Level:     levelVar,
+	})
+
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
+	// Redirect package-level log.Print/log.Printf/etc. to the same slog handler.
+	log.SetOutput(slog.NewLogLogger(handler, slog.LevelInfo).Writer())
+	log.SetFlags(0)
+}
+
+func toLogLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+// initTracer initializes the global OpenTracing tracer using Jaeger configuration from environment variables.
+func initTracer(service string) io.Closer {
+	cfg, err := config.FromEnv()
+	if err != nil {
+		return nil
+	}
+
+	if cfg.ServiceName == "" {
+		cfg.ServiceName = service
+	}
+
+	tracer, closer, err := cfg.NewTracer()
+	if err == nil {
+		opentracing.SetGlobalTracer(tracer)
+	}
+
+	return closer
 }

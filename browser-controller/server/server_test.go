@@ -21,19 +21,30 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"os"
+	"path/filepath"
+	"runtime"
+	"sync"
 	"testing"
 	"time"
 
+	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logger"
+	testcontainersupport "github.com/NationalLibraryOfNorway/veidemann/browser-controller/internal/testcontainers"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
@@ -43,31 +54,39 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	proxyServiceConnections "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	proxyTestUtil "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
-	"github.com/docker/go-connections/nat"
-	"github.com/sirupsen/logrus"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"google.golang.org/grpc"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
-// sessions is a registry of sessions
-var sessions *session.Registry
+var (
+	// sessions is a registry of sessions
+	sessions *session.Registry
 
-// localhost is the ip address of the host machine
-var localhost = GetOutboundIP().String()
+	// localhost is the ip address of the host machine
+	localhost = func() string {
+		localIP, _ := getOutboundIP("8.8.8.8:80")
+		return localIP.String()
+	}()
 
-// provider is a flag to select container provider
-var provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
+	fixtureSiteHTTPBaseURL  string
+	fixtureSiteHTTPSBaseURL string
+
+	// provider is a flag to select container provider
+	provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
+)
+
+const (
+	logServicePort        = 5002
+	browserControllerPort = 7777
+	proxyPort             = 6666
+	maxSessions           = 2
+)
 
 func TestMain(m *testing.M) {
 	// Parse flags
 	flag.Parse()
-
-	// Set recorderproxy log level to warn to avoid too much output
-	logrus.SetLevel(logrus.WarnLevel)
-
-	// Set log level
-	logger.InitLog("debug", "logfmt", false)
 
 	// setup browser
 	ctx, cancelBrowser := context.WithCancel(context.Background())
@@ -77,9 +96,20 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	// setup local fixture site
+	fixtureSite, err := setupFixtureSite(ctx)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = fixtureSite.Close()
+	}()
+	fixtureSiteHTTPBaseURL = fixtureSite.httpBaseURL
+	fixtureSiteHTTPSBaseURL = fixtureSite.httpsBaseURL
+
 	// setup database mock
 	dbMock := setupDbMock()
-	dbAdapter := database.NewConfigCache(dbMock.RethinkDbConnection, time.Minute)
+	dbAdapter := database.NewConfigAdapter(dbMock.RethinkDbConnection)
 
 	// setup screenshot writer mock
 	screenShotWriter := &testutil.ScreenshotWriterMock{
@@ -104,11 +134,11 @@ func TestMain(m *testing.M) {
 	}
 
 	// setup log service mock
-	logServiceMock := logServiceTestUtil.NewLogServiceMock(5002)
+	logServiceMock := logServiceTestUtil.NewLogServiceMock(logServicePort)
 
 	// setup writer client
 	logWriter := logwriter.New(
-		serviceconnections.WithPort(5002),
+		serviceconnections.WithPort(logServicePort),
 	)
 	if err := logWriter.Connect(); err != nil {
 		panic(err)
@@ -116,12 +146,12 @@ func TestMain(m *testing.M) {
 
 	// setup sessions
 	sessions = session.NewRegistry(
-		2,
+		maxSessions,
 		session.WithBrowserHost(browserHost),
 		session.WithBrowserPort(browserPort),
 		session.WithProxyHost(localhost),
-		session.WithProxyPort(6666),
-		session.WithConfigCache(dbAdapter),
+		session.WithProxyPort(proxyPort),
+		session.WithConfigAdapter(dbAdapter),
 		session.WithScreenshotWriter(screenShotWriter),
 		session.WithLogWriter(logWriter),
 	)
@@ -131,18 +161,29 @@ func TestMain(m *testing.M) {
 		return true
 	}}
 
-	// setup api server
-	apiServer := NewApiServer("", 7777, sessions, robotsEvaluator, logWriter)
+	// setup browsercontroller server
+	browsercontrollerAdress := fmt.Sprintf(":%d", browserControllerPort)
+	listener, err := net.Listen("tcp", browsercontrollerAdress)
+	if err != nil {
+		panic(err)
+	}
+	grpcServer := grpc.NewServer()
+	apiServer := NewApiServer(sessions, robotsEvaluator, logWriter)
+	browsercontrollerV2.RegisterBrowserControllerServer(grpcServer, apiServer)
+
 	go func() {
-		_ = apiServer.Start()
+		err := grpcServer.Serve(listener)
+		if err != nil {
+			if !errors.Is(err, grpc.ErrServerStopped) {
+				panic(err)
+			}
+		}
 	}()
 
 	// setup recorder proxy
 	opt := proxyTestUtil.WithExternalBrowserController(
 		proxyServiceConnections.NewConnectionOptions("BrowserController",
-			proxyServiceConnections.WithHost("localhost"),
-			proxyServiceConnections.WithPort("7777"),
-			proxyServiceConnections.WithConnectTimeout(10*time.Second),
+			proxyServiceConnections.WithPort(fmt.Sprintf("%d", browserControllerPort)),
 		),
 	)
 	grpcServices := proxyTestUtil.NewGrpcServiceMock(opt)
@@ -154,12 +195,20 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// Clean up
-	sessions.CloseWait(1 * time.Minute)
-	apiServer.Close()
+	sessions.Close()
+	grpcServer.GracefulStop()
 	grpcServices.Close()
-	recorderProxy0.Close()
-	recorderProxy1.Close()
-	recorderProxy2.Close()
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	var shutdownWg sync.WaitGroup
+	for _, proxy := range []*recorderproxy.RecorderProxy{recorderProxy0, recorderProxy1, recorderProxy2} {
+		shutdownWg.Add(1)
+		go func() {
+			defer shutdownWg.Done()
+			_ = proxy.Shutdown(shutdownCtx)
+		}()
+	}
+	shutdownWg.Wait()
+	cancelShutdown()
 	_ = screenShotWriter.Close()
 	_ = dbMock.Close()
 	_ = logWriter.Close()
@@ -179,81 +228,260 @@ func TestSession_Fetch(t *testing.T) {
 			BrowserConfigRef: &configV1.ConfigRef{Id: "browserConfig1"},
 			PolitenessRef:    &configV1.ConfigRef{Id: "politenessConfig1"},
 			CollectionRef:    &configV1.ConfigRef{Id: "collectionConfig1"},
-			Extra:            &configV1.ExtraConfig{CreateScreenshot: true},
+			Extra:            &configV1.ExtraConfig{CreateScreenshot: false},
 		}},
 	}
 
 	tests := []struct {
-		name string
-		url  *frontierV1.QueuedUri
+		name             string
+		baseURL          string
+		path             string
+		expectedOutlinks []string
+		createScreenshot bool
+		expectedUriCount int32
+		maxDuration      time.Duration
+		skipReason       string
 	}{
-		{"elg", &frontierV1.QueuedUri{Uri: "http://elg.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"vg", &frontierV1.QueuedUri{Uri: "http://vg.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"nb", &frontierV1.QueuedUri{Uri: "http://nb.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"fhi", &frontierV1.QueuedUri{Uri: "http://fhi.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"db", &frontierV1.QueuedUri{Uri: "http://db.no", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"maps", &frontierV1.QueuedUri{Uri: "https://goo.gl/maps/EmpIH", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"ranano", &frontierV1.QueuedUri{Uri: "https://ranano.no/", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"cynergi", &frontierV1.QueuedUri{Uri: "https://www.cynergi.no/", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
-		{"pdf1", &frontierV1.QueuedUri{Uri: "https://www.nb.no/content/uploads/2019/04/tildelingsbrev_nasjonalbiblioteket_2019.pdf", DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}},
+		{name: "http-static-outlink", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}},
+		{name: "https-static-outlink", baseURL: fixtureSiteHTTPSBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPSBaseURL + "/linked.html"}},
+		{name: "http-screenshot", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}, createScreenshot: true, maxDuration: 20 * time.Second},
+		{name: "http-eventsource-cutoff", baseURL: fixtureSiteHTTPBaseURL, path: "/eventsource.html", expectedUriCount: 1, maxDuration: 20 * time.Second},
+		{
+			name:             "http-worker-outlink",
+			baseURL:          fixtureSiteHTTPBaseURL,
+			path:             "/worker.html",
+			expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/worker-hit.html"},
+		},
 	}
 	for _, tt := range tests {
 		ctx := context.Background()
 		t.Run(tt.name, func(t *testing.T) {
-			// Get next available session
+			if tt.skipReason != "" {
+				t.Skip(tt.skipReason)
+			}
+			if tt.baseURL == "" {
+				t.Fatal("fixture site base URL was not initialized")
+			}
+
+			qUri := &frontierV1.QueuedUri{Uri: tt.baseURL + tt.path, DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}
+
 			s, err := sessions.GetNextAvailable(ctx)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 			defer sessions.Release(s)
 
+			t.Logf("Acquired session: %v", s.Id)
+
 			// Fetch page
-			result, err := s.Fetch(context.Background(), &frontierV1.PageHarvestSpec{
-				QueuedUri:    tt.url,
+			conf.GetCrawlConfig().GetExtra().CreateScreenshot = tt.createScreenshot
+			phs := &frontierV1.PageHarvestSpec{
+				QueuedUri:    qUri,
 				CrawlConfig:  conf,
 				SessionToken: "test",
-			})
-			if err != nil {
-				t.Error(err)
-			} else {
-				t.Logf("Resource count: %v, Time: %v\n", result.UriCount, result.PageFetchTimeMs)
 			}
-			time.Sleep(time.Second * 4)
+
+			t.Logf("Starting fetch test for %v", phs)
+
+			fetchStart := time.Now()
+			result, err := s.Fetch(context.Background(), phs)
+			fetchDuration := time.Since(fetchStart)
+			t.Log("Session.Fetch returned")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.UriCount == 0 {
+				t.Fatalf("expected at least one resource for %s", qUri.Uri)
+			}
+			if tt.expectedUriCount != 0 && result.UriCount != tt.expectedUriCount {
+				t.Fatalf("resource count = %d, want %d", result.UriCount, tt.expectedUriCount)
+			}
+			if tt.maxDuration > 0 && fetchDuration > tt.maxDuration {
+				t.Fatalf("fetch duration = %v, want at most %v", fetchDuration, tt.maxDuration)
+			}
+			for _, want := range tt.expectedOutlinks {
+				if !hasOutlink(result.Outlinks, want) {
+					t.Fatalf("missing outlink %q, got %v", want, outlinkStrings(result.Outlinks))
+				}
+			}
+			t.Logf("Resource count: %v, outlinks: %v, Time: %v\n", result.UriCount, outlinkStrings(result.Outlinks), result.PageFetchTimeMs)
 		})
 	}
+}
+
+type fixtureSite struct {
+	httpBaseURL  string
+	httpsBaseURL string
+	ctx          context.Context
+	ctr          testcontainers.Container
+}
+
+func (s *fixtureSite) Close() error {
+	ctx, cancel := context.WithTimeout(s.ctx, 5*time.Second)
+	defer cancel()
+	return s.ctr.Terminate(ctx)
+}
+
+func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
+	root, err := fixtureSiteRoot()
+	if err != nil {
+		return nil, err
+	}
+	certDir, err := os.MkdirTemp("", "veidemann-fixture-certs-")
+	if err != nil {
+		return nil, fmt.Errorf("create fixture certificate directory: %w", err)
+	}
+	defer func() {
+		_ = os.RemoveAll(certDir)
+	}()
+
+	certPath, keyPath, err := writeFixtureCertFiles(certDir)
+	if err != nil {
+		return nil, fmt.Errorf("create fixture certificate: %w", err)
+	}
+
+	providerType, skipReaper := containerProvider()
+	fixtureContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ProviderType: providerType,
+		ContainerRequest: testcontainers.ContainerRequest{
+			SkipReaper:   skipReaper,
+			Image:        "nginx:1.27-alpine",
+			ExposedPorts: []string{"80/tcp", "443/tcp"},
+			WaitingFor: wait.ForAll(
+				wait.ForListeningPort("80/tcp"),
+				wait.ForListeningPort("443/tcp"),
+			),
+			Files: fixtureSiteFiles(root, certPath, keyPath),
+		},
+		Started: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	httpPort, err := fixtureContainer.MappedPort(ctx, "80/tcp")
+	if err != nil {
+		_ = fixtureContainer.Terminate(ctx)
+		return nil, err
+	}
+	httpsPort, err := fixtureContainer.MappedPort(ctx, "443/tcp")
+	if err != nil {
+		_ = fixtureContainer.Terminate(ctx)
+		return nil, err
+	}
+
+	return &fixtureSite{
+		httpBaseURL:  fmt.Sprintf("http://localhost:%d", httpPort.Num()),
+		httpsBaseURL: fmt.Sprintf("https://localhost:%d", httpsPort.Num()),
+		ctx:          ctx,
+		ctr:          fixtureContainer,
+	}, nil
+}
+
+func fixtureSiteRoot() (string, error) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", fmt.Errorf("failed resolving server test path")
+	}
+	return filepath.Join(filepath.Dir(currentFile), "testdata", "site"), nil
+}
+
+func fixtureSiteFiles(root, certPath, keyPath string) []testcontainers.ContainerFile {
+	var result []testcontainers.ContainerFile
+	result = append(result,
+		testcontainers.ContainerFile{
+			HostFilePath:      filepath.Join(root, "..", "default.conf"),
+			ContainerFilePath: "/etc/nginx/conf.d/default.conf",
+			FileMode:          0o644,
+		},
+		testcontainers.ContainerFile{
+			HostFilePath:      certPath,
+			ContainerFilePath: "/etc/nginx/certs/localhost.crt",
+			FileMode:          0o644,
+		},
+		testcontainers.ContainerFile{
+			HostFilePath:      keyPath,
+			ContainerFilePath: "/etc/nginx/certs/localhost.key",
+			FileMode:          0o600,
+		},
+	)
+
+	files := []string{
+		"events.txt",
+		"eventsource.html",
+		"index.html",
+		"linked.html",
+		"worker.html",
+		"worker.js",
+		"worker-data.json",
+		"worker-hit.html",
+	}
+
+	for _, fileName := range files {
+		result = append(result, testcontainers.ContainerFile{
+			HostFilePath:      filepath.Join(root, fileName),
+			ContainerFilePath: filepath.Join("/usr/share/nginx/html", fileName),
+			FileMode:          0o644,
+		})
+	}
+	return result
+}
+
+func containerProvider() (testcontainers.ProviderType, bool) {
+	if *provider == "podman" {
+		return testcontainers.ProviderPodman, true
+	}
+	return testcontainers.ProviderDocker, false
+}
+
+func hasOutlink(outlinks []*frontierV1.QueuedUri, want string) bool {
+	for _, outlink := range outlinks {
+		if outlink.GetUri() == want {
+			return true
+		}
+	}
+	return false
+}
+
+func outlinkStrings(outlinks []*frontierV1.QueuedUri) []string {
+	result := make([]string, 0, len(outlinks))
+	for _, outlink := range outlinks {
+		result = append(result, outlink.GetUri())
+	}
+	return result
 }
 
 func setupDbMock() *database.MockConnection {
 	dbConn := database.NewMockConnection()
 	dbConn.GetMock().On(r.Table("config").Get("browserConfig1")).Return(
-		map[string]interface{}{
+		map[string]any{
 			"id":   "browserConfig1",
 			"kind": "browserConfig",
-			"meta": map[string]interface{}{
+			"meta": map[string]any{
 				"name":    "browser config 1",
-				"label":   []map[string]interface{}{{"key": "foo", "value": "bar"}},
+				"label":   []map[string]any{{"key": "foo", "value": "bar"}},
 				"created": "2020-04-06T18:17:50.343827619Z",
 			},
-			"browserConfig": map[string]interface{}{
+			"browserConfig": map[string]any{
 				"windowWidth":         1400,
 				"windowHeight":        1280,
 				"maxInactivityTimeMs": 5000,
 				"pageLoadTimeoutMs":   60000,
-				"scriptRef":           []map[string]interface{}{{"kind": "browserScript", "id": "script1"}},
+				"scriptRef":           []map[string]any{{"kind": "browserScript", "id": "script1"}},
 			},
 		},
 		nil,
 	)
 	dbConn.GetMock().On(r.Table("config").Get("script1")).Return(
-		map[string]interface{}{
+		map[string]any{
 			"id":   "script1",
 			"kind": "browserScript",
-			"meta": map[string]interface{}{
+			"meta": map[string]any{
 				"name":        "script1",
 				"description": "script1",
-				"label":       []map[string]interface{}{{"key": "type", "value": "extract_outlinks"}},
+				"label":       []map[string]any{{"key": "type", "value": "extract_outlinks"}},
 			},
-			"browserScript": map[string]interface{}{
+			"browserScript": map[string]any{
 				"browserScriptType": "EXTRACT_OUTLINKS",
 				"script": `
 (function extractOutlinks(frame) {
@@ -289,53 +517,57 @@ func setupDbMock() *database.MockConnection {
 		nil,
 	)
 	dbConn.GetMock().On(r.Table("config").Get("politenessConfig1")).Return(
-		map[string]interface{}{
+		map[string]any{
 			"id":   "politenessConfig1",
 			"kind": "politenessConfig",
-			"meta": map[string]interface{}{
+			"meta": map[string]any{
 				"name":    "politeness config 1",
-				"label":   []map[string]interface{}{{"key": "foo", "value": "bar"}},
+				"label":   []map[string]any{{"key": "foo", "value": "bar"}},
 				"created": "2020-04-06T18:17:50.343827619Z",
 			},
-			"politenessConfig": map[string]interface{}{},
+			"politenessConfig": map[string]any{},
 		}, nil)
-	dbConn.GetMock().On(r.Table("page_log").Insert(r.MockAnything())).Return(map[string]interface{}{}, nil)
-	dbConn.GetMock().On(r.Table("crawl_log").Insert(r.MockAnything())).Return(map[string]interface{}{}, nil)
+	dbConn.GetMock().On(r.Table("page_log").Insert(r.MockAnything())).Return(map[string]any{}, nil)
+	dbConn.GetMock().On(r.Table("crawl_log").Insert(r.MockAnything())).Return(map[string]any{}, nil)
 
 	return dbConn
 }
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
-func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string) (proxy *recorderproxy.RecorderProxy) {
-	proxy = recorderproxy.NewRecorderProxy(id, "0.0.0.0", 6666, conn, 5*time.Second, nextProxyAddr)
-	proxy.Start()
-	return
-}
+func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string) *recorderproxy.RecorderProxy {
+	proxy := recorderproxy.NewRecorderProxy(id, conn, nextProxyAddr)
 
-// GetOutboundIP returrns the preferred outbound ip of this machine
-func GetOutboundIP() net.IP {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+	ln, err := proxy.Listen("", proxyPort)
 	if err != nil {
 		panic(err)
+	}
+	go proxy.Serve(ln)
+
+	return proxy
+}
+
+// getOutboundIP returrns the preferred outbound ip of this machine
+func getOutboundIP(dst string) (net.IP, error) {
+	conn, err := net.Dial("udp4", dst)
+	if err != nil {
+		return nil, fmt.Errorf("dial udp %q: %w", dst, err)
 	}
 	defer func() {
 		_ = conn.Close()
 	}()
 
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP
+	localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		return nil, fmt.Errorf("unexpected local addr type: %T", conn.LocalAddr())
+	}
+
+	return localAddr.IP, nil
 }
 
 func setupBrowser(ctx context.Context) (host string, port int, err error) {
 	// Determine container provider
-	skipReaper := false
-	var providerType testcontainers.ProviderType
-	if *provider == "podman" {
-		providerType = testcontainers.ProviderPodman
-		skipReaper = true
-	} else {
-		providerType = testcontainers.ProviderDocker
-	}
+	providerType, skipReaper := containerProvider()
+
 	// Start browserless container
 	browserless, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ProviderType: providerType,
@@ -344,7 +576,7 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 			Env: map[string]string{
 				"DEBUG": "*",
 			},
-			Image:        "browserless/chrome:1.36.0-puppeteer-3.3.0",
+			Image:        testcontainersupport.BrowserlessChromium,
 			ExposedPorts: []string{"3000/tcp"},
 			WaitingFor:   wait.ForListeningPort("3000/tcp"),
 		},
@@ -357,11 +589,104 @@ func setupBrowser(ctx context.Context) (host string, port int, err error) {
 	if err != nil {
 		return
 	}
-	var browserPort nat.Port
-	browserPort, err = browserless.MappedPort(ctx, "3000/tcp")
+	if host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	}
+	browserPort, err := browserless.MappedPort(ctx, "3000/tcp")
 	if err != nil {
 		return
 	}
-	port = browserPort.Int()
+	port = int(browserPort.Num())
 	return
+}
+
+func writeFixtureCertFiles(dir string) (certPath, keyPath string, err error) {
+	cert, err := generateLocalhostCert()
+	if err != nil {
+		return "", "", err
+	}
+
+	certPath = filepath.Join(dir, "localhost.crt")
+	keyPath = filepath.Join(dir, "localhost.key")
+
+	if err := os.WriteFile(certPath, cert.CertPEM, 0644); err != nil {
+		return "", "", err
+	}
+	if err := os.WriteFile(keyPath, cert.KeyPEM, 0600); err != nil {
+		return "", "", err
+	}
+
+	return
+}
+
+type tlsCertPEM struct {
+	CertPEM []byte
+	KeyPEM  []byte
+}
+
+func generateLocalhostCert() (*tlsCertPEM, error) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl := x509.Certificate{
+		SerialNumber: serial,
+		Subject: pkix.Name{
+			CommonName: "localhost",
+		},
+
+		NotBefore: time.Now().Add(-time.Minute),
+		NotAfter:  time.Now().Add(24 * time.Hour),
+
+		KeyUsage: x509.KeyUsageKeyEncipherment |
+			x509.KeyUsageDigitalSignature |
+			x509.KeyUsageCertSign,
+
+		ExtKeyUsage: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+		},
+
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+
+		DNSNames: []string{
+			"localhost",
+		},
+		IPAddresses: []net.IP{
+			net.ParseIP("127.0.0.1"),
+			net.ParseIP("::1"),
+		},
+	}
+
+	der, err := x509.CreateCertificate(
+		rand.Reader,
+		&tmpl,
+		&tmpl,
+		&priv.PublicKey,
+		priv,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: der,
+	})
+
+	keyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(priv),
+	})
+
+	return &tlsCertPEM{
+		CertPEM: certPEM,
+		KeyPEM:  keyPEM,
+	}, nil
 }

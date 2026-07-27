@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/metrics"
 	"github.com/minio/minio-go/v7"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -316,10 +316,7 @@ func (m *Manager) process(ctx context.Context, path string) error {
 		}
 
 		metrics.FallbackMoved()
-		log.Warn().
-			Str("file", cleanPath).
-			Str("fallback_file", fallbackPath).
-			Msg("S3 upload not configured, moved file to fallback storage")
+		slog.Warn("S3 upload not configured, moved file to fallback storage", "file", cleanPath, "fallbackFile", fallbackPath)
 
 		m.clearPending(cleanPath)
 		m.refreshFallbackBacklogMetrics()
@@ -351,7 +348,7 @@ func (m *Manager) process(ctx context.Context, path string) error {
 	}
 
 	if fromFallback {
-		log.Warn().Err(err).Str("file", cleanPath).Msg("Upload failed for fallback file, will retry")
+		slog.Warn("Upload failed for fallback file, will retry", "error", err, "file", cleanPath)
 		m.clearPending(cleanPath)
 		m.refreshFallbackBacklogMetrics()
 		return nil
@@ -365,10 +362,7 @@ func (m *Manager) process(ctx context.Context, path string) error {
 	}
 
 	metrics.FallbackMoved()
-	log.Warn().Err(err).
-		Str("file", cleanPath).
-		Str("fallback_file", fallbackPath).
-		Msg("Upload failed, moved file to fallback storage")
+	slog.Warn("Upload failed, moved file to fallback storage", "error", err, "file", cleanPath, "fallbackFile", fallbackPath)
 
 	m.clearPending(cleanPath)
 	m.refreshFallbackBacklogMetrics()
@@ -383,7 +377,7 @@ func (m *Manager) refreshFallbackBacklogMetrics() {
 
 	files, bytes, err := backlogStats(m.fallbackDir)
 	if err != nil {
-		log.Warn().Err(err).Str("dir", m.fallbackDir).Msg("Failed to refresh fallback backlog metrics")
+		slog.Warn("Failed to refresh fallback backlog metrics", "error", err, "dir", m.fallbackDir)
 		return
 	}
 	metrics.SetFallbackBacklog(files, bytes)
@@ -413,27 +407,14 @@ func finalize(ctx context.Context, filePath string, uploader Uploader) error {
 		if diskSize != info.Size {
 			metrics.UploadSizeMismatch()
 
-			log.Warn().
-				Str("key", info.Key).
-				Str("file", filePath).
-				Int64("disk_size", diskSize).
-				Int64("uploaded_size", info.Size).
-				Int64("delta", info.Size-diskSize).
-				Dur("duration", dur).
-				Msg("Uploaded size differs from on-disk size")
+			slog.Warn("Uploaded size differs from on-disk size", "key", info.Key, "file", filePath, "diskSize", diskSize, "uploadedSize", info.Size, "delta", info.Size-diskSize, "duration", dur)
 		}
 	} else {
 		metrics.OnDiskStatFailed()
-		log.Warn().Err(err).Str("file", filePath).Msg("Failed to stat file after upload")
+		slog.Warn("Failed to stat file after upload", "error", err, "file", filePath)
 	}
 
-	log.Debug().
-		Str("key", info.Key).
-		Int64("size", info.Size).
-		Str("etag", info.ETag).
-		Str("duration", time.Since(start).String()).
-		Str("md5", md5sum).
-		Msg("Uploaded file")
+	slog.Info("Uploaded file", "key", info.Key, "size", info.Size, "etag", info.ETag, "duration", time.Since(start), "md5", md5sum)
 
 	if err = os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to remove file after upload: %s: %w", filePath, err)

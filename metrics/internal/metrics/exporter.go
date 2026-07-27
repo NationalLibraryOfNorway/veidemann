@@ -18,7 +18,7 @@ package metrics
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
@@ -29,41 +29,51 @@ import (
 type Exporter struct {
 	rethinkdb *rethinkdb.Query
 	frontier  *frontier.Client
+	timer     *time.Ticker
 }
 
 // New creates a new Exporter
-func New(rethinkdb *rethinkdb.Query, frontier *frontier.Client) *Exporter {
+func New(rethinkdb *rethinkdb.Query, frontier *frontier.Client, interval time.Duration) *Exporter {
 	return &Exporter{
-		rethinkdb,
-		frontier,
+		rethinkdb: rethinkdb,
+		frontier:  frontier,
+		timer:     time.NewTicker(interval),
 	}
 }
 
-func (e *Exporter) Run(interval time.Duration) {
-	registerCollectors(e.collectUriQueueLength)
+func (e *Exporter) Start(ctx context.Context) {
+	registerCollectors(func() float64 {
+		return e.collectUriQueueLength(ctx)
+	})
 	go func() {
-		e.collectJobStatusJob()
-		for range time.Tick(interval) {
-			e.collectJobStatusJob()
+		e.collectJobStatusJob(ctx)
+		for range e.timer.C {
+			e.collectJobStatusJob(ctx)
 		}
 	}()
 }
 
-func (e *Exporter) collectJobStatusJob() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (e *Exporter) Stop() {
+	e.timer.Stop()
+}
+
+func (e *Exporter) collectJobStatusJob(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	err := e.rethinkdb.WalkLatestJobExecutionForCrawlJobs(ctx, collectJobStatus)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to collect job status", "error", err)
+		return
 	}
 }
 
-func (e *Exporter) collectUriQueueLength() float64 {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (e *Exporter) collectUriQueueLength(ctx context.Context) float64 {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	count, err := e.frontier.QueueCountTotal(ctx)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to collect URI queue length", "error", err)
+		return 0
 	}
 	return float64(count)
 }

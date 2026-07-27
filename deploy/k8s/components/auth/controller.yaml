@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: veidemann-controller
+  name: controller
 spec:
   template:
     spec:
       containers:
-        - name: veidemann-controller
+        - name: controller
           env:
             - name: OPENID_CONNECT_ISSUER
               value: "https://veidemann.test/dex"

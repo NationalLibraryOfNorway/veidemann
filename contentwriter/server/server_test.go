@@ -87,13 +87,13 @@ func newServerAndClient(settings *flags.Mock) serverAndClient {
 			Flush:       true,
 			PoolSize:    settings.WarcWriterPoolSize(),
 		},
-		database.NewConfigCache(dbMockConn, time.Duration(1)),
+		dbMockConn,
 		&database.CrawledContentHashCache{
 			Client: rdb,
 		},
 	)
 	contentWriterService := &ContentWriterService{
-		configCache:        database.NewConfigCache(dbMockConn, time.Duration(1)),
+		configAdapter:      dbMockConn,
 		warcWriterRegistry: warcWriterRegistry,
 	}
 

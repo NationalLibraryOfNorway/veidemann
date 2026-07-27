@@ -17,12 +17,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/rs/zerolog/log"
 )
 
 type State struct {
@@ -75,7 +74,7 @@ func NewRecordReader(fileOrDir string, decoder RecordDecoder, filePattern string
 			}
 		} else {
 			l.curFileName = f.Name()
-			log.Info().Str("filename", l.curFileName).Msg("Reading file")
+			slog.Info("Reading file", "filename", l.curFileName)
 			l.recordDecoder.Init(f, filepath.Ext(f.Name()))
 		}
 	}
@@ -120,7 +119,7 @@ func (l *recordReader) initRecordReader() error {
 				l.curRecNum = 0
 				l.curFileName = l.curFile.Name()
 
-				log.Info().Str("filename", l.curFileName).Msg("Reading file")
+				slog.Info("Reading file", "filename", l.curFileName)
 				l.recordDecoder.Init(l.curFile, filepath.Ext(l.curFile.Name()))
 				break
 			}

@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -41,9 +42,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-const name = "robots-evaluator"
-
 var (
+	name    = "robots-evaluator"
 	version = ""
 	commit  = ""
 	date    = ""
@@ -52,9 +52,17 @@ var (
 func initLogger(w io.Writer, level string) {
 	levelVar := new(slog.LevelVar)
 	levelVar.Set(toLogLevel(level))
-	opts := &slog.HandlerOptions{Level: levelVar}
-	handler := slog.NewJSONHandler(w, opts)
-	slog.SetDefault(slog.New(handler))
+
+	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
+		Level: levelVar,
+	})
+
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
+	// Redirect package-level log.Print/log.Printf/etc. to the same slog handler.
+	log.SetOutput(slog.NewLogLogger(handler, slog.LevelInfo).Writer())
+	log.SetFlags(0)
 }
 
 func toLogLevel(level string) slog.Level {
@@ -72,25 +80,46 @@ func toLogLevel(level string) slog.Level {
 	}
 }
 
-func main() {
-	pflag.String("log-level", "info", "error, warn, info or debug")
-	pflag.String("addr", ":8090", "Address for the gRPC server")
-	pflag.String("telemetry-addr", ":9153", "Address for the telemetry server")
-	pflag.StringSlice("olric-address", []string{"localhost:3320"}, "Olric address")
-	pflag.String("olric-dmap", "robots-evaluator", "Olric DMap name")
+func parseFlags() error {
+	flags := pflag.CommandLine
+
+	flags.String("log-level", "info", "error, warn, info or debug")
+	flags.String("address", ":8090", "Address for the gRPC server")
+	flags.String("telemetry-address", ":9153", "Address for the telemetry server")
+	flags.StringSlice("olric-address", []string{"localhost:3320"}, "Olric address")
+	flags.String("olric-dmap", "robots-evaluator", "Olric DMap name")
+
 	pflag.Parse()
 
-	_ = viper.BindPFlags(pflag.CommandLine)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
+	return viper.BindPFlags(pflag.CommandLine)
+}
+
+func main() {
+	err := run()
+	if err != nil {
+		slog.Error("Bye!", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Goodbye!")
+}
+
+func run() error {
+	err := parseFlags()
+	if err != nil {
+		return fmt.Errorf("failed to parse flags: %w", err)
+	}
 
 	level := viper.GetString("log-level")
-	addr := viper.GetString("addr")
-	telemetryAddr := viper.GetString("telemetry-addr")
+	addr := viper.GetString("address")
+	telemetryAddr := viper.GetString("telemetry-address")
 	olricAddress := viper.GetStringSlice("olric-address")
 	olricDmap := viper.GetString("olric-dmap")
 
 	initLogger(os.Stderr, level)
+
+	slog.Info(name, "version", version, "commit", commit, "date", date)
 
 	app := &App{
 		Addr:          addr,
@@ -102,12 +131,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	slog.Info(name, "version", version, "commit", commit, "date", date)
-
-	if err := app.Run(ctx); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	return app.Run(ctx)
 }
 
 type App struct {
@@ -197,20 +221,13 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) init(ctx context.Context) error {
-	init := new(errgroup.Group)
-
-	init.Go(func() error {
-		cachier, err := app.newOlricCache(ctx)
-		if err != nil {
-			return err
-		}
-		app.cachier = cachier
-		app.ready.Store(true)
-
-		return nil
-	})
-
-	return init.Wait()
+	cachier, err := app.newOlricCache(ctx)
+	if err != nil {
+		return err
+	}
+	app.cachier = cachier
+	app.ready.Store(true)
+	return nil
 }
 
 func (app *App) newOlricCache(ctx context.Context) (cache.Cachier, error) {

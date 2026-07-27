@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 	"sync"
@@ -29,7 +30,6 @@ import (
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/invopop/yaml"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -379,7 +379,7 @@ func Unmarshal(ctx context.Context, filename string, result chan<- *configV1.Con
 			defer close(result)
 			err := unmarshal(r, result, ctx.Done(), t)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to unmarshal")
+				slog.Error("failed to unmarshal", "error", err)
 			}
 		}()
 
@@ -402,7 +402,7 @@ func Unmarshal(ctx context.Context, filename string, result chan<- *configV1.Con
 			defer close(result)
 			err := unmarshal(f, result, ctx.Done(), t)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to unmarshal")
+				slog.Error("failed to unmarshal", "error", err)
 			}
 		}()
 
@@ -428,7 +428,7 @@ func Unmarshal(ctx context.Context, filename string, result chan<- *configV1.Con
 
 		f, err = os.Open(fi.Name())
 		if err != nil {
-			log.Error().Err(err).Msg("failed to open file")
+			slog.Error("failed to open file", "error", err)
 			continue
 		}
 
@@ -439,7 +439,7 @@ func Unmarshal(ctx context.Context, filename string, result chan<- *configV1.Con
 			defer func() { _ = f.Close() }()
 			err := unmarshal(f, result, ctx.Done(), t)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to unmarshal")
+				slog.Error("failed to unmarshal", "error", err)
 			}
 		}()
 	}

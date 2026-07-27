@@ -7,10 +7,6 @@ build:
   local:
     push: false
   artifacts:
-    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
-      context: .
-      jib:
-        project: rethinkdbadapter
     - image: ghcr.io/nationallibraryofnorway/veidemann/olricd
       context: ./olricd
       docker: {}
@@ -23,7 +19,6 @@ manifests:
     paths:
       - deploy/k8s/overlays/dev/rethinkdb
       - deploy/k8s/overlays/dev/olric
-      - deploy/k8s/overlays/dev/rethinkdbadapter/
       - deploy/k8s/overlays/dev/kvrocks
 
 deploy:
@@ -107,7 +102,10 @@ build:
       context: .
       jib:
         project: controller
-
+    - image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdbadapter
+      context: .
+      jib:
+        project: rethinkdbadapter
 
 manifests:
   kustomize:
@@ -129,41 +127,22 @@ profiles:
             remoteChart: dex
             version: 0.24.0
             valuesFiles:
-              - deploy/k8s/overlays/auth/dex/values.yaml
-      kustomize:
-        paths:
-          - kubernetes/overlays/auth
+              - deploy/helm/dex/values.yaml
+    patches:
+      - op: replace
+        path: /manifests/kustomize/paths/0
+        value: deploy/k8s/overlays/auth
+
+  - name: monitoring
+    patches:
+      - op: add
+        path: /requires
+        value:
+          - path: skaffold.monitoring.yaml
+            configs:
+              - monitoring
 
   - name: no-build
     patches:
       - op: remove
         path: /build
-
----
-
-apiVersion: skaffold/v4beta13
-kind: Config
-metadata:
-  name: monitoring
-
-manifests:
-  kustomize:
-    paths:
-      - deploy/k8s/base/grafana
-      - deploy/k8s/overlays/dev/monitoring
-
-deploy:
-  kubeContext: minikube
-  statusCheck: true
-  kubectl: {}
-  helm:
-    releases:
-      - name: kube-prometheus-stack
-        repo: https://prometheus-community.github.io/helm-charts
-        remoteChart: kube-prometheus-stack
-        version: 84.3.0
-        namespace: monitoring
-        createNamespace: true
-        wait: true
-        valuesFiles:
-          - deploy/k8s/overlays/dev/monitoring/kube-prometheus-stack.minikube.values.yaml

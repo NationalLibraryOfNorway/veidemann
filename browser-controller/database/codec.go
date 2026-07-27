@@ -29,7 +29,7 @@ import (
 	"gopkg.in/rethinkdb/rethinkdb-go.v6/encoding"
 )
 
-var decodeConfigObject = func(encoded interface{}, value reflect.Value) error {
+var decodeConfigObject = func(encoded any, value reflect.Value) error {
 	b, err := json.Marshal(encoded)
 	if err != nil {
 		return fmt.Errorf("error decoding ConfigObject: %w", err)
@@ -56,7 +56,7 @@ var decodeConfigObject = func(encoded interface{}, value reflect.Value) error {
 	return nil
 }
 
-var decodeCrawlExecutionStatus = func(encoded interface{}, value reflect.Value) error {
+var decodeCrawlExecutionStatus = func(encoded any, value reflect.Value) error {
 	b, err := json.Marshal(encoded)
 	if err != nil {
 		return fmt.Errorf("error decoding CrawlExecutionStatus: %v", err)
@@ -83,13 +83,13 @@ var decodeCrawlExecutionStatus = func(encoded interface{}, value reflect.Value) 
 	return nil
 }
 
-var encodeProtoMessage = func(value interface{}) (i interface{}, err error) {
+var encodeProtoMessage = func(value any) (i any, err error) {
 	b, err := protojson.Marshal(value.(proto.Message))
 	if err != nil {
 		return nil, fmt.Errorf("error decoding ConfigObject: %w", err)
 	}
 
-	var m map[string]interface{}
+	var m map[string]any
 	err = json.Unmarshal(b, &m)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding proto message: %w", err)
@@ -109,9 +109,9 @@ func init() {
 		decodeCrawlExecutionStatus,
 	)
 	encoding.SetTypeEncoding(
-		reflect.TypeOf(map[string]interface{}{}),
-		func(value interface{}) (i interface{}, err error) {
-			m := value.(map[string]interface{})
+		reflect.TypeOf(map[string]any{}),
+		func(value any) (i any, err error) {
+			m := value.(map[string]any)
 			for k, v := range m {
 				switch t := v.(type) {
 				case string:
@@ -131,7 +131,7 @@ func init() {
 			}
 			return value, nil
 		},
-		func(encoded interface{}, value reflect.Value) error {
+		func(encoded any, value reflect.Value) error {
 			value.Set(reflect.ValueOf(encoded))
 			return nil
 		},

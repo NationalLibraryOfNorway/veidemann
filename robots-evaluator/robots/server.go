@@ -8,6 +8,7 @@ import (
 )
 
 type EvaluatorServer struct {
+	robotsevaluatorV1.UnimplementedRobotsEvaluatorServer
 	*Evaluator
 }
 

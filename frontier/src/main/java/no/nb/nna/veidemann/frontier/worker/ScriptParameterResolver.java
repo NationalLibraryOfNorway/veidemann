@@ -1,8 +1,13 @@
 package no.nb.nna.veidemann.frontier.worker;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.ConfigRef;
@@ -13,30 +18,11 @@ import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.commons.util.ApiTools;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
 public class ScriptParameterResolver {
     private final Frontier frontier;
-    private final LoadingCache<ConfigRef, Map<String, Annotation>> jobParametersCache;
 
     public ScriptParameterResolver(Frontier frontier) {
         this.frontier = frontier;
-        jobParametersCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .build(
-                        new CacheLoader<ConfigRef, Map<String, Annotation>>() {
-                            public Map<String, Annotation> load(ConfigRef jobConfigRef) throws DbException {
-                                return LoadScriptParametersForJob(jobConfigRef);
-                            }
-                        });
     }
 
     public Collection<Annotation> GetScriptParameters(ConfigObject seed, ConfigObject jobConfig) throws DbException {
@@ -46,16 +32,16 @@ public class ScriptParameterResolver {
 
     public Map<String, Annotation> GetScriptParametersForJob(ConfigRef jobConfigRef) throws DbException {
         try {
-            return jobParametersCache.get(jobConfigRef);
-        } catch (ExecutionException e) {
+            return LoadScriptParametersForJob(jobConfigRef);
+        } catch (DbException e) {
             throw new DbQueryException(e);
         }
     }
 
     public Map<String, Annotation> GetScriptParametersForJob(ConfigObject jobConfig) throws DbException {
-        try {
-            return jobParametersCache.get(ApiTools.refForConfig(jobConfig));
-        } catch (ExecutionException e) {
+              try {
+            return LoadScriptParametersForJob(ApiTools.refForConfig(jobConfig));
+        } catch (DbException e) {
             throw new DbQueryException(e);
         }
     }

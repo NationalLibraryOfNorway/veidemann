@@ -16,7 +16,11 @@
 
 package url
 
-import "github.com/nlnwa/whatwg-url/url"
+import (
+	"strings"
+
+	"github.com/nlnwa/whatwg-url/url"
+)
 
 func Normalize(u string) string {
 	p, err := url.Parse(u)
@@ -25,4 +29,21 @@ func Normalize(u string) string {
 	} else {
 		return p.String()
 	}
+}
+
+// IsBrowserLocal reports whether u uses a scheme resolved entirely by the
+// browser rather than through the network stack used by the crawl recorder.
+func IsBrowserLocal(u string) bool {
+	colon := strings.IndexByte(u, ':')
+	if colon < 0 {
+		return false
+	}
+
+	scheme := u[:colon]
+	return strings.EqualFold(scheme, "data") ||
+		strings.EqualFold(scheme, "blob") ||
+		strings.EqualFold(scheme, "about") ||
+		strings.EqualFold(scheme, "javascript") ||
+		strings.EqualFold(scheme, "chrome") ||
+		strings.EqualFold(scheme, "devtools")
 }

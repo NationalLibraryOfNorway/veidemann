@@ -16,6 +16,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,7 +25,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/logger"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
@@ -109,7 +109,7 @@ func Init(flags *pflag.FlagSet) error {
 	logger.InitLogger(logLevel, logFormat, logCaller)
 
 	defer func() {
-		log.Debug().Msgf("Using config file: %s", viper.ConfigFileUsed())
+		slog.Debug("Using config file", "path", viper.ConfigFileUsed())
 	}()
 
 	// resolve path to context directory
@@ -119,7 +119,7 @@ func Init(flags *pflag.FlagSet) error {
 	}
 
 	// create context directory
-	log.Debug().Msgf("Creating context directory: %s", ctxDir)
+	slog.Debug("Creating context directory", "path", ctxDir)
 	if err := os.MkdirAll(ctxDir, 0777); err != nil {
 		return fmt.Errorf("failed to create context directory: %w", err)
 	}

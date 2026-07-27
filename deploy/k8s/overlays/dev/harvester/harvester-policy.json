@@ -1,0 +1,18 @@
+{
+  "AutofillAddressEnabled": false,
+  "AutofillCreditCardEnabled": false,
+  "PasswordManagerEnabled": false,
+  "BackgroundModeEnabled": false,
+  "SyncDisabled": true,
+  "MetricsReportingEnabled": false,
+  "UrlBlocklist": [
+    "http://clients2.google.com/*",
+    "https://clients2.google.com/*",
+    "https://accounts.google.com/*",
+    "https://content-autofill.googleapis.com/*",
+    "https://android.clients.google.com/*",
+    "https://update.googleapis.com/*",
+    "https://optimizationguide-pa.googleapis.com/*",
+    "https://safebrowsing.googleapis.com/*"
+  ]
+}

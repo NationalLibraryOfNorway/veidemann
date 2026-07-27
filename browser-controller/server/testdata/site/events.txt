@@ -1,0 +1,4 @@
+data: connected
+
+: padding keeps this response open long enough to cross the page finalization boundary
+: 012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789

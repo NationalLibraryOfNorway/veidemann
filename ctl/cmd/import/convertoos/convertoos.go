@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"strings"
@@ -30,8 +31,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/importutil"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 // ConvertOosCmdOptions is the options for the convert oos command
@@ -141,7 +140,7 @@ func run(o *options) error {
 
 	// Import existing seeds into state database
 	if !o.SkipImport {
-		log.Info().Msg("Importing existing seeds...")
+		slog.Info("Importing existing seeds")
 		err = importutil.ImportExisting(seedDb, client, configV1.Kind_seed, uriNormalizer)
 		if err != nil {
 			return fmt.Errorf("failed to import existing seeds: %w", err)
@@ -228,20 +227,17 @@ func run(o *options) error {
 	}
 
 	// Create error logger
-	errorLog := log.Output(zerolog.ConsoleWriter{Out: errFile, TimeFormat: time.RFC3339})
+	errorLog := slog.New(slog.NewTextHandler(errFile, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	// Error handler for executor
 	errHandler := func(state importutil.Job[string]) {
-		l := errorLog.With().
-			Str("uri", state.Val).
-			Str("filename", state.GetFilename()).
-			Int("recNum", state.GetRecordNum()).Logger()
+		l := errorLog.With("uri", state.Val, "filename", state.GetFilename(), "recNum", state.GetRecordNum())
 
 		var err importutil.ErrAlreadyExists
 		if errors.As(state.GetError(), &err) {
-			l.Info().Msg(err.Error())
+			l.Info(err.Error())
 		} else {
-			l.Error().Err(state.GetError()).Msg("")
+			l.Error("Record processing failed", "error", state.GetError())
 		}
 	}
 
@@ -256,7 +252,7 @@ func run(o *options) error {
 			break
 		}
 		if err != nil {
-			errorLog.Error().Err(err).Msgf("error decoding record: %v", state)
+			errorLog.Error("error decoding record", "error", err, "state", fmt.Sprintf("%v", state))
 			continue
 		}
 		// ignore empty lines
@@ -269,7 +265,7 @@ func run(o *options) error {
 	// Wait for all records to be processed
 	count, success, failed := executor.Wait()
 
-	errorLog.Info().Int("total", count).Int("success", success).Int("failed", failed).Msg("Finished converting records")
+	errorLog.Info("Finished converting records", "total", count, "success", success, "failed", failed)
 
 	return nil
 }

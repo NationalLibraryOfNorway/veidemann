@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"sync"
@@ -29,8 +30,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/config"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/importutil"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type options struct {
@@ -160,7 +159,7 @@ func run(o *options) error {
 	var m sync.Mutex
 
 	// Create error logger
-	errorLog := log.Output(zerolog.ConsoleWriter{Out: errFile, TimeFormat: time.RFC3339})
+	errorLog := slog.New(slog.NewTextHandler(errFile, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	// Create processor function for each record in input file
 	proc := func(sd *importutil.SeedDesc) error {
@@ -224,7 +223,7 @@ func run(o *options) error {
 				}
 
 				sd.EntityId = entity.Id
-				errorLog.Info().Str("entityId", entity.Id).Str("entityName", entity.Meta.Name).Msg("Created new entity in Veidemann")
+				errorLog.Info("Created new entity in Veidemann", "entityId", entity.Id, "entityName", entity.Meta.Name)
 			}
 		}
 
@@ -235,16 +234,12 @@ func run(o *options) error {
 		if err != nil {
 			if entity != nil { // Delete created entity if seed creation failed
 				if _, err := client.DeleteConfigObject(ctx, entity); err != nil {
-					errorLog.Error().Err(err).
-						Str("uri", sd.Uri).
-						Str("entityId", entity.Id).
-						Str("entityName", entity.Meta.Name).
-						Msg("Failed to delete new entity from Veidemann after seed creation error")
+					errorLog.Error("Failed to delete new entity from Veidemann after seed creation error", "error", err, "uri", sd.Uri, "entityId", entity.Id, "entityName", entity.Meta.Name)
 				}
 			}
 			return fmt.Errorf("failed to create seed in Veidemann: %w", err)
 		}
-		errorLog.Info().Str("key", normalizedUri).Str("seedId", seed.Id).Str("uri", sd.Uri).Msg("Created new seed in Veidemann")
+		errorLog.Info("Created new seed in Veidemann", "key", normalizedUri, "seedId", seed.Id, "uri", sd.Uri)
 
 		_, _, err = seedDb.Set(normalizedUri, seed.Id)
 		if err != nil {
@@ -255,16 +250,13 @@ func run(o *options) error {
 	}
 
 	errHandler := func(state importutil.Job[*importutil.SeedDesc]) {
-		l := errorLog.With().
-			Str("uri", state.Val.Uri).
-			Str("filename", state.GetFilename()).
-			Int("recNum", state.GetRecordNum()).Logger()
+		l := errorLog.With("uri", state.Val.Uri, "filename", state.GetFilename(), "recNum", state.GetRecordNum())
 
 		var err importutil.ErrAlreadyExists
 		if errors.As(state.GetError(), &err) {
-			l.Warn().Msgf("Skipping: %v", err.Error())
+			l.Warn("Skipping record", "reason", err.Error())
 		} else {
-			l.Error().Err(state.GetError()).Msg("")
+			l.Error("Record processing failed", "error", state.GetError())
 		}
 	}
 
@@ -278,7 +270,7 @@ func run(o *options) error {
 			break
 		}
 		if err != nil {
-			errorLog.Error().Err(err).Msgf("error decoding record: %v", state)
+			errorLog.Error("error decoding record", "error", err, "state", fmt.Sprintf("%v", state))
 			continue
 		}
 		executor.Queue <- importutil.Job[*importutil.SeedDesc]{State: state, Val: &sd}
@@ -286,7 +278,7 @@ func run(o *options) error {
 
 	count, success, failed := executor.Wait()
 
-	errorLog.Info().Int("processed", count).Int("imported", success).Int("errors", failed).Msg("Import completed")
+	errorLog.Info("Import completed", "processed", count, "imported", success, "errors", failed)
 
 	return err
 }

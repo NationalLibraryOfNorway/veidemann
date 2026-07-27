@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	stdlog "log"
+	"log"
+	"log/slog"
 
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
-	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
@@ -21,11 +20,8 @@ import (
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go/config"
 	jaegerLog "github.com/uber/jaeger-client-go/log"
-
 	"google.golang.org/grpc"
 )
 
@@ -39,10 +35,10 @@ var (
 func main() {
 	err := run()
 	if err != nil {
-		log.Error().Err(err).Msg("Bye")
+		slog.Error("Bye", "error", err)
 		os.Exit(1)
 	}
-	log.Info().Msg("Bye")
+	slog.Info("Goodbye!")
 }
 
 func run() error {
@@ -54,14 +50,14 @@ func run() error {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	initLogging(opts.LogLevel(), opts.LogFormatter())
+	initLogger(os.Stderr, opts.LogLevel())
 
 	closer := initTracer(name)
 	if closer != nil {
 		defer func() { _ = closer.Close() }()
 	}
 
-	log.Info().Msgf("%s version %s, commit %s, date %s", name, version, commit, date)
+	slog.Info(name, "version", version, "commit", commit, "date", date)
 
 	recordOpts := []gowarc.WarcRecordOption{
 		gowarc.WithBufferTmpDir(opts.WorkDir()),
@@ -102,7 +98,6 @@ func run() error {
 
 	app := &server.App{
 		Addr:               fmt.Sprintf("%s:%d", opts.Interface(), opts.Port()),
-		ConfigCacheTTL:     opts.DbCacheTTL(),
 		UploadFallbackDir:  opts.WarcFallbackDir(),
 		UploadInstanceID:   opts.HostName(),
 		UploadScanInterval: opts.UploadRetryScanInterval(),
@@ -148,37 +143,38 @@ func run() error {
 	return app.Run(ctx)
 }
 
-func initLogging(level string, format string) {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+func initLogger(w io.Writer, level string) {
+	levelVar := new(slog.LevelVar)
+	levelVar.Set(toLogLevel(level))
 
-	switch strings.ToLower(level) {
-	case "panic":
-		log.Logger = log.Level(zerolog.PanicLevel)
-	case "fatal":
-		log.Logger = log.Level(zerolog.FatalLevel)
-	case "error":
-		log.Logger = log.Level(zerolog.ErrorLevel)
-	case "warn":
-		log.Logger = log.Level(zerolog.WarnLevel)
-	case "info":
-		log.Logger = log.Level(zerolog.InfoLevel)
-	case "debug":
-		log.Logger = log.Level(zerolog.DebugLevel)
-	case "trace":
-		log.Logger = log.Level(zerolog.TraceLevel)
-	}
+	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
+		Level: levelVar,
+	})
 
-	if format == "logfmt" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-	}
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 
-	stdlog.SetFlags(0)
-	stdlog.SetOutput(log.Logger)
-
-	log.Info().Msgf("Setting log level to %s", level)
+	// Redirect package-level log.Print/log.Printf/etc. to the same slog handler.
+	log.SetOutput(slog.NewLogLogger(handler, slog.LevelInfo).Writer())
+	log.SetFlags(0)
 }
 
-// Init returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+func toLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+// initTracer initializes the Jaeger tracer based on environment variables and sets it as the global tracer.
 func initTracer(service string) io.Closer {
 	cfg, err := config.FromEnv()
 	if err != nil {

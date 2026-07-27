@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	stdlog "log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -41,8 +42,6 @@ import (
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-client-go/config"
@@ -159,10 +158,10 @@ func (o Options) S3ScanInterval() time.Duration {
 func main() {
 	err := run()
 	if err != nil {
-		log.Error().Err(err).Msg("Bye!")
+		slog.Error("Bye!", "error", err)
 		os.Exit(1)
 	}
-	log.Info().Msg("Goodbye!")
+	slog.Info("Goodbye!")
 }
 
 func run() error {
@@ -176,7 +175,7 @@ func run() error {
 
 	initLog(opts.LogLevel(), opts.LogFormatter(), opts.LogMethod())
 
-	log.Info().Msgf("%s version %s, commit %s, date %s", name, version, commit, date)
+	slog.Info("Service version", "name", name, "version", version, "commit", commit, "date", date)
 
 	closer := initTracer(name)
 	if closer != nil {
@@ -196,19 +195,20 @@ func run() error {
 	}
 	if s3Handoff != nil {
 		storageOpts = append(storageOpts, parquet.WithPostCloseHandoff(s3Handoff))
-		logEvent := log.Info().
-			Str("endpoint", opts.S3Endpoint()).
-			Str("bucket", opts.S3Bucket()).
-			Str("keyPrefix", opts.S3KeyPrefix()).
-			Dur("uploadDelay", opts.S3UploadDelay()).
-			Dur("scanInterval", opts.S3ScanInterval())
+		logArgs := []any{
+			"endpoint", opts.S3Endpoint(),
+			"bucket", opts.S3Bucket(),
+			"keyPrefix", opts.S3KeyPrefix(),
+			"uploadDelay", opts.S3UploadDelay(),
+			"scanInterval", opts.S3ScanInterval(),
+		}
 		if opts.S3UploadDelay() > 0 {
-			logEvent.Msg("Enabled parquet S3 archival with delayed upload")
+			slog.Info("Enabled parquet S3 archival with delayed upload", logArgs...)
 		} else {
-			logEvent.Msg("Enabled parquet S3 handoff on close")
+			slog.Info("Enabled parquet S3 handoff on close", logArgs...)
 		}
 	} else {
-		log.Info().Msg("Parquet S3 handoff disabled; finalized files remain on local disk")
+		slog.Info("Parquet S3 handoff disabled; finalized files remain on local disk")
 	}
 
 	storage, err := parquet.New(opts.ParquetDir(), opts.MaxLinesPerFile(), storageOpts...)
@@ -216,16 +216,13 @@ func run() error {
 		return fmt.Errorf("failed to initialize parquet storage: %w", err)
 	}
 	defer func() {
-		log.Info().Msg("Closing parquet storage")
+		slog.Info("Closing parquet storage")
 		if err := storage.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close parquet storage")
+			slog.Error("Failed to close parquet storage", "error", err)
 		}
 	}()
 
-	log.Info().
-		Str("dir", opts.ParquetDir()).
-		Int64("maxLinesPerFile", opts.MaxLinesPerFile()).
-		Msg("Initialized parquet storage backend")
+	slog.Info("Initialized parquet storage backend", "dir", opts.ParquetDir(), "maxLinesPerFile", opts.MaxLinesPerFile())
 
 	logServer := logservice.New(storage)
 	logV1.RegisterLogServer(grpcServer, logServer)
@@ -248,14 +245,14 @@ func run() error {
 
 	g.Go(func() error {
 		err := telemetry.ListenAndServe()
-		log.Warn().Err(err).Msg("Telemetry server stopped")
+		slog.Warn("Telemetry server stopped", "error", err)
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
 		return err
 	})
 
-	log.Info().Str("address", opts.TelemetryAddr()).Msg("Telemetry server listening")
+	slog.Info("Telemetry server listening", "address", opts.TelemetryAddr())
 
 	addr := fmt.Sprintf("%s:%d", opts.Host(), opts.Port())
 
@@ -263,13 +260,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
-	log.Info().Msgf("gRPC server listening on %s", addr)
+	slog.Info("gRPC server listening", "address", addr)
 
 	g.Go(func() error { return grpcServer.Serve(listener) })
 
 	<-groupCtx.Done()
 
-	log.Info().Msg("Shutting down gracefully")
+	slog.Info("Shutting down gracefully")
 
 	grpcServer.GracefulStop()
 
@@ -312,7 +309,7 @@ func newParquetS3Handoff(opts Options) (*parquet.AsyncS3Handoff, error) {
 		ScanInterval: opts.S3ScanInterval(),
 		UploadDelay:  opts.S3UploadDelay(),
 		OnError: func(file parquet.FinalizedParquetFile, err error) {
-			log.Error().Err(err).Str("path", file.Path).Str("table", file.Table).Str("collection", file.Collection).Msg("Parquet S3 handoff failed")
+			slog.Error("Parquet S3 handoff failed", "error", err, "path", file.Path, "table", file.Table, "collection", file.Collection)
 		},
 	})
 	if err != nil {
@@ -351,38 +348,36 @@ func parseS3Endpoint(raw string, defaultSecure bool) (string, bool, error) {
 }
 
 func initLog(level string, format string, logCaller bool) {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-	switch strings.ToLower(level) {
-	case "panic":
-		log.Logger = log.Level(zerolog.PanicLevel)
-	case "fatal":
-		log.Logger = log.Level(zerolog.FatalLevel)
-	case "error":
-		log.Logger = log.Level(zerolog.ErrorLevel)
-	case "warn":
-		log.Logger = log.Level(zerolog.WarnLevel)
-	case "info":
-		log.Logger = log.Level(zerolog.InfoLevel)
-	case "debug":
-		log.Logger = log.Level(zerolog.DebugLevel)
-	case "trace":
-		log.Logger = log.Level(zerolog.TraceLevel)
+	handlerOptions := &slog.HandlerOptions{AddSource: logCaller, Level: parseLogLevel(level)}
+	var handler slog.Handler
+	if strings.EqualFold(format, "json") {
+		handler = slog.NewJSONHandler(os.Stderr, handlerOptions)
+	} else {
+		handler = slog.NewTextHandler(os.Stderr, handlerOptions)
 	}
-
-	if format == "logfmt" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-	}
-
-	if logCaller {
-		log.Logger = log.With().Caller().Logger()
-	}
+	slog.SetDefault(slog.New(handler))
 
 	stdlog.SetFlags(0)
-	stdlog.SetOutput(log.Logger)
+
+	slog.Info("Setting log level", "level", strings.ToLower(level))
 }
 
-// Init returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+func parseLogLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "panic", "fatal", "error":
+		return slog.LevelError
+	case "warn":
+		return slog.LevelWarn
+	case "info", "debug":
+		return slog.LevelInfo
+	case "trace":
+		return slog.LevelDebug
+	default:
+		return slog.LevelInfo
+	}
+}
+
+// initTracer initializes the global OpenTracing tracer using Jaeger configuration from environment variables.
 func initTracer(service string) io.Closer {
 	cfg, err := config.FromEnv()
 	if err != nil {

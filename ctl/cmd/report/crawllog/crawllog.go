@@ -18,12 +18,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/connection"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/format"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -103,7 +103,7 @@ func run(o *options) error {
 		if err != nil {
 			return err
 		}
-		log.Debug().Msgf("Outputting crawl log record with WARC id '%s'", msg.WarcId)
+		slog.Debug("Outputting crawl log record", "warcId", msg.WarcId)
 		if err := s.WriteRecord(msg); err != nil {
 			return err
 		}

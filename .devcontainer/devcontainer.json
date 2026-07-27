@@ -1,37 +1,27 @@
 {
   "name": "Veidemann",
-  "image": "mcr.microsoft.com/devcontainers/base:trixie",
+
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "mounts": [
+    "type=tmpfs,target=/var/lib/docker,tmpfs-mode=0755",
+  ],
+
   "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {},
     "ghcr.io/devcontainers/features/go:1": {},
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",
       "jdkDistro": "ms",
       "installGradle": true
     },
-    "ghcr.io/devcontainers/features/node:2.0.0": {},
-    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
+    "ghcr.io/devcontainers/features/node:2.1.0": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": true,
+      "extraNixConfig": "experimental-features = nix-command flakes"
+    }
   },
 
-  "postCreateCommand": "npm install -g context-mode && curl -fsSL https://bun.sh/install | bash",
-
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "chat.mcp.autoStart": "always"
-      },
-      "mcp": {
-        "servers": {
-          "context-mode": {
-            "command": "/home/vscode/.bun/bin/bun",
-            "args": [
-              "/usr/local/share/nvm/versions/node/v24.15.0/lib/node_modules/context-mode/cli.bundle.mjs"
-            ],
-            "env": {
-              "PATH": "/home/vscode/.bun/bin:/usr/local/share/nvm/versions/node/v24.15.0/bin:/usr/local/bin:/usr/bin:/bin"
-            }
-          }
-        }
-      }
-    }
-  }
+  "postCreateCommand": "sudo /nix/var/nix/profiles/default/bin/nix profile add --profile /nix/var/nix/profiles/default 'github:maeb/agentics?dir=nix/agent-tools#default'",
 }

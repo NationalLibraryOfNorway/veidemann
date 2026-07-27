@@ -66,7 +66,7 @@ public class DbInitializerTestIT extends AbstractRethinkDbIntegrationTest {
                 .coerceTo("object")
         );
         assertThat(o.get("politenessConfig")).isEqualTo(1L);
-        assertThat(o.get("browserScript")).isEqualTo(4L);
+        assertThat(o.get("browserScript")).isEqualTo(5L);
         assertThat(o.get("crawlJob")).isEqualTo(4L);
         assertThat(o.get("browserConfig")).isEqualTo(1L);
         assertThat(o.get("crawlConfig")).isEqualTo(1L);
@@ -75,7 +75,7 @@ public class DbInitializerTestIT extends AbstractRethinkDbIntegrationTest {
 
         try (Result<Map<String, Object>> configObjects = conn.exec(r.table(Tables.CONFIG.name))) {
             assertThat(configObjects.iterator()).toIterable()
-                    .hasSize(17)
+                    .hasSize(18)
                     .allSatisfy(configObject -> {
                         assertThat(configObject.get("apiVersion")).isEqualTo("v1");
                         assertThat(configObject).containsKey("kind");

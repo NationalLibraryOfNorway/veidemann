@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"net"
 	"net/http"
@@ -31,7 +32,6 @@ import (
 	controllerV1 "github.com/NationalLibraryOfNorway/veidemann/api/controller/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/config"
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
@@ -106,7 +106,7 @@ func loginOIDC(oidcConfig *config.OIDCConfig, manualLogin bool) (*claims, error)
 		}
 	}
 
-	log.Debug().Msgf("Using identity provider: %s", idpIssuerUrl)
+	slog.Debug("Using identity provider", "issuer", idpIssuerUrl)
 
 	o := oidcProvider{
 		idpIssuerUrl: idpIssuerUrl,
@@ -161,9 +161,9 @@ func getIdpIssuer() (string, error) {
 
 	idp := reply.GetOpenIdConnectIssuer()
 	if idp == "" {
-		log.Warn().Msg("Server is configured without an identity provider - proceeding without authentication.")
+		slog.Warn("Server is configured without an identity provider - proceeding without authentication.")
 	} else {
-		log.Debug().Msgf(`Using idp issuer address : "%v"`, idp)
+		slog.Debug("Using idp issuer address", "issuer", idp)
 	}
 
 	return idp, nil
@@ -358,7 +358,7 @@ func httpClientForRootCAs() *http.Client {
 	// Create a certificate pool with systems CAs
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
-		log.Warn().Msg("Could not read system trusted certificates, using only the configured ones")
+		slog.Warn("Could not read system trusted certificates, using only the configured ones")
 		certPool = x509.NewCertPool()
 	}
 	tlsConfig := tls.Config{RootCAs: certPool}
@@ -367,7 +367,7 @@ func httpClientForRootCAs() *http.Client {
 	if config.GetRootCAs() != "" {
 		rootCABytes := []byte(config.GetRootCAs())
 		if !tlsConfig.RootCAs.AppendCertsFromPEM(rootCABytes) {
-			log.Warn().Msg("No certs found in root CA file")
+			slog.Warn("No certs found in root CA file")
 		}
 	}
 

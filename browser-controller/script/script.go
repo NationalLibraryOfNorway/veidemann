@@ -3,13 +3,13 @@ package script
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/mailru/easyjson"
 )
 
-// ReturnValue is the return value format for scripts of type
-// ON_LOAD, ON_NEW_DOCUMENT and UNDEFINED.
+// ReturnValue is the return value format for runtime-invoked scripts of type
+// ON_LOAD and UNDEFINED.
 type ReturnValue struct {
 	// WaitForData specifies whether or not one should wait for
 	// network activity to settle after script execution.
@@ -17,7 +17,7 @@ type ReturnValue struct {
 	// Next specifies the ID of a script to be executed next.
 	Next string `json:"next,omitempty"`
 	// Data specifies arguments to a potential next script.
-	Data easyjson.RawMessage `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // String implements the Stringer interface
@@ -42,10 +42,10 @@ func Run(
 	next string,
 	scripts map[string]*configV1.ConfigObject,
 	annotations []*configV1.Annotation,
-	execute func(*configV1.ConfigObject, easyjson.RawMessage) (easyjson.RawMessage, error),
+	execute func(*configV1.ConfigObject, json.RawMessage) (json.RawMessage, error),
 	wait func(),
 ) error {
-	var data map[string]interface{}
+	var data map[string]any
 
 	for len(next) > 0 {
 		script, ok := scripts[next]
@@ -54,22 +54,9 @@ func Run(
 		}
 		name := script.GetMeta().GetName()
 
-		params := make(map[string]interface{})
-		for _, blueprint := range script.GetMeta().GetAnnotation() {
-			for _, annotation := range annotations {
-				if annotation.Key == blueprint.Key {
-					params[annotation.Key] = annotation.Value
-				}
-			}
-		}
-		// add data from return value of previous script as arguments to next script
-		for key, value := range data {
-			params[key] = value
-		}
-
-		arguments, err := json.Marshal(params)
+		arguments, err := CompileArguments(script, annotations, data)
 		if err != nil {
-			return fmt.Errorf("failed to marshal script arguments for script %s (%s): %w", name, next, err)
+			return fmt.Errorf("failed to prepare script arguments for script %s (%s): %w", name, next, err)
 		}
 
 		res, err := execute(script, arguments)
@@ -95,11 +82,38 @@ func Run(
 				return fmt.Errorf("failed to unmarshal data from script %s (%s): %w", name, next, err)
 			}
 		} else {
-			data = make(map[string]interface{})
+			data = make(map[string]any)
 		}
 		if rv.WaitForData {
 			wait()
 		}
 	}
 	return nil
+}
+
+// CompileArguments builds the JSON argument object for a script from the
+// current annotations and any data returned from a previous script step.
+func CompileArguments(
+	configObject *configV1.ConfigObject,
+	annotations []*configV1.Annotation,
+	data map[string]any,
+) (json.RawMessage, error) {
+	params := make(map[string]any)
+	if configObject != nil {
+		for _, blueprint := range configObject.GetMeta().GetAnnotation() {
+			for _, annotation := range annotations {
+				if annotation.Key == blueprint.Key {
+					params[annotation.Key] = annotation.Value
+				}
+			}
+		}
+	}
+
+	maps.Copy(params, data)
+
+	arguments, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	return arguments, nil
 }

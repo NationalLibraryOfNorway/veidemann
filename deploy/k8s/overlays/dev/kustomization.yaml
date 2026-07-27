@@ -6,6 +6,7 @@ namespace: default
 resources:
   - certificate.yaml
   - ingress.yaml
+  - rethinkdbadapter
   - robots/
   - scopeservice/
   - frontier-queue-workers/
@@ -19,3 +20,4 @@ resources:
   - log-service/
   - cache/
   - metrics/
+  - pywb/

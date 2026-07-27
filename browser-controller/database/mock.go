@@ -18,6 +18,7 @@ package database
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
@@ -38,6 +39,7 @@ func NewMockConnection() *MockConnection {
 			session:      r.NewMock(),
 			batchSize:    200,
 			queryTimeout: 5 * time.Second,
+			logger:       slog.Default().With("component", "MockConnection"),
 		},
 	}
 }

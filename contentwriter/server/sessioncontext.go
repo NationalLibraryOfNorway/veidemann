@@ -29,7 +29,7 @@ import (
 )
 
 type writeSessionContext struct {
-	configCache      database.ConfigAdapter
+	configAdapter    database.ConfigAdapter
 	meta             *contentwriterV1.WriteRequestMeta
 	collectionConfig *configV1.ConfigObject
 	recordOpts       []gowarc.WarcRecordOption
@@ -38,9 +38,9 @@ type writeSessionContext struct {
 	rbMapSync        sync.Mutex
 }
 
-func newWriteSessionContext(configCache database.ConfigAdapter, recordOpts []gowarc.WarcRecordOption) *writeSessionContext {
+func newWriteSessionContext(configAdapter database.ConfigAdapter, recordOpts []gowarc.WarcRecordOption) *writeSessionContext {
 	return &writeSessionContext{
-		configCache:    configCache,
+		configAdapter:  configAdapter,
 		recordOpts:     recordOpts,
 		records:        make(map[int32]gowarc.WarcRecord),
 		recordBuilders: make(map[int32]gowarc.WarcRecordBuilder),
@@ -97,7 +97,7 @@ func (s *writeSessionContext) validateSession() error {
 	if len(s.meta.TargetUri) == 0 {
 		return errors.New("missing target URI")
 	}
-	collectionConfig, err := s.configCache.GetConfigObject(context.TODO(), s.meta.CollectionRef)
+	collectionConfig, err := s.configAdapter.GetConfigObject(context.TODO(), s.meta.CollectionRef)
 	if err != nil {
 		return fmt.Errorf("failed to get collection config: %s", s.meta.GetCollectionRef().GetId())
 	}

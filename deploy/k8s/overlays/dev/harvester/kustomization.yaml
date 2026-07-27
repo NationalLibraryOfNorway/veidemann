@@ -8,3 +8,8 @@ patches:
     target:
       kind: Deployment
       name: harvester
+
+# configMapGenerator:
+#   - name: chromium-policy
+#     files:
+#       - harvester-policy.json

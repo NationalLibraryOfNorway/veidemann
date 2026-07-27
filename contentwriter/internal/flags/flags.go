@@ -55,7 +55,6 @@ func ParseFlags() (Options, error) {
 	flags.Int("db-max-retries", 5, "Max retries when database query fails")
 	flags.Int("db-max-open-conn", 10, "Max open database connections")
 	flags.Bool("db-use-opentracing", false, "Use opentracing for database queries")
-	flags.Duration("db-cache-ttl", 5*time.Minute, "How long to cache results from database")
 
 	flags.String("redis-host", "redis", "Redis host")
 	flags.String("redis-password", "", "Redis password")
@@ -200,10 +199,6 @@ func (o Options) DbMaxOpenConn() int {
 
 func (o Options) DbUseOpenTracing() bool {
 	return viper.GetBool("db-use-opentracing")
-}
-
-func (o Options) DbCacheTTL() time.Duration {
-	return viper.GetDuration("db-cache-ttl")
 }
 
 func (o Options) MetricsAddress() string {

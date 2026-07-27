@@ -17,56 +17,152 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/ooshandler/oos"
+	ooshandlerV1 "github.com/NationalLibraryOfNorway/veidemann/api/ooshandler/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/ooshandler/internal/service"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
-const indexContent = `<html>
-             <head><title>Veidemann Out of Scope Handler</title></head>
-             <body>
-             <h1>Veidemann Out of Scope Handler</h1>
-             <p><a href='` + "/metrics" + `'>Metrics</a></p>
-             </body>
-             </html>
-`
+var (
+	name    = "ooshandler"
+	version = ""
+	commit  = ""
+	date    = ""
+)
 
 func main() {
-	config := NewConfig()
-
-	slog.Info("Starting Out of Scope Handler", "config", config)
-
-	err := os.MkdirAll(config.DataDir, 0777)
+	err := run()
 	if err != nil {
-		slog.Error("Unable to create data directory", "err", err)
+		slog.Error("Bye!", "error", err)
 		os.Exit(1)
 	}
-	oosHandler, err := oos.NewHandler(config.DataDir)
+	slog.Info("Goodbye!")
+}
+
+func run() error {
+	err := parseFlags()
 	if err != nil {
-		slog.Error("Unable to create OOS handler", "err", err)
-		os.Exit(1)
-	}
-	oos := oos.NewService(config.ListenPort, oosHandler)
-	err = oos.Start()
-	if err != nil {
-		slog.Error("Unable to start GRPC service", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	http.Handle(config.MetricsPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err = w.Write([]byte(indexContent))
-		if err != nil {
-			slog.Error("Error writing index content", "err", err)
+	opts := Options{}
+
+	initLogger(os.Stdout, opts.LogLevel(), opts.LogMethod())
+
+	slog.Info("Service version", "name", name, "version", version, "commit", commit, "date", date)
+
+	dataDir, err := filepath.Abs(opts.DataDir())
+	if err != nil {
+		return fmt.Errorf("unable to resolve data directory: %w", err)
+	}
+
+	err = os.MkdirAll(dataDir, 0777)
+	if err != nil {
+		return fmt.Errorf("unable to create data directory: %w", err)
+	}
+
+	oosHandler, err := service.NewHandler(dataDir)
+	if err != nil {
+		return fmt.Errorf("unable to create OOS handler: %w", err)
+	}
+
+	oosService := service.NewOutOfScopeHandler(oosHandler)
+	grpcServer := grpc.NewServer()
+	ooshandlerV1.RegisterOosHandlerServer(grpcServer, oosService)
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	g, groupCtx := errgroup.WithContext(ctx)
+
+	mux := http.NewServeMux()
+	mux.Handle(opts.MetricsPath(), promhttp.Handler())
+	mux.Handle(opts.ReadyPath(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	telemetryServer := &http.Server{
+		Addr:    opts.TelemetryAddr(),
+		Handler: mux,
+	}
+
+	g.Go(func() error {
+		err := telemetryServer.ListenAndServe()
+		slog.Warn("Telemetry server stopped", "error", err)
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
 		}
+		return err
 	})
 
-	err = http.ListenAndServe(config.MetricsAddress, nil)
+	slog.Info("Telemetry server listening", "address", opts.TelemetryAddr())
+
+	addr := opts.Address()
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		slog.Error("Unable to start metrics server", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to listen on %s: %w", addr, err)
+	}
+
+	g.Go(func() error { return grpcServer.Serve(listener) })
+
+	slog.Info("gRPC server listening", "address", addr)
+
+	<-groupCtx.Done()
+
+	slog.Info("Shutting down gracefully")
+
+	grpcServer.GracefulStop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = telemetryServer.Shutdown(shutdownCtx)
+
+	return g.Wait()
+}
+
+func initLogger(w io.Writer, level string, source bool) {
+	levelVar := new(slog.LevelVar)
+	levelVar.Set(toLogLevel(level))
+
+	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
+		AddSource: source,
+		Level:     levelVar,
+	})
+
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
+	// Redirect package-level log.Print/log.Printf/etc. to the same slog handler.
+	log.SetOutput(slog.NewLogLogger(handler, slog.LevelInfo).Writer())
+	log.SetFlags(0)
+}
+
+func toLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
 	}
 }

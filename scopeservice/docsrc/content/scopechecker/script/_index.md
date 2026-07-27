@@ -14,6 +14,16 @@ isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeeds')).t
 maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')).then(TooManyHops)
 isUrl(param('scope_excludedUris')).then(Blocked)
 ```
+
+If you also need path-based exclusions, extend the default script with a prefix rule:
+
+```
+isScheme(param('scope_allowedSchemes')).otherwise(Blocked)
+isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeeds')).then(Include, continueEvaluation=True).otherwise(Blocked, continueEvaluation=False)
+maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')).then(TooManyHops)
+isPathPrefix(param('scope_excludedPathPrefixes')).then(Blocked)
+isUrl(param('scope_excludedUris')).then(Blocked)
+```
 This could also be written like you would do in Python:
 ```
 if not isScheme(param('scope_allowedSchemes')):
@@ -34,3 +44,31 @@ if isUrl(param('scope_excludedUris')):
     setStatus(Blocked)
     abort()
 ```
+
+With path-prefix exclusions added:
+
+```python
+if not isScheme(param('scope_allowedSchemes')):
+    setStatus(Blocked)
+    abort()
+
+if isSameHost(param('scope_includeSubdomains'), altSeeds=param('scope_altSeeds')):
+    setStatus(Include)
+else:
+    setStatus(Blocked)
+    abort()
+
+if maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirects')):
+    setStatus(TooManyHops)
+    abort()
+
+if isPathPrefix(param('scope_excludedPathPrefixes')):
+    setStatus(Blocked)
+    abort()
+
+if isUrl(param('scope_excludedUris')):
+    setStatus(Blocked)
+    abort()
+```
+
+For most crawl policies, path filtering is better expressed as a prefix rule than as a list of exact URLs. When needed, scripts can also inspect the canonicalized path directly with `url().path()`.

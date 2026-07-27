@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Worker Fixture</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <main>
+    <h1>Worker Fixture</h1>
+    <p id="status">waiting</p>
+  </main>
+  <script>
+    const statusNode = document.getElementById("status");
+    const worker = new Worker("/worker.js");
+
+    worker.addEventListener("message", (event) => {
+      if (event.data && event.data.outlink) {
+        statusNode.textContent = "worker success";
+        const link = document.createElement("a");
+        link.href = event.data.outlink;
+        link.textContent = "Worker outlink";
+        document.body.appendChild(link);
+        return;
+      }
+
+      statusNode.textContent = event.data && event.data.error ? event.data.error : "worker error";
+    });
+
+    worker.postMessage("start");
+  </script>
+</body>
+</html>

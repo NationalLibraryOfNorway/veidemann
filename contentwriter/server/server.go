@@ -18,27 +18,27 @@ package server
 
 import (
 	"io"
+	"log/slog"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/nlnwa/gowarc"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type ContentWriterService struct {
-	configCache        database.ConfigAdapter
+	configAdapter      database.ConfigAdapter
 	warcWriterRegistry *warcWriterRegistry
 	recordOptions      []gowarc.WarcRecordOption
 }
 
 func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteServer) (err error) {
-	ctx := newWriteSessionContext(s.configCache, s.recordOptions)
+	ctx := newWriteSessionContext(s.configAdapter, s.recordOptions)
 	defer ctx.cancelSession()
 	defer func() {
 		if err != nil {
-			log.Error().Err(err).Str("code", status.Code(err).String()).Msg("")
+			slog.Error("Write request failed", "error", err, "code", status.Code(err).String())
 		}
 	}()
 
@@ -53,20 +53,20 @@ func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteS
 
 		switch v := request.Value.(type) {
 		case *contentwriterV1.WriteRequest_Meta:
-			log.Trace().Msgf("Got API request %T for %d records", v, len(v.Meta.RecordMeta))
+			slog.Debug("Got API request", "requestType", "meta", "recordCount", len(v.Meta.RecordMeta))
 			ctx.setWriteRequestMeta(v.Meta)
 		case *contentwriterV1.WriteRequest_ProtocolHeader:
-			log.Trace().Msgf("Got API request %T for record #%d. Size: %d", v, v.ProtocolHeader.RecordNum, len(v.ProtocolHeader.GetData()))
+			slog.Debug("Got API request", "requestType", "protocol_header", "recordNum", v.ProtocolHeader.RecordNum, "size", len(v.ProtocolHeader.GetData()))
 			if err := ctx.writeProtocolHeader(v.ProtocolHeader); err != nil {
 				return status.Errorf(codes.Unknown, "failed to write protocol header: %v", err)
 			}
 		case *contentwriterV1.WriteRequest_Payload:
-			log.Trace().Msgf("Got API request %T for record #%d. Size: %d", v, v.Payload.RecordNum, len(v.Payload.GetData()))
+			slog.Debug("Got API request", "requestType", "payload", "recordNum", v.Payload.RecordNum, "size", len(v.Payload.GetData()))
 			if err := ctx.writePayload(v.Payload); err != nil {
 				return status.Errorf(codes.Unknown, "failed to write payload: %v", err)
 			}
 		case *contentwriterV1.WriteRequest_Cancel:
-			log.Trace().Str("type", v.Cancel).Msgf("Got API request %T", v)
+			slog.Debug("Got API request", "requestType", "cancel", "type", v.Cancel)
 			return stream.SendAndClose(new(contentwriterV1.WriteReply))
 		default:
 			return status.Errorf(codes.InvalidArgument, "invalid write request: %v", v)
@@ -74,7 +74,7 @@ func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteS
 	}
 
 	if err := ctx.validateSession(); err != nil {
-		log.Error().Err(err).Msg("Validation failed")
+		slog.Error("Validation failed", "error", err)
 		return status.Errorf(codes.Unknown, "validation failed: %v", err)
 	}
 
