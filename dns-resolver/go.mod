@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.6.1
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.0
 	github.com/coredns/caddy v1.1.4
 	github.com/coredns/coredns v1.14.6
 	github.com/google/uuid v1.6.0
@@ -43,6 +43,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/memberlist v0.6.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mdlayher/socket v0.6.1 // indirect
 	github.com/mdlayher/vsock v1.3.0 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
@@ -57,6 +58,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.61.0 // indirect
 	github.com/redis/go-redis/v9 v9.21.0 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
