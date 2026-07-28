@@ -91,6 +91,10 @@ Always render the affected Kustomize base or overlay after editing manifests.
 - Call out operational risks for stateful or security-sensitive changes.
 - If a change adds a new required secret, config map value, or manual recovery step, update the relevant README in the same change.
 
+## Git
+
+Do not use Conventional Commits. Prefix commit subjects with the affected service or folder, for example `log-service: ...` or `deploy: ...`. For cross-cutting changes, omit the prefix. For supporting areas such as `.github`, use the clearest functional prefix, for example `ci: ...`.
+
 ## Detailed references
 
 - [Tooling and commands](docs/agents/tools.md)
