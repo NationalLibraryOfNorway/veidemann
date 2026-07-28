@@ -4,8 +4,13 @@ plugins {
     alias(libs.plugins.jib)
 }
 
-val integrationTest by sourceSets.creating {
-    compileClasspath += sourceSets["main"].output + configurations.testRuntimeClasspath.get()
+val mainSourceSet = sourceSets.getByName("main")
+
+val integrationTest = sourceSets.create("integrationTest") {
+    compileClasspath +=
+        mainSourceSet.output +
+            configurations.testRuntimeClasspath.get()
+
     runtimeClasspath += output + compileClasspath
 }
 

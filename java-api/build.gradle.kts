@@ -12,7 +12,7 @@ dependencies {
 }
 
 sourceSets {
-    val main by getting {
+    getByName("main") {
         proto {
             srcDir(rootDir.resolve("proto"))
         }
