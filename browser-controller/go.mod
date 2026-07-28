@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.6.1
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.0
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.2
 	github.com/chromedp/cdproto v0.0.0-20260719223732-95f6af754cfe
 	github.com/chromedp/chromedp v0.16.0
