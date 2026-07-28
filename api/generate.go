@@ -1,3 +1,3 @@
-//go:generate go run github.com/bufbuild/buf/cmd/buf generate --template ../buf.gen.go.yaml ..
+//go:generate go tool -modfile=../tools/go.mod buf generate --template ../buf.gen.go.yaml ..
 
 package api
