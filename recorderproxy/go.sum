@@ -1,5 +1,5 @@
-github.com/NationalLibraryOfNorway/veidemann/api v1.2.0 h1:WtP8aOE83soPR6cy/WWozxSSpfNfcl7Ocmowa4bF7EU=
-github.com/NationalLibraryOfNorway/veidemann/api v1.2.0/go.mod h1:Zp0a0b0JJpKYuMU/iI43fAEuVVBqw7WQqp1SLIg9r30=
+github.com/NationalLibraryOfNorway/veidemann/api v1.2.1 h1:qWdEOb/usmsqMUWwLKOwf9k39PG7mg0g60iP5lLYa7U=
+github.com/NationalLibraryOfNorway/veidemann/api v1.2.1/go.mod h1:afZnmUL+ARcGQQBWq5uAwo5QMRqKeH6Z8+Lanob0+rs=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=

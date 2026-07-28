@@ -1,9 +1,9 @@
 module github.com/NationalLibraryOfNorway/veidemann/contentwriter
 
-go 1.25.10
+go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/nlnwa/gowarc v1.6.0

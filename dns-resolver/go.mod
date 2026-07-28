@@ -1,9 +1,9 @@
 module github.com/NationalLibraryOfNorway/veidemann/dns-resolver
 
-go 1.25.10
+go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.6.1
 	github.com/coredns/caddy v1.1.4
 	github.com/coredns/coredns v1.14.6

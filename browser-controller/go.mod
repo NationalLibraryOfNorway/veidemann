@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/browser-controller
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.6.1
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.1
 	github.com/chromedp/cdproto v0.0.0-20260719223732-95f6af754cfe
@@ -62,7 +62,7 @@ require (
 	github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe // indirect
 	github.com/getlantern/proxy/v3 v3.0.0-20240328103708-9185589b6a99 // indirect
 	github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect

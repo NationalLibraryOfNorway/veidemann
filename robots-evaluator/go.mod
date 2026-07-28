@@ -1,9 +1,9 @@
 module github.com/NationalLibraryOfNorway/veidemann/robots-evaluator
 
-go 1.25.10
+go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
 	github.com/jimsmart/grobotstxt v1.0.3
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/olric-data/olric v0.7.4
