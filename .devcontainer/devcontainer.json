@@ -2,9 +2,6 @@
   "name": "Veidemann",
 
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
-  "mounts": [
-    "type=tmpfs,target=/var/lib/docker,tmpfs-mode=0755",
-  ],
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {},
@@ -23,5 +20,17 @@
     }
   },
 
-  "postCreateCommand": "sudo /nix/var/nix/profiles/default/bin/nix profile add --profile /nix/var/nix/profiles/default 'github:maeb/agentics?dir=nix/agent-tools#default'",
+  "mounts": [
+    "type=tmpfs,target=/var/lib/docker,tmpfs-mode=0755",
+    "source=veidemann-codex,target=/home/vscode/.codex,type=volume"
+  ],
+
+  "containerEnv": {
+    "GOCACHE": "/tmp/go-build-cache"
+  },
+
+  "postCreateCommand": {
+    "agent-tools": "sudo /nix/var/nix/profiles/default/bin/nix profile add --profile /nix/var/nix/profiles/default 'github:maeb/agentics?dir=nix/agent-tools#default'",
+    "go-cache": "install -d -m 0700 /tmp/go-build-cache"
+  }
 }
