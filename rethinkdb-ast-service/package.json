@@ -10,13 +10,13 @@
     "dev": "ts-node src/server.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.6",
+    "@hono/node-server": "^2.0.12",
     "hono": "^4.10.7",
     "rethinkdb-ts": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^26.1.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   }
 }

@@ -1,4 +1,4 @@
-FROM node:24-slim AS builder
+FROM node:26-slim AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 
-FROM gcr.io/distroless/nodejs24-debian12
+FROM gcr.io/distroless/nodejs26-debian13
 
 WORKDIR /app
 
