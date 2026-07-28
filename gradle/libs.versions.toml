@@ -61,4 +61,4 @@ typesafe-config = { module = "com.typesafe:config", version.ref = "typesafe-conf
 jib = { id = "com.google.cloud.tools.jib", version.ref = "plugin-jib" }
 protobuf = { id = "com.google.protobuf", version.ref = "plugin-protobuf" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "plugin-version-catalog-update" }
-versions = { id = "com.github.ben-manes.versions", version.ref = "plugin-versions" }
+versions = { id = "io.github.ben-manes.versions", version.ref = "plugin-versions" }
