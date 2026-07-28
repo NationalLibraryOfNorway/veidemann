@@ -213,12 +213,21 @@ func run() error {
 
 	storage, err := parquet.New(opts.ParquetDir(), opts.MaxLinesPerFile(), storageOpts...)
 	if err != nil {
+		if s3Handoff != nil {
+			_ = s3Handoff.Close()
+		}
 		return fmt.Errorf("failed to initialize parquet storage: %w", err)
 	}
 	defer func() {
 		slog.Info("Closing parquet storage")
 		if err := storage.Close(); err != nil {
 			slog.Error("Failed to close parquet storage", "error", err)
+		}
+		if s3Handoff != nil {
+			slog.Info("Closing parquet S3 handoff")
+			if err := s3Handoff.Close(); err != nil {
+				slog.Error("Failed to close parquet S3 handoff", "error", err)
+			}
 		}
 	}()
 

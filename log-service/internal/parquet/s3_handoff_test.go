@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -98,7 +100,11 @@ func TestAsyncS3HandoffUploadsInBackground(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = handoff.Close() }()
+	t.Cleanup(func() {
+		if err := handoff.Close(); err != nil {
+			t.Errorf("close handoff: %v", err)
+		}
+	})
 
 	if err := handoff.HandoffFinalizedFile(FinalizedParquetFile{
 		Table:      tableCrawlLog,
@@ -131,6 +137,9 @@ func TestAsyncS3HandoffUploadsInBackground(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for async s3 upload")
 	}
+	if err := handoff.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestStorageCloseDoesNotWaitForAsyncS3Upload(t *testing.T) {
@@ -150,7 +159,11 @@ func TestStorageCloseDoesNotWaitForAsyncS3Upload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = handoff.Close() }()
+	t.Cleanup(func() {
+		if err := handoff.Close(); err != nil {
+			t.Errorf("close handoff: %v", err)
+		}
+	})
 
 	store, err := New(dir, 100, WithPostCloseHandoff(handoff))
 	if err != nil {
@@ -189,13 +202,76 @@ func TestStorageCloseDoesNotWaitForAsyncS3Upload(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for delayed async upload to finish")
 	}
+	if err := handoff.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAsyncS3HandoffCloseWaitsForActiveUpload(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "handoff")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(dir, "crawl_log_1.parquet")
+	if err := os.WriteFile(filePath, []byte("parquet"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	blockCh := make(chan struct{})
+	var releaseOnce sync.Once
+	releaseUpload := func() { releaseOnce.Do(func() { close(blockCh) }) }
+	handoff, err := newAsyncS3Handoff(&fakeS3Uploader{blockCh: blockCh}, AsyncS3HandoffConfig{
+		BaseDir:      dir,
+		Bucket:       "bucket-a",
+		Workers:      1,
+		QueueSize:    1,
+		ScanInterval: time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		releaseUpload()
+		if err := handoff.Close(); err != nil {
+			t.Errorf("close handoff: %v", err)
+		}
+	})
+
+	if err := handoff.HandoffFinalizedFile(FinalizedParquetFile{Path: filePath}); err != nil {
+		t.Fatal(err)
+	}
+	closed := make(chan error, 1)
+	go func() {
+		closed <- handoff.Close()
+	}()
+
+	select {
+	case err := <-closed:
+		t.Fatalf("close returned while upload was active: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	releaseUpload()
+	if err := <-closed; err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("remove handoff directory after close: %v", err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("handoff directory still exists after removal: %v", err)
+	}
 }
 
 func TestDelayedS3HandoffUploadsAfterRetention(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	currentTime := time.Date(2026, time.April, 29, 12, 0, 0, 0, time.UTC)
+	initialTime := time.Date(2026, time.April, 29, 12, 0, 0, 0, time.UTC)
+	var currentUnixNano atomic.Int64
+	currentUnixNano.Store(initialTime.UnixNano())
 	uploader := &fakeS3Uploader{uploaded: make(chan uploadedObject, 1)}
 	handoff, err := newAsyncS3Handoff(uploader, AsyncS3HandoffConfig{
 		BaseDir:      dir,
@@ -206,13 +282,17 @@ func TestDelayedS3HandoffUploadsAfterRetention(t *testing.T) {
 		Workers:      1,
 		QueueSize:    1,
 		Now: func() time.Time {
-			return currentTime
+			return time.Unix(0, currentUnixNano.Load()).UTC()
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = handoff.Close() }()
+	t.Cleanup(func() {
+		if err := handoff.Close(); err != nil {
+			t.Errorf("close handoff: %v", err)
+		}
+	})
 
 	store, err := New(dir, 100, WithPostCloseHandoff(handoff))
 	if err != nil {
@@ -236,7 +316,8 @@ func TestDelayedS3HandoffUploadsAfterRetention(t *testing.T) {
 	if len(index.Files) != 1 {
 		t.Fatalf("expected one finalized delayed file, got %+v", index.Files)
 	}
-	currentTime = time.UnixMilli(index.Files[0].FinalizedAtUnixMilli).UTC()
+	currentTime := time.UnixMilli(index.Files[0].FinalizedAtUnixMilli).UTC()
+	currentUnixNano.Store(currentTime.UnixNano())
 
 	select {
 	case uploaded := <-uploader.uploaded:
@@ -245,6 +326,7 @@ func TestDelayedS3HandoffUploadsAfterRetention(t *testing.T) {
 	}
 
 	currentTime = currentTime.Add(72*time.Hour - time.Second)
+	currentUnixNano.Store(currentTime.UnixNano())
 	if err := handoff.scanEligibleFiles(); err != nil {
 		t.Fatal(err)
 	}
@@ -256,6 +338,7 @@ func TestDelayedS3HandoffUploadsAfterRetention(t *testing.T) {
 	}
 
 	currentTime = currentTime.Add(time.Second)
+	currentUnixNano.Store(currentTime.UnixNano())
 	if err := handoff.scanEligibleFiles(); err != nil {
 		t.Fatal(err)
 	}
@@ -273,6 +356,9 @@ func TestDelayedS3HandoffUploadsAfterRetention(t *testing.T) {
 		waitForIndexFileCount(t, collectionDir, 0)
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for delayed upload after retention")
+	}
+	if err := handoff.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

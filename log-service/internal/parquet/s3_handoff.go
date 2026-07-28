@@ -54,7 +54,9 @@ type AsyncS3Handoff struct {
 	stopCh        chan struct{}
 	closeOnce     sync.Once
 	mu            sync.Mutex
+	closed        bool
 	pending       map[string]struct{}
+	wg            sync.WaitGroup
 }
 
 var _ PostCloseHandoff = (*AsyncS3Handoff)(nil)
@@ -104,9 +106,11 @@ func newAsyncS3Handoff(client s3FileUploader, cfg AsyncS3HandoffConfig) (*AsyncS
 		pending:       make(map[string]struct{}),
 	}
 	for i := 0; i < cfg.Workers; i++ {
+		handoff.wg.Add(1)
 		go handoff.runWorker()
 	}
 	if handoff.baseDir != "" {
+		handoff.wg.Add(1)
 		go handoff.runScanner()
 	}
 	return handoff, nil
@@ -124,23 +128,25 @@ func (h *AsyncS3Handoff) HandoffFinalizedFile(file FinalizedParquetFile) error {
 
 func (h *AsyncS3Handoff) Close() error {
 	h.closeOnce.Do(func() {
+		h.mu.Lock()
+		h.closed = true
 		close(h.stopCh)
+		close(h.queue)
+		h.mu.Unlock()
+		h.wg.Wait()
 	})
 	return nil
 }
 
 func (h *AsyncS3Handoff) runWorker() {
-	for {
-		select {
-		case <-h.stopCh:
-			return
-		case file := <-h.queue:
-			h.upload(file)
-		}
+	defer h.wg.Done()
+	for file := range h.queue {
+		h.upload(file)
 	}
 }
 
 func (h *AsyncS3Handoff) runScanner() {
+	defer h.wg.Done()
 	if err := h.scanEligibleFiles(); err != nil && !errors.Is(err, ErrAsyncS3HandoffClosed) {
 		h.reportError(FinalizedParquetFile{Path: h.baseDir}, err)
 	}
@@ -200,28 +206,25 @@ func (h *AsyncS3Handoff) isEligible(file FinalizedParquetFile, now time.Time) bo
 }
 
 func (h *AsyncS3Handoff) enqueue(file FinalizedParquetFile) error {
-	select {
-	case <-h.stopCh:
-		return ErrAsyncS3HandoffClosed
-	default:
-	}
-
 	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.closed {
+		return ErrAsyncS3HandoffClosed
+	}
 	if _, ok := h.pending[file.Path]; ok {
-		h.mu.Unlock()
 		return nil
 	}
 	h.pending[file.Path] = struct{}{}
-	h.mu.Unlock()
 
 	select {
-	case <-h.stopCh:
-		h.clearPending(file.Path)
-		return ErrAsyncS3HandoffClosed
 	case h.queue <- file:
 		return nil
 	default:
-		go h.upload(file)
+		h.wg.Add(1)
+		go func() {
+			defer h.wg.Done()
+			h.upload(file)
+		}()
 		return nil
 	}
 }
