@@ -6,22 +6,41 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'java-api/**'
       - 'proto/**'
       - 'tools/go.mod'
       - 'tools/go.sum'
       - 'buf.gen.go.yaml'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'gradlew'
       - '.github/workflows/api.yaml'
 
   pull_request:
     paths:
       - 'api/**'
+      - 'java-api/**'
       - 'proto/**'
       - 'tools/go.mod'
       - 'tools/go.sum'
       - 'buf.gen.go.yaml'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'gradlew'
       - '.github/workflows/api.yaml'
 
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protobuf-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
@@ -30,16 +49,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v7
+      - name: Set up Go
+        uses: actions/setup-go@v7
         with:
           go-version-file: api/go.mod
           cache-dependency-path: |
             api/go.sum
             tools/go.sum
 
-      - name: Generate Go code from proto files
+      - name: Generate Go API
         working-directory: api
         run: go generate
 
-      - name: Verify generated files are current
-        run: git diff --exit-code
+      - name: Verify generated Go API
+        run: git diff --exit-code -- api
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build Java API
+        run: ./gradlew :java-api:build --no-daemon
