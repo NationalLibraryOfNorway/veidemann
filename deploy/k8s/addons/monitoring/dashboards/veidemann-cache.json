@@ -3,6 +3,22 @@
   "links": [],
   "panels": [
     {
+      "content": "### Request topology\n\n`Harvester` → `Service/cache-balancer` → **Squid child/balancer pods** → `CARP` → **Squid parent/cache pods** → `Origin`\n\nChildren do not cache locally. CARP assigns each URL to a parent; parent pods hold the volume-driven disk caches.",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 9,
+      "links": [],
+      "mode": "markdown",
+      "options": {},
+      "title": "Cache Topology",
+      "transparent": true,
+      "type": "text"
+    },
+    {
       "cacheTimeout": null,
       "colorBackground": false,
       "colorValue": false,
@@ -27,7 +43,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "id": 1,
       "interval": null,
@@ -67,7 +83,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(up{service=\"cache-balancer\",pod=~\"$child_pod\"})",
+          "expr": "sum(squid_up{service=\"cache-balancer\",pod=~\"$child_pod\"})",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -79,7 +95,7 @@
         }
       ],
       "thresholds": "0,1",
-      "title": "Child Services Up",
+      "title": "Child Squid Up",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -116,7 +132,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 4
       },
       "id": 2,
       "interval": null,
@@ -156,7 +172,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(up{service=\"cache\",pod=~\"$parent_pod\"})",
+          "expr": "sum(squid_up{service=\"cache\",pod=~\"$parent_pod\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -167,7 +183,7 @@
         }
       ],
       "thresholds": "0,1",
-      "title": "Parent Services Up",
+      "title": "Parent Squid Up",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -204,7 +220,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 4
       },
       "id": 3,
       "interval": null,
@@ -244,7 +260,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(squid_client_http_hits_total{service=\"cache\",pod=~\"$parent_pod\"}) / sum(squid_client_http_requests_total{service=\"cache\",pod=~\"$parent_pod\"})",
+          "expr": "sum(rate(squid_client_http_hits_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])) / clamp_min(sum(rate(squid_client_http_requests_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])), 1e-9)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -292,7 +308,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 4
       },
       "id": 4,
       "interval": null,
@@ -332,7 +348,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(squid_client_http_hit_kbytes_out_bytes_total{service=\"cache\",pod=~\"$parent_pod\"}) / sum(squid_client_http_kbytes_out_kbytes_total{service=\"cache\",pod=~\"$parent_pod\"})",
+          "expr": "sum(rate(squid_client_http_hit_kbytes_out_bytes_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])) / clamp_min(sum(rate(squid_client_http_kbytes_out_kbytes_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])), 1e-9)",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -369,7 +385,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 7
+        "y": 11
       },
       "id": 5,
       "legend": {
@@ -394,36 +410,17 @@
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "/HTTP hits .*/",
-          "dashLength": 2,
-          "dashes": true,
-          "fill": 0,
-          "spaceLength": 4,
-          "zindex": -3
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(squid_client_http_hits_total{service=\"cache-balancer\",pod=~\"$child_pod\"}[5m]))",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Child HTTP hits",
-          "refId": "A",
-          "step": 5,
-          "target": ""
-        },
-        {
           "expr": "sum(rate(squid_client_http_requests_total{service=\"cache-balancer\",pod=~\"$child_pod\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Child requests",
-          "refId": "B",
+          "refId": "A",
           "step": 5
         },
         {
@@ -431,7 +428,7 @@
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "Child errors",
-          "refId": "C",
+          "refId": "B",
           "step": 10
         },
         {
@@ -439,6 +436,13 @@
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Child {{ pod }}",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(squid_client_http_requests_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "Parent {{ pod }}",
           "refId": "D"
         }
       ],
@@ -446,7 +450,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Child Requests",
+      "title": "Request Rate by Topology Role",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -497,7 +501,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 7
+        "y": 11
       },
       "id": 6,
       "legend": {
@@ -606,7 +610,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 18
       },
       "id": 8,
       "legend": {
@@ -637,28 +641,28 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(squid_swap_files_cleaned_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
+          "expr": "rate(squid_swap_files_cleaned_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Parent swap files cleaned",
+          "legendFormat": "Cleaned {{ pod }}",
           "refId": "A",
           "step": 5,
           "target": ""
         },
         {
-          "expr": "sum(rate(squid_swap_ins_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
+          "expr": "rate(squid_swap_ins_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "Parent swap ins",
+          "legendFormat": "In {{ pod }}",
           "refId": "B",
           "step": 5
         },
         {
-          "expr": "sum(rate(squid_swap_outs_total{service=\"cache\",pod=~\"$parent_pod\"}[5m]))",
+          "expr": "rate(squid_swap_outs_total{service=\"cache\",pod=~\"$parent_pod\"}[5m])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Parent swap outs",
+          "legendFormat": "Out {{ pod }}",
           "refId": "C",
           "step": 10
         }
@@ -697,6 +701,191 @@
           "max": null,
           "min": null,
           "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fill": 1,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "id": 7,
+      "legend": {
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "squid_info_Storage_Swap_capacity{service=\"cache\",pod=~\"$parent_pod\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "{{ pod }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Parent Cache Utilization",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": "100",
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fill": 1,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 10,
+      "legend": {
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "100 * squid_info_Number_of_file_desc_currently_in_use{service=\"cache-balancer\",pod=~\"$child_pod\"} / squid_info_Maximum_number_of_file_descriptors{service=\"cache-balancer\",pod=~\"$child_pod\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "Child {{ pod }}",
+          "refId": "A"
+        },
+        {
+          "expr": "100 * squid_info_Number_of_file_desc_currently_in_use{service=\"cache\",pod=~\"$parent_pod\"} / squid_info_Maximum_number_of_file_descriptors{service=\"cache\",pod=~\"$parent_pod\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "Parent {{ pod }}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Squid File Descriptor Utilization",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": "100",
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
         }
       ],
       "yaxis": {
@@ -757,7 +946,7 @@
         "multi": true,
         "name": "child_pod",
         "options": [],
-        "query": "label_values(up{service=\"cache-balancer\"}, pod)",
+        "query": "label_values(squid_up{service=\"cache-balancer\"}, pod)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -787,7 +976,7 @@
         "multi": true,
         "name": "parent_pod",
         "options": [],
-        "query": "label_values(up{service=\"cache\"}, pod)",
+        "query": "label_values(squid_up{service=\"cache\"}, pod)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -831,6 +1020,6 @@
   },
   "timezone": "UTC",
   "title": "Veidemann / Cache",
-  "version": 12,
+  "version": 13,
   "uid": "veidemann-cache"
 }
