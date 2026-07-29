@@ -1,80 +1,286 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bash
+# shellcheck disable=SC2329 # Trap handlers are invoked indirectly by Bash.
+set -Eeuo pipefail
 
-TAIL_PID=""
+readonly SQUID_CONFIG=/etc/squid/squid.conf
+readonly SQUID_RUNTIME_DIR=/run/squid
+readonly SQUID_SPOOL_DIR=/var/spool/squid
+readonly SQUID_ACCESS_LOG_PIPE=${SQUID_RUNTIME_DIR}/access.pipe
+readonly SQUID_CACHE_LOG_PIPE=${SQUID_RUNTIME_DIR}/cache.pipe
+readonly SQUID_PID_FILE=/run/squid.pid
+readonly SQUID_ALT_PID_FILE=${SQUID_RUNTIME_DIR}/squid.pid
+readonly SSL_DB=${SQUID_SPOOL_DIR}/ssl_db
+readonly SSL_DB_SIZE=64MB
+readonly READY_FILE=${SQUID_RUNTIME_DIR}/confighandler.ready
+readonly CA_CERT=/ca-certificates/tls.crt
+readonly CA_FINGERPRINT_FILE=${SQUID_SPOOL_DIR}/ssl_db.ca.sha256
+
 CONF_PID=""
 SQUID_PID=""
+ACCESS_LOG_PID=""
+CACHE_LOG_PID=""
+LOG_MONITOR_PID=""
+ACCESS_LOG_KEEPALIVE_FD=""
+CACHE_LOG_KEEPALIVE_FD=""
+SHUTTING_DOWN=0
 
-# Ensure runtime dirs exist and are owned correctly
-mkdir -p /run/squid /var/spool/squid
-chown -R proxy:proxy /run/squid /var/spool/squid
-
-# Ensure cache_log file exists and is writable
-touch /run/squid/cache.log
-chown proxy:proxy /run/squid/cache.log
-chmod 0644 /run/squid/cache.log
-
-# Forward cache_log to container stderr
-tail -n 0 -F /run/squid/cache.log >&2 &
-TAIL_PID=$!
-
-# shellcheck disable=SC2329
-shutdown() {
-  echo "caught signal, shutting down..." >&2
-
-  # Ask squid to stop gracefully first
-  if [ -n "${SQUID_PID}" ] && kill -0 "${SQUID_PID}" 2>/dev/null; then
-    squid -k shutdown 2>/dev/null || kill -TERM "${SQUID_PID}" 2>/dev/null || true
-  fi
-
-  # Stop confighandler
-  if [ -n "${CONF_PID}" ] && kill -0 "${CONF_PID}" 2>/dev/null; then
-    kill -TERM "${CONF_PID}" 2>/dev/null || true
-  fi
-
-  # Stop tailing cache_log
-  if [ -n "${TAIL_PID}" ] && kill -0 "${TAIL_PID}" 2>/dev/null; then
-    kill -TERM "${TAIL_PID}" 2>/dev/null || true
-  fi
-
-  # Wait for processes (if they exist)
-  [ -n "${SQUID_PID}" ] && wait "${SQUID_PID}" 2>/dev/null || true
-  [ -n "${CONF_PID}" ] && wait "${CONF_PID}" 2>/dev/null || true
-  [ -n "${TAIL_PID}" ] && wait "${TAIL_PID}" 2>/dev/null || true
+log() {
+    printf '%s\n' "$*" >&2 || true
 }
 
-trap shutdown INT TERM EXIT
+process_is_running() {
+    local pid=${1:-}
+    [[ -n ${pid} ]] && kill -0 "${pid}" 2>/dev/null
+}
 
-# --- init ssl_db ---
-if [ ! -d /var/spool/squid/ssl_db ] || [ -z "$(ls -A /var/spool/squid/ssl_db 2>/dev/null)" ]; then
-  /usr/lib/squid/security_file_certgen -c -s /var/spool/squid/ssl_db -M 4MB
+stop_process() {
+    local name=$1
+    local pid=${2:-}
+
+    if process_is_running "${pid}"; then
+        log "Stopping ${name}..."
+        kill -TERM "${pid}" 2>/dev/null || true
+    fi
+}
+
+close_log_keepalive_fds() {
+    if [[ -n ${ACCESS_LOG_KEEPALIVE_FD} ]]; then
+        exec {ACCESS_LOG_KEEPALIVE_FD}>&-
+    fi
+    if [[ -n ${CACHE_LOG_KEEPALIVE_FD} ]]; then
+        exec {CACHE_LOG_KEEPALIVE_FD}>&-
+    fi
+}
+
+log_forwarders_are_running() {
+    process_is_running "${ACCESS_LOG_PID}" &&
+        process_is_running "${CACHE_LOG_PID}"
+}
+
+monitor_log_forwarders() {
+    # Do not keep the FIFOs open from this child process. Only the entrypoint
+    # owns the descriptors that bridge Squid log reopen operations.
+    close_log_keepalive_fds
+
+    while log_forwarders_are_running; do
+        sleep 0.2
+    done
+
+    log "A Squid log forwarder exited unexpectedly"
+    return 1
+}
+
+shutdown() {
+    local pid
+
+    if ((SHUTTING_DOWN)); then
+        return
+    fi
+    SHUTTING_DOWN=1
+
+    trap - INT TERM
+
+    # Prevent configuration changes while Squid is shutting down, then let
+    # Squid close its FIFO writers before allowing the readers to see EOF.
+    stop_process "confighandler" "${CONF_PID}"
+    stop_process "Squid" "${SQUID_PID}"
+
+    for pid in "${SQUID_PID}" "${CONF_PID}"; do
+        if [[ -n ${pid} ]]; then
+            wait "${pid}" 2>/dev/null || true
+        fi
+    done
+
+    stop_process "log forwarder monitor" "${LOG_MONITOR_PID}"
+    if [[ -n ${LOG_MONITOR_PID} ]]; then
+        wait "${LOG_MONITOR_PID}" 2>/dev/null || true
+    fi
+
+    close_log_keepalive_fds
+
+    # Closing the keepalive writers gives cat EOF after it has drained data
+    # Squid wrote immediately before exiting (including fatal diagnostics).
+    for pid in "${ACCESS_LOG_PID}" "${CACHE_LOG_PID}"; do
+        if [[ -n ${pid} ]]; then
+            wait "${pid}" 2>/dev/null || true
+        fi
+    done
+}
+
+handle_exit() {
+    local status=$?
+
+    trap - EXIT
+    shutdown
+    exit "${status}"
+}
+
+handle_term() {
+    log "Received SIGTERM"
+    exit 143
+}
+
+handle_int() {
+    log "Received SIGINT"
+    exit 130
+}
+
+trap handle_term TERM
+trap handle_int INT
+trap handle_exit EXIT
+
+install -d -o proxy -g proxy -m 0755 \
+    "${SQUID_RUNTIME_DIR}" \
+    "${SQUID_SPOOL_DIR}"
+
+rm -f "${READY_FILE}"
+
+if [[ ! -r ${CA_CERT} ]]; then
+    log "CA certificate is missing or unreadable: ${CA_CERT}"
+    exit 1
 fi
-chown -R proxy:proxy /var/spool/squid/ssl_db
 
-# Start confighandler (foreground in background job)
-confighandler "$@" --ready-file /run/squid/confighandler.ready &
+current_ca_fingerprint=$(sha256sum "${CA_CERT}" | awk '{print $1}')
+
+stored_ca_fingerprint=""
+if [[ -f ${CA_FINGERPRINT_FILE} ]]; then
+    read -r stored_ca_fingerprint <"${CA_FINGERPRINT_FILE}" || true
+fi
+
+ssl_db_needs_init=0
+
+if [[ ! -d ${SSL_DB} ]]; then
+    ssl_db_needs_init=1
+elif [[ -z $(find "${SSL_DB}" -mindepth 1 -print -quit 2>/dev/null) ]]; then
+    ssl_db_needs_init=1
+elif [[ ${current_ca_fingerprint} != "${stored_ca_fingerprint}" ]]; then
+    log "Signing CA changed; rebuilding ssl_db"
+    ssl_db_needs_init=1
+fi
+
+if ((ssl_db_needs_init)); then
+    rm -rf "${SSL_DB}"
+
+    /usr/lib/squid/security_file_certgen \
+        -c \
+        -s "${SSL_DB}" \
+        -M "${SSL_DB_SIZE}" >&2
+
+    printf '%s\n' "${current_ca_fingerprint}" >"${CA_FINGERPRINT_FILE}"
+fi
+
+chown -R proxy:proxy "${SSL_DB}"
+chown proxy:proxy "${CA_FINGERPRINT_FILE}"
+chmod 0644 "${CA_FINGERPRINT_FILE}"
+
+confighandler "$@" --ready-file "${READY_FILE}" &
 CONF_PID=$!
 
-# Wait for initial config render
-for _ in {1..60}; do
-  if [ -f /run/squid/confighandler.ready ]; then
-    break
-  fi
-  sleep 0.2
+for ((attempt = 0; attempt < 60; attempt++)); do
+    if [[ -f ${READY_FILE} ]]; then
+        break
+    fi
+
+    if ! process_is_running "${CONF_PID}"; then
+        set +e
+        wait "${CONF_PID}"
+        status=$?
+        set -e
+
+        log "confighandler exited before producing the initial configuration"
+        exit "${status}"
+    fi
+
+    sleep 0.2
 done
 
-if [ ! -f /run/squid/confighandler.ready ]; then
-  echo "confighandler did not become ready" >&2
-  exit 1
+if [[ ! -f ${READY_FILE} ]]; then
+    log "confighandler did not become ready"
+    exit 1
 fi
 
-# Ensure cache dirs exist (now that config is rendered, if it affects cache_dir)
- /usr/sbin/squid -Nz
+# Squid opens its logs after dropping privileges. FIFOs owned by proxy avoid
+# reopening the root-owned container stdout/stderr pipes through /dev/fd.
+rm -f "${SQUID_ACCESS_LOG_PIPE}" "${SQUID_CACHE_LOG_PIPE}"
+mkfifo -m 0620 "${SQUID_ACCESS_LOG_PIPE}" "${SQUID_CACHE_LOG_PIPE}"
+chown proxy:proxy "${SQUID_ACCESS_LOG_PIPE}" "${SQUID_CACHE_LOG_PIPE}"
 
-# Start squid (foreground)
-squid -f /etc/squid/squid.conf -N &
+# Opening a FIFO read/write never blocks. Keeping these descriptors open stops
+# readers from seeing EOF while Squid closes and reopens logs on reconfigure.
+exec {ACCESS_LOG_KEEPALIVE_FD}<>"${SQUID_ACCESS_LOG_PIPE}"
+exec {CACHE_LOG_KEEPALIVE_FD}<>"${SQUID_CACHE_LOG_PIPE}"
+
+(
+    close_log_keepalive_fds
+    exec cat "${SQUID_ACCESS_LOG_PIPE}" >&1
+) &
+ACCESS_LOG_PID=$!
+
+(
+    close_log_keepalive_fds
+    exec cat "${SQUID_CACHE_LOG_PIPE}" >&2
+) &
+CACHE_LOG_PID=$!
+
+if ! log_forwarders_are_running; then
+    log "Squid log forwarders failed to start"
+    exit 1
+fi
+
+if ! (
+    close_log_keepalive_fds
+    exec /usr/sbin/squid -k parse -f "${SQUID_CONFIG}"
+); then
+    log "Rendered Squid configuration is invalid"
+    exit 1
+fi
+
+# /run is container-local, but remove stale PID files defensively before the
+# synchronous cache initialization pass.
+rm -f "${SQUID_PID_FILE}" "${SQUID_ALT_PID_FILE}"
+
+# Create cache_dir structures without daemonizing or racing the real process.
+(
+    close_log_keepalive_fds
+    exec /usr/sbin/squid -N -z -f "${SQUID_CONFIG}"
+)
+
+# Some builds leave a PID file after -z even though the initializer has exited.
+rm -f "${SQUID_PID_FILE}" "${SQUID_ALT_PID_FILE}"
+
+# Run Squid without daemonizing. The entrypoint remains the supervisor because
+# confighandler must stay alive for runtime reconfiguration.
+(
+    close_log_keepalive_fds
+    exec /usr/sbin/squid -N -f "${SQUID_CONFIG}"
+) &
 SQUID_PID=$!
 
-# If either squid or confighandler exits unexpectedly, shut down the other.
-wait -n "$SQUID_PID" "$CONF_PID"
-exit 0
+# The FIFO readers are deliberately not direct members of the main wait set.
+# A monitor converts either reader's unexpected exit (for example, EPIPE after
+# the container log consumer closes) into a fatal supervisor event.
+monitor_log_forwarders &
+LOG_MONITOR_PID=$!
+
+set +e
+EXITED_PID=""
+wait -n -p EXITED_PID "${SQUID_PID}" "${CONF_PID}" "${LOG_MONITOR_PID}"
+status=$?
+set -e
+
+case ${EXITED_PID:-} in
+    "${SQUID_PID}")
+        log "Squid exited with status ${status}"
+        ;;
+    "${CONF_PID}")
+        log "confighandler exited with status ${status}"
+        ;;
+    "${LOG_MONITOR_PID}")
+        log "Squid log forwarding failed with status ${status}"
+        ;;
+    *)
+        log "A supervised process exited with status ${status}"
+        ;;
+esac
+
+exit "${status}"

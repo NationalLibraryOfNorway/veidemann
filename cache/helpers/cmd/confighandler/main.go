@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -93,13 +94,11 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 		}
 	}
 
-	// Decide initial reconfigure behavior:
-	// - If you want to reconfigure immediately after first change, set lastReconf = time.Time{}.
-	// - Here: avoid immediate reconfigure right after initial render.
-	lastReconf := time.Now()
-
 	t := time.NewTicker(interval)
 	defer t.Stop()
+
+	pendingReconfigure := false
+	lastReconf := time.Now()
 
 	for {
 		select {
@@ -112,21 +111,38 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 				log.Error("Rewrite failed", "error", err)
 				continue
 			}
-			if !changed {
+
+			if changed {
+				pendingReconfigure = true
+			}
+
+			if !pendingReconfigure {
 				continue
 			}
 
-			if time.Since(lastReconf) < minReconf {
-				log.Debug("Change detected but reconfigure throttled", "since_last", time.Since(lastReconf).String())
+			remaining := minReconf - time.Since(lastReconf)
+			if remaining > 0 {
+				log.Debug(
+					"Reconfigure pending",
+					"remaining", remaining.String(),
+				)
 				continue
 			}
 
-			lastReconf = time.Now()
 			out, err := reconfigureSquid()
 			if err != nil {
-				log.Error("Squid reconfigure failed", "error", err, "output", out)
+				log.Error(
+					"Squid reconfigure failed",
+					"error", err,
+					"output", out,
+				)
+				// Keep pendingReconfigure=true so it retries.
 				continue
 			}
+
+			pendingReconfigure = false
+			lastReconf = time.Now()
+
 			if out != "" {
 				log.Info("Squid reconfigured", "output", out)
 			} else {
@@ -174,12 +190,64 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 
 	conf := string(b)
 	conf = strings.ReplaceAll(conf, "${DNS_IP}", dnsServers)
+
 	if r.balancer {
 		conf = strings.ReplaceAll(conf, "${PARENTS}", parents)
 	}
 
+	previous, readErr := os.ReadFile(r.configPath)
+	previousExists := readErr == nil
+
+	if readErr != nil && !os.IsNotExist(readErr) {
+		return false, fmt.Errorf(
+			"read existing config (%s): %w",
+			r.configPath,
+			readErr,
+		)
+	}
+
 	if err := writeFileAtomic(r.configPath, []byte(conf), 0644); err != nil {
-		return false, fmt.Errorf("write config (%s): %w", r.configPath, err)
+		return false, fmt.Errorf(
+			"write config (%s): %w",
+			r.configPath,
+			err,
+		)
+	}
+
+	validationOutput, err := validateSquidConfig()
+	if err != nil {
+		if previousExists {
+			if restoreErr := writeFileAtomic(
+				r.configPath,
+				previous,
+				0644,
+			); restoreErr != nil {
+				return false, fmt.Errorf(
+					"generated config invalid: %w; output: %q; "+
+						"failed restoring previous config: %v",
+					err,
+					validationOutput,
+					restoreErr,
+				)
+			}
+		} else {
+			if removeErr := os.Remove(r.configPath); removeErr != nil &&
+				!os.IsNotExist(removeErr) {
+				return false, fmt.Errorf(
+					"generated config invalid: %w; output: %q; "+
+						"failed removing invalid config: %v",
+					err,
+					validationOutput,
+					removeErr,
+				)
+			}
+		}
+
+		return false, fmt.Errorf(
+			"generated config invalid: %w; output: %q",
+			err,
+			validationOutput,
+		)
 	}
 
 	r.lastParents = parents
@@ -192,9 +260,21 @@ func (r *rewriter) getParents() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Stable output prevents unnecessary reconfiguration when discovery
+	// returns the same parents in a different order.
+	slices.Sort(parents)
+	parents = slices.Compact(parents)
+
 	var b strings.Builder
 	for _, parent := range parents {
-		fmt.Fprintf(&b, "cache_peer %v parent 3128 0 carp no-digest\n", parent)
+		fmt.Fprintf(
+			&b,
+			"cache_peer %s parent 3128 0 "+
+				"carp no-query no-digest proxy-only no-netdb-exchange "+
+				"connect-timeout=5 connect-fail-limit=2\n",
+			parent,
+		)
 	}
 	return b.String(), nil
 }
@@ -209,6 +289,18 @@ func (r *rewriter) getDnsServersString() string {
 		}
 	}
 	return strings.Join(ips, " ")
+}
+
+func validateSquidConfig() (string, error) {
+	out, err := exec.Command(
+		"squid",
+		"-k",
+		"parse",
+		"-f",
+		"/etc/squid/squid.conf",
+	).CombinedOutput()
+
+	return strings.TrimSpace(string(out)), err
 }
 
 func reconfigureSquid() (string, error) {

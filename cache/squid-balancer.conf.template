@@ -6,7 +6,9 @@ http_port 3128
 
 prefer_direct off
 nonhierarchical_direct off
-digest_generation off
-dead_peer_timeout 300 seconds
 
+# Avoid unecessary peer metadata mechanisms.
+digest_generation off
+
+# No local object cache in the balancer tier.
 cache deny all

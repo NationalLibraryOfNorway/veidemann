@@ -1,43 +1,95 @@
 dns_nameservers ${DNS_IP}
 
+# ----------------------------------------------------------------------
+# Chromium -> Squid
+# Controlled client, TLS 1.3 only.
+# ----------------------------------------------------------------------
 # SSL-Bump (see https://wiki.squid-cache.org/ConfigExamples/Intercept/SslBumpExplicit)
+
 http_port 3128 ssl-bump \
  tls-cert=/ca-certificates/tls.crt \
  tls-key=/ca-certificates/tls.key \
- generate-host-certificates=on dynamic_cert_mem_cache_size=4MB \
- options=NO_SSLv3,NO_TLSv1,NO_TLSv1_1,NO_TLSv1_2,NO_TICKET
+ generate-host-certificates=on \
+ dynamic_cert_mem_cache_size=32MB \
+ options=NO_SSLv3,NO_TLSv1,NO_TLSv1_1,NO_TLSv1_2
 
-sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 4MB
+
+sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 64MB
 
 acl step1 at_step SslBump1
 ssl_bump peek step1
 ssl_bump bump all
 
+# ----------------------------------------------------------------------
+# Squid -> origins
+# Broad compatibility without globally weakening OpenSSL security.
+# ----------------------------------------------------------------------
+tls_outgoing_options min-version=1.2
+
+# A crawler may intentionally accept broken origin certificates
+# This disables certificate-error enforcement but still uses TLS.
 sslproxy_cert_error allow all
 
 maximum_object_size 64 MB
-offline_mode on
+maximum_object_size_in_memory 1 MB
 
+# Parent peers use no-digest; do not build an unused local cache digest.
+digest_generation off
+
+# ----------------------------------------------------------------------
+# Freshness and crawl deduplication
+# ----------------------------------------------------------------------
+
+# Keep ordinary cached objects for up to 3 days when the origin does not
+# provide explicit freshness information.
+#
+# Avoid forcing no-store/private responses into the cache unless archival
+# replay is explicitly required.
 # Refresh patterns
-refresh_pattern .               4320    100%    4320 store-stale override-expire override-lastmod ignore-private ignore-reload ignore-no-store
+refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
+refresh_pattern . 0 100% 4320 \
+    store-stale \
+    ignore-private \
+    ignore-reload \
+    ignore-no-store
 
-# Cache settings
-# --------------------
-store_id_program /usr/local/sbin/storeid -t 1
-store_id_extras "%{veidemann_jeid}>h"
-store_id_children 5 startup=2 idle=1 concurrency=5
+# Permit origin access and validation.
+offline_mode off
 
+# On a cache miss, remove Chromium conditional headers so a complete
+# response can populate the cache.
 cache_miss_revalidate off
-negative_ttl 100 day
 
-# Manipulate headers
-# ----------------------
+# Do not persist transient failures for days.
+negative_ttl 0 seconds
+negative_dns_ttl 1 minute
+
+# ----------------------------------------------------------------------
+# Store-ID helper
+# ----------------------------------------------------------------------
+
+store_id_program /usr/local/sbin/storeid
+store_id_extras "%{veidemann_jeid}>h"
+
+store_id_children 5 \
+    startup=2 \
+    idle=1 \
+    concurrency=0
+
+# ----------------------------------------------------------------------
+# Internal crawler headers
+# ----------------------------------------------------------------------
+
 request_header_access veidemann_eid deny all
 request_header_access veidemann_jeid deny all
 
 # Ensure that X-Cache header always contains 'from veidemann_cache' after HIT/MISS
 visible_hostname veidemann_cache
 
+# ----------------------------------------------------------------------
+# Disk cache
+# ----------------------------------------------------------------------
+
 # Example cache dir config
 # Cache size should be no more than 80% of volume space (/var/spool/squid) size
-# cache_dir aufs /var/spool/squid 750 16 256 # Size: 750MB, First level dirs: 16, Second level dirs: 256
+# cache_dir aufs /var/spool/squid/cache 750 16 256 # Size: 750MB, First level dirs: 16, Second level dirs: 256

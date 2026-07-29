@@ -21,23 +21,29 @@ RUN certtool --generate-privkey --outfile tls.key \
         --outfile tls.crt
 
 
-FROM docker.io/ubuntu:resolute-20260707
+FROM docker.io/debian:sid-slim
 
-ENV TZ=UTC
-ENV DNS_SERVERS="8.8.8.8 8.8.4.4"
+ARG SQUID_VERSION=7.6-2
+
+ENV TZ=UTC \
+    DNS_SERVERS="8.8.8.8 8.8.4.4"
 
 RUN set -eux; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         tini \
-        squid-openssl \
+        "squid-openssl=${SQUID_VERSION}" \
         ca-certificates \
         tzdata; \
     \
     # Squid overrides via conf.d
     mkdir -p /etc/squid/conf.d; \
+    # The Debian fragment contains APT-specific refresh patterns after our
+    # catch-all pattern. They are unreachable and use ages Squid must clamp.
+    rm -f /etc/squid/conf.d/debian.conf; \
     printf '%s\n' \
-      '# Avoid relying on system RLIMIT_NOFILE. See LP: #1978272' \
+      '# Bound Squid descriptor tables independently of container runtime limits.' \
+      '# Avoid both a low inherited limit and huge allocations; see LP: #1978272.' \
       'max_filedescriptors 65536' \
       > /etc/squid/conf.d/20-fdlimit.conf; \
     \
@@ -48,17 +54,20 @@ RUN set -eux; \
 VOLUME /var/spool/squid
 
 # Helpers
-COPY --from=build-helpers /go/bin/confighandler /go/bin/loghelper /go/bin/storeid /usr/local/sbin/
+COPY --from=build-helpers \
+    /go/bin/confighandler \
+    /go/bin/storeid \
+    /usr/local/sbin/
 
 # TLS material (default self-signed; allow users to mount their own)
 RUN mkdir -p /ca-certificates
-COPY --from=generate-certificates --chown=proxy:proxy /tls.key /tls.crt /ca-certificates/
-COPY ffdhe2048.txt /ca-certificates/dhparams.pem
+COPY --from=generate-certificates --chown=proxy:proxy \
+    /tls.key \
+    /tls.crt \
+    /ca-certificates/
 
 # Squid config + entrypoint
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY squid.conf squid.conf.template squid-balancer.conf.template /etc/squid/
 
 EXPOSE 3128

@@ -2,93 +2,65 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
-	"sync"
 )
 
 func main() {
-	threadCount := 5
-	flag.IntVar(&threadCount, "t", threadCount, "Set number of workers")
-	flag.Parse()
-
-	in := make(chan string, threadCount*2)
-	out := make(chan string, threadCount*2)
-
-	// Single stdout writer to prevent interleaving/corruption.
-	go func() {
-		w := bufio.NewWriter(os.Stdout)
-		for s := range out {
-			if s == "" {
-				s = "ERR\n"
-			}
-			_, _ = w.WriteString(s)
-			_ = w.Flush()
-		}
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(threadCount)
-	for j := 0; j < threadCount; j++ {
-		go func() {
-			defer wg.Done()
-			for s := range in {
-				out <- rewriteSafe(s)
-			}
-		}()
+	if err := run(os.Stdin, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "storeid: %v\n", err)
+		os.Exit(1)
 	}
-
-	r := bufio.NewReader(os.Stdin)
-	for {
-		l, err := r.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			// Helpers should not panic; emit nothing and exit non-zero is also OK,
-			// but simplest: break.
-			break
-		}
-		in <- l
-	}
-
-	close(in)
-	wg.Wait()
-	close(out)
 }
 
-func rewriteSafe(s string) string {
-	line := strings.TrimRight(s, "\r\n")
+func run(input io.Reader, output io.Writer) error {
+	scanner := bufio.NewScanner(input)
+
+	// Increase the default 64 KiB Scanner limit for unusually long URLs.
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+
+	writer := bufio.NewWriterSize(output, 64*1024)
+	defer func() { _ = writer.Flush() }()
+
+	for scanner.Scan() {
+		if _, err := writer.WriteString(rewrite(scanner.Text())); err != nil {
+			return fmt.Errorf("write response: %w", err)
+		}
+		if err := writer.Flush(); err != nil {
+			return fmt.Errorf("flush response: %w", err)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read request: %w", err)
+	}
+
+	return nil
+}
+
+func rewrite(input string) string {
+	line := input
 	if line == "" {
-		return ""
+		return "BH message=empty-request\n"
 	}
 
-	// Parse: <channel-id> SP <url> [SP <extras...>]
-	i := strings.IndexByte(line, ' ')
-	if i < 0 {
-		return fmt.Sprintf("%s ERR\n", line)
-	}
-	channelId := line[:i]
-
-	rest := strings.TrimLeft(line[i+1:], " ")
-	if rest == "" {
-		return fmt.Sprintf("%s ERR\n", channelId)
-	}
-	j := strings.IndexByte(rest, ' ')
-	url := rest
-	extras := ""
-	if j >= 0 {
-		url = rest[:j]
-		extras = strings.TrimLeft(rest[j+1:], " ")
+	url, extras, found := strings.Cut(line, " ")
+	if found {
+		extras = strings.TrimSpace(extras)
+	} else {
+		url = line
+		extras = ""
 	}
 
-	if extras == "-" || extras == "" || strings.HasPrefix(url, "cache_object:") {
-		return fmt.Sprintf("%s OK store-id=%s\n", channelId, url)
+	if url == "" {
+		return "BH message=missing-url\n"
 	}
 
-	res := "v1|" + extras + "|" + url
-	return fmt.Sprintf("%s OK store-id=%s\n", channelId, res)
+	if extras == "" || extras == "-" {
+		return "ERR\n"
+	}
+
+	return fmt.Sprintf("OK store-id=v1|%s|%s\n", extras, url)
 }
