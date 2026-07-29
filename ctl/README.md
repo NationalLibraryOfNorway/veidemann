@@ -1,11 +1,57 @@
 # Veidemannctl
 
+## Install
+
+The installer downloads the latest `ctl-v*` GitHub release for Linux or macOS
+on AMD64 or ARM64, verifies it against the release asset's GitHub-published
+SHA-256 digest, and installs it to `~/.local/bin`. Releases also include a
+`SHA256SUMS` file for manual verification.
+
+```console
+curl --proto '=https' --tlsv1.2 -fsSL \
+  https://raw.githubusercontent.com/NationalLibraryOfNorway/veidemann/main/ctl/install.sh | sh
+```
+
+For an inspect-then-run workflow, download the installer first:
+
+```console
+installer="$(mktemp)"
+curl --proto '=https' --tlsv1.2 -fsSL \
+  -o "$installer" \
+  https://raw.githubusercontent.com/NationalLibraryOfNorway/veidemann/main/ctl/install.sh
+less "$installer"
+sh "$installer"
+rm "$installer"
+```
+
+By default, completion is installed for the shell named by `$SHELL`. The
+installer does not modify shell startup files. Set these environment variables
+to customize the installation:
+
+| Variable | Purpose |
+| --- | --- |
+| `VEIDEMANNCTL_VERSION` | Install a specific version, such as `0.11.0`, instead of the latest release. |
+| `INSTALL_DIR` | Install the binary somewhere other than `~/.local/bin`. The directory must be writable. |
+| `VEIDEMANNCTL_COMPLETION` | Use `bash`, `zsh`, `fish`, or `none` instead of automatic shell detection. |
+| `GITHUB_TOKEN` | Authenticate GitHub API and release requests when anonymous rate limits are insufficient. |
+
+For example, to install a specific version without completion:
+
+```console
+curl --proto '=https' --tlsv1.2 -fsSL \
+  https://raw.githubusercontent.com/NationalLibraryOfNorway/veidemann/main/ctl/install.sh \
+  | VEIDEMANNCTL_VERSION=0.11.0 VEIDEMANNCTL_COMPLETION=none sh
+```
+
+If `~/.local/bin` is not already in `PATH`, the installer prints a reminder.
+Zsh users may also need to add the printed completion directory to `fpath`.
+
 ## Usage
 
 To get a list of available commands and configuration flags:
 
 ```console
-veidemanctl -h
+veidemannctl -h
 ```
 
 ## Build

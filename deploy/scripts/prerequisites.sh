@@ -2,6 +2,23 @@
 
 set -euo pipefail
 
+if [[ -z "${HOME:-}" ]]; then
+  echo "HOME must be set" >&2
+  exit 1
+fi
+
+INSTALL_DIR="${HOME}/.local/bin"
+BASH_COMPLETION_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/bash-completion/completions"
+mkdir -p "$INSTALL_DIR" "$BASH_COMPLETION_DIR"
+
+case ":${PATH}:" in
+  *:"${INSTALL_DIR}":*) ;;
+  *)
+    echo "Installing tools to ${INSTALL_DIR}; add it to PATH for future shells."
+    export PATH="${INSTALL_DIR}:${PATH}"
+    ;;
+esac
+
 OPSYS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
@@ -14,13 +31,13 @@ case "$ARCH" in
     ;;
 esac
 
-LINKERD_VERSION=edge-25.11.1
-KUBECTL_VERSION=v1.32.10
-MINIKUBE_VERSION=v1.37.0
-VEIDEMANNCTL_VERSION=0.9.0
-HELM_VERSION=v4.0.1
-SKAFFOLD_VERSION=v2.17.0
-STEP_VERSION=0.29.0
+LINKERD_VERSION=edge-26.6.1
+KUBECTL_VERSION=v1.36.3
+MINIKUBE_VERSION=v1.38.1
+VEIDEMANNCTL_VERSION=0.11.0
+HELM_VERSION=v4.2.3
+SKAFFOLD_VERSION=v2.24.0
+STEP_VERSION=0.30.6
 
 ask() {
   local prompt=$1
@@ -72,8 +89,8 @@ for CMD in "$@"; do
       if need_install kubectl "$KUBECTL_VERSION" "$current"; then
         echo "Installing kubectl ${KUBECTL_VERSION}"
         curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/${OPSYS}/${ARCH}/kubectl"
-        sudo install kubectl /usr/local/bin/kubectl
-        sudo sh -c "/usr/local/bin/kubectl completion bash > /etc/bash_completion.d/kubectl"
+        install kubectl "${INSTALL_DIR}/kubectl"
+        "${INSTALL_DIR}/kubectl" completion bash > "${BASH_COMPLETION_DIR}/kubectl"
         rm kubectl
       fi
       ;;
@@ -87,8 +104,8 @@ for CMD in "$@"; do
       if need_install helm "$HELM_VERSION" "$current"; then
         echo "Installing helm ${HELM_VERSION}"
         curl -L "https://get.helm.sh/helm-${HELM_VERSION}-${OPSYS}-${ARCH}.tar.gz" | tar xz
-        sudo install "${OPSYS}-${ARCH}/helm" /usr/local/bin/helm
-        sudo sh -c "/usr/local/bin/helm completion bash > /etc/bash_completion.d/helm"
+        install "${OPSYS}-${ARCH}/helm" "${INSTALL_DIR}/helm"
+        "${INSTALL_DIR}/helm" completion bash > "${BASH_COMPLETION_DIR}/helm"
         rm -r "${OPSYS}-${ARCH}"
       fi
       ;;
@@ -103,8 +120,8 @@ for CMD in "$@"; do
         echo "Installing linkerd ${LINKERD_VERSION}"
         curl -Lo linkerd \
           "https://github.com/linkerd/linkerd2/releases/download/${LINKERD_VERSION}/linkerd2-cli-${LINKERD_VERSION}-${OPSYS}-${ARCH}"
-        sudo install linkerd /usr/local/bin/linkerd
-        sudo sh -c "/usr/local/bin/linkerd completion bash > /etc/bash_completion.d/linkerd"
+        install linkerd "${INSTALL_DIR}/linkerd"
+        "${INSTALL_DIR}/linkerd" completion bash > "${BASH_COMPLETION_DIR}/linkerd"
         rm linkerd
       fi
       ;;
@@ -120,8 +137,8 @@ for CMD in "$@"; do
         echo "Installing minikube ${MINIKUBE_VERSION}"
         curl -Lo minikube \
           "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-${OPSYS}-${ARCH}"
-        sudo install minikube /usr/local/bin/minikube
-        sudo sh -c "/usr/local/bin/minikube completion bash > /etc/bash_completion.d/minikube"
+        install minikube "${INSTALL_DIR}/minikube"
+        "${INSTALL_DIR}/minikube" completion bash > "${BASH_COMPLETION_DIR}/minikube"
         rm minikube
       fi
       ;;
@@ -137,9 +154,9 @@ for CMD in "$@"; do
       if need_install veidemannctl "$VEIDEMANNCTL_VERSION" "$current"; then
         echo "Installing veidemannctl ${VEIDEMANNCTL_VERSION}"
         curl -Lo veidemannctl \
-          "https://github.com/nlnwa/veidemannctl/releases/download/v${VEIDEMANNCTL_VERSION}/veidemannctl_${VEIDEMANNCTL_VERSION}_${OPSYS}_${ARCH}"
-        sudo install veidemannctl /usr/local/bin/veidemannctl
-        sudo sh -c "/usr/local/bin/veidemannctl completion bash > /etc/bash_completion.d/veidemannctl"
+          "https://github.com/NationalLibraryOfNorway/veidemann/releases/download/ctl-v${VEIDEMANNCTL_VERSION}/veidemannctl_${OPSYS}_${ARCH}"
+        install veidemannctl "${INSTALL_DIR}/veidemannctl"
+        "${INSTALL_DIR}/veidemannctl" completion bash > "${BASH_COMPLETION_DIR}/veidemannctl"
         rm veidemannctl
       fi
       ;;
@@ -154,8 +171,8 @@ for CMD in "$@"; do
         echo "Installing skaffold ${SKAFFOLD_VERSION}"
         curl -Lo skaffold \
           "https://storage.googleapis.com/skaffold/releases/${SKAFFOLD_VERSION}/skaffold-${OPSYS}-${ARCH}"
-        sudo install skaffold /usr/local/bin/skaffold
-        sudo sh -c "/usr/local/bin/skaffold completion bash > /etc/bash_completion.d/skaffold"
+        install skaffold "${INSTALL_DIR}/skaffold"
+        "${INSTALL_DIR}/skaffold" completion bash > "${BASH_COMPLETION_DIR}/skaffold"
         rm skaffold
       fi
       ;;
@@ -172,8 +189,8 @@ for CMD in "$@"; do
         curl -L \
           "https://dl.smallstep.com/gh-release/cli/gh-release-header/v${STEP_VERSION}/step_${OPSYS}_${STEP_VERSION}_${ARCH}.tar.gz" \
           | tar xz
-        sudo install "step_${STEP_VERSION}/bin/step" /usr/local/bin/step
-        sudo cp "step_${STEP_VERSION}/autocomplete/bash_autocomplete" /etc/bash_completion.d/step
+        install "step_${STEP_VERSION}/bin/step" "${INSTALL_DIR}/step"
+        cp "step_${STEP_VERSION}/autocomplete/bash_autocomplete" "${BASH_COMPLETION_DIR}/step"
         rm -rf "step_${STEP_VERSION}"
       fi
       ;;

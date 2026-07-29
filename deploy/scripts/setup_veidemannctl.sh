@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="${HOME}/.local/bin:${PATH}"
 
 "${SCRIPT_DIR}"/prerequisites.sh veidemannctl
 

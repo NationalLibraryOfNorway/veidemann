@@ -6,9 +6,17 @@ on:
       - 'main'
     paths:
       - 'ctl/**'
+      - 'deploy/scripts/prerequisites.sh'
+      - 'deploy/scripts/setup_veidemannctl.sh'
+      - 'hack/update_prerequisites.sh'
+      - '.github/workflows/ctl-ci.yaml'
   pull_request:
     paths:
       - 'ctl/**'
+      - 'deploy/scripts/prerequisites.sh'
+      - 'deploy/scripts/setup_veidemannctl.sh'
+      - 'hack/update_prerequisites.sh'
+      - '.github/workflows/ctl-ci.yaml'
   workflow_dispatch:
 
 jobs:
@@ -16,3 +24,27 @@ jobs:
     uses: ./.github/workflows/golang-ci.yaml
     with:
       working-directory: ctl
+
+  installer:
+    name: Installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check shell scripts
+        run: |
+          shellcheck \
+            ctl/install.sh \
+            ctl/install_test.sh \
+            deploy/scripts/prerequisites.sh \
+            deploy/scripts/setup_veidemannctl.sh \
+            hack/update_prerequisites.sh
+          sh -n \
+            ctl/install.sh \
+            ctl/install_test.sh \
+            hack/update_prerequisites.sh
+          bash -n deploy/scripts/prerequisites.sh deploy/scripts/setup_veidemannctl.sh
+
+      - name: Test installer
+        run: |
+          ctl/install_test.sh
