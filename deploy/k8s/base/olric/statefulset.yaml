@@ -15,27 +15,27 @@ spec:
     spec:
       serviceAccountName: olricd
       containers:
-      - name: olricd
-        image: ghcr.io/nationallibraryofnorway/veidemann/olricd:0.7.2
-        ports:
-          - name: api
-            containerPort: 3320
-          - name: gossip
-            containerPort: 3322
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "1Gi"
-        env:
-          - name: OLRIC_SERVER_CONFIG
-            value: /etc/olricd/config.yaml
-        volumeMounts:
-          - name: olric-config
-            mountPath: /etc/olricd/config.yaml
-            subPath: config.yaml
-            readOnly: true
+        - name: olricd
+          image: ghcr.io/nationallibraryofnorway/veidemann/olricd:0.7.4
+          ports:
+            - name: api
+              containerPort: 3320
+            - name: gossip
+              containerPort: 3322
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+          env:
+            - name: OLRIC_SERVER_CONFIG
+              value: /etc/olricd/config.yaml
+          volumeMounts:
+            - name: olric-config
+              mountPath: /etc/olricd/config.yaml
+              subPath: config.yaml
+              readOnly: true
       volumes:
         - name: olric-config
           configMap:

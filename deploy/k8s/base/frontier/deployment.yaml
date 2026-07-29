@@ -30,12 +30,10 @@ spec:
             items:
               - key: log4j2.xml
                 path: log4j2.xml
-
       terminationGracePeriodSeconds: 600
-
       containers:
         - name: frontier
-          image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.16.4
+          image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.17.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 7700

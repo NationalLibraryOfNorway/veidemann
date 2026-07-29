@@ -33,7 +33,7 @@ spec:
               echo "rethinkdb-0 is reachable."
       containers:
         - name: rethinkdb
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.3.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.3.4
           resources:
             requests:
               cpu: 100m

@@ -33,7 +33,7 @@ spec:
             name: controller-envoy
       containers:
         - name: controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.12.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.13.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: grpc
@@ -82,14 +82,12 @@ spec:
             - name: log4j2
               mountPath: /veidemann/config/log4j2.xml
               subPath: log4j2.xml
-
         - name: rethinkdb-ast-service
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.1.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.1
           ports:
             - name: http
               containerPort: 3000
           resources: {}
-          
         - name: envoy
           image: docker.io/envoyproxy/envoy:distroless-v1.37.2
           ports:

@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: rethinkdb
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.3.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.3.4
           ports:
             - name: driver
               containerPort: 28015
@@ -81,4 +81,3 @@ spec:
               command:
                 - /rethinkdb-probe
             timeoutSeconds: 5
-
