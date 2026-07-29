@@ -27,6 +27,7 @@ skopeo
 
 ## Contents
 
+- [VS Code Java Workspace](#vs-code-java-workspace)
 - [Search & Code Navigation](#search--code-navigation)
 - [JSON, Data & Structured Output](#json-data--structured-output)
 - [Git & Versioning](#git--versioning)
@@ -40,6 +41,37 @@ skopeo
 - [Container Introspection](#container-introspection)
 - [Secrets & Encryption](#secrets--encryption)
 - [Runtimes (only what is actually used)](#runtimes-only-what-is-actually-used)
+
+## VS Code Java Workspace
+
+VS Code with the Extension Pack for Java imports the root Gradle build and creates
+one Java project for each Gradle Java subproject. Open the repository root, wait
+for **Java: Ready** in the status bar, and use the **Java Projects** view in the
+Explorer to inspect the imported projects and their classpaths.
+
+Open **View: Toggle Problems** (`Ctrl+Shift+M` on Linux and Windows) to see Java
+compiler diagnostics for the whole workspace. Use the source filter `Java` when
+the workspace also contains diagnostics from Go, Angular, or Kubernetes files.
+For import and language-server failures, open **View: Toggle Output** and select
+**Language Support for Java**, **Language Support for Java (Syntax Server)**, or
+**Gradle for Java** from the channel picker. Run **Java: Clean Java Language Server
+Workspace** from the Command Palette only when a normal Gradle refresh does not
+fix stale project metadata; it discards and rebuilds the Java extension's index.
+If the Problems panel reports that imported projects have no explicit encoding,
+set **Java › Project: Encoding** to `setDefault` for the workspace; the repository's
+Java compile tasks use UTF-8.
+
+In a remote VS Code session, the Java extension persists its Eclipse JDT workspace
+under:
+
+```text
+~/.vscode-server/data/User/workspaceStorage/<workspace-id>/redhat.java/jdt_ws
+```
+
+The corresponding `client.log.*` files and `jdt_ws/.metadata/.log` are useful for
+terminal-side troubleshooting. The Problems panel remains the supported way to
+read diagnostics: files such as `.markers.snap` are internal Eclipse binary state
+and should not be edited or treated as a stable interface.
 
 ---
 
