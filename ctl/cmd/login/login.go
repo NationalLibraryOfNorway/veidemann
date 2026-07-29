@@ -20,20 +20,27 @@ import (
 
 func NewCmd() *cobra.Command {
 	var manualLogin bool
+	var offlineAccess bool
 
 	var cmd = &cobra.Command{
-		GroupID:      "login",
-		Use:          "login",
-		Short:        "Log in to Veidemann",
-		Long:         ``,
+		GroupID: "login",
+		Use:     "login",
+		Short:   "Log in to Veidemann",
+		Long: `Log in to Veidemann.
+
+Use --offline to require a renewable session for unattended or long-running
+work. The command fails without changing the current context if the identity
+provider does not issue a refresh token.`,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return connection.Login(manualLogin)
+			return connection.Login(manualLogin, offlineAccess)
 		},
 	}
 
 	cmd.Flags().BoolVarP(&manualLogin, "manual", "m", false,
 		"Manually copy and paste login url and code. Used to log in from a remote terminal.")
+	cmd.Flags().BoolVar(&offlineAccess, "offline", false,
+		"Request renewable offline access for unattended and long-running use.")
 
 	return cmd
 }

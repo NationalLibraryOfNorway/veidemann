@@ -32,8 +32,15 @@ Examples:
 `,
 		Aliases: []string{"get-apikey", "apikey", "get-api-key", "api-key"},
 		Args:    cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(config.GetApiKey())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiKeyConfig, err := config.GetApiKeyConfig()
+			if err != nil {
+				return err
+			}
+			if apiKeyConfig != nil {
+				fmt.Println(apiKeyConfig.ApiKey)
+			}
+			return nil
 		},
 	}
 }

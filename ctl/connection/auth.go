@@ -15,14 +15,13 @@ package connection
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
-	"math/rand"
 	"net"
 	"net/http"
 	"os/exec"
@@ -36,12 +35,8 @@ import (
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
-const (
-	// manualRedirectURI is the redirect URI used when manual login is used.
-	manualRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
-	// autoRedirectURI is the redirect URI used when automatic login is used.
-	autoRedirectURI = "http://localhost:9876"
-)
+// manualRedirectURI is the redirect URI used when manual login is used.
+const manualRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
 // Provider is the type of authentication provider.
 type Provider string
@@ -49,7 +44,7 @@ type Provider string
 // Login logs in using the configured authentication provider.
 // If manualLogin is true, the user will be given a URL to paste in a browser window,
 // else a browser window will be opened automatically.
-func Login(manualLogin bool) error {
+func Login(manualLogin bool, offlineAccess bool) error {
 	p := config.GetAuthProviderName()
 	if p == "" {
 		p = config.ProviderOIDC
@@ -63,7 +58,7 @@ func Login(manualLogin bool) error {
 		if c == nil {
 			c = &config.OIDCConfig{}
 		}
-		claims, err := loginOIDC(c, manualLogin)
+		claims, err := loginOIDC(c, manualLogin, offlineAccess)
 		if err != nil {
 			return err
 		}
@@ -71,8 +66,14 @@ func Login(manualLogin bool) error {
 			return nil
 		}
 		fmt.Printf("Hello, %s!\n", claims.Name)
+		if offlineAccess {
+			fmt.Println("Offline access enabled; this context is ready for renewable unattended use.")
+		}
 	case config.ProviderApiKey:
 		// no login procedure for apikey
+		if offlineAccess {
+			return errors.New("offline login requires an OIDC context; remove the configured API key first")
+		}
 	}
 	return nil
 }
@@ -80,20 +81,14 @@ func Login(manualLogin bool) error {
 // loginOIDC logs in using the OIDC authentication flow.
 // If manualLogin is true, the user will be given a URL to paste in a browser window,
 // else a browser window will be opened automatically.
-func loginOIDC(oidcConfig *config.OIDCConfig, manualLogin bool) (*claims, error) {
+func loginOIDC(oidcConfig *config.OIDCConfig, manualLogin bool, offlineAccess bool) (*claims, error) {
 	clientID := oidcConfig.ClientID
 	if clientID == "" {
 		clientID = "veidemann-cli"
 	}
 	clientSecret := oidcConfig.ClientSecret
 
-	// Does the provider use "offline_access" scope to request a refresh token
-	// or does it use "access_type=offline" (e.g. Google)?
-	offlineAsScope := false
-	scopes := []string{oidc.ScopeOpenID, "profile", "email", "groups", "audience:server:client_id:veidemann-api"}
-	if offlineAsScope {
-		scopes = append(scopes, "offline_access")
-	}
+	scopes := oidcScopes(oidcConfig.Scopes, offlineAccess)
 	idpIssuerUrl := oidcConfig.IdpIssuerUrl
 	if idpIssuerUrl == "" {
 		idp, err := getIdpIssuer()
@@ -119,6 +114,10 @@ func loginOIDC(oidcConfig *config.OIDCConfig, manualLogin bool) (*claims, error)
 	if err != nil {
 		return nil, fmt.Errorf("login failed: %w", err)
 	}
+	o.refreshToken, err = refreshTokenForLogin(o.refreshToken, offlineAccess)
+	if err != nil {
+		return nil, err
+	}
 
 	// Set the auth provider in the config
 	err = config.SetAuthProvider(&config.AuthProvider{
@@ -126,6 +125,7 @@ func loginOIDC(oidcConfig *config.OIDCConfig, manualLogin bool) (*claims, error)
 		Config: config.OIDCConfig{
 			ClientID:     o.clientID,
 			ClientSecret: o.clientSecret,
+			Scopes:       oidcConfig.Scopes,
 			IdToken:      o.idToken,
 			RefreshToken: o.refreshToken,
 			IdpIssuerUrl: o.idpIssuerUrl,
@@ -136,6 +136,33 @@ func loginOIDC(oidcConfig *config.OIDCConfig, manualLogin bool) (*claims, error)
 	}
 
 	return claims, nil
+}
+
+func refreshTokenForLogin(refreshToken string, offlineAccess bool) (string, error) {
+	if offlineAccess && refreshToken == "" {
+		return "", errors.New("login failed: the identity provider did not issue a refresh token for offline access")
+	}
+	if !offlineAccess {
+		return "", nil
+	}
+	return refreshToken, nil
+}
+
+func oidcScopes(configured []string, offlineAccess bool) []string {
+	scopes := configured
+	if scopes == nil {
+		scopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "audience:server:client_id:veidemann-api"}
+	}
+	result := make([]string, 0, len(scopes)+1)
+	for _, scope := range scopes {
+		if scope != "offline_access" {
+			result = append(result, scope)
+		}
+	}
+	if offlineAccess {
+		result = append(result, "offline_access")
+	}
+	return result
 }
 
 // Logout removes the auth provider from the config. Effectively logging out.
@@ -192,7 +219,9 @@ func (op *oidcProvider) login(manual bool) (*claims, error) {
 	// initialize OIDC ID Token verifier
 	var idTokenVerifier *oidc.IDTokenVerifier
 	ctx := oidc.ClientContext(context.Background(), client)
-	p, err := oidc.NewProvider(ctx, op.idpIssuerUrl)
+	discoveryCtx, cancelDiscovery := context.WithTimeout(ctx, 30*time.Second)
+	p, err := oidc.NewProvider(discoveryCtx, op.idpIssuerUrl)
+	cancelDiscovery()
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to identity provider \"%s\": %w", op.idpIssuerUrl, err)
 	}
@@ -202,10 +231,16 @@ func (op *oidcProvider) login(manual bool) (*claims, error) {
 	idTokenVerifier = p.Verifier(&oc)
 
 	var redirectURI string
+	var loopback *loopbackServer
 	if manual {
 		redirectURI = manualRedirectURI
 	} else {
-		redirectURI = autoRedirectURI
+		loopback, err = newLoopbackServer()
+		if err != nil {
+			return nil, fmt.Errorf("could not start login callback server: %w", err)
+		}
+		defer loopback.Close()
+		redirectURI = loopback.RedirectURI()
 	}
 
 	// Authorization code flow with PKCE
@@ -218,14 +253,19 @@ func (op *oidcProvider) login(manual bool) (*claims, error) {
 	}
 
 	// PKCE requires a code verifier and a code challenge.
-	codeVerifier, codeChallenge := pkceChallenge()
+	codeVerifier := oauth2.GenerateVerifier()
 
-	nonce := randStringBytesMaskImprSrc(16)
-	state := randStringBytesMaskImprSrc(16)
+	nonce, err := secureRandomString(32)
+	if err != nil {
+		return nil, fmt.Errorf("generate nonce: %w", err)
+	}
+	state, err := secureRandomString(32)
+	if err != nil {
+		return nil, fmt.Errorf("generate state: %w", err)
+	}
 	authCodeURL := oauth2Config.AuthCodeURL(state,
 		oidc.Nonce(nonce),
-		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
-		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+		oauth2.S256ChallengeOption(codeVerifier),
 	)
 
 	var code string
@@ -233,13 +273,17 @@ func (op *oidcProvider) login(manual bool) (*claims, error) {
 	if manual {
 		code, err = manualFlow(authCodeURL)
 	} else {
-		code, err = openBrowserFlow(authCodeURL, state)
+		loginCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		code, err = openBrowserFlow(loginCtx, authCodeURL, state, loopback)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get authorization code: %w", err)
 	}
 
-	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
+	exchangeCtx, cancelExchange := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelExchange()
+	oauth2Token, err := oauth2Config.Exchange(exchangeCtx, code, oauth2.VerifierOption(codeVerifier))
 	if err != nil {
 		return nil, err
 	}
@@ -270,15 +314,12 @@ func (op *oidcProvider) login(manual bool) (*claims, error) {
 	return claims, nil
 }
 
-// pkceChallenge generates a code verifier and a code challenge.
-func pkceChallenge() (codeVerifier string, codeChallenge string) {
-	codeVerifier = randStringBytesMaskImprSrc(64)
-	// sha256 hash code verifier
-	h := sha256.New()
-	h.Write([]byte(codeVerifier))
-	codeChallenge = base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-
-	return
+func secureRandomString(size int) (string, error) {
+	value := make([]byte, size)
+	if _, err := rand.Read(value); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(value), nil
 }
 
 func manualFlow(authCodeURL string) (string, error) {
@@ -291,37 +332,13 @@ func manualFlow(authCodeURL string) (string, error) {
 	return code, nil
 }
 
-func openBrowserFlow(authCodeURL string, state string) (string, error) {
+func openBrowserFlow(ctx context.Context, authCodeURL string, state string, server *loopbackServer) (string, error) {
+	result := server.Wait(ctx, state)
 	err := openBrowser(authCodeURL)
 	if err != nil {
 		return "", err
 	}
-
-	code, gotState, err := listenAndWaitForAuthorizationCode(autoRedirectURI)
-	if err != nil {
-		return "", err
-	}
-	if gotState != state {
-		return "", fmt.Errorf("state did not match")
-	}
-	return code, nil
-}
-
-// oidcCredentials implements credentials.PerRPCCredentials for oidc authentication.
-type oidcCredentials struct {
-	idToken string
-}
-
-// GetRequestMetadata implements credentials.PerRPCCredentials.
-func (oc oidcCredentials) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
-	return map[string]string{
-		"authorization": "Bearer" + " " + oc.idToken,
-	}, nil
-}
-
-// RequireTransportSecurity implements credentials.PerRPCCredentials.
-func (oc oidcCredentials) RequireTransportSecurity() bool {
-	return true
+	return result()
 }
 
 // claims represent custom claims.
@@ -383,36 +400,6 @@ func httpClientForRootCAs() *http.Client {
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
-}
-
-// letterBytes is used to generate a random string.
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const (
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-)
-
-// src is a source of random numbers
-var src = rand.NewSource(time.Now().UnixNano())
-
-// randStringBytesMaskImprSrc generates a random string of n characters.
-func randStringBytesMaskImprSrc(n int) string {
-	b := make([]byte, n)
-	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-
-	return string(b)
 }
 
 // apiKeyCredentials implements credentials.PerRPCCredentials for apikey authentication.

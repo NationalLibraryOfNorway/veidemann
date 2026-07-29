@@ -14,15 +14,19 @@
 package config
 
 import (
+	stdcontext "context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/logger"
+	"github.com/gofrs/flock"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/pflag"
@@ -62,10 +66,6 @@ type ApiKeyConfig struct {
 
 // GetApiKeyConfig returns the apikey configuration.
 func GetApiKeyConfig() (*ApiKeyConfig, error) {
-	// If api-key is set as a flag, use that as the api-key
-	if apiKey := GetApiKey(); apiKey != "" {
-		return &ApiKeyConfig{ApiKey: apiKey}, nil
-	}
 	// If no auth provider in config, return nil
 	if cfg.AuthProvider == nil {
 		return nil, nil
@@ -79,11 +79,12 @@ func GetApiKeyConfig() (*ApiKeyConfig, error) {
 
 // OIDCConfig is the configuration for the oidc authentication provider.
 type OIDCConfig struct {
-	ClientID     string `yaml:"client-id" mapstructure:"client-id"`
-	ClientSecret string `yaml:"client-secret,omitempty" mapstructure:"client-secret"`
-	IdToken      string `yaml:"id-token" mapstructure:"id-token"`
-	RefreshToken string `yaml:"refresh-token,omitempty" mapstructure:"refresh-token"`
-	IdpIssuerUrl string `yaml:"idp-issuer-url" mapstructure:"idp-issuer-url"`
+	ClientID     string   `yaml:"client-id" mapstructure:"client-id"`
+	ClientSecret string   `yaml:"client-secret,omitempty" mapstructure:"client-secret"`
+	Scopes       []string `yaml:"scopes,omitempty" mapstructure:"scopes"`
+	IdToken      string   `yaml:"id-token" mapstructure:"id-token"`
+	RefreshToken string   `yaml:"refresh-token,omitempty" mapstructure:"refresh-token"`
+	IdpIssuerUrl string   `yaml:"idp-issuer-url" mapstructure:"idp-issuer-url"`
 }
 
 // GetOIDCConfig returns the oidc configuration.
@@ -186,10 +187,6 @@ func GetServerNameOverride() string {
 	return viper.GetString("server-name-override")
 }
 
-func GetApiKey() string {
-	return viper.GetString("api-key")
-}
-
 // GetAuthProviderName returns the authentication provider name.
 func GetAuthProviderName() string {
 	ap := GetAuthProvider()
@@ -201,13 +198,6 @@ func GetAuthProviderName() string {
 
 // GetAuthProvider returns the authentication provider.
 func GetAuthProvider() *AuthProvider {
-	if apiKey := GetApiKey(); apiKey != "" {
-		c, _ := GetApiKeyConfig()
-		return &AuthProvider{
-			Name:   ProviderApiKey,
-			Config: c,
-		}
-	}
 	return cfg.AuthProvider
 }
 
@@ -223,13 +213,10 @@ func SetServerAddress(server string) error {
 
 // SetAuthProvider sets the authentication provider.
 func SetApiKey(apiKey string) error {
-	cfg.AuthProvider = &AuthProvider{
-		Name: ProviderApiKey,
-		Config: ApiKeyConfig{
-			ApiKey: apiKey,
-		},
-	}
-	return writeConfig()
+	return SetAuthProvider(&AuthProvider{
+		Name:   ProviderApiKey,
+		Config: ApiKeyConfig{ApiKey: apiKey},
+	})
 }
 
 // SetCaCert sets the certificate authority data.
@@ -246,8 +233,60 @@ func SetServerNameOverride(name string) error {
 
 // SetAuthProvider sets the authentication provider.
 func SetAuthProvider(authProvider *AuthProvider) error {
+	ctx, cancel := stdcontext.WithTimeout(stdcontext.Background(), 30*time.Second)
+	defer cancel()
+	return UpdateAuthProvider(ctx, func(*AuthProvider) (*AuthProvider, error) {
+		return authProvider, nil
+	})
+}
+
+// UpdateAuthProvider serializes auth provider changes across processes. The
+// callback runs while the context config is locked and after it has been
+// reloaded from disk.
+func UpdateAuthProvider(ctx stdcontext.Context, update func(*AuthProvider) (*AuthProvider, error)) error {
+	configFile := viper.ConfigFileUsed()
+	if configFile == "" {
+		return errors.New("config file path is not initialized")
+	}
+
+	fileLock := flock.New(filepath.Join(filepath.Dir(configFile), "."+filepath.Base(configFile)+".lock"))
+	locked, err := fileLock.TryLockContext(ctx, 100*time.Millisecond)
+	if err != nil {
+		return fmt.Errorf("failed to lock config file %q: %w", configFile, err)
+	}
+	if !locked {
+		return fmt.Errorf("timed out locking config file %q: %w", configFile, ctx.Err())
+	}
+	defer func() { _ = fileLock.Unlock() }()
+
+	if _, err := os.Stat(configFile); err == nil {
+		if err := reloadConfig(configFile); err != nil {
+			return err
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("failed to inspect config file %q: %w", configFile, err)
+	}
+
+	authProvider, err := update(cfg.AuthProvider)
+	if err != nil {
+		return err
+	}
 	cfg.AuthProvider = authProvider
 	return writeConfig()
+}
+
+func reloadConfig(configFile string) error {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return fmt.Errorf("failed to reload config: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	var current Config
+	if err := yaml.NewDecoder(file).Decode(&current); err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("failed to decode reloaded config: %w", err)
+	}
+	cfg = current
+	return nil
 }
 
 // CreateContext creates a new context.
@@ -278,18 +317,32 @@ func writeConfig() error {
 
 	configFile := viper.ConfigFileUsed()
 
-	file, err := os.Create(configFile)
+	dir := filepath.Dir(configFile)
+	file, err := os.CreateTemp(dir, "."+filepath.Base(configFile)+".tmp-*")
 	if err != nil {
-		return fmt.Errorf("failed to create config file \"%s\": %w", configFile, err)
+		return fmt.Errorf("failed to create temporary config file for \"%s\": %w", configFile, err)
 	}
-	defer func() { _ = file.Close() }()
+	tempName := file.Name()
+	defer func() { _ = os.Remove(tempName) }()
 
 	if err = file.Chmod(0600); err != nil {
+		_ = file.Close()
 		return fmt.Errorf("failed to change access mode on config file \"%s\": %w", configFile, err)
 	}
 
 	if _, err = file.Write(y); err != nil {
+		_ = file.Close()
 		return fmt.Errorf("failed to write config file \"%s\": %w", configFile, err)
+	}
+	if err = file.Sync(); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("failed to sync config file \"%s\": %w", configFile, err)
+	}
+	if err = file.Close(); err != nil {
+		return fmt.Errorf("failed to close config file \"%s\": %w", configFile, err)
+	}
+	if err = os.Rename(tempName, configFile); err != nil {
+		return fmt.Errorf("failed to replace config file \"%s\": %w", configFile, err)
 	}
 	return nil
 }
@@ -383,7 +436,7 @@ func ListContexts() ([]string, error) {
 	}
 
 	for _, file := range fileInfo {
-		if !file.IsDir() {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
 			sufIdx := strings.LastIndex(file.Name(), ".")
 			if sufIdx > 0 {
 				files = append(files, file.Name()[:sufIdx])

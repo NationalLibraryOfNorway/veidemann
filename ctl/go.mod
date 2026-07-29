@@ -7,6 +7,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/dgraph-io/badger/v4 v4.9.5
 	github.com/dgraph-io/ristretto/v2 v2.4.2
+	github.com/gofrs/flock v0.13.0
 	github.com/invopop/yaml v0.3.1
 	github.com/magiconair/properties v1.8.10
 	github.com/mitchellh/go-homedir v1.1.0
@@ -18,6 +19,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.57.0
 	golang.org/x/oauth2 v0.36.0
+	golang.org/x/term v0.45.0
 	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1

@@ -44,7 +44,10 @@ func Connect() (*grpc.ClientConn, error) {
 		if err != nil {
 			return nil, err
 		}
-		creds = oidcCredentials{idToken: oidcConfig.IdToken}
+		creds, err = newOIDCCredentials(oidcConfig)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unknown auth provider: %s", ap.Name)
 	}

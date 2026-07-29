@@ -22,8 +22,12 @@ func NewCmd() *cobra.Command {
 	return &cobra.Command{
 		GroupID: "login",
 		Use:     "logout",
-		Short:   "Log out of Veidemann",
-		Long:    `Log out of Veidemann.`,
+		Short:   "Remove locally stored Veidemann credentials",
+		Long: `Remove the current context's locally stored ID and refresh tokens.
+
+This does not revoke tokens or end sessions in Dex, Keycloak, or an upstream
+identity provider. A copied refresh token may remain usable until it expires or
+is revoked by the provider.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return connection.Logout()
 		},
