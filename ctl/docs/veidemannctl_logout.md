@@ -1,10 +1,14 @@
 ## veidemannctl logout
 
-Log out of Veidemann
+Remove locally stored Veidemann credentials
 
 ### Synopsis
 
-Log out of Veidemann.
+Remove the current context's locally stored ID and refresh tokens.
+
+This does not revoke tokens or end sessions in Dex, Keycloak, or an upstream
+identity provider. A copied refresh token may remain usable until it expires or
+is revoked by the provider.
 
 ```
 veidemannctl logout [flags]
@@ -19,7 +23,6 @@ veidemannctl logout [flags]
 ### Options inherited from parent commands
 
 ```
-      --api-key string                If set, it will be used as the bearer token for authentication
       --config string                 Path to the config file to use (By default configuration file is stored under $HOME/.veidemann/contexts/
       --context string                The name of the context to use
       --insecure                      If set, it will use an insecure connection

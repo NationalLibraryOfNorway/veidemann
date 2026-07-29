@@ -9,7 +9,6 @@ veidemannctl controls the Veidemann web crawler
 ### Options
 
 ```
-      --api-key string                If set, it will be used as the bearer token for authentication
       --config string                 Path to the config file to use (By default configuration file is stored under $HOME/.veidemann/contexts/
       --context string                The name of the context to use
   -h, --help                          help for veidemannctl
@@ -35,7 +34,7 @@ veidemannctl controls the Veidemann web crawler
 * [veidemannctl import](veidemannctl_import.md)	 - Import data into Veidemann using subcommands
 * [veidemannctl logconfig](veidemannctl_logconfig.md)	 - Configure logging
 * [veidemannctl login](veidemannctl_login.md)	 - Log in to Veidemann
-* [veidemannctl logout](veidemannctl_logout.md)	 - Log out of Veidemann
+* [veidemannctl logout](veidemannctl_logout.md)	 - Remove locally stored Veidemann credentials
 * [veidemannctl pause](veidemannctl_pause.md)	 - Request crawler to pause
 * [veidemannctl report](veidemannctl_report.md)	 - Request a report
 * [veidemannctl run](veidemannctl_run.md)	 - Run a crawl job

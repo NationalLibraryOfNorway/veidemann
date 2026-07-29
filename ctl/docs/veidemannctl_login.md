@@ -2,6 +2,14 @@
 
 Log in to Veidemann
 
+### Synopsis
+
+Log in to Veidemann.
+
+Use --offline to require a renewable session for unattended or long-running
+work. The command fails without changing the current context if the identity
+provider does not issue a refresh token.
+
 ```
 veidemannctl login [flags]
 ```
@@ -9,14 +17,14 @@ veidemannctl login [flags]
 ### Options
 
 ```
-  -h, --help     help for login
-  -m, --manual   Manually copy and paste login url and code. Used to log in from a remote terminal.
+  -h, --help      help for login
+  -m, --manual    Manually copy and paste login url and code. Used to log in from a remote terminal.
+      --offline   Request renewable offline access for unattended and long-running use.
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --api-key string                If set, it will be used as the bearer token for authentication
       --config string                 Path to the config file to use (By default configuration file is stored under $HOME/.veidemann/contexts/
       --context string                The name of the context to use
       --insecure                      If set, it will use an insecure connection

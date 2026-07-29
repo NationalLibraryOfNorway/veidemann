@@ -11,7 +11,6 @@ Modify or view configuration files
 ### Options inherited from parent commands
 
 ```
-      --api-key string                If set, it will be used as the bearer token for authentication
       --config string                 Path to the config file to use (By default configuration file is stored under $HOME/.veidemann/contexts/
       --context string                The name of the context to use
       --insecure                      If set, it will use an insecure connection

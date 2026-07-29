@@ -7,12 +7,14 @@ Set the api-key to use for authentication
 Set the api-key to use for authentication
 
 Examples:
-  # Set the api-key to use for authentication to Veidemann controller service to myKey
-  veidemannctl config set-apikey myKey
+  # Enter an API key without echoing it
+  veidemannctl config set-apikey
 
+  # Read an API key from a secret manager
+  secret-tool lookup service veidemann | veidemannctl config set-apikey
 
 ```
-veidemannctl config set-apikey API-KEY [flags]
+veidemannctl config set-apikey [flags]
 ```
 
 ### Options
@@ -24,7 +26,6 @@ veidemannctl config set-apikey API-KEY [flags]
 ### Options inherited from parent commands
 
 ```
-      --api-key string                If set, it will be used as the bearer token for authentication
       --config string                 Path to the config file to use (By default configuration file is stored under $HOME/.veidemann/contexts/
       --context string                The name of the context to use
       --insecure                      If set, it will use an insecure connection
