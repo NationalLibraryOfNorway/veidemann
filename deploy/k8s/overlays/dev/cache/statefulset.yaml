@@ -16,12 +16,6 @@ spec:
                 resources:
                   requests:
                     storage: 250Mi
-        - name: cache-conf
-          configMap:
-            name: cache-conf
-            items:
-              - key: parent.conf
-                path: parent.conf
         - name: ca-certificates
           secret:
             items:
@@ -33,10 +27,14 @@ spec:
             secretName: cache
       containers:
         - name: cache
+          env:
+            - name: CACHE_DIR_SIZE_PERCENT
+              value: "80"
+            - name: CACHE_DIR_L1
+              value: "8"
+            - name: CACHE_DIR_L2
+              value: "16"
           volumeMounts:
-            - name: cache-conf
-              mountPath: /etc/squid/conf.d/95-cache.conf
-              subPath: parent.conf
             - name: ca-certificates
               mountPath: "/ca-certificates"
             - name: cache

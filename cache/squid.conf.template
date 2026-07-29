@@ -90,6 +90,5 @@ visible_hostname veidemann_cache
 # Disk cache
 # ----------------------------------------------------------------------
 
-# Example cache dir config
-# Cache size should be no more than 80% of volume space (/var/spool/squid) size
-# cache_dir aufs /var/spool/squid/cache 750 16 256 # Size: 750MB, First level dirs: 16, Second level dirs: 256
+# entrypoint.sh generates cache_dir in /etc/squid/conf.d/95-cache-dir.conf when
+# CACHE_DIR_SIZE_PERCENT or CACHE_DIR_SIZE_MB is configured.

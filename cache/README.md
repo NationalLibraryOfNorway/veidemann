@@ -42,7 +42,7 @@ The child starts the image with `-b`. In this mode, `confighandler`:
 
    ```squidconf
    cache_peer 10.0.0.10 parent 3128 0 carp no-query no-digest \
-       proxy-only -no-netdb-exchange connect-timeout=5 connect-fail-limit=2
+       proxy-only no-netdb-exchange connect-timeout=5 connect-fail-limit=2
    ```
 
 4. Validates the generated configuration before committing it.
@@ -54,9 +54,10 @@ objects received from a parent from being stored by the child. Object storage
 therefore belongs exclusively to the parent tier.
 
 The parent renders `squid.conf.template`, which configures TLS bump, the
-`storeid` helper, freshness policy, and origin access. Site-specific cache
-storage is supplied through `/etc/squid/conf.d`; for example, the dev overlay
-mounts `parent.conf` there.
+`storeid` helper, freshness policy, and origin access. When disk-cache sizing
+is enabled, the entrypoint measures the filesystem mounted at
+`/var/spool/squid/cache` and writes the resulting `cache_dir` directive to
+`/etc/squid/conf.d/95-cache-dir.conf` before Squid configuration is rendered.
 
 ## Why run more than one child?
 
@@ -107,7 +108,7 @@ The rendered dev overlay currently contains:
 - EndpointSlice discovery permissions for the child’s ServiceAccount.
 - A cert-manager-generated CA mounted at `/ca-certificates` for parent TLS
   bumping.
-- A `200 MB` AUFS cache on a `250 MiB` generic ephemeral PVC mounted below
+- An AUFS cache sized to 80% of a `250 MiB` generic ephemeral PVC mounted below
   `/var/spool`.
 - A Squid exporter on port `9301` in both tiers.
 
@@ -135,8 +136,17 @@ namespace must patch that hostname.
 | `DNS_SERVERS` | Both roles | Space-separated DNS server names or addresses resolved to IPv4 addresses for Squid. |
 | `SERVICE_NAME` | Child | Service whose EndpointSlices contain parent pods. |
 | `NAMESPACE` | Child | Namespace used for EndpointSlice discovery. |
+| `CACHE_DIR_SIZE_PERCENT` | Parent | Integer percentage from 1 through 90 used to size the AUFS cache from the filesystem mounted at `/var/spool/squid/cache`. |
+| `CACHE_DIR_SIZE_MB` | Parent | Explicit positive cache size in MiB. This is an alternative to percentage-based sizing. |
+| `CACHE_DIR_L1` / `CACHE_DIR_L2` | Parent | AUFS directory fan-out. Defaults to `16` and `256`. |
 | `/ca-certificates/tls.crt` and `tls.key` | Parent | Signing CA used for TLS bumping. |
 | `/etc/squid/conf.d/*.conf` | Both roles | Deployment-specific Squid configuration fragments. |
+
+`CACHE_DIR_SIZE_PERCENT` and `CACHE_DIR_SIZE_MB` are mutually exclusive. When
+neither is set, the entrypoint does not configure a disk cache. Generated
+sizing also cannot be combined with a manually supplied `cache_dir` fragment.
+The percentage is recalculated at pod startup, so restart the parent after
+expanding its volume.
 
 Squid runs as the unprivileged `proxy` user. Access logs are forwarded to
 container stdout, diagnostic/cache logs to stderr, and store logs are disabled.

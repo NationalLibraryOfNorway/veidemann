@@ -9,8 +9,3 @@ resources:
 
 patches:
   - path: statefulset.yaml
-
-configMapGenerator:
-  - name: cache-conf
-    files:
-      - parent.conf
