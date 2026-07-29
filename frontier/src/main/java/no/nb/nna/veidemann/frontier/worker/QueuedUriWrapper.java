@@ -487,7 +487,7 @@ public class QueuedUriWrapper {
     private Map<String, ConfigObject> getCrawlHostGroupConfigs() throws DbException {
         try (ChangeFeed<ConfigObject> cursor = frontier.getConfigAdapter().listConfigObjects(
                 ListRequest.newBuilder().setKind(Kind.crawlHostGroupConfig).build())) {
-            return cursor.stream().collect(Collectors.toUnmodifiableMap(ConfigObject::getId, Function.identity()));
+            return cursor.stream().collect(Collectors.toUnmodifiableMap(config -> config.getId(), Function.identity()));
         }
     }
 

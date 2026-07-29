@@ -58,7 +58,7 @@ public class RethinkAstDecompiler {
     public RethinkAstDecompiler(ReqlAst ast) {
         List<AstElem> stack = new ArrayList<>();
         visit(stack, ast);
-        decompiled = "r" + stack.stream().map(AstElem::toString).collect(Collectors.joining(""));
+        decompiled = "r" + stack.stream().map(element -> element.toString()).collect(Collectors.joining(""));
     }
 
     public static boolean isEqual(ReqlAst a1, ReqlAst a2) {
@@ -180,10 +180,10 @@ public class RethinkAstDecompiler {
         @Override
         public String toString() {
             Collections.reverse(valueStack);
-            String params = paramStack.stream().map(AstElem::toString).collect(Collectors.joining(", "));
-            String values = valueStack.stream().map(AstElem::toString).collect(Collectors.joining(", "));
-            String opts = optArgsStack.stream().map(AstElem::toString).collect(Collectors.joining(""));
-            String commands = commandStack.stream().map(AstElem::toString).collect(Collectors.joining(""));
+            String params = paramStack.stream().map(element -> element.toString()).collect(Collectors.joining(", "));
+            String values = valueStack.stream().map(element -> element.toString()).collect(Collectors.joining(", "));
+            String opts = optArgsStack.stream().map(element -> element.toString()).collect(Collectors.joining(""));
+            String commands = commandStack.stream().map(element -> element.toString()).collect(Collectors.joining(""));
             return prefix + params + infix + values + commands + postfix + opts;
         }
     }
@@ -222,8 +222,8 @@ public class RethinkAstDecompiler {
         @Override
         public String toString() {
             Collections.reverse(valueStack);
-            String params = paramStack.stream().map(AstElem::toString).collect(Collectors.joining(""));
-            String values = valueStack.stream().map(AstElem::toString).collect(Collectors.joining(", "));
+            String params = paramStack.stream().map(element -> element.toString()).collect(Collectors.joining(""));
+            String values = valueStack.stream().map(element -> element.toString()).collect(Collectors.joining(", "));
             return prefix + params + infix + values + postfix;
         }
     }
@@ -241,8 +241,8 @@ public class RethinkAstDecompiler {
 
         @Override
         public String toString() {
-            String params = paramStack.stream().map(AstElem::toString).collect(Collectors.joining(""));
-            String commands = commandStack.stream().map(AstElem::toString).collect(Collectors.joining(""));
+            String params = paramStack.stream().map(element -> element.toString()).collect(Collectors.joining(""));
+            String commands = commandStack.stream().map(element -> element.toString()).collect(Collectors.joining(""));
             return prefix + params + infix + commands + postfix;
         }
     }

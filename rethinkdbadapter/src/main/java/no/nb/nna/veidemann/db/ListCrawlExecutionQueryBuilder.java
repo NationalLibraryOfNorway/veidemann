@@ -46,7 +46,7 @@ public class ListCrawlExecutionQueryBuilder {
         }
 
         if (request.getStateCount() > 0) {
-            optimizer.wantGetAllQuery("state", request.getStateList().stream().map(Enum::name).collect(Collectors.toList()));
+            optimizer.wantGetAllQuery("state", request.getStateList().stream().map(state -> state.name()).collect(Collectors.toList()));
         }
 
         if (request.hasQueryTemplate() && request.hasQueryMask()) {

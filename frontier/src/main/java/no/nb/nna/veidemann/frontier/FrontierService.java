@@ -262,7 +262,7 @@ public class FrontierService implements AutoCloseable {
 
     private Optional<String> redisPassword() {
         return Optional.ofNullable(settings.getRedisPassword())
-                .map(String::trim)
+                .map(value -> value.trim())
                 .filter(p -> !p.isEmpty());
     }
 
