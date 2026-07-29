@@ -54,6 +54,15 @@ To get a list of available commands and configuration flags:
 veidemannctl -h
 ```
 
+Before running commands that contact the controller, configure its address or
+pass it for the current invocation:
+
+```console
+veidemannctl config set-address HOST:PORT
+# or
+veidemannctl --server HOST:PORT get seed
+```
+
 ## Build
 
 ```console
@@ -106,18 +115,3 @@ auth-provider:
 
 Do not add `offline_access` to this list. Use `veidemannctl login --offline` to
 request and require a renewable session.
-
-## Known limitations
-
-### Default server error message
-
-When no `--server <address>` is provided or previously set using `veidemannctl
-config set-address <address>` you might experience the following error message:
-
-```console
-$ veidemannctl get seed
-Error: failed to build resolver: passthrough: received empty target in Build()
-```
-
-Setting `--server` or `veidemannctl config set-address <address>` to something
-other than an empty string will resolve this specific error.

@@ -17,6 +17,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/NationalLibraryOfNorway/veidemann/ctl/config"
 	"google.golang.org/grpc"
@@ -57,6 +58,11 @@ func Connect() (*grpc.ClientConn, error) {
 
 // connect returns a connection to the server.
 func connect(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	address := strings.TrimSpace(config.GetServer())
+	if address == "" {
+		return nil, fmt.Errorf("server address is not configured")
+	}
+
 	dialOptions := append(opts, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 
 	if config.GetInsecure() {
@@ -64,8 +70,6 @@ func connect(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	} else {
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(clientTransportCredentials()))
 	}
-
-	address := config.GetServer()
 
 	return grpc.NewClient(address, dialOptions...)
 }
