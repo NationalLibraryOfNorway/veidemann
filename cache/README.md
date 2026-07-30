@@ -54,10 +54,18 @@ objects received from a parent from being stored by the child. Object storage
 therefore belongs exclusively to the parent tier.
 
 The parent renders `squid.conf.template`, which configures TLS bump, the
-`storeid` helper, freshness policy, and origin access. When disk-cache sizing
-is enabled, the entrypoint measures the filesystem mounted at
+`storeid` helper, origin-compliant caching, and origin access. When disk-cache
+sizing is enabled, the entrypoint measures the filesystem mounted at
 `/var/spool/squid/cache` and writes the resulting `cache_dir` directive to
 `/etc/squid/conf.d/95-cache-dir.conf` before Squid configuration is rendered.
+
+The parent sets `maximum_object_size 16 MB` as its only explicit cache-policy
+tuning. Larger responses are still delivered to the crawler, but are not
+retained. With no custom `refresh_pattern`, Squid uses its conservative
+defaults and honors origin freshness, validation, `private`, and `no-store`
+instructions. This prioritizes TLS certificate generation and keeps crawling
+standards compliant while retaining ordinary reusable web resources to reduce
+repeat origin traffic.
 
 ## Why run more than one child?
 
@@ -128,6 +136,26 @@ balancer init container currently waits for
 `cache-0.cache.default.svc.cluster.local`, so deployments outside the `default`
 namespace must patch that hostname.
 
+## Production Kubernetes configuration
+
+Render the configuration with:
+
+```sh
+kustomize build deploy/k8s/overlays/prod/cache
+```
+
+The production overlay runs two child/balancer replicas and three parent/cache
+replicas. Each parent receives a `50 GiB` generic ephemeral volume from
+`topolvm-provisioner-thin`. Squid uses 80% of the mounted filesystem (roughly
+`40 GiB`) and the image defaults of `16` first-level and `256` second-level
+AUFS directories.
+
+These thin-provisioned volumes are disposable caches. Replacing a parent pod
+deletes its volume and starts that parent cold. Changing parent membership also
+changes the CARP mapping, temporarily increasing origin traffic while the new
+peer set warms. Monitor both parent cache utilization and the TopoLVM thin pool
+to avoid overcommitting physical storage.
+
 ## Runtime configuration
 
 | Input | Used by | Purpose |
@@ -141,6 +169,13 @@ namespace must patch that hostname.
 | `CACHE_DIR_L1` / `CACHE_DIR_L2` | Parent | AUFS directory fan-out. Defaults to `16` and `256`. |
 | `/ca-certificates/tls.crt` and `tls.key` | Parent | Signing CA used for TLS bumping. |
 | `/etc/squid/conf.d/*.conf` | Both roles | Deployment-specific Squid configuration fragments. |
+
+The image owns `/etc/squid/squid.conf` and the role templates. Deployment
+overlays must not replace them or mount over the whole `/etc/squid/conf.d`
+directory: that would hide image fragments and prevent runtime-generated role
+and disk-cache configuration. Add optional settings as individual, numbered
+files such as `/etc/squid/conf.d/00-production.conf`, mounted with a ConfigMap
+`subPath`.
 
 `CACHE_DIR_SIZE_PERCENT` and `CACHE_DIR_SIZE_MB` are mutually exclusive. When
 neither is set, the entrypoint does not configure a disk cache. Generated

@@ -30,39 +30,12 @@ tls_outgoing_options min-version=1.2
 # This disables certificate-error enforcement but still uses TLS.
 sslproxy_cert_error allow all
 
-maximum_object_size 64 MB
-maximum_object_size_in_memory 1 MB
+# Cache ordinary web resources, but do not let large media and downloads
+# displace smaller objects that are more likely to be reused during a crawl.
+maximum_object_size 16 MB
 
 # Parent peers use no-digest; do not build an unused local cache digest.
 digest_generation off
-
-# ----------------------------------------------------------------------
-# Freshness and crawl deduplication
-# ----------------------------------------------------------------------
-
-# Keep ordinary cached objects for up to 3 days when the origin does not
-# provide explicit freshness information.
-#
-# Avoid forcing no-store/private responses into the cache unless archival
-# replay is explicitly required.
-# Refresh patterns
-refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
-refresh_pattern . 0 100% 4320 \
-    store-stale \
-    ignore-private \
-    ignore-reload \
-    ignore-no-store
-
-# Permit origin access and validation.
-offline_mode off
-
-# On a cache miss, remove Chromium conditional headers so a complete
-# response can populate the cache.
-cache_miss_revalidate off
-
-# Do not persist transient failures for days.
-negative_ttl 0 seconds
-negative_dns_ttl 1 minute
 
 # ----------------------------------------------------------------------
 # Store-ID helper
