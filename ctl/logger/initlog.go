@@ -42,8 +42,6 @@ func InitLogger(level string, format string, logCaller bool) {
 	slog.SetDefault(slog.New(handler))
 
 	stdlog.SetFlags(0)
-
-	slog.Info("Setting log level", "level", strings.ToLower(level))
 }
 
 func parseLogLevel(level string) slog.Level {
