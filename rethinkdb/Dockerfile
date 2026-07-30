@@ -12,7 +12,7 @@ FROM rethinkdb:2.4.4-bookworm-slim
 LABEL maintainer="Marius André Elsfjordstrand Beck <marius.beck@nb.no>"
 
 RUN apt-get update && \
-    apt-get -y install --no-install-recommends tini && \
+    apt-get -y install --no-install-recommends coreutils libc-bin tini && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=probe /go/bin/probe /rethinkdb-probe
