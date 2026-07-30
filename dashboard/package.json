@@ -31,7 +31,7 @@
     "@angular/common": "^21.2.13",
     "@angular/compiler": "^21.2.13",
     "@angular/core": "^21.2.13",
-    "@angular/forms": "^21.2.13",
+    "@angular/forms": "^22.0.8",
     "@angular/localize": "^21.2.13",
     "@angular/material": "^21.2.11",
     "@angular/material-date-fns-adapter": "^21.2.11",
