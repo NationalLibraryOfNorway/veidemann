@@ -132,9 +132,8 @@ kubectl scale statefulset/cache --replicas=3
 ```
 
 The first command adds children; the second adds parent cache capacity. The dev
-balancer init container currently waits for
-`cache-0.cache.default.svc.cluster.local`, so deployments outside the `default`
-namespace must patch that hostname.
+balancer init container waits for the first parent through the headless cache
+Service in the pod's namespace before starting Squid.
 
 ## Production Kubernetes configuration
 
