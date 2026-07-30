@@ -45,7 +45,7 @@ spec:
             - --no-update-check
           volumeMounts:
             - name: data
-              mountPath: /data/db
+              mountPath: /data
           env:
             - name: RETHINKDB_PASSWORD
               valueFrom:
