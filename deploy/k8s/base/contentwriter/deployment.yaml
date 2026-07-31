@@ -65,7 +65,7 @@ spec:
             - name: CONTENTWRITER_REDIS_PORT
               value: "6666"
             - name: CONTENTWRITER_REDIS_DB
-              value: "1"
+              value: "0"
             - name: CONTENTWRITER_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -80,7 +80,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: kvrocks-auth
-                  key: redis-password
+                  key: sentinel-password
                   optional: true
             - name: CONTENTWRITER_HOSTNAME
               valueFrom:
@@ -97,7 +97,7 @@ spec:
             - name: CONTENTWRITER_LOG_LEVEL
               value: "debug"
             - name: CONTENTWRITER_WARC_WRITER_POOL_SIZE
-              value: "2"
+              value: "1"
             - name: CONTENTWRITER_WARC_VERSION
               value: "1.1"
             - name: JAEGER_SERVICE_NAME
