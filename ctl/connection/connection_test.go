@@ -13,7 +13,7 @@ func TestConnectRejectsMissingServerAddress(t *testing.T) {
 
 	conn, err := connect()
 	if conn != nil {
-		conn.Close()
+		_ = conn.Close()
 		t.Fatal("connect() returned a connection for an empty server address")
 	}
 	if err == nil {
