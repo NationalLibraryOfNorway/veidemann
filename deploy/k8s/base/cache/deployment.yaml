@@ -25,20 +25,24 @@ spec:
       initContainers:
         - name: wait-for-cache
           image: busybox:1.36
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           command:
             - sh
             - -c
             - |
-              echo "Waiting for cache-0..."
-              until nslookup cache-0.cache.default.svc.cluster.local >/dev/null 2>&1 && \
-                    nc -z cache-0.cache.default.svc.cluster.local 3128; do
-                echo "Still waiting for cache-0..."
+              host="cache-0.cache.${POD_NAMESPACE}.svc.cluster.local"
+              echo "Waiting for ${host}..."
+              until nc -z -w 2 "${host}" 3128; do
                 sleep 2
               done
               echo "cache-0 is reachable."
       containers:
         - name: cache
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.8.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.9.2
           args:
             - -b # be a balancer
           ports:
