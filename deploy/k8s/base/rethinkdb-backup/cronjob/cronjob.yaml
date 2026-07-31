@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rethinkdb-backup
+  labels:
+    app.kubernetes.io/name: rethinkdb-backup
+    app.kubernetes.io/component: backup
+spec:
+  suspend: false
+  schedule: "0 0 * * *"
+  concurrencyPolicy: "Forbid"
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: rethinkdb-backup
+          labels:
+            app.kubernetes.io/name: rethinkdb-backup
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: rethinkdb-password
+              secret:
+                secretName: rethinkdb-env
+                optional: false
+                items:
+                  - key: DB_PASSWORD
+                    path: rethinkdb-password
+          containers:
+            - name: rethinkdb-backup
+              image: ghcr.io/nlnwa/rethinkdb-backup:0.5.1
+              env:
+                - name: DB_HOST
+                  value: "rethinkdb-proxy"
+                - name: DB_PORT
+                  value: "28015"
+                - name: FILE_PREFIX
+                  value: "rethinkdb_dump_veidemann"
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                - name: rethinkdb-password
+                  mountPath: /secret
+                  readOnly: true
+              args:
+                - dump
+                - -e
+                - veidemann.config
+                - -e
+                - veidemann.config_crawl_entities
+                - -e
+                - veidemann.config_seeds
+                - -e
+                - veidemann.system
+                - --password-file
+                - /secret/rethinkdb-password
+                - --connect
+                - "$(DB_HOST):$(DB_PORT)"

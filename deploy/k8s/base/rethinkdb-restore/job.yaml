@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rethinkdb-restore
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: rethinkdb-password
+          secret:
+            secretName: rethinkdb-env
+            optional: false
+            items:
+              - key: DB_PASSWORD
+                path: rethinkdb-password
+      containers:
+        - name: rethinkdb-restore
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-backup:0.1.0
+          env:
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+          volumeMounts:
+            - name: rethinkdb-password
+              mountPath: /secret
+              readOnly: true
+          args:
+            - restore
+            - "/data/$(RESTORE_FILE)"
+            - --password-file
+            - /secret/rethinkdb-password
+            - --connect
+            - "$(DB_HOST):$(DB_PORT)"
