@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN npm ci --quiet --no-fund --no-audit
+RUN npm ci --quiet --no-fund --no-audit --legacy-peer-deps
 RUN sed -i "s/version: ''/version: '${VERSION}'/" src/environments/*.ts
 RUN npm run build
 
