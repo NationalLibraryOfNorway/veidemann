@@ -49,6 +49,11 @@ var (
 	date    = ""
 )
 
+const (
+	defaultRobotsCacheFreshness           = 24 * time.Hour
+	defaultRobotsUnreachableRetryInterval = time.Hour
+)
+
 func initLogger(w io.Writer, level string) {
 	levelVar := new(slog.LevelVar)
 	levelVar.Set(toLogLevel(level))
@@ -88,6 +93,10 @@ func parseFlags() error {
 	flags.String("telemetry-address", ":9153", "Address for the telemetry server")
 	flags.StringSlice("olric-address", []string{"localhost:3320"}, "Olric address")
 	flags.String("olric-dmap", "robots-evaluator", "Olric DMap name")
+	flags.Duration("robots-cache-freshness", defaultRobotsCacheFreshness,
+		"Maximum normal age of cached robots.txt rules")
+	flags.Duration("robots-unreachable-retry-interval", defaultRobotsUnreachableRetryInterval,
+		"Delay before retrying an unreachable robots.txt")
 
 	pflag.Parse()
 
@@ -116,16 +125,22 @@ func run() error {
 	telemetryAddr := viper.GetString("telemetry-address")
 	olricAddress := viper.GetStringSlice("olric-address")
 	olricDmap := viper.GetString("olric-dmap")
+	robotsCacheFreshness, robotsUnreachableRetryInterval, err := robotsCacheSettingsFromViper()
+	if err != nil {
+		return err
+	}
 
 	initLogger(os.Stderr, level)
 
 	slog.Info(name, "version", version, "commit", commit, "date", date)
 
 	app := &App{
-		Addr:          addr,
-		TelemetryAddr: telemetryAddr,
-		OlricAddr:     olricAddress,
-		OlricDmap:     olricDmap,
+		Addr:                           addr,
+		TelemetryAddr:                  telemetryAddr,
+		OlricAddr:                      olricAddress,
+		OlricDmap:                      olricDmap,
+		RobotsCacheFreshness:           robotsCacheFreshness,
+		RobotsUnreachableRetryInterval: robotsUnreachableRetryInterval,
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -135,10 +150,12 @@ func run() error {
 }
 
 type App struct {
-	Addr          string
-	TelemetryAddr string
-	OlricAddr     []string
-	OlricDmap     string
+	Addr                           string
+	TelemetryAddr                  string
+	OlricAddr                      []string
+	OlricDmap                      string
+	RobotsCacheFreshness           time.Duration
+	RobotsUnreachableRetryInterval time.Duration
 
 	ready   atomic.Bool
 	cachier cache.Cachier
@@ -171,9 +188,9 @@ func (app *App) Run(ctx context.Context) error {
 	grpcServer := grpc.NewServer()
 
 	impl := &robots.EvaluatorServer{
-		Evaluator: &robots.Evaluator{
-			Cache: app.cachier,
-			Client: &http.Client{
+		Evaluator: robots.NewEvaluator(
+			app.cachier,
+			&http.Client{
 				Timeout: 10 * time.Second,
 				Transport: &http.Transport{
 					Proxy: http.ProxyFromEnvironment,
@@ -181,8 +198,11 @@ func (app *App) Run(ctx context.Context) error {
 						InsecureSkipVerify: true,
 					},
 				},
+				CheckRedirect: stopAfterFiveRedirects,
 			},
-		},
+			app.RobotsCacheFreshness,
+			app.RobotsUnreachableRetryInterval,
+		),
 	}
 	robotsevaluatorV1.RegisterRobotsEvaluatorServer(grpcServer, impl)
 
@@ -205,6 +225,35 @@ func (app *App) Run(ctx context.Context) error {
 	_ = telemetry.Shutdown(context.Background())
 
 	return g.Wait()
+}
+
+func validateRobotsCacheSettings(freshness, retryInterval time.Duration) error {
+	if freshness <= 0 {
+		return fmt.Errorf("robots-cache-freshness must be greater than zero")
+	}
+	if freshness > 24*time.Hour {
+		return fmt.Errorf("robots-cache-freshness must not exceed 24h")
+	}
+	if retryInterval <= 0 {
+		return fmt.Errorf("robots-unreachable-retry-interval must be greater than zero")
+	}
+	return nil
+}
+
+func robotsCacheSettingsFromViper() (time.Duration, time.Duration, error) {
+	freshness := viper.GetDuration("robots-cache-freshness")
+	retryInterval := viper.GetDuration("robots-unreachable-retry-interval")
+	if err := validateRobotsCacheSettings(freshness, retryInterval); err != nil {
+		return 0, 0, err
+	}
+	return freshness, retryInterval, nil
+}
+
+func stopAfterFiveRedirects(_ *http.Request, via []*http.Request) error {
+	if len(via) >= 5 {
+		return http.ErrUseLastResponse
+	}
+	return nil
 }
 
 const readyPath = "/readyz"

@@ -175,7 +175,8 @@ message PolitenessConfig {
         CUSTOM_IF_MISSING_CLASSIC = 6;
     }
     RobotsPolicy robots_policy = 3;
-    int32 minimum_robots_validity_duration_s = 11;
+    // Deprecated: robots cache freshness is configured by robots-evaluator.
+    int32 minimum_robots_validity_duration_s = 11 [deprecated = true];
     string custom_robots = 20;
 
     // If true, use hostname instead of ip for politeness
