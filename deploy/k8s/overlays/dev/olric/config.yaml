@@ -193,6 +193,12 @@ dmaps:
     name: kvstore
     config:
       tableSize: 524288 # bytes
+  custom:
+    robots-evaluator:
+      maxIdleDuration: "720h"
+      maxInuse: 1073741824 # 1 GiB per pod
+      lRUSamples: 10
+      evictionPolicy: "LRU"
 #  checkEmptyFragmentsInterval: 1m
 #  triggerCompactionInterval: 10m
 #  numEvictionWorkers: 1

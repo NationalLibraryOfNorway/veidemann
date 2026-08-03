@@ -25,6 +25,10 @@ spec:
           env:
             - name: OLRIC_ADDRESS
               value: olric-client:3320
+            - name: ROBOTS_CACHE_FRESHNESS
+              value: "24h"
+            - name: ROBOTS_UNREACHABLE_RETRY_INTERVAL
+              value: "1h"
             - name: HTTP_PROXY
               value: http://harvester:8080
             - name: HTTPS_PROXY
