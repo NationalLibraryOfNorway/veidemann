@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {AuthService} from '../../../../core';
 import {NavigationListComponent} from '../../../../shared/components';
 import {Observable} from 'rxjs';
@@ -23,6 +23,7 @@ import {MatLineModule} from '@angular/material/core';
     RouterLink,
     RouterLinkActive,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class ReportNavigationListComponent extends NavigationListComponent {

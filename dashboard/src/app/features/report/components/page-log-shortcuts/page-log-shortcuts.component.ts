@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {PageLog} from '../../../../shared/models';
 import {Observable} from 'rxjs';
 import {AbilityService} from '@casl/angular';
@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
     templateUrl: './page-log-shortcuts.component.html',
     styleUrls: ['./page-log-shortcuts.component.css'],
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
       CommonModule,
       MatListModule,

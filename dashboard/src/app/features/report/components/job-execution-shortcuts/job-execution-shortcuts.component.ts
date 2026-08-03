@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {JobExecutionState, JobExecutionStatus, Kind} from '../../../../shared/models';
 import {Observable} from 'rxjs';
 import {AbilityService} from '@casl/angular';
@@ -17,6 +17,7 @@ import {MatListModule} from '@angular/material/list';
     MatIcon,
     RouterLink
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class JobExecutionShortcutsComponent {

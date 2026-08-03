@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
 import {MatLabel} from '@angular/material/form-field';
@@ -17,6 +17,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     MatLabel,
     ShortcutListComponent
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class BrowserconfigPreviewComponent {

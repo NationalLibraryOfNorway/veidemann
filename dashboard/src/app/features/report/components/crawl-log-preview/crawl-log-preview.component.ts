@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlLog} from '../../../../shared/models/log';
 import {NgxFilesizeModule} from 'ngx-filesize';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
@@ -21,6 +21,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     UrlFormatPipe,
 
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlLogPreviewComponent {

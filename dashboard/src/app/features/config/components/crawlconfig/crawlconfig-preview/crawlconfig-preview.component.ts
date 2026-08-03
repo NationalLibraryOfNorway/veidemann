@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
@@ -13,6 +13,7 @@ import {FormsModule} from '@angular/forms';
     FormsModule,
     MatCheckbox
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlconfigPreviewComponent {

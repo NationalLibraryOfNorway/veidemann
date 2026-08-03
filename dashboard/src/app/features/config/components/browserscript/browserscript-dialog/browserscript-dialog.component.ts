@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, Inject, OnInit} from '@angular/core';
+import {ChangeDetectorRef, Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {BrowserScriptDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 
@@ -37,6 +37,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MetaComponent,
     ReactiveFormsModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class BrowserScriptDialogComponent extends BrowserScriptDetailsComponent implements OnInit {

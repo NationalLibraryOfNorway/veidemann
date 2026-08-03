@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import {Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlExecutionState, ExtraStatusCodes, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates} from '../../../../shared/func';
 import {Router} from '@angular/router';
@@ -47,6 +47,7 @@ export enum JobExecutionStatusColor {
     NgxEchartsDirective,
     NgxFilesizeModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 

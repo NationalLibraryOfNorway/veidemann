@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit} from '@angular/core';
+import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlJobDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -32,6 +32,7 @@ import {MatButtonModule} from '@angular/material/button';
     DurationPickerComponent,
     FilesizeInputComponent
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlJobDialogComponent extends CrawlJobDetailsComponent implements OnInit {

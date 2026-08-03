@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -12,6 +12,7 @@ import {MatInputModule} from '@angular/material/input';
   templateUrl: './page-log-query.component.html',
   styleUrls: ['./page-log-query.component.css'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     LayoutDirective,
     MatFormFieldModule,

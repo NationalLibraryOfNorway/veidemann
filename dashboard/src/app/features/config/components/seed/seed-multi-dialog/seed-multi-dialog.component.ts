@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {SeedDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -35,6 +35,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatTooltip,
     ReactiveFormsModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class SeedMultiDialogComponent extends SeedDetailsComponent implements OnInit {

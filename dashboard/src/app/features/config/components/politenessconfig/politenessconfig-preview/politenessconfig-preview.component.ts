@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, RobotsPolicy} from '../../../../../shared/models/config';
 import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
 import {MatCheckbox} from '@angular/material/checkbox';
@@ -17,6 +17,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     MatCheckbox,
     MatLabel
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class PolitenessconfigPreviewComponent {

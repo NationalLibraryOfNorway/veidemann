@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {ScheduleDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -35,6 +35,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     ReactiveFormsModule,
     FlexLayoutModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent implements OnInit {

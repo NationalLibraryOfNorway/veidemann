@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import {Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
 import {durationBetweenDates} from '../../../../shared/func';
 import {MatCardModule} from '@angular/material/card';
@@ -27,6 +27,7 @@ export enum CrawlExecutionStatusColors {
     NgxEchartsDirective,
     NgxFilesizeModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlExecutionPreviewComponent implements OnChanges {

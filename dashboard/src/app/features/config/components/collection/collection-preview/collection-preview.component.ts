@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, RotationPolicy, SubCollectionType} from '../../../../../shared/models/config';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {NgxFilesizeModule} from 'ngx-filesize';
@@ -15,6 +15,7 @@ import {FormsModule} from '@angular/forms';
     MatLabel,
     NgxFilesizeModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CollectionPreviewComponent {

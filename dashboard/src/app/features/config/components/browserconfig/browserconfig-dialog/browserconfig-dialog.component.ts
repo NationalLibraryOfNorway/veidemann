@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit} from '@angular/core';
+import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {BrowserConfigDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core';
@@ -31,6 +31,7 @@ import {MatButtonModule} from '@angular/material/button';
     SelectorComponent,
     LayoutGapDirective
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class BrowserConfigDialogComponent extends BrowserConfigDetailsComponent implements OnInit {

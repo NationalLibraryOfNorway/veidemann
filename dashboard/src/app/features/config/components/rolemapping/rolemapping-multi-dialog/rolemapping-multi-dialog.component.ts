@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit} from '@angular/core';
+import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {RoleMappingDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
@@ -20,6 +20,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatSelectModule,
     ReactiveFormsModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent implements OnInit {

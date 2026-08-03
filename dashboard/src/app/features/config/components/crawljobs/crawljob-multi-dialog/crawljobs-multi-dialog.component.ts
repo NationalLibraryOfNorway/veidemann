@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlJobDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -36,6 +36,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatTooltip,
     ReactiveFormsModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent implements OnInit {

@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {CrawlLogQuery} from '../../services';
 import {QueryComponent} from '../../../../shared/components';
@@ -18,6 +18,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     MatInputModule,
     ReactiveFormsModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlLogQueryComponent extends QueryComponent<CrawlLogQuery> {

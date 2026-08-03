@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
@@ -16,6 +16,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatButtonModule,
     MatDialogModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class EntityMultiDialogComponent extends EntityDetailsComponent implements OnInit {

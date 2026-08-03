@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {AuthService, SnackBarService} from '../../../../../core';
 import {DatePipe} from '@angular/common';
@@ -21,6 +21,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     MatSuffix,
     MatTooltipModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class MetaPreviewComponent {

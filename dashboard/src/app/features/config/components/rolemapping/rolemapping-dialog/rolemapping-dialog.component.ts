@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit} from '@angular/core';
+import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {RoleMappingDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -26,6 +26,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatSelectModule,
     ReactiveFormsModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class RoleMappingDialogComponent extends RoleMappingDetailsComponent implements OnInit {

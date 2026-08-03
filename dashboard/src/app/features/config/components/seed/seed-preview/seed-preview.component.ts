@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {ActivatedRoute, Params, Router, RouterLink} from '@angular/router';
 import {CrawlExecutionState} from '../../../../../shared/models';
@@ -30,6 +30,7 @@ import {MatTooltip} from '@angular/material/tooltip';
     ScriptAnnotationsPipe,
     ToArrayPipe,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class SeedPreviewComponent {
