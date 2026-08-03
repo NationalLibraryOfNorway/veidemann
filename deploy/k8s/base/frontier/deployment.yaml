@@ -22,8 +22,6 @@ spec:
         linkerd.io/inject: enabled
     spec:
       volumes:
-        - name: workdir
-          emptyDir: {}
         - name: log4j2
           configMap:
             name: frontier
@@ -44,7 +42,6 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: "1"
               memory: 2Gi
             requests:
               cpu: 100m
@@ -90,7 +87,6 @@ spec:
               value: "300"
             # - name: JAVA_OPTS
             #  value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=34774
-            #    -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/workdir/heapdump
             - name: JAEGER_SERVICE_NAME
               value: frontier
             - name: JAEGER_AGENT_HOST
@@ -104,9 +100,7 @@ spec:
             - name: JAVA_TOOL_OPTIONS
               value: -Dfile.encoding=UTF-8 -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=75.0
           volumeMounts:
-            - mountPath: /workdir
-              name: workdir
-            - mountPath: /veidemann/config/log4j2.xml
+            - mountPath: /app/resources/log4j2.xml
               name: log4j2
               subPath: log4j2.xml
           readinessProbe:
