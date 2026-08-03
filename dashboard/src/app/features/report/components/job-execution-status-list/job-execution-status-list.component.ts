@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 
 import {animate, state, style, transition, trigger} from '@angular/animations';
@@ -8,8 +8,7 @@ import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatIcon} from '@angular/material/icon';
-import {BASE_LIST} from '../../../../shared/directives';
-import {JobExecutionState, JobExecutionStatus, ListDataSource} from '../../../../shared/models';
+import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {MatButtonModule} from '@angular/material/button';
 import {JobExecutionPreviewComponent} from '../job-execution-preview/job-execution-preview.component';
@@ -24,13 +23,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     '../../../../shared/components/base-list/base-list-odd-preview.scss',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    ListDataSource,
-    {
-      provide: BASE_LIST,
-      useExisting: forwardRef(() => JobExecutionStatusListComponent)
-    }
-  ],
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({height: '0px', minHeight: '0'})),
@@ -70,7 +62,4 @@ export class JobExecutionStatusListComponent extends BaseListComponent<JobExecut
 
   override displayedColumns: string[] = ['jobId', 'state', 'desiredState', 'startTime', 'endTime', 'extra', 'action'];
 
-  constructor(protected override cdr: ChangeDetectorRef) {
-    super(cdr);
-  }
 }

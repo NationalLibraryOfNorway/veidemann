@@ -2,8 +2,13 @@ import {Directive, OnInit} from '@angular/core';
 import {combineLatest, Observable, Subject} from 'rxjs';
 import {ActivatedRoute} from '@angular/router';
 import {debounceTime, distinctUntilChanged, map, share, startWith} from 'rxjs/operators';
-import {Getter} from '../../../shared/directives';
-import {ListItem} from '../../../shared/models';
+import {ConfigRef, ListItem} from '../../../shared/models';
+import {Detail} from '../../../shared/func';
+import {Loader} from '../../../shared/services';
+
+interface Getter<T> extends Loader {
+  get(query: Detail | ConfigRef): Observable<T>;
+}
 
 
 @Directive()

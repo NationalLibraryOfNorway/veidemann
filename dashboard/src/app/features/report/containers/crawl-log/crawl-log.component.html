@@ -3,17 +3,17 @@
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
-    @if (query$ | async; as query) {
+    @if (query(); as query) {
       <div class="container no-scroll" fxLayout="row">
         <app-crawl-log-query class="content-padding scroll"
         [query]="query" (queryChange)="onQueryChange($event)"></app-crawl-log-query>
         <app-crawl-log-list fxFlex
-          appQueryCrawlLog [query]="query"
+          [dataSource]="dataSource"
           [length]="pageLength$ | async"
-          [pageIndex]="pageIndex$ | async"
-          [pageSize]="pageSize$ | async"
-          [sortDirection]="sortDirection$ | async"
-          [sortActive]="sortActive$ | async"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [sortDirection]="sortDirection()"
+          [sortActive]="sortActive()"
           (sort)="onSort($event)"
           (page)="onPage($event)">
           <ng-container *appShortcut="let row">

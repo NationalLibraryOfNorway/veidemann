@@ -1,39 +1,35 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
+import {CommonModule} from '@angular/common';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
-
-import {combineLatest, Observable, Subject} from 'rxjs';
-import {debounceTime, distinctUntilChanged, map, share, shareReplay, startWith} from 'rxjs/operators';
-
 import {MatDialog} from '@angular/material/dialog';
 import {MatIconModule} from '@angular/material/icon';
 import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {AbilityService} from '@casl/angular';
-import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
-import {ActionDirective, BASE_LIST, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
-import {distinctUntilArrayChanged, isValidDate, Sort} from '../../../../shared/func';
-import {ConfigObject, Kind, ListDataSource} from '../../../../shared/models';
-import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models/report';
-import {CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent} from '../../components';
-import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
-import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
-import {CommonModule} from '@angular/common';
-import {QueryCrawlExecutionStatusDirective} from '../../directives';
+import {MongoAbility} from '@casl/ability';
 import {MatMenuModule} from '@angular/material/menu';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {combineLatest, merge, Observable} from 'rxjs';
+import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
+import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
+import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {Sort} from '../../../../shared/func';
+import {ConfigObject, Kind, ListDataSource} from '../../../../shared/models';
+import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models/report';
+import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
+import {CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent} from '../../components';
+import {crawlExecutionQueryFromParamMap, equalCrawlExecutionQuery, unknownPageLength} from '../../func';
+import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
 
 @Component({
-    selector: 'app-crawl-execution',
-    templateUrl: './crawl-execution.component.html',
-    styleUrls: ['./crawl-execution.component.css'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    providers: [ListDataSource, {
-            provide: BASE_LIST,
-            useClass: CrawlExecutionStatusListComponent,
-        }],
-    standalone: true,
+  selector: 'app-crawl-execution',
+  templateUrl: './crawl-execution.component.html',
+  styleUrls: ['./crawl-execution.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
   imports: [
     ActionDirective,
     CommonModule,
@@ -47,162 +43,61 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     MatProgressBarModule,
     RouterModule,
     ShortcutDirective,
-    QueryCrawlExecutionStatusDirective
   ]
 })
-export class CrawlExecutionComponent implements OnInit {
+export class CrawlExecutionComponent {
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly Kind = Kind;
-  readonly ability$: Observable<any>;
-
-  private reload$: Observable<void>;
-  private reload: Subject<void>;
-
-  pageSize$: Observable<number>;
-  pageIndex$: Observable<number>;
-  sortDirection$: Observable<SortDirection>;
-  sortActive$: Observable<string>;
-  query$: Observable<CrawlExecutionStatusQuery>;
-
-  crawlJobOptions: ConfigObject[];
-
-  get loading$(): Observable<boolean> {
-    return this.crawlExecutionService.loading$;
-  }
+  readonly ability$: Observable<MongoAbility>;
+  readonly pageSize: Signal<number>;
+  readonly pageIndex: Signal<number>;
+  readonly sortDirection: Signal<SortDirection>;
+  readonly sortActive: Signal<string>;
+  readonly query: Signal<CrawlExecutionStatusQuery>;
+  readonly dataSource: ListDataSource<CrawlExecutionStatus, CrawlExecutionStatusQuery>;
+  readonly pageLength$: Observable<number>;
+  readonly loading$: Observable<boolean>;
+  readonly crawlJobOptions: ConfigObject[];
 
   constructor(private route: ActivatedRoute,
               private router: Router,
               private crawlExecutionService: CrawlExecutionService,
-              private dataSource: ListDataSource<CrawlExecutionStatus>,
               private errorService: ErrorService,
               private dialog: MatDialog,
               private controllerApiService: ControllerApiService,
               private snackBarService: SnackBarService,
-              private abilityService: AbilityService<any>
-  ) {
+              private abilityService: AbilityService<MongoAbility>,
+              destroyRef: DestroyRef) {
     this.crawlJobOptions = this.route.snapshot.data['options'].crawlJobs;
-    this.reload = new Subject<void>();
-    this.reload$ = this.reload.asObservable();
     this.ability$ = this.abilityService.ability$;
-  }
 
-  ngOnInit() {
-    const queryParam = this.route.queryParamMap.pipe(
-      debounceTime(0), // synchronize
-      map(queryParamMap => ({
-        jobExecutionId: queryParamMap.get('job_execution_id'),
-        jobId: queryParamMap.get('job_id'), // query template
-        seedId: queryParamMap.get('seed_id'), // query template
-        hasError: queryParamMap.get('has_error'), // list request
-        startTimeTo: queryParamMap.get('start_time_to'), // list request
-        startTimeFrom: queryParamMap.get('start_time_from'), // list request
-        stateList: queryParamMap.getAll('state'), // list request
-        sort: queryParamMap.get('sort'), // list request
-        pageSize: queryParamMap.get('s'), // list request
-        pageIndex: queryParamMap.get('p'), // list request
-        watch: queryParamMap.get('watch'), // list request
-      })),
-      share(),
+    const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
+    this.query = computed(
+      () => crawlExecutionQueryFromParamMap(queryParamMap()),
+      {equal: equalCrawlExecutionQuery}
     );
+    this.pageSize = computed(() => this.query().pageSize);
+    this.pageIndex = computed(() => this.query().pageIndex);
+    this.sortDirection = computed(() => this.query().direction);
+    this.sortActive = computed(() => this.query().active);
 
-    const watch$ = queryParam.pipe(
-      map(({watch}) => watch),
-      distinctUntilChanged());
-
-    const jobId$ = queryParam.pipe(
-      map(({jobId}) => jobId),
-      distinctUntilChanged());
-
-    const jobExecutionId$ = queryParam.pipe(
-      map(({jobExecutionId}) => jobExecutionId),
-      distinctUntilChanged());
-
-    const seedId$ = queryParam.pipe(
-      map(({seedId}) => seedId),
-      distinctUntilChanged());
-
-    const stateList$: Observable<CrawlExecutionState[]> = queryParam.pipe(
-      map(({stateList}) => stateList),
-      distinctUntilArrayChanged);
-
-    const hasError$: Observable<boolean> = queryParam.pipe(
-      map(({hasError}) => hasError === 'true'),
-      distinctUntilChanged(),
+    const query$ = toObservable(this.query);
+    this.dataSource = ListDataSource.fromQuery({
+      query$,
+      load: query => this.crawlExecutionService.search(query),
+      destroyRef,
+      capacity: query => query.watch ? query.pageSize : 0,
+    });
+    this.pageLength$ = merge(
+      this.dataSource.reset$.pipe(map(() => 0)),
+      this.dataSource.completed$.pipe(map(({query, rows}) => unknownPageLength(query, rows)))
+    ).pipe(
+      startWith(0)
     );
-
-    const startTimeTo$: Observable<string> = queryParam.pipe(
-      map(({startTimeTo}) => startTimeTo),
-      map(date => date && isValidDate(new Date(date)) ? date : null),
-      distinctUntilChanged(),
+    this.loading$ = combineLatest([this.dataSource.loading$, this.crawlExecutionService.loading$]).pipe(
+      map(([listLoading, operationLoading]) => listLoading || operationLoading),
+      distinctUntilChanged()
     );
-
-    const startTimeFrom$: Observable<string> = queryParam.pipe(
-      map(({startTimeFrom}) => startTimeFrom),
-      map(date => date && isValidDate(new Date(date)) ? date : null),
-      distinctUntilChanged(),
-    );
-
-    const sort$: Observable<Sort> = queryParam.pipe(
-      map(({sort}) => {
-        if (!sort) {
-          return null;
-        }
-        const parts = sort.split(':');
-        const s = {active: parts[0], direction: parts[1]};
-        return s.direction ? s : null;
-      }),
-      distinctUntilChanged<Sort>((p, q) => p && q ? p.direction === q.direction && p.active === q.active : p === q),
-      shareReplay(1),
-    );
-
-    const sortDirection$ = sort$.pipe(
-      map(sort => (sort ? sort.direction : '') as SortDirection),
-    );
-
-    const sortActive$ = sort$.pipe(
-      map(sort => sort ? sort.active : ''),
-    );
-
-    const pageSize$ = queryParam.pipe(
-      map(({pageSize}) => parseInt(pageSize, 10) || 25),
-      distinctUntilChanged(),
-      shareReplay(1)
-    );
-
-    const pageIndex$ = queryParam.pipe(
-      map(({pageIndex}) => parseInt(pageIndex, 10) || 0),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
-
-    const query$: Observable<CrawlExecutionStatusQuery> = combineLatest([
-      jobId$, jobExecutionId$, seedId$, stateList$, sortActive$, sortDirection$, pageIndex$, pageSize$, hasError$,
-      startTimeFrom$, startTimeTo$, watch$, this.reload$.pipe(startWith(null as string))
-    ]).pipe(
-      debounceTime<any>(0),
-      map(([jobId, jobExecutionId, seedId, stateList, active, direction, pageIndex, pageSize,
-             hasError, startTimeFrom, startTimeTo, watch]) => ({
-        jobId,
-        jobExecutionId,
-        stateList,
-        seedId,
-        active,
-        direction,
-        pageIndex,
-        pageSize,
-        hasError,
-        startTimeFrom,
-        startTimeTo,
-        watch,
-      })),
-      share(),
-    );
-
-    this.query$ = query$;
-    this.pageIndex$ = pageIndex$;
-    this.pageSize$ = pageSize$;
-    this.sortActive$ = sortActive$;
-    this.sortDirection$ = sortDirection$;
   }
 
   onQueryChange(query: Partial<CrawlExecutionStatusQuery>) {
@@ -250,16 +145,15 @@ export class CrawlExecutionComponent implements OnInit {
       autoFocus: true,
       data: {crawlExecutionStatus}
     });
-    dialogRef.afterClosed()
-      .subscribe(executionId => {
-        if (executionId) {
-          this.controllerApiService.abortCrawlExecution(executionId).subscribe(crawlExecStatus => {
-            if (crawlExecStatus.state === CrawlExecutionState.ABORTED_MANUAL) {
-              this.snackBarService.openSnackBar('Crawl aborted');
-              this.reload.next(null);
-            }
-          });
-        }
-      });
+    dialogRef.afterClosed().subscribe(executionId => {
+      if (executionId) {
+        this.controllerApiService.abortCrawlExecution(executionId).subscribe(crawlExecStatus => {
+          if (crawlExecStatus.state === CrawlExecutionState.ABORTED_MANUAL) {
+            this.snackBarService.openSnackBar('Crawl aborted');
+            this.dataSource.reload({retainRows: this.query().watch});
+          }
+        });
+      }
+    });
   }
 }

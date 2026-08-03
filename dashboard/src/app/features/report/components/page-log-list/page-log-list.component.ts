@@ -1,10 +1,9 @@
 import {CommonModule} from '@angular/common';
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatPaginatorModule} from '@angular/material/paginator';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
-import {BASE_LIST} from '../../../../shared/directives';
-import {ListDataSource, PageLog} from '../../../../shared/models';
+import {PageLog} from '../../../../shared/models';
 import {MatIconModule} from '@angular/material/icon';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatTableModule} from '@angular/material/table';
@@ -20,13 +19,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     '../../../../shared/components/base-list/base-list-odd.scss',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    ListDataSource,
-    {
-      provide: BASE_LIST,
-      useExisting: forwardRef(() => PageLogListComponent)
-    }
-  ],
   standalone: true,
   imports: [
     CommonModule,
@@ -49,7 +41,4 @@ export class PageLogListComponent extends BaseListComponent<PageLog> {
 
   override displayedColumns: string[] = ['uri', 'nrOfResources', 'nrOfOutlinks', 'extra', 'action'];
 
-  constructor(protected override cdr: ChangeDetectorRef) {
-    super(cdr);
-  }
 }

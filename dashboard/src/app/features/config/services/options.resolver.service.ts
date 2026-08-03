@@ -13,7 +13,7 @@ import {
 import {map, toArray} from 'rxjs/operators';
 import {ConfigApiService} from '../../../core';
 import {combineLatest, Observable, of} from 'rxjs';
-import {ConfigOptions, ConfigPath} from '../func';
+import {configKindFromPath, ConfigOptions} from '../func';
 import {createListRequest} from '../func/query';
 import {create} from '@bufbuild/protobuf';
 import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
@@ -27,7 +27,8 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
   }
 
   resolve(route: ActivatedRouteSnapshot): Observable<ConfigOptions> | Promise<ConfigOptions> | ConfigOptions {
-    const kind: Kind = ConfigPath[route.paramMap.get('kind')] || route.data['kind'];
+    const pathKind = configKindFromPath(route.paramMap.get('kind'));
+    const kind: Kind = pathKind === Kind.UNDEFINED ? route.data['kind'] ?? Kind.UNDEFINED : pathKind;
 
     switch (kind) {
       case Kind.CRAWLJOB:

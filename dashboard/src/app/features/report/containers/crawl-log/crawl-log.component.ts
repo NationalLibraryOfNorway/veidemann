@@ -1,22 +1,26 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
+import {AsyncPipe} from '@angular/common';
 import {MatIconModule} from '@angular/material/icon';
 import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 import {AbilityService} from '@casl/angular';
-import {combineLatest, Observable} from 'rxjs';
-import {debounceTime, distinctUntilChanged, map, share, shareReplay} from 'rxjs/operators';
+import {MongoAbility} from '@casl/ability';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatMenuItem} from '@angular/material/menu';
+import {combineLatest, merge, Observable} from 'rxjs';
+import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
+import {toObservable, toSignal} from '@angular/core/rxjs-interop';
+
 import {ErrorService} from '../../../../core';
+import {ActionDirective, ShortcutDirective} from '../../../../shared/directives';
 import {Sort} from '../../../../shared/func';
+import {CrawlLog, ListDataSource} from '../../../../shared/models';
 import {CrawlLogListComponent} from '../../components';
 import {CrawlLogQueryComponent} from '../../components/crawl-log-query/crawl-log-query.component';
-import {QueryCrawlLogDirective} from '../../directives';
+import {crawlLogQueryFromParamMap, equalCrawlLogQuery, unknownPageLength} from '../../func';
 import {CrawlLogQuery, CrawlLogService} from '../../services';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {ActionDirective, ShortcutDirective} from '../../../../shared/directives';
-import {MatMenuItem} from '@angular/material/menu';
-import {AsyncPipe} from '@angular/common';
 
 @Component({
   selector: 'app-crawl-log',
@@ -26,6 +30,7 @@ import {AsyncPipe} from '@angular/common';
   standalone: true,
   imports: [
     ActionDirective,
+    AsyncPipe,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
     FlexDirective,
@@ -33,113 +38,56 @@ import {AsyncPipe} from '@angular/common';
     MatIconModule,
     MatMenuItem,
     MatProgressBarModule,
-    QueryCrawlLogDirective,
     RouterModule,
     ShortcutDirective,
-    AsyncPipe,
   ]
 })
-export class CrawlLogComponent implements OnInit {
-  readonly ability$: Observable<any>;
-
-  pageLength$: Observable<number>;
-  pageSize$: Observable<number>;
-  pageIndex$: Observable<number>;
-  sortDirection$: Observable<SortDirection>;
-  sortActive$: Observable<string>;
-  query$: Observable<CrawlLogQuery>;
-
-  get loading$(): Observable<boolean> {
-    return this.crawlLogService.loading$;
-  }
+export class CrawlLogComponent {
+  readonly ability$: Observable<MongoAbility>;
+  readonly pageLength$: Observable<number>;
+  readonly pageSize: Signal<number>;
+  readonly pageIndex: Signal<number>;
+  readonly sortDirection: Signal<SortDirection>;
+  readonly sortActive: Signal<string>;
+  readonly query: Signal<CrawlLogQuery>;
+  readonly dataSource: ListDataSource<CrawlLog, CrawlLogQuery>;
+  readonly loading$: Observable<boolean>;
 
   constructor(private route: ActivatedRoute,
               private router: Router,
               private crawlLogService: CrawlLogService,
               private errorService: ErrorService,
-              private abilityService: AbilityService<any>
-  ) {
+              private abilityService: AbilityService<MongoAbility>,
+              destroyRef: DestroyRef) {
     this.ability$ = this.abilityService.ability$;
-  }
 
-  ngOnInit(): void {
-    const queryParams = this.route.queryParamMap.pipe(
-      debounceTime(0),
-      map(queryParaMap => ({
-        jobExecutionId: queryParaMap.get('job_execution_id'), // query template
-        executionId: queryParaMap.get('execution_id'), // query template
-        sort: queryParaMap.get('sort'), // list request
-        pageSize: queryParaMap.get('s'), // list request
-        pageIndex: queryParaMap.get('p'), // list request
-        watch: queryParaMap.get('watch'), // list request
-      })),
-      share(),
+    const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
+    this.query = computed(
+      () => crawlLogQueryFromParamMap(queryParamMap()),
+      {equal: equalCrawlLogQuery}
     );
+    this.pageSize = computed(() => this.query().pageSize);
+    this.pageIndex = computed(() => this.query().pageIndex);
+    this.sortDirection = computed(() => this.query().direction);
+    this.sortActive = computed(() => this.query().active);
 
-    const watch$ = queryParams.pipe(
-      map(({watch}) => watch),
-      distinctUntilChanged());
-
-    const jobExecutionId$ = queryParams.pipe(
-      map(({jobExecutionId}) => jobExecutionId),
-      distinctUntilChanged());
-
-    const executionId$ = queryParams.pipe(
-      map(({executionId}) => executionId),
-      distinctUntilChanged());
-
-    const sort$: Observable<Sort> = queryParams.pipe(
-      map(({sort}) => {
-        if (!sort) {
-          return null;
-        }
-        const parts = sort.split(':');
-        const s = {active: parts[0], direction: parts[1]};
-        return s.direction ? s : null;
-      }),
-      distinctUntilChanged<Sort>((p, q) => p && q ? p.direction === q.direction && p.active === q.active : p === q),
-      shareReplay(1),
+    const query$ = toObservable(this.query);
+    this.dataSource = ListDataSource.fromQuery({
+      query$,
+      load: query => this.crawlLogService.search(query),
+      destroyRef,
+      capacity: query => query.watch ? query.pageSize : 0,
+    });
+    this.pageLength$ = merge(
+      this.dataSource.reset$.pipe(map(() => 0)),
+      this.dataSource.completed$.pipe(map(({query, rows}) => unknownPageLength(query, rows)))
+    ).pipe(
+      startWith(0)
     );
-
-    const pageSize$ = queryParams.pipe(
-      map(({pageSize}) => parseInt(pageSize, 10) || 25),
-      distinctUntilChanged(),
-      shareReplay(1),
+    this.loading$ = combineLatest([this.dataSource.loading$, this.crawlLogService.loading$]).pipe(
+      map(([listLoading, operationLoading]) => listLoading || operationLoading),
+      distinctUntilChanged()
     );
-
-    const pageIndex$ = queryParams.pipe(
-      map(({pageIndex}) => parseInt(pageIndex, 10) || 0),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
-
-    const sortDirection$ = sort$.pipe(
-      map(sort => (sort ? sort.direction : '') as SortDirection));
-
-    const sortActive$ = sort$.pipe(
-      map(sort => sort ? sort.active : ''));
-
-    const query$: Observable<CrawlLogQuery> = combineLatest([
-      executionId$, jobExecutionId$, sortActive$, sortDirection$, pageSize$, pageIndex$, watch$
-    ]).pipe(
-      debounceTime<any>(0),
-      map(([executionId, jobExecutionId, active, direction, pageSize, pageIndex, watch]) => ({
-        executionId,
-        jobExecutionId,
-        active,
-        direction,
-        pageSize,
-        pageIndex,
-        watch,
-      })),
-      share(),
-    );
-
-    this.sortActive$ = sortActive$;
-    this.sortDirection$ = sortDirection$;
-    this.pageSize$ = pageSize$;
-    this.pageIndex$ = pageIndex$;
-    this.query$ = query$;
   }
 
   onSort(sort: Sort) {

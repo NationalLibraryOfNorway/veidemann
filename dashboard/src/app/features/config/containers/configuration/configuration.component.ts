@@ -1,9 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, OnDestroy, signal} from '@angular/core';
 import {ActivatedRoute, NavigationStart, Router} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
-import {combineLatest, merge, Observable, of, Subject} from 'rxjs';
-import {distinctUntilChanged, filter, map, switchMap, takeUntil, tap} from 'rxjs/operators';
+import {merge, Observable, of, Subject} from 'rxjs';
+import {filter, switchMap, takeUntil, tap} from 'rxjs/operators';
+import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {
   BrowserScriptType,
@@ -34,16 +35,16 @@ import {
   ScheduleDetailsComponent,
   SeedDetailsComponent
 } from '../../components';
-import {KindService, OptionsService} from '../../services';
+import {OptionsService} from '../../services';
 import {RunCrawlDialogComponent} from '../../components/run-crawl-dialog/run-crawl-dialog.component';
 import {ConfigService} from '../../../../shared/services';
-import {ConfigQuery} from '../../../../shared/func';
-import {ConfigDialogData, dialogByKind} from '../../func';
+import {configKindFromPath, ConfigDialogData, dialogByKind} from '../../func';
 import {RouterExtraService} from '../../services/router-extra.service';
 import {AsyncPipe, Location} from '@angular/common';
 import {ShortcutComponent} from '../../components/shortcut/shortcut.component';
 import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
-import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
 
 
 export interface ConfigOptions {
@@ -98,18 +99,7 @@ export class ConfigurationComponent implements OnDestroy {
   private configObject: Subject<ConfigObject>;
   configObject$: Observable<ConfigObject>;
 
-  query$: Observable<ConfigQuery>;
-
-  private reload: Subject<void>;
-
-  entity$: Observable<ConfigObject>;
-
-  fetchConfigObject = true;
-
-  showCreateButton$: Observable<boolean>;
-
-  kind: Kind;
-  kind$: Observable<Kind>;
+  private readonly reload = signal(0);
 
   options: ConfigOptions;
   options$: Observable<ConfigOptions>;
@@ -121,7 +111,6 @@ export class ConfigurationComponent implements OnDestroy {
               private router: Router,
               private dialog: MatDialog,
               private route: ActivatedRoute,
-              private kindService: KindService,
               private optionsService: OptionsService,
               private controllerApiService: ControllerApiService,
               private routerExtraService: RouterExtraService,
@@ -134,37 +123,17 @@ export class ConfigurationComponent implements OnDestroy {
       }),
     );
 
-    this.kind$ = this.kindService.kind$.pipe(
-      tap(kind => this.kind = kind)
-    );
+    const paramMap = toSignal(this.route.paramMap, {requireSync: true});
+    const parentParamMap = toSignal(this.route.parent.paramMap, {requireSync: true});
+    const configRef = computed(() => {
+      this.reload();
+      return new ConfigRef({
+        kind: configKindFromPath(parentParamMap().get('kind')),
+        id: paramMap().get('id'),
+      });
+    });
 
-    const id$: Observable<string> = route.paramMap.pipe(
-      map(paramMap => paramMap.get('id')),
-      distinctUntilChanged()
-    );
-
-
-    // configObject stream based on kind and id
-    const configRef$: Observable<ConfigRef> = combineLatest([
-      this.kind$,
-      id$.pipe(
-        // toggle id stream on/off based on passId token
-        // (e.g. when saving a configObject we don't want to
-        // refetch configObject when we set query parameter id -
-        // we already got it in the response from the call to save)
-        filter(() => {
-          if (this.fetchConfigObject) {
-            return true;
-          } else {
-            this.fetchConfigObject = !this.fetchConfigObject;
-            return false;
-          }
-        })),
-    ]).pipe(
-      map(([kind, id]) => new ConfigRef({kind, id})),
-    );
-
-    const configObject$: Observable<ConfigObject> = configRef$.pipe(
+    const configObject$: Observable<ConfigObject> = toObservable(configRef).pipe(
       switchMap(configRef =>
         configRef && configRef.id ? this.dataService.get(configRef) : of(null))
     );
@@ -196,7 +165,7 @@ export class ConfigurationComponent implements OnDestroy {
       const dialogRef = this.dialog.open(componentType, {data});
 
       if (configObject.kind === Kind.SEED) {
-        const move = dialogRef.componentInstance.move.subscribe((parcel: Parcel) => {
+        const move = (dialogRef.componentInstance as SeedDialogComponent).move.subscribe((parcel: Parcel) => {
           this.onMoveSeed(parcel);
           move.unsubscribe();
         });
@@ -228,10 +197,7 @@ export class ConfigurationComponent implements OnDestroy {
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(newConfig => {
         this.configObject.next(newConfig);
-        this.fetchConfigObject = false;
-        this.router.navigate([], {
-          queryParamsHandling: 'merge',
-          queryParams: {id: newConfig.id},
+        this.router.navigate(['../', newConfig.id], {
           relativeTo: this.route,
         })
           .catch(error => this.errorService.dispatch(error));
@@ -281,7 +247,7 @@ export class ConfigurationComponent implements OnDestroy {
       .subscribe(saved => {
         this.snackBarService.openSnackBar(saved + $localize`:@snackBarMessage.multipleSaved: configurations saved`);
         this.configObject.next(null);
-        this.reload.next();
+        this.reload.update(value => value + 1);
       });
   }
 
@@ -328,7 +294,3 @@ export class ConfigurationComponent implements OnDestroy {
       });
   }
 }
-
-
-
-

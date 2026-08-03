@@ -1,23 +1,23 @@
 <div fxLayout="column wrap" class="container">
-  @if (multiSelect && selection.selected.length > 0) {
+  @if (multiSelect && selectedRows().length > 0) {
     <table class="mat-table">
       <tr class="mat-row no-interaction">
-        @if (!allSelected) {
+        @if (!allSelected()) {
           <td class="mat-cell">
             <span i18n="@@baseListConfigsInPageSelectedMessage">
-          <strong>{{ selection.selected.length }}</strong> rows selected
+          <strong>{{ selectedRows().length }}</strong> rows selected
         </span>
-            @if (isAllInPageSelected$ | async) {
+            @if (isAllInPageSelected()) {
               <button mat-button (click)="onSelectAll()">
                 <strong i18n="@@baseListSelectAllConfigInDBButton">Select all rows in database</strong>
               </button>
             }
           </td>
         }
-        @if (allSelected) {
+        @if (allSelected()) {
           <td class="mat-cell">
             <span i18n="@@baseListAllConfigurationsSelectedInfoText">
-          All <b>{{ (length$ | async) || '' }}</b> rows in database selected
+          All <b>{{ totalLength() || '' }}</b> rows in database selected
         </span>
             <button mat-button (click)="onDeselectAll()">
               <strong i18n="@@baseListRemoveSelectionButton">Remove selection</strong>
@@ -44,8 +44,8 @@
             @if (multiSelect) {
               <mat-checkbox #masterCheckbox
                             (change)="onMasterCheckboxToggle(masterCheckbox.checked)"
-                            [checked]="isAllInPageSelected$ | async"
-                            [indeterminate]="selection.hasValue() && (isAllInPageSelected$ | async) === false">
+                            [checked]="isAllInPageSelected()"
+                            [indeterminate]="selectedRows().length > 0 && !isAllInPageSelected()">
               </mat-checkbox>
             }
           </th>
@@ -65,7 +65,10 @@
           <td mat-cell *matCellDef="let row" matTooltip="{{row.meta.name}}"
               matTooltipClass="tooltip-overflow">
             @if (row.kind === Kind.SEED) {
-              <span [innerHTML]="row.meta.name | urlFormat" (click)="$event.stopPropagation()"></span>
+              <span [innerHTML]="row.meta.name | urlFormat"
+                    tabindex="-1"
+                    (click)="$event.stopPropagation()"
+                    (keydown)="$event.stopPropagation()"></span>
             }
             @if (row.kind !== Kind.SEED) {
               <span>{{ row.meta.name }}</span>
@@ -147,7 +150,7 @@
   </div>
   <mat-paginator
     (page)="onPage($event)"
-    [length]="length$ | async"
+    [length]="totalLength()"
     [pageIndex]="pageIndex"
     [pageSize]="pageSize"
     [pageSizeOptions]="pageOptions">

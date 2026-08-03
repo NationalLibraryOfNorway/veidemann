@@ -1,6 +1,5 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef} from '@angular/core';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {ConfigObject} from '../../../../shared/models/config';
-import {BASE_LIST} from '../../../../shared/directives';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 
@@ -12,12 +11,6 @@ import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/component
         '../../../../shared/components/base-list/base-list-odd-preview.scss',
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    providers: [
-        {
-            provide: BASE_LIST,
-            useExisting: forwardRef(() => ConfigListComponent)
-        }
-    ],
     animations: [
         trigger('detailExpand', [
             state('collapsed', style({ height: '0px', minHeight: '0', opacity: 0 })),
@@ -30,10 +23,6 @@ import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/component
 })
 
 export class ConfigListComponent extends BaseListComponent<ConfigObject> {
-  constructor(protected override cdr: ChangeDetectorRef) {
-    super(cdr);
-  }
-
   override isDisabled(config: ConfigObject): boolean {
     return config?.crawlJob?.disabled || config?.seed?.disabled;
   }

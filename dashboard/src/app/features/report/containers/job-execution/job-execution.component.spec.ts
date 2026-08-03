@@ -2,8 +2,8 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {JobExecutionComponent} from './job-execution.component';
 import {JobExecutionService} from '../../services';
 import {MatDialog} from '@angular/material/dialog';
-import {ActivatedRoute} from '@angular/router';
-import {of} from 'rxjs';
+import {ActivatedRoute, convertToParamMap} from '@angular/router';
+import {EMPTY, of} from 'rxjs';
 import {ControllerApiService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 
@@ -12,12 +12,7 @@ describe('JobExecutionComponent', () => {
   let fixture: ComponentFixture<JobExecutionComponent>;
 
   const fakeActivatedRoute = {
-    queryParamMap: of({
-      get: () => {
-      },
-      getAll: () => {
-      }
-    }),
+    queryParamMap: of(convertToParamMap({})),
     snapshot: {
       data: {
         options: {}
@@ -33,7 +28,10 @@ describe('JobExecutionComponent', () => {
         ...provideCoreTesting,
         {provide: ActivatedRoute, useValue: fakeActivatedRoute},
         {provide: MatDialog, useValue: {}},
-        {provide: JobExecutionService, useValue: {}},
+        {
+          provide: JobExecutionService,
+          useValue: {search: () => EMPTY, loading$: of(false)}
+        },
         {provide: ControllerApiService, useValue: {}},
       ]
     })

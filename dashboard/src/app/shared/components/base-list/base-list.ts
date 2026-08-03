@@ -1,22 +1,22 @@
-import {DataSource, SelectionModel} from '@angular/cdk/collections';
+import {SelectionModel} from '@angular/cdk/collections';
 import {
-  ChangeDetectorRef,
   ContentChildren,
   Directive,
   EventEmitter,
   Input,
-  Optional,
+  OnDestroy,
   Output,
+  signal,
   TemplateRef,
   ViewChild
 } from '@angular/core';
 import {MatPaginator, MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {MatSort, MatSortModule, Sort, SortDirection} from '@angular/material/sort';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
-import {first, map, shareReplay} from 'rxjs/operators';
-import {Kind, ListItem} from '../../../shared/models';
+import {combineLatest, Subscription} from 'rxjs';
+import {startWith} from 'rxjs/operators';
+import {Kind, ListDataSource, ListItem} from '../../../shared/models';
 import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../directives';
-import {AsyncPipe, NgTemplateOutlet} from '@angular/common';
+import {NgTemplateOutlet} from '@angular/common';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
 import {MatCheckboxModule} from '@angular/material/checkbox';
@@ -28,7 +28,6 @@ import {MatMenuModule} from '@angular/material/menu';
 import {PreviewComponent} from '../../../features/config/components/preview/preview.component';
 
 export const BASE_LIST_IMPORTS = [
-  AsyncPipe,
   LayoutDirective,
   FlexDirective,
   MatButtonModule,
@@ -44,15 +43,17 @@ export const BASE_LIST_IMPORTS = [
   UrlFormatPipe
   ];
 
- @Directive()
-// eslint-disable-next-line @angular-eslint/directive-class-suffix
-export abstract class BaseListComponent<T extends ListItem> {
+@Directive()
+export abstract class BaseListComponent<T extends ListItem> implements OnDestroy {
   readonly Kind = Kind;
-  length$: BehaviorSubject<number>;
+  readonly totalLength = signal(0);
+  readonly allSelected = signal(false);
+  readonly isAllInPageSelected = signal(false);
+  readonly selectedRows = signal<readonly T[]>([]);
 
   @Input()
   set length(length: number) {
-    this.length$.next(length);
+    this.totalLength.set(length ?? 0);
   }
 
   @Input()
@@ -76,22 +77,32 @@ export abstract class BaseListComponent<T extends ListItem> {
   @Input()
   multiSelect = true;
 
-  private _dataSource: DataSource<T>;
+  private _dataSource: ListDataSource<T, unknown>;
+  private dataSourceSubscription = Subscription.EMPTY;
 
-  @Input()
-  set dataSource(dataSource: DataSource<T>) {
+  @Input({required: true})
+  set dataSource(dataSource: ListDataSource<T, unknown>) {
+    this.dataSourceSubscription.unsubscribe();
     this._dataSource = dataSource;
-    this.isAllInPageSelected$ = combineLatest([
-      this.selection.changed.asObservable(),
-      dataSource.connect(null),
-    ]).pipe(
-      map(([_, rows]) =>
-        rows.length === this.selection.selected.length && rows.length > 0),
-      shareReplay(1)
-    );
+    this.dataSourceSubscription = new Subscription();
+
+    this.dataSourceSubscription.add(dataSource.reset$.subscribe(() => {
+      this.reset();
+      this.selectedChange.emit([]);
+    }));
+
+    this.dataSourceSubscription.add(combineLatest([
+      this.selection.changed.pipe(startWith(null)),
+      dataSource.rows$,
+    ]).subscribe(([, rows]) => {
+      this.selectedRows.set([...this.selection.selected]);
+      this.isAllInPageSelected.set(
+        rows.length === this.selection.selected.length && rows.length > 0
+      );
+    }));
   }
 
-  get dataSource(): DataSource<T> {
+  get dataSource(): ListDataSource<T, unknown> {
     return this._dataSource;
   }
 
@@ -120,28 +131,28 @@ export abstract class BaseListComponent<T extends ListItem> {
 
   // selection of checked rows
   selection: SelectionModel<T>;
-  allSelected: boolean;
-  isAllInPageSelected$: Observable<boolean>;
   selectedRow: T;
 
   // Keyboard navigation
   selectedRowIndex: number = null;
 
-  protected constructor(@Optional() protected cdr?: ChangeDetectorRef) {
+  constructor() {
     this.sort = new EventEmitter<Sort>();
     this.selectedChange = new EventEmitter<T[]>();
     this.selectAll = new EventEmitter<void>();
     this.page = new EventEmitter<PageEvent>();
     this.rowClick = new EventEmitter<T>();
     this.selection = new SelectionModel<T>(true, []);
-    this.allSelected = false;
-    this.length$ = new BehaviorSubject<number>(0);
+  }
+
+  ngOnDestroy(): void {
+    this.dataSourceSubscription.unsubscribe();
   }
 
   reset() {
     this.selection.clear();
     this.selectedRow = null;
-    this.allSelected = false;
+    this.allSelected.set(false);
     this.selectedRowIndex = null;
   }
 
@@ -151,7 +162,7 @@ export abstract class BaseListComponent<T extends ListItem> {
   }
 
   onRowClick(item: T) {
-    this.allSelected = false;
+    this.allSelected.set(false);
     this.selectedRowIndex = null;
     this.selectedRow = this.selectedRow?.id === item.id ? null : item;
     this.rowClick.emit(this.selectedRow);
@@ -159,14 +170,10 @@ export abstract class BaseListComponent<T extends ListItem> {
 
   onMasterCheckboxToggle(checked: boolean) {
     this.selectedRow = null;
-    this.allSelected = false;
+    this.allSelected.set(false);
     if (checked) {
-      this.dataSource.connect(null)
-        .pipe(first())
-        .subscribe(rows => {
-          this.selection.select(...rows);
-          this.selectedChange.emit(this.selection.selected);
-        });
+      this.selection.select(...this.dataSource.snapshot);
+      this.selectedChange.emit(this.selection.selected);
     } else {
       this.selection.clear();
       this.selectedChange.emit(this.selection.selected);
@@ -175,18 +182,18 @@ export abstract class BaseListComponent<T extends ListItem> {
 
   onCheckboxToggle(item: T) {
     this.selectedRow = null;
-    this.allSelected = false;
+    this.allSelected.set(false);
     this.selection.toggle(item);
     this.selectedChange.emit(this.selection.selected);
   }
 
   onSelectAll() {
-    this.allSelected = true;
+    this.allSelected.set(true);
     this.selectAll.emit();
   }
 
   onDeselectAll() {
-    this.allSelected = false;
+    this.allSelected.set(false);
     this.onMasterCheckboxToggle(false);
   }
 
@@ -196,11 +203,7 @@ export abstract class BaseListComponent<T extends ListItem> {
   }
 
   onKeyboardEvent(event: KeyboardEvent) {
-    let itemsInPage: number = null;
-    this.dataSource.connect(null).pipe(first())
-      .subscribe(rows => {
-        itemsInPage = rows.length;
-      });
+    const itemsInPage = this.dataSource.snapshot.length;
 
     switch (event.key) {
 
@@ -215,7 +218,6 @@ export abstract class BaseListComponent<T extends ListItem> {
           this.selectedRowIndex = 0;
           this.selectRowByIndex(0);
         }
-        this.cdr.markForCheck();
         break;
 
       case 'ArrowUp':
@@ -226,15 +228,13 @@ export abstract class BaseListComponent<T extends ListItem> {
             this.selectRowByIndex(this.selectedRowIndex);
           }
         }
-        this.cdr.markForCheck();
         break;
       case 'S' :
         if (this.selectedRowIndex !== null) {
-          this.dataSource.connect(null)
-            .pipe(first())
-            .subscribe(rows => {
-              this.onCheckboxToggle(rows[this.selectedRowIndex]);
-            });
+          const row = this.dataSource.snapshot[this.selectedRowIndex];
+          if (row) {
+            this.onCheckboxToggle(row);
+          }
         }
         break;
 
@@ -244,31 +244,29 @@ export abstract class BaseListComponent<T extends ListItem> {
 
       case 'Enter' :
         this.selectRowByIndex(this.selectedRowIndex, true);
-        this.cdr.markForCheck();
         break;
     }
   }
 
 
-  selectRowByIndex(index: any, expand?: boolean): void {
-    this.dataSource.connect(null)
-      .pipe(first())
-      .subscribe(rows => {
-        this.selectedRowIndex = index;
-        this.allSelected = false;
-        const rowElement = document.getElementById('row' + index.toString());
-        rowElement.scrollIntoView({behavior: 'smooth', block: 'end'});
-        if (expand) {
-          this.selectedRow = this.selectedRow?.id === rows[index].id ? null : rows[index];
-          this.rowClick.emit(this.selectedRow);
-          setTimeout(() => {
-            const expandedRowElement = document.getElementById('expandedPreviewRow' + index.toString());
-            if (expandedRowElement !== null) {
-              expandedRowElement.scrollIntoView({behavior: 'smooth', block: 'center'});
-            }
-          }, 250);
-        }
-      });
+  selectRowByIndex(index: number, expand?: boolean): void {
+    const row = this.dataSource.snapshot[index];
+    if (index === null || index === undefined || !row) {
+      return;
+    }
+
+    this.selectedRowIndex = index;
+    this.allSelected.set(false);
+    document.getElementById('row' + index.toString())
+      ?.scrollIntoView({behavior: 'smooth', block: 'end'});
+    if (expand) {
+      this.selectedRow = this.selectedRow?.id === row.id ? null : row;
+      this.rowClick.emit(this.selectedRow);
+      setTimeout(() => {
+        document.getElementById('expandedPreviewRow' + index.toString())
+          ?.scrollIntoView({behavior: 'smooth', block: 'center'});
+      }, 250);
+    }
   }
 
   isChecked(item: T): boolean {
@@ -279,7 +277,8 @@ export abstract class BaseListComponent<T extends ListItem> {
     return this.selectedRow ? this.selectedRow.id === item.id : false;
   }
 
-  isDisabled(_: T): boolean {
+  isDisabled(item: T): boolean {
+    void item;
     return false;
   }
 }

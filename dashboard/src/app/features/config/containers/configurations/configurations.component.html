@@ -6,8 +6,8 @@
     <div fxFlex fxLayout="row" class="container no-scroll">
       <div fxLayout="column" class="scroll">
         <mat-action-list>
-          @if (kind$ | async; as kind) {
-            @if (ability.can('create', Kind[kind]) && showCreateButton$ | async) {
+          @if (currentKind(); as kind) {
+            @if (ability.can('create', Kind[kind]) && showCreateButton()) {
               <button mat-list-item
                 (click)="onCreateConfigWithDialog()"
                 i18n="@@configurationSideBarMenuAddConfigButton"
@@ -19,16 +19,16 @@
             }
           }
         </mat-action-list>
-        <app-config-query [options]="options$ | async" [query]="query$ | async"
+        <app-config-query [options]="options$ | async" [query]="query()"
         (queryChange)="onQueryChange($event)"></app-config-query>
       </div>
-      @if (kind$ | async; as kind) {
+      @if (currentKind(); as kind) {
         @switch (kind) {
           @case (Kind.ROLEMAPPING) {
             <div fxFlex fxLayout="column">
-              <app-rolemapping-list fxFlex appQueryConfigObject [query]="query$ | async"
-                [pageIndex]="pageIndex$ | async"
-                [pageSize]="pageSize$ | async"
+              <app-rolemapping-list fxFlex [dataSource]="dataSource"
+                [pageIndex]="pageIndex()"
+                [pageSize]="pageSize()"
                 (selectedChange)="onSelectedChange($event)"
                 (rowClick)="onRowClick($event)"
                 (selectAll)="onSelectAll()">
@@ -57,17 +57,17 @@
           }
           @default {
             <div fxFlex fxLayout="column">
-              @if (entity$ | async; as entity) {
+              @if (entity(); as entity) {
                 <app-entity-view
                 [configObject]="entity"></app-entity-view>
               }
               <app-config-list fxFlex
-                appQueryConfigObject [query]="query$ | async"
+                [dataSource]="dataSource"
                 [length]="length$ | async"
-                [pageIndex]="pageIndex$ | async"
-                [pageSize]="pageSize$ | async"
-                [sortDirection]="sortDirection$ | async"
-                [sortActive]="sortActive$ | async"
+                [pageIndex]="pageIndex()"
+                [pageSize]="pageSize()"
+                [sortDirection]="sortDirection()"
+                [sortActive]="sortActive()"
                 [multiSelect]="kind !== Kind.COLLECTION"
                 (selectedChange)="onSelectedChange($event)"
                 (selectAll)="onSelectAll()"

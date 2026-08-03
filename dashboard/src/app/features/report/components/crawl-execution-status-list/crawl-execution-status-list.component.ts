@@ -1,12 +1,10 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {
   CrawlExecutionState,
   crawlExecutionStates,
-  CrawlExecutionStatus,
-  ListDataSource
+  CrawlExecutionStatus
 } from '../../../../shared/models';
-import {BASE_LIST} from '../../../../shared/directives';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {MatPaginatorModule} from '@angular/material/paginator';
 import {MatTableModule} from '@angular/material/table';
@@ -28,13 +26,6 @@ import {CrawlExecutionPreviewComponent} from '../crawl-execution-preview/crawl-e
     '../../../../shared/components/base-list/base-list-odd-preview.scss',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    ListDataSource,
-    {
-      provide: BASE_LIST,
-      useExisting: forwardRef(() => CrawlExecutionStatusListComponent)
-    }
-  ],
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({height: '0px', minHeight: '0'})),
@@ -74,7 +65,4 @@ export class CrawlExecutionStatusListComponent extends BaseListComponent<CrawlEx
 
   override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'queueCount', 'startTime', 'endTime', 'extra', 'action'];
 
-  constructor(protected override cdr: ChangeDetectorRef) {
-    super(cdr);
-  }
 }

@@ -1,14 +1,13 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
-import {CrawlLog, ListDataSource} from '../../../../shared/models';
+import {CrawlLog} from '../../../../shared/models';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
-import {BASE_LIST} from '../../../../shared/directives';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
-import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
+import {DatePipe, NgTemplateOutlet} from '@angular/common';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
@@ -24,13 +23,6 @@ import {MatPaginatorModule} from '@angular/material/paginator';
     '../../../../shared/components/base-list/base-list-odd-preview.scss',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    ListDataSource,
-    {
-      provide: BASE_LIST,
-      useExisting: forwardRef(() => CrawlLogListComponent)
-    }
-  ],
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({height: '0px', minHeight: '0', opacity: 0})),
@@ -39,7 +31,6 @@ import {MatPaginatorModule} from '@angular/material/paginator';
     ]),
   ],
   imports: [
-    AsyncPipe,
     CrawlLogPreviewComponent,
     DatePipe,
     FlexDirective,
@@ -68,7 +59,4 @@ export class CrawlLogListComponent extends BaseListComponent<CrawlLog> {
   override displayedColumns: string[] =
     ['requestedUri', 'timestamp', 'statusCode', 'discoveryPath', 'contentType', 'extra', 'action'];
 
-  constructor(protected override cdr: ChangeDetectorRef) {
-    super(cdr);
-  }
 }

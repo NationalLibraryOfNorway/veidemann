@@ -3,17 +3,18 @@
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
-    @if (query$ | async; as query) {
+    @if (query(); as query) {
       <div fxFlex class="no-scroll" fxLayout="row">
         <app-page-log-query class="content-padding scroll"
           [query]="query"
         (queryChange)="onQueryChange($event)"></app-page-log-query>
         <app-pagelog-list fxFlex
-          appQueryPageLog [query]="query"
-          [pageIndex]="pageIndex$ | async"
-          [pageSize]="pageSize$ | async"
-          [sortDirection]="sortDirection$ | async"
-          [sortActive]="sortActive$ | async"
+          [dataSource]="dataSource"
+          [length]="pageLength$ | async"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [sortDirection]="sortDirection()"
+          [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"
           (sort)="onSort($event)"
           (page)="onPage($event)">

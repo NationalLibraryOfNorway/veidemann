@@ -1,5 +1,5 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {ActivatedRoute, ParamMap, RouterOutlet} from '@angular/router';
+import {ChangeDetectionStrategy, Component, OnInit, Signal} from '@angular/core';
+import {ActivatedRoute, RouterOutlet} from '@angular/router';
 
 import {Observable} from 'rxjs';
 
@@ -12,12 +12,13 @@ import {
   RotationPolicy,
   SubCollectionType
 } from '../../shared/models';
-import {KindService, OptionsService} from './services';
+import {OptionsService} from './services';
 import {map, tap} from 'rxjs/operators';
-import {ConfigPath} from './func';
-import {MatDrawerContainer, MatSidenavModule} from '@angular/material/sidenav';
+import {configKindFromPath} from './func';
+import {MatSidenavModule} from '@angular/material/sidenav';
 import {ConfigNavListComponent} from './containers';
 import {AsyncPipe} from '@angular/common';
+import {toSignal} from '@angular/core/rxjs-interop';
 
 export interface ConfigOptions {
   rotationPolicies?: RotationPolicy[];
@@ -51,22 +52,17 @@ export class ConfigComponent implements OnInit {
   readonly Kind = Kind;
 
   options$: Observable<ConfigOptions>;
-  kind$: Observable<Kind>;
+  readonly kind: Signal<Kind>;
 
   constructor(private route: ActivatedRoute,
-              private kindService: KindService,
               private optionsService: OptionsService) {
+    this.kind = toSignal(
+      this.route.paramMap.pipe(map(params => configKindFromPath(params.get('kind')))),
+      {requireSync: true}
+    );
   }
 
   ngOnInit(): void {
-    // Subscribe to changes of the kind url parameter (see ConfigurationsRoutingModule).
-    // Propagate change via kindService.
-    this.kind$ = this.route.paramMap.pipe(
-      map((params: ParamMap) => params.get('kind')),
-      map((kind: string) => ConfigPath[kind]),
-      tap(kind => this.kindService.next(kind))
-    );
-
     this.options$ = this.route.data.pipe(
       map(data => data['options']),
       tap(options => this.optionsService.next(options))
@@ -74,7 +70,5 @@ export class ConfigComponent implements OnInit {
   }
 
 }
-
-
 
 

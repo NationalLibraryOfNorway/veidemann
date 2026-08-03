@@ -25,15 +25,13 @@ import {
 import {LoadingService} from '.';
 import {ConfigApiService} from '../../core';
 import {ConfigQuery, escapeRegex} from '../func';
-import {Getter, Searcher} from '../directives';
 
 
 @Injectable({
   providedIn: "root"
 })
 export class ConfigService
-  extends LoadingService
-  implements Searcher<ConfigQuery, ConfigObject>, Getter<ConfigObject> {
+  extends LoadingService {
 
   // The listRequest last used to fetch data
   private effectiveListRequest: ListRequest;
@@ -52,7 +50,7 @@ export class ConfigService
     const listRequest = this.getListRequest(query);
     this.effectiveListRequest = listRequest;
 
-    return this.load(this.configApiService.list(listRequest));
+    return this.configApiService.list(listRequest);
   }
 
   count(query: ConfigQuery): Observable<number> {

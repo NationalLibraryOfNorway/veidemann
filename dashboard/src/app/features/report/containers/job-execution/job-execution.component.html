@@ -1,5 +1,5 @@
 @if (ability$ | async; as ability) {
-  @if (query$ | async; as query) {
+  @if (query(); as query) {
     <div class="container">
       @if (loading$ | async) {
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
@@ -10,11 +10,12 @@
           [query]="query"
         (queryChange)="onQueryChange($event)"></app-job-execution-status-query>
         <app-job-execution-status-list fxFlex
-          appQueryJobExecutionStatus [query]="query"
-          [pageIndex]="pageIndex$ | async"
-          [pageSize]="pageSize$ | async"
-          [sortDirection]="sortDirection$ | async"
-          [sortActive]="sortActive$ | async"
+          [dataSource]="dataSource"
+          [length]="pageLength$ | async"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [sortDirection]="sortDirection()"
+          [sortActive]="sortActive()"
           (sort)="onSort($event)"
           (page)="onPage($event)">
           <ng-container *appShortcut="let row">

@@ -39,7 +39,7 @@ export interface ConfigDialogData {
   allSelected?: boolean;
 }
 
-export function dialogByKind(kind: Kind): ComponentType<any> {
+export function dialogByKind(kind: Kind): ComponentType<unknown> {
   console.log('dialogByKind', kind);
   switch (kind) {
     case Kind.CRAWLENTITY:
@@ -69,7 +69,7 @@ export function dialogByKind(kind: Kind): ComponentType<any> {
   }
 }
 
-export function multiDialogByKind(kind: Kind): ComponentType<any> {
+export function multiDialogByKind(kind: Kind): ComponentType<unknown> {
   switch (kind) {
     case Kind.CRAWLENTITY:
       return EntityMultiDialogComponent;
@@ -109,4 +109,13 @@ export enum ConfigPath {
   'entity' = Kind.CRAWLENTITY,
   'seed' = Kind.SEED,
   null = Kind.UNDEFINED,
+}
+
+export function configKindFromPath(path: string | null): Kind {
+  if (!path) {
+    return Kind.UNDEFINED;
+  }
+
+  const kind = ConfigPath[path];
+  return typeof kind === 'number' ? kind : Kind.UNDEFINED;
 }

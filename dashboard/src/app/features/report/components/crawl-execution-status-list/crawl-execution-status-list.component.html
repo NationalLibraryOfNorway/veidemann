@@ -150,7 +150,7 @@
   </div>
   <mat-paginator
     (page)="onPage($event)"
-    [length]="length$ | async"
+    [length]="totalLength()"
     [pageIndex]="pageIndex"
     [pageSize]="pageSize"
     [pageSizeOptions]="pageOptions">

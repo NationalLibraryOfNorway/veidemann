@@ -3,7 +3,6 @@ import {Observable} from 'rxjs';
 import {create} from '@bufbuild/protobuf';
 import { Detail, Page, Sort, Watch } from '../../../shared/func';
 import { LoadingService } from '../../../shared/services';
-import { Getter } from '../../../shared/directives';
 import { ConfigObject, PageLog } from '../../../shared/models';
 import { LogApiService } from '../../../core';
 import { FieldMaskSchema } from '../../../../api/commons/v1/resources_pb';
@@ -22,7 +21,7 @@ export interface PageLogQuery extends Page, Sort, Watch {
 @Injectable({
   providedIn: 'root'
 })
-export class PageLogService extends LoadingService implements Getter<PageLog> {
+export class PageLogService extends LoadingService {
   private readonly cache: Map<string, ConfigObject>;
 
   constructor(private logApiService: LogApiService) {
@@ -36,7 +35,7 @@ export class PageLogService extends LoadingService implements Getter<PageLog> {
   }
 
   search(query: PageLogQuery): Observable<PageLog> {
-    return this.load(this.logApiService.listPageLogs(this.getListRequest(query)));
+    return this.logApiService.listPageLogs(this.getListRequest(query));
   }
 
   private getListRequest(query: PageLogQuery): PageLogListRequest {

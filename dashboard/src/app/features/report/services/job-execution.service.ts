@@ -9,7 +9,6 @@ import {ReportApiService} from '../../../core';
 import {catchError, shareReplay} from 'rxjs/operators';
 import {Detail, Page, Sort, toTimestampProto, Watch} from '../../../shared/func';
 import {ConfigService, LoadingService} from '../../../shared/services';
-import {Getter, Searcher} from '../../../shared/directives';
 
 export interface JobExecutionStatusQuery extends Page, Sort, Watch {
   jobId: string;
@@ -21,8 +20,7 @@ export interface JobExecutionStatusQuery extends Page, Sort, Watch {
 @Injectable({
   providedIn: 'root'
 })
-export class JobExecutionService extends LoadingService
-  implements Searcher<JobExecutionStatusQuery, JobExecutionStatus>, Getter<JobExecutionStatus> {
+export class JobExecutionService extends LoadingService {
 
   private readonly cache: Map<string, Observable<ConfigObject>>;
 
@@ -98,6 +96,6 @@ export class JobExecutionService extends LoadingService
   }
 
   search(query: JobExecutionStatusQuery): Observable<JobExecutionStatus> {
-    return this.load(this.reportApiService.listJobExecutions(JobExecutionService.getListRequest(query)));
+    return this.reportApiService.listJobExecutions(JobExecutionService.getListRequest(query));
   }
 }

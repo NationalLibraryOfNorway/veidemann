@@ -7,7 +7,6 @@ import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
 import {CrawlLogListRequest, CrawlLogListRequestSchema} from '../../../../api/log/v1/log_pb';
 import {LoadingService} from '../../../shared/services';
 import {Detail, Page, Sort, Watch} from '../../../shared/func';
-import {Getter, Searcher} from '../../../shared/directives';
 
 
 export interface CrawlLogQuery extends Page, Sort, Watch {
@@ -19,8 +18,7 @@ export interface CrawlLogQuery extends Page, Sort, Watch {
 @Injectable({
   providedIn: 'root'
 })
-export class CrawlLogService extends LoadingService
-  implements Getter<CrawlLog>, Searcher<CrawlLogQuery, CrawlLog> {
+export class CrawlLogService extends LoadingService {
 
   constructor(private logApiService: LogApiService) {
     super();
@@ -68,6 +66,6 @@ export class CrawlLogService extends LoadingService
   }
 
   search(query: CrawlLogQuery): Observable<CrawlLog> {
-    return this.load(this.logApiService.listCrawlLogs(CrawlLogService.getListRequest(query)));
+    return this.logApiService.listCrawlLogs(CrawlLogService.getListRequest(query));
   }
 }

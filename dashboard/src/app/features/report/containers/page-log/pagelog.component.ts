@@ -1,39 +1,34 @@
-import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {UntypedFormBuilder} from '@angular/forms';
-import {combineLatest, Observable, of} from 'rxjs';
-import {ListDataSource, ListItem} from '../../../../shared/models';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
-import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
-import {debounceTime, distinctUntilChanged, map, share, shareReplay} from 'rxjs/operators';
-import {ErrorService} from '../../../../core';
-import {SortDirection} from '@angular/material/sort';
-import {PageEvent} from '@angular/material/paginator';
-import {Sort} from '../../../../shared/func';
-import {ActionDirective, BASE_LIST} from '../../../../shared/directives';
-import {PageLogListComponent} from '../../components';
-import {AbilityService} from '@casl/angular';
 import {AsyncPipe} from '@angular/common';
-import {MatProgressBar} from '@angular/material/progress-bar';
-import {PageLogQueryComponent} from '../../components/page-log-query/page-log-query.component';
 import {MatIcon} from '@angular/material/icon';
-import {QueryPageLogDirective} from '../../directives';
+import {PageEvent} from '@angular/material/paginator';
+import {MatProgressBar} from '@angular/material/progress-bar';
+import {SortDirection} from '@angular/material/sort';
+import {AbilityService} from '@casl/angular';
+import {MongoAbility} from '@casl/ability';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
+import {combineLatest, merge, Observable} from 'rxjs';
+import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
+import {toObservable, toSignal} from '@angular/core/rxjs-interop';
+
+import {ErrorService} from '../../../../core';
+import {ActionDirective} from '../../../../shared/directives';
+import {Sort} from '../../../../shared/func';
+import {ListDataSource, ListItem, PageLog} from '../../../../shared/models';
+import {PageLogListComponent} from '../../components';
+import {PageLogQueryComponent} from '../../components/page-log-query/page-log-query.component';
+import {equalPageLogQuery, pageLogQueryFromParamMap, unknownPageLength} from '../../func';
+import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
 
 @Component({
   selector: 'app-pagelog',
   templateUrl: './pagelog.component.html',
   styleUrls: ['./pagelog.component.css'],
-  providers: [
-    ListDataSource,
-    {
-      provide: BASE_LIST,
-      useClass: PageLogListComponent,
-    }
-  ],
   imports: [
-    AsyncPipe,
     ActionDirective,
+    AsyncPipe,
     FlexDirective,
     LayoutDirective,
     MatIcon,
@@ -42,112 +37,56 @@ import {MatMenuItem} from '@angular/material/menu';
     PageLogQueryComponent,
     PageLogListComponent,
     RouterLink,
-    QueryPageLogDirective
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
-export class PageLogComponent implements OnInit {
-  readonly ability$: Observable<any>;
-
-  pageSize$: Observable<number>;
-  pageIndex$: Observable<number>;
-  sortDirection$: Observable<SortDirection>;
-  sortActive$: Observable<string>;
-  query$: Observable<PageLogQuery>;
-
-  get loading$(): Observable<boolean> {
-    return this.pageLogService.loading$;
-  }
+export class PageLogComponent {
+  readonly ability$: Observable<MongoAbility>;
+  readonly pageSize: Signal<number>;
+  readonly pageIndex: Signal<number>;
+  readonly sortDirection: Signal<SortDirection>;
+  readonly sortActive: Signal<string>;
+  readonly query: Signal<PageLogQuery>;
+  readonly dataSource: ListDataSource<PageLog, PageLogQuery>;
+  readonly pageLength$: Observable<number>;
+  readonly loading$: Observable<boolean>;
 
   constructor(private route: ActivatedRoute,
               private router: Router,
-              private fb: UntypedFormBuilder,
               private pageLogService: PageLogService,
               private errorService: ErrorService,
-              private abilityService: AbilityService<any>) {
+              private abilityService: AbilityService<MongoAbility>,
+              destroyRef: DestroyRef) {
     this.ability$ = this.abilityService.ability$;
-  }
 
-  ngOnInit(): void {
-    const routeParam$ = this.route.queryParamMap.pipe(
-      debounceTime(0), // synchronize
-      map(queryParaMap => ({
-        uri: queryParaMap.get('uri'),
-        executionId: queryParaMap.get('execution_id'),
-        jobExecutionId: queryParaMap.get('job_execution_id'),
-        sort: queryParaMap.get('sort'),
-        pageSize: queryParaMap.get('s'),
-        pageIndex: queryParaMap.get('p'),
-        watch: queryParaMap.get('watch'),
-      })),
-      share(),
+    const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
+    this.query = computed(
+      () => pageLogQueryFromParamMap(queryParamMap()),
+      {equal: equalPageLogQuery}
     );
+    this.pageSize = computed(() => this.query().pageSize);
+    this.pageIndex = computed(() => this.query().pageIndex);
+    this.sortDirection = computed(() => this.query().direction);
+    this.sortActive = computed(() => this.query().active);
 
-    const watch$ = routeParam$.pipe(
-      map(({watch}) => watch),
-      distinctUntilChanged());
-
-    const executionId$ = routeParam$.pipe(
-      map(({executionId}) => executionId),
-      distinctUntilChanged());
-
-    const jobExecutionId$ = routeParam$.pipe(
-      map(({jobExecutionId}) => jobExecutionId),
-      distinctUntilChanged());
-
-    const uri$ = routeParam$.pipe(
-      map(({uri}) => uri),
-      distinctUntilChanged());
-
-    const sort$: Observable<Sort> = routeParam$.pipe(
-      map(({sort}) => {
-        if (!sort) {
-          return null;
-        }
-        const parts = sort.split(':');
-        const s = {active: parts[0], direction: parts[1]};
-        return s.direction ? s : null;
-      }),
-      distinctUntilChanged<Sort>((p, q) => p && q ? p.direction === q.direction && p.active === q.active : p === q),
-      shareReplay(1),
+    const query$ = toObservable(this.query);
+    this.dataSource = ListDataSource.fromQuery({
+      query$,
+      load: query => this.pageLogService.search(query),
+      destroyRef,
+      capacity: query => query.watch ? query.pageSize : 0,
+    });
+    this.pageLength$ = merge(
+      this.dataSource.reset$.pipe(map(() => 0)),
+      this.dataSource.completed$.pipe(map(({query, rows}) => unknownPageLength(query, rows)))
+    ).pipe(
+      startWith(0)
     );
-
-    const pageSize$ = routeParam$.pipe(
-      map(({pageSize}) => parseInt(pageSize, 10) || 25),
-      distinctUntilChanged(),
-      shareReplay(1)
+    this.loading$ = combineLatest([this.dataSource.loading$, this.pageLogService.loading$]).pipe(
+      map(([listLoading, operationLoading]) => listLoading || operationLoading),
+      distinctUntilChanged()
     );
-
-    const pageIndex$ = routeParam$.pipe(
-      map(({pageIndex}) => parseInt(pageIndex, 10) || 0),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
-
-    const sortDirection$ = sort$.pipe(
-      map(sort => (sort ? sort.direction : '') as SortDirection));
-
-    const sortActive$ = sort$.pipe(
-      map(sort => sort ? sort.active : ''));
-
-    const init$ = of(null).pipe(
-      distinctUntilChanged(),
-    );
-
-    const query$: Observable<PageLogQuery> = combineLatest([uri$, jobExecutionId$, executionId$, sortActive$,
-      sortDirection$, watch$, pageIndex$, pageSize$, init$
-    ]).pipe(
-      debounceTime<any>(0),
-      map(([uri, jobExecutionId, executionId, active, direction, watch, pageIndex, pageSize]) => ({
-        uri, jobExecutionId, executionId, active, direction, watch, pageIndex, pageSize
-      })),
-      share()
-    );
-
-    this.pageSize$ = pageSize$;
-    this.pageIndex$ = pageIndex$;
-    this.query$ = query$;
   }
 
   onRowClick(item: ListItem) {

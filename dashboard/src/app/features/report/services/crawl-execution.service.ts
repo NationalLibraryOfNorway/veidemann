@@ -6,7 +6,6 @@ import { create } from '@bufbuild/protobuf';
 import { FieldMaskSchema } from '../../../../api/commons/v1/resources_pb';
 import { CrawlExecutionsListRequest, CrawlExecutionsListRequestSchema } from '../../../../api/report/v1/report_pb';
 import { ReportApiService } from '../../../core';
-import { Getter, Searcher } from '../../../shared/directives';
 import { Detail, Page, Sort, toTimestampProto, Watch } from '../../../shared/func';
 import { ConfigObject, ConfigRef, CrawlExecutionState, CrawlExecutionStatus, Kind } from '../../../shared/models';
 import { ConfigService, LoadingService } from '../../../shared/services';
@@ -24,8 +23,7 @@ export interface CrawlExecutionStatusQuery extends Page, Sort, Watch {
 @Injectable({
   providedIn: 'root'
 })
-export class CrawlExecutionService extends LoadingService
-  implements Searcher<CrawlExecutionStatusQuery, CrawlExecutionStatus>, Getter<CrawlExecutionStatus> {
+export class CrawlExecutionService extends LoadingService {
   private readonly cache: Map<string, Observable<ConfigObject>>;
 
   constructor(private reportApiService: ReportApiService,
@@ -57,7 +55,7 @@ export class CrawlExecutionService extends LoadingService
   }
 
   search(query: CrawlExecutionStatusQuery): Observable<CrawlExecutionStatus> {
-    return this.load(this.reportApiService.listCrawlExecutions(this.getListRequest(query)));
+    return this.reportApiService.listCrawlExecutions(this.getListRequest(query));
   }
 
   private getListRequest(query: CrawlExecutionStatusQuery): CrawlExecutionsListRequest {
