@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/metrics
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -36,6 +36,6 @@ require (
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260729162451-8efbd57d26e0 // indirect
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
 )

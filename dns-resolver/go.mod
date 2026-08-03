@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/dns-resolver
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.0
 	github.com/coredns/caddy v1.1.4
 	github.com/coredns/coredns v1.14.6
@@ -77,6 +77,6 @@ require (
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260729162451-8efbd57d26e0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

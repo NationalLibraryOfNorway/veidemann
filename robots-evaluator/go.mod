@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/robots-evaluator
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
 	github.com/jimsmart/grobotstxt v1.0.3
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/olric-data/olric v0.7.4
@@ -54,7 +54,7 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260729162451-8efbd57d26e0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/recorderproxy
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
 	github.com/getlantern/errors v1.0.4
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7
@@ -51,5 +51,5 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260729162451-8efbd57d26e0 // indirect
 )

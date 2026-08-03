@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/log-service
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.2.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/opentracing-contrib/go-grpc v0.1.4
@@ -56,6 +56,6 @@ require (
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260729162451-8efbd57d26e0 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 )
