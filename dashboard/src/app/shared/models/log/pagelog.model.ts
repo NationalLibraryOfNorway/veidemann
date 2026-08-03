@@ -1,6 +1,6 @@
 import {Resource} from './resource.model';
-import {PageLogProto} from '../../../../api';
-import {ApiError} from '../commons/api-error.model';
+import {create} from '@bufbuild/protobuf';
+import {PageLog as PageLogProto, PageLogSchema} from '../../../../api/log/v1/resources_pb';
 
 export class PageLog {
   id: string;
@@ -52,41 +52,29 @@ export class PageLog {
 
   static fromProto(proto: PageLogProto): PageLog {
     return new PageLog({
-      warcId: proto.getWarcId(),
-      uri: proto.getUri(),
-      executionId: proto.getExecutionId(),
-      referrer: proto.getReferrer(),
-      jobExecutionId: proto.getJobExecutionId(),
-      collectionFinalName: proto.getCollectionFinalName(),
-      method: proto.getMethod(),
-      resource: proto.getResourceList().map(resourceProto => new Resource({
-        uri: resourceProto.getUri(),
-        fromCache: resourceProto.getFromCache(),
-        renderable: resourceProto.getRenderable(),
-        resourceType: resourceProto.getResourceType(),
-        mimeType: resourceProto.getContentType(),
-        statusCode: resourceProto.getStatusCode(),
-        discoveryPath: resourceProto.getDiscoveryPath(),
-        warcId: resourceProto.getWarcId(),
-        referrer: resourceProto.getReferrer(),
-        error: ApiError.fromProto(resourceProto.getError()),
-        method: resourceProto.getMethod()
-      })),
-      outlink: proto.getOutlinkList()
+      warcId: proto.warcId,
+      uri: proto.uri,
+      executionId: proto.executionId,
+      referrer: proto.referrer,
+      jobExecutionId: proto.jobExecutionId,
+      collectionFinalName: proto.collectionFinalName,
+      method: proto.method,
+      resource: proto.resource.map(Resource.fromProto),
+      outlink: proto.outlink
     });
   }
 
   static toProto(pageLog: PageLog): PageLogProto {
-    const proto = new PageLogProto();
-    proto.setWarcId(pageLog.warcId);
-    proto.setUri(pageLog.uri);
-    proto.setExecutionId(pageLog.executionId);
-    proto.setReferrer(pageLog.referrer);
-    proto.setJobExecutionId(pageLog.jobExecutionId);
-    proto.setCollectionFinalName(pageLog.collectionFinalName);
-    proto.setMethod(pageLog.method);
-    proto.setResourceList(pageLog.resource.map(resource => Resource.toProto(resource)));
-    proto.setOutlinkList(pageLog.outlink);
-    return proto;
+    return create(PageLogSchema, {
+      warcId: pageLog.warcId,
+      uri: pageLog.uri,
+      executionId: pageLog.executionId,
+      referrer: pageLog.referrer,
+      jobExecutionId: pageLog.jobExecutionId,
+      collectionFinalName: pageLog.collectionFinalName,
+      method: pageLog.method,
+      resource: pageLog.resource.map(Resource.toProto),
+      outlink: pageLog.outlink,
+    });
   }
 }

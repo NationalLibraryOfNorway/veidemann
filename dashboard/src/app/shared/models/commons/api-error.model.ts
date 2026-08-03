@@ -1,4 +1,4 @@
-import {ErrorProto} from '../../../../api';
+import {Error as ErrorProto} from '../../../../api/commons/v1/resources_pb';
 
 export class ApiError {
   code: number;
@@ -20,9 +20,9 @@ export class ApiError {
       return null;
     }
     return new ApiError({
-      code: proto.getCode(),
-      msg: proto.getMsg(),
-      detail: proto.getDetail()
+      code: proto.code,
+      msg: proto.msg,
+      detail: proto.detail
     });
   }
 }

@@ -1,5 +1,6 @@
 import {ApiError} from '../commons/api-error.model';
-import {CrawlLogProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {CrawlLog as CrawlLogProto, CrawlLogSchema} from '../../../../api/log/v1/resources_pb';
 import {fromTimestampProto, toTimestampProto} from '../../func';
 import {fromRethinkTimeStamp} from '../../func/rethinkdb';
 
@@ -98,56 +99,56 @@ export class CrawlLog {
 
   static fromProto(proto: CrawlLogProto): CrawlLog {
     return new CrawlLog({
-      warcId: proto.getWarcId(),
-      timeStamp: fromTimestampProto(proto.getTimeStamp()),
-      statusCode: proto.getStatusCode(),
-      size: proto.getSize(),
-      requestedUri: proto.getRequestedUri(),
-      responseUri: proto.getResponseUri(),
-      discoveryPath: proto.getDiscoveryPath(),
-      referrer: proto.getReferrer(),
-      contentType: proto.getContentType(),
-      fetchTimeStamp: fromTimestampProto(proto.getFetchTimeStamp()),
-      fetchTimeMs: proto.getFetchTimeMs(),
-      blockDigest: proto.getBlockDigest(),
-      payloadDigest: proto.getPayloadDigest(),
-      storageRef: proto.getStorageRef(),
-      recordType: proto.getRecordType(),
-      warcRefersTo: proto.getWarcRefersTo(),
-      ipAddress: proto.getIpAddress(),
-      executionId: proto.getExecutionId(),
-      retries: proto.getRetries(),
-      error: ApiError.fromProto(proto.getError()),
-      jobExecutionId: proto.getJobExecutionId(),
-      collectionFinalName: proto.getCollectionFinalName(),
-      method: proto.getMethod()
+      warcId: proto.warcId,
+      timeStamp: fromTimestampProto(proto.timeStamp),
+      statusCode: proto.statusCode,
+      size: Number(proto.size),
+      requestedUri: proto.requestedUri,
+      responseUri: proto.responseUri,
+      discoveryPath: proto.discoveryPath,
+      referrer: proto.referrer,
+      contentType: proto.contentType,
+      fetchTimeStamp: fromTimestampProto(proto.fetchTimeStamp),
+      fetchTimeMs: Number(proto.fetchTimeMs),
+      blockDigest: proto.blockDigest,
+      payloadDigest: proto.payloadDigest,
+      storageRef: proto.storageRef,
+      recordType: proto.recordType,
+      warcRefersTo: proto.warcRefersTo,
+      ipAddress: proto.ipAddress,
+      executionId: proto.executionId,
+      retries: proto.retries,
+      error: ApiError.fromProto(proto.error),
+      jobExecutionId: proto.jobExecutionId,
+      collectionFinalName: proto.collectionFinalName,
+      method: proto.method
     });
   }
 
   static toProto(crawlLog: CrawlLog): CrawlLogProto {
-    const proto = new CrawlLogProto();
-    proto.setWarcId(crawlLog.warcId);
-    proto.setTimeStamp(toTimestampProto(crawlLog.timeStamp));
-    proto.setStatusCode(crawlLog.statusCode);
-    proto.setSize(crawlLog.size);
-    proto.setRequestedUri(crawlLog.requestedUri);
-    proto.setResponseUri(crawlLog.responseUri);
-    proto.setDiscoveryPath(crawlLog.discoveryPath);
-    proto.setReferrer(crawlLog.referrer);
-    proto.setContentType(crawlLog.contentType);
-    proto.setFetchTimeStamp(toTimestampProto(crawlLog.fetchTimeStamp));
-    proto.setFetchTimeMs(crawlLog.fetchTimeMs);
-    proto.setBlockDigest(crawlLog.blockDigest);
-    proto.setPayloadDigest(crawlLog.payloadDigest);
-    proto.setStorageRef(crawlLog.storageRef);
-    proto.setRecordType(crawlLog.recordType);
-    proto.setWarcRefersTo(crawlLog.warcRefersTo);
-    proto.setIpAddress(crawlLog.ipAddress);
-    proto.setExecutionId(crawlLog.executionId);
-    proto.setRetries(crawlLog.retries);
-    proto.setJobExecutionId(crawlLog.jobExecutionId);
-    proto.setCollectionFinalName(crawlLog.collectionFinalName);
-    proto.setMethod(crawlLog.method);
-    return proto;
+    return create(CrawlLogSchema, {
+      warcId: crawlLog.warcId,
+      timeStamp: toTimestampProto(crawlLog.timeStamp),
+      statusCode: crawlLog.statusCode,
+      size: BigInt(crawlLog.size || 0),
+      requestedUri: crawlLog.requestedUri,
+      responseUri: crawlLog.responseUri,
+      discoveryPath: crawlLog.discoveryPath,
+      referrer: crawlLog.referrer,
+      contentType: crawlLog.contentType,
+      fetchTimeStamp: toTimestampProto(crawlLog.fetchTimeStamp),
+      fetchTimeMs: BigInt(crawlLog.fetchTimeMs || 0),
+      blockDigest: crawlLog.blockDigest,
+      payloadDigest: crawlLog.payloadDigest,
+      storageRef: crawlLog.storageRef,
+      recordType: crawlLog.recordType,
+      warcRefersTo: crawlLog.warcRefersTo,
+      ipAddress: crawlLog.ipAddress,
+      executionId: crawlLog.executionId,
+      retries: crawlLog.retries,
+      jobExecutionId: crawlLog.jobExecutionId,
+      collectionFinalName: crawlLog.collectionFinalName,
+      method: crawlLog.method,
+    });
   }
 }

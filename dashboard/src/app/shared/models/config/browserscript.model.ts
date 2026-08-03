@@ -1,4 +1,9 @@
-import {BrowserScriptProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  BrowserScript as BrowserScriptProto,
+  BrowserScriptSchema,
+  BrowserScript_BrowserScriptType as BrowserScriptTypeProto,
+} from '../../../../api/config/v1/resources_pb';
 import {ConfigObject} from './configobject.model';
 import {isNumeric} from '../../func';
 
@@ -30,9 +35,9 @@ export class BrowserScript {
 
   static fromProto(proto: BrowserScriptProto): BrowserScript {
     return new BrowserScript({
-      script: proto.getScript(),
-      urlRegexpList: proto.getUrlRegexpList(),
-      browserScriptType: proto.getBrowserScriptType()
+      script: proto.script,
+      urlRegexpList: proto.urlRegexp,
+      browserScriptType: proto.browserScriptType as unknown as BrowserScriptType
     });
   }
 
@@ -60,13 +65,10 @@ export class BrowserScript {
   }
 
   static toProto(browserScript: BrowserScript): BrowserScriptProto {
-    const proto = new BrowserScriptProto();
-    proto.setScript(browserScript.script);
-    proto.setUrlRegexpList(browserScript.urlRegexpList);
-    proto.setBrowserScriptType(browserScript.browserScriptType);
-
-    return proto as any as BrowserScriptProto;
+    return create(BrowserScriptSchema, {
+      script: browserScript.script,
+      urlRegexp: browserScript.urlRegexpList,
+      browserScriptType: browserScript.browserScriptType as unknown as BrowserScriptTypeProto,
+    });
   }
 }
-
-

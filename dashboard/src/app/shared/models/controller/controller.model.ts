@@ -1,4 +1,12 @@
-import {CrawlerStatusProto, ExecutionIdProto, RunCrawlReplyProto, RunCrawlRequestProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlerStatus as CrawlerStatusProto,
+  RunCrawlReply as RunCrawlReplyProto,
+  RunCrawlReplySchema,
+  RunCrawlRequest as RunCrawlRequestProto,
+  RunCrawlRequestSchema,
+} from '../../../../api/controller/v1/controller_pb';
+import {ExecutionId as ExecutionIdProto, ExecutionIdSchema} from '../../../../api/controller/v1/resources_pb';
 
 export class CrawlerStatus {
   runStatus: RunStatus;
@@ -17,9 +25,9 @@ export class CrawlerStatus {
 
   static fromProto(proto: CrawlerStatusProto): CrawlerStatus {
     return new CrawlerStatus({
-      queueSize: proto.getQueuesize(),
-      busyCrawlHostGroupCount: proto.getBusycrawlhostgroupcount(),
-      runStatus: proto.getRunstatus().valueOf() as RunStatus
+      queueSize: Number(proto.queueSize),
+      busyCrawlHostGroupCount: Number(proto.busyCrawlHostGroupCount),
+      runStatus: proto.runStatus.valueOf() as RunStatus
     });
   }
 }
@@ -45,17 +53,13 @@ export class RunCrawlRequest {
 
   static fromProto(proto: RunCrawlRequestProto): RunCrawlRequest {
     return new RunCrawlRequest({
-      jobId: proto.getJobId(),
-      seedId: proto.getSeedId()
+      jobId: proto.jobId,
+      seedId: proto.seedId
     });
   }
 
   static toProto(runCrawlRequest: RunCrawlRequest): RunCrawlRequestProto {
-    const proto = new RunCrawlRequestProto();
-    proto.setJobId(runCrawlRequest.jobId);
-    proto.setSeedId(runCrawlRequest.seedId);
-
-    return proto;
+    return create(RunCrawlRequestSchema, {jobId: runCrawlRequest.jobId, seedId: runCrawlRequest.seedId});
   }
 }
 
@@ -70,14 +74,12 @@ export class RunCrawlReply {
 
   static fromProto(proto: RunCrawlReplyProto): RunCrawlReply {
     return new RunCrawlReply({
-      jobExecutionId: proto.getJobExecutionId()
+      jobExecutionId: proto.jobExecutionId
     });
   }
 
   static toProto(runCrawlReply: RunCrawlReply): RunCrawlReplyProto {
-    const proto = new RunCrawlReplyProto();
-    proto.setJobExecutionId(runCrawlReply.jobExecutionId);
-    return proto;
+    return create(RunCrawlReplySchema, {jobExecutionId: runCrawlReply.jobExecutionId});
   }
 }
 
@@ -92,13 +94,11 @@ export class ExecutionId {
 
   static fromProto(proto: ExecutionIdProto): ExecutionId {
     return new ExecutionId({
-      id: proto.getId()
+      id: proto.id
     });
   }
 
   static toProto(executionId: ExecutionId): ExecutionIdProto {
-    const proto = new ExecutionIdProto();
-    proto.setId(executionId.id);
-    return proto;
+    return create(ExecutionIdSchema, {id: executionId.id});
   }
 }

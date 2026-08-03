@@ -1,4 +1,5 @@
-import {Label as LabelProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {Label as LabelProto, LabelSchema} from '../../../../api/config/v1/resources_pb';
 
 
 export class Label {
@@ -12,15 +13,12 @@ export class Label {
 
   static fromProto(proto: LabelProto): Label {
     return new Label({
-      key: proto.getKey(),
-      value: proto.getValue()
+      key: proto.key,
+      value: proto.value
     });
   }
 
   static toProto(label: Label): LabelProto {
-    const proto = new LabelProto();
-    proto.setKey(label.key);
-    proto.setValue(label.value);
-    return proto;
+    return create(LabelSchema, {key: label.key, value: label.value});
   }
 }

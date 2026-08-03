@@ -15,7 +15,8 @@ import {ConfigApiService} from '../../../core';
 import {combineLatest, Observable, of} from 'rxjs';
 import {ConfigOptions, ConfigPath} from '../func';
 import {createListRequest} from '../func/query';
-import {FieldMask} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
 
 @Injectable({
   providedIn: 'root'
@@ -42,7 +43,7 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
 
         const scopeScript$ = this.backendService.list(createListRequest(Kind.BROWSERSCRIPT.valueOf(),
           {browserScript: new BrowserScript({browserScriptType: BrowserScriptType.SCOPE_CHECK.valueOf()})},
-          new FieldMask().addPaths('browserScript.browserScriptType')
+          create(FieldMaskSchema, {paths: ['browserScript.browserScriptType']})
         ))
           .pipe(
             toArray(),

@@ -1,4 +1,5 @@
-import {Annotation as AnnotationProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {Annotation as AnnotationProto, AnnotationSchema} from '../../../../api/config/v1/resources_pb';
 
 export class Annotation {
   key: string;
@@ -11,15 +12,12 @@ export class Annotation {
 
   static fromProto(proto: AnnotationProto) {
     return new Annotation({
-      key: proto.getKey(),
-      value: proto.getValue()
+      key: proto.key,
+      value: proto.value
     });
   }
 
   static toProto(annotation: Annotation): AnnotationProto {
-    const proto = new AnnotationProto();
-    proto.setKey(annotation.key);
-    proto.setValue(annotation.value);
-    return proto;
+    return create(AnnotationSchema, {key: annotation.key, value: annotation.value});
   }
 }

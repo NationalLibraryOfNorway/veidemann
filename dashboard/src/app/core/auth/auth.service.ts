@@ -1,5 +1,4 @@
 import {Inject, Injectable} from '@angular/core';
-import {Metadata} from 'grpc-web';
 import {OAuthService} from 'angular-oauth2-oidc';
 import {Kind, Role} from '../../shared/models';
 import {AbilityBuilder, createMongoAbility, MongoAbility, PureAbility} from '@casl/ability';
@@ -90,12 +89,12 @@ export class AuthService {
   /**
    * @returns authorization header for API calls
    */
-  get metadata(): Metadata {
+  get metadata(): Record<string, string> {
     const idToken = this.oauthService.getIdToken();
     if (idToken) {
       return {authorization: 'Bearer ' + idToken};
     } else {
-      return null;
+      return {};
     }
   }
 

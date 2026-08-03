@@ -1,8 +1,15 @@
 import {Injectable} from '@angular/core';
 import {from, Observable} from 'rxjs';
 import {count, mergeMap} from 'rxjs/operators';
+import {create} from '@bufbuild/protobuf';
 
-import {FieldMask, GetScriptAnnotationsRequest, ListRequest, UpdateRequest} from '../../../api';
+import {FieldMaskSchema} from '../../../api/commons/v1/resources_pb';
+import {
+  GetScriptAnnotationsRequestSchema,
+  ListRequest,
+  ListRequestSchema,
+  UpdateRequestSchema
+} from '../../../api/config/v1/config_pb';
 import {
   Annotation,
   BrowserConfig,
@@ -71,24 +78,23 @@ export class ConfigService
     let listRequest: ListRequest;
 
     if (ids.length > 0) {
-      listRequest = new ListRequest();
-      listRequest.setKind(updateTemplate.kind.valueOf());
-      listRequest.setIdList(ids);
+      listRequest = create(ListRequestSchema, {
+        kind: updateTemplate.kind.valueOf(),
+        id: ids
+      });
     } else {
       // use previous stored list request as basis
       // but set page size and offset to defaults because we want to update ALL requested objects
       listRequest = this.effectiveListRequest;
-      listRequest.setPageSize(0);
-      listRequest.setOffset(0);
+      listRequest.pageSize = 0;
+      listRequest.offset = 0;
     }
 
-    const fieldMask = new FieldMask();
-    fieldMask.setPathsList(paths);
-
-    const updateRequest = new UpdateRequest();
-    updateRequest.setListRequest(listRequest);
-    updateRequest.setUpdateTemplate(ConfigObject.toProto(updateTemplate));
-    updateRequest.setUpdateMask(fieldMask);
+    const updateRequest = create(UpdateRequestSchema, {
+      listRequest,
+      updateTemplate: ConfigObject.toProto(updateTemplate),
+      updateMask: create(FieldMaskSchema, {paths})
+    });
 
     return this.load(this.configApiService.update(updateRequest));
   }
@@ -125,29 +131,29 @@ export class ConfigService
   }
 
   private getListRequest(query: ConfigQuery): ListRequest {
-    const listRequest = new ListRequest();
-    listRequest.setKind(query.kind.valueOf());
-
-    listRequest.setOffset(query.pageIndex * query.pageSize);
-    listRequest.setPageSize(query.pageSize);
+    const listRequest = create(ListRequestSchema, {
+      kind: query.kind.valueOf(),
+      offset: query.pageIndex * query.pageSize,
+      pageSize: query.pageSize
+    });
 
     const queryTemplate = new ConfigObject();
-    const fieldMask = new FieldMask();
+    const fieldMask = create(FieldMaskSchema);
 
     switch (query.kind) {
       case Kind.CRAWLJOB:
         queryTemplate.crawlJob = new CrawlJob();
 
         if (query.scheduleId) {
-          fieldMask.addPaths('crawlJob.scheduleRef');
+          fieldMask.paths.push('crawlJob.scheduleRef');
           queryTemplate.crawlJob.scheduleRef = new ConfigRef({id: query.scheduleId, kind: Kind.CRAWLSCHEDULECONFIG});
         }
         if (query.crawlConfigId) {
-          fieldMask.addPaths('crawlJob.crawlConfigRef');
+          fieldMask.paths.push('crawlJob.crawlConfigRef');
           queryTemplate.crawlJob.crawlConfigRef = new ConfigRef({id: query.crawlConfigId, kind: Kind.CRAWLCONFIG});
         }
         if (query.disabled !== null) {
-          fieldMask.addPaths('crawlJob.disabled');
+          fieldMask.paths.push('crawlJob.disabled');
           queryTemplate.crawlJob.disabled = query.disabled;
         }
         break;
@@ -155,18 +161,18 @@ export class ConfigService
         queryTemplate.crawlConfig = new CrawlConfig();
 
         if (query.collectionId) {
-          fieldMask.addPaths('crawlConfig.collectionRef');
+          fieldMask.paths.push('crawlConfig.collectionRef');
           queryTemplate.crawlConfig.collectionRef = new ConfigRef({id: query.collectionId, kind: Kind.COLLECTION});
         }
         if (query.browserConfigId) {
-          fieldMask.addPaths('crawlConfig.browserConfigRef');
+          fieldMask.paths.push('crawlConfig.browserConfigRef');
           queryTemplate.crawlConfig.browserConfigRef = new ConfigRef({
             id: query.browserConfigId,
             kind: Kind.BROWSERCONFIG
           });
         }
         if (query.politenessId) {
-          fieldMask.addPaths('crawlConfig.politenessRef');
+          fieldMask.paths.push('crawlConfig.politenessRef');
           queryTemplate.crawlConfig.politenessRef = new ConfigRef({
             id: query.politenessId,
             kind: Kind.POLITENESSCONFIG
@@ -177,7 +183,7 @@ export class ConfigService
         queryTemplate.browserConfig = new BrowserConfig();
 
         if (query.scriptIdList.length) {
-          fieldMask.addPaths('browserConfig.scriptRef');
+          fieldMask.paths.push('browserConfig.scriptRef');
           queryTemplate.browserConfig.scriptRefList = query.scriptIdList.map(id => new ConfigRef({
             id,
             kind: Kind.BROWSERSCRIPT
@@ -188,15 +194,15 @@ export class ConfigService
         queryTemplate.seed = new Seed();
 
         if (query.entityId) {
-          fieldMask.addPaths('seed.entityRef');
+          fieldMask.paths.push('seed.entityRef');
           queryTemplate.seed.entityRef = new ConfigRef({id: query.entityId, kind: Kind.CRAWLENTITY});
         }
         if (query.crawlJobIdList.length) {
-          fieldMask.addPaths('seed.jobRef');
+          fieldMask.paths.push('seed.jobRef');
           queryTemplate.seed.jobRefList = query.crawlJobIdList.map(id => new ConfigRef({id, kind: Kind.CRAWLJOB}));
         }
         if (query.disabled !== null) {
-          fieldMask.addPaths('seed.disabled');
+          fieldMask.paths.push('seed.disabled');
           queryTemplate.seed.disabled = query.disabled;
         }
         break;
@@ -211,27 +217,27 @@ export class ConfigService
           // "email:" roleMapping email
           if (name.startsWith('group:')) {
             queryTemplate.roleMapping.group = name.substring(name.indexOf(':') + 1);
-            fieldMask.addPaths('roleMapping.group');
+            fieldMask.paths.push('roleMapping.group');
           } else {
             let email = name;
             if (name.startsWith('email:')) {
               email = name.substring(name.indexOf(':') + 1);
             }
             queryTemplate.roleMapping.email = email;
-            fieldMask.addPaths('roleMapping.email');
+            fieldMask.paths.push('roleMapping.email');
           }
         }
         break;
     }
 
-    if (fieldMask.getPathsList().length > 0) {
-      listRequest.setQueryTemplate(ConfigObject.toProto(queryTemplate));
-      listRequest.setQueryMask(fieldMask);
+    if (fieldMask.paths.length > 0) {
+      listRequest.queryTemplate = ConfigObject.toProto(queryTemplate);
+      listRequest.queryMask = fieldMask;
     }
 
     if (query.direction && query.active) {
-      listRequest.setOrderByPath('meta.' + query.active);
-      listRequest.setOrderDescending(query.direction === 'desc');
+      listRequest.orderByPath = 'meta.' + query.active;
+      listRequest.orderDescending = query.direction === 'desc';
     }
 
     if (query.term !== null && query.kind !== Kind.ROLEMAPPING) {
@@ -241,26 +247,26 @@ export class ConfigService
       const name = parts[0].trim();
 
       if (label) {
-        listRequest.setLabelSelectorList([label]);
+        listRequest.labelSelector = [label];
       }
 
       if (name) {
         if (name.startsWith('regex:')) {
           const regex = name.substring(name.indexOf(':') + 1);
-          listRequest.setNameRegex(regex);
+          listRequest.nameRegex = regex;
         } else if (name.startsWith('"') && name.endsWith('"')) {
           const exact = '^' + escapeRegex(name.substring(1, name.length - 1)) + '$';
-          listRequest.setNameRegex(exact);
+          listRequest.nameRegex = exact;
         } else if (query.kind === Kind.SEED) {
           if (name.startsWith('.')) {
             const subDomainSearch = '^(?:https?://)?.*' + escapeRegex(name) + '/?';
-            listRequest.setNameRegex(subDomainSearch);
+            listRequest.nameRegex = subDomainSearch;
           } else {
             const commonSearch = '^(?:https?://)?(?:w{3}\.)?' + escapeRegex(name) + '/?';
-            listRequest.setNameRegex(commonSearch);
+            listRequest.nameRegex = commonSearch;
           }
         } else {
-          listRequest.setNameRegex(escapeRegex(name));
+          listRequest.nameRegex = escapeRegex(name);
         }
       }
     }
@@ -268,11 +274,12 @@ export class ConfigService
   }
 
   getScriptAnnotations(jobId: string, seedId?: string): Observable<Annotation[]> {
-    const request = new GetScriptAnnotationsRequest();
     if (jobId) {
-      request.setJob(ConfigRef.toProto(new ConfigRef({kind: Kind.CRAWLJOB, id: jobId})));
+      const request = create(GetScriptAnnotationsRequestSchema, {
+        job: ConfigRef.toProto(new ConfigRef({kind: Kind.CRAWLJOB, id: jobId}))
+      });
       if (seedId) {
-        request.setSeed(ConfigRef.toProto(new ConfigRef({kind: Kind.SEED, id: seedId})));
+        request.seed = ConfigRef.toProto(new ConfigRef({kind: Kind.SEED, id: seedId}));
       }
       return this.configApiService.getScriptAnnotations(request);
     }

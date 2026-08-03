@@ -1,4 +1,8 @@
-import {CrawlHostGroupConfig as CrawlHostGroupConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlHostGroupConfig as CrawlHostGroupConfigProto,
+  CrawlHostGroupConfigSchema,
+} from '../../../../api/config/v1/resources_pb';
 import {ConfigObject} from './configobject.model';
 import {IpRange} from './ip-range.model';
 
@@ -27,19 +31,16 @@ export class CrawlHostGroupConfig {
     this.retryDelaySeconds = retryDelaySeconds;
   }
 
-  static fromProto(proto): CrawlHostGroupConfig {
+  static fromProto(proto: CrawlHostGroupConfigProto): CrawlHostGroupConfig {
     // a small hack, see https://github.com/grpc/grpc/issues/2227
-    const delayFactor = parseFloat(proto.getDelayFactor().toPrecision(5));
+    const delayFactor = parseFloat(proto.delayFactor.toPrecision(5));
     return new CrawlHostGroupConfig({
-      ipRangeList: proto.getIpRangeList().map(ipRangeProto => new IpRange({
-        ipFrom: ipRangeProto.getIpFrom(),
-        ipTo: ipRangeProto.getIpTo()
-      })),
-      minTimeBetweenPageLoadMs: proto.getMinTimeBetweenPageLoadMs(),
-      maxTimeBetweenPageLoadMs: proto.getMaxTimeBetweenPageLoadMs(),
+      ipRangeList: proto.ipRange.map(IpRange.fromProto),
+      minTimeBetweenPageLoadMs: Number(proto.minTimeBetweenPageLoadMs),
+      maxTimeBetweenPageLoadMs: Number(proto.maxTimeBetweenPageLoadMs),
       delayFactor,
-      maxRetries: proto.getMaxRetries(),
-      retryDelaySeconds: proto.getRetryDelaySeconds()
+      maxRetries: proto.maxRetries,
+      retryDelaySeconds: proto.retryDelaySeconds
     });
   }
 
@@ -101,16 +102,14 @@ export class CrawlHostGroupConfig {
   }
 
   static toProto(crawlHostGroupConfig: CrawlHostGroupConfig) {
-    const proto = new CrawlHostGroupConfigProto();
-    proto.setIpRangeList(crawlHostGroupConfig.ipRangeList.map(ipRange => IpRange.toProto(ipRange)));
-    proto.setMinTimeBetweenPageLoadMs(crawlHostGroupConfig.minTimeBetweenPageLoadMs);
-    proto.setMaxTimeBetweenPageLoadMs(crawlHostGroupConfig.maxTimeBetweenPageLoadMs);
-    proto.setDelayFactor(crawlHostGroupConfig.delayFactor);
-    proto.setMaxRetries(crawlHostGroupConfig.maxRetries);
-    proto.setRetryDelaySeconds(crawlHostGroupConfig.retryDelaySeconds);
-
-    return proto;
+    return create(CrawlHostGroupConfigSchema, {
+      ipRange: crawlHostGroupConfig.ipRangeList.map(IpRange.toProto),
+      minTimeBetweenPageLoadMs: BigInt(crawlHostGroupConfig.minTimeBetweenPageLoadMs || 0),
+      maxTimeBetweenPageLoadMs: BigInt(crawlHostGroupConfig.maxTimeBetweenPageLoadMs || 0),
+      delayFactor: crawlHostGroupConfig.delayFactor,
+      maxRetries: crawlHostGroupConfig.maxRetries,
+      retryDelaySeconds: crawlHostGroupConfig.retryDelaySeconds,
+    });
   }
 }
-
 

@@ -44,8 +44,6 @@
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [
-              "google-protobuf/google/protobuf/timestamp_pb.js",
-              "google-protobuf/google/protobuf/empty_pb.js",
               "ip-address"
             ],
             "browser": "src/main.ts",
@@ -91,17 +89,6 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "prebundle": {
-              "exclude": [
-                "google-protobuf",
-                "google-protobuf/google/protobuf/any_pb.js",
-                "google-protobuf/google/protobuf/timestamp_pb.js",
-                "google-protobuf/google/protobuf/empty_pb.js",
-                "grpc-web"
-              ]
-            }
-          },
           "configurations": {
             "production": {
               "buildTarget": "veidemann-dashboard:build:production"

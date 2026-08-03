@@ -1,11 +1,13 @@
 import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
+import {create} from '@bufbuild/protobuf';
 import { Detail, Page, Sort, Watch } from '../../../shared/func';
 import { LoadingService } from '../../../shared/services';
 import { Getter } from '../../../shared/directives';
 import { ConfigObject, PageLog } from '../../../shared/models';
 import { LogApiService } from '../../../core';
-import { FieldMask, PageLogListRequest } from '../../../../api';
+import { FieldMaskSchema } from '../../../../api/commons/v1/resources_pb';
+import { PageLogListRequest, PageLogListRequestSchema } from '../../../../api/log/v1/log_pb';
 
 
 export interface PageLogQuery extends Page, Sort, Watch {
@@ -29,8 +31,7 @@ export class PageLogService extends LoadingService implements Getter<PageLog> {
   }
 
   get(query: Detail): Observable<PageLog> {
-    const listRequest = new PageLogListRequest();
-    listRequest.addWarcId(query.id);
+    const listRequest = create(PageLogListRequestSchema, {warcId: [query.id]});
     return this.logApiService.listPageLogs(listRequest);
   }
 
@@ -39,40 +40,40 @@ export class PageLogService extends LoadingService implements Getter<PageLog> {
   }
 
   private getListRequest(query: PageLogQuery): PageLogListRequest {
-    const listRequest = new PageLogListRequest();
+    const listRequest = create(PageLogListRequestSchema, {
+      offset: query.pageIndex * query.pageSize,
+      pageSize: query.pageSize
+    });
     const queryTemplate = new PageLog();
-    const fieldMask = new FieldMask();
-
-    listRequest.setOffset(query.pageIndex * query.pageSize);
-    listRequest.setPageSize(query.pageSize);
+    const fieldMask = create(FieldMaskSchema);
 
     if (query.executionId) {
       queryTemplate.executionId = query.executionId;
-      fieldMask.addPaths('executionId');
+      fieldMask.paths.push('executionId');
     }
 
     if (query.jobExecutionId) {
       queryTemplate.jobExecutionId = query.jobExecutionId;
-      fieldMask.addPaths('jobExecutionId');
+      fieldMask.paths.push('jobExecutionId');
     }
 
     if (query.uri) {
       queryTemplate.uri = query.uri;
-      fieldMask.addPaths('uri');
+      fieldMask.paths.push('uri');
     }
 
-    if (fieldMask.getPathsList().length > 0) {
-      listRequest.setQueryTemplate(PageLog.toProto(queryTemplate));
-      listRequest.setQueryMask(fieldMask);
+    if (fieldMask.paths.length > 0) {
+      listRequest.queryTemplate = PageLog.toProto(queryTemplate);
+      listRequest.queryMask = fieldMask;
     }
 
     if (query.watch) {
-      listRequest.setWatch(query.watch);
+      listRequest.watch = query.watch;
     }
 
     if (query.active && query.direction) {
-      listRequest.setOrderByPath(query.active);
-      listRequest.setOrderDescending(query.direction === 'desc');
+      listRequest.orderByPath = query.active;
+      listRequest.orderDescending = query.direction === 'desc';
     }
 
     return listRequest;

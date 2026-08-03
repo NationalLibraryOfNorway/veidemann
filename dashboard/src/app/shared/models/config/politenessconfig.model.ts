@@ -1,4 +1,9 @@
-import {PolitenessConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  PolitenessConfig as PolitenessConfigProto,
+  PolitenessConfigSchema,
+  PolitenessConfig_RobotsPolicy as RobotsPolicyProto,
+} from '../../../../api/config/v1/resources_pb';
 import {ConfigObject} from './configobject.model';
 import {isNumeric} from '../../func';
 
@@ -35,23 +40,21 @@ export class PolitenessConfig {
   static fromProto(proto: PolitenessConfigProto): PolitenessConfig {
     // a small hack, see https://github.com/grpc/grpc/issues/2227
     return new PolitenessConfig({
-      robotsPolicy: proto.getRobotsPolicy(),
-      customRobots: proto.getCustomRobots(),
-      minimumRobotsValidityDurationS: proto.getMinimumRobotsValidityDurationS(),
-      useHostname: proto.getUseHostname()
+      robotsPolicy: proto.robotsPolicy as unknown as RobotsPolicy,
+      customRobots: proto.customRobots,
+      minimumRobotsValidityDurationS: proto.minimumRobotsValidityDurationS,
+      useHostname: proto.useHostname
     });
   }
 
 
   static toProto(politenessConfig: PolitenessConfig): PolitenessConfigProto {
-    const proto = new PolitenessConfigProto();
-
-    proto.setRobotsPolicy(politenessConfig.robotsPolicy);
-    proto.setCustomRobots(politenessConfig.customRobots);
-    proto.setMinimumRobotsValidityDurationS(politenessConfig.minimumRobotsValidityDurationS);
-    proto.setUseHostname(politenessConfig.useHostname);
-
-    return proto;
+    return create(PolitenessConfigSchema, {
+      robotsPolicy: politenessConfig.robotsPolicy as unknown as RobotsPolicyProto,
+      customRobots: politenessConfig.customRobots,
+      minimumRobotsValidityDurationS: politenessConfig.minimumRobotsValidityDurationS,
+      useHostname: politenessConfig.useHostname,
+    });
   }
 
   static mergeConfigs(configObjects: ConfigObject[]): PolitenessConfig {

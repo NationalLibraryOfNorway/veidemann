@@ -1,4 +1,4 @@
-import {CountResponseProto} from '../../../../api';
+import {CountResponse as CountResponseProto} from '../../../../api/frontier/v1/frontier_pb';
 
 export class CountResponse {
   count: number;
@@ -11,7 +11,7 @@ export class CountResponse {
 
   static fromProto(proto: CountResponseProto) {
     const countResponse = new CountResponse({
-      count: proto.getCount()
+      count: Number(proto.count)
     });
     return countResponse;
   }

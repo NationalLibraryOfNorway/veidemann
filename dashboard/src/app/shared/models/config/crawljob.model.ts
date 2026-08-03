@@ -1,4 +1,10 @@
-import {CrawlJobProto, CrawlLimitsConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlJob as CrawlJobProto,
+  CrawlJobSchema,
+  CrawlLimitsConfig as CrawlLimitsConfigProto,
+  CrawlLimitsConfigSchema,
+} from '../../../../api/config/v1/resources_pb';
 import {ConfigRef} from './configref.model';
 import {ConfigObject} from './configobject.model';
 import {Kind} from './kind.model';
@@ -17,16 +23,16 @@ export class CrawlLimitsConfig {
 
   static fromProto(proto: CrawlLimitsConfigProto): CrawlLimitsConfig {
     return new CrawlLimitsConfig({
-      maxDurationS: proto.getMaxDurationS(),
-      maxBytes: proto.getMaxBytes()
+      maxDurationS: Number(proto.maxDurationS),
+      maxBytes: Number(proto.maxBytes)
     });
   }
 
   static toProto(crawlLimitsConfig): CrawlLimitsConfigProto {
-    const proto = new CrawlLimitsConfigProto();
-    proto.setMaxDurationS(crawlLimitsConfig.maxDurationS || 0);
-    proto.setMaxBytes(crawlLimitsConfig.maxBytes || 0);
-    return proto;
+    return create(CrawlLimitsConfigSchema, {
+      maxDurationS: BigInt(crawlLimitsConfig.maxDurationS || 0),
+      maxBytes: BigInt(crawlLimitsConfig.maxBytes || 0),
+    });
   }
 }
 
@@ -53,22 +59,22 @@ export class CrawlJob {
 
   static fromProto(proto: CrawlJobProto): CrawlJob {
     return new CrawlJob({
-      scheduleRef: proto.getScheduleRef() ? ConfigRef.fromProto(proto.getScheduleRef()) : undefined,
-      crawlConfigRef: proto.getCrawlConfigRef() ? ConfigRef.fromProto(proto.getCrawlConfigRef()) : undefined,
-      scopeScriptRef: proto.getScopeScriptRef() ? ConfigRef.fromProto(proto.getScopeScriptRef()) : undefined,
-      limits: CrawlLimitsConfig.fromProto(proto.getLimits()),
-      disabled: proto.getDisabled(),
+      scheduleRef: proto.scheduleRef ? ConfigRef.fromProto(proto.scheduleRef) : undefined,
+      crawlConfigRef: proto.crawlConfigRef ? ConfigRef.fromProto(proto.crawlConfigRef) : undefined,
+      scopeScriptRef: proto.scopeScriptRef ? ConfigRef.fromProto(proto.scopeScriptRef) : undefined,
+      limits: proto.limits ? CrawlLimitsConfig.fromProto(proto.limits) : undefined,
+      disabled: proto.disabled,
     });
   }
 
   static toProto(crawlJob: CrawlJob): CrawlJobProto {
-    const proto = new CrawlJobProto();
-    proto.setScheduleRef(ConfigRef.toProto(crawlJob.scheduleRef));
-    proto.setScopeScriptRef(ConfigRef.toProto(crawlJob.scopeScriptRef));
-    proto.setCrawlConfigRef(ConfigRef.toProto(crawlJob.crawlConfigRef));
-    proto.setLimits(CrawlLimitsConfig.toProto(crawlJob.limits));
-    proto.setDisabled(crawlJob.disabled);
-    return proto;
+    return create(CrawlJobSchema, {
+      scheduleRef: ConfigRef.toProto(crawlJob.scheduleRef),
+      scopeScriptRef: ConfigRef.toProto(crawlJob.scopeScriptRef),
+      crawlConfigRef: ConfigRef.toProto(crawlJob.crawlConfigRef),
+      limits: CrawlLimitsConfig.toProto(crawlJob.limits),
+      disabled: crawlJob.disabled,
+    });
   }
 
   static mergeConfigs(configObjects: ConfigObject[]): CrawlJob {

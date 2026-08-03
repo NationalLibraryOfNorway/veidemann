@@ -1,4 +1,8 @@
-import {CrawlHostGroupConfig as CrawlHostGroupConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlHostGroupConfig_IpRange as IpRangeProto,
+  CrawlHostGroupConfig_IpRangeSchema,
+} from '../../../../api/config/v1/resources_pb';
 
 export class IpRange {
   ipFrom: string;
@@ -12,10 +16,10 @@ export class IpRange {
     this.ipTo = ipTo;
   }
 
-  static fromProto(proto: CrawlHostGroupConfigProto.IpRange): IpRange {
+  static fromProto(proto: IpRangeProto): IpRange {
     return new IpRange({
-      ipFrom: proto.getIpFrom(),
-      ipTo: proto.getIpTo()
+      ipFrom: proto.ipFrom,
+      ipTo: proto.ipTo
     });
   }
 
@@ -28,11 +32,7 @@ export class IpRange {
     return Array.from(intersection) as IpRange[];
   }
 
-  static toProto(ipRange: IpRange): CrawlHostGroupConfigProto.IpRange {
-    const proto = new CrawlHostGroupConfigProto.IpRange();
-    proto.setIpFrom(ipRange.ipFrom);
-    proto.setIpTo(ipRange.ipTo);
-    return proto;
+  static toProto(ipRange: IpRange): IpRangeProto {
+    return create(CrawlHostGroupConfig_IpRangeSchema, {ipFrom: ipRange.ipFrom, ipTo: ipRange.ipTo});
   }
 }
-

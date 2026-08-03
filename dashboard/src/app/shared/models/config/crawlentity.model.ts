@@ -1,4 +1,5 @@
-import {CrawlEntityProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {CrawlEntity as CrawlEntityProto, CrawlEntitySchema} from '../../../../api/config/v1/resources_pb';
 import {ConfigObject} from './configobject.model';
 
 export class CrawlEntity {
@@ -12,6 +13,6 @@ export class CrawlEntity {
   }
 
   static toProto(crawlEntity: CrawlEntity): CrawlEntityProto {
-    return new CrawlEntityProto();
+    return create(CrawlEntitySchema);
   }
 }

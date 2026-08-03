@@ -1,4 +1,9 @@
-import {Collection as CollectionProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  Collection as CollectionProto,
+  CollectionSchema,
+  Collection_RotationPolicy as RotationPolicyProto,
+} from '../../../../api/config/v1/resources_pb';
 import {SubCollection} from './subcollection.model';
 import {isNumeric} from '../../func';
 
@@ -35,25 +40,21 @@ export class Collection {
 
   static fromProto(proto: CollectionProto): Collection {
     return new Collection({
-      collectionDedupPolicy: proto.getCollectionDedupPolicy(),
-      fileRotationPolicy: proto.getFileRotationPolicy(),
-      compress: proto.getCompress(),
-      fileSize: proto.getFileSize(),
-      subCollectionsList: proto.getSubCollectionsList().map(subCollectionProto => new SubCollection({
-        name: subCollectionProto.getName(),
-        type: subCollectionProto.getType()
-      }))
+      collectionDedupPolicy: proto.collectionDedupPolicy as unknown as RotationPolicy,
+      fileRotationPolicy: proto.fileRotationPolicy as unknown as RotationPolicy,
+      compress: proto.compress,
+      fileSize: Number(proto.fileSize),
+      subCollectionsList: proto.subCollections.map(SubCollection.fromProto)
     });
   }
 
   static toProto(collection: Collection): CollectionProto {
-    const proto = new CollectionProto();
-    proto.setCollectionDedupPolicy(collection.collectionDedupPolicy);
-    proto.setFileRotationPolicy(collection.fileRotationPolicy);
-    proto.setCompress(collection.compress);
-    proto.setFileSize(collection.fileSize);
-    proto.setSubCollectionsList(collection.subCollectionsList.map(subCollection => SubCollection.toProto(subCollection)));
-    return proto;
+    return create(CollectionSchema, {
+      collectionDedupPolicy: collection.collectionDedupPolicy as unknown as RotationPolicyProto,
+      fileRotationPolicy: collection.fileRotationPolicy as unknown as RotationPolicyProto,
+      compress: collection.compress,
+      fileSize: BigInt(collection.fileSize || 0),
+      subCollections: collection.subCollectionsList.map(SubCollection.toProto),
+    });
   }
 }
-
