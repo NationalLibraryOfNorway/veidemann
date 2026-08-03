@@ -29,14 +29,14 @@ deploy:
     releases:
       - name: cert-manager
         remoteChart: oci://quay.io/jetstack/charts/cert-manager
-        version: 1.20.2
+        version: 1.21.1
         namespace: cert-manager
         createNamespace: true
         setValues:
           crds.enabled: true
       - name: redis
         remoteChart: oci://registry-1.docker.io/cloudpirates/redis
-        version: 0.27.4
+        version: 0.33.5
         namespace: default
         setValues:
           metrics.enabled: true
@@ -127,7 +127,7 @@ profiles:
           - name: dex
             repo: https://charts.dexidp.io
             remoteChart: dex
-            version: 0.24.0
+            version: 0.24.1
             valuesFiles:
               - deploy/helm/dex/values.yaml
     patches:
