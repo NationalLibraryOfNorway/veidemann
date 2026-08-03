@@ -6,10 +6,11 @@ import {CrawlLog} from '../../../shared/models';
 import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
 import {CrawlLogListRequest, CrawlLogListRequestSchema} from '../../../../api/log/v1/log_pb';
 import {LoadingService} from '../../../shared/services';
-import {Detail, Page, Sort, Watch} from '../../../shared/func';
+import {Detail, Sort, Watch} from '../../../shared/func';
+import {ListRange} from '../../../shared/models';
 
 
-export interface CrawlLogQuery extends Page, Sort, Watch {
+export interface CrawlLogQuery extends Sort, Watch {
   jobExecutionId: string;
   executionId: string;
 }
@@ -22,10 +23,10 @@ export class CrawlLogService extends LoadingService {
   private logApiService = inject(LogApiService);
 
 
-  static getListRequest(query: CrawlLogQuery): CrawlLogListRequest {
+  static getListRequest(query: CrawlLogQuery, range: ListRange): CrawlLogListRequest {
     const listRequest = create(CrawlLogListRequestSchema, {
-      offset: query.pageIndex * query.pageSize,
-      pageSize: query.pageSize
+      offset: range.offset,
+      pageSize: range.pageSize
     });
     const queryTemplate = new CrawlLog();
     const fieldMask = create(FieldMaskSchema);
@@ -49,11 +50,6 @@ export class CrawlLogService extends LoadingService {
       listRequest.watch = query.watch;
     }
 
-    if (query.direction) {
-      listRequest.orderByPath = query.active;
-      listRequest.orderDescending = query.direction === 'desc';
-    }
-
     return listRequest;
   }
 
@@ -63,7 +59,7 @@ export class CrawlLogService extends LoadingService {
     return this.logApiService.listCrawlLogs(listRequest);
   }
 
-  search(query: CrawlLogQuery): Observable<CrawlLog> {
-    return this.logApiService.listCrawlLogs(CrawlLogService.getListRequest(query));
+  search(query: CrawlLogQuery, range: ListRange): Observable<CrawlLog> {
+    return this.logApiService.listCrawlLogs(CrawlLogService.getListRequest(query, range));
   }
 }

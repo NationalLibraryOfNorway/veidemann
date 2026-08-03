@@ -9,14 +9,17 @@
         (queryChange)="onQueryChange($event)"></app-page-log-query>
         <app-pagelog-list fxFlex
           [dataSource]="dataSource"
-          [length]="pageLength$ | async"
-          [pageIndex]="pageIndex()"
-          [pageSize]="pageSize()"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)"
-          (page)="onPage($event)">
+          (sort)="onSort($event)">
+          @if (can('read', 'jobexecution')) {
+            <ng-container *appExtra="let row">
+              <a mat-icon-button [routerLink]="['/report', 'jobexecution', row.jobExecutionId]"
+                aria-label="Go to job execution" matTooltip="Go to job execution"
+                (click)="$event.stopPropagation()"><mat-icon>hdr_strong</mat-icon></a>
+            </ng-container>
+          }
           <ng-container *appAction="let row">
             @if (can('read', 'jobexecution')) {
               <a mat-menu-item

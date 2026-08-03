@@ -7,6 +7,5 @@ export * from './job-execution-status-query/job-execution-status-query.component
 export * from './job-execution-status-list/job-execution-status-list.component';
 export * from './page-log-list/page-log-list.component';
 export * from './page-log-status/page-log-status.component';
-export * from './resource/resource.component';
 export * from './crawl-execution-status-list/crawl-execution-status-list.component';
 export * from './job-execution-status/job-execution-status.component';

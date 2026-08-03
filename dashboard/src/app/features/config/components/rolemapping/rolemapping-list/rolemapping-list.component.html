@@ -1,85 +1,35 @@
 <div fxLayout="column" class="container">
-  @if (multiSelect && selectedRows().length > 1) {
-    <table class="mat-table">
-      <tr class="mat-row no-interaction">
-        @if (!allSelected()) {
-          <td class="mat-cell">
-            <span i18n="@@baseListConfigsInPageSelectedMessage">
-          <strong>{{selectedRows().length}}</strong> rows selected
-        </span>
-            @if (isAllInPageSelected()) {
-              <button mat-button (click)="onSelectAll()">
-                <strong i18n="@@baseListSelectAllConfigInDBButton">Select all rows in database</strong>
-              </button>
-            }
-          </td>
-        }
-        @if (allSelected()) {
-          <td class="mat-cell">
-            <span i18n="@@baseListAllConfigurationsSelectedInfoText">
-          All <b>{{totalLength() || ''}}</b> rows in database selected
-        </span>
-            <button mat-button (click)="onDeselectAll()">
-              <strong i18n="@@baseListRemoveSelectionButton">Remove selection</strong>
-            </button>
-          </td>
-        }
-        <td class="mat-cell action-cell">
-          <ng-content></ng-content>
-        </td>
-      </tr>
-    </table>
+  @if (selectedRows().length > 0) {
+    <mat-toolbar class="selection-bar" aria-label="Selection actions">
+      <span><strong>{{selectedRows().length}}</strong> loaded mappings selected</span>
+      @if (isAllLoadedSelected() && totalLength() > dataSource.length) {
+        <button mat-button (click)="onSelectAll()">Select all {{totalLength()}} matching mappings</button>
+      }
+      <span class="selection-spacer"></span>
+      <ng-content></ng-content>
+    </mat-toolbar>
   }
   <div fxFlex class="scroll">
-    <table mat-table [dataSource]="dataSource">
-      <!-- Checkbox Column -->
-      <ng-container matColumnDef="select">
-        <th mat-header-cell *matHeaderCellDef>
-          <mat-checkbox #masterCheckbox (change)="onMasterCheckboxToggle(masterCheckbox.checked)"
-            class="checkbox-padding"
-            [checked]="isAllInPageSelected()"
-            [indeterminate]="selectedRows().length > 0 && !isAllInPageSelected()">
-          </mat-checkbox>
-        </th>
-        <td mat-cell *matCellDef="let row" class="checkbox-padding">
-          <mat-checkbox (click)="$event.stopPropagation()"
-            (change)=onCheckboxToggle(row)
-            [checked]="selection.isSelected(row)">
-          </mat-checkbox>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="email">
-        <th i18n="@@roleMappingListEmailHeaderCell" mat-header-cell *matHeaderCellDef>Email</th>
-        <td mat-cell *matCellDef="let row">{{row.roleMapping.email}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="group">
-        <th i18n="@@roleMappingListGroupHeaderCell" mat-header-cell *matHeaderCellDef>Group</th>
-        <td mat-cell *matCellDef="let row">{{row.roleMapping.group}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="role">
-        <th i18n="@@roleMappingListRoleHeaderCell" mat-header-cell *matHeaderCellDef>Role(s)</th>
-        <td mat-cell *matCellDef="let row">{{getRoles(row.roleMapping.roleList)}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>ID</th>
-        <td mat-cell *matCellDef="let row">{{row.id}}</td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"
-        [ngClass]="isSelected(row) ? 'row-selected': isChecked(row) ? 'row-checked' : ''"
-      (click)="onRowClick(row)"></tr>
-    </table>
-
-    <mat-paginator (page)="page.emit($event)"
-      [length]="totalLength()"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      [pageSizeOptions]="pageOptions">
-    </mat-paginator>
+    <mat-list aria-label="Role mappings">
+      @for (row of dataSource?.rows$ | async; track row.id) {
+        <mat-list-item class="item-row" tabindex="0"
+          (click)="onRowClick(row, $event)" (keydown)="onRowKeydown(row, $event)">
+          <mat-checkbox matListItemIcon [checked]="isChecked(row)"
+            [attr.aria-label]="'Select role mapping ' + (row.roleMapping.email || row.roleMapping.group)"
+            (click)="$event.stopPropagation()" (change)="onCheckboxToggle(row)"></mat-checkbox>
+          <a matListItemTitle class="primary-detail-link" [href]="detailHref(row)"
+            (click)="onPrimaryLink(row, $event)">{{row.roleMapping.email || row.roleMapping.group}}</a>
+          <span matListItemLine>
+            @if (row.roleMapping.email && row.roleMapping.group) { {{row.roleMapping.group}} · }
+            {{getRoles(row.roleMapping.roleList).join(', ')}}
+          </span>
+        </mat-list-item>
+      }
+    </mat-list>
+    <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>
+    @if (dataSource?.appendLoading$ | async) { <div class="load-state" role="status">Loading more…</div> }
+    @if (dataSource?.appendFailed$ | async) {
+      <div class="load-state" role="alert">Could not load more mappings. <button mat-button (click)="retry()">Retry</button></div>
+    }
   </div>
 </div>

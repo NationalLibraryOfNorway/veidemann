@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, OnDestroy, Si
 import {ActivatedRoute, NavigationStart, Params, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
-import {BehaviorSubject, combineLatest, EMPTY, Observable, of, Subject} from 'rxjs';
+import {combineLatest, EMPTY, Observable, of, Subject} from 'rxjs';
 import {
   distinctUntilChanged,
   filter,
@@ -23,17 +23,16 @@ import {
   DeleteMultiDialogComponent,
   EntityViewComponent,
   Parcel,
-  RoleMappingDetailsComponent,
   RoleMappingListComponent,
   RunCrawlDialogComponent
 } from '../../components';
-import {PageEvent} from '@angular/material/paginator';
 import {SortDirection} from '@angular/material/sort';
 import {ConfigService} from '../../../../shared/services';
 import {ConfigQuery, Sort} from '../../../../shared/func';
 import {OptionsService} from '../../services';
 import {
   configKindFromPath,
+  ConfigPath,
   configQueryFromParamMap,
   ConfigDialogData,
   ConfigOptions,
@@ -83,7 +82,6 @@ import {MongoAbility} from '@casl/ability';
     MatIcon,
     MatProgressBar,
     RoleMappingListComponent,
-    RoleMappingDetailsComponent,
     FilterDirective,
     RouterLink,
     ActionDirective,
@@ -117,11 +115,10 @@ export class ConfigurationsComponent implements OnDestroy {
   private destroyRef = inject(DestroyRef);
 
   readonly Kind = Kind;
+  readonly ConfigPath = ConfigPath;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   length$: Observable<number>;
-  readonly pageSize: Signal<number>;
-  readonly pageIndex: Signal<number>;
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
 
@@ -147,9 +144,6 @@ export class ConfigurationsComponent implements OnDestroy {
 
   readonly currentKind: Signal<Kind>;
 
-  // selected configObject
-  configObject$: BehaviorSubject<ConfigObject>;
-
   constructor() {
 
     this.options$ = this.optionsService.options$.pipe(
@@ -158,7 +152,6 @@ export class ConfigurationsComponent implements OnDestroy {
 
     this.ngUnsubscribe = new Subject<void>();
 
-    this.configObject$ = new BehaviorSubject<ConfigObject>(null);
     this.selectedConfigs = [];
 
     this.recount = new Subject();
@@ -173,8 +166,6 @@ export class ConfigurationsComponent implements OnDestroy {
       {equal: equalConfigQuery}
     );
     this.entityId = computed(() => this.query().entityId);
-    this.pageSize = computed(() => this.query().pageSize);
-    this.pageIndex = computed(() => this.query().pageIndex);
     this.sortDirection = computed(() => this.query().direction);
     this.sortActive = computed(() => this.query().active);
 
@@ -182,13 +173,12 @@ export class ConfigurationsComponent implements OnDestroy {
 
     this.dataSource = ListDataSource.fromQuery<ConfigQuery, ConfigObject>({
       query$,
-      load: query => query.kind === Kind.UNDEFINED ? EMPTY : this.configService.search(query),
+      load: (query, range) => query.kind === Kind.UNDEFINED ? EMPTY : this.configService.search(query, range),
       destroyRef: this.destroyRef,
     });
     this.dataSource.reset$.pipe(
       takeUntil(this.ngUnsubscribe)
     ).subscribe(() => {
-      this.configObject$.next(null);
       this.onSelectedChange([]);
     });
 
@@ -349,6 +339,8 @@ export class ConfigurationsComponent implements OnDestroy {
 
   onQueryChange(value: Partial<ConfigQuery>): void {
     const queryParams = {
+      p: null,
+      s: null,
       entity_id: value.entityId || null,
       schedule_id: value.scheduleId || null,
       crawl_config_id: value.crawlConfigId || null,
@@ -372,7 +364,7 @@ export class ConfigurationsComponent implements OnDestroy {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
-      queryParams: {sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
+      queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
     }).catch(error => this.errorService.dispatch(error));
   }
 
@@ -381,7 +373,8 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onRowClick(config: ConfigObject) {
-    this.configObject$.next(config);
+    this.router.navigate([config.id], {relativeTo: this.route})
+      .catch(error => this.errorService.dispatch(error));
   }
 
   onSelectedChange(configs: ConfigObject[]) {
@@ -464,15 +457,6 @@ export class ConfigurationsComponent implements OnDestroy {
       .subscribe(moved => {
         this.snackBarService.openSnackBar(moved + $localize`:@snackBarMessage.multipleMoved: configurations moved`);
       });
-  }
-
-  onPage(page: PageEvent) {
-    this.router.navigate([], {
-      queryParamsHandling: 'merge',
-      queryParams: {p: page.pageIndex, s: page.pageSize},
-      relativeTo: this.route
-    })
-      .catch(error => this.errorService.dispatch(error));
   }
 
   onEditSelected() {

@@ -13,13 +13,6 @@ $dark-focused: rgba(black, 0.12);
   }
 }
 
-@mixin main-toolbar-style($theme) {
-  .main-toolbar {
-    background-color: mat.get-theme-color($theme, primary);
-    color: mat.get-theme-color($theme, on-primary);
-  }
-}
-
 @mixin veidemann-disabled-configs($theme) {
   tr.item-row.row-disabled td a.formattedUri,
   tr.resource-row.row-error td a.formattedUri {
@@ -99,6 +92,7 @@ $dark-focused: rgba(black, 0.12);
 
   $veidemann-dashboard-theme: mat.define-theme((
     color: (
+      theme-type: color-scheme,
       primary: theme-colors.$primary-palette,
       tertiary: theme-colors.$tertiary-palette,
     ),
@@ -108,20 +102,17 @@ $dark-focused: rgba(black, 0.12);
 
   @mixin veidemann-theme() {
     html {
-      color-scheme: light;
+      color-scheme: light dark;
       @include mat.theme($veidemann-dashboard-theme);
       @include mat.all-component-themes($veidemann-dashboard-theme);
       @include highlight($veidemann-dashboard-theme);
       @include nav-bar-link($veidemann-dashboard-theme);
       @include veidemann-nav-list-style($veidemann-dashboard-theme);
-      @include main-toolbar-style($veidemann-dashboard-theme);
       @include veidemann-button-variants($veidemann-dashboard-theme);
       @include veidemann-disabled-configs($veidemann-dashboard-theme);
     }
 
     @include mat.all-component-typographies($veidemann-typography);
   }
-
-
 
 

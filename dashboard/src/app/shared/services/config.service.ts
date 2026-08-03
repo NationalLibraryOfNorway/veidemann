@@ -25,6 +25,7 @@ import {
 import {LoadingService} from '.';
 import {ConfigApiService} from '../../core';
 import {ConfigQuery, escapeRegex} from '../func';
+import {ListRange} from '../models';
 
 
 @Injectable({
@@ -42,15 +43,15 @@ export class ConfigService
     return this.load(this.configApiService.get(configRef));
   }
 
-  search(query: ConfigQuery): Observable<ConfigObject> {
-    const listRequest = this.getListRequest(query);
+  search(query: ConfigQuery, range: ListRange): Observable<ConfigObject> {
+    const listRequest = this.getListRequest(query, range);
     this.effectiveListRequest = listRequest;
 
     return this.configApiService.list(listRequest);
   }
 
   count(query: ConfigQuery): Observable<number> {
-    const listRequest = this.getListRequest(query);
+    const listRequest = this.getListRequest(query, {offset: 0, pageSize: 0});
     return this.configApiService.count(listRequest);
   }
 
@@ -124,11 +125,11 @@ export class ConfigService
     return this.updateWithTemplate(updateTemplate, pathList, [configObject.id]);
   }
 
-  private getListRequest(query: ConfigQuery): ListRequest {
+  private getListRequest(query: ConfigQuery, range: ListRange): ListRequest {
     const listRequest = create(ListRequestSchema, {
       kind: query.kind.valueOf(),
-      offset: query.pageIndex * query.pageSize,
-      pageSize: query.pageSize
+      offset: range.offset,
+      pageSize: range.pageSize
     });
 
     const queryTemplate = new ConfigObject();

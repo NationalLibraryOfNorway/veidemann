@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, OnInit, Signal, inject } from '@angular/core';
+import {BreakpointObserver} from '@angular/cdk/layout';
 import {
   ActivatedRoute,
+  NavigationEnd,
   RouteConfigLoadEnd,
   RouteConfigLoadStart,
   Router,
@@ -10,7 +12,7 @@ import {
 } from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 import {Observable} from 'rxjs';
-import {filter, map} from 'rxjs/operators';
+import {filter, map, startWith} from 'rxjs/operators';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 
@@ -28,12 +30,13 @@ import {MatTooltip} from '@angular/material/tooltip';
 import {MatProgressSpinner} from '@angular/material/progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatListModule} from '@angular/material/list';
+import {toSignal} from '@angular/core/rxjs-interop';
 
 interface PrimaryDestination {
   readonly route: string;
   readonly icon: string;
   readonly label: string;
-  readonly permissionSubject: string;
+  readonly permissionSubject?: string;
 }
 
 @Component({
@@ -67,10 +70,12 @@ export class AppComponent implements OnInit {
   private dialog = inject(MatDialog);
   private errorService = inject(ErrorService);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+  private breakpointObserver = inject(BreakpointObserver);
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   readonly primaryDestinations: readonly PrimaryDestination[] = [
+    {route: '/', icon: 'home', label: $localize`:@@mainMenuDashboard:Dashboard`},
     {
       route: '/config',
       icon: 'settings',
@@ -91,11 +96,47 @@ export class AppComponent implements OnInit {
     },
   ];
 
+  readonly configDestinations: readonly PrimaryDestination[] = [
+    {route: '/config/entity', icon: 'business', label: 'Entity', permissionSubject: 'CRAWLENTITY'},
+    {route: '/config/seed', icon: 'link', label: 'Seed', permissionSubject: 'SEED'},
+    {route: '/config/crawljobs', icon: 'work', label: 'Crawljobs', permissionSubject: 'CRAWLJOB'},
+    {route: '/config/schedule', icon: 'schedule', label: 'Schedule', permissionSubject: 'CRAWLSCHEDULECONFIG'},
+    {route: '/config/crawlconfig', icon: 'settings_system_daydream', label: 'CrawlConfig', permissionSubject: 'CRAWLCONFIG'},
+    {route: '/config/collection', icon: 'collections_bookmark', label: 'Collection', permissionSubject: 'COLLECTION'},
+    {route: '/config/browserconfig', icon: 'web', label: 'BrowserConfig', permissionSubject: 'BROWSERCONFIG'},
+    {route: '/config/browserscript', icon: 'web_asset', label: 'BrowserScript', permissionSubject: 'BROWSERSCRIPT'},
+    {route: '/config/politenessconfig', icon: 'sentiment_satisfied', label: 'Politeness', permissionSubject: 'POLITENESSCONFIG'},
+    {route: '/config/crawlhostgroupconfig', icon: 'group_work', label: 'CrawlHostGroup', permissionSubject: 'CRAWLHOSTGROUPCONFIG'},
+    {route: '/config/rolemapping', icon: 'people', label: 'Users', permissionSubject: 'ROLEMAPPING'},
+  ];
+
+  readonly reportDestinations: readonly PrimaryDestination[] = [
+    {route: '/report/jobexecution', icon: 'hdr_strong', label: 'JobExecution', permissionSubject: 'jobexecution'},
+    {route: '/report/crawlexecution', icon: 'hdr_weak', label: 'CrawlExecution', permissionSubject: 'crawlexecution'},
+    {route: '/report/pagelog', icon: 'art_track', label: 'PageLog', permissionSubject: 'pagelog'},
+    {route: '/report/crawllog', icon: 'event_note', label: 'CrawlLog', permissionSubject: 'crawllog'},
+  ];
+
+  readonly expandedNavigation: Signal<boolean>;
+  readonly activeSection: Signal<'config' | 'report' | null>;
+
   isModuleLoading$: Observable<boolean>;
   private moduleLoadSemaphore = 0;
 
   constructor() {
     this.can = this.abilityService.can;
+    this.expandedNavigation = toSignal(
+      this.breakpointObserver.observe('(min-width: 1200px)').pipe(map(state => state.matches)),
+      {initialValue: false}
+    );
+    const currentUrl = toSignal(this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      map(() => this.router.url),
+      startWith(this.router.url),
+    ), {requireSync: true});
+    this.activeSection = computed(() => currentUrl().startsWith('/config')
+      ? 'config'
+      : currentUrl().startsWith('/report') ? 'report' : null);
     this.isModuleLoading$ = this.router.events.pipe(
       filter(event => event instanceof RouteConfigLoadStart || event instanceof RouteConfigLoadEnd),
       map(event => {
@@ -137,7 +178,7 @@ export class AppComponent implements OnInit {
   }
 
   canNavigate(destination: PrimaryDestination): boolean {
-    return this.can('read', destination.permissionSubject);
+    return !destination.permissionSubject || this.can('read', destination.permissionSubject);
   }
 
   onLogin() {

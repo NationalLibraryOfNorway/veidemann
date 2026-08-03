@@ -4,3 +4,4 @@ export * from './group-update/labels/common-selector';
 export * from './util';
 export * from './rxjs';
 export * from './query';
+export * from './list-sort';

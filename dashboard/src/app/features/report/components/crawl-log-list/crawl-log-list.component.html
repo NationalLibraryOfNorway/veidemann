@@ -1,7 +1,6 @@
 <div fxLayout="column" class="container">
   <div fxFlex class="scroll">
     <table mat-table [dataSource]="dataSource"
-      multiTemplateDataRows
       matSort
       [matSortActive]="sortActive"
       [matSortDirection]="sortDirection"
@@ -9,38 +8,38 @@
 
       <ng-container matColumnDef="requestedUri">
         <th i18n="@@crawlLogReportListRequestedUriHeaderCell"
-          mat-header-cell *matHeaderCellDef>Requested URI
+          mat-header-cell *matHeaderCellDef mat-sort-header>Requested URI
         </th>
         <td mat-cell *matCellDef="let row">
-          <span matTooltip="{{row.requestedUri}}"
-          [innerHTML]="row.requestedUri | urlFormat: true"></span>
+          <a class="primary-detail-link" [href]="'/report/crawllog/' + row.id"
+            matTooltip="{{row.requestedUri}}" (click)="onPrimaryLink(row, $event)">{{row.requestedUri}}</a>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="timestamp">
         <th i18n="@@crawlLogReportListTimestampHeaderCell"
-          mat-header-cell *matHeaderCellDef>Timestamp
+          mat-header-cell *matHeaderCellDef mat-sort-header>Timestamp
         </th>
         <td mat-cell *matCellDef="let row">{{row.timeStamp | date:'short'}}</td>
       </ng-container>
 
       <ng-container matColumnDef="statusCode">
         <th i18n="@@crawlLogReportListStatusCodeHeaderCell"
-          mat-header-cell *matHeaderCellDef>Status code
+          mat-header-cell *matHeaderCellDef mat-sort-header>Status code
         </th>
         <td mat-cell *matCellDef="let row">{{row.statusCode}}</td>
       </ng-container>
 
       <ng-container matColumnDef="discoveryPath">
         <th i18n="@@crawlLogReportListDiscoveryPathHeaderCell"
-          mat-header-cell *matHeaderCellDef>Discovery path
+          mat-header-cell *matHeaderCellDef mat-sort-header>Discovery path
         </th>
         <td mat-cell *matCellDef="let row">{{row.discoveryPath}}</td>
       </ng-container>
 
       <ng-container matColumnDef="contentType">
         <th i18n="@@crawlLogReportListContentTypeHeaderCell"
-          mat-header-cell *matHeaderCellDef>Content type
+          mat-header-cell *matHeaderCellDef mat-sort-header>Content type
         </th>
         <td mat-cell *matCellDef="let row">{{row.contentType}}</td>
       </ng-container>
@@ -49,7 +48,9 @@
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let row">
           @for (extraTemplate of extraTemplates; track extraTemplate) {
-            <ng-container *ngTemplateOutlet="extraTemplate; context: {$implicit: row}"></ng-container>
+            <span class="visible-action">
+              <ng-container *ngTemplateOutlet="extraTemplate; context: {$implicit: row}"></ng-container>
+            </span>
           }
         </td>
       </ng-container>
@@ -58,7 +59,10 @@
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
           <div class="action">
-            <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+            <a mat-icon-button [href]="row.requestedUri" target="_blank" rel="noopener noreferrer"
+              aria-label="Open requested URI in a new tab" matTooltip="Open requested URI"
+              (click)="$event.stopPropagation()"><mat-icon>open_in_new</mat-icon></a>
+            <button mat-icon-button [matMenuTriggerFor]="actionMenu" aria-label="More actions" matTooltip="More actions">
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #actionMenu>
@@ -76,40 +80,22 @@
         </td>
       </ng-container>
 
-      <!--Expanded Content Column -->
-      <ng-container matColumnDef="expandedPreview">
-        <td mat-cell *matCellDef="let row; let i = dataIndex"
-          id="{{'expandedPreviewRow' + i}}"
-          [class.preview-cell]="row === selectedRow"
-          [attr.colspan]="displayedColumns.length">
-          <div class="preview" [@detailExpand]="row === selectedRow ? 'expanded' : 'collapsed'">
-            @if (row === selectedRow) {
-              <app-crawl-log-preview [crawlLog]="row"></app-crawl-log-preview>
-            }
-          </div>
-        </td>
-      </ng-container>
-
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
         class="item-row"
         id="{{'row' + i}}"
+        tabindex="0"
         (click)="onRowClick(row, $event)"
+        (keydown)="onRowKeydown(row, $event)"
         [class.highlight]="selectedRowIndex === i"
         [class.row-checked]="isChecked(row)"
-        [class.row-selected]="isSelected(row)"
         [class.row-disabled]="isDisabled(row)">
       </tr>
-      <tr mat-row *matRowDef="let row; columns: ['expandedPreview']"
-      class="preview-row"></tr>
     </table>
+    <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>
+    @if (dataSource?.appendLoading$ | async) { <div class="load-state" role="status">Loading more…</div> }
+    @if (dataSource?.appendFailed$ | async) {
+      <div class="load-state" role="alert">Could not load more rows. <button mat-button (click)="retry()">Retry</button></div>
+    }
   </div>
-
-  <mat-paginator
-    (page)="onPage($event)"
-    [length]="totalLength()"
-    [pageIndex]="pageIndex"
-    [pageSize]="pageSize"
-    [pageSizeOptions]="pageOptions">
-  </mat-paginator>
 </div>

@@ -47,9 +47,10 @@ describe('AppComponent navigation', () => {
     await fixture.whenStable();
   });
 
-  it('renders only authorized primary destinations in both navigation variants', () => {
+  it('renders only authorized primary destinations in the drawer', () => {
     const links = fixture.nativeElement.querySelectorAll('a[href="/config"]');
-    expect(links.length).toBe(2);
+    expect(links.length).toBe(1);
+    expect(fixture.nativeElement.querySelector('a[href="/"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('a[href="/report"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('a[href="/logconfig"]')).toBeNull();
   });
@@ -60,6 +61,6 @@ describe('AppComponent navigation', () => {
     await fixture.whenStable();
 
     const activeLinks = fixture.nativeElement.querySelectorAll('a[href="/config"][aria-current="page"]');
-    expect(activeLinks.length).toBe(2);
+    expect(activeLinks.length).toBe(1);
   });
 });

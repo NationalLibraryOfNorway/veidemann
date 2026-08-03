@@ -1,11 +1,17 @@
 <mat-sidenav-container class="app-shell mat-typography">
-  <mat-sidenav #primaryDrawer class="primary-drawer" mode="over" fixedInViewport>
+  <mat-sidenav #primaryDrawer class="primary-drawer"
+    [mode]="expandedNavigation() ? 'side' : 'over'"
+    [opened]="expandedNavigation()"
+    [disableClose]="expandedNavigation()"
+    fixedInViewport>
     <div class="drawer-header">
       <span i18n="@@primaryNavigationTitle">Navigation</span>
+      @if (!expandedNavigation()) {
       <button mat-icon-button (click)="primaryDrawer.close()" aria-label="Close navigation"
               i18n-aria-label="@@primaryNavigationCloseLabel">
         <mat-icon>close</mat-icon>
       </button>
+      }
     </div>
     <nav mat-nav-list aria-label="Primary navigation" i18n-aria-label="@@primaryNavigationLabel">
       @for (destination of primaryDestinations; track destination.route) {
@@ -13,43 +19,60 @@
           <a mat-list-item
              [routerLink]="destination.route"
              routerLinkActive="is-active"
+             [routerLinkActiveOptions]="{exact: destination.route === '/'}"
              #drawerLink="routerLinkActive"
              [attr.aria-current]="drawerLink.isActive ? 'page' : null"
-             (click)="primaryDrawer.close()">
+             (click)="!expandedNavigation() && primaryDrawer.close()">
             <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
             <span matListItemTitle>{{destination.label}}</span>
           </a>
+        }
+      }
+      @if (activeSection() === 'config') {
+        <div mat-subheader>Configuration</div>
+        @for (destination of configDestinations; track destination.route) {
+          @if (canNavigate(destination)) {
+            <a mat-list-item [routerLink]="destination.route" routerLinkActive="is-active"
+              #childLink="routerLinkActive" [attr.aria-current]="childLink.isActive ? 'page' : null"
+              (click)="!expandedNavigation() && primaryDrawer.close()">
+              <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
+              <span matListItemTitle>{{destination.label}}</span>
+            </a>
+          }
+        }
+      }
+      @if (activeSection() === 'report') {
+        <div mat-subheader>Reports</div>
+        @for (destination of reportDestinations; track destination.route) {
+          @if (canNavigate(destination)) {
+            <a mat-list-item [routerLink]="destination.route" routerLinkActive="is-active"
+              #childLink="routerLinkActive" [attr.aria-current]="childLink.isActive ? 'page' : null"
+              (click)="!expandedNavigation() && primaryDrawer.close()">
+              <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
+              <span matListItemTitle>{{destination.label}}</span>
+            </a>
+          }
         }
       }
     </nav>
   </mat-sidenav>
 
   <mat-sidenav-content class="app-content">
-    <mat-toolbar class="main-toolbar" color="primary">
+    <mat-toolbar class="main-toolbar">
+      @if (!expandedNavigation()) {
       <button class="primary-drawer-toggle" mat-icon-button (click)="primaryDrawer.open()"
               aria-label="Open navigation" i18n-aria-label="@@primaryNavigationOpenLabel">
         <mat-icon>menu</mat-icon>
       </button>
+      }
 
       <a class="brand-link" routerLink="/" aria-label="Veidemann home"
          i18n-aria-label="@@mainToolbarHomeLinkLabel">
-        <img class="veidemann-logo" alt="Veidemann" src="public/logo/veidemann_horizontal_white.png">
+        <picture>
+          <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
+          <img class="veidemann-logo" alt="Veidemann" src="public/logo/veidemann_logo_inline_black.png">
+        </picture>
       </a>
-
-      <nav class="primary-links" aria-label="Primary navigation" i18n-aria-label="@@primaryNavigationLabel">
-        @for (destination of primaryDestinations; track destination.route) {
-          @if (canNavigate(destination)) {
-            <a mat-button
-               [routerLink]="destination.route"
-               routerLinkActive="is-active"
-               #toolbarLink="routerLinkActive"
-               [attr.aria-current]="toolbarLink.isActive ? 'page' : null">
-              <mat-icon>{{destination.icon}}</mat-icon>
-              <span>{{destination.label}}</span>
-            </a>
-          }
-        }
-      </nav>
 
       <span class="toolbar-spacer"></span>
 

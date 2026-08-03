@@ -13,6 +13,8 @@ html, body, app-root, mat-sidenav-container {
 html, body {
   padding: 0;
   margin: 0;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
 }
 
 // Flex row/col + grid.
@@ -93,11 +95,10 @@ html, body {
 
 .formattedUri {
   text-decoration: none;
-  color: #64a5da;
+  color: var(--mat-sys-primary);
 }
 
 .formattedUri:hover {
   text-decoration: underline;
 }
-
 

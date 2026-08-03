@@ -2,126 +2,86 @@
   <mat-card appearance="outlined">
     <mat-card-header>
       <mat-icon mat-card-avatar>art_track</mat-icon>
-      <mat-card-title i18n="@@pageLogReportStatusCardTitle">Pagelog</mat-card-title>
+      <mat-card-title>Page log</mat-card-title>
+      <mat-card-subtitle>{{pageLog.uri}}</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
-      <div fxLayout="column" fxLayoutGap="16px">
-        <!--      <table mat-table [dataSource]="treeDataSource">-->
-        <!--        <thead>-->
-        <!--        <tr class="mat-header-row">-->
-        <!--          <th class="mat-header-cell" i18n="@@pageLogReportStatusUriHeaderCell">URI</th>-->
-        <!--          <th class="mat-header-cell" i18n="@@pageLogReportStatusReferrerHeaderCell">Referrer</th>-->
-        <!--          <th class="mat-header-cell" i18n="@@pageLogReportStatusCollectionFinalNameHeaderCell">Collection name</th>-->
-        <!--          <th class="mat-header-cell" i18n="@@pageLogReportStatusMethodHeaderCell">Method</th>-->
-      <!--        </tr>-->
-    <!--        </thead>-->
-    <!--        <tbody>-->
-    <!--        <tr class="mat-row">-->
-    <!--          <td class="mat-cell"><span [innerHTML]="pageLog.uri | urlFormat"></span></td>-->
-    <!--          <td class="mat-cell">{{pageLog.referrer}}</td>-->
-    <!--          <td class="mat-cell">{{pageLog.collectionFinalName}}</td>-->
-    <!--          <td class="mat-cell">{{pageLog.method}}</td>-->
-  <!--        </tr>-->
-<!--        </tbody>-->
-<!--      </table>-->
-<table mat-table [dataSource]="dataSource">
-  <ng-container matColumnDef="uri">
-    <th mat-header-cell *matHeaderCellDef i18n="@@pageLogReportStatusUriHeaderCell">
-            URI
-          </th>
-    <td mat-cell *matCellDef="let pageLog">
-      <span [innerHTML]="pageLog.uri | urlFormat"></span>
-    </td>
-  </ng-container>
-  <ng-container matColumnDef="referrer">
-    <th mat-header-cell *matHeaderCellDef i18n="@@pageLogReportStatusReferrerHeaderCell">
-            Referrer
-          </th>
-    <td mat-cell *matCellDef="let pageLog">
-      {{pageLog.referrer}}
-    </td>
-  </ng-container>
-  <ng-container matColumnDef="collectionName">
-    <th mat-header-cell *matHeaderCellDef i18n="@@pageLogReportStatusCollectionFinalNameHeaderCell">
-            Collection name
-          </th>
-    <td mat-cell *matCellDef="let pageLog">
-      {{pageLog.collectionFinalName}}
-    </td>
-  </ng-container>
-  <ng-container matColumnDef="method">
-    <th mat-header-cell *matHeaderCellDef i18n="@@pageLogReportStatusMethodHeaderCell">
-            Method
-          </th>
-    <td mat-cell *matCellDef="let pageLog">
-      {{pageLog.method}}
-    </td>
-  </ng-container>
-  <tr mat-header-row *matHeaderRowDef="pageLogDisplayedColumns"></tr>
-  <tr mat-row *matRowDef="let row; columns: pageLogDisplayedColumns"></tr>
-</table>
-<mat-accordion>
-  <mat-expansion-panel>
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        Resources
-      </mat-panel-title>
-    </mat-expansion-panel-header>
-    <app-resource [resources]="pageLog.resource"></app-resource>
-  </mat-expansion-panel>
-</mat-accordion>
-<mat-accordion>
-  <mat-expansion-panel>
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        Outlinks
-      </mat-panel-title>
-    </mat-expansion-panel-header>
-    <mat-tree [dataSource]="treeDataSource" [treeControl]="treeControl">
-      <!-- This is the tree node template for leaf nodes -->
-      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
-        <!-- use a disabled button to provide padding for tree leaf -->
-        <button mat-icon-button disabled aria-label="No child nodes"></button>
-        <a target="_blank" href="{{node.url}}">{{node.name}}</a>
-      </mat-tree-node>
-      <!-- This is the tree node template for expandable nodes -->
-      <mat-tree-node *matTreeNodeDef="let node;when: hasChild" matTreeNodePadding>
-        <button mat-icon-button matTreeNodeToggle
-          [attr.aria-label]="'toggle ' + node.name">
-          <mat-icon class="mat-icon-rtl-mirror">
-            {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
-          </mat-icon>
-        </button>
-        <a target="_blank" href="{{node.url}}">{{node.name}}</a>
-      </mat-tree-node>
-    </mat-tree>
-  </mat-expansion-panel>
-</mat-accordion>
-<table class="mat-table">
-  <thead>
-    <tr class="mat-header-row">
-      <th class="mat-header-cell" i18n="@@pageLogReportStatusWarcIdHeaderCell">WARC id</th>
-      <th class="mat-header-cell" i18n="@@pageLogReportStatusJobExecutionIdHeaderCell">Job execution id</th>
-      <th class="mat-header-cell" i18n="@@pageLogReportStatusCrawlExecutionIdHeaderCell">Crawl execution id</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr class="mat-row">
-      <td class="mat-cell">{{pageLog.warcId}}</td>
-      <td class="mat-cell">
-        <a [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]">
-          {{pageLog.jobExecutionId}}
-        </a>
-      </td>
-      <td class="mat-cell">
-        <a [routerLink]="['/report', 'crawlexecution', pageLog.executionId]">
-          {{pageLog.executionId}}
-        </a>
-      </td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</mat-card-content>
-</mat-card>
+      <dl class="page-metadata">
+        <div><dt>Referrer</dt><dd>{{pageLog.referrer || '—'}}</dd></div>
+        <div><dt>Collection</dt><dd>{{pageLog.collectionFinalName || '—'}}</dd></div>
+        <div><dt>Method</dt><dd>{{pageLog.method || '—'}}</dd></div>
+        <div><dt>WARC ID</dt><dd>{{pageLog.warcId}}</dd></div>
+        <div><dt>Job execution</dt><dd><a [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]">{{pageLog.jobExecutionId}}</a></dd></div>
+        <div><dt>Crawl execution</dt><dd><a [routerLink]="['/report', 'crawlexecution', pageLog.executionId]">{{pageLog.executionId}}</a></dd></div>
+      </dl>
+
+      <mat-tab-group>
+        <mat-tab [label]="'Resources (' + pageLog.resource.length + ')'">
+          <div class="tab-content">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Search resources</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input matInput #resourceSearch (input)="applyResourceFilter(resourceSearch.value)">
+            </mat-form-field>
+            <mat-list aria-label="Page resources">
+              @for (resource of filteredResources; track resource.warcId || resource.uri; let i = $index) {
+                <mat-list-item [class.error-item]="hasError(resource)">
+                  @if (hasError(resource)) { <mat-icon matListItemIcon>error</mat-icon> }
+                  <span matListItemTitle>{{resource.uri || 'Missing URI'}}</span>
+                  <span matListItemLine>
+                    {{resource.statusCode || '—'}} · {{resource.mimeType || resource.resourceType || 'Unknown type'}} ·
+                    {{resource.discoveryPath || 'Unknown discovery path'}}
+                  </span>
+                  @if (hasError(resource)) {
+                    <span matListItemLine>{{resource.error.msg || resource.error.detail || ('Error ' + resource.error.code)}}</span>
+                  }
+                  <span matListItemMeta class="resource-actions">
+                    <button mat-icon-button aria-label="Show resource metadata" matTooltip="Resource metadata"
+                      (click)="showMetadata(resource)"><mat-icon>info</mat-icon></button>
+                    @if (resource.uri) {
+                      <a mat-icon-button [href]="resource.uri" target="_blank" rel="noopener noreferrer"
+                        aria-label="Open resource URI in a new tab" matTooltip="Open resource URI">
+                        <mat-icon>open_in_new</mat-icon>
+                      </a>
+                    }
+                  </span>
+                </mat-list-item>
+              } @empty {
+                <mat-list-item><span matListItemTitle>No matching resources</span></mat-list-item>
+              }
+            </mat-list>
+          </div>
+        </mat-tab>
+
+        <mat-tab [label]="'Outlinks (' + pageLog.outlink.length + ')'">
+          <div class="tab-content">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Search outlinks</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input matInput #outlinkSearch (input)="applyOutlinkFilter(outlinkSearch.value)">
+            </mat-form-field>
+            <mat-nav-list aria-label="Page outlinks">
+              @for (outlink of filteredOutlinks; track $index) {
+                @if (outlink.href) {
+                  <a mat-list-item [href]="outlink.href" target="_blank" rel="noopener noreferrer">
+                    <span matListItemTitle>{{outlink.raw}}</span>
+                    <span matListItemLine>{{outlink.host}} · {{outlink.path}}</span>
+                    <mat-icon matListItemMeta>open_in_new</mat-icon>
+                  </a>
+                } @else {
+                  <mat-list-item class="error-item">
+                    <mat-icon matListItemIcon>link_off</mat-icon>
+                    <span matListItemTitle>{{outlink.raw || 'Empty outlink'}}</span>
+                    <span matListItemLine>Malformed outlink</span>
+                  </mat-list-item>
+                }
+              } @empty {
+                <mat-list-item><span matListItemTitle>No matching outlinks</span></mat-list-item>
+              }
+            </mat-nav-list>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card-content>
+  </mat-card>
 }

@@ -6,11 +6,11 @@ import { create } from '@bufbuild/protobuf';
 import { FieldMaskSchema } from '../../../../api/commons/v1/resources_pb';
 import { CrawlExecutionsListRequest, CrawlExecutionsListRequestSchema } from '../../../../api/report/v1/report_pb';
 import { ReportApiService } from '../../../core';
-import { Detail, Page, Sort, toTimestampProto, Watch } from '../../../shared/func';
-import { ConfigObject, ConfigRef, CrawlExecutionState, CrawlExecutionStatus, Kind } from '../../../shared/models';
+import { Detail, Sort, toTimestampProto, Watch } from '../../../shared/func';
+import { ConfigObject, ConfigRef, CrawlExecutionState, CrawlExecutionStatus, Kind, ListRange } from '../../../shared/models';
 import { ConfigService, LoadingService } from '../../../shared/services';
 
-export interface CrawlExecutionStatusQuery extends Page, Sort, Watch {
+export interface CrawlExecutionStatusQuery extends Sort, Watch {
   jobId: string;
   jobExecutionId: string;
   seedId: string;
@@ -56,14 +56,14 @@ export class CrawlExecutionService extends LoadingService {
     return seed$;
   }
 
-  search(query: CrawlExecutionStatusQuery): Observable<CrawlExecutionStatus> {
-    return this.reportApiService.listCrawlExecutions(this.getListRequest(query));
+  search(query: CrawlExecutionStatusQuery, range: ListRange): Observable<CrawlExecutionStatus> {
+    return this.reportApiService.listCrawlExecutions(this.getListRequest(query, range));
   }
 
-  private getListRequest(query: CrawlExecutionStatusQuery): CrawlExecutionsListRequest {
+  private getListRequest(query: CrawlExecutionStatusQuery, range: ListRange): CrawlExecutionsListRequest {
     const listRequest = create(CrawlExecutionsListRequestSchema, {
-      offset: query.pageIndex * query.pageSize,
-      pageSize: query.pageSize
+      offset: range.offset,
+      pageSize: range.pageSize
     });
     const queryTemplate = new CrawlExecutionStatus();
     const fieldMask = create(FieldMaskSchema);

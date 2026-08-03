@@ -13,8 +13,6 @@ import {
 interface RouteListQuery {
   active: string;
   direction: SortDirection;
-  pageIndex: number;
-  pageSize: number;
   watch: boolean;
 }
 
@@ -96,11 +94,6 @@ export function equalCrawlExecutionQuery(
     && previous.startTimeTo === current.startTimeTo;
 }
 
-export function unknownPageLength(query: RouteListQuery, rows: readonly unknown[]): number {
-  const loaded = query.pageIndex * query.pageSize + rows.length;
-  return loaded + (rows.length === query.pageSize ? 1 : 0);
-}
-
 function listQueryFromParamMap(params: ParamMap): RouteListQuery {
   const [active = '', parsedDirection = ''] = params.get('sort')?.split(':') ?? [];
   const direction = parsedDirection ? parsedDirection as SortDirection : '';
@@ -108,8 +101,6 @@ function listQueryFromParamMap(params: ParamMap): RouteListQuery {
   return {
     active: direction ? active : '',
     direction,
-    pageIndex: Number.parseInt(params.get('p'), 10) || 0,
-    pageSize: Number.parseInt(params.get('s'), 10) || 25,
     watch: params.get('watch') === 'true',
   };
 }
@@ -117,8 +108,6 @@ function listQueryFromParamMap(params: ParamMap): RouteListQuery {
 function equalListQuery(previous: RouteListQuery, current: RouteListQuery): boolean {
   return previous.active === current.active
     && previous.direction === current.direction
-    && previous.pageIndex === current.pageIndex
-    && previous.pageSize === current.pageSize
     && previous.watch === current.watch;
 }
 

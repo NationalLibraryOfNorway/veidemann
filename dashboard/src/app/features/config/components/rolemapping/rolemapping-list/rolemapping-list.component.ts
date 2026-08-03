@@ -1,10 +1,7 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {ConfigObject, Role} from '../../../../../shared/models';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../../shared/components';
-import {MatTableModule} from '@angular/material/table';
-import {MatCheckbox} from '@angular/material/checkbox';
-import {NgClass} from '@angular/common';
-import {MatPaginator} from '@angular/material/paginator';
+import {AsyncPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
 
 
@@ -15,10 +12,7 @@ import {MatButtonModule} from '@angular/material/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
-    MatCheckbox,
-    MatPaginator,
-    MatTableModule,
-    NgClass,
+    AsyncPipe,
     ...BASE_LIST_IMPORTS
   ],
   standalone: true

@@ -1,30 +1,53 @@
-import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {MatExpansionModule} from '@angular/material/expansion';
-import {MatIconModule} from '@angular/material/icon';
-import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule} from '@angular/material/tree';
-import {RouterModule} from '@angular/router';
-import {PageLog} from '../../../../shared/models';
-import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
-import {ResourceComponent} from '../resource/resource.component';
-import {MatCardModule} from '@angular/material/card';
+import {ChangeDetectionStrategy, Component, inject, Input, OnChanges} from '@angular/core';
+import {MAT_DIALOG_DATA, MatDialog, MatDialogModule} from '@angular/material/dialog';
 import {MatButtonModule} from '@angular/material/button';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
-import {FlatTreeControl} from '@angular/cdk/tree';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import {MatCardModule} from '@angular/material/card';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatListModule} from '@angular/material/list';
+import {MatTabsModule} from '@angular/material/tabs';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {RouterLink} from '@angular/router';
 
+import {PageLog, Resource} from '../../../../shared/models';
 
-interface UriNode {
-  name: string;
-  url: URL;
-  children: UriNode[];
+interface OutlinkView {
+  raw: string;
+  href: string | null;
+  host: string;
+  path: string;
 }
 
-interface UriFlatNode {
-  expandable: boolean;
-  name: string;
-  url: URL;
-  level: number;
+interface ResourceMetadata {
+  label: string;
+  value: string;
+}
+
+@Component({
+  selector: 'app-resource-metadata-dialog',
+  template: `
+    <h2 mat-dialog-title>Resource metadata</h2>
+    <mat-dialog-content>
+      <dl class="metadata-list">
+        @for (item of data; track item.label) {
+          <div><dt>{{item.label}}</dt><dd>{{item.value}}</dd></div>
+        }
+      </dl>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end"><button mat-button mat-dialog-close>Close</button></mat-dialog-actions>
+  `,
+  styles: [`
+    .metadata-list { display: grid; gap: 12px; margin: 0; }
+    .metadata-list div { display: grid; grid-template-columns: minmax(8rem, 1fr) 2fr; gap: 16px; }
+    dt { color: var(--mat-sys-on-surface-variant); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+  `],
+  imports: [MatButtonModule, MatDialogModule],
+  standalone: true,
+})
+export class ResourceMetadataDialogComponent {
+  readonly data = inject<ResourceMetadata[]>(MAT_DIALOG_DATA);
 }
 
 @Component({
@@ -34,70 +57,91 @@ interface UriFlatNode {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
-    RouterModule,
-    MatIconModule,
-    MatTreeModule,
-    MatExpansionModule,
-    ResourceComponent,
-    UrlFormatPipe,
-    MatTableModule,
-    MatCardModule,
     MatButtonModule,
-    LayoutDirective,
-    LayoutGapDirective,
+    MatCardModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatListModule,
+    MatTabsModule,
+    MatTooltipModule,
+    RouterLink,
   ]
 })
 export class PageLogStatusComponent implements OnChanges {
+  private readonly dialog = inject(MatDialog);
+  @Input() pageLog: PageLog;
 
-  treeControl = new FlatTreeControl<UriFlatNode>(
-    node => node.level, node => node.expandable);
+  filteredResources: readonly Resource[] = [];
+  filteredOutlinks: readonly OutlinkView[] = [];
+  private resourceFilter = '';
+  private outlinkFilter = '';
+  private outlinks: readonly OutlinkView[] = [];
 
-  private treeFlattener = new MatTreeFlattener(
-    (node: UriNode, level: number) => ({
-      expandable: !!node.children && node.children.length > 0,
-      name: node.name,
-      url: node.url,
-      level,
-    }),
-    node => node.level,
-    node => node.expandable,
-    node => node.children);
-
-  treeDataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener);
-  dataSource = new MatTableDataSource<PageLog>();
-
-  pageLogDisplayedColumns: string[] = ['uri', 'referrer', 'collectionName', 'method'];
-
-  @Input()
-  pageLog: PageLog;
-
-  hasChild = (_: number, node: UriFlatNode) => node.expandable;
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['pageLog'] && this.pageLog && this.pageLog.outlink) {
-      this.treeDataSource.data = this.groupOutlinks(this.pageLog.outlink);
-      this.dataSource = new MatTableDataSource<PageLog>([this.pageLog]);
-    }
+  ngOnChanges(): void {
+    this.outlinks = (this.pageLog?.outlink ?? []).map(value => this.parseOutlink(value));
+    this.applyResourceFilter(this.resourceFilter);
+    this.applyOutlinkFilter(this.outlinkFilter);
   }
 
-  groupOutlinks(outlinks: string[]): UriNode[] {
-    const result: UriNode[] = [];
-    const level = {result};
-    outlinks.forEach(outlink => {
-      try {
-        const url = new URL(outlink);
-        const path = [url.protocol + '//' + url.host].concat(url.pathname.split('/').filter(_ => !!_));
-        path.reduce((r, name, i) => {
-          if (!r[name]) {
-            r[name] = {result: []};
-            r.result.push({name, url: new URL(path.slice(0, i + 1).join('/')), children: r[name].result});
-          }
-          return r[name];
-        }, level);
-      } catch {
-        return;
+  applyResourceFilter(value: string): void {
+    this.resourceFilter = value.trim().toLocaleLowerCase();
+    this.filteredResources = (this.pageLog?.resource ?? []).filter(resource => !this.resourceFilter || [
+      resource.uri,
+      resource.mimeType,
+      resource.resourceType,
+      resource.discoveryPath,
+      resource.statusCode,
+      resource.error?.msg,
+      resource.error?.detail,
+    ].some(candidate => String(candidate ?? '').toLocaleLowerCase().includes(this.resourceFilter)));
+  }
+
+  applyOutlinkFilter(value: string): void {
+    this.outlinkFilter = value.trim().toLocaleLowerCase();
+    this.filteredOutlinks = this.outlinks.filter(outlink =>
+      !this.outlinkFilter || outlink.raw.toLocaleLowerCase().includes(this.outlinkFilter));
+  }
+
+  hasError(resource: Resource): boolean {
+    return !!(resource.error?.code || resource.error?.msg || resource.error?.detail);
+  }
+
+  showMetadata(resource: Resource): void {
+    const metadata: ResourceMetadata[] = [
+      ['URI', resource.uri],
+      ['Status code', resource.statusCode],
+      ['MIME type', resource.mimeType],
+      ['Resource type', resource.resourceType],
+      ['Discovery path', resource.discoveryPath],
+      ['From cache', resource.fromCache],
+      ['Renderable', resource.renderable],
+      ['WARC ID', resource.warcId],
+      ['Referrer', resource.referrer],
+      ['Method', resource.method],
+      ['Error', this.hasError(resource)
+        ? [resource.error.code, resource.error.msg, resource.error.detail].filter(Boolean).join(': ')
+        : ''],
+    ].filter(([, value]) => value !== '' && value !== null && value !== undefined)
+      .map(([label, value]) => ({label: String(label), value: String(value)}));
+    this.dialog.open(ResourceMetadataDialogComponent, {data: metadata, autoFocus: 'dialog'});
+  }
+
+  private parseOutlink(raw: string): OutlinkView {
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        throw new Error('Unsupported URL scheme');
       }
-    });
-    return result;
+      return {
+        raw,
+        href: url.href,
+        host: url.host,
+        path: `${url.pathname}${url.search}${url.hash}` || '/',
+      };
+    } catch {
+      return {raw, href: null, host: 'Invalid URI', path: raw};
+    }
   }
 }

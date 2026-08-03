@@ -20,12 +20,12 @@ describe('configuration query route parsing', () => {
       disabled: false,
       active: 'name',
       direction: 'desc',
-      pageSize: 50,
-      pageIndex: 2,
     }));
+    expect('pageSize' in query).toBe(false);
+    expect('pageIndex' in query).toBe(false);
   });
 
-  it('uses list defaults for missing or invalid paging and sorting', () => {
+  it('ignores legacy paging parameters and invalid sorting', () => {
     const query = configQueryFromParamMap(Kind.CRAWLJOB, convertToParamMap({
       sort: 'name',
       s: 'invalid',
@@ -34,8 +34,8 @@ describe('configuration query route parsing', () => {
 
     expect(query.active).toBe('');
     expect(query.direction).toBe('');
-    expect(query.pageSize).toBe(25);
-    expect(query.pageIndex).toBe(0);
+    expect('pageSize' in query).toBe(false);
+    expect('pageIndex' in query).toBe(false);
     expect(query.disabled).toBeNull();
   });
 

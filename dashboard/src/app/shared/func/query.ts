@@ -1,11 +1,6 @@
 import {Kind} from '../models/config';
 import {SortDirection} from '@angular/material/sort';
 
-export interface Page {
-  pageSize: number;
-  pageIndex: number;
-}
-
 export interface Sort {
   active: string;
   direction: SortDirection;
@@ -23,7 +18,7 @@ export interface State {
   state: number;
 }
 
-export interface ConfigQuery extends Sort, Page {
+export interface ConfigQuery extends Sort {
   kind: Kind;
   entityId: string;
   scheduleId: string;

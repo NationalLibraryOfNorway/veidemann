@@ -6,7 +6,7 @@ import {BehaviorSubject, EMPTY, of, Subscription} from 'rxjs';
 
 import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {ConfigObject, Kind} from '../../../../shared/models';
+import {ConfigObject, Kind, ListRange} from '../../../../shared/models';
 import {ConfigQuery} from '../../../../shared/func';
 import {ConfigService} from '../../../../shared/services';
 import {OptionsService} from '../../services';
@@ -19,8 +19,9 @@ describe('ConfigurationsComponent query loading', () => {
   let kindParams: BehaviorSubject<ParamMap>;
   let lengthSubscription: Subscription;
 
-  const search = vi.fn((query: ConfigQuery) => {
+  const search = vi.fn((query: ConfigQuery, range: ListRange) => {
     void query;
+    void range;
     return EMPTY;
   });
   const count = vi.fn((query: ConfigQuery) => {
@@ -106,9 +107,8 @@ describe('ConfigurationsComponent query loading', () => {
     expect(count).toHaveBeenCalledTimes(2);
     expect(search.mock.calls.at(-1)[0]).toEqual(expect.objectContaining({
       term: 'term',
-      pageIndex: 2,
-      pageSize: 50,
     }));
+    expect(search.mock.calls.at(-1)[1]).toEqual({offset: 0, pageSize: 100});
   });
 
   it('searches once without recounting for page and sort changes or unrelated parameters', async () => {

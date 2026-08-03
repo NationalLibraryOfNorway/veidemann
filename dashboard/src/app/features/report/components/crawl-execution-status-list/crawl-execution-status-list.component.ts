@@ -5,10 +5,8 @@ import {
   crawlExecutionStates,
   CrawlExecutionStatus
 } from '../../../../shared/models';
-import {animate, state, style, transition, trigger} from '@angular/animations';
-import {MatPaginatorModule} from '@angular/material/paginator';
 import {MatTableModule} from '@angular/material/table';
-import {CrawlExecutionFetchPipe, ExecutionQueueCountPipe, JobNamePipe, SeedNamePipe} from '../../pipe';
+import {ExecutionQueueCountPipe, JobNamePipe, SeedNamePipe} from '../../pipe';
 import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatSortModule} from '@angular/material/sort';
@@ -16,28 +14,17 @@ import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatMenuModule} from '@angular/material/menu';
-import {CrawlExecutionPreviewComponent} from '../crawl-execution-preview/crawl-execution-preview.component';
 
 @Component({
   selector: 'app-crawl-execution-status-list',
   templateUrl: './crawl-execution-status-list.component.html',
   styleUrls: [
     '../../../../shared/components/base-list/base-list.scss',
-    '../../../../shared/components/base-list/base-list-odd-preview.scss',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({height: '0px', minHeight: '0'})),
-      state('expanded', style({height: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ]),
-  ],
   standalone: true,
   imports: [
     AsyncPipe,
-    CrawlExecutionFetchPipe,
-    CrawlExecutionPreviewComponent,
     DatePipe,
     ExecutionQueueCountPipe,
     FlexLayoutModule,
@@ -45,7 +32,6 @@ import {CrawlExecutionPreviewComponent} from '../crawl-execution-preview/crawl-e
     MatButtonModule,
     MatIcon,
     MatMenuModule,
-    MatPaginatorModule,
     MatSortModule,
     MatTableModule,
     NgTemplateOutlet,

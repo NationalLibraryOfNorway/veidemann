@@ -7,10 +7,11 @@ import {JobExecutionsListRequest, JobExecutionsListRequestSchema} from '../../..
 import {ConfigObject, ConfigRef, JobExecutionState, JobExecutionStatus, Kind} from '../../../shared/models';
 import {ReportApiService} from '../../../core';
 import {catchError, shareReplay} from 'rxjs/operators';
-import {Detail, Page, Sort, toTimestampProto, Watch} from '../../../shared/func';
+import {Detail, Sort, toTimestampProto, Watch} from '../../../shared/func';
 import {ConfigService, LoadingService} from '../../../shared/services';
+import {ListRange} from '../../../shared/models';
 
-export interface JobExecutionStatusQuery extends Page, Sort, Watch {
+export interface JobExecutionStatusQuery extends Sort, Watch {
   jobId: string;
   stateList: JobExecutionState[];
   startTimeTo: string;
@@ -32,10 +33,10 @@ export class JobExecutionService extends LoadingService {
     this.cache = new Map();
   }
 
-  private static getListRequest(query: JobExecutionStatusQuery): JobExecutionsListRequest {
+  private static getListRequest(query: JobExecutionStatusQuery, range: ListRange): JobExecutionsListRequest {
     const listRequest = create(JobExecutionsListRequestSchema, {
-      offset: query.pageIndex * query.pageSize,
-      pageSize: query.pageSize
+      offset: range.offset,
+      pageSize: range.pageSize
     });
     const queryTemplate = new JobExecutionStatus();
     const fieldMask = create(FieldMaskSchema);
@@ -97,7 +98,7 @@ export class JobExecutionService extends LoadingService {
     return job$;
   }
 
-  search(query: JobExecutionStatusQuery): Observable<JobExecutionStatus> {
-    return this.reportApiService.listJobExecutions(JobExecutionService.getListRequest(query));
+  search(query: JobExecutionStatusQuery, range: ListRange): Observable<JobExecutionStatus> {
+    return this.reportApiService.listJobExecutions(JobExecutionService.getListRequest(query, range));
   }
 }

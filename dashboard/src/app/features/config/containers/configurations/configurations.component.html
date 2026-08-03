@@ -26,32 +26,26 @@
           @case (Kind.ROLEMAPPING) {
             <div fxFlex fxLayout="column">
               <app-rolemapping-list fxFlex [dataSource]="dataSource"
-                [pageIndex]="pageIndex()"
-                [pageSize]="pageSize()"
+                [detailPath]="ConfigPath[kind]"
+                [length]="length$ | async"
                 (selectedChange)="onSelectedChange($event)"
                 (rowClick)="onRowClick($event)"
                 (selectAll)="onSelectAll()">
                 <button mat-icon-button
+                  aria-label="Edit selected role mappings"
                   (click)="onEditSelected()">
                   <mat-icon matTooltip="Edit selected configurations"
                     i18n-matTooltip="@@configurationEditSelectedConfigurationsButtonTooltip">edit
                   </mat-icon>
                 </button>
                 <button mat-icon-button
+                  aria-label="Delete selected role mappings"
                   (click)="onDeleteSelectedConfigs()">
                   <mat-icon matTooltip="Delete selected configurations"
                     i18n-matTooltip="@@configurationDeleteSelectedConfigurationsButtonTooltip">delete
                   </mat-icon>
                 </button>
               </app-rolemapping-list>
-              @if (configObject$| async; as configObject) {
-                <app-rolemapping-details fxFlex
-                  [configObject]="configObject" [roles]="options.roles"
-                  (update)="onUpdateConfig($event)"
-                  (save)="onSaveConfig($event)"
-                  (delete)="onDeleteConfig($event)">
-                </app-rolemapping-details>
-              }
             </div>
           }
           @default {
@@ -62,19 +56,18 @@
               }
               <app-config-list fxFlex
                 [dataSource]="dataSource"
+                [detailPath]="ConfigPath[kind]"
                 [length]="length$ | async"
-                [pageIndex]="pageIndex()"
-                [pageSize]="pageSize()"
                 [sortDirection]="sortDirection()"
                 [sortActive]="sortActive()"
                 [multiSelect]="kind !== Kind.COLLECTION"
                 (selectedChange)="onSelectedChange($event)"
                 (selectAll)="onSelectAll()"
                 (sort)="onSort($event)"
-                (page)="onPage($event)"
                 (rowClick)="onRowClick($event)">
                 @if (kind===Kind.SEED && !isAllSelected) {
                   <button mat-icon-button
+                    aria-label="Start crawl for selected seeds"
                     (click)="onRunCrawlSelected(selectedConfigs)">
                     <mat-icon matTooltip="Start crawl of selected seeds"
                       i18n-matTooltip="@@configurationRunCrawlSelectedSeedsButtonTooltip">play_arrow
@@ -83,6 +76,7 @@
                 }
                 @if (!isAllSelected && (can('update', Kind[kind]))) {
                   <button mat-icon-button
+                    aria-label="Edit selected configurations"
                     (click)="onEditSelected()">
                     <mat-icon matTooltip="Edit selected configurations"
                       i18n-matTooltip="@@configurationEditSelectedConfigurationsButtonTooltip">edit
@@ -91,6 +85,7 @@
                 }
                 @if (isAllSelected && (can('updateAll', Kind[kind]))) {
                   <button mat-icon-button
+                    aria-label="Edit all matching configurations"
                     (click)="onEditSelected()">
                     <mat-icon matTooltip="Edit all configurations in database"
                       i18n-matTooltip="@@configurationEditAllConfigurationsInDbButtonTooltip">edit
@@ -99,6 +94,7 @@
                 }
                 @if (!isAllSelected && (can('delete', Kind[kind]))) {
                   <button mat-icon-button
+                    aria-label="Delete selected configurations"
                     (click)="onDeleteSelectedConfigs()">
                     <mat-icon matTooltip="Delete selected configurations"
                       i18n-matTooltip="@@configurationDeleteSelectedConfigurationsButtonTooltip">delete
@@ -143,6 +139,14 @@
                   }
                 }
                 @if (kind === Kind.SEED) {
+                  <ng-container *appExtra="let row">
+                    @if (canRunCrawl(row)) {
+                      <button mat-icon-button (click)="onRunCrawl(row); $event.stopPropagation()"
+                        aria-label="Start crawling seed" matTooltip="Start crawling seed">
+                        <mat-icon>play_arrow</mat-icon>
+                      </button>
+                    }
+                  </ng-container>
                   @if (can('read', 'CrawlExecution')) {
                     <a *appFilter="let row" mat-menu-item
                       [routerLink]="['/report/crawlexecution']"
@@ -178,19 +182,6 @@
                         i18n-matTooltip="@@seedListFilterSeedByEntityActionButtonTooltip">
                 <mat-icon>business</mat-icon>
                 Show seeds for entity
-              </button>
-                    }
-                  </ng-container>
-                  <ng-container *appAction="let row">
-                    @if (canRunCrawl(row)) {
-                      <button mat-menu-item
-                        (click)="onRunCrawl(row)"
-                        i18n="@@configListActionButtonRunCrawl"
-                        matTooltip="Start crawling seed: {{row.meta.name}}"
-                        matTooltipPosition="left"
-                        i18n-matTooltip="@@configListActionButtonRunCrawlOfSeedTooltip">
-                <mat-icon>play_arrow</mat-icon>
-                Run crawl
               </button>
                     }
                   </ng-container>
@@ -316,6 +307,14 @@
                   </ng-container>
                 }
                 @if (kind === Kind.CRAWLJOB) {
+                  <ng-container *appExtra="let row">
+                    @if (canRunCrawl(row)) {
+                      <button mat-icon-button (click)="onRunCrawl(row); $event.stopPropagation()"
+                        aria-label="Run crawljob" matTooltip="Run crawljob">
+                        <mat-icon>play_arrow</mat-icon>
+                      </button>
+                    }
+                  </ng-container>
                   <span *appExtra="let row">{{ row | getJobStatus | jobState | async }}</span>
                   @if (can('read', 'reports')) {
                     <a *appShortcut="let row" mat-menu-item
@@ -372,19 +371,6 @@
               </button>
                     }
                   </ng-container>
-                  <ng-container *appAction="let row">
-                    @if (canRunCrawl(row)) {
-                      <button mat-menu-item
-                        (click)="onRunCrawl(row)"
-                        i18n="@@configListActionButtonRunCrawl"
-                        matTooltip="Run crawljob: {{row.meta.name}}"
-                        matTooltipPosition="left"
-                        i18n-matTooltip="@@runCrawlActionButtonTooltip">
-                <mat-icon>play_arrow</mat-icon>
-                Run crawl
-              </button>
-                    }
-                  </ng-container>
                 }
                 <ng-container *appAction="let row">
                   @if (canEdit(row)) {
@@ -402,16 +388,6 @@
                       (click)="onClone(row)">
               <mat-icon>file_copy</mat-icon>
               Clone
-            </button>
-                  }
-                </ng-container>
-                <ng-container *appAction="let row">
-                  @if (canRead(row)) {
-                    <button mat-menu-item
-                      i18n="@@configListActionButtonShowConfigDetails"
-                      (click)="onShowDetails(row)">
-              <mat-icon>keyboard_arrow_right</mat-icon>
-              Show details
             </button>
                   }
                 </ng-container>

@@ -39,8 +39,6 @@ export function configQueryFromParamMap(kind: Kind, params: ParamMap): ConfigQue
     term: params.get('q'),
     active: direction ? active : '',
     direction,
-    pageSize: Number.parseInt(params.get('s'), 10) || 25,
-    pageIndex: Number.parseInt(params.get('p'), 10) || 0,
   };
 }
 
@@ -57,9 +55,7 @@ export function equalConfigQuery(previous: ConfigQuery, current: ConfigQuery): b
     && equalArrayValues(previous.scriptIdList, current.scriptIdList)
     && previous.term === current.term
     && previous.active === current.active
-    && previous.direction === current.direction
-    && previous.pageSize === current.pageSize
-    && previous.pageIndex === current.pageIndex;
+    && previous.direction === current.direction;
 }
 
 export function equalConfigCountQuery(previous: ConfigQuery, current: ConfigQuery): boolean {

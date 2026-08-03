@@ -1,7 +1,7 @@
 import {DestroyRef} from '@angular/core';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
-import {ListDataSource, ListItem} from './list-datasource';
+import {ListDataSource, ListItem, ListRange} from './list-datasource';
 
 interface TestItem extends ListItem {
   value: string;
@@ -30,6 +30,81 @@ class TestDestroyRef extends DestroyRef {
 }
 
 describe('ListDataSource', () => {
+  it('requests the initial 100-row range and advances by raw server rows', () => {
+    const query = new BehaviorSubject('query');
+    const streams: Subject<TestItem>[] = [];
+    const ranges: ListRange[] = [];
+    const destroyRef = new TestDestroyRef();
+    const dataSource = ListDataSource.fromQuery({
+      query$: query,
+      load: (_query, range) => {
+        ranges.push(range);
+        const stream = new Subject<TestItem>();
+        streams.push(stream);
+        return stream;
+      },
+      destroyRef,
+    });
+
+    expect(ranges).toEqual([{offset: 0, pageSize: 100}]);
+    for (let index = 0; index < 100; index++) {
+      streams[0].next({id: String(index), value: String(index)});
+    }
+    streams[0].complete();
+    dataSource.loadMore();
+
+    expect(ranges.at(-1)).toEqual({offset: 100, pageSize: 100});
+    streams[1].next({id: '99', value: 'replaced'});
+    streams[1].next({id: '100', value: 'new'});
+    streams[1].complete();
+
+    expect(dataSource.length).toBe(101);
+    expect(dataSource.snapshot.find(row => row.id === '99')?.value).toBe('replaced');
+    dataSource.loadMore();
+    expect(ranges).toHaveLength(2);
+    destroyRef.destroy();
+  });
+
+  it('guards concurrent appends and retries a failed append without dropping rows', () => {
+    const query = new BehaviorSubject('query');
+    const streams: Subject<TestItem>[] = [];
+    const ranges: ListRange[] = [];
+    const failed: boolean[] = [];
+    const destroyRef = new TestDestroyRef();
+    const dataSource = ListDataSource.fromQuery({
+      query$: query,
+      pageSize: 1,
+      load: (_query, range) => {
+        ranges.push(range);
+        const stream = new Subject<TestItem>();
+        streams.push(stream);
+        return stream;
+      },
+      destroyRef,
+    });
+    dataSource.appendFailed$.subscribe(value => failed.push(value));
+
+    streams[0].next({id: 'one', value: 'one'});
+    streams[0].complete();
+    dataSource.loadMore();
+    dataSource.loadMore();
+    expect(ranges).toHaveLength(2);
+
+    streams[1].error(new Error('append failed'));
+    expect(dataSource.snapshot).toEqual([{id: 'one', value: 'one'}]);
+    expect(failed.at(-1)).toBe(true);
+    dataSource.loadMore();
+    expect(ranges).toHaveLength(2);
+
+    dataSource.retry();
+    expect(ranges.at(-1)).toEqual({offset: 1, pageSize: 1});
+    streams[2].next({id: 'two', value: 'two'});
+    streams[2].complete();
+    expect(dataSource.snapshot.map(row => row.id)).toEqual(['one', 'two']);
+    expect(failed.at(-1)).toBe(false);
+    destroyRef.destroy();
+  });
+
   it('loads streamed rows and exposes the current rows to late subscribers', () => {
     const query = new BehaviorSubject('first');
     const rows = new Subject<TestItem>();

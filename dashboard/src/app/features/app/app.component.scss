@@ -18,7 +18,9 @@
 }
 
 .primary-drawer {
-  width: min(320px, 85vw);
+  width: min(300px, 85vw);
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
 }
 
 .drawer-header {
@@ -36,6 +38,9 @@
   padding-right: max(4px, env(safe-area-inset-right));
   padding-left: max(4px, env(safe-area-inset-left));
   gap: 4px;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
 .brand-link {
@@ -57,7 +62,6 @@
   flex: 1 1 auto;
 }
 
-.primary-links,
 .desktop-actions {
   display: none;
 }
@@ -67,13 +71,8 @@
   flex: 0 0 auto;
 }
 
-.primary-links a,
 .desktop-actions button {
   color: inherit;
-}
-
-.primary-links a.is-active {
-  background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .module-loader {
@@ -107,15 +106,6 @@ main {
     gap: 12px;
   }
 
-  .primary-drawer-toggle {
-    display: none;
-  }
-
-  .primary-links {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
 }
 
 @media (min-width: 1200px) {

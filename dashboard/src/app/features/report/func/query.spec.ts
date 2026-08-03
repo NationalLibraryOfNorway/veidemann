@@ -4,8 +4,7 @@ import {JobExecutionState} from '../../../shared/models';
 import {
   equalJobExecutionQuery,
   jobExecutionQueryFromParamMap,
-  pageLogQueryFromParamMap,
-  unknownPageLength
+  pageLogQueryFromParamMap
 } from './query';
 
 describe('report query route parsing', () => {
@@ -26,9 +25,9 @@ describe('report query route parsing', () => {
       active: 'startTime',
       direction: 'desc',
       watch: true,
-      pageSize: 50,
-      pageIndex: 2,
     }));
+    expect('pageSize' in query).toBe(false);
+    expect('pageIndex' in query).toBe(false);
   });
 
   it('ignores unrelated parameters and state order for equality', () => {
@@ -38,10 +37,9 @@ describe('report query route parsing', () => {
     expect(equalJobExecutionQuery(previous, current)).toBe(true);
   });
 
-  it('calculates an unknown total from the active page', () => {
+  it('accepts but ignores legacy paging parameters', () => {
     const query = pageLogQueryFromParamMap(convertToParamMap({s: '25', p: '2'}));
-
-    expect(unknownPageLength(query, new Array(25))).toBe(76);
-    expect(unknownPageLength(query, new Array(10))).toBe(60);
+    expect('pageSize' in query).toBe(false);
+    expect('pageIndex' in query).toBe(false);
   });
 });

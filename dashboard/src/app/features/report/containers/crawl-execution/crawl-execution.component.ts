@@ -3,25 +3,25 @@ import {CommonModule} from '@angular/common';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 import {MatIconModule} from '@angular/material/icon';
-import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {MatMenuModule} from '@angular/material/menu';
+import {MatTooltip} from '@angular/material/tooltip';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {combineLatest, merge, Observable} from 'rxjs';
-import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
+import {combineLatest, Observable} from 'rxjs';
+import {distinctUntilChanged, map} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
-import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
 import {Sort} from '../../../../shared/func';
 import {ConfigObject, Kind, ListDataSource} from '../../../../shared/models';
 import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models/report';
 import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
 import {CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent} from '../../components';
-import {crawlExecutionQueryFromParamMap, equalCrawlExecutionQuery, unknownPageLength} from '../../func';
+import {crawlExecutionQueryFromParamMap, equalCrawlExecutionQuery} from '../../func';
 import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
 
 @Component({
@@ -36,11 +36,13 @@ import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
     CrawlExecutionStatusListComponent,
     CrawlExecutionStatusQueryComponent,
     FilterDirective,
+    ExtraDirective,
     FlexDirective,
     LayoutDirective,
     MatIconModule,
     MatMenuModule,
     MatProgressBarModule,
+    MatTooltip,
     RouterModule,
     ShortcutDirective,
   ]
@@ -58,13 +60,10 @@ export class CrawlExecutionComponent {
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
-  readonly pageSize: Signal<number>;
-  readonly pageIndex: Signal<number>;
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
   readonly query: Signal<CrawlExecutionStatusQuery>;
   readonly dataSource: ListDataSource<CrawlExecutionStatus, CrawlExecutionStatusQuery>;
-  readonly pageLength$: Observable<number>;
   readonly loading$: Observable<boolean>;
   readonly crawlJobOptions: ConfigObject[];
 
@@ -79,24 +78,16 @@ export class CrawlExecutionComponent {
       () => crawlExecutionQueryFromParamMap(queryParamMap()),
       {equal: equalCrawlExecutionQuery}
     );
-    this.pageSize = computed(() => this.query().pageSize);
-    this.pageIndex = computed(() => this.query().pageIndex);
     this.sortDirection = computed(() => this.query().direction);
     this.sortActive = computed(() => this.query().active);
 
     const query$ = toObservable(this.query);
     this.dataSource = ListDataSource.fromQuery({
       query$,
-      load: query => this.crawlExecutionService.search(query),
+      load: (query, range) => this.crawlExecutionService.search(query, range),
       destroyRef,
-      capacity: query => query.watch ? query.pageSize : 0,
+      capacity: query => query.watch ? 100 : 0,
     });
-    this.pageLength$ = merge(
-      this.dataSource.reset$.pipe(map(() => 0)),
-      this.dataSource.completed$.pipe(map(({query, rows}) => unknownPageLength(query, rows)))
-    ).pipe(
-      startWith(0)
-    );
     this.loading$ = combineLatest([this.dataSource.loading$, this.crawlExecutionService.loading$]).pipe(
       map(([listLoading, operationLoading]) => listLoading || operationLoading),
       distinctUntilChanged()
@@ -105,6 +96,8 @@ export class CrawlExecutionComponent {
 
   onQueryChange(query: Partial<CrawlExecutionStatusQuery>) {
     const queryParams = {
+      p: null,
+      s: null,
       state: query.stateList || null,
       seed_id: query.seedId || null,
       job_id: query.jobId || null,
@@ -122,16 +115,13 @@ export class CrawlExecutionComponent {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
-      queryParams: {sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
+      queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
     }).catch(error => this.errorService.dispatch(error));
   }
 
-  onPage(page: PageEvent) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParamsHandling: 'merge',
-      queryParams: {p: page.pageIndex, s: page.pageSize}
-    }).catch(error => this.errorService.dispatch(error));
+  onRowClick(row: CrawlExecutionStatus): void {
+    this.router.navigate([row.id], {relativeTo: this.route})
+      .catch(error => this.errorService.dispatch(error));
   }
 
   isDone(item: CrawlExecutionStatus): boolean {

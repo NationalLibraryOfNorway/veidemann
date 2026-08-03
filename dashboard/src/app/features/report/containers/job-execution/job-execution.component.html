@@ -10,13 +10,17 @@
         (queryChange)="onQueryChange($event)"></app-job-execution-status-query>
         <app-job-execution-status-list fxFlex
           [dataSource]="dataSource"
-          [length]="pageLength$ | async"
-          [pageIndex]="pageIndex()"
-          [pageSize]="pageSize()"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
+          (rowClick)="onRowClick($event)"
           (sort)="onSort($event)"
-          (page)="onPage($event)">
+          >
+          <ng-container *appExtra="let row">
+            @if (row.state === JobExecutionState.RUNNING && can('abort', 'jobexecution')) {
+              <button mat-icon-button (click)="onAbortJobExecution(row); $event.stopPropagation()"
+                aria-label="Abort crawl" matTooltip="Abort crawl"><mat-icon>cancel</mat-icon></button>
+            }
+          </ng-container>
           <ng-container *appShortcut="let row">
             @if (can('read', Kind[Kind.CRAWLJOB])) {
               <a mat-menu-item
@@ -39,24 +43,6 @@
             }
           </ng-container>
           <ng-container *appAction="let row">
-            @if (can('read', 'jobexecution')) {
-              <a mat-menu-item
-                [routerLink]="['../jobexecution', row.id]"
-                i18n="@@reportListActionButtonShowFullReport">
-            <mat-icon>keyboard_arrow_right</mat-icon>
-            Show full report
-          </a>
-            }
-            @if (row.state === JobExecutionState.RUNNING) {
-              @if (can('abort', 'jobexecution')) {
-                <button mat-menu-item
-                  (click)="onAbortJobExecution(row)"
-                  i18n="@@reportListActionButtonAbortCrawlExecution">
-              <mat-icon>cancel</mat-icon>
-              Abort crawl
-            </button>
-              }
-            }
           </ng-container>
         </app-job-execution-status-list>
       </div>

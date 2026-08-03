@@ -1,9 +1,8 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 
-import {animate, state, style, transition, trigger} from '@angular/animations';
 import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
-import {JobExecutionFetchPipe, JobNamePipe} from '../../pipe';
+import {JobNamePipe} from '../../pipe';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {MatMenuModule} from '@angular/material/menu';
@@ -11,8 +10,6 @@ import {MatIcon} from '@angular/material/icon';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {MatButtonModule} from '@angular/material/button';
-import {JobExecutionPreviewComponent} from '../job-execution-preview/job-execution-preview.component';
-import {MatPaginatorModule} from '@angular/material/paginator';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
@@ -20,28 +17,17 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   templateUrl: './job-execution-status-list.component.html',
   styleUrls: [
     '../../../../shared/components/base-list/base-list.scss',
-    '../../../../shared/components/base-list/base-list-odd-preview.scss',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({height: '0px', minHeight: '0'})),
-      state('expanded', style({height: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ]),
-  ],
   imports: [
     AsyncPipe,
     DatePipe,
     FlexDirective,
-    JobExecutionFetchPipe,
-    JobExecutionPreviewComponent,
     JobNamePipe,
     LayoutDirective,
     MatButtonModule,
     MatIcon,
     MatMenuModule,
-    MatPaginatorModule,
     MatSortModule,
     MatTableModule,
     NgTemplateOutlet,
@@ -51,8 +37,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 })
 export class JobExecutionStatusListComponent extends BaseListComponent<JobExecutionStatus> {
   readonly JobExecutionState = JobExecutionState;
-
-  expandedJobExecutionStatus: JobExecutionStatus | null;
 
   @Input()
   override multiSelect = false;

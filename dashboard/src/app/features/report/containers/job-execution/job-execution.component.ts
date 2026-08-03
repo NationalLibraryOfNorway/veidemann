@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, Signal, injec
 import {AsyncPipe} from '@angular/common';
 import {MatDialog} from '@angular/material/dialog';
 import {MatIconModule} from '@angular/material/icon';
-import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
@@ -10,12 +9,13 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
-import {combineLatest, merge, Observable} from 'rxjs';
-import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
+import {MatTooltip} from '@angular/material/tooltip';
+import {combineLatest, Observable} from 'rxjs';
+import {distinctUntilChanged, map} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
-import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
 import {Sort} from '../../../../shared/func';
 import {
   ConfigObject,
@@ -27,7 +27,7 @@ import {
 } from '../../../../shared/models';
 import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
 import {JobExecutionStatusListComponent, JobExecutionStatusQueryComponent} from '../../components';
-import {equalJobExecutionQuery, jobExecutionQueryFromParamMap, unknownPageLength} from '../../func';
+import {equalJobExecutionQuery, jobExecutionQueryFromParamMap} from '../../func';
 import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
 
 @Component({
@@ -40,6 +40,7 @@ import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
     ActionDirective,
     AsyncPipe,
     FilterDirective,
+    ExtraDirective,
     FlexDirective,
     JobExecutionStatusQueryComponent,
     JobExecutionStatusListComponent,
@@ -47,6 +48,7 @@ import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
     MatIconModule,
     MatMenuItem,
     MatProgressBarModule,
+    MatTooltip,
     RouterLink,
     ShortcutDirective,
   ]
@@ -66,13 +68,10 @@ export class JobExecutionComponent {
   readonly crawlJobOptions: ConfigObject[];
   readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
-  readonly pageSize: Signal<number>;
-  readonly pageIndex: Signal<number>;
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
   readonly query: Signal<JobExecutionStatusQuery>;
   readonly dataSource: ListDataSource<JobExecutionStatus, JobExecutionStatusQuery>;
-  readonly pageLength$: Observable<number>;
   readonly loading$: Observable<boolean>;
 
   constructor() {
@@ -86,24 +85,16 @@ export class JobExecutionComponent {
       () => jobExecutionQueryFromParamMap(queryParamMap()),
       {equal: equalJobExecutionQuery}
     );
-    this.pageSize = computed(() => this.query().pageSize);
-    this.pageIndex = computed(() => this.query().pageIndex);
     this.sortDirection = computed(() => this.query().direction);
     this.sortActive = computed(() => this.query().active);
 
     const query$ = toObservable(this.query);
     this.dataSource = ListDataSource.fromQuery({
       query$,
-      load: query => this.jobExecutionService.search(query),
+      load: (query, range) => this.jobExecutionService.search(query, range),
       destroyRef,
-      capacity: query => query.watch ? query.pageSize : 0,
+      capacity: query => query.watch ? 100 : 0,
     });
-    this.pageLength$ = merge(
-      this.dataSource.reset$.pipe(map(() => 0)),
-      this.dataSource.completed$.pipe(map(({query, rows}) => unknownPageLength(query, rows)))
-    ).pipe(
-      startWith(0)
-    );
     this.loading$ = combineLatest([this.dataSource.loading$, this.jobExecutionService.loading$]).pipe(
       map(([listLoading, operationLoading]) => listLoading || operationLoading),
       distinctUntilChanged()
@@ -112,6 +103,8 @@ export class JobExecutionComponent {
 
   onQueryChange(query: Partial<JobExecutionStatusQuery>) {
     const queryParams = {
+      p: null,
+      s: null,
       state: query.stateList && query.stateList.length ? query.stateList : null,
       job_id: query.jobId || null,
       start_time_to: query.startTimeTo || null,
@@ -129,16 +122,13 @@ export class JobExecutionComponent {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
-      queryParams: {sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
+      queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
     }).catch(error => this.errorService.dispatch(error));
   }
 
-  onPage(page: PageEvent) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParamsHandling: 'merge',
-      queryParams: {p: page.pageIndex, s: page.pageSize}
-    }).catch(error => this.errorService.dispatch(error));
+  onRowClick(row: JobExecutionStatus): void {
+    this.router.navigate([row.id], {relativeTo: this.route})
+      .catch(error => this.errorService.dispatch(error));
   }
 
   onAbortJobExecution(jobExecutionStatus: JobExecutionStatus) {
