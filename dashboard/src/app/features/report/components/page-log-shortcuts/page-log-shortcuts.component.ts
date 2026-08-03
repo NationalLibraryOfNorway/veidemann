@@ -1,7 +1,6 @@
 import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {PageLog} from '../../../../shared/models';
-import {Observable} from 'rxjs';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {MatListModule} from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
@@ -21,11 +20,11 @@ import { CommonModule } from '@angular/common';
     ]
 })
 export class PageLogShortcutsComponent {
-  readonly ability$: Observable<any>
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   @Input() pageLog: PageLog;
 
-  constructor(private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+  constructor(private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 }

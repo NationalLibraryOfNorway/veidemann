@@ -6,7 +6,7 @@ import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns
 import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 
-import { createMongoAbility, PureAbility } from '@casl/ability';
+import { Ability, createMongoAbility } from '@casl/ability';
 import { AuthConfig, OAuthModule, OAuthService } from 'angular-oauth2-oidc';
 
 import { NGX_ECHARTS_CONFIG } from 'ngx-echarts';
@@ -48,7 +48,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideMonacoEditor(monacoConfig),
     OAuthService,
-    { provide: PureAbility, useValue: createMongoAbility() },
+    { provide: Ability, useValue: createMongoAbility() },
     provideAppInitializer(initializeApp),
     {
       provide: LOCALE_ID,

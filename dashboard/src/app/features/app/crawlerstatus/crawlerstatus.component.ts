@@ -1,9 +1,7 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
 import {RunStatus} from '../../../shared/models/controller';
 import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
-import {Observable} from "rxjs";
-import {AbilityService} from "@casl/angular";
-import {AsyncPipe} from '@angular/common';
+import {AbilityServiceSignal} from "@casl/angular";
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
@@ -18,7 +16,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   styleUrls: ['./crawlerstatus.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe,
     LayoutGapDirective,
     LayoutDirective,
     MatButtonModule,
@@ -30,10 +27,10 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 })
 export class CrawlerStatusComponent {
   readonly RunStatus = RunStatus;
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
-  constructor(private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+  constructor(private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 
   @Input()

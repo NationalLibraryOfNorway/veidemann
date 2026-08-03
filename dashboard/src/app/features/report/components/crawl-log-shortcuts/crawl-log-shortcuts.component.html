@@ -1,7 +1,6 @@
-@if (ability$ | async; as ability) {
-  <mat-nav-list>
+<mat-nav-list>
     <div mat-subheader>Shortcuts</div>
-    @if (ability.can('read', 'jobexecution')) {
+    @if (can('read', 'jobexecution')) {
       <a mat-list-item
         [routerLink]="['/report', 'jobexecution', crawlLog.jobExecutionId]"
         i18n="@@reportListActionButtonGoToJobExecution">
@@ -9,7 +8,7 @@
     Go to job execution
   </a>
     }
-    @if (ability.can('read', 'crawlexecution')) {
+    @if (can('read', 'crawlexecution')) {
       <a mat-list-item
         [routerLink]="['/report', 'crawlexecution', crawlLog.executionId]"
         i18n="@@reportListActionButtonGoToCrawlExecution">
@@ -17,6 +16,4 @@
     Go to crawl execution
   </a>
     }
-  </mat-nav-list>
-}
-
+</mat-nav-list>

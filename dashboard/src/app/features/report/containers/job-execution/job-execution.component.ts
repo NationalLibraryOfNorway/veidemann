@@ -6,7 +6,7 @@ import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
@@ -56,7 +56,7 @@ export class JobExecutionComponent {
   readonly JobExecutionState = JobExecutionState;
   readonly crawlJobOptions: ConfigObject[];
   readonly Kind = Kind;
-  readonly ability$: Observable<MongoAbility>;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly pageSize: Signal<number>;
   readonly pageIndex: Signal<number>;
   readonly sortDirection: Signal<SortDirection>;
@@ -73,10 +73,10 @@ export class JobExecutionComponent {
               private dialog: MatDialog,
               private controllerApiService: ControllerApiService,
               private snackBarService: SnackBarService,
-              private abilityService: AbilityService<MongoAbility>,
+              private abilityService: AbilityServiceSignal<MongoAbility>,
               destroyRef: DestroyRef) {
     this.crawlJobOptions = this.route.snapshot.data['options'].crawlJobs;
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     this.query = computed(

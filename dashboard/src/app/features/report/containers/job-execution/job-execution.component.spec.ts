@@ -6,6 +6,7 @@ import {ActivatedRoute, convertToParamMap} from '@angular/router';
 import {EMPTY, of} from 'rxjs';
 import {ControllerApiService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {provideNativeDateAdapter} from '@angular/material/core';
 
 describe('JobExecutionComponent', () => {
   let component: JobExecutionComponent;
@@ -26,6 +27,7 @@ describe('JobExecutionComponent', () => {
       declarations: [],
       providers: [
         ...provideCoreTesting,
+        provideNativeDateAdapter(),
         {provide: ActivatedRoute, useValue: fakeActivatedRoute},
         {provide: MatDialog, useValue: {}},
         {

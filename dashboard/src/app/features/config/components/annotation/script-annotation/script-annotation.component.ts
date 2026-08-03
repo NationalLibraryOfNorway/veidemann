@@ -1,8 +1,6 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {Annotation} from '../../../../../shared/models/config';
-import {Observable} from "rxjs";
-import {AbilityService} from "@casl/angular";
-import {AsyncPipe} from '@angular/common';
+import {AbilityServiceSignal} from "@casl/angular";
 import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatChipsModule} from '@angular/material/chips';
 
@@ -11,18 +9,17 @@ import {MatChipsModule} from '@angular/material/chips';
   templateUrl: './script-annotation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe,
     MatChipsModule,
     LayoutDirective,
   ],
   standalone: true
 })
 export class ScriptAnnotationComponent {
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
   @Input()
   annotations: Annotation[];
 
-  constructor(abilityService: AbilityService<any>) {
-    this.ability$ = abilityService.ability$;
+  constructor(abilityService: AbilityServiceSignal<any>) {
+    this.can = abilityService.can;
   }
 }

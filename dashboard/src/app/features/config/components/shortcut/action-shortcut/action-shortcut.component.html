@@ -1,11 +1,10 @@
-@if (ability$ | async; as ability) {
-  <mat-nav-list>
+<mat-nav-list>
     <div mat-subheader i18n="@@actionShortcutListTitle">
     Actions
   </div>
     @switch (configObject.kind) {
       @case (Kind.CRAWLENTITY) {
-        @if (ability.can('create', Kind[Kind.SEED])) {
+        @if (can('create', Kind[Kind.SEED])) {
           <a mat-list-item
             (click)="onCreateSeed()"
             matTooltip="Create a new seed with reference to the entity"
@@ -16,7 +15,7 @@
         }
       }
       @case (Kind.SEED) {
-        @if (ability.can('runCrawl', Kind[Kind.SEED])) {
+        @if (can('runCrawl', Kind[Kind.SEED])) {
           <a mat-list-item
             (click)="onRunCrawl()">
             <mat-icon matListItemIcon>play_arrow</mat-icon>
@@ -25,7 +24,7 @@
         }
       }
       @case (Kind.CRAWLJOB) {
-        @if (ability.can('runCrawl', Kind[Kind.CRAWLJOB])) {
+        @if (can('runCrawl', Kind[Kind.CRAWLJOB])) {
           <a mat-list-item
             (click)="onRunCrawl()">
             <mat-icon matListItemIcon>play_arrow</mat-icon>
@@ -34,12 +33,11 @@
         }
       }
     }
-    @if (ability.can('create', Kind[this.configObject.kind])) {
+    @if (can('create', Kind[this.configObject.kind])) {
       <a mat-list-item
         (click)="onClone()">
         <mat-icon matListItemIcon>file_copy</mat-icon>
         Clone
       </a>
     }
-  </mat-nav-list>
-}
+</mat-nav-list>

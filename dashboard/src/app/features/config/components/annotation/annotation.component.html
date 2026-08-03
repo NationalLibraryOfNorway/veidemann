@@ -1,5 +1,4 @@
-@if (ability$ | async; as ability) {
-  @if (ability.can('read', 'annotation')) {
+@if (can('read', 'annotation')) {
     <div fxLayout="column">
       <form>
         <mat-form-field>
@@ -75,5 +74,4 @@
         </form>
       }
     </div>
-  }
 }

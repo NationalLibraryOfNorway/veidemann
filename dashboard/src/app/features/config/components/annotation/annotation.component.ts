@@ -23,7 +23,7 @@ import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {NO_COLON} from '../../../../shared/validation/patterns';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {AuthService} from '../../../../core';
-import {AbilityService} from "@casl/angular";
+import {AbilityServiceSignal} from "@casl/angular";
 import {AsyncPipe} from '@angular/common';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
@@ -55,7 +55,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class AnnotationComponent implements ControlValueAccessor, OnInit {
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   @Input() removable = true;
 
@@ -82,9 +82,9 @@ export class AnnotationComponent implements ControlValueAccessor, OnInit {
   constructor(protected fb: UntypedFormBuilder,
               protected cdr: ChangeDetectorRef,
               protected authService: AuthService,
-              private abilityService: AbilityService<any>) {
+              private abilityService: AbilityServiceSignal<any>) {
     this.createForm();
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
   }
 
   get canEdit(): boolean {

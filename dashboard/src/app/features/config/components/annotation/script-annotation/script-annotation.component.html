@@ -1,5 +1,4 @@
-@if (ability$ | async; as ability) {
-  @if (ability.can('read', 'annotation')) {
+@if (can('read', 'annotation')) {
     <div fxLayout="column">
       @if (annotations) {
         <mat-chip-listbox [selectable]="false">
@@ -11,5 +10,4 @@
         </mat-chip-listbox>
       }
     </div>
-  }
 }

@@ -1,5 +1,4 @@
-@if (ability$ | async; as ability) {
-  <div fxLayout="column" class="container">
+<div fxLayout="column" class="container">
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
@@ -7,7 +6,7 @@
       <div fxLayout="column" class="scroll">
         <mat-action-list>
           @if (currentKind(); as kind) {
-            @if (ability.can('create', Kind[kind]) && showCreateButton()) {
+            @if (can('create', Kind[kind]) && showCreateButton()) {
               <button mat-list-item
                 (click)="onCreateConfigWithDialog()"
                 i18n="@@configurationSideBarMenuAddConfigButton"
@@ -82,7 +81,7 @@
                     </mat-icon>
                   </button>
                 }
-                @if (!isAllSelected && (ability.can('update', Kind[kind]))) {
+                @if (!isAllSelected && (can('update', Kind[kind]))) {
                   <button mat-icon-button
                     (click)="onEditSelected()">
                     <mat-icon matTooltip="Edit selected configurations"
@@ -90,7 +89,7 @@
                     </mat-icon>
                   </button>
                 }
-                @if (isAllSelected && (ability.can('updateAll', Kind[kind]))) {
+                @if (isAllSelected && (can('updateAll', Kind[kind]))) {
                   <button mat-icon-button
                     (click)="onEditSelected()">
                     <mat-icon matTooltip="Edit all configurations in database"
@@ -98,7 +97,7 @@
                     </mat-icon>
                   </button>
                 }
-                @if (!isAllSelected && (ability.can('delete', Kind[kind]))) {
+                @if (!isAllSelected && (can('delete', Kind[kind]))) {
                   <button mat-icon-button
                     (click)="onDeleteSelectedConfigs()">
                     <mat-icon matTooltip="Delete selected configurations"
@@ -108,7 +107,7 @@
                 }
                 @if (kind === Kind.COLLECTION) {
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+                    @if (can('read', Kind[Kind.CRAWLCONFIG])) {
                       <button mat-menu-item
                         (click)="onFilterByCollectionRef(row)"
                         i18n="@@configListActionButtonShowCrawlConfig"
@@ -122,7 +121,7 @@
                   </ng-container>
                 }
                 @if (kind === Kind.CRAWLENTITY) {
-                  @if (ability.can('read', Kind[Kind.SEED])) {
+                  @if (can('read', Kind[Kind.SEED])) {
                     <a *appFilter="let row" mat-menu-item
                       [routerLink]="['../seed']"
                       [queryParams]="{entity_id: row.id}"
@@ -131,7 +130,7 @@
                 Go to seed list
               </a>
                   }
-                  @if (ability.can('create', Kind[Kind.SEED])) {
+                  @if (can('create', Kind[Kind.SEED])) {
                     <button *appAction="let row" mat-menu-item
                       (click)="onCreateSeedFromEntity(row)"
                       i18n="@@configListActionButtonCreateSeed"
@@ -144,7 +143,7 @@
                   }
                 }
                 @if (kind === Kind.SEED) {
-                  @if (ability.can('read', 'CrawlExecution')) {
+                  @if (can('read', 'CrawlExecution')) {
                     <a *appFilter="let row" mat-menu-item
                       [routerLink]="['/report/crawlexecution']"
                       [queryParams]="{seed_id: row.id}"
@@ -155,7 +154,7 @@
                   }
                   <ng-container *appFilter="let row">
                     @if (row?.seed?.jobRefList.length) {
-                      @if (ability.can('read', Kind[Kind.SEED])) {
+                      @if (can('read', Kind[Kind.SEED])) {
                         <a mat-menu-item
                           [routerLink]="['../seed']"
                           [queryParams]="getJobRefListQueryParams(row)"
@@ -170,7 +169,7 @@
                     }
                   </ng-container>
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.SEED])) {
+                    @if (can('read', Kind[Kind.SEED])) {
                       <button mat-menu-item
                         (click)="onFilterByEntityRef(row)"
                         i18n="@@configListActionButtonShowSeedsForEntity"
@@ -198,7 +197,7 @@
                 }
                 @if (kind === Kind.CRAWLSCHEDULECONFIG) {
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+                    @if (can('read', Kind[Kind.CRAWLJOB])) {
                       <button mat-menu-item
                         (click)="onFilterByScheduleRef(row)"
                         i18n="@@configListActionButtonShowCrawljobsWithSchedule"
@@ -214,7 +213,7 @@
                 @if (kind === Kind.CRAWLCONFIG) {
                   <ng-container *appShortcut="let row">
                     @if (row.crawlConfig?.collectionRef?.id) {
-                      @if (ability.can('read', Kind[Kind.COLLECTION])) {
+                      @if (can('read', Kind[Kind.COLLECTION])) {
                         <a mat-menu-item
                           [routerLink]="['../collection', $safeNavigationMigration(row.crawlConfig.collectionRef?.id)]"
                           i18n="@@configListActionButtonGoToCollection"
@@ -229,7 +228,7 @@
                   </ng-container>
                   <ng-container *appShortcut="let row">
                     @if (row.crawlConfig?.browserConfigRef?.id) {
-                      @if (ability.can('read', Kind[Kind.BROWSERCONFIG])) {
+                      @if (can('read', Kind[Kind.BROWSERCONFIG])) {
                         <a mat-menu-item
                           [routerLink]="['../browserconfig', $safeNavigationMigration(row.crawlConfig.browserConfigRef?.id)]"
                           i18n="@@configListActionButtonGoToBrowserconfig"
@@ -244,7 +243,7 @@
                   </ng-container>
                   <ng-container *appShortcut="let row">
                     @if (row.crawlConfig?.politenessRef?.id) {
-                      @if (ability.can('read', Kind[Kind.POLITENESSCONFIG])) {
+                      @if (can('read', Kind[Kind.POLITENESSCONFIG])) {
                         <a mat-menu-item
                           [routerLink]="['../politenessconfig', $safeNavigationMigration(row.crawlConfig.politenessRef?.id)]"
                           i18n="@@configListActionButtonGoToPolitenessconfig"
@@ -258,7 +257,7 @@
                     }
                   </ng-container>
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+                    @if (can('read', Kind[Kind.CRAWLJOB])) {
                       <button mat-menu-item
                         (click)="onFilterByCrawlConfigRef(row)"
                         i18n="@@configListActionButtonFilterCrawljobsWithCrawlconfig"
@@ -273,7 +272,7 @@
                 }
                 @if (kind === Kind.BROWSERCONFIG) {
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+                    @if (can('read', Kind[Kind.CRAWLCONFIG])) {
                       <button mat-menu-item
                         (click)="onFilterByBrowserConfigRef(row)"
                         i18n="@@configListActionButtonFilterCrawljobsWithBrowserconfig"
@@ -288,7 +287,7 @@
                 }
                 @if (kind === Kind.POLITENESSCONFIG) {
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+                    @if (can('read', Kind[Kind.CRAWLCONFIG])) {
                       <button mat-menu-item
                         (click)="onFilterByPolitenessConfigRef(row)"
                         i18n="@@configListActionButtonFilterCrawlconfigswithPoliteness"
@@ -303,7 +302,7 @@
                 }
                 @if (kind === Kind.BROWSERSCRIPT) {
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.BROWSERCONFIG])) {
+                    @if (can('read', Kind[Kind.BROWSERCONFIG])) {
                       <button mat-menu-item
                         (click)="onFilterByBrowserScriptRef(row)"
                         i18n="@@configListActionButtonFilterBrowserconfigWithBrowserscript"
@@ -318,7 +317,7 @@
                 }
                 @if (kind === Kind.CRAWLJOB) {
                   <span *appExtra="let row">{{ row | getJobStatus | jobState | async }}</span>
-                  @if (ability.can('read', 'reports')) {
+                  @if (can('read', 'reports')) {
                     <a *appShortcut="let row" mat-menu-item
                       [routerLink]="['/report/jobexecution']"
                       [queryParams]="{job_id: row.id}"
@@ -332,7 +331,7 @@
                   }
                   <ng-container *appShortcut="let row">
                     @if (row.crawlJob?.scheduleRef.id) {
-                      @if (ability.can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
+                      @if (can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
                         <a mat-menu-item
                           [routerLink]="['../schedule', $safeNavigationMigration(row.crawlJob.scheduleRef?.id) ]"
                           i18n="@@configListActionButtonGoToSchedule"
@@ -347,7 +346,7 @@
                   </ng-container>
                   <ng-container *appShortcut="let row">
                     @if (row.crawlJob?.crawlConfigRef?.id) {
-                      @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+                      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
                         <a mat-menu-item
                           [routerLink]="['../crawlconfig', $safeNavigationMigration(row.crawlJob.crawlConfigRef?.id)]"
                           i18n="@@configListActionButtonGoToCrawlconfig"
@@ -361,7 +360,7 @@
                     }
                   </ng-container>
                   <ng-container *appFilter="let row">
-                    @if (ability.can('read', Kind[Kind.SEED])) {
+                    @if (can('read', Kind[Kind.SEED])) {
                       <button mat-menu-item
                         (click)="onFilterByCrawlJobRef(row)"
                         i18n="@@configListActionButtonFilterSeedsWithCrawljob"
@@ -422,5 +421,4 @@
         }
       }
     </div>
-  </div>
-}
+</div>

@@ -1,7 +1,6 @@
-@if (ability$ | async; as ability) {
-  <mat-nav-list>
+<mat-nav-list>
     <div mat-subheader>Shortcuts</div>
-    @if (ability.can('read', Kind[Kind.SEED])) {
+    @if (can('read', Kind[Kind.SEED])) {
       <a mat-list-item
         [routerLink]="['/config', 'seed', crawlExecutionStatus.seedId]"
         i18n="@@reportListActionButtonGoToSeed">
@@ -9,7 +8,7 @@
       Go to seed
     </a>
     }
-    @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+    @if (can('read', Kind[Kind.CRAWLJOB])) {
       <a mat-list-item
         [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]"
         i18n="@@reportListActionButtonGoToCrawljob">
@@ -20,7 +19,7 @@
   </mat-nav-list>
   <mat-nav-list>
     <div mat-subheader>Filters</div>
-    @if (ability.can('read','pagelog')) {
+    @if (can('read','pagelog')) {
       <a mat-list-item
         [routerLink]="['/report/pagelog']"
         [queryParams]="{execution_id: crawlExecutionStatus.id}"
@@ -29,7 +28,7 @@
       Show pagelog
     </a>
     }
-    @if (ability.can('read','crawllog')) {
+    @if (can('read','crawllog')) {
       <a mat-list-item
         [routerLink]="['/report/crawllog']"
         [queryParams]="{execution_id: crawlExecutionStatus.id}"
@@ -38,7 +37,7 @@
       Show crawllog
     </a>
     }
-    @if (canAbort(crawlExecutionStatus.state) && ability.can('abort','crawlexecution')) {
+    @if (canAbort(crawlExecutionStatus.state) && can('abort','crawlexecution')) {
       <a mat-list-item
         (click)="onAbortCrawlExecution(crawlExecutionStatus)"
         i18n="@@reportListActionButtonAbortCrawlExecution">
@@ -46,5 +45,4 @@
         Abort crawl
       </a>
     }
-  </mat-nav-list>
-}
+</mat-nav-list>

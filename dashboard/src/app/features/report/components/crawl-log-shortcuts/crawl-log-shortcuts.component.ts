@@ -1,8 +1,6 @@
 import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlLog} from '../../../../shared/models';
-import {Observable} from 'rxjs';
-import {AbilityService} from '@casl/angular';
-import {AsyncPipe} from '@angular/common';
+import {AbilityServiceSignal} from '@casl/angular';
 import {RouterLink} from '@angular/router';
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
@@ -12,7 +10,6 @@ import {MatIcon} from '@angular/material/icon';
   templateUrl: './crawl-log-shortcuts.component.html',
   styleUrls: ['./crawl-log-shortcuts.component.css'],
   imports: [
-    AsyncPipe,
     RouterLink,
     MatIcon,
     MatListModule,
@@ -22,11 +19,11 @@ import {MatIcon} from '@angular/material/icon';
   standalone: true
 })
 export class CrawlLogShortcutsComponent {
-  readonly ability$: Observable<any>
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   @Input() crawlLog: CrawlLog;
 
-  constructor(private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+  constructor(private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 }

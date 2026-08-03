@@ -6,7 +6,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {MatMenuModule} from '@angular/material/menu';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
@@ -48,7 +48,7 @@ import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
 export class CrawlExecutionComponent {
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly Kind = Kind;
-  readonly ability$: Observable<MongoAbility>;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly pageSize: Signal<number>;
   readonly pageIndex: Signal<number>;
   readonly sortDirection: Signal<SortDirection>;
@@ -66,10 +66,10 @@ export class CrawlExecutionComponent {
               private dialog: MatDialog,
               private controllerApiService: ControllerApiService,
               private snackBarService: SnackBarService,
-              private abilityService: AbilityService<MongoAbility>,
+              private abilityService: AbilityServiceSignal<MongoAbility>,
               destroyRef: DestroyRef) {
     this.crawlJobOptions = this.route.snapshot.data['options'].crawlJobs;
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     this.query = computed(

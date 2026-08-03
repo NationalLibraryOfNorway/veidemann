@@ -5,7 +5,7 @@ import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
@@ -43,7 +43,7 @@ import {CrawlLogQuery, CrawlLogService} from '../../services';
   ]
 })
 export class CrawlLogComponent {
-  readonly ability$: Observable<MongoAbility>;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly pageLength$: Observable<number>;
   readonly pageSize: Signal<number>;
   readonly pageIndex: Signal<number>;
@@ -57,9 +57,9 @@ export class CrawlLogComponent {
               private router: Router,
               private crawlLogService: CrawlLogService,
               private errorService: ErrorService,
-              private abilityService: AbilityService<MongoAbility>,
+              private abilityService: AbilityServiceSignal<MongoAbility>,
               destroyRef: DestroyRef) {
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     this.query = computed(

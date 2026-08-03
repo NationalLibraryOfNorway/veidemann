@@ -1,8 +1,6 @@
 import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {JobExecutionState, JobExecutionStatus, Kind} from '../../../../shared/models';
-import {Observable} from 'rxjs';
-import {AbilityService} from '@casl/angular';
-import {AsyncPipe} from '@angular/common';
+import {AbilityServiceSignal} from '@casl/angular';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
@@ -12,7 +10,6 @@ import {MatListModule} from '@angular/material/list';
   templateUrl: './job-execution-shortcuts.component.html',
   styleUrls: ['./job-execution-shortcuts.component.css'],
   imports: [
-    AsyncPipe,
     MatListModule,
     MatIcon,
     RouterLink
@@ -23,15 +20,15 @@ import {MatListModule} from '@angular/material/list';
 export class JobExecutionShortcutsComponent {
   readonly Kind = Kind;
   readonly JobExecutionState = JobExecutionState;
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   @Input() jobExecutionStatus: JobExecutionStatus;
 
   @Output()
   abortJobExecution = new EventEmitter<JobExecutionStatus>();
 
-  constructor(private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+  constructor(private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 
   onAbortJobExecution(jobExecutionStatus: JobExecutionStatus) {

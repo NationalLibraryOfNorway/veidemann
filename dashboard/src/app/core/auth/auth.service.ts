@@ -1,7 +1,7 @@
 import {Inject, Injectable} from '@angular/core';
 import {OAuthService} from 'angular-oauth2-oidc';
 import {Kind, Role} from '../../shared/models';
-import {AbilityBuilder, createMongoAbility, MongoAbility, PureAbility} from '@casl/ability';
+import {Ability, AbilityBuilder, createMongoAbility, MongoAbility} from '@casl/ability';
 
 
 @Injectable({
@@ -12,7 +12,7 @@ export class AuthService {
 
   roles: Role[];
 
-  constructor(private oauthService: OAuthService, @Inject(PureAbility) private ability: MongoAbility) {
+  constructor(private oauthService: OAuthService, @Inject(Ability) private ability: MongoAbility) {
     this.roles = [Role.ANY];
   }
 

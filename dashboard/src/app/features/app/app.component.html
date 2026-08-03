@@ -1,9 +1,8 @@
 <div class="container mat-typography" fxLayout="column">
-  @if (ability$ | async; as ability) {
   <mat-toolbar class="main-toolbar" color="primary">
     <a routerLink="/"><img class="veidemann_logo" alt="Veidemann" src="public/logo/veidemann_horizontal_white.png"></a>
     <span fxFlex></span>
-    @if (ability.can('read', 'report')) {
+    @if (can('read', 'report')) {
     <button color="primary" mat-flat-button matTooltip="Click to show overview of scheduled crawljobs"
       i18n-matTooltip="@@mainToolbarScheduledCrawljobsButtonTooltip" (click)="onShowJobSchedule()">
       <app-time></app-time>
@@ -32,17 +31,17 @@
     }
   </mat-toolbar>
   <nav mat-tab-nav-bar mat-stretch-tabs="false" [tabPanel]="tabPanel">
-    @if (ability.can('read', 'configs')) {
+    @if (can('read', 'configs')) {
     <a mat-tab-link [routerLink]="['/config']" routerLinkActive #config="routerLinkActive" [active]="config.isActive">
       <span i18n="@@mainMenuConfiguration">CONFIGURATION</span>
     </a>
     }
-    @if (ability.can('read', 'report')) {
+    @if (can('read', 'report')) {
     <a mat-tab-link [routerLink]="['/report']" routerLinkActive #report="routerLinkActive" [active]="report.isActive">
       <span i18n="@@mainMenuReport">REPORT</span>
     </a>
     }
-    @if (ability.can('read', 'logconfig')) {
+    @if (can('read', 'logconfig')) {
     <a mat-tab-link [routerLink]="['/logconfig']" routerLinkActive #log="routerLinkActive" [active]="log.isActive">
       <span i18n="@@mainMenuLogConfiguration">LOG LEVEL</span>
     </a>
@@ -60,5 +59,4 @@
       <router-outlet></router-outlet>
     </mat-tab-nav-panel>
   </main>
-  }
 </div>

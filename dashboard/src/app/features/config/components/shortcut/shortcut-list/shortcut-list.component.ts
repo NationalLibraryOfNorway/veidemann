@@ -1,8 +1,6 @@
 import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {AbilityService} from "@casl/angular";
-import {PureAbility} from '@casl/ability';
-import {Observable} from 'rxjs';
+import {AbilityServiceSignal} from "@casl/angular";
 import {AsyncPipe, NgClass} from '@angular/common';
 import {MatListModule} from '@angular/material/list';
 import {RouterLink} from '@angular/router';
@@ -43,12 +41,12 @@ import {MatIcon} from '@angular/material/icon';
 })
 export class ShortcutListComponent {
   readonly Kind = Kind;
-  readonly ability$: Observable<PureAbility>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   @Input()
   configObject: ConfigObject;
 
-  constructor(private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+  constructor(private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 }

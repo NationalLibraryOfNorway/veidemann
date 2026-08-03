@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: dashboard
-        run: npm ci --no-fund --no-audit
+        run: npm ci --no-fund --no-audit --legacy-peer-deps
 
       - name: Generate dashboard API
         working-directory: dashboard

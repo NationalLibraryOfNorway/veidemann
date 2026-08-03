@@ -5,7 +5,7 @@ import {MatIcon} from '@angular/material/icon';
 import {PageEvent} from '@angular/material/paginator';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
@@ -42,7 +42,7 @@ import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
   standalone: true
 })
 export class PageLogComponent {
-  readonly ability$: Observable<MongoAbility>;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly pageSize: Signal<number>;
   readonly pageIndex: Signal<number>;
   readonly sortDirection: Signal<SortDirection>;
@@ -56,9 +56,9 @@ export class PageLogComponent {
               private router: Router,
               private pageLogService: PageLogService,
               private errorService: ErrorService,
-              private abilityService: AbilityService<MongoAbility>,
+              private abilityService: AbilityServiceSignal<MongoAbility>,
               destroyRef: DestroyRef) {
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     this.query = computed(

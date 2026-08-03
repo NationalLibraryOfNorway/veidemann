@@ -11,7 +11,7 @@ import {
 import {MatDialog} from '@angular/material/dialog';
 import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
-import {AbilityService} from "@casl/angular";
+import {AbilityServiceSignal} from "@casl/angular";
 
 import {AuthService, ControllerApiService, ErrorService, GuardService, SnackBarService} from '../../core';
 import {AboutDialogComponent} from './about-dialog/about-dialog.component';
@@ -53,7 +53,7 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   ]
 })
 export class AppComponent implements OnInit {
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   isModuleLoading$: Observable<boolean>;
   private moduleLoadSemaphore = 0;
@@ -66,8 +66,8 @@ export class AppComponent implements OnInit {
     private snackBarService: SnackBarService,
     private dialog: MatDialog,
     private errorService: ErrorService,
-    private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+    private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
     this.isModuleLoading$ = this.router.events.pipe(
       filter(event => event instanceof RouteConfigLoadStart || event instanceof RouteConfigLoadEnd),
       map(event => {

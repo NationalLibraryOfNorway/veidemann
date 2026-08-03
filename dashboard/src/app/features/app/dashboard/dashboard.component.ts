@@ -2,7 +2,7 @@ import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {Observable, Subject, throwError} from 'rxjs';
 import {catchError} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
-import {AbilityService} from "@casl/angular";
+import {AbilityServiceSignal} from "@casl/angular";
 import {ControllerApiService, ErrorService} from '../../../core';
 import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
 import {CrawlerStatusDialogComponent} from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
@@ -23,7 +23,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true
 })
 export class DashboardComponent implements OnInit {
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   updateRunStatus: Subject<void> = new Subject();
   crawlerStatus$: Observable<CrawlerStatus>;
@@ -31,8 +31,8 @@ export class DashboardComponent implements OnInit {
   constructor(private errorService: ErrorService,
               private controllerApiService: ControllerApiService,
               private dialog: MatDialog,
-              private abilityService: AbilityService<any>) {
-    this.ability$ = this.abilityService.ability$;
+              private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 
   ngOnInit(): void {

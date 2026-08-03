@@ -1,11 +1,10 @@
-@if (ability$ | async; as ability) {
-  <mat-nav-list>
+<mat-nav-list>
     @switch (configObject.kind) {
       @case (Kind.CRAWLENTITY) {
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.SEED])) {
+        @if (can('read', Kind[Kind.SEED])) {
           <a mat-list-item
             [routerLink]="['../../seed']"
             [queryParams]="{entity_id: configObject.id}">
@@ -18,7 +17,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', 'reports')) {
+        @if (can('read', 'reports')) {
           <a mat-list-item
             [routerLink]="['/report/crawlexecution/']"
             [queryParams]="{seed_id: configObject.id}"
@@ -29,7 +28,7 @@
           </a>
         }
         @if (configObject.seed.jobRefList.length) {
-          @if (ability.can('read', Kind[Kind.SEED])) {
+          @if (can('read', Kind[Kind.SEED])) {
             <a mat-list-item
               [routerLink]="['../../seed']"
               [queryParams]="getJobRefListQueryParams(configObject)"
@@ -40,7 +39,7 @@
             </a>
           }
         }
-        @if (ability.can('read', Kind[Kind.SEED])) {
+        @if (can('read', Kind[Kind.SEED])) {
           <a mat-list-item
             [routerLink]="['../../seed']"
             [queryParams]="{entity_id: configObject.seed.entityRef.id}"
@@ -55,7 +54,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', 'reports')) {
+        @if (can('read', 'reports')) {
           <a mat-list-item
             [routerLink]="['/report/jobexecution']"
             [queryParams]="{job_id: configObject.id}"
@@ -65,7 +64,7 @@
             Show jobexecutions
           </a>
         }
-        @if (ability.can('read', Kind[Kind.SEED])) {
+        @if (can('read', Kind[Kind.SEED])) {
           <a mat-list-item
             [routerLink]="['../../seed']"
             [queryParams]="{crawl_job_id: configObject.id}"
@@ -80,7 +79,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+        @if (can('read', Kind[Kind.CRAWLJOB])) {
           <a mat-list-item
             [routerLink]="['../../crawljobs']"
             [queryParams]="{schedule_id: configObject.id}"
@@ -95,7 +94,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.CRAWLJOB])) {
+        @if (can('read', Kind[Kind.CRAWLJOB])) {
           <a mat-list-item
             [routerLink]="['../../crawljobs']"
             [queryParams]="{crawl_config_id: configObject.id}"
@@ -110,7 +109,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+        @if (can('read', Kind[Kind.CRAWLCONFIG])) {
           <a mat-list-item
             [routerLink]="['../../crawlconfig']"
             [queryParams]="{collection_id: configObject.id}"
@@ -125,7 +124,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+        @if (can('read', Kind[Kind.CRAWLCONFIG])) {
           <a mat-list-item
             [routerLink]="['../../crawlconfig']"
             [queryParams]="{browser_config_id: configObject.id}"
@@ -140,7 +139,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.BROWSERCONFIG])) {
+        @if (can('read', Kind[Kind.BROWSERCONFIG])) {
           <a mat-list-item
             [routerLink]="['../../browserconfig']"
             [queryParams]="{script_id: configObject.id}"
@@ -155,7 +154,7 @@
         <div mat-subheader i18n="@@filterShortcutListTitle">
         Filters
       </div>
-        @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
+        @if (can('read', Kind[Kind.CRAWLCONFIG])) {
           <a mat-list-item
             [routerLink]="['../../crawlconfig']"
             [queryParams]="{politeness_id: configObject.id}"
@@ -167,5 +166,4 @@
         }
       }
     }
-  </mat-nav-list>
-}
+</mat-nav-list>

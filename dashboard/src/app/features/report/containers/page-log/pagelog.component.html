@@ -1,5 +1,4 @@
-@if (ability$ | async; as ability) {
-  <div fxLayout="column" class="container">
+<div fxLayout="column" class="container">
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
@@ -19,7 +18,7 @@
           (sort)="onSort($event)"
           (page)="onPage($event)">
           <ng-container *appAction="let row">
-            @if (ability.can('read', 'jobexecution')) {
+            @if (can('read', 'jobexecution')) {
               <a mat-menu-item
                 [routerLink]="['/report', 'jobexecution', row.jobExecutionId]"
                 i18n="@@reportListActionButtonGoToJobExecution">
@@ -27,7 +26,7 @@
           Go to job execution
         </a>
             }
-            @if (ability.can('read', 'crawlexecution')) {
+            @if (can('read', 'crawlexecution')) {
               <a mat-menu-item
                 [routerLink]="['/report', 'crawlexecution', row.executionId]"
                 i18n="@@reportListActionButtonGoToCrawlExecution">
@@ -39,5 +38,4 @@
         </app-pagelog-list>
       </div>
     }
-  </div>
-}
+</div>

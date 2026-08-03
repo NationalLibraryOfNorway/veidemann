@@ -1,8 +1,7 @@
 import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus, Kind} from '../../../../shared/models';
 import {Observable, Subject} from 'rxjs';
-import {AbilityService} from '@casl/angular';
-import {AsyncPipe} from '@angular/common';
+import {AbilityServiceSignal} from '@casl/angular';
 import {MatListModule} from '@angular/material/list';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
@@ -12,7 +11,6 @@ import {MatIcon} from '@angular/material/icon';
   templateUrl: './crawl-execution-shortcuts.component.html',
   styleUrls: ['./crawl-execution-shortcuts.component.css'],
   imports: [
-    AsyncPipe,
     MatIcon,
     MatListModule,
     RouterLink,
@@ -22,7 +20,7 @@ import {MatIcon} from '@angular/material/icon';
 })
 export class CrawlExecutionShortcutsComponent {
   readonly Kind = Kind;
-  readonly ability$: Observable<any>;
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   private reload$: Observable<void>;
   private reload: Subject<void>;
@@ -33,10 +31,10 @@ export class CrawlExecutionShortcutsComponent {
   @Output()
   abortCrawlExecution = new EventEmitter<CrawlExecutionStatus>();
 
-  constructor(private abilityService: AbilityService<any>) {
+  constructor(private abilityService: AbilityServiceSignal<any>) {
     this.reload = new Subject<void>();
     this.reload$ = this.reload.asObservable();
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
   }
 
   onAbortCrawlExecution(crawlExecutionStatus: CrawlExecutionStatus) {

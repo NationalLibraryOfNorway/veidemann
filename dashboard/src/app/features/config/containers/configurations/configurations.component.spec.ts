@@ -1,7 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, convertToParamMap, ParamMap, Router} from '@angular/router';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {BehaviorSubject, EMPTY, of, Subscription} from 'rxjs';
 
 import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
@@ -77,7 +77,7 @@ describe('ConfigurationsComponent query loading', () => {
         {provide: MatDialog, useValue: dialog},
         {provide: OptionsService, useValue: {options$: of({})}},
         {provide: ControllerApiService, useValue: {}},
-        {provide: AbilityService, useValue: {ability$: of(null)}},
+        {provide: AbilityServiceSignal, useValue: {can: () => false}},
         {provide: AuthService, useValue: {}},
         {provide: ErrorService, useValue: {dispatch: vi.fn()}},
         {provide: SnackBarService, useValue: {openSnackBar: vi.fn()}},

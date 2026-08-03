@@ -1,13 +1,12 @@
 @if (crawlerStatus) {
   <div fxLayout="row" fxLayoutGap="16px">
-    @if (ability$ | async; as ability) {
       <mat-card appearance="outlined">
         <h2>Crawler status</h2>
         <mat-card-content>
           @if (crawlerStatus.runStatus === RunStatus.RUNNING) {
             <div fxLayout="column">
               <h1 class="crawlerRunning">RUNNING</h1>
-              @if (ability.can('update', 'crawlerStatus')) {
+              @if (can('update', 'crawlerStatus')) {
                 <button mat-raised-button
                   matTooltip="Pause crawler"
                   i18n-matTooltip="@@crawlerStatusPauseCrawlerButtonTooltip"
@@ -28,7 +27,7 @@
           @if (crawlerStatus.runStatus === RunStatus.PAUSED) {
             <div fxLayout="column">
               <h1 class="crawlerPaused">PAUSED</h1>
-              @if (ability.can('update', 'crawlerStatus')) {
+              @if (can('update', 'crawlerStatus')) {
                 <button mat-raised-button
                   matTooltip="Unpause crawler"
                   i18n-matTooltip="@@crawlerStatusUnpauseCrawlerButtonTooltip"
@@ -49,6 +48,5 @@
         <h2>Busy crawlhost groups</h2>
         <h1>{{ crawlerStatus.busyCrawlHostGroupCount }}</h1>
       </mat-card>
-    }
   </div>
 }

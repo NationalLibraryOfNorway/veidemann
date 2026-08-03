@@ -44,7 +44,7 @@ import {
 } from '../../func';
 import {ReferrerError} from '../../../../shared/error';
 import {RunCrawlRequest} from '../../../../shared/models/controller/controller.model';
-import {AbilityService} from '@casl/angular';
+import {AbilityServiceSignal} from '@casl/angular';
 import {AsyncPipe} from '@angular/common';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatListModule} from '@angular/material/list';
@@ -104,7 +104,7 @@ import {MongoAbility} from '@casl/ability';
 })
 export class ConfigurationsComponent implements OnDestroy {
   readonly Kind = Kind;
-  readonly ability$: Observable<MongoAbility>;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   length$: Observable<number>;
   readonly pageSize: Signal<number>;
@@ -147,7 +147,7 @@ export class ConfigurationsComponent implements OnDestroy {
               private route: ActivatedRoute,
               private controllerApiService: ControllerApiService,
               private optionsService: OptionsService,
-              private abilityService: AbilityService<MongoAbility>,
+              private abilityService: AbilityServiceSignal<MongoAbility>,
               private destroyRef: DestroyRef) {
 
     this.options$ = this.optionsService.options$.pipe(
@@ -160,7 +160,7 @@ export class ConfigurationsComponent implements OnDestroy {
     this.selectedConfigs = [];
 
     this.recount = new Subject();
-    this.ability$ = this.abilityService.ability$;
+    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     const kindParamMap = toSignal(this.route.parent.paramMap, {requireSync: true});

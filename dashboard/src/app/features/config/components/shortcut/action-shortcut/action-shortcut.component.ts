@@ -1,8 +1,6 @@
 import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../../shared/models/config';
-import {Observable} from "rxjs";
-import {AbilityService} from "@casl/angular";
-import {AsyncPipe} from '@angular/common';
+import {AbilityServiceSignal} from "@casl/angular";
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
@@ -11,7 +9,6 @@ import {MatTooltip} from '@angular/material/tooltip';
   selector: 'app-action-shortcut',
   templateUrl: './action-shortcut.component.html',
   imports: [
-    AsyncPipe,
     MatIcon,
     MatListModule,
     MatTooltip
@@ -21,7 +18,7 @@ import {MatTooltip} from '@angular/material/tooltip';
 })
 export class ActionShortcutComponent {
   readonly Kind = Kind;
-  readonly ability$: Observable<any>
+  protected readonly can: AbilityServiceSignal<any>['can'];
 
   @Input()
   configObject: ConfigObject;
@@ -36,8 +33,8 @@ export class ActionShortcutComponent {
   clone = new EventEmitter();
 
 
-  constructor(private ableService: AbilityService<any>) {
-    this.ability$ = this.ableService.ability$;
+  constructor(private abilityService: AbilityServiceSignal<any>) {
+    this.can = this.abilityService.can;
   }
 
   onClone() {
@@ -52,4 +49,3 @@ export class ActionShortcutComponent {
     this.runCrawl.emit();
   }
 }
-
