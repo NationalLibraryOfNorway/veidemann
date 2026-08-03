@@ -36,12 +36,13 @@ deploy:
           crds.enabled: true
       - name: redis
         remoteChart: oci://registry-1.docker.io/cloudpirates/redis
-        version: 0.33.5
+        version: 0.33.6
         namespace: default
         setValues:
           metrics.enabled: true
           metrics.serviceMonitor.enabled: false
           auth.enabled: false
+          auth.metrics: false
           persistence.enabled: false
   kubectl: {}
 
