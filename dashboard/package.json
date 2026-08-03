@@ -59,7 +59,7 @@
     "ip-address": "^10.2.0",
     "minimist": "~1.2.8",
     "monaco-editor": "^0.55.1",
-    "ng-mocks": "^14.15.2",
+    "ng-mocks": "^14.16.0",
     "ngx-echarts": "^21.0.0",
     "ngx-filesize": "^3.0.7",
     "ngx-monaco-editor-v2": "^22.0.4",
