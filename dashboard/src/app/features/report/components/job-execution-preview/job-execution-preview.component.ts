@@ -5,7 +5,7 @@ import {Router} from '@angular/router';
 import {JobexecutionTotalQueuePipe} from '../../pipe';
 import {Observable, Subject} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
-import {NgxFilesizeModule} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {AsyncPipe} from '@angular/common';
 import {NgxEchartsDirective} from 'ngx-echarts';
 import {MatCardModule} from '@angular/material/card';
@@ -45,7 +45,7 @@ export enum JobExecutionStatusColor {
     MatButtonModule,
     MatCardModule,
     NgxEchartsDirective,
-    NgxFilesizeModule
+    FileSizePipe
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true

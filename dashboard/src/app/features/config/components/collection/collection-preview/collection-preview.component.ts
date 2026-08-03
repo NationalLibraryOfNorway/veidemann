@@ -1,7 +1,7 @@
 import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, RotationPolicy, SubCollectionType} from '../../../../../shared/models/config';
 import {MatCheckbox} from '@angular/material/checkbox';
-import {NgxFilesizeModule} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../../shared/pipes/filesize.pipe';
 import {MatLabel} from '@angular/material/form-field';
 import {FormsModule} from '@angular/forms';
 
@@ -13,7 +13,7 @@ import {FormsModule} from '@angular/forms';
     FormsModule,
     MatCheckbox,
     MatLabel,
-    NgxFilesizeModule
+    FileSizePipe
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
