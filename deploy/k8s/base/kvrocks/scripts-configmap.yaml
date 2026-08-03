@@ -13,7 +13,6 @@ data:
     HEADLESS_SERVICE="kvrocks-headless.${POD_NAMESPACE}.svc"
     POD_NAME="$(hostname)"
     POD_FQDN="${POD_NAME}.${HEADLESS_SERVICE}"
-    DEFAULT_MASTER="kvrocks-0.${HEADLESS_SERVICE}"
     DATA_DIR="/var/lib/kvrocks"
     CLUSTER_STATE_DIR="${DATA_DIR}/cluster-state"
     BOOTSTRAP_MARKER="${CLUSTER_STATE_DIR}/initial-bootstrap-authorized"
@@ -101,6 +100,19 @@ data:
       return 1
     }
 
+    wait_for_master() {
+      deadline=$(($(date +%s) + 90))
+
+      echo "Waiting up to 90 seconds for sentinel master discovery" >&2
+      while [ "$(date +%s)" -lt "${deadline}" ]; do
+        sleep 2
+        if discover_master; then
+          return 0
+        fi
+      done
+      return 1
+    }
+
     if [ -z "${REDIS_PASSWORD:-}" ] || [ -z "${SENTINEL_PASSWORD:-}" ]; then
       echo "REDIS_PASSWORD and SENTINEL_PASSWORD must both be configured" >&2
       exit 1
@@ -124,15 +136,17 @@ data:
     elif [ -n "${KVROCKS_RECOVERY_MASTER:-}" ]; then
       MASTER_HOST="${KVROCKS_RECOVERY_MASTER}"
       echo "Using operator-supplied recovery master ${MASTER_HOST}"
-    elif local_data_present || [ -f "${BOOTSTRAP_MARKER}" ]; then
-      echo "No durable sentinel state available for a node with existing state. Set KVROCKS_RECOVERY_MASTER to recover safely." >&2
-      exit 1
-    elif [ "${POD_ORDINAL}" = "0" ]; then
+    elif ! local_data_present && [ ! -f "${BOOTSTRAP_MARKER}" ] && [ "${POD_ORDINAL}" = "0" ]; then
       MASTER_HOST="${POD_NAME}"
       BOOTSTRAP_AUTHORIZED=true
       echo "Bootstrapping initial master on ${MASTER_HOST}"
+    elif MASTER_HOST="$(wait_for_master)"; then
+      echo "Discovered current master from sentinel after waiting: ${MASTER_HOST}"
+    elif local_data_present || [ -f "${BOOTSTRAP_MARKER}" ]; then
+      echo "No durable sentinel state available for a node with existing state. Set KVROCKS_RECOVERY_MASTER to recover safely." >&2
+      exit 1
     else
-      echo "Waiting for sentinel state or explicit recovery target before starting ${POD_NAME}" >&2
+      echo "No sentinel master became available within 90 seconds; exiting so Kubernetes can retry ${POD_NAME}" >&2
       exit 1
     fi
 

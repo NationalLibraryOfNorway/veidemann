@@ -9,6 +9,9 @@ spec:
   replicas: 3
   serviceName: kvrocks-headless
   podManagementPolicy: Parallel
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
   updateStrategy:
     type: OnDelete
   selector:
@@ -61,7 +64,7 @@ spec:
               app.kubernetes.io/component: datastore
       containers:
         - name: kvrocks
-          image: apache/kvrocks:2.15.0
+          image: apache/kvrocks:2.16.0
           command:
             - /bin/sh
             - /scripts/kvrocks-start.sh
