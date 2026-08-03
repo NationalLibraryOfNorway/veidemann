@@ -7,13 +7,6 @@ import (
 )
 
 var (
-	CacheSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: plugin.Namespace,
-		Subsystem: "cache",
-		Name:      "size",
-		Help:      "The number of elements in the cache.",
-	}, []string{"server", "type"})
-
 	CacheHits = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "cache",

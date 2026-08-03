@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/archivingcache"
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/serviceconnections"
@@ -35,28 +36,29 @@ var (
 )
 
 type testCache struct {
-	entries map[string]*archivingcache.CacheEntry
+	mu      sync.RWMutex
+	entries map[string][]byte
 }
 
 func newTestCache() *testCache {
-	return &testCache{entries: make(map[string]*archivingcache.CacheEntry)}
+	return &testCache{entries: make(map[string][]byte)}
 }
 
-func (c *testCache) Get(_ context.Context, key string) (*archivingcache.CacheEntry, error) {
-	entry, ok := c.entries[key]
+func (c *testCache) Get(_ context.Context, key string) ([]byte, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	value, ok := c.entries[key]
 	if !ok {
 		return nil, archivingcache.ErrKeyNotFound
 	}
-	return cloneCacheEntry(entry), nil
+	return append([]byte(nil), value...), nil
 }
 
-func (c *testCache) Set(_ context.Context, key string, entry *archivingcache.CacheEntry) error {
-	c.entries[key] = cloneCacheEntry(entry)
+func (c *testCache) Set(_ context.Context, key string, value []byte, _ time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries[key] = append([]byte(nil), value...)
 	return nil
-}
-
-func (c *testCache) Len(context.Context) (int, error) {
-	return len(c.entries), nil
 }
 
 func (c *testCache) Close(context.Context) error {
@@ -64,23 +66,10 @@ func (c *testCache) Close(context.Context) error {
 }
 
 func (c *testCache) Reset() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	clear(c.entries)
 	return nil
-}
-
-func cloneCacheEntry(entry *archivingcache.CacheEntry) *archivingcache.CacheEntry {
-	if entry == nil {
-		return nil
-	}
-
-	cloned := &archivingcache.CacheEntry{
-		ProxyAddr:     entry.ProxyAddr,
-		CollectionIds: append([]string(nil), entry.CollectionIds...),
-	}
-	if entry.Msg != nil {
-		cloned.Msg = entry.Msg.Copy()
-	}
-	return cloned
 }
 
 func reset() {
@@ -241,15 +230,11 @@ func TestForwardPluginMetadata(t *testing.T) {
 	if len(msg.Answer) == int(dns.TypeNone) {
 		t.Errorf("Expected answer, got none")
 	}
-	entry, err := cache.Get(context.Background(), "example.org."+"A")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	if cws.Meta == nil {
+		t.Fatal("Expected archived record metadata, got nil")
 	}
-	if entry == nil {
-		t.Fatalf("Expected cache entry, got nil")
-	}
-	if entry.ProxyAddr != serverAddr {
-		t.Errorf("Expected proxyAddress %s, got %s", serverAddr, entry.ProxyAddr)
+	if cws.Meta.IpAddress != serverAddr {
+		t.Errorf("Expected proxyAddress %s, got %s", serverAddr, cws.Meta.IpAddress)
 	}
 }
 
@@ -296,9 +281,9 @@ func TestConcurrentRequests(t *testing.T) {
 			}
 			count++
 		}
-		// assert number of crawl logs written equal the number of tests
-		if ls.Len() != len(tests) {
-			t.Errorf("Expected %d crawl logs, got %d", len(tests), ls.Len())
+		// At-least-once archival permits concurrent first requests to create duplicates.
+		if ls.Len() < len(tests) {
+			t.Errorf("Expected at least %d crawl logs, got %d", len(tests), ls.Len())
 		}
 		if count != concurrency {
 			t.Errorf("Expected %d messages, got: %d", concurrency, count)

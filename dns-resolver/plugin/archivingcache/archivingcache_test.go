@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -34,37 +36,46 @@ var (
 )
 
 type testCache struct {
-	entries map[string][]byte
+	mu       sync.RWMutex
+	entries  map[string][]byte
+	ttls     map[string]time.Duration
+	getError map[string]error
+	setError map[string]error
+	sets     int
 }
 
 func newTestCache() *testCache {
-	return &testCache{entries: make(map[string][]byte)}
+	return &testCache{
+		entries:  make(map[string][]byte),
+		ttls:     make(map[string]time.Duration),
+		getError: make(map[string]error),
+		setError: make(map[string]error),
+	}
 }
 
-func (c *testCache) Get(_ context.Context, key string) (*CacheEntry, error) {
+func (c *testCache) Get(_ context.Context, key string) ([]byte, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if err := c.getError[key]; err != nil {
+		return nil, err
+	}
 	data, ok := c.entries[key]
 	if !ok {
 		return nil, ErrKeyNotFound
 	}
-
-	entry := new(CacheEntry)
-	if err := entry.unpack(append([]byte(nil), data...)); err != nil {
-		return nil, err
-	}
-	return entry, nil
+	return append([]byte(nil), data...), nil
 }
 
-func (c *testCache) Set(_ context.Context, key string, entry *CacheEntry) error {
-	packed, err := entry.pack()
-	if err != nil {
+func (c *testCache) Set(_ context.Context, key string, value []byte, ttl time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.setError[key]; err != nil {
 		return err
 	}
-	c.entries[key] = append([]byte(nil), packed...)
+	c.entries[key] = append([]byte(nil), value...)
+	c.ttls[key] = ttl
+	c.sets++
 	return nil
-}
-
-func (c *testCache) Len(context.Context) (int, error) {
-	return len(c.entries), nil
 }
 
 func (c *testCache) Close(context.Context) error {
@@ -72,7 +83,13 @@ func (c *testCache) Close(context.Context) error {
 }
 
 func (c *testCache) Reset() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	clear(c.entries)
+	clear(c.ttls)
+	clear(c.getError)
+	clear(c.setError)
+	c.sets = 0
 	return nil
 }
 
@@ -297,18 +314,37 @@ func TestCache(t *testing.T) {
 
 			assertCrawlLog(t, ctx, tt.Qname)
 			assertRecord(t, ctx, tt.Qname, test.A(tt.Answer[0].String()))
+
+			// A second collection reuses the DNS response but archives its own record.
+			otherCtx := context.WithValue(ctx, resolve.CollectionIdKey{}, name+"-other")
+			req = tt.Msg()
+			_, err = a.ServeDNS(otherCtx, rec, req)
+			if err != tt.Error {
+				t.Errorf("Expected %v, got %v", tt.Error, err)
+			}
+			assertCrawlLog(t, otherCtx, tt.Qname)
+			assertRecord(t, otherCtx, tt.Qname, test.A(tt.Answer[0].String()))
 		})
 		i++
 	}
-	cacheLen, err := cache.Len(context.Background())
-	if err != nil {
-		t.Fatal(err)
+	dnsEntries := 0
+	archiveMarkers := 0
+	for key := range cache.entries {
+		switch {
+		case strings.HasPrefix(key, "dns|"):
+			dnsEntries++
+		case strings.HasPrefix(key, "dns-archive|"):
+			archiveMarkers++
+		}
 	}
-	if cacheLen != len(tests) {
-		t.Errorf("Expected %d, got %d", len(tests), cacheLen)
+	if dnsEntries != len(tests) {
+		t.Errorf("Expected %d DNS entries, got %d", len(tests), dnsEntries)
 	}
-	if ls.Len() != len(tests) {
-		t.Errorf("Expected %d, got %d", len(tests), cacheLen)
+	if archiveMarkers != len(tests)*2 {
+		t.Errorf("Expected %d archive markers, got %d", len(tests)*2, archiveMarkers)
+	}
+	if ls.Len() != len(tests)*2 {
+		t.Errorf("Expected %d, got %d", len(tests)*2, ls.Len())
 	}
 }
 

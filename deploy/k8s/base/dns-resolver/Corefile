@@ -11,7 +11,6 @@ arpa {
     loop
     reload
     archivingcache {
-        eviction 15m
         olricAddress {$OLRIC_ADDRESS}
         olricDmap {$OLRIC_DMAP}
         contentWriterHost {$CONTENT_WRITER_HOST}

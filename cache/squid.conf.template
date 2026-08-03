@@ -1,4 +1,6 @@
 dns_nameservers ${DNS_IP}
+negative_dns_ttl 1 second
+positive_dns_ttl 7 days
 
 # ----------------------------------------------------------------------
 # Chromium -> Squid

@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/miekg/dns"
 	"github.com/olric-data/olric"
 	"github.com/olric-data/olric/config"
 )
@@ -18,7 +16,7 @@ func TestOlricCache(t *testing.T) {
 	address, shutdown := startTestOlric(t)
 	defer shutdown()
 
-	cache, err := NewOlricCache([]string{address}, "archivingcache-test", 100*time.Millisecond)
+	cache, err := NewOlricCache([]string{address}, "archivingcache-test")
 	if err != nil {
 		t.Fatalf("NewOlricCache() error = %v", err)
 	}
@@ -37,17 +35,9 @@ func TestOlricCache(t *testing.T) {
 		}
 	})
 
-	t.Run("set get len and expiry", func(t *testing.T) {
-		msg := new(dns.Msg)
-		msg.SetQuestion("example.org.", dns.TypeA)
-
-		entry := &CacheEntry{
-			ProxyAddr:     "127.0.0.1",
-			CollectionIds: []string{"collection-a", "collection-b"},
-			Msg:           msg,
-		}
-
-		if err := cache.Set(ctx, "example.org.A", entry); err != nil {
+	t.Run("set get and expiry", func(t *testing.T) {
+		value := []byte("cached value")
+		if err := cache.Set(ctx, "example.org.A", value, 100*time.Millisecond); err != nil {
 			t.Fatalf("Set() error = %v", err)
 		}
 
@@ -55,22 +45,8 @@ func TestOlricCache(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Get() error = %v", err)
 		}
-		if got.ProxyAddr != entry.ProxyAddr {
-			t.Fatalf("ProxyAddr = %q, want %q", got.ProxyAddr, entry.ProxyAddr)
-		}
-		if !reflect.DeepEqual(got.CollectionIds, entry.CollectionIds) {
-			t.Fatalf("CollectionIds = %v, want %v", got.CollectionIds, entry.CollectionIds)
-		}
-		if got.Msg == nil || !reflect.DeepEqual(got.Msg, entry.Msg) {
-			t.Fatalf("Msg = %v, want %v", got.Msg, entry.Msg)
-		}
-
-		cacheLen, err := cache.Len(ctx)
-		if err != nil {
-			t.Fatalf("Len() error = %v", err)
-		}
-		if cacheLen != 1 {
-			t.Fatalf("Len() = %d, want 1", cacheLen)
+		if string(got) != string(value) {
+			t.Fatalf("Get() = %q, want %q", got, value)
 		}
 
 		deadline := time.Now().Add(2 * time.Second)
