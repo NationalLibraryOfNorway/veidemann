@@ -48,7 +48,7 @@
     "@fullcalendar/daygrid": "^6.1.21",
     "@fullcalendar/interaction": "^6.1.21",
     "@fullcalendar/timegrid": "^6.1.21",
-    "@ngbracket/ngx-layout": "^21.0.0",
+    "@ngbracket/ngx-layout": "^22.0.1",
     "@types/prismjs": "^1.26.6",
     "angular-oauth2-oidc": "~20.0.2",
     "chroma-js": "^3.2.0",
