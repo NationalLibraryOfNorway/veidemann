@@ -27,6 +27,9 @@ updates:
           - "/scopeservice"
       schedule:
           interval: "weekly"
+      groups:
+          monorepo-go-dependencies:
+              group-by: "dependency-name"
       labels:
           - "dependencies"
       commit-message:
