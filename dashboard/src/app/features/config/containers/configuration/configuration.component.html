@@ -1,12 +1,15 @@
 <div class="container">
   @if (configObject$ | async; as configObject) {
     @if (options$ | async; as options) {
-      <div fxLayout="row">
-        <app-shortcut [configObject]="configObject"
+      <div class="detail-page">
+        <div class="detail-action-bar">
+          <app-shortcut [configObject]="configObject"
           (runCrawl)="onRunCrawl($event)"
           (clone)="onClone($event)"
-        (createSeed)="onCreateSeedFromEntity($event)"></app-shortcut>
-        <div class="content-padding" fxFlex>
+          (createSeed)="onCreateSeedFromEntity($event)">
+          </app-shortcut>
+        </div>
+        <div class="content-padding">
           @switch (configObject.kind) {
             @case (Kind.COLLECTION) {
               <app-collection-details

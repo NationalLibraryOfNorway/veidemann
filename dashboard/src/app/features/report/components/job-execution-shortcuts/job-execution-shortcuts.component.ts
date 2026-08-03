@@ -1,33 +1,36 @@
 import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {JobExecutionState, JobExecutionStatus, Kind} from '../../../../shared/models';
 import {AbilityServiceSignal} from '@casl/angular';
+import {MongoAbility} from '@casl/ability';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
-import {MatListModule} from '@angular/material/list';
+import {MatButtonModule} from '@angular/material/button';
+import {MatMenuModule} from '@angular/material/menu';
 
 @Component({
   selector: 'app-job-execution-shortcuts',
   templateUrl: './job-execution-shortcuts.component.html',
-  styleUrls: ['./job-execution-shortcuts.component.css'],
+  styleUrls: ['../shortcut-actions.scss'],
   imports: [
-    MatListModule,
+    MatButtonModule,
+    MatMenuModule,
     MatIcon,
     RouterLink
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class JobExecutionShortcutsComponent {
   readonly Kind = Kind;
   readonly JobExecutionState = JobExecutionState;
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input() jobExecutionStatus: JobExecutionStatus;
 
   @Output()
   abortJobExecution = new EventEmitter<JobExecutionStatus>();
 
-  constructor(private abilityService: AbilityServiceSignal<any>) {
+  constructor(private abilityService: AbilityServiceSignal<MongoAbility>) {
     this.can = this.abilityService.can;
   }
 

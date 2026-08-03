@@ -1,19 +1,21 @@
-<mat-nav-list>
-    <div mat-subheader>Actions</div>
-    @if (can('read', 'jobexecution')) {
-      <a mat-list-item
-        [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]"
-        i18n="@@reportListActionButtonGoToJobExecution">
-    <mat-icon matListItemIcon>hdr_strong</mat-icon>
-    Go to job execution
-  </a>
-    }
-    @if (can('read', 'crawlexecution')) {
-      <a mat-list-item
-        [routerLink]="['/report', 'crawlexecution', pageLog.executionId]"
-        i18n="@@reportListActionButtonGoToCrawlExecution">
-    <mat-icon matListItemIcon>hdr_weak</mat-icon>
-    Go to crawl execution
-  </a>
-    }
-</mat-nav-list>
+<button class="more-actions" mat-icon-button [matMenuTriggerFor]="shortcutMenu"
+        aria-label="More actions" i18n-aria-label="@@commonMoreActionsLabel">
+  <mat-icon>more_vert</mat-icon>
+</button>
+<mat-menu #shortcutMenu="matMenu">
+  <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
+  @if (can('read', 'jobexecution')) {
+    <a mat-menu-item [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]"
+       i18n="@@reportDetailGoToJobExecutionAction">
+      <mat-icon>hdr_strong</mat-icon>
+      <span>Go to job execution</span>
+    </a>
+  }
+  @if (can('read', 'crawlexecution')) {
+    <a mat-menu-item [routerLink]="['/report', 'crawlexecution', pageLog.executionId]"
+       i18n="@@reportDetailGoToCrawlExecutionAction">
+      <mat-icon>hdr_weak</mat-icon>
+      <span>Go to crawl execution</span>
+    </a>
+  }
+</mat-menu>

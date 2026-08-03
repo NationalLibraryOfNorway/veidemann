@@ -1,27 +1,51 @@
 import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
-import {ActivatedRoute, Router} from '@angular/router';
-import {ErrorService} from '../../../../core';
-import {JobExecutionState} from '../../../../shared/models/report';
-import {FilterShortcutComponent} from './filter-shortcut/filter-shortcut.component';
-import {ActionShortcutComponent} from './action-shortcut/action-shortcut.component';
-import {ShortcutListComponent} from './shortcut-list/shortcut-list.component';
+import {Params, RouterLink} from '@angular/router';
+import {AbilityServiceSignal} from '@casl/angular';
+import {MongoAbility} from '@casl/ability';
+import {AsyncPipe, NgClass} from '@angular/common';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
+import {MatMenuModule} from '@angular/material/menu';
+import {
+  BrowserConfigNamePipe,
+  BrowserScriptNamePipe,
+  CollectionNamePipe,
+  CrawlConfigNamePipe,
+  CrawlJobDisabledStatusPipe,
+  CrawlScheduleNamePipe,
+  EntityNamePipe,
+  PolitenessConfigNamePipe
+} from '../../pipe';
+import {JobNamePipe} from '../../../report/pipe';
 
 @Component({
   selector: 'app-shortcut',
   templateUrl: './shortcut.component.html',
   styleUrls: ['./shortcut.component.scss'],
   imports: [
-    ActionShortcutComponent,
-    FilterShortcutComponent,
-    ShortcutListComponent
+    AsyncPipe,
+    BrowserConfigNamePipe,
+    BrowserScriptNamePipe,
+    CollectionNamePipe,
+    CrawlConfigNamePipe,
+    CrawlJobDisabledStatusPipe,
+    CrawlScheduleNamePipe,
+    EntityNamePipe,
+    JobNamePipe,
+    MatButtonModule,
+    MatIcon,
+    MatMenuModule,
+    NgClass,
+    PolitenessConfigNamePipe,
+    RouterLink,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ShortcutComponent {
   readonly Kind = Kind;
-  readonly JobExecutionState = JobExecutionState;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   @Input()
   configObject: ConfigObject;
 
@@ -34,7 +58,8 @@ export class ShortcutComponent {
   @Output()
   clone = new EventEmitter<ConfigObject>();
 
-  constructor(protected route: ActivatedRoute, protected router: Router, protected errorService: ErrorService) {
+  constructor(private abilityService: AbilityServiceSignal<MongoAbility>) {
+    this.can = this.abilityService.can;
   }
 
   onClone() {
@@ -47,6 +72,10 @@ export class ShortcutComponent {
 
   onRunCrawl() {
     this.runCrawl.emit(this.configObject);
+  }
+
+  getJobRefListQueryParams(configObject: ConfigObject): Params {
+    return {crawl_job_id: configObject.seed.jobRefList.map(jobRef => jobRef.id)};
   }
 
 }

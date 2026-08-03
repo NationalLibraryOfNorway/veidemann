@@ -14,20 +14,17 @@ import {
   JobExecutionShortcutsComponent
 } from '../../components/job-execution-shortcuts/job-execution-shortcuts.component';
 import {CommonModule} from '@angular/common';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-detail',
   templateUrl: './job-execution-detail.component.html',
-  styleUrls: ['./job-execution-detail.component.css'],
+  styleUrls: ['../detail-layout.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
-    FlexDirective,
     JobExecutionStatusComponent,
     JobExecutionShortcutsComponent,
-    LayoutDirective,
   ]
 })
 export class JobExecutionDetailComponent extends DetailDirective<JobExecutionStatus> implements OnInit {

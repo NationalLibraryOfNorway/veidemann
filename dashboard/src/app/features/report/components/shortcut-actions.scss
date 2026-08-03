@@ -4,6 +4,10 @@
   gap: 8px;
 }
 
+.abort-action {
+  color: var(--mat-sys-error);
+}
+
 .more-actions {
   min-width: 48px;
   min-height: 48px;

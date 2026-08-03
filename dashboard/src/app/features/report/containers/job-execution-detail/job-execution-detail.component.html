@@ -1,12 +1,12 @@
 @if (item$ | async; as jobExecutionStatus) {
-  <div class="container">
-    <div fxLayout="row">
+  <div class="detail-page">
+    <div class="detail-action-bar">
       <app-job-execution-shortcuts [jobExecutionStatus]="jobExecutionStatus"
         (abortJobExecution)="onAbortJobExecution($event)">
       </app-job-execution-shortcuts>
-      <div class="content-padding" fxFlex>
-        <app-job-execution-status [jobExecutionStatus]="jobExecutionStatus"></app-job-execution-status>
-      </div>
+    </div>
+    <div class="detail-content">
+      <app-job-execution-status [jobExecutionStatus]="jobExecutionStatus"></app-job-execution-status>
     </div>
   </div>
 }

@@ -1,30 +1,45 @@
-<mat-nav-list>
+<section class="destination-page">
+  <h1 i18n="@@reportPageTitle">Reports</h1>
+  <nav class="destination-grid" aria-label="Report types" i18n-aria-label="@@reportTypesNavigationLabel">
     @if (can('read', 'jobexecution')) {
-      <a mat-list-item
-        [routerLink]="['/report' ,'jobexecution']" [routerLinkActive]="['is-active']">
-        <mat-icon matListItemIcon>hdr_strong</mat-icon>
-        <div matLine i18n="@@reportNavigationLinkJobExecution">JobExecution</div>
+      <a class="destination-link" [routerLink]="['/report', 'jobexecution']">
+        <mat-card class="destination-card" appearance="outlined">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>hdr_strong</mat-icon>
+            <mat-card-title i18n="@@reportNavigationLinkJobExecution">JobExecution</mat-card-title>
+          </mat-card-header>
+        </mat-card>
       </a>
     }
     @if (can('read', 'crawlexecution')) {
-      <a mat-list-item
-        [routerLink]="['crawlexecution']" [routerLinkActive]="['is-active']">
-        <mat-icon matListItemIcon>hdr_weak</mat-icon>
-        <div matLine i18n="@@reportNavigationLinkCrawlExecution">CrawlExecution</div>
+      <a class="destination-link" [routerLink]="['/report', 'crawlexecution']">
+        <mat-card class="destination-card" appearance="outlined">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>hdr_weak</mat-icon>
+            <mat-card-title i18n="@@reportNavigationLinkCrawlExecution">CrawlExecution</mat-card-title>
+          </mat-card-header>
+        </mat-card>
       </a>
     }
     @if (can('read', 'pagelog')) {
-      <a mat-list-item
-        [routerLink]="['pagelog']" [routerLinkActive]="['is-active']">
-        <mat-icon matListItemIcon>art_track</mat-icon>
-        <div matLine i18n="@@reportNavigationLinkPageLog">PageLog</div>
+      <a class="destination-link" [routerLink]="['/report', 'pagelog']">
+        <mat-card class="destination-card" appearance="outlined">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>art_track</mat-icon>
+            <mat-card-title i18n="@@reportNavigationLinkPageLog">PageLog</mat-card-title>
+          </mat-card-header>
+        </mat-card>
       </a>
     }
     @if (can('read', 'crawllog')) {
-      <a mat-list-item
-        [routerLink]="['crawllog']" [routerLinkActive]="['is-active']">
-        <mat-icon matListItemIcon>event_note</mat-icon>
-        <div matLine i18n="@@reportNavigationLinkCrawlLog">CrawlLog</div>
+      <a class="destination-link" [routerLink]="['/report', 'crawllog']">
+        <mat-card class="destination-card" appearance="outlined">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>event_note</mat-icon>
+            <mat-card-title i18n="@@reportNavigationLinkCrawlLog">CrawlLog</mat-card-title>
+          </mat-card-header>
+        </mat-card>
       </a>
     }
-</mat-nav-list>
+  </nav>
+</section>

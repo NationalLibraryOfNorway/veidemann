@@ -1,29 +1,28 @@
 import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus, Kind} from '../../../../shared/models';
-import {Observable, Subject} from 'rxjs';
 import {AbilityServiceSignal} from '@casl/angular';
-import {MatListModule} from '@angular/material/list';
+import {MongoAbility} from '@casl/ability';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {MatMenuModule} from '@angular/material/menu';
 
 @Component({
   selector: 'app-crawl-execution-shortcuts',
   templateUrl: './crawl-execution-shortcuts.component.html',
-  styleUrls: ['./crawl-execution-shortcuts.component.css'],
+  styleUrls: ['../shortcut-actions.scss'],
   imports: [
     MatIcon,
-    MatListModule,
+    MatButtonModule,
+    MatMenuModule,
     RouterLink,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlExecutionShortcutsComponent {
   readonly Kind = Kind;
-  protected readonly can: AbilityServiceSignal<any>['can'];
-
-  private reload$: Observable<void>;
-  private reload: Subject<void>;
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input()
   crawlExecutionStatus: CrawlExecutionStatus;
@@ -31,9 +30,7 @@ export class CrawlExecutionShortcutsComponent {
   @Output()
   abortCrawlExecution = new EventEmitter<CrawlExecutionStatus>();
 
-  constructor(private abilityService: AbilityServiceSignal<any>) {
-    this.reload = new Subject<void>();
-    this.reload$ = this.reload.asObservable();
+  constructor(private abilityService: AbilityServiceSignal<MongoAbility>) {
     this.can = this.abilityService.can;
   }
 

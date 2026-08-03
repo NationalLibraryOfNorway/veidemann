@@ -13,19 +13,17 @@ import {
 } from '../../components/crawl-execution-shortcuts/crawl-execution-shortcuts.component';
 import {CrawlExecutionStatusComponent} from '../../components';
 import {CommonModule} from '@angular/common';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
     selector: 'app-crawl-execution',
     templateUrl: './crawl-execution.component.html',
-    styleUrls: ['./crawl-execution.component.css'],
+    styleUrls: ['../detail-layout.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
     imports: [
       CommonModule,
       CrawlExecutionStatusComponent,
       CrawlExecutionShortcutsComponent,
-      LayoutDirective,
     ],
 })
 export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutionStatus> implements OnInit {

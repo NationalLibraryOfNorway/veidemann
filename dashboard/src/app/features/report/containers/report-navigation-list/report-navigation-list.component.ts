@@ -2,32 +2,29 @@ import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {AuthService} from '../../../../core';
 import {NavigationListComponent} from '../../../../shared/components';
 import {AbilityServiceSignal} from '@casl/angular';
+import {MongoAbility} from '@casl/ability';
 import {MatIcon} from '@angular/material/icon';
-import { MatListModule, MatNavList} from '@angular/material/list';
-import {RouterLink, RouterLinkActive} from '@angular/router';
-import {MatLineModule} from '@angular/material/core';
+import {RouterLink} from '@angular/router';
+import {MatCardModule} from '@angular/material/card';
 
 
 @Component({
   selector: 'app-report-navigation-list',
   templateUrl: './report-navigation-list.component.html',
-  styleUrls: ['../../../../shared/components/navigation-list/navigation-list.component.scss'],
+  styleUrls: ['../../../../shared/components/navigation-grid/navigation-grid.scss'],
   imports: [
     MatIcon,
-    MatLineModule,
-    MatListModule,
-    MatNavList,
+    MatCardModule,
     RouterLink,
-    RouterLinkActive,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ReportNavigationListComponent extends NavigationListComponent {
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   constructor(protected override authService: AuthService,
-              private abilityService: AbilityServiceSignal<any>) {
+              private abilityService: AbilityServiceSignal<MongoAbility>) {
     super(authService);
     this.can = this.abilityService.can;
   }

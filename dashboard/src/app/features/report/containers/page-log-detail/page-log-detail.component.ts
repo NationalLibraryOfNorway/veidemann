@@ -8,15 +8,12 @@ import {map, mergeMap} from 'rxjs/operators';
 import {PageLogStatusComponent} from '../../components';
 import {PageLogShortcutsComponent} from '../../components/page-log-shortcuts/page-log-shortcuts.component';
 import {CommonModule} from '@angular/common';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
     selector: 'app-crawl-log-detail',
     templateUrl: './page-log-detail.component.html',
-    styleUrls: ['./page-log-detail.component.scss'],
+    styleUrls: ['../detail-layout.scss'],
   imports: [
-    FlexDirective,
-    LayoutDirective,
     PageLogStatusComponent,
     PageLogShortcutsComponent,
     CommonModule,

@@ -1,62 +1,140 @@
-<div class="container mat-typography" fxLayout="column">
-  <mat-toolbar class="main-toolbar" color="primary">
-    <a routerLink="/"><img class="veidemann_logo" alt="Veidemann" src="public/logo/veidemann_horizontal_white.png"></a>
-    <span fxFlex></span>
-    @if (can('read', 'report')) {
-    <button color="primary" mat-flat-button matTooltip="Click to show overview of scheduled crawljobs"
-      i18n-matTooltip="@@mainToolbarScheduledCrawljobsButtonTooltip" (click)="onShowJobSchedule()">
-      <app-time></app-time>
-    </button>
-    }
-    <span fxFlex></span>
-    <a mat-icon-button [matMenuTriggerFor]="helpMenu">
-      <mat-icon>help</mat-icon>
-    </a>
+<mat-sidenav-container class="app-shell mat-typography">
+  <mat-sidenav #primaryDrawer class="primary-drawer" mode="over" fixedInViewport>
+    <div class="drawer-header">
+      <span i18n="@@primaryNavigationTitle">Navigation</span>
+      <button mat-icon-button (click)="primaryDrawer.close()" aria-label="Close navigation"
+              i18n-aria-label="@@primaryNavigationCloseLabel">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <nav mat-nav-list aria-label="Primary navigation" i18n-aria-label="@@primaryNavigationLabel">
+      @for (destination of primaryDestinations; track destination.route) {
+        @if (canNavigate(destination)) {
+          <a mat-list-item
+             [routerLink]="destination.route"
+             routerLinkActive="is-active"
+             #drawerLink="routerLinkActive"
+             [attr.aria-current]="drawerLink.isActive ? 'page' : null"
+             (click)="primaryDrawer.close()">
+            <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
+            <span matListItemTitle>{{destination.label}}</span>
+          </a>
+        }
+      }
+    </nav>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="app-content">
+    <mat-toolbar class="main-toolbar" color="primary">
+      <button class="primary-drawer-toggle" mat-icon-button (click)="primaryDrawer.open()"
+              aria-label="Open navigation" i18n-aria-label="@@primaryNavigationOpenLabel">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <a class="brand-link" routerLink="/" aria-label="Veidemann home"
+         i18n-aria-label="@@mainToolbarHomeLinkLabel">
+        <img class="veidemann-logo" alt="Veidemann" src="public/logo/veidemann_horizontal_white.png">
+      </a>
+
+      <nav class="primary-links" aria-label="Primary navigation" i18n-aria-label="@@primaryNavigationLabel">
+        @for (destination of primaryDestinations; track destination.route) {
+          @if (canNavigate(destination)) {
+            <a mat-button
+               [routerLink]="destination.route"
+               routerLinkActive="is-active"
+               #toolbarLink="routerLinkActive"
+               [attr.aria-current]="toolbarLink.isActive ? 'page' : null">
+              <mat-icon>{{destination.icon}}</mat-icon>
+              <span>{{destination.label}}</span>
+            </a>
+          }
+        }
+      </nav>
+
+      <span class="toolbar-spacer"></span>
+
+      <div class="desktop-actions">
+        @if (can('read', 'report')) {
+          <button mat-button matTooltip="Click to show overview of scheduled crawljobs"
+                  i18n-matTooltip="@@mainToolbarScheduledCrawljobsButtonTooltip"
+                  (click)="onShowJobSchedule()">
+            <app-time></app-time>
+          </button>
+        }
+        <button mat-icon-button [matMenuTriggerFor]="helpMenu" aria-label="Help"
+                i18n-aria-label="@@mainToolbarHelpButtonLabel">
+          <mat-icon>help</mat-icon>
+        </button>
+        @if (!isLoggedIn) {
+          <button mat-button (click)="onLogin()">
+            <mat-icon>account_box</mat-icon>
+            <span i18n="@@mainToolbarLoginButton">LOGIN</span>
+          </button>
+        }
+        @if (isLoggedIn) {
+          <button mat-button matTooltip="{{name}}" (click)="onLogout()">
+            <mat-icon>account_box</mat-icon>
+            <span i18n="@@mainToolbarLogoutButton">LOGOUT</span>
+          </button>
+        }
+      </div>
+
+      <button class="toolbar-overflow" mat-icon-button [matMenuTriggerFor]="toolbarMenu"
+              aria-label="More actions" i18n-aria-label="@@mainToolbarMoreActionsLabel">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+    </mat-toolbar>
+
     <mat-menu #helpMenu="matMenu">
-      <a mat-menu-item target="_blank" [routerLink]="['/docs']" [routerLinkActive]="['is-active']"
-        [routerLinkActiveOptions]="{exact:true}">Docs</a>
-      <a mat-menu-item (click)="onAbout()">About</a>
+      <a mat-menu-item target="_blank" [routerLink]="['/docs']">
+        <mat-icon>menu_book</mat-icon>
+        <span i18n="@@mainToolbarDocsMenuItem">Docs</span>
+      </a>
+      <button mat-menu-item (click)="onAbout()">
+        <mat-icon>info</mat-icon>
+        <span i18n="@@mainToolbarAboutMenuItem">About</span>
+      </button>
     </mat-menu>
-    @if (!isLoggedIn) {
-    <button color="primary" mat-flat-button (click)="onLogin()">
-      <mat-icon>account_box</mat-icon>&nbsp;
-      <span i18n="@@mainToolbarLoginButton">LOGIN</span>
-    </button>
+
+    <mat-menu #toolbarMenu="matMenu">
+      @if (can('read', 'report')) {
+        <button mat-menu-item (click)="onShowJobSchedule()">
+          <mat-icon>calendar_month</mat-icon>
+          <span i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
+        </button>
+      }
+      <a mat-menu-item target="_blank" [routerLink]="['/docs']">
+        <mat-icon>menu_book</mat-icon>
+        <span i18n="@@mainToolbarDocsMenuItem">Docs</span>
+      </a>
+      <button mat-menu-item (click)="onAbout()">
+        <mat-icon>info</mat-icon>
+        <span i18n="@@mainToolbarAboutMenuItem">About</span>
+      </button>
+      @if (!isLoggedIn) {
+        <button mat-menu-item (click)="onLogin()">
+          <mat-icon>account_box</mat-icon>
+          <span i18n="@@mainToolbarLoginButton">LOGIN</span>
+        </button>
+      }
+      @if (isLoggedIn) {
+        <button mat-menu-item (click)="onLogout()">
+          <mat-icon>logout</mat-icon>
+          <span i18n="@@mainToolbarLogoutButton">LOGOUT</span>
+        </button>
+      }
+    </mat-menu>
+
+    @if (isModuleLoading$ | async) {
+      <div class="module-loader">
+        <h2 i18n="@@appModuleLoadingText">Loading module...</h2>
+        <mat-spinner [strokeWidth]="2"></mat-spinner>
+      </div>
     }
-    @if (isLoggedIn) {
-    <button color="primary" mat-flat-button matTooltip="{{name}}" (click)="onLogout()">
-      <mat-icon>account_box</mat-icon>&nbsp;
-      <span i18n="@@mainToolbarLogoutButton">LOGOUT</span>
-    </button>
-    }
-  </mat-toolbar>
-  <nav mat-tab-nav-bar mat-stretch-tabs="false" [tabPanel]="tabPanel">
-    @if (can('read', 'configs')) {
-    <a mat-tab-link [routerLink]="['/config']" routerLinkActive #config="routerLinkActive" [active]="config.isActive">
-      <span i18n="@@mainMenuConfiguration">CONFIGURATION</span>
-    </a>
-    }
-    @if (can('read', 'report')) {
-    <a mat-tab-link [routerLink]="['/report']" routerLinkActive #report="routerLinkActive" [active]="report.isActive">
-      <span i18n="@@mainMenuReport">REPORT</span>
-    </a>
-    }
-    @if (can('read', 'logconfig')) {
-    <a mat-tab-link [routerLink]="['/logconfig']" routerLinkActive #log="routerLinkActive" [active]="log.isActive">
-      <span i18n="@@mainMenuLogConfiguration">LOG LEVEL</span>
-    </a>
-    }
-  </nav>
-  @if (isModuleLoading$ | async) {
-  <div class="module-loader">
-    <h2 i18n="@@appModuleLoadingText">Loading module...</h2>
-    <mat-spinner [strokeWidth]="2"></mat-spinner>
-  </div>
-  }
-  <app-dialog></app-dialog>
-  <main fxFlex>
-    <mat-tab-nav-panel #tabPanel>
+
+    <app-dialog></app-dialog>
+    <main>
       <router-outlet></router-outlet>
-    </mat-tab-nav-panel>
-  </main>
-</div>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

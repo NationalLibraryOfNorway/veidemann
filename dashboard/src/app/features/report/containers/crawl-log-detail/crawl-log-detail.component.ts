@@ -9,20 +9,17 @@ import {CrawlLogStatusComponent} from '../../components';
 import {CrawlLogShortcutsComponent} from '../../components/crawl-log-shortcuts/crawl-log-shortcuts.component';
 import {DetailDirective} from '../../directives';
 import {CrawlLogService} from '../../services';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-detail',
   templateUrl: './crawl-log-detail.component.html',
-  styleUrls: ['./crawl-log-detail.component.css'],
+  styleUrls: ['../detail-layout.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     CrawlLogShortcutsComponent,
     CrawlLogStatusComponent,
-    FlexDirective,
-    LayoutDirective,
     MatIconModule
   ]
 })

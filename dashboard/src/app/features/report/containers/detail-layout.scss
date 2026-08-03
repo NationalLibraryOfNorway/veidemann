@@ -1,5 +1,4 @@
-:host,
-.container {
+:host {
   display: block;
   height: 100%;
 }
@@ -18,7 +17,7 @@
   padding: 4px 12px;
 }
 
-.content-padding {
+.detail-content {
   min-width: 0;
   padding: 0 16px 16px;
 }
@@ -29,7 +28,7 @@
     padding-left: 24px;
   }
 
-  .content-padding {
+  .detail-content {
     padding-right: 24px;
     padding-bottom: 24px;
     padding-left: 24px;

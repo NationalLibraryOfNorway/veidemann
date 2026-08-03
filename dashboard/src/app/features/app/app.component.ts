@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {
   ActivatedRoute,
   RouteConfigLoadEnd,
@@ -12,8 +12,9 @@ import {MatDialog} from '@angular/material/dialog';
 import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
 import {AbilityServiceSignal} from "@casl/angular";
+import {MongoAbility} from '@casl/ability';
 
-import {AuthService, ControllerApiService, ErrorService, GuardService, SnackBarService} from '../../core';
+import {AuthService, ErrorService, SnackBarService} from '../../core';
 import {AboutDialogComponent} from './about-dialog/about-dialog.component';
 import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
 import {AsyncPipe} from '@angular/common';
@@ -22,11 +23,18 @@ import {TimeComponent} from './time/time.component';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
-import {MatTabsModule} from '@angular/material/tabs';
 import {DialogComponent} from './dialog/dialog.component';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatProgressSpinner} from '@angular/material/progress-spinner';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatListModule} from '@angular/material/list';
+
+interface PrimaryDestination {
+  readonly route: string;
+  readonly icon: string;
+  readonly label: string;
+  readonly permissionSubject: string;
+}
 
 @Component({
   selector: 'app',
@@ -36,12 +44,11 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true,
   imports: [
     AsyncPipe,
-    FlexDirective,
-    LayoutDirective,
     MatButtonModule,
     MatIcon,
+    MatListModule,
     MatMenuModule,
-    MatTabsModule,
+    MatSidenavModule,
     MatToolbar,
     TimeComponent,
     RouterLink,
@@ -53,20 +60,39 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   ]
 })
 export class AppComponent implements OnInit {
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
+
+  readonly primaryDestinations: readonly PrimaryDestination[] = [
+    {
+      route: '/config',
+      icon: 'settings',
+      label: $localize`:@@mainMenuConfiguration:CONFIGURATION`,
+      permissionSubject: 'configs',
+    },
+    {
+      route: '/report',
+      icon: 'assessment',
+      label: $localize`:@@mainMenuReport:REPORT`,
+      permissionSubject: 'report',
+    },
+    {
+      route: '/logconfig',
+      icon: 'notes',
+      label: $localize`:@@mainMenuLogConfiguration:LOG LEVEL`,
+      permissionSubject: 'logconfig',
+    },
+  ];
 
   isModuleLoading$: Observable<boolean>;
   private moduleLoadSemaphore = 0;
 
   constructor(private authService: AuthService,
-    private controllerApiService: ControllerApiService,
     private router: Router,
     private route: ActivatedRoute,
-    private guardService: GuardService,
     private snackBarService: SnackBarService,
     private dialog: MatDialog,
     private errorService: ErrorService,
-    private abilityService: AbilityServiceSignal<any>) {
+    private abilityService: AbilityServiceSignal<MongoAbility>) {
     this.can = this.abilityService.can;
     this.isModuleLoading$ = this.router.events.pipe(
       filter(event => event instanceof RouteConfigLoadStart || event instanceof RouteConfigLoadEnd),
@@ -107,6 +133,10 @@ export class AppComponent implements OnInit {
 
   get name(): string {
     return this.authService.name;
+  }
+
+  canNavigate(destination: PrimaryDestination): boolean {
+    return this.can('read', destination.permissionSubject);
   }
 
   onLogin() {

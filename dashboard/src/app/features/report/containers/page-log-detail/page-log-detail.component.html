@@ -1,10 +1,10 @@
 @if (item$ | async; as pageLog) {
-  <div class="container">
-    <div fxLayout="row">
+  <div class="detail-page">
+    <div class="detail-action-bar">
       <app-page-log-shortcuts [pageLog]="pageLog"></app-page-log-shortcuts>
-      <div class="content-padding" fxFlex>
-        <app-page-log-status [pageLog]="pageLog"></app-page-log-status>
-      </div>
+    </div>
+    <div class="detail-content">
+      <app-page-log-status [pageLog]="pageLog"></app-page-log-status>
     </div>
   </div>
 }

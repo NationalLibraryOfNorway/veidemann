@@ -1,10 +1,198 @@
-<div>
-  <app-shortcut-list [configObject]="configObject"></app-shortcut-list>
-  <app-action-shortcut [configObject]="configObject"
-                       (clone)="onClone()"
-                       (runCrawl)="onRunCrawl()"
-                       (createSeed)="onCreateSeed()">
-  </app-action-shortcut>
-  <app-filter-shortcut [configObject]="configObject"></app-filter-shortcut>
-</div>
+@if (configObject.kind === Kind.SEED && can('runCrawl', Kind[Kind.SEED])) {
+  <button mat-button (click)="onRunCrawl()">
+    <mat-icon>play_arrow</mat-icon>
+    <span i18n="@@configDetailRunSeedAction">Crawl seed</span>
+  </button>
+}
+@if (configObject.kind === Kind.CRAWLJOB && can('runCrawl', Kind[Kind.CRAWLJOB])) {
+  <button mat-button (click)="onRunCrawl()">
+    <mat-icon>play_arrow</mat-icon>
+    <span i18n="@@configDetailRunCrawljobAction">Run crawljob</span>
+  </button>
+}
 
+<button class="more-actions" mat-icon-button [matMenuTriggerFor]="shortcutMenu"
+        aria-label="More actions" i18n-aria-label="@@commonMoreActionsLabel">
+  <mat-icon>more_vert</mat-icon>
+</button>
+
+<mat-menu #shortcutMenu="matMenu">
+  @if (can('create', Kind[configObject.kind])) {
+    <button mat-menu-item (click)="onClone()">
+      <mat-icon>file_copy</mat-icon>
+      <span i18n="@@configDetailCloneAction">Clone</span>
+    </button>
+  }
+  @if (configObject.kind === Kind.CRAWLENTITY && can('create', Kind[Kind.SEED])) {
+    <button mat-menu-item (click)="onCreateSeed()">
+      <mat-icon>add_circle</mat-icon>
+      <span i18n="@@configDetailCreateSeedAction">Create Seed</span>
+    </button>
+  }
+
+  @switch (configObject.kind) {
+    @case (Kind.SEED) {
+      <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
+      <a mat-menu-item [routerLink]="['/config', 'entity', configObject.seed.entityRef.id]">
+        <mat-icon>business</mat-icon>
+        <span>{{configObject.seed.entityRef.id | getEntityName | async}}</span>
+      </a>
+      @for (crawlJob of configObject.seed.jobRefList; track crawlJob) {
+        @if (can('read', Kind[Kind.CRAWLJOB])) {
+          <a mat-menu-item
+             [routerLink]="['/config/crawljobs/' + crawlJob.id]"
+             [ngClass]="{disabledJob: crawlJob.id | getCrawlJobDisabledStatus | async}">
+            <mat-icon>work</mat-icon>
+            <span>{{crawlJob.id | getJobNamePipe | async}}</span>
+          </a>
+        }
+      }
+      <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+      @if (can('read', 'reports')) {
+        <a mat-menu-item [routerLink]="['/report/crawlexecution']"
+           [queryParams]="{seed_id: configObject.id}">
+          <mat-icon>hdr_weak</mat-icon>
+          <span i18n="@@configDetailShowCrawlExecutionsAction">Show crawlexecutions</span>
+        </a>
+      }
+      @if (configObject.seed.jobRefList.length && can('read', Kind[Kind.SEED])) {
+        <a mat-menu-item [routerLink]="['../../seed']"
+           [queryParams]="getJobRefListQueryParams(configObject)">
+          <mat-icon>work</mat-icon>
+          <span i18n="@@configDetailFilterByCrawljobAction">Filter by crawljob</span>
+        </a>
+      }
+      @if (can('read', Kind[Kind.SEED])) {
+        <a mat-menu-item [routerLink]="['../../seed']"
+           [queryParams]="{entity_id: configObject.seed.entityRef.id}">
+          <mat-icon>business</mat-icon>
+          <span i18n="@@configDetailFilterByEntityAction">Filter by entity</span>
+        </a>
+      }
+    }
+    @case (Kind.CRAWLJOB) {
+      <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
+      @if (configObject.crawlJob.scheduleRef.id && can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
+        <a mat-menu-item [routerLink]="['/config/schedule/' + configObject.crawlJob.scheduleRef.id]">
+          <mat-icon>schedule</mat-icon>
+          <span>{{configObject | getCrawlScheduleName | async}}</span>
+        </a>
+      }
+      @if (configObject.crawlJob.crawlConfigRef && can('read', Kind[Kind.CRAWLCONFIG])) {
+        <a mat-menu-item [routerLink]="['/config/crawlconfig/' + configObject.crawlJob.crawlConfigRef.id]">
+          <mat-icon>settings_system_daydream</mat-icon>
+          <span>{{configObject | getCrawlConfigName | async}}</span>
+        </a>
+      }
+      @if (configObject.crawlJob.scopeScriptRef && can('read', Kind[Kind.BROWSERSCRIPT])) {
+        <a mat-menu-item [routerLink]="['/config/browserscript/' + configObject.crawlJob.scopeScriptRef.id]">
+          <mat-icon>web_asset</mat-icon>
+          <span>{{configObject.crawlJob.scopeScriptRef.id | getBrowserScriptName | async}}</span>
+        </a>
+      }
+      <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+      @if (can('read', 'reports')) {
+        <a mat-menu-item [routerLink]="['/report/jobexecution']"
+           [queryParams]="{job_id: configObject.id}">
+          <mat-icon>hdr_strong</mat-icon>
+          <span i18n="@@configDetailShowJobExecutionsAction">Show jobexecutions</span>
+        </a>
+      }
+      @if (can('read', Kind[Kind.SEED])) {
+        <a mat-menu-item [routerLink]="['../../seed']"
+           [queryParams]="{crawl_job_id: configObject.id}">
+          <mat-icon>link</mat-icon>
+          <span i18n="@@configDetailShowSeedsAction">Show seeds</span>
+        </a>
+      }
+    }
+    @case (Kind.CRAWLSCHEDULECONFIG) {
+      @if (can('read', Kind[Kind.CRAWLJOB])) {
+        <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+        <a mat-menu-item [routerLink]="['../../crawljobs']"
+           [queryParams]="{schedule_id: configObject.id}">
+          <mat-icon>work</mat-icon>
+          <span i18n="@@configDetailShowCrawljobsForScheduleAction">Show crawljobs</span>
+        </a>
+      }
+    }
+    @case (Kind.CRAWLCONFIG) {
+      <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
+      @if (configObject.crawlConfig.collectionRef.id && can('read', Kind[Kind.COLLECTION])) {
+        <a mat-menu-item [routerLink]="['/config/collection/' + configObject.crawlConfig.collectionRef.id]">
+          <mat-icon>collections_bookmark</mat-icon>
+          <span>{{configObject | getCollectionName | async}}</span>
+        </a>
+      }
+      @if (configObject.crawlConfig.browserConfigRef.id && can('read', Kind[Kind.BROWSERCONFIG])) {
+        <a mat-menu-item [routerLink]="['/config/browserconfig/' + configObject.crawlConfig.browserConfigRef.id]">
+          <mat-icon>web</mat-icon>
+          <span>{{configObject | getBrowserConfigName | async}}</span>
+        </a>
+      }
+      @if (configObject.crawlConfig.politenessRef.id && can('read', Kind[Kind.POLITENESSCONFIG])) {
+        <a mat-menu-item [routerLink]="['/config/politenessconfig/' + configObject.crawlConfig.politenessRef.id]">
+          <mat-icon>sentiment_very_satisfied</mat-icon>
+          <span>{{configObject | getPolitenessConfigName | async}}</span>
+        </a>
+      }
+      @if (can('read', Kind[Kind.CRAWLJOB])) {
+        <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+        <a mat-menu-item [routerLink]="['../../crawljobs']"
+           [queryParams]="{crawl_config_id: configObject.id}">
+          <mat-icon>work</mat-icon>
+          <span i18n="@@configDetailShowCrawljobsForCrawlConfigAction">Show crawljobs</span>
+        </a>
+      }
+    }
+    @case (Kind.COLLECTION) {
+      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
+        <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+        <a mat-menu-item [routerLink]="['../../crawlconfig']"
+           [queryParams]="{collection_id: configObject.id}">
+          <mat-icon>settings_system_daydream</mat-icon>
+          <span i18n="@@configDetailShowCrawlConfigsForCollectionAction">Show crawlconfigs</span>
+        </a>
+      }
+    }
+    @case (Kind.BROWSERCONFIG) {
+      @if (configObject.browserConfig.scriptRefList.length > 0 && can('read', Kind[Kind.BROWSERSCRIPT])) {
+        <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
+        @for (script of configObject.browserConfig.scriptRefList; track script) {
+          <a mat-menu-item [routerLink]="['/config/browserscript/' + script.id]">
+            <mat-icon>web_asset</mat-icon>
+            <span>{{script.id | getBrowserScriptName | async}}</span>
+          </a>
+        }
+      }
+      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
+        <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+        <a mat-menu-item [routerLink]="['../../crawlconfig']"
+           [queryParams]="{browser_config_id: configObject.id}">
+          <mat-icon>settings_system_daydream</mat-icon>
+          <span i18n="@@configDetailShowCrawlConfigsForBrowserConfigAction">Show crawlconfigs</span>
+        </a>
+      }
+    }
+    @case (Kind.BROWSERSCRIPT) {
+      @if (can('read', Kind[Kind.BROWSERCONFIG])) {
+        <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+        <a mat-menu-item [routerLink]="['../../browserconfig']"
+           [queryParams]="{script_id: configObject.id}">
+          <mat-icon>web</mat-icon>
+          <span i18n="@@configDetailShowBrowserConfigsForScriptAction">Show browserconfigs</span>
+        </a>
+      }
+    }
+    @case (Kind.POLITENESSCONFIG) {
+      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
+        <div class="menu-heading" i18n="@@configDetailFiltersMenuHeading">Filters</div>
+        <a mat-menu-item [routerLink]="['../../crawlconfig']"
+           [queryParams]="{politeness_id: configObject.id}">
+          <mat-icon>settings_system_daydream</mat-icon>
+          <span i18n="@@configDetailShowCrawlConfigsForPolitenessAction">Show crawlconfigs</span>
+        </a>
+      }
+    }
+  }
+</mat-menu>

@@ -1,6 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ReportComponent} from './report.component';
 import {provideCoreTesting} from '../../core/core.testing.module';
+import {provideRouter} from '@angular/router';
 
 
 describe('ReportComponent', () => {
@@ -12,6 +13,7 @@ describe('ReportComponent', () => {
       imports: [ReportComponent],
       providers: [
         ...provideCoreTesting,
+        provideRouter([]),
       ]
     })
       .compileComponents();
@@ -25,5 +27,9 @@ describe('ReportComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('does not render a persistent report drawer', () => {
+    expect(fixture.nativeElement.querySelector('mat-drawer')).toBeNull();
   });
 });

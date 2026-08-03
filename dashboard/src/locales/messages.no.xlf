@@ -27,7 +27,7 @@
         <target> BrowserConfig </target>
       </segment>
     </unit>
-    <unit id="3547560171638659643">
+    <unit id="configurationSidebarMenuPolitenessconfig">
       <segment state="initial">
         <source>Politeness</source>
         <target>Politeness</target>
@@ -159,12 +159,6 @@
         <target> configurations moved</target>
       </segment>
     </unit>
-    <unit id="actionShortcutListTitle">
-      <segment state="initial">
-        <source> Actions </source>
-        <target> Actions </target>
-      </segment>
-    </unit>
     <unit id="annotationChipListPlaceholder">
       <segment state="initial">
         <source>New annotation...</source>
@@ -227,14 +221,14 @@
     </unit>
     <unit id="baseListAllConfigurationsSelectedInfoText">
       <segment state="initial">
-        <source> All <pc id="0" equivStart="START_BOLD_TEXT" equivEnd="CLOSE_BOLD_TEXT" type="fmt" dispStart="&lt;b&gt;" dispEnd="&lt;/b&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{(length$ | async) || &apos;&apos;}}"/></pc> rows in database selected </source>
-        <target> All <pc id="0" equivStart="START_BOLD_TEXT" equivEnd="CLOSE_BOLD_TEXT" type="fmt" dispStart="&lt;b&gt;" dispEnd="&lt;/b&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{(length$ | async) || &apos;&apos;}}"/></pc> rows in database selected </target>
+        <source> All <pc id="0" equivStart="START_BOLD_TEXT" equivEnd="CLOSE_BOLD_TEXT" type="fmt" dispStart="&lt;b&gt;" dispEnd="&lt;/b&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{totalLength() || &apos;&apos;}}"/></pc> rows in database selected </source>
+        <target> All <pc id="0" equivStart="START_BOLD_TEXT" equivEnd="CLOSE_BOLD_TEXT" type="fmt" dispStart="&lt;b&gt;" dispEnd="&lt;/b&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{totalLength() || &apos;&apos;}}"/></pc> rows in database selected </target>
       </segment>
     </unit>
     <unit id="baseListConfigsInPageSelectedMessage">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{selection.selected.length}}"/></pc> rows selected </source>
-        <target><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{selection.selected.length}}"/></pc> rows selected </target>
+        <source><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{selectedRows().length}}"/></pc> rows selected </source>
+        <target><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{selectedRows().length}}"/></pc> rows selected </target>
       </segment>
     </unit>
     <unit id="baseListNameHeader">
@@ -375,12 +369,6 @@
         <target> Script is required. </target>
       </segment>
     </unit>
-    <unit id="browserscriptListFikterBrowserconfigsWithBrowserscriptActionButtonTooltip">
-      <segment state="initial">
-        <source>Show browserconfigs with reference to the browserscript</source>
-        <target>Show browserconfigs with reference to the browserscript</target>
-      </segment>
-    </unit>
     <unit id="browserscriptListFilterBrowserconfigsWithBrowserscriptActionButtonTooltip">
       <segment state="initial">
         <source>Show browserconfigs with reference to the browserscript</source>
@@ -495,6 +483,18 @@
         <target> Subcollection type </target>
       </segment>
     </unit>
+    <unit id="commonBackButtonLabel">
+      <segment state="initial">
+        <source>Back</source>
+        <target>Back</target>
+      </segment>
+    </unit>
+    <unit id="commonBreadcrumbLabel">
+      <segment state="initial">
+        <source>Breadcrumb</source>
+        <target>Breadcrumb</target>
+      </segment>
+    </unit>
     <unit id="commonButtonCancel">
       <segment state="initial">
         <source>CANCEL </source>
@@ -541,6 +541,114 @@
       <segment state="initial">
         <source> New (unsaved)</source>
         <target> New (unsaved)</target>
+      </segment>
+    </unit>
+    <unit id="commonDetailsBreadcrumb">
+      <segment state="initial">
+        <source>Details</source>
+        <target>Details</target>
+      </segment>
+    </unit>
+    <unit id="commonMoreActionsLabel">
+      <segment state="initial">
+        <source>More actions</source>
+        <target>More actions</target>
+      </segment>
+    </unit>
+    <unit id="commonRelatedMenuHeading">
+      <segment state="initial">
+        <source>Related</source>
+        <target>Related</target>
+      </segment>
+    </unit>
+    <unit id="configDetailCloneAction">
+      <segment state="initial">
+        <source>Clone</source>
+        <target>Clone</target>
+      </segment>
+    </unit>
+    <unit id="configDetailCreateSeedAction">
+      <segment state="initial">
+        <source>Create Seed</source>
+        <target>Create Seed</target>
+      </segment>
+    </unit>
+    <unit id="configDetailFilterByCrawljobAction">
+      <segment state="initial">
+        <source>Filter by crawljob</source>
+        <target>Filter by crawljob</target>
+      </segment>
+    </unit>
+    <unit id="configDetailFilterByEntityAction">
+      <segment state="initial">
+        <source>Filter by entity</source>
+        <target>Filter by entity</target>
+      </segment>
+    </unit>
+    <unit id="configDetailRunCrawljobAction">
+      <segment state="initial">
+        <source>Run crawljob</source>
+        <target>Run crawljob</target>
+      </segment>
+    </unit>
+    <unit id="configDetailRunSeedAction">
+      <segment state="initial">
+        <source>Crawl seed</source>
+        <target>Crawl seed</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowBrowserConfigsForScriptAction">
+      <segment state="initial">
+        <source>Show browserconfigs</source>
+        <target>Show browserconfigs</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowCrawlConfigsForBrowserConfigAction">
+      <segment state="initial">
+        <source>Show crawlconfigs</source>
+        <target>Show crawlconfigs</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowCrawlConfigsForCollectionAction">
+      <segment state="initial">
+        <source>Show crawlconfigs</source>
+        <target>Show crawlconfigs</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowCrawlConfigsForPolitenessAction">
+      <segment state="initial">
+        <source>Show crawlconfigs</source>
+        <target>Show crawlconfigs</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowCrawlExecutionsAction">
+      <segment state="initial">
+        <source>Show crawlexecutions</source>
+        <target>Show crawlexecutions</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowCrawljobsForCrawlConfigAction">
+      <segment state="initial">
+        <source>Show crawljobs</source>
+        <target>Show crawljobs</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowCrawljobsForScheduleAction">
+      <segment state="initial">
+        <source>Show crawljobs</source>
+        <target>Show crawljobs</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowJobExecutionsAction">
+      <segment state="initial">
+        <source>Show jobexecutions</source>
+        <target>Show jobexecutions</target>
+      </segment>
+    </unit>
+    <unit id="configDetailShowSeedsAction">
+      <segment state="initial">
+        <source>Show seeds</source>
+        <target>Show seeds</target>
       </segment>
     </unit>
     <unit id="configIdLabel">
@@ -747,6 +855,12 @@
         <target>Edit selected configurations</target>
       </segment>
     </unit>
+    <unit id="configurationPageTitle">
+      <segment state="initial">
+        <source>Configuration</source>
+        <target>Configuration</target>
+      </segment>
+    </unit>
     <unit id="configurationRunCrawlSelectedSeedsButtonTooltip">
       <segment state="initial">
         <source>Start crawl of selected seeds</source>
@@ -823,6 +937,12 @@
       <segment state="initial">
         <source>Seed</source>
         <target>Seed</target>
+      </segment>
+    </unit>
+    <unit id="configurationTypesNavigationLabel">
+      <segment state="initial">
+        <source>Configuration types</source>
+        <target>Configuration types</target>
       </segment>
     </unit>
     <unit id="copyIdButtonTooltip">
@@ -1541,8 +1661,8 @@
     </unit>
     <unit id="crawljobListJobExecutionShortcutActionButtonTooltip">
       <segment state="initial">
-        <source>Go to jobexecutions for the crawljob</source>
-        <target>Go to jobexecutions for the crawljob</target>
+        <source>Go to jobexecutions for crawljob</source>
+        <target>Go to jobexecutions for crawljob</target>
       </segment>
     </unit>
     <unit id="crawljobListScheduleShortcutActionButtonTooltip">
@@ -1737,10 +1857,10 @@
         <target> <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidUnit&apos;].unit}}"/> doesn&apos;t appear to be a valid unit </target>
       </segment>
     </unit>
-    <unit id="filterShortcutListTitle">
+    <unit id="configDetailFiltersMenuHeading">
       <segment state="initial">
-        <source> Filters </source>
-        <target> Filters </target>
+        <source>Filters</source>
+        <target>Filters</target>
       </segment>
     </unit>
     <unit id="ipRangeListHeader">
@@ -1863,6 +1983,30 @@
         <target>REPORT</target>
       </segment>
     </unit>
+    <unit id="mainToolbarAboutMenuItem">
+      <segment state="initial">
+        <source>About</source>
+        <target>About</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarDocsMenuItem">
+      <segment state="initial">
+        <source>Docs</source>
+        <target>Docs</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarHelpButtonLabel">
+      <segment state="initial">
+        <source>Help</source>
+        <target>Help</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarHomeLinkLabel">
+      <segment state="initial">
+        <source>Veidemann home</source>
+        <target>Veidemann home</target>
+      </segment>
+    </unit>
     <unit id="mainToolbarLoginButton">
       <segment state="initial">
         <source>LOGIN</source>
@@ -1875,10 +2019,22 @@
         <target>LOGOUT</target>
       </segment>
     </unit>
+    <unit id="mainToolbarMoreActionsLabel">
+      <segment state="initial">
+        <source>More actions</source>
+        <target>More actions</target>
+      </segment>
+    </unit>
     <unit id="mainToolbarScheduledCrawljobsButtonTooltip">
       <segment state="initial">
         <source>Click to show overview of scheduled crawljobs</source>
         <target>Click to show overview of scheduled crawljobs</target>
+      </segment>
+    </unit>
+    <unit id="mainToolbarScheduleMenuItem">
+      <segment state="initial">
+        <source>Crawljob schedule</source>
+        <target>Crawljob schedule</target>
       </segment>
     </unit>
     <unit id="metaCreatedByInputLabel">
@@ -2097,6 +2253,30 @@
         <target> Use hostname </target>
       </segment>
     </unit>
+    <unit id="primaryNavigationCloseLabel">
+      <segment state="initial">
+        <source>Close navigation</source>
+        <target>Close navigation</target>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationLabel">
+      <segment state="initial">
+        <source>Primary navigation</source>
+        <target>Primary navigation</target>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationOpenLabel">
+      <segment state="initial">
+        <source>Open navigation</source>
+        <target>Open navigation</target>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationTitle">
+      <segment state="initial">
+        <source>Navigation</source>
+        <target>Navigation</target>
+      </segment>
+    </unit>
     <unit id="reportCrawlLogQueryExecutiondInputLabel">
       <segment state="initial">
         <source> Execution ID </source>
@@ -2109,46 +2289,88 @@
         <target> Job execution ID </target>
       </segment>
     </unit>
+    <unit id="reportDetailAbortCrawlAction">
+      <segment state="initial">
+        <source>Abort crawl</source>
+        <target>Abort crawl</target>
+      </segment>
+    </unit>
+    <unit id="reportDetailGoToCrawlExecutionAction">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to crawl execution</pc></source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to crawl execution</pc></target>
+      </segment>
+    </unit>
+    <unit id="reportDetailGoToCrawljobAction">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to crawljob</pc></source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to crawljob</pc></target>
+      </segment>
+    </unit>
+    <unit id="reportDetailGoToJobExecutionAction">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to job execution</pc></source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to job execution</pc></target>
+      </segment>
+    </unit>
+    <unit id="reportDetailGoToSeedAction">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to seed</pc></source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Go to seed</pc></target>
+      </segment>
+    </unit>
+    <unit id="reportDetailShowCrawllogAction">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Show crawllog</pc></source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Show crawllog</pc></target>
+      </segment>
+    </unit>
+    <unit id="reportDetailShowPagelogAction">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Show pagelog</pc></source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span&gt;" dispEnd="&lt;/span&gt;">Show pagelog</pc></target>
+      </segment>
+    </unit>
     <unit id="reportListActionButtonAbortCrawlExecution">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">cancel</pc> Abort crawl </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">cancel</pc> Abort crawl </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">cancel</pc> Abort crawl </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">cancel</pc> Abort crawl </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonGoToCrawlExecution">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Go to crawl execution </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Go to crawl execution </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Go to crawl execution </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Go to crawl execution </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonGoToCrawljob">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Go to crawljob </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Go to crawljob </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Go to crawljob </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Go to crawljob </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonGoToCrawlog">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc> Show crawllog </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc> Show crawllog </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc> Go to crawllog </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">event_note</pc> Go to crawllog </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonGoToJobExecution">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Go to job execution </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Go to job execution </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Go to job execution </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Go to job execution </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonGoToPagelog">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc> Show pagelog </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc> Show pagelog </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc> Go to pagelog </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">art_track</pc> Go to pagelog </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonGoToSeed">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon matListItemIcon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed </target>
+        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed </source>
+        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed </target>
       </segment>
     </unit>
     <unit id="reportListActionButtonShowFullReport">
@@ -2179,6 +2401,18 @@
       <segment state="initial">
         <source>PageLog</source>
         <target>PageLog</target>
+      </segment>
+    </unit>
+    <unit id="reportPageTitle">
+      <segment state="initial">
+        <source>Reports</source>
+        <target>Reports</target>
+      </segment>
+    </unit>
+    <unit id="reportTypesNavigationLabel">
+      <segment state="initial">
+        <source>Report types</source>
+        <target>Report types</target>
       </segment>
     </unit>
     <unit id="roleMappingDetailsCardTitle">
@@ -2407,12 +2641,6 @@
       <segment state="initial">
         <source>Show seeds with the same crawljob</source>
         <target>Show seeds with the same crawljob</target>
-      </segment>
-    </unit>
-    <unit id="seedListShowCrawlExecutionsActionButtonTooltip">
-      <segment state="initial">
-        <source>Show crawlexecutions for the seed</source>
-        <target>Show crawlexecutions for the seed</target>
       </segment>
     </unit>
     <unit id="seedMetaGoToEntityWithExistingSeedButtonTooltip">

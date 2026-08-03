@@ -1,16 +1,79 @@
 @use '@angular/material' as mat;
 
-.container {
+:host {
+  display: block;
   height: 100%;
 }
 
-.title {
-  text-decoration: none;
+.app-shell {
+  width: 100%;
+  height: 100dvh;
+}
+
+.app-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+.primary-drawer {
+  width: min(320px, 85vw);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 8px 0 24px;
+  font: var(--mat-sys-title-medium);
+}
+
+.main-toolbar {
+  flex: 0 0 56px;
+  min-height: 56px;
+  padding-right: max(4px, env(safe-area-inset-right));
+  padding-left: max(4px, env(safe-area-inset-left));
+  gap: 4px;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 48px;
+  padding: 0 4px;
+}
+
+.veidemann-logo {
+  display: block;
+  width: auto;
+  max-width: 136px;
+  max-height: 40px;
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.primary-links,
+.desktop-actions {
+  display: none;
+}
+
+.primary-drawer-toggle,
+.toolbar-overflow {
+  flex: 0 0 auto;
+}
+
+.primary-links a,
+.desktop-actions button {
   color: inherit;
 }
 
-.header--button__margin {
-  margin-right: 1rem;
+.primary-links a.is-active {
+  background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .module-loader {
@@ -22,20 +85,51 @@
   transform: translate(-50%, -50%);
 }
 
-.main-toolbar {
-  min-height: 48px;
-}
-
 main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
-.veidemann_logo {
-  height: auto;
-  width: auto;
-  max-height: 64px;
-  max-width: 250px;
+@media (min-width: 600px) {
+  .veidemann-logo {
+    max-width: 180px;
+  }
+}
 
-  line-height: 64px;
-  vertical-align: middle;
+@media (min-width: 840px) {
+  .main-toolbar {
+    flex-basis: 64px;
+    min-height: 64px;
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-left: max(12px, env(safe-area-inset-left));
+    gap: 12px;
+  }
+
+  .primary-drawer-toggle {
+    display: none;
+  }
+
+  .primary-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .veidemann-logo {
+    max-width: 250px;
+  }
+
+  .desktop-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .toolbar-overflow {
+    display: none;
+  }
 }
