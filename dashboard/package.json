@@ -76,7 +76,7 @@
     "@angular/build": "^21.2.11",
     "@angular/cli": "^21.2.11",
     "@angular/compiler-cli": "^21.2.13",
-    "@angular/language-service": "^21.2.13",
+    "@angular/language-service": "^22.1.0",
     "@bufbuild/buf": "1.71.0",
     "@juggle/resize-observer": "^3.4.0",
     "@types/node": "^25.6.0",
