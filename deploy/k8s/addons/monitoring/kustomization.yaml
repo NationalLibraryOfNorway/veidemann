@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: default
 
 resources:
-  - dashboards/
+  - ../../base/grafana-dashboards
   - servicemonitor.yaml
   - redis-servicemonitor.yaml
   - kvrocks-servicemonitor.yaml
