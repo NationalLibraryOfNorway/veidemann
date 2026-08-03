@@ -19,7 +19,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	golang.org/x/sync v0.22.0
-	google.golang.org/grpc v1.82.1
+	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
