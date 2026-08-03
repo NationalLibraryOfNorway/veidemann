@@ -13,10 +13,11 @@ directory contains both Parquet files and per-collection `.index.json` files.
 The files and their indexes must be kept together.
 
 Use one log-service replica per Parquet directory. Concurrent pods must not
-write to or scan the same directory. For a `Deployment` backed by a shared PVC,
-use the `Recreate` update strategy so the replacement pod cannot overlap the
-old pod. `ReadWriteOnce` alone does not guarantee single-process access because
-multiple pods on the same node may still be able to mount the volume.
+write to or scan the same directory. The Kubernetes manifests provide a
+`base/log-service-statefulset` alternative that gives each replica its own
+claim and stable ordinal. `ReadWriteOnce` alone does not guarantee
+single-process access because multiple pods on the same node may still be able
+to mount the volume.
 
 Do not delete, replace, unmount, or manually modify the volume while the
 log-service pod is running or terminating. A utility pod may mount it for
@@ -59,20 +60,27 @@ Adapt names, resources, probes, and the grace period to the cluster:
 
 ```yaml
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: log-service
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
+  serviceName: log-service
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: parquet
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
   template:
     spec:
       terminationGracePeriodSeconds: 300
-      volumes:
-        - name: parquet
-          persistentVolumeClaim:
-            claimName: log-service-parquet
       containers:
         - name: log-service
           image: ghcr.io/nationallibraryofnorway/veidemann/log-service:<version>
@@ -138,6 +146,12 @@ If `S3_ENDPOINT` is empty, all finalized files remain on the local volume. If it
 is set, bucket and credentials are mandatory and invalid configuration prevents
 the service from starting.
 
+If an upload fails, the finalized Parquet file and its index entry remain in
+`PARQUET_DIR`. The error is logged as `Parquet S3 handoff failed`, the service
+continues running, and the scanner retries the file after `S3_SCAN_INTERVAL`.
+The persistent Parquet directory therefore serves as failed-upload storage; a
+separate fallback directory is not required.
+
 `S3_UPLOAD_DELAY` has direct storage implications. During the delay, finalized
 files remain on the PVC and continue to be available to local reads. Capacity
 must cover the write rate multiplied by the retention period, plus open files
@@ -148,6 +162,14 @@ implemented.
 `S3_SCAN_INTERVAL` affects how soon an eligible or previously interrupted file
 is retried after startup; it does not bound upload time and does not shorten the
 shutdown wait.
+
+Changing `S3_UPLOAD_DELAY` changes eligibility against each file's recorded
+finalization time. Reducing the delay and restarting the StatefulSet causes the
+startup scan to enqueue files that are eligible under the new value. Setting it
+to `0s` makes every indexed finalized file eligible immediately.
+
+There are currently no dedicated S3 upload failure or backlog metrics. Monitor
+`Parquet S3 handoff failed` log entries, PVC usage, and storage-pool capacity.
 
 ## Shutdown and recovery checks
 
