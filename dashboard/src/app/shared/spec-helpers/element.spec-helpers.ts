@@ -121,7 +121,7 @@ export function expectContent<T>(fixture: ComponentFixture<T>, text: string): vo
 export function dispatchFakeEvent(
   element: EventTarget,
   type: string,
-  bubbles: boolean = false,
+  bubbles = false,
 ): void {
   const event = document.createEvent('Event');
   event.initEvent(type, bubbles, false);
@@ -192,10 +192,13 @@ export function checkField<T>(
 export function makeClickEvent(target: EventTarget): Partial<MouseEvent> {
   return {
     preventDefault(): void {
+      return;
     },
     stopPropagation(): void {
+      return;
     },
     stopImmediatePropagation(): void {
+      return;
     },
     type: 'click',
     target,

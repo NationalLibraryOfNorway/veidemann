@@ -1,37 +1,43 @@
-import {Inject, Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {OAuthService} from 'angular-oauth2-oidc';
 import {Kind, Role} from '../../shared/models';
 import {Ability, AbilityBuilder, createMongoAbility, MongoAbility} from '@casl/ability';
+
+interface IdentityClaims {
+  groups?: string;
+  name?: string;
+  email?: string;
+}
 
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private oauthService = inject(OAuthService);
+  private ability = inject<MongoAbility>(Ability);
+
   readonly Kind = Kind;
 
   roles: Role[];
 
-  constructor(private oauthService: OAuthService, @Inject(Ability) private ability: MongoAbility) {
+  constructor() {
     this.roles = [Role.ANY];
   }
 
   get groups(): string {
-    const claims = this.oauthService.getIdentityClaims();
-    // @ts-ignore
-    return claims ? claims.groups : '';
+    const claims = this.oauthService.getIdentityClaims() as IdentityClaims | null;
+    return claims?.groups ?? '';
   }
 
   get name(): string {
-    const claims = this.oauthService.getIdentityClaims();
-    // @ts-ignore
-    return claims ? claims.name : '';
+    const claims = this.oauthService.getIdentityClaims() as IdentityClaims | null;
+    return claims?.name ?? '';
   }
 
   get email(): string {
-    const claims = this.oauthService.getIdentityClaims();
-    // @ts-ignore
-    return claims ? claims.email : '';
+    const claims = this.oauthService.getIdentityClaims() as IdentityClaims | null;
+    return claims?.email ?? '';
   }
 
   get isLoggedIn(): boolean {

@@ -14,13 +14,11 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     LayoutDirective,
     MatLabel
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class SchedulePreviewComponent {
   @Input()
   configObject: ConfigObject;
 
-  constructor() {
-  }
 }

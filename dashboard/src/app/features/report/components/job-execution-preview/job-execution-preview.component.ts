@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy} from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy, inject } from '@angular/core';
 import {CrawlExecutionState, ExtraStatusCodes, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates} from '../../../../shared/func';
 import {Router} from '@angular/router';
@@ -12,24 +12,30 @@ import {MatCardModule} from '@angular/material/card';
 import {MatButtonModule} from '@angular/material/button';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import type {EChartsOption} from 'echarts';
+import type {ECElementEvent} from 'echarts/core';
 
-export enum JobExecutionStatusColor {
-  ABORTED_MANUAL = '#924900',
-  ABORTED_SIZE = '#E69F00',
-  ABORTED_TIMEOUT = '#920000',
-  CREATED = '#56B4E9',
-  DIED = '#0072B2',
-  FETCHING = '#F0E442',
-  FINISHED = '#009E73',
-  SLEEPING = '#D55E00',
-  UNDEFINED = '#000000',
-  UNRECOGNIZED = '#CC79A7',
+export const JobExecutionStatusColor = {
+  ABORTED_MANUAL: '#924900',
+  ABORTED_SIZE: '#E69F00',
+  ABORTED_TIMEOUT: '#920000',
+  CREATED: '#56B4E9',
+  DIED: '#0072B2',
+  FETCHING: '#F0E442',
+  FINISHED: '#009E73',
+  SLEEPING: '#D55E00',
+  UNDEFINED: '#000000',
+  UNRECOGNIZED: '#CC79A7',
 
-  CRAWLED = '#009E73',
-  DENIED = '#D55E00',
-  FAILED = '#920000',
-  RETRIED = '#56B4E9',
-  OUT_OF_SCOPE = '#F0E442'
+  CRAWLED: '#009E73',
+  DENIED: '#D55E00',
+  FAILED: '#920000',
+  RETRIED: '#56B4E9',
+  OUT_OF_SCOPE: '#F0E442'
+};
+
+function isCrawlExecutionStateName(name: string): name is keyof typeof CrawlExecutionState {
+  return Number.isNaN(Number(name)) && Object.hasOwn(CrawlExecutionState, name);
 }
 
 @Component({
@@ -47,26 +53,28 @@ export enum JobExecutionStatusColor {
     NgxEchartsDirective,
     FileSizePipe
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 
 
 export class JobExecutionPreviewComponent implements OnChanges {
+  private router = inject(Router);
+  private jobExecutionTotalQueuePipe = inject(JobexecutionTotalQueuePipe);
+
   readonly JobExecutionState = JobExecutionState;
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly ExtraStatusCodes = ExtraStatusCodes;
 
   @Input() jobExecutionStatus: JobExecutionStatus;
 
-  documentsChartOptions: any;
-  executionStatesChartOptions: any;
+  documentsChartOptions: EChartsOption;
+  executionStatesChartOptions: EChartsOption;
 
   updateQueueCount: Subject<void>;
   queueCount$: Observable<number>;
 
-  constructor(private router: Router,
-              private jobExecutionTotalQueuePipe: JobexecutionTotalQueuePipe) {
+  constructor() {
     this.updateQueueCount = new Subject<void>();
     this.queueCount$ = this.updateQueueCount.pipe(
        switchMap(() => this.jobExecutionTotalQueuePipe.transform(this.jobExecutionStatus))
@@ -114,12 +122,16 @@ export class JobExecutionPreviewComponent implements OnChanges {
             color: '#000000',
             fontSize: 16,
             formatter(params) {
-              return params.value;
+              return String(params.value ?? '');
             },
           },
           data: this.getExecMap(this.jobExecutionStatus.executionsStateMap)
             .filter(execution => (execution.value > 0))
-            .map(exec => ({name: exec.key, value: exec.value, itemStyle: {color: JobExecutionStatusColor[exec.key]}}))
+            .map(exec => ({
+              name: exec.key,
+              value: exec.value,
+              itemStyle: {color: JobExecutionStatusColor[exec.key as keyof typeof JobExecutionStatusColor]}
+            }))
         }
       ]
     };
@@ -156,7 +168,7 @@ export class JobExecutionPreviewComponent implements OnChanges {
             color: '#000000',
             fontSize: 16,
             formatter(params) {
-              return params.value;
+              return String(params.value ?? '');
             },
           },
           data: this.getDocuments()
@@ -165,8 +177,10 @@ export class JobExecutionPreviewComponent implements OnChanges {
     };
   }
 
-  onGoToExecutionWithState(execution: any) {
-    if (execution.value > 0) {
+  onGoToExecutionWithState(execution: ECElementEvent): void {
+    if (typeof execution.value === 'number' &&
+        execution.value > 0 &&
+        isCrawlExecutionStateName(execution.name)) {
       this.router.navigate(['report', 'crawlexecution'],
         {
           queryParams: {

@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
@@ -40,6 +40,9 @@ import {MatButtonModule} from '@angular/material/button';
 })
 
 export class PolitenessConfigDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
   readonly RobotsPolicy = RobotsPolicy;
   readonly UnitOfTime = UnitOfTime;
 
@@ -61,8 +64,7 @@ export class PolitenessConfigDetailsComponent implements OnChanges {
   form: UntypedFormGroup;
 
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 

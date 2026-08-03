@@ -36,9 +36,6 @@ export class ResourceComponent implements OnInit {
   expandedResource: Resource | null;
   dataSource = new MatTableDataSource<Resource>();
 
-  constructor() {
-  }
-
 
   ngOnInit() {
     this.dataSource = new MatTableDataSource<Resource>(this.resources);
@@ -51,6 +48,14 @@ export class ResourceComponent implements OnInit {
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  onRowClick(resource: Resource, event: MouseEvent): void {
+    if (event.target instanceof Element && event.target.closest('a')) {
+      return;
+    }
+
+    this.expandedResource = this.expandedResource === resource ? null : resource;
   }
 
   getResource(resource: Resource) {

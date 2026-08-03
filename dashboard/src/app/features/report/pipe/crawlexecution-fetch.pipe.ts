@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {CrawlExecutionService} from '../services';
 import {CrawlExecutionStatus} from '../../../shared/models';
 import {Observable, of} from 'rxjs';
@@ -8,9 +8,8 @@ import {Observable, of} from 'rxjs';
     standalone: true
 })
 export class CrawlExecutionFetchPipe implements PipeTransform {
+  private crawlExecutionService = inject(CrawlExecutionService);
 
-  constructor(private crawlExecutionService: CrawlExecutionService) {
-  }
 
   transform(execution: CrawlExecutionStatus): Observable<CrawlExecutionStatus> {
     if (!CrawlExecutionStatus.DONE_STATES.includes(execution.state)) {

@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, forwardRef, Input, OnDestroy} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, forwardRef, Input, OnDestroy, inject } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -60,9 +60,11 @@ const incrementBases = {
 })
 
 export class FilesizeInputComponent implements ControlValueAccessor, AfterViewInit, OnDestroy {
+  protected fb = inject(UntypedFormBuilder);
 
 
-  constructor(protected fb: UntypedFormBuilder) {
+
+  constructor() {
     this.createForm();
   }
 
@@ -73,7 +75,7 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
 
   // ControlValueAccessor callbacks
   onChange: (filesize: number) => void;
-  onTouched: (filesize: number) => void;
+  onTouched: () => void;
 
   get fileSize(): AbstractControl {
     return this.form.get('fileSize');
@@ -95,7 +97,7 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
 
@@ -146,7 +148,7 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
   }
 
   fileSizeToBytes(size: string): number {
-    const parsed = size.trim().toString().match(/^([0-9\.,]*)(?:\s*)?(.*)$/);
+    const parsed = size.trim().toString().match(/^([0-9.,]*)(?:\s*)?(.*)$/);
     const amount = Number(parsed[1].replace(',', '.'));
     const unit = parsed[2];
 
@@ -172,7 +174,7 @@ export class FilesizeInputComponent implements ControlValueAccessor, AfterViewIn
     return 0;
   }
 
-  validate(ctrl): ValidationErrors | null {
+  validate(): ValidationErrors | null {
     return this.form.valid ? null : this.form.errors;
   }
 

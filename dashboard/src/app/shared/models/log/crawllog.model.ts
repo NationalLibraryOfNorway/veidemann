@@ -3,6 +3,7 @@ import {create} from '@bufbuild/protobuf';
 import {CrawlLog as CrawlLogProto, CrawlLogSchema} from '../../../../api/log/v1/resources_pb';
 import {fromTimestampProto, toTimestampProto} from '../../func';
 import {fromRethinkTimeStamp} from '../../func/rethinkdb';
+import type {Timestamp} from '../../func/rethinkdb';
 
 export class CrawlLog {
   id: string;
@@ -87,11 +88,11 @@ export class CrawlLog {
    * If a member contains nested objects, the nested objects are transformed before the parent object is.
    * @see JSON.parse
    */
-  static reviver(key: string, value: any) {
+  static reviver(key: string, value: unknown): unknown {
     switch (key) {
       case 'timeStamp':
       case 'fetchTimeStamp':
-        return fromRethinkTimeStamp(value);
+        return fromRethinkTimeStamp(value as Timestamp);
       default:
         return value;
     }

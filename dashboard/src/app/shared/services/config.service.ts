@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {from, Observable} from 'rxjs';
 import {count, mergeMap} from 'rxjs/operators';
 import {create} from '@bufbuild/protobuf';
@@ -32,15 +32,11 @@ import {ConfigQuery, escapeRegex} from '../func';
 })
 export class ConfigService
   extends LoadingService {
+  private configApiService = inject(ConfigApiService);
+
 
   // The listRequest last used to fetch data
   private effectiveListRequest: ListRequest;
-
-  // private cache: Map<string, string>;
-
-  constructor(private configApiService: ConfigApiService) {
-    super();
-  }
 
   get(configRef: ConfigRef): Observable<ConfigObject> {
     return this.load(this.configApiService.get(configRef));
@@ -260,7 +256,7 @@ export class ConfigService
             const subDomainSearch = '^(?:https?://)?.*' + escapeRegex(name) + '/?';
             listRequest.nameRegex = subDomainSearch;
           } else {
-            const commonSearch = '^(?:https?://)?(?:w{3}\.)?' + escapeRegex(name) + '/?';
+            const commonSearch = '^(?:https?://)?(?:w{3}\\.)?' + escapeRegex(name) + '/?';
             listRequest.nameRegex = commonSearch;
           }
         } else {

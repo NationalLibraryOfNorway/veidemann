@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
 import {MatCardModule} from '@angular/material/card';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
@@ -31,6 +31,8 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   ]
 })
 export class CrawlExecutionStatusComponent implements OnInit{
+  private fileSizePipe = inject(FileSizePipe);
+
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly ExtraStatusCodes = ExtraStatusCodes;
 
@@ -41,9 +43,6 @@ export class CrawlExecutionStatusComponent implements OnInit{
   crawlExecDisplayedColumns: string[] = ['jobExecution', 'job', 'state'];
   crawlExecRuntimeDisplayedColumns: string[] = ['createdTime', 'startTime', 'endTime', 'lastChangeTime'];
   crawlExecStatisticsDisplayedColumns: string[] = ['statistics', 'count'];
-
-  constructor(private fileSizePipe: FileSizePipe) {
-  }
 
   ngOnInit(): void {
     this.dataSource = new MatTableDataSource<CrawlExecutionStatus>([this.crawlExecutionStatus]);
@@ -60,7 +59,7 @@ export class CrawlExecutionStatusComponent implements OnInit{
       {stat:'Documents out of scope', count: this.crawlExecutionStatus.documentsOutOfScope},
       {stat:'Documents retried', count: this.crawlExecutionStatus.documentsRetried}
     ];
-    for (let stat of stats) {
+    for (const stat of stats) {
       if (stat.count !== 0) {
         datasource.push(stat);
       }

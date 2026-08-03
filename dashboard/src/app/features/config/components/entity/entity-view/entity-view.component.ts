@@ -28,9 +28,6 @@ export class EntityViewComponent {
   @Input()
   configObject: ConfigObject;
 
-  constructor() {
-  }
-
   get id(): string {
     return this.configObject.id;
   }

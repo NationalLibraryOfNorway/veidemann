@@ -19,6 +19,7 @@ import {SimpleChange} from '@angular/core';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {By} from '@angular/platform-browser';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {MatInputHarness} from '@angular/material/input/testing';
 
 
 const examplePolitenessConfig: ConfigObject = {
@@ -176,7 +177,7 @@ describe('PolitenessConfigDetailsComponent', () => {
       await customRobotsOption[0].click();
       const customRobotsFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
         .with({selector: '[data-testid="customRobots"]'}));
-      const customRobotsInput = (await customRobotsFormField.getControl()) as any;
+      const customRobotsInput = (await customRobotsFormField.getControl()) as MatInputHarness;
       expect(fixture.debugElement.query(By.css('[data-testid="customRobots"]'))).toBeTruthy();
       expect(await customRobotsInput.getValue()).toEqual('');
       await customRobotsInput.setValue('Test custom robot policy');

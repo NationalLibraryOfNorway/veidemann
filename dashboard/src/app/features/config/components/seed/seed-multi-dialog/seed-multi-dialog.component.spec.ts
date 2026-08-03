@@ -11,10 +11,7 @@ import {provideCoreTesting} from '../../../../../core/core.testing.module';
 describe('SeedMultiDialogComponent', () => {
   let component: SeedMultiDialogComponent;
   let fixture: ComponentFixture<SeedMultiDialogComponent>;
-  let seed: ConfigObject;
-  let crawlJob: ConfigObject;
-
-  seed = new ConfigObject({
+  const seed = new ConfigObject({
     id: '1000',
     apiVersion: 'v1',
     kind: Kind.SEED,
@@ -23,7 +20,7 @@ describe('SeedMultiDialogComponent', () => {
     })
   });
 
-  crawlJob = new ConfigObject({
+  const crawlJob = new ConfigObject({
     id: '1001',
     apiVersion: 'v1',
     kind: Kind.CRAWLJOB,

@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 
 import {ConfigObject, CrawlScheduleConfig, Kind, Meta,} from '../../../../../shared/models';
@@ -51,6 +51,9 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class ScheduleDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
   @Input()
   configObject: ConfigObject;
 
@@ -65,8 +68,7 @@ export class ScheduleDetailsComponent implements OnChanges {
 
   form: UntypedFormGroup;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 

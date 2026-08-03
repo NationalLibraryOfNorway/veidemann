@@ -13,13 +13,11 @@ import {FormsModule} from '@angular/forms';
     FormsModule,
     MatCheckbox
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlconfigPreviewComponent {
   @Input()
   configObject: ConfigObject;
 
-  constructor() {
-  }
 }

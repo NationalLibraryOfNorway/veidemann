@@ -1,14 +1,4 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  forwardRef,
-  Input,
-  OnDestroy,
-  OnInit,
-  Output
-} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, forwardRef, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -59,6 +49,8 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 })
 
 export class DurationPickerComponent implements ControlValueAccessor, OnInit, AfterViewInit, OnDestroy {
+  protected fb = inject(UntypedFormBuilder);
+
   @Input() unit: UnitOfTime;
   @Input() durationGranularity: string;
 
@@ -72,7 +64,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
 
   // ControlValueAccessor callbacks
   onChange: (duration: number) => void;
-  onTouched: (duration: number) => void;
+  onTouched: () => void;
 
   showMilliseconds = false;
   showSeconds = false;
@@ -81,7 +73,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
   showDays = false;
 
 
-  constructor(protected fb: UntypedFormBuilder) {
+  constructor() {
     this.createForm();
   }
 
@@ -135,12 +127,16 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
 
   setDisabledState(disabled: boolean): void {
-    disabled ? this.form.disable() : this.form.enable();
+    if (disabled) {
+      this.form.disable();
+    } else {
+      this.form.enable();
+    }
   }
 
   protected createForm(): void {
@@ -225,7 +221,7 @@ export class DurationPickerComponent implements ControlValueAccessor, OnInit, Af
     return ms;
   }
 
-  validate(ctrl): ValidationErrors | null {
+  validate(): ValidationErrors | null {
     return this.form.valid ? null : {invalidForm: {valid: false, message: 'Feltene kan kun inneholde positive tall'}};
   }
 

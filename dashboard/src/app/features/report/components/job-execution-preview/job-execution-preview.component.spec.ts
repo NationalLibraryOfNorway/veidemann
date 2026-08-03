@@ -3,7 +3,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {JobExecutionPreviewComponent} from './job-execution-preview.component';
 import {JobExecutionStatus} from '../../../../shared/models';
 import {ActivatedRoute} from '@angular/router';
-import {NGX_ECHARTS_CONFIG, NgxEchartsModule} from 'ngx-echarts';
+import {NGX_ECHARTS_CONFIG} from 'ngx-echarts';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('JobExecutionPreviewComponent', () => {

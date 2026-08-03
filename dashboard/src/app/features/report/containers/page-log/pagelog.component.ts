@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, Signal, inject } from '@angular/core';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {AsyncPipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
@@ -42,6 +42,12 @@ import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
   standalone: true
 })
 export class PageLogComponent {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private pageLogService = inject(PageLogService);
+  private errorService = inject(ErrorService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly pageSize: Signal<number>;
   readonly pageIndex: Signal<number>;
@@ -52,12 +58,9 @@ export class PageLogComponent {
   readonly pageLength$: Observable<number>;
   readonly loading$: Observable<boolean>;
 
-  constructor(private route: ActivatedRoute,
-              private router: Router,
-              private pageLogService: PageLogService,
-              private errorService: ErrorService,
-              private abilityService: AbilityServiceSignal<MongoAbility>,
-              destroyRef: DestroyRef) {
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+
     this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});

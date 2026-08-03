@@ -2,9 +2,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {ShortcutListComponent} from './shortcut-list.component';
 import {ConfigObject, Kind} from '../../../../../shared/models';
-import {EntityNamePipe} from '../../../pipe';
-import {of} from 'rxjs';
-import {ConfigService} from '../../../../../shared/services';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('ShortcutListComponent', () => {

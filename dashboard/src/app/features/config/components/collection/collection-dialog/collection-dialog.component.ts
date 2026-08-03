@@ -1,22 +1,21 @@
-import {ChangeDetectionStrategy, Component, Inject, OnInit} from '@angular/core';
-import {CollectionDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../../shared/models/config';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {CollectionMetaComponent} from '../../collection-meta/collection-meta.component';
-import {MatCheckbox} from '@angular/material/checkbox';
-import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
-import {MatIcon} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {MatTooltip} from '@angular/material/tooltip';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {MatCardModule} from '@angular/material/card';
-import {MatInputModule} from '@angular/material/input';
+import { ChangeDetectionStrategy,Component,OnInit,inject } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { CollectionDetailsComponent } from '..';
+import { ConfigObject } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { CollectionMetaComponent } from '../../collection-meta/collection-meta.component';
+import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
 
 @Component({
   selector: 'app-collection-dialog',
@@ -43,12 +42,14 @@ import {MatInputModule} from '@angular/material/input';
   standalone: true
 })
 export class CollectionDialogComponent extends CollectionDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<CollectionDialogComponent>>(MatDialogRef);
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<CollectionDialogComponent>) {
-    super(fb, authService);
+
+  constructor() {
+
+    super();
+
     this.createForm();
     this.configObject = this.data.configObject;
     this.rotationPolicies = this.data.options.rotationPolicies;

@@ -25,6 +25,7 @@ import {MatButtonHarness} from '@angular/material/button/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {DatePipe} from '@angular/common';
 import {MatInputModule} from '@angular/material/input';
+import {MatInputHarness} from '@angular/material/input/testing';
 
 const exampleBrowserConfig: ConfigObject = {
   id: 'configObject_id',
@@ -106,11 +107,11 @@ describe('BrowserConfigDetailsComponent', () => {
   let deleteButton: MatButtonHarness;
 
   let userAgentFormField: MatFormFieldHarness;
-  let userAgentInput: any;
+  let userAgentInput: MatInputHarness;
   let windowHeightFormField: MatFormFieldHarness;
-  let windowHeightInput: any;
+  let windowHeightInput: MatInputHarness;
   let windowWidthFormField: MatFormFieldHarness;
-  let windowWidthInput: any;
+  let windowWidthInput: MatInputHarness;
   let browserScriptSelect: MatSelectHarness;
 
 
@@ -159,11 +160,11 @@ describe('BrowserConfigDetailsComponent', () => {
 
     loader = TestbedHarnessEnvironment.loader(fixture);
     userAgentFormField = await loader.getHarness(MatFormFieldHarness.with({selector: '[data-testid="userAgent"]'}));
-    userAgentInput = (await userAgentFormField.getControl()) as any;
+    userAgentInput = (await userAgentFormField.getControl()) as MatInputHarness;
     windowHeightFormField = await loader.getHarness(MatFormFieldHarness.with({selector: '[data-testid="windowHeight"]'}));
-    windowHeightInput = (await windowHeightFormField.getControl()) as any;
+    windowHeightInput = (await windowHeightFormField.getControl()) as MatInputHarness;
     windowWidthFormField = await loader.getHarness(MatFormFieldHarness.with({selector: '[data-testid="windowWidth"]'}));
-    windowWidthInput = (await windowWidthFormField.getControl()) as any;
+    windowWidthInput = (await windowWidthFormField.getControl()) as MatInputHarness;
     browserScriptSelect = await loader.getHarness(MatSelectHarness);
   });
 

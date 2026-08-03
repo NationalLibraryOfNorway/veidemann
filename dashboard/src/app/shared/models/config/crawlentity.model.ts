@@ -5,14 +5,17 @@ import {ConfigObject} from './configobject.model';
 export class CrawlEntity {
 
   static fromProto(proto: CrawlEntityProto): CrawlEntity {
+    void proto;
     return new CrawlEntity();
   }
 
   static mergeConfigs(configObjects: ConfigObject[]): CrawlEntity {
+    void configObjects;
     return new CrawlEntity();
   }
 
   static toProto(crawlEntity: CrawlEntity): CrawlEntityProto {
+    void crawlEntity;
     return create(CrawlEntitySchema);
   }
 }

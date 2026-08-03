@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  Output,
-  SimpleChanges
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -29,6 +20,7 @@ import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import type {editor} from 'monaco-editor';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +45,10 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class BrowserScriptDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+  protected cdr = inject(ChangeDetectorRef);
+
   readonly BrowserScriptType = BrowserScriptType;
 
   @Input()
@@ -86,9 +82,7 @@ export class BrowserScriptDetailsComponent implements OnChanges {
     roundedSelection: true,
   };
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService,
-              protected cdr: ChangeDetectorRef) {
+  constructor() {
     this.createForm();
   }
 
@@ -138,7 +132,7 @@ export class BrowserScriptDetailsComponent implements OnChanges {
     }
   }
 
-  initEditor(editor: any): void {
+  initEditor(editor: editor.IStandaloneCodeEditor): void {
     console.log('Editor initialized', editor);
     /*
     editor.onDidChangeModelDecorations(() => {

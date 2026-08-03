@@ -1,21 +1,20 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {CrawlJobDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {MatSlideToggleModule} from '@angular/material/slide-toggle';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatTooltip} from '@angular/material/tooltip';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { ReactiveFormsModule,Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { CrawlJobDetailsComponent } from '..';
+import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
+import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-crawljobs-multi-dialog',
@@ -36,21 +35,23 @@ import {MatButtonModule} from '@angular/material/button';
     MatTooltip,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<CrawlJobMultiDialogComponent>>(MatDialogRef);
+
 
   shouldAddLabel: boolean = undefined;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<CrawlJobMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.crawlScheduleConfigs = this.data.options.crawlScheduleConfigs;
     this.crawlConfigs = this.data.options.crawlConfigs;
@@ -79,7 +80,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 
   override onRevert() {
@@ -147,7 +148,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const pathList: string[] = [];
 
     const formModel = this.form.value;

@@ -1,12 +1,5 @@
 import { timestampDate, timestampFromDate, type Timestamp } from '@bufbuild/protobuf/wkt';
-import {
-  endOfDay,
-  isValid,
-  parseISO,
-  set,
-  startOfDay,
-  differenceInMilliseconds,
-} from 'date-fns';
+import {differenceInMilliseconds, isValid, parseISO, set} from 'date-fns';
 
 export class DateTime {
 
@@ -86,7 +79,7 @@ export function formatDuration(ms: number): string {
   return parts.join(':');
 }
 
-const timeUnitMap: { [key: string]: number } = {
+const timeUnitMap: Record<string, number> = {
   ms: 1,
   s: 1000,
   m: 60000,

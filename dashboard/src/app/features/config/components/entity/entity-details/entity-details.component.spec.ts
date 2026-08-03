@@ -31,8 +31,6 @@ describe('EntityDetailsComponent', () => {
 
   let saveButton: MatButtonHarness;
   let updateButton: MatButtonHarness;
-  let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
 
 
   beforeEach(() => {
@@ -83,8 +81,6 @@ describe('EntityDetailsComponent', () => {
     beforeEach(async () => {
       await fixture.whenStable();
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
-      revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
     });
 
     it('update button should be active if form is updated and valid', async () => {

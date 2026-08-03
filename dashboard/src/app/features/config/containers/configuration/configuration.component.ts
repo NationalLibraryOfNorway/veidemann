@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, OnDestroy, signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, OnDestroy, signal, inject } from '@angular/core';
 import {ActivatedRoute, NavigationStart, Router} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
@@ -89,6 +89,18 @@ export interface ConfigOptions {
   standalone: true
 })
 export class ConfigurationComponent implements OnDestroy {
+  private authService = inject(AuthService);
+  private dataService = inject(ConfigService);
+  private snackBarService = inject(SnackBarService);
+  private errorService = inject(ErrorService);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private route = inject(ActivatedRoute);
+  private optionsService = inject(OptionsService);
+  private controllerApiService = inject(ControllerApiService);
+  private routerExtraService = inject(RouterExtraService);
+  private location = inject(Location);
+
   readonly Kind = Kind;
 
   private ngUnsubscribe = new Subject<void>();
@@ -101,17 +113,7 @@ export class ConfigurationComponent implements OnDestroy {
   options: ConfigOptions;
   options$: Observable<ConfigOptions>;
 
-  constructor(private authService: AuthService,
-              private dataService: ConfigService,
-              private snackBarService: SnackBarService,
-              private errorService: ErrorService,
-              private router: Router,
-              private dialog: MatDialog,
-              private route: ActivatedRoute,
-              private optionsService: OptionsService,
-              private controllerApiService: ControllerApiService,
-              private routerExtraService: RouterExtraService,
-              private location: Location) {
+  constructor() {
     this.configObject = new Subject();
 
     this.options$ = this.optionsService.options$.pipe(

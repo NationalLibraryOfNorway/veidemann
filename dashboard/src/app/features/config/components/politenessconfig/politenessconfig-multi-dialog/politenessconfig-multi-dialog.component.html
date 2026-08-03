@@ -9,7 +9,11 @@
     </div>
 
     <div fxFlex fxLayout="column">
-      <div (click)="onEnableRobotsPolicy()">
+      <div role="button"
+        tabindex="0"
+        (click)="onEnableRobotsPolicy()"
+        (keydown.enter)="onEnableRobotsPolicy()"
+        (keydown.space)="onEnableRobotsPolicy()">
         <mat-form-field>
           <mat-label i18n="@@politenessconfigFormRobotPolicyDropdownLabel">
             Robot policy
@@ -54,7 +58,11 @@
       </mat-error>
       }
 
-      <div (click)="useHostname.disabled ? useHostname.enable() : null">
+      <div role="button"
+        tabindex="0"
+        (click)="useHostname.disabled ? useHostname.enable() : null"
+        (keydown.enter)="useHostname.disabled ? useHostname.enable() : null"
+        (keydown.space)="useHostname.disabled ? useHostname.enable() : null">
         <mat-checkbox formControlName="useHostname"
           labelPosition="after"
           i18n="@@politenesslconfigFormUseHostnameLabel"

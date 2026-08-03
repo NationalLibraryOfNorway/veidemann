@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
 import {
   CrawlExecutionState,
   ExtraStatusCodes,
@@ -38,6 +38,8 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 })
 
 export class JobExecutionStatusComponent implements OnInit {
+  private fileSizePipe = inject(FileSizePipe);
+
   readonly JobExecutionState = JobExecutionState;
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly ExtraStatusCodes = ExtraStatusCodes;
@@ -49,9 +51,6 @@ export class JobExecutionStatusComponent implements OnInit {
   jobExecRuntimeDisplayedColumns: string[] = ['startTime', 'endTime'];
   jobExecStatisticsDisplayedColumns: string[] = ['statistics', 'count'];
   jobExecExecutionsDisplayedColumns: string[] = ['state', 'count'];
-
-  constructor(private fileSizePipe: FileSizePipe) {
-  }
 
   getExecMap(executionStateMap: Map<string, number>) {
     const datasource = [];
@@ -74,7 +73,7 @@ export class JobExecutionStatusComponent implements OnInit {
       {stat:'Documents out of scope', count: this.jobExecutionStatus.documentsOutOfScope},
       {stat:'Documents retried', count: this.jobExecutionStatus.documentsRetried}
       ];
-    for (let stat of stats) {
+    for (const stat of stats) {
       if (stat.count !== 0) {
         datasource.push(stat);
       }

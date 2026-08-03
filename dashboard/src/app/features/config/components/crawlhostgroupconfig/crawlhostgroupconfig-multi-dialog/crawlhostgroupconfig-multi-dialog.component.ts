@@ -1,17 +1,16 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {CrawlHostGroupConfigDetailsComponent} from '..';
-import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {ANY_DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatInputModule} from '@angular/material/input';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { AbstractControl,ReactiveFormsModule,Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { LayoutDirective } from '@ngbracket/ngx-layout';
+import { CrawlHostGroupConfigDetailsComponent } from '..';
+import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
+import { ANY_DECIMAL_NUMBER_OR_EMPTY_STRING,NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-multi-dialog',
@@ -27,21 +26,23 @@ import {MatButtonModule} from '@angular/material/button';
     MatInputModule,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlHostGroupConfigMultiDialogComponent extends CrawlHostGroupConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<CrawlHostGroupConfigMultiDialogComponent>>(MatDialogRef);
+
 
   shouldAddLabel = undefined;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<CrawlHostGroupConfigMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.allSelected = this.data.allSelected;
   }
@@ -105,7 +106,7 @@ export class CrawlHostGroupConfigMultiDialogComponent extends CrawlHostGroupConf
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const formModel = this.form.value;
     const pathList: string[] = [];
     const updateTemplate = new ConfigObject({
@@ -156,7 +157,7 @@ export class CrawlHostGroupConfigMultiDialogComponent extends CrawlHostGroupConf
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 
 }

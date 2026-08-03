@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {EMPTY, Observable} from 'rxjs';
 import {create} from '@bufbuild/protobuf';
 
@@ -21,11 +21,13 @@ export interface JobExecutionStatusQuery extends Page, Sort, Watch {
   providedIn: 'root'
 })
 export class JobExecutionService extends LoadingService {
+  private reportApiService = inject(ReportApiService);
+  private configService = inject(ConfigService);
+
 
   private readonly cache: Map<string, Observable<ConfigObject>>;
 
-  constructor(private reportApiService: ReportApiService,
-              private configService: ConfigService) {
+  constructor() {
     super();
     this.cache = new Map();
   }

@@ -1,5 +1,5 @@
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ChangeDetectionStrategy, Component, Inject} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 
 @Component({
@@ -18,11 +18,15 @@ import {MatButtonModule} from '@angular/material/button';
   standalone: true
 })
 export class ErrorDialogComponent {
+  dialogRef = inject<MatDialogRef<ErrorDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
   title: string;
   content: string;
 
-  constructor(public dialogRef: MatDialogRef<ErrorDialogComponent>,
-              @Inject(MAT_DIALOG_DATA) public data: any) {
+  constructor() {
+    const data = this.data;
+
     this.title = data.error.name || 'Error';
     this.content = data.error.message || data.error.code || data.error.toString();
   }

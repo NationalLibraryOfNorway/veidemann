@@ -43,7 +43,7 @@ export class PageLog {
    * If a member contains nested objects, the nested objects are transformed before the parent object is.
    * @see JSON.parse
    */
-  static reviver(key: string, value: any) {
+  static reviver(key: string, value: unknown): unknown {
     switch (key) {
       default:
         return value;

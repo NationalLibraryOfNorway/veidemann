@@ -1,4 +1,4 @@
-import {Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, ChangeDetectionStrategy} from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject, Label} from '../../../../../shared/models/config';
 import {ENTER} from '@angular/cdk/keycodes';
 import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
@@ -14,6 +14,11 @@ import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {AsyncPipe} from '@angular/common';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+
+export interface LabelUpdate {
+  add: boolean;
+  labels: Label[];
+}
 import {MatTooltipModule} from '@angular/material/tooltip';
 
 @Component({
@@ -35,10 +40,12 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     MatTooltipModule,
     ReactiveFormsModule,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class LabelMultiComponent implements OnInit {
+  protected labelService = inject(LabelService);
+
   @Input()
   configObject: ConfigObject;
 
@@ -46,7 +53,7 @@ export class LabelMultiComponent implements OnInit {
   allSelected: boolean;
 
   @Output()
-  update = new EventEmitter<any>();
+  update = new EventEmitter<LabelUpdate>();
 
   private fetchLabelKeys: Subject<void>;
 
@@ -63,7 +70,7 @@ export class LabelMultiComponent implements OnInit {
 
   @ViewChild('chipInput') chipInputControl: ElementRef;
 
-  constructor(protected labelService: LabelService) {
+  constructor() {
     this.fetchLabelKeys = new Subject();
   }
 

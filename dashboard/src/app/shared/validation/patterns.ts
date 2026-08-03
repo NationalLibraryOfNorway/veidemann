@@ -1,4 +1,4 @@
-export const VALID_IP_PATTERN = '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$';
+export const VALID_IP_PATTERN = '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$';
 
 export const VALID_CRON_MONTH_PATTERN = [
   '^[*]$|^([1-9]|1[0-2]|(jan)|(feb)|(mar)|(apr)|(may)|(jun)|(jul)|(aug)|(sep)|(oct)|(nov)|(dec))',
@@ -7,7 +7,7 @@ export const VALID_CRON_MONTH_PATTERN = [
 ].join('');
 
 export const VALID_CRON_MINUTE_PATTERN = [
-  /^[*]$|^(([*][\/])?([0-9]|[1-5]?[0-9]))$/,
+  /^[*]$|^(([*][/])?([0-9]|[1-5]?[0-9]))$/,
   /|^([0-9]|[1-5]?[0-9])((,([0-9]|[1-5]?[0-9]))|(-([0-9]|[1-5]?[0-9])))*$/
 ].map(r => r.source).join('');
 
@@ -63,7 +63,7 @@ export const createSimilarDomainRegExpString = url => {
   const match = url.match(SIMILAR_URL);
   if (match) {
     const domain = match[1];
-    return 'https?://(?:www\.)?' + escapeStringForUseInRegexp(domain) + '(/?$|/.*)';
+    return 'https?://(?:www\\.)?' + escapeStringForUseInRegexp(domain) + '(/?$|/.*)';
   } else {
     return null;
   }

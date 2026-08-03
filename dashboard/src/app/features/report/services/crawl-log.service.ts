@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {LogApiService} from '../../../core';
 import {Observable} from 'rxjs';
 import {create} from '@bufbuild/protobuf';
@@ -19,10 +19,8 @@ export interface CrawlLogQuery extends Page, Sort, Watch {
   providedIn: 'root'
 })
 export class CrawlLogService extends LoadingService {
+  private logApiService = inject(LogApiService);
 
-  constructor(private logApiService: LogApiService) {
-    super();
-  }
 
   static getListRequest(query: CrawlLogQuery): CrawlLogListRequest {
     const listRequest = create(CrawlLogListRequestSchema, {

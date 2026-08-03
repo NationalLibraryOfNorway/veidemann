@@ -1,8 +1,15 @@
-import {Component, Inject, ChangeDetectionStrategy} from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {RouterLink} from '@angular/router';
 import {MatButtonModule} from '@angular/material/button';
 import {DatePipe} from '@angular/common';
+
+interface ScheduleEventData {
+  id: string;
+  start: string;
+  end: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-schedule-event-dialog',
@@ -14,14 +21,9 @@ import {DatePipe} from '@angular/common';
     MatDialogModule,
     RouterLink
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ScheduleEventDialogComponent {
-
-  calendarEvent: any;
-
-  constructor(@Inject(MAT_DIALOG_DATA) public data: any) {
-    this.calendarEvent = data;
-  }
+  readonly calendarEvent = inject<ScheduleEventData>(MAT_DIALOG_DATA);
 }

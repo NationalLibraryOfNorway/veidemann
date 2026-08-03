@@ -1,5 +1,5 @@
-import {Injectable} from '@angular/core';
-import {ActivatedRouteSnapshot, Resolve} from '@angular/router';
+import { Injectable, inject } from '@angular/core';
+import {Resolve} from '@angular/router';
 import {Observable} from 'rxjs';
 import {map, toArray} from 'rxjs/operators';
 import { ConfigApiService } from '../../../core';
@@ -16,12 +16,10 @@ export interface ConfigOptions {
   providedIn: 'root'
 })
 export class OptionsResolver implements Resolve<ConfigOptions> {
+  private backendService = inject(ConfigApiService);
 
 
-  constructor(private backendService: ConfigApiService) {
-  }
-
-  resolve(route: ActivatedRouteSnapshot): Observable<ConfigOptions> | Promise<ConfigOptions> | ConfigOptions {
+  resolve(): Observable<ConfigOptions> | Promise<ConfigOptions> | ConfigOptions {
     const listRequest = create(ListRequestSchema, {kind: Kind.CRAWLJOB.valueOf()});
     return this.backendService.list(listRequest).pipe(
       toArray(),

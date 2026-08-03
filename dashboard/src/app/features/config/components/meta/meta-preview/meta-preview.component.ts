@@ -1,4 +1,4 @@
-import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {AuthService, SnackBarService} from '../../../../../core';
 import {DatePipe} from '@angular/common';
@@ -21,17 +21,16 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     MatSuffix,
     MatTooltipModule,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class MetaPreviewComponent {
+  private snackBarService = inject(SnackBarService);
+  private authService = inject(AuthService);
+
 
   @Input()
   configObject: ConfigObject;
-
-  constructor(private snackBarService: SnackBarService,
-              private authService: AuthService) {
-  }
 
   get canShowAnnotation() {
     return this.authService.isAdmin() || this.authService.isOperator() || this.authService.isCurator();

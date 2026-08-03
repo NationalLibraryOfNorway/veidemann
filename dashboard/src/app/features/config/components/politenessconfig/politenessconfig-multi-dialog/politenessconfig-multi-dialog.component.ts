@@ -1,21 +1,20 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {PolitenessConfigDetailsComponent} from '..';
-import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label, RobotsPolicy} from '../../../../../shared/models/config';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatTooltip} from '@angular/material/tooltip';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatCheckbox} from '@angular/material/checkbox';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {MatInputModule} from '@angular/material/input';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { AbstractControl,ReactiveFormsModule,Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { PolitenessConfigDetailsComponent } from '..';
+import { ConfigObject,Kind,Label,RobotsPolicy } from '../../../../../shared/models/config';
+import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-politenessconfig-multi-dialog',
@@ -36,10 +35,13 @@ import {MatButtonModule} from '@angular/material/button';
     MatTooltip,
     ReactiveFormsModule,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<PolitenessConfigMultiDialogComponent>>(MatDialogRef);
+
 
   allSelected = false;
   shouldAddLabel = undefined;
@@ -47,11 +49,10 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<PolitenessConfigMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.robotsPolicies = this.data.options.robotsPolicies;
     this.allSelected = this.data.allSelected;
@@ -132,7 +133,7 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const pathList: string[] = [];
 
     const formModel = this.form.value;
@@ -176,6 +177,6 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 }

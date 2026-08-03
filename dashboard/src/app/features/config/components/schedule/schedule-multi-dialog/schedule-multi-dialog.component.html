@@ -10,7 +10,11 @@
       </div>
       <div fxFlex fxLayout="column" fxLayoutGap="16px">
         <div fxLayout="row" fxLayoutGap="24px">
-          <div (click)="validFrom.disabled ? validFrom.enable() : null"
+          <div role="button"
+            tabindex="0"
+            (click)="validFrom.disabled ? validFrom.enable() : null"
+            (keydown.enter)="validFrom.disabled ? validFrom.enable() : null"
+            (keydown.space)="validFrom.disabled ? validFrom.enable() : null"
             i18n-matTooltip="@@scheduleMassUpdateValidFromDisabledTooltip"
                [matTooltip]="validFrom.disabled ?
                         ' The value for this field is not equal for all the selected configs.'
@@ -26,7 +30,11 @@
               <mat-datepicker #validFromDatepicker></mat-datepicker>
             </mat-form-field>
           </div>
-          <div (click)="validTo.disabled ? validTo.enable() : null"
+          <div role="button"
+            tabindex="0"
+            (click)="validTo.disabled ? validTo.enable() : null"
+            (keydown.enter)="validTo.disabled ? validTo.enable() : null"
+            (keydown.space)="validTo.disabled ? validTo.enable() : null"
             i18n-matTooltip="@@scheduleMassUpdateValidToDisabledTooltip"
                [matTooltip]="validFrom.disabled ?
                         ' The value for this field is not equal for all the selected configs.'

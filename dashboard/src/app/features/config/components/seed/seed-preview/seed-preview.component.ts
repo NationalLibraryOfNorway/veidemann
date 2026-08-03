@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {ActivatedRoute, Params, Router, RouterLink} from '@angular/router';
 import {CrawlExecutionState} from '../../../../../shared/models';
@@ -6,7 +6,7 @@ import {AuthService, SnackBarService} from '../../../../../core';
 import {CrawlExecutionStatusPipe, ScriptAnnotationsPipe} from '../../../pipe';
 import {ToArrayPipe} from '../../../pipe/to-array.pipe';
 import {AsyncPipe, DatePipe} from '@angular/common';
-import {FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
+import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {JobNamePipe} from '../../../../report/pipe';
 import {MatTabsModule} from '@angular/material/tabs';
 import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
@@ -30,10 +30,15 @@ import {MatTooltip} from '@angular/material/tooltip';
     ScriptAnnotationsPipe,
     ToArrayPipe,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class SeedPreviewComponent {
+  protected router = inject(Router);
+  protected route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private snackBarService = inject(SnackBarService);
+
   readonly CrawlExecutionState = CrawlExecutionState;
 
   @Input()
@@ -47,10 +52,7 @@ export class SeedPreviewComponent {
 
   crawlStatusTableHeaders = ['Job', 'Status', 'Started', ' Ended'];
 
-  constructor(protected router: Router,
-              protected route: ActivatedRoute,
-              private authService: AuthService,
-              private snackBarService: SnackBarService) {
+  constructor() {
     this.edit = new EventEmitter();
   }
 

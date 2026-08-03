@@ -6,6 +6,7 @@ import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {NgxEchartsDirective} from 'ngx-echarts';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import type {EChartsOption} from 'echarts';
 
 export enum CrawlExecutionStatusColors {
   CRAWLED = '#009E73',
@@ -27,7 +28,7 @@ export enum CrawlExecutionStatusColors {
     NgxEchartsDirective,
     FileSizePipe
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlExecutionPreviewComponent implements OnChanges {
@@ -37,10 +38,7 @@ export class CrawlExecutionPreviewComponent implements OnChanges {
   @Input()
   crawlExecutionStatus: CrawlExecutionStatus;
 
-  documentsChartOptions: any;
-
-  constructor() {
-  }
+  documentsChartOptions: EChartsOption;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['crawlExecutionStatus']) {
@@ -81,7 +79,7 @@ export class CrawlExecutionPreviewComponent implements OnChanges {
             color: '#000000',
             fontSize: 16,
             formatter(params) {
-              return params.value;
+              return String(params.value ?? '');
             },
           },
           data: this.getDocuments()

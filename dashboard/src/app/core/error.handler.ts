@@ -1,4 +1,4 @@
-import {ErrorHandler, Injectable} from '@angular/core';
+import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import {Code, ConnectError} from '@connectrpc/connect';
@@ -11,14 +11,12 @@ import { ConfigObject } from '../shared/models';
   providedIn: 'root'
 })
 export class ApplicationErrorHandler extends ErrorHandler {
+  private errorService = inject(ErrorService);
 
-  constructor(private errorService: ErrorService) {
-    super();
-  }
 
-  override handleError(error: any): void {
+  override handleError(error: unknown): void {
     console.warn('error handler', error);
-    if (error.code) {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
       this.handleGrpcError(error);
       return;
     }

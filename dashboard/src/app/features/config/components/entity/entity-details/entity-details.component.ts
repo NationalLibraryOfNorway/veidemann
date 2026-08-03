@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
 import {ConfigObject, Kind, Meta} from '../../../../../shared/models';
@@ -29,6 +29,9 @@ import {MatButtonModule} from '@angular/material/button';
 })
 
 export class EntityDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
 
   @Input()
   configObject: ConfigObject;
@@ -48,8 +51,7 @@ export class EntityDetailsComponent implements OnChanges {
 
   form: UntypedFormGroup;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 

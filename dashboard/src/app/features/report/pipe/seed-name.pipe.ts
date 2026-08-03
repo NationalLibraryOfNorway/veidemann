@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {Observable} from 'rxjs';
 import {first, map} from 'rxjs/operators';
 import {CrawlExecutionService} from '../services';
@@ -8,9 +8,8 @@ import {CrawlExecutionService} from '../services';
     standalone: true
 })
 export class SeedNamePipe implements PipeTransform {
+  private crawlExecutionService = inject(CrawlExecutionService);
 
-  constructor(private crawlExecutionService: CrawlExecutionService) {
-  }
 
   transform(id: string): Observable<string> {
     return this.crawlExecutionService.getSeed(id).pipe(

@@ -1,6 +1,7 @@
-import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {AbilityServiceSignal} from "@casl/angular";
+import {MongoAbility} from '@casl/ability';
 import {AsyncPipe, NgClass} from '@angular/common';
 import {MatListModule} from '@angular/material/list';
 import {RouterLink} from '@angular/router';
@@ -36,17 +37,19 @@ import {MatIcon} from '@angular/material/icon';
     PolitenessConfigNamePipe,
     RouterLink
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ShortcutListComponent {
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   readonly Kind = Kind;
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input()
   configObject: ConfigObject;
 
-  constructor(private abilityService: AbilityServiceSignal<any>) {
+  constructor() {
     this.can = this.abilityService.can;
   }
 }

@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {ConfigService} from '../../../shared/services';
 import {Annotation} from '../../../shared/models/config';
 import {Observable, of} from 'rxjs';
@@ -9,8 +9,8 @@ import {Observable, of} from 'rxjs';
     standalone: true
 })
 export class ScriptAnnotationsPipe implements PipeTransform {
-  constructor(private configService: ConfigService) {
-  }
+  private configService = inject(ConfigService);
+
 
   transform(jobId: string, seedId?: string): Observable<Annotation[]> {
     if (!jobId) {

@@ -7,7 +7,7 @@ import {RouterOutlet} from '@angular/router';
   standalone: true,
   selector: 'app-root',
   imports: [CommonModule, RouterOutlet],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
   @defer (when appReady()) {
     <router-outlet />

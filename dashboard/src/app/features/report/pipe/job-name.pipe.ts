@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {Observable} from 'rxjs';
 import {first, map} from 'rxjs/operators';
 import {JobExecutionService} from '../services';
@@ -9,9 +9,8 @@ import {JobExecutionService} from '../services';
     standalone: true
 })
 export class JobNamePipe implements PipeTransform {
+  private jobExecutionService = inject(JobExecutionService);
 
-  constructor(private jobExecutionService: JobExecutionService) {
-  }
 
   transform(id: string): Observable<string> {
     return this.jobExecutionService.getJob(id).pipe(

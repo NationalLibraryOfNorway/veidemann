@@ -4,18 +4,7 @@ import {CrawlHostGroupConfigDialogComponent} from './crawlhostgroupconfig-dialog
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {MetaComponent} from '../../meta/meta.component';
-import {LabelComponent} from '../../label/label.component';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {AnnotationComponent} from '../../annotation/annotation.component';
-import {AuthService} from '../../../../../core';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
-import {
-  CrawlHostGroupConfigDetailsComponent
-} from '../crawlhostgroupconfig-details/crawlhostgroupconfig-details.component';
 
 describe('CrawlHostGroupConfigDialogComponent', () => {
   let component: CrawlHostGroupConfigDialogComponent;

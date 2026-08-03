@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {Observable} from 'rxjs';
 
 import {ReportApiService} from '../../../core/api/report-api.service';
@@ -11,9 +11,8 @@ import {JobExecutionStatus} from '../../../shared/models/report';
     standalone: true
 })
 export class JobExecutionStatusPipe implements PipeTransform {
+  private reportService = inject(ReportApiService);
 
-  constructor(private reportService: ReportApiService) {
-  }
 
   transform(configObject: ConfigObject): Observable<JobExecutionStatus> {
     return this.reportService.getLastJobStatus(configObject.id);

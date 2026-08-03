@@ -9,6 +9,7 @@ import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {MatInputHarness} from '@angular/material/input/testing';
 
 const exampleCrawlConfig: ConfigObject = {
   id: 'configObject_id',
@@ -47,9 +48,9 @@ describe('CrawlConfigDetailsComponent', () => {
   let screenshotCheckbox: MatCheckboxHarness;
 
   let priorityWeightFormField: MatFormFieldHarness;
-  let priorityWeightInput: any;
+  let priorityWeightInput: MatInputHarness;
   let minimumDnsTtlSFormField: MatFormFieldHarness;
-  let minimumDnsTtlSInput: any;
+  let minimumDnsTtlSInput: MatInputHarness;
 
 
   beforeEach(() => {
@@ -76,11 +77,11 @@ describe('CrawlConfigDetailsComponent', () => {
 
     priorityWeightFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness.with(
       {selector: '[data-testid="priorityWeight"]'}));
-    priorityWeightInput = (await priorityWeightFormField.getControl()) as any;
+    priorityWeightInput = (await priorityWeightFormField.getControl()) as MatInputHarness;
     minimumDnsTtlSFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness.with(
       {selector: '[data-testid="minimumDnsTtlS"]'}
     ));
-    minimumDnsTtlSInput = (await minimumDnsTtlSFormField.getControl()) as any;
+    minimumDnsTtlSInput = (await minimumDnsTtlSFormField.getControl()) as MatInputHarness;
   });
 
   it('should create', () => {
@@ -240,4 +241,3 @@ describe('CrawlConfigDetailsComponent', () => {
     });
   });
 });
-

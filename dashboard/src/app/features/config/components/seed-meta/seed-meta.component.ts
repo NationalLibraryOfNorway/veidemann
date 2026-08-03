@@ -1,44 +1,35 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  forwardRef,
-  Input,
-  Output
-} from '@angular/core';
+import { ChangeDetectionStrategy,ChangeDetectorRef,Component,EventEmitter,forwardRef,inject,Input,Output } from '@angular/core';
 
-import {DatePipe} from '@angular/common';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { DatePipe } from '@angular/common';
 import {
-  AbstractControl,
-  AsyncValidator,
-  NG_ASYNC_VALIDATORS,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule,
-  UntypedFormBuilder,
-  ValidationErrors,
-  Validators
+AbstractControl,
+AsyncValidator,
+NG_ASYNC_VALIDATORS,
+NG_VALUE_ACCESSOR,
+ReactiveFormsModule,
+ValidationErrors,
+Validators
 } from '@angular/forms';
-import {SeedUrlValidator} from '../../../../shared/validation/existing-url-validation';
-import {MetaComponent} from '../meta/meta.component';
-import {ConfigApiService} from '../../../../core';
-import {Observable, of} from 'rxjs';
-import {first, map, tap} from 'rxjs/operators';
-import {ConfigObject, ConfigRef, Meta} from '../../../../shared/models';
-import {validUrlValidator} from './seed-urlvalidation';
-import {MatFormFieldModule, MatHint} from '@angular/material/form-field';
-import {CdkTextareaAutosize} from '@angular/cdk/text-field';
-import {MatIcon} from '@angular/material/icon';
-import {MatTooltip} from '@angular/material/tooltip';
-import {MatInput} from '@angular/material/input';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatButtonModule} from '@angular/material/button';
-import {MatProgressBar} from '@angular/material/progress-bar';
-import {MatListModule} from '@angular/material/list';
-import {RouterLink} from '@angular/router';
-import {LabelComponent} from '../label/label.component';
-import {AnnotationComponent} from '../annotation/annotation.component';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInput } from '@angular/material/input';
+import { MatListModule } from '@angular/material/list';
+import { MatProgressBar } from '@angular/material/progress-bar';
+import { MatTooltip } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { Observable,of } from 'rxjs';
+import { first,map,tap } from 'rxjs/operators';
+import { ConfigApiService } from '../../../../core';
+import { ConfigObject,ConfigRef,Meta } from '../../../../shared/models';
+import { SeedUrlValidator } from '../../../../shared/validation/existing-url-validation';
+import { AnnotationComponent } from '../annotation/annotation.component';
+import { LabelComponent } from '../label/label.component';
+import { MetaComponent } from '../meta/meta.component';
+import { validUrlValidator } from './seed-urlvalidation';
 
 export interface Parcel {
   seed: ConfigObject | ConfigObject[];
@@ -76,6 +67,9 @@ export interface Parcel {
   standalone: true
 })
 export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
+  private cdr = inject(ChangeDetectorRef);
+  private configApiService = inject(ConfigApiService);
+
 
   @Input()
   entityRef: ConfigRef;
@@ -85,11 +79,10 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
 
   private asyncUrlValidator: (entityRef: ConfigRef) => (control: AbstractControl) => Observable<ValidationErrors | null>;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override datePipe: DatePipe,
-              private cdr: ChangeDetectorRef,
-              private configApiService: ConfigApiService) {
-    super(fb, datePipe);
+  constructor() {
+
+    super();
+
     this.asyncUrlValidator = SeedUrlValidator.createBackendValidator(this.configApiService);
   }
 
@@ -178,7 +171,7 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
     window.open(url, '_blank');
   }
 
-  override validate(control: AbstractControl): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
+  override validate(): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
     return (this.name.pending
         ? this.name.statusChanges.pipe(
           map(state => state === 'VALID' ? null : this.name.errors),

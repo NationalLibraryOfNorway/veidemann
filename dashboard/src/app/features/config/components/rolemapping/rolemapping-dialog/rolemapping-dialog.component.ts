@@ -1,16 +1,16 @@
-import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {RoleMappingDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../../shared/models/config';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {FlexDirective} from '@ngbracket/ngx-layout';
-import {MatInput} from '@angular/material/input';
-import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { FlexDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { RoleMappingDetailsComponent } from '..';
+import { AuthService } from '../../../../../core/auth';
+import { ConfigObject } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
 
 @Component({
   selector: 'app-rolemapping-dialog',
@@ -26,16 +26,19 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatSelectModule,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class RoleMappingDialogComponent extends RoleMappingDetailsComponent implements OnInit {
+  protected authService = inject(AuthService);
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<RoleMappingDialogComponent>>(MatDialogRef);
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<RoleMappingDialogComponent>) {
-    super(fb);
+
+  constructor() {
+
+    super();
+
     this.createForm();
     this.configObject = this.data.configObject;
     this.roles = this.data.options.roles;

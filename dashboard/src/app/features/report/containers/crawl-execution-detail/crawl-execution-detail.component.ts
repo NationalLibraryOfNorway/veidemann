@@ -1,6 +1,5 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
-import {ActivatedRoute} from '@angular/router';
 import {combineLatest, merge, Observable} from 'rxjs';
 import {filter, map, mergeMap, switchMap, takeWhile} from 'rxjs/operators';
 import {ControllerApiService, SnackBarService} from '../../../../core';
@@ -27,14 +26,11 @@ import {CommonModule} from '@angular/common';
     ],
 })
 export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutionStatus> implements OnInit {
+  protected override service = inject(CrawlExecutionService);
+  protected controllerApiService = inject(ControllerApiService);
+  protected dialog = inject(MatDialog);
+  protected snackBarService = inject(SnackBarService);
 
-  constructor(protected override route: ActivatedRoute,
-              protected crawlExecutionService: CrawlExecutionService,
-              protected controllerApiService: ControllerApiService,
-              protected dialog: MatDialog,
-              protected snackBarService: SnackBarService) {
-    super(route, crawlExecutionService);
-  }
 
   override ngOnInit() {
     super.ngOnInit();
@@ -48,7 +44,7 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
       this.query$, item$
     ]).pipe(
       // only watch if job execution isn't in one of the done states
-      filter(([_, item]) => !CrawlExecutionStatus.DONE_STATES.includes(item.state)),
+      filter(([, item]) => !CrawlExecutionStatus.DONE_STATES.includes(item.state)),
       switchMap(([query]) => this.service.get(query).pipe(
         takeWhile(item => !CrawlExecutionStatus.DONE_STATES.includes((item.state)), true),
       )),

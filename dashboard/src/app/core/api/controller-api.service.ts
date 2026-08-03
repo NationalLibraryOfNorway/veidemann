@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {create} from '@bufbuild/protobuf';
 import {CallOptions, Client, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
@@ -22,13 +22,11 @@ import {AppConfig} from '../../app.config';
 
 @Injectable({providedIn: 'root'})
 export class ControllerApiService {
-  private client?: Client<typeof Controller>;
+  private authService = inject(AuthService);
+  private appConfig = inject(AppConfig);
+  private errorHandler = inject(ApplicationErrorHandler);
 
-  constructor(
-    private authService: AuthService,
-    private appConfig: AppConfig,
-    private errorHandler: ApplicationErrorHandler,
-  ) {}
+  private client?: Client<typeof Controller>;
 
   private getClient(): Client<typeof Controller> {
     if (!this.client) {

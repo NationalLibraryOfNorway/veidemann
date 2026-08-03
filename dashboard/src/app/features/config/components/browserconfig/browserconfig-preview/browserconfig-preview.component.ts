@@ -17,15 +17,12 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     MatLabel,
     ShortcutListComponent
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class BrowserconfigPreviewComponent {
   @Input()
   configObject: ConfigObject;
-
-  constructor() {
-  }
 
 
 }

@@ -1,6 +1,7 @@
-import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject, Kind} from '../../../../../shared/models/config';
 import {AbilityServiceSignal} from "@casl/angular";
+import {MongoAbility} from '@casl/ability';
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
@@ -13,12 +14,14 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatListModule,
     MatTooltip
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ActionShortcutComponent {
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   readonly Kind = Kind;
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input()
   configObject: ConfigObject;
@@ -33,7 +36,7 @@ export class ActionShortcutComponent {
   clone = new EventEmitter();
 
 
-  constructor(private abilityService: AbilityServiceSignal<any>) {
+  constructor() {
     this.can = this.abilityService.can;
   }
 

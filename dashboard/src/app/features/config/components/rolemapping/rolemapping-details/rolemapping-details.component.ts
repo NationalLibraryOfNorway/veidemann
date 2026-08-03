@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {CustomValidators} from '../../../../../shared/validation';
 import {ConfigObject, Kind, Meta, Role, RoleMapping} from '../../../../../shared/models';
@@ -7,7 +7,7 @@ import {MatIcon} from '@angular/material/icon';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
+import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
@@ -32,6 +32,8 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 })
 
 export class RoleMappingDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+
   readonly Role = Role;
 
   @Input()
@@ -53,7 +55,7 @@ export class RoleMappingDetailsComponent implements OnChanges {
 
   selectedType = '';
 
-  constructor(protected fb: UntypedFormBuilder) {
+  constructor() {
     this.createForm();
   }
 
@@ -161,8 +163,8 @@ export class RoleMappingDetailsComponent implements OnChanges {
   }
 
   protected setUserType() {
-    const group = this.configObject.roleMapping.hasOwnProperty('group') && this.configObject.roleMapping.group !== '';
-    const email = this.configObject.roleMapping.hasOwnProperty('email') && this.configObject.roleMapping.email !== '';
+    const group = Object.hasOwn(this.configObject.roleMapping, 'group') && this.configObject.roleMapping.group !== '';
+    const email = Object.hasOwn(this.configObject.roleMapping, 'email') && this.configObject.roleMapping.email !== '';
 
     if (email) {
       this.selectedType = 'email';

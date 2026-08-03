@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
 import {ActivatedRoute, Router} from '@angular/router';
 import {ErrorService} from '../../../../core';
@@ -46,15 +46,14 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class PreviewComponent {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private errorService = inject(ErrorService);
+
   readonly Kind = Kind;
 
   @Input()
   configObject: ConfigObject;
-
-  constructor(private router: Router,
-              private route: ActivatedRoute,
-              private errorService: ErrorService) {
-  }
 
   onEditConfig(configObject: ConfigObject) {
     this.router.navigate([], {

@@ -1,18 +1,17 @@
-import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {BrowserConfigDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../../shared/models';
-import {MetaComponent} from '../../meta/meta.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatSelectModule} from '@angular/material/select';
-import {SelectorComponent} from '../../selector/selector.component';
-import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { BrowserConfigDetailsComponent } from '..';
+import { ConfigObject } from '../../../../../shared/models';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { MetaComponent } from '../../meta/meta.component';
+import { SelectorComponent } from '../../selector/selector.component';
 
 
 @Component({
@@ -31,16 +30,18 @@ import {MatButtonModule} from '@angular/material/button';
     SelectorComponent,
     LayoutGapDirective
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class BrowserConfigDialogComponent extends BrowserConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<BrowserConfigDialogComponent>>(MatDialogRef);
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<BrowserConfigDialogComponent>) {
-    super(fb, authService);
+
+  constructor() {
+
+    super();
+
     this.createForm();
     this.configObject = this.data.configObject;
     this.browserScripts = this.data.options.browserScripts;

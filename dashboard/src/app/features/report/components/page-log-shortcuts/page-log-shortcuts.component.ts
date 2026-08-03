@@ -1,4 +1,4 @@
-import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core';
 import {PageLog} from '../../../../shared/models';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
@@ -21,11 +21,13 @@ import {MatMenuModule} from '@angular/material/menu';
     ]
 })
 export class PageLogShortcutsComponent {
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input() pageLog: PageLog;
 
-  constructor(private abilityService: AbilityServiceSignal<MongoAbility>) {
+  constructor() {
     this.can = this.abilityService.can;
   }
 }

@@ -1,13 +1,13 @@
-import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {RoleMappingDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {CustomValidators} from '../../../../../shared/validation';
-import {ConfigObject, Kind} from '../../../../../shared/models/config';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
+import { ReactiveFormsModule,Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { RoleMappingDetailsComponent } from '..';
+import { ConfigObject,Kind } from '../../../../../shared/models/config';
+import { CustomValidators } from '../../../../../shared/validation';
+import { ConfigDialogData } from '../../../func';
 
 @Component({
   selector: 'app-rolemapping-multi-dialog',
@@ -20,17 +20,20 @@ import {MatButtonModule} from '@angular/material/button';
     MatSelectModule,
     ReactiveFormsModule,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<RoleMappingMultiDialogComponent>>(MatDialogRef);
+
 
   allSelected = false;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<RoleMappingMultiDialogComponent>) {
-    super(fb);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.roles = this.data.options.roles;
   }
@@ -53,7 +56,7 @@ export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent
     this.form.markAsUntouched();
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const formModel = this.form.value;
     const pathList: string[] = [];
 
@@ -72,6 +75,6 @@ export class RoleMappingMultiDialogComponent extends RoleMappingDetailsComponent
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 }

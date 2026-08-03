@@ -71,9 +71,6 @@ export class PageLogStatusComponent implements OnChanges {
   @Input()
   pageLog: PageLog;
 
-  constructor() {
-  }
-
   hasChild = (_: number, node: UriFlatNode) => node.expandable;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -97,7 +94,7 @@ export class PageLogStatusComponent implements OnChanges {
           }
           return r[name];
         }, level);
-      } catch (e) {
+      } catch {
         return;
       }
     });

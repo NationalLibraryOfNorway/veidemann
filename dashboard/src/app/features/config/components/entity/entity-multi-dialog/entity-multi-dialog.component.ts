@@ -1,12 +1,10 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {EntityDetailsComponent} from '..';
-import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { EntityDetailsComponent } from '..';
+import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-entity-multi-dialog',
@@ -16,21 +14,23 @@ import {MatButtonModule} from '@angular/material/button';
     MatButtonModule,
     MatDialogModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class EntityMultiDialogComponent extends EntityDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<EntityMultiDialogComponent>>(MatDialogRef);
+
 
   allSelected = false;
   shouldAddLabel = undefined;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<EntityMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.allSelected = this.data.allSelected;
   }
@@ -70,7 +70,7 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const pathList: string[] = [];
 
     const formModel = this.form.value;
@@ -105,7 +105,7 @@ export class EntityMultiDialogComponent extends EntityDetailsComponent implement
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 
 }

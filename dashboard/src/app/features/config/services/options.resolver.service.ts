@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {ActivatedRouteSnapshot, Resolve} from '@angular/router';
 import {
   BrowserScript,
@@ -22,16 +22,15 @@ import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
   providedIn: 'root'
 })
 export class OptionsResolver implements Resolve<ConfigOptions> {
+  private backendService = inject(ConfigApiService);
 
-  constructor(private backendService: ConfigApiService) {
-  }
 
   resolve(route: ActivatedRouteSnapshot): Observable<ConfigOptions> | Promise<ConfigOptions> | ConfigOptions {
     const pathKind = configKindFromPath(route.paramMap.get('kind'));
     const kind: Kind = pathKind === Kind.UNDEFINED ? route.data['kind'] ?? Kind.UNDEFINED : pathKind;
 
     switch (kind) {
-      case Kind.CRAWLJOB:
+      case Kind.CRAWLJOB: {
         const crawlScheduleConfig$ = this.backendService.list(createListRequest(Kind.CRAWLSCHEDULECONFIG.valueOf())).pipe(
           toArray(),
           map(crawlScheduleConfig => crawlScheduleConfig.sort((a, b) => a.meta.name.localeCompare(b.meta.name))),
@@ -55,8 +54,9 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
           map(([crawlScheduleConfigs, crawlConfigs, scopeScripts]) =>
             ({crawlScheduleConfigs, crawlConfigs, scopeScripts}))
         );
+      }
 
-      case Kind.CRAWLCONFIG:
+      case Kind.CRAWLCONFIG: {
         const collection$ = this.backendService.list(createListRequest(Kind.COLLECTION.valueOf())).pipe(
           toArray(),
           map(collections => collections.sort((a, b) => a.meta.name.localeCompare(b.meta.name))),
@@ -75,6 +75,7 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
             browserConfigs,
             politenessConfigs
           })));
+      }
 
       case Kind.BROWSERCONFIG:
         return this.backendService.list(createListRequest(Kind.BROWSERSCRIPT.valueOf())).pipe(

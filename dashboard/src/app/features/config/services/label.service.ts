@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {Observable, of} from 'rxjs';
 import {create} from '@bufbuild/protobuf';
 import {GetLabelKeysRequestSchema} from '../../../../api/config/v1/config_pb';
@@ -9,11 +9,10 @@ import {Kind} from '../../../shared/models';
   providedIn: 'root'
 })
 export class LabelService {
+  private configService = inject(ConfigApiService);
+
 
   private _kind: Kind;
-
-  constructor(private configService: ConfigApiService) {
-  }
 
   get kind(): Kind {
     return this._kind;

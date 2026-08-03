@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 /**
  * Naively extending Error class does NOT allow one to do:
  *

@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import {
   ActivatedRoute,
   RouteConfigLoadEnd,
@@ -37,7 +37,7 @@ interface PrimaryDestination {
 }
 
 @Component({
-  selector: 'app',
+  selector: 'app-shell',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,6 +60,14 @@ interface PrimaryDestination {
   ]
 })
 export class AppComponent implements OnInit {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private snackBarService = inject(SnackBarService);
+  private dialog = inject(MatDialog);
+  private errorService = inject(ErrorService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   readonly primaryDestinations: readonly PrimaryDestination[] = [
@@ -86,13 +94,7 @@ export class AppComponent implements OnInit {
   isModuleLoading$: Observable<boolean>;
   private moduleLoadSemaphore = 0;
 
-  constructor(private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private snackBarService: SnackBarService,
-    private dialog: MatDialog,
-    private errorService: ErrorService,
-    private abilityService: AbilityServiceSignal<MongoAbility>) {
+  constructor() {
     this.can = this.abilityService.can;
     this.isModuleLoading$ = this.router.events.pipe(
       filter(event => event instanceof RouteConfigLoadStart || event instanceof RouteConfigLoadEnd),
@@ -111,8 +113,7 @@ export class AppComponent implements OnInit {
     if (this.isLoggedIn && this.authService.requestedUri) {
       try {
         const url: URL = new URL(this.authService.requestedUri, 'http://localhost');
-        const queryParams = {};
-        // @ts-ignore
+        const queryParams: Record<string, string> = {};
         for (const [key, value] of url.searchParams) {
           queryParams[key] = value;
         }

@@ -1,8 +1,9 @@
-import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {Observable, Subject, throwError} from 'rxjs';
 import {catchError} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
 import {AbilityServiceSignal} from "@casl/angular";
+import {MongoAbility} from '@casl/ability';
 import {ControllerApiService, ErrorService} from '../../../core';
 import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
 import {CrawlerStatusDialogComponent} from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
@@ -19,19 +20,21 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     CrawlerStatusComponent,
     LayoutDirective,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class DashboardComponent implements OnInit {
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  private errorService = inject(ErrorService);
+  private controllerApiService = inject(ControllerApiService);
+  private dialog = inject(MatDialog);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
-  updateRunStatus: Subject<void> = new Subject();
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
+
+  updateRunStatus = new Subject<void>();
   crawlerStatus$: Observable<CrawlerStatus>;
 
-  constructor(private errorService: ErrorService,
-              private controllerApiService: ControllerApiService,
-              private dialog: MatDialog,
-              private abilityService: AbilityServiceSignal<any>) {
+  constructor() {
     this.can = this.abilityService.can;
   }
 

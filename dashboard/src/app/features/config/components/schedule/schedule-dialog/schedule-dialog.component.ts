@@ -1,18 +1,17 @@
-import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../../shared/models/config';
-import {ScheduleDetailsComponent} from '..';
-import {MetaComponent} from '../../meta/meta.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatInput} from '@angular/material/input';
-import {LayoutAlignDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatListSubheaderCssMatStyler} from '@angular/material/list';
-import {MatDatepickerModule} from '@angular/material/datepicker';
-import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
+import { MatListSubheaderCssMatStyler } from '@angular/material/list';
+import { LayoutAlignDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { ScheduleDetailsComponent } from '..';
+import { ConfigObject } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { MetaComponent } from '../../meta/meta.component';
 
 @Component({
   selector: 'app-schedule-dialog',
@@ -31,16 +30,18 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MetaComponent,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ScheduleDialogComponent extends ScheduleDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<ScheduleDialogComponent>>(MatDialogRef);
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<ScheduleDialogComponent>) {
-    super(fb, authService);
+
+  constructor() {
+
+    super();
+
     this.createForm();
     this.configObject = this.data.configObject;
   }

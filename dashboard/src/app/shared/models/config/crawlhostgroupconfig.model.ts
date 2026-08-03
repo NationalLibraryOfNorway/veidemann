@@ -48,7 +48,7 @@ export class CrawlHostGroupConfig {
     const crawlHostGroupConfig = new CrawlHostGroupConfig();
     const compareObj: CrawlHostGroupConfig = configObjects[0].crawlHostGroupConfig;
 
-    crawlHostGroupConfig.ipRangeList = configObjects.reduce((acc: any[], curr: ConfigObject) => {
+    crawlHostGroupConfig.ipRangeList = configObjects.reduce((acc: IpRange[], curr: ConfigObject) => {
       if (acc.length < 1) {
         acc = [...curr.crawlHostGroupConfig.ipRangeList];
       } else {
@@ -112,4 +112,3 @@ export class CrawlHostGroupConfig {
     });
   }
 }
-

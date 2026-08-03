@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus, Kind} from '../../../../shared/models';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
@@ -21,6 +21,8 @@ import {MatMenuModule} from '@angular/material/menu';
   standalone: true
 })
 export class CrawlExecutionShortcutsComponent {
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
@@ -30,7 +32,7 @@ export class CrawlExecutionShortcutsComponent {
   @Output()
   abortCrawlExecution = new EventEmitter<CrawlExecutionStatus>();
 
-  constructor(private abilityService: AbilityServiceSignal<MongoAbility>) {
+  constructor() {
     this.can = this.abilityService.can;
   }
 

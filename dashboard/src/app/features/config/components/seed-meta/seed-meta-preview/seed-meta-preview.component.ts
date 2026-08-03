@@ -1,4 +1,4 @@
-import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models';
 import {AuthService, SnackBarService} from '../../../../../core';
 import {UrlFormatPipe} from '../../../../../shared/pipes/url-format.pipe';
@@ -22,17 +22,16 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatTooltip,
     UrlFormatPipe
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class SeedMetaPreviewComponent {
+  private snackBarService = inject(SnackBarService);
+  private authService = inject(AuthService);
+
 
   @Input()
   configObject: ConfigObject;
-
-  constructor(private snackBarService: SnackBarService,
-              private authService: AuthService) {
-  }
 
   get canShowAnnotation() {
     return this.authService.isAdmin() || this.authService.isOperator() || this.authService.isCurator();

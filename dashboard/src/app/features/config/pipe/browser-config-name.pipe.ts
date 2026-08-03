@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Observable} from 'rxjs';
 import {first, map} from 'rxjs/operators';
@@ -11,8 +11,9 @@ import {OptionsService} from '../services/options.service';
     standalone: true
 })
 export class BrowserConfigNamePipe implements PipeTransform {
-  constructor(private route: ActivatedRoute, private optionsService: OptionsService) {
-  }
+  private route = inject(ActivatedRoute);
+  private optionsService = inject(OptionsService);
+
 
   transform(configObject: ConfigObject): Observable<string> {
     return this.optionsService.options$.pipe(

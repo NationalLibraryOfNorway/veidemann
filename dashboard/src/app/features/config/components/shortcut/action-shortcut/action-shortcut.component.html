@@ -5,39 +5,39 @@
     @switch (configObject.kind) {
       @case (Kind.CRAWLENTITY) {
         @if (can('create', Kind[Kind.SEED])) {
-          <a mat-list-item
+          <button mat-list-item
             (click)="onCreateSeed()"
             matTooltip="Create a new seed with reference to the entity"
             i18n-matTooltip="@@crawlEntityListCreateSeedActionButtonTooltip">
             <mat-icon matListItemIcon>add_circle</mat-icon>
             Create Seed
-          </a>
+          </button>
         }
       }
       @case (Kind.SEED) {
         @if (can('runCrawl', Kind[Kind.SEED])) {
-          <a mat-list-item
+          <button mat-list-item
             (click)="onRunCrawl()">
             <mat-icon matListItemIcon>play_arrow</mat-icon>
             Crawl seed
-          </a>
+          </button>
         }
       }
       @case (Kind.CRAWLJOB) {
         @if (can('runCrawl', Kind[Kind.CRAWLJOB])) {
-          <a mat-list-item
+          <button mat-list-item
             (click)="onRunCrawl()">
             <mat-icon matListItemIcon>play_arrow</mat-icon>
             Run crawljob
-          </a>
+          </button>
         }
       }
     }
     @if (can('create', Kind[this.configObject.kind])) {
-      <a mat-list-item
+      <button mat-list-item
         (click)="onClone()">
         <mat-icon matListItemIcon>file_copy</mat-icon>
         Clone
-      </a>
+      </button>
     }
 </mat-nav-list>

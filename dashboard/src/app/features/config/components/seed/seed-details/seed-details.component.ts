@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  OnDestroy,
-  Output,
-  SimpleChanges
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject } from '@angular/core';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 
 
@@ -61,6 +52,9 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class SeedDetailsComponent implements OnChanges, OnDestroy {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
 
   @Input()
   configObject: ConfigObject;
@@ -93,8 +87,7 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
 
   entityIdReadonly = true;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 

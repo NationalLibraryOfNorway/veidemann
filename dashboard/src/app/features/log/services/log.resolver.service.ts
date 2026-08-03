@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {ActivatedRouteSnapshot, Resolve} from '@angular/router';
+import {Resolve} from '@angular/router';
 import {Observable} from 'rxjs';
 import {Level, levels} from '../../../shared/models';
 
@@ -8,7 +8,7 @@ import {Level, levels} from '../../../shared/models';
 })
 export class LogResolver implements Resolve<Level[]> {
 
-  resolve(route: ActivatedRouteSnapshot): Observable<Level[]> | Promise<Level[]> | Level[] {
+  resolve(): Observable<Level[]> | Promise<Level[]> | Level[] {
     return levels;
   }
 }

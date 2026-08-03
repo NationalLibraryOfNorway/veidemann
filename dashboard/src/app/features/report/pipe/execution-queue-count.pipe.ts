@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {ControllerApiService} from '../../../core';
 import {Observable, of} from 'rxjs';
 import {ExecutionId} from '../../../shared/models';
@@ -10,8 +10,8 @@ import {first, map} from 'rxjs/operators';
     standalone: true
 })
 export class ExecutionQueueCountPipe implements PipeTransform {
-  constructor(private controllerApiService: ControllerApiService) {
-  }
+  private controllerApiService = inject(ControllerApiService);
+
 
   transform(crawlExecutionStatus: CrawlExecutionStatus): Observable<number> {
     const activeStates = [CrawlExecutionState.CREATED, CrawlExecutionState.FETCHING, CrawlExecutionState.SLEEPING];

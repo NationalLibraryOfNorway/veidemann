@@ -6,8 +6,6 @@ import { App } from './app/app';
 import {provideAnimations} from '@angular/platform-browser/animations';
 
 bootstrapApplication(App, {
-//@ts-ignore
-  appConfig,
   providers: [
     ...appConfig.providers,
     provideAnimations(),

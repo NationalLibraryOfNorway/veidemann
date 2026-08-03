@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  ViewEncapsulation
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, ViewEncapsulation, inject } from '@angular/core';
 import {FullCalendarComponent, FullCalendarModule} from '@fullcalendar/angular';
 import {forkJoin, Subject} from 'rxjs';
 import {ConfigObject, Kind} from '../../../shared/models';
@@ -52,6 +44,11 @@ interface ScheduleValidRange {
   ]
 })
 export class ScheduleOverviewComponent implements OnInit, OnDestroy {
+  private errorService = inject(ErrorService);
+  private configApiService = inject(ConfigApiService);
+  private dialog = inject(MatDialog);
+  private cdr = inject(ChangeDetectorRef);
+
   private crawlJobs: ConfigObject[];
   private crawlSchedules: ConfigObject[];
   private viewDate: Date = new Date();
@@ -62,10 +59,7 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
 
   @ViewChild('scheduleCalendar') calendar: FullCalendarComponent;
 
-  constructor(private errorService: ErrorService,
-              private configApiService: ConfigApiService,
-              private dialog: MatDialog,
-              private cdr: ChangeDetectorRef) {
+  constructor() {
 
     this.ngUnsubscribe = new Subject<void>();
 
@@ -214,21 +208,16 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
       endDate = this.viewDate;
       for (const prevDate of cron.getPrevDatesIterator(startDate, endDate)) {
           if (checkRange) {
-            // @ts-ignore
             if (this.isDateInRange(prevDate, validRange)) {
               schedule.push({
-                // @ts-ignore
-                start: obj.value.toISOString(),
-                // @ts-ignore
-                end: this.addDuration(prevDate, duration),
+                start: prevDate.toISOString(),
+                end: this.addDurationS(prevDate, durationS).toISOString(),
               });
             }
           } else {
             schedule.push({
-              // @ts-ignore
-              start: obj.value.toISOString(),
-              // @ts-ignore
-              end: this.addDuration(obj.value, duration),
+              start: prevDate.toISOString(),
+              end: this.addDurationS(prevDate, durationS).toISOString(),
             });
           }
       }

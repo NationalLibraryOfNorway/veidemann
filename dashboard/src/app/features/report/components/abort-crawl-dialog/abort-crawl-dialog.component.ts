@@ -1,4 +1,4 @@
-import {Component, Inject, ChangeDetectionStrategy} from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ExecutionId} from '../../../../shared/models/controller/controller.model';
 import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/models/report';
@@ -19,18 +19,22 @@ import {MatButtonModule} from '@angular/material/button';
     MatDialogModule,
     SeedNamePipe
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class AbortCrawlDialogComponent {
+  data = inject(MAT_DIALOG_DATA);
+  private dialogRef = inject<MatDialogRef<AbortCrawlDialogComponent>>(MatDialogRef);
+
   readonly Kind = Kind;
 
   executionId: ExecutionId;
   jobExecutionStatus: JobExecutionStatus;
   crawlExecutionStatus: CrawlExecutionStatus;
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: any,
-              private dialogRef: MatDialogRef<AbortCrawlDialogComponent>) {
+  constructor() {
+    const data = this.data;
+
     this.jobExecutionStatus = data.jobExecutionStatus;
     this.crawlExecutionStatus = data.crawlExecutionStatus;
   }

@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
 import {Params, RouterLink} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
@@ -44,6 +44,8 @@ import {JobNamePipe} from '../../../report/pipe';
   standalone: true
 })
 export class ShortcutComponent {
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   @Input()
@@ -58,7 +60,7 @@ export class ShortcutComponent {
   @Output()
   clone = new EventEmitter<ConfigObject>();
 
-  constructor(private abilityService: AbilityServiceSignal<MongoAbility>) {
+  constructor() {
     this.can = this.abilityService.can;
   }
 

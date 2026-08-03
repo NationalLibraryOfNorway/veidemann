@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {ConfigRef, Kind} from '../../../shared/models/config';
 import {Observable} from 'rxjs';
 import {ConfigService} from '../../../shared/services';
@@ -9,8 +9,8 @@ import {first, map} from 'rxjs/operators';
     standalone: true
 })
 export class EntityNamePipe implements PipeTransform {
-  constructor(private configService: ConfigService) {
-  }
+  private configService = inject(ConfigService);
+
 
   transform(id: string): Observable<string> {
     const entity = new ConfigRef({

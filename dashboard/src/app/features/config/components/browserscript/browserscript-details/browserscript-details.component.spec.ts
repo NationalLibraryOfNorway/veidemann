@@ -10,14 +10,11 @@ import {
   Label,
   Meta
 } from '../../../../../shared/models';
-import {LabelService} from '../../../services';
-import {of} from 'rxjs';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
-import {provideRouter} from '@angular/router';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 
@@ -49,8 +46,6 @@ describe('BrowserScriptDetailsComponent', () => {
 
   let saveButton: MatButtonHarness;
   let updateButton: MatButtonHarness;
-  let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
 
   let scriptTypeSelect: MatSelectHarness;
 
@@ -108,8 +103,6 @@ describe('BrowserScriptDetailsComponent', () => {
     beforeEach(async () => {
       await fixture.whenStable();
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
-      revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
     });
 
     it('update button should be active if form is updated and valid', async () => {
@@ -133,4 +126,3 @@ describe('BrowserScriptDetailsComponent', () => {
     });
   });
 });
-

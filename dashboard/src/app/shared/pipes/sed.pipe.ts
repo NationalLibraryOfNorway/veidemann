@@ -7,9 +7,6 @@ import {Pipe, PipeTransform} from '@angular/core';
 })
 export class SedPipe implements PipeTransform {
 
-  constructor() {
-  }
-
   // strips away query string from url
   transform(url: string): string {
     const a = new URL(url);

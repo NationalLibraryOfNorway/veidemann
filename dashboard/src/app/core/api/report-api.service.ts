@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {create} from '@bufbuild/protobuf';
 import {CallOptions, Client, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
@@ -21,13 +21,11 @@ import {fromServerStream} from './connect-observable';
 
 @Injectable({providedIn: 'root'})
 export class ReportApiService {
-  private client?: Client<typeof Report>;
+  private authService = inject(AuthService);
+  private appConfig = inject(AppConfig);
+  private errorService = inject(ErrorService);
 
-  constructor(
-    private authService: AuthService,
-    private appConfig: AppConfig,
-    private errorService: ErrorService,
-  ) {}
+  private client?: Client<typeof Report>;
 
   private getClient(): Client<typeof Report> {
     if (!this.client) {

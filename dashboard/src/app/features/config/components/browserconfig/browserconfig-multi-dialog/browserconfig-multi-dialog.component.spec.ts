@@ -3,8 +3,6 @@ import {BrowserConfigMultiDialogComponent} from './browserconfig-multi-dialog.co
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {LabelService} from '../../../services';
-import {AuthService} from '../../../../../core';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('BrowserConfigMultiDialogComponent', () => {
@@ -32,6 +30,7 @@ describe('BrowserConfigMultiDialogComponent', () => {
           provide: MatDialogRef,
           useValue: {
             close: () => {
+              return;
             }
           }
         }]

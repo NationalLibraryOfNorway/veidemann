@@ -49,12 +49,12 @@
             }
             @if (row.state === JobExecutionState.RUNNING) {
               @if (can('abort', 'jobexecution')) {
-                <a mat-menu-item
+                <button mat-menu-item
                   (click)="onAbortJobExecution(row)"
                   i18n="@@reportListActionButtonAbortCrawlExecution">
               <mat-icon>cancel</mat-icon>
               Abort crawl
-            </a>
+            </button>
               }
             }
           </ng-container>

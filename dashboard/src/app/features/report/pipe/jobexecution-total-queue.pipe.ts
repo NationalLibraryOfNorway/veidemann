@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus, JobExecutionState, JobExecutionStatus} from '../../../shared/models';
 import {Observable, of} from 'rxjs';
 import {map, mergeMap, reduce,} from 'rxjs/operators';
@@ -13,8 +13,9 @@ import {CrawlExecutionsListRequestSchema} from '../../../../api/report/v1/report
     standalone: true
 })
 export class JobexecutionTotalQueuePipe implements PipeTransform {
-  constructor(private reportApiService: ReportApiService, private controllerApiService: ControllerApiService) {
-  }
+  private reportApiService = inject(ReportApiService);
+  private controllerApiService = inject(ControllerApiService);
+
 
   transform(jobExectionStatus: JobExecutionStatus): Observable<number> {
     if (!jobExectionStatus) {

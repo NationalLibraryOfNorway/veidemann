@@ -1,7 +1,6 @@
 import {CommonModule} from '@angular/common';
-import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {MatIconModule} from '@angular/material/icon';
-import {ActivatedRoute} from '@angular/router';
 import {Observable} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 import {CrawlLog} from '../../../../shared/models';
@@ -15,7 +14,7 @@ import {CrawlLogService} from '../../services';
   templateUrl: './crawl-log-detail.component.html',
   styleUrls: ['../detail-layout.scss'],
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     CrawlLogShortcutsComponent,
@@ -24,11 +23,7 @@ import {CrawlLogService} from '../../services';
   ]
 })
 export class CrawlLogDetailComponent extends DetailDirective<CrawlLog> implements OnInit {
-
-  constructor(protected override route: ActivatedRoute,
-              protected crawlLogService: CrawlLogService) {
-    super(route, crawlLogService);
-  }
+  protected override service = inject(CrawlLogService);
 
   override ngOnInit() {
     super.ngOnInit();

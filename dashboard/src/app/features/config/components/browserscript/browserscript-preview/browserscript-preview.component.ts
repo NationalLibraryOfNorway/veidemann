@@ -1,10 +1,11 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit, inject } from '@angular/core';
 import {BrowserScriptType, ConfigObject} from '../../../../../shared/models';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatLabel} from '@angular/material/form-field';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
 import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
 import {FormsModule} from '@angular/forms';
+import type {editor} from 'monaco-editor';
 
 
 @Component({
@@ -25,6 +26,8 @@ import {FormsModule} from '@angular/forms';
 })
 
 export class BrowserscriptPreviewComponent implements OnInit {
+  protected cdr = inject(ChangeDetectorRef);
+
   readonly BrowserScriptType = BrowserScriptType;
   @Input()
   configObject: ConfigObject;
@@ -43,14 +46,11 @@ export class BrowserscriptPreviewComponent implements OnInit {
     }
   };
 
-  constructor(protected cdr: ChangeDetectorRef) {
-  }
-
   ngOnInit() {
     this.language = this.configObject.meta.name.split('.').slice(-1)[0];
   }
 
-  initEditor(editor: any) {
+  initEditor(editor: editor.IStandaloneCodeEditor) {
     setTimeout(() => {
       editor.layout();
     })

@@ -28,6 +28,30 @@ export enum ChangeType {
   ARRAY_DEL = 3
 }
 
+const stateFromProto: Record<StateProto, State> = {
+  [StateProto.NEW]: State.NEW,
+  [StateProto.OPEN]: State.OPEN,
+  [StateProto.CLOSED]: State.CLOSED,
+};
+
+const stateToProto: Record<State, StateProto> = {
+  [State.NEW]: StateProto.NEW,
+  [State.OPEN]: StateProto.OPEN,
+  [State.CLOSED]: StateProto.CLOSED,
+};
+
+const severityFromProto: Record<SeverityProto, Severity> = {
+  [SeverityProto.INFO]: Severity.INFO,
+  [SeverityProto.WARN]: Severity.WARN,
+  [SeverityProto.ERROR]: Severity.ERROR,
+};
+
+const severityToProto: Record<Severity, SeverityProto> = {
+  [Severity.INFO]: SeverityProto.INFO,
+  [Severity.WARN]: SeverityProto.WARN,
+  [Severity.ERROR]: SeverityProto.ERROR,
+};
+
 export class Data {
   key?: string;
   value?: string;
@@ -101,15 +125,15 @@ export class EventObject {
   severity: Severity;
   labelList?: string[];
 
-  constructor(eventObject: EventObject | any = {}) {
+  constructor(eventObject: Partial<EventObject> = {}) {
     this.id = eventObject.id || '';
     this.type = eventObject.type || '';
     this.source = eventObject.source || '';
-    this.state = eventObject.state;
+    this.state = eventObject.state ?? State.NEW;
     this.assignee = eventObject.assignee || '';
     this.activityList = eventObject.activityList || [];
     this.dataList = eventObject.dataList || [];
-    this.severity = eventObject.severity;
+    this.severity = eventObject.severity ?? Severity.INFO;
     this.labelList = eventObject.labelList || [];
   }
 
@@ -118,7 +142,7 @@ export class EventObject {
       id: proto.id,
       type: proto.type,
       source: proto.source,
-      state: proto.state,
+      state: stateFromProto[proto.state],
       assignee: proto.assignee,
       activityList: proto.activity.map(activity => new Activity({
         modifiedTime: fromTimestampProto(activity.modifiedTime),
@@ -127,7 +151,7 @@ export class EventObject {
         comment: activity.comment
       })),
       dataList: proto.data.map(data => new Data({key: data.key, value: data.value})),
-      severity: proto.severity,
+      severity: severityFromProto[proto.severity],
       labelList: proto.label
     });
   }
@@ -136,8 +160,8 @@ export class EventObject {
     return create(EventObjectSchema, {
       id: eventObject.id,
       assignee: eventObject.assignee,
-      severity: eventObject.severity as unknown as SeverityProto,
-      state: eventObject.state as unknown as StateProto,
+      severity: severityToProto[eventObject.severity],
+      state: stateToProto[eventObject.state],
       source: eventObject.source,
       type: eventObject.type,
       data: eventObject.dataList.map(data => create(DataSchema, {key: data.key, value: data.value})),

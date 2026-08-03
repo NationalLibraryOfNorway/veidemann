@@ -1,16 +1,16 @@
-import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {JobExecutionStatusQuery} from '../../services';
-import {ConfigObject} from '../../../../shared/models/config';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {QueryComponent} from '../../../../shared/components';
-import {JobExecutionState, jobExecutionStates} from '../../../../shared/models';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatInputModule} from '@angular/material/input';
-import {MatDatepickerModule} from '@angular/material/datepicker';
-import {MatTimepickerModule} from '@angular/material/timepicker';
-import {MatCheckboxModule} from '@angular/material/checkbox';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
+import { ChangeDetectionStrategy,Component,Input } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTimepickerModule } from '@angular/material/timepicker';
+import { LayoutDirective } from '@ngbracket/ngx-layout';
+import { QueryComponent } from '../../../../shared/components';
+import { JobExecutionState,jobExecutionStates } from '../../../../shared/models';
+import { ConfigObject } from '../../../../shared/models/config';
+import { JobExecutionStatusQuery } from '../../services';
 
 @Component({
   selector: 'app-job-execution-status-query',
@@ -30,15 +30,12 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true
 })
 export class JobExecutionStatusQueryComponent extends QueryComponent<JobExecutionStatusQuery> {
+
   readonly JobExecutionState = JobExecutionState;
   readonly jobExecutionStates = jobExecutionStates;
 
   @Input()
   crawlJobOptions: ConfigObject[];
-
-  constructor(protected override fb: UntypedFormBuilder) {
-    super(fb);
-  }
 
   protected override createForm(): void {
     this.form = this.fb.group({

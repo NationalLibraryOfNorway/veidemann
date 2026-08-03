@@ -1,5 +1,4 @@
-import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {PageLogService} from '../../services';
 import {DetailDirective} from '../../directives';
 import {PageLog} from '../../../../shared/models';
@@ -18,15 +17,11 @@ import {CommonModule} from '@angular/common';
     PageLogShortcutsComponent,
     CommonModule,
   ],
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true
 })
 export class PageLogDetailComponent extends DetailDirective<PageLog> implements OnInit {
-
-  constructor(protected override route: ActivatedRoute,
-              protected override service: PageLogService) {
-    super(route, service);
-  }
+  protected override service = inject(PageLogService);
 
   override ngOnInit() {
     super.ngOnInit();

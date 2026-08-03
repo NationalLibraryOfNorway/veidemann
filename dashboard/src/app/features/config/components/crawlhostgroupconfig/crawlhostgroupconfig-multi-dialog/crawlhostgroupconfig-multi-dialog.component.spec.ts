@@ -1,15 +1,8 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawlHostGroupConfigMultiDialogComponent} from './crawlhostgroupconfig-multi-dialog.component';
-import {UntypedFormBuilder} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {LabelService} from '../../../services';
-import {AuthService} from '../../../../../core';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {of} from 'rxjs';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('CrawlHostGroupConfigMultiDialogComponent', () => {

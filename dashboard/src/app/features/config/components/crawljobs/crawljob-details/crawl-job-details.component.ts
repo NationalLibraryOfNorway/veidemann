@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
@@ -49,6 +49,9 @@ import {MatTooltipModule} from '@angular/material/tooltip';
   standalone: true
 })
 export class CrawlJobDetailsComponent implements OnChanges {
+  protected fb = inject(FormBuilder);
+  protected authService = inject(AuthService);
+
   readonly Kind = Kind;
   readonly UnitOfTime = UnitOfTime;
 
@@ -79,8 +82,7 @@ export class CrawlJobDetailsComponent implements OnChanges {
 
   form;
 
-  constructor(protected fb: FormBuilder,
-              protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 

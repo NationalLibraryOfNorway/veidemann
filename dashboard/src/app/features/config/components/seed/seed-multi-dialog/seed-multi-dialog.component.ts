@@ -1,20 +1,19 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {SeedDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject, ConfigRef, Kind, Label} from '../../../../../shared/models/config';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {MatSlideToggle} from '@angular/material/slide-toggle';
-import {MatTooltip} from '@angular/material/tooltip';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatButtonModule} from '@angular/material/button';
-import {MatButtonToggleModule} from '@angular/material/button-toggle';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatIcon} from '@angular/material/icon';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { SeedDetailsComponent } from '..';
+import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-seed-multi-dialog',
@@ -35,10 +34,13 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatTooltip,
     ReactiveFormsModule,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class SeedMultiDialogComponent extends SeedDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<SeedMultiDialogComponent>>(MatDialogRef);
+
 
   shouldAddLabel = undefined;
   shouldAddCrawlJob = undefined;
@@ -46,11 +48,10 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<SeedMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.crawlJobs = this.data.options.crawlJobs;
     this.allSelected = this.data.allSelected;
@@ -134,7 +135,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
   /**
    * NB: Disabled values in form must be copied from model and not the view model (form.value)
    */
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const formModel = this.form.value;
     const pathList: string[] = [];
     const updateTemplate = new ConfigObject({kind: Kind.SEED});
@@ -166,7 +167,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 
   onUpdateLabels({add, labels}: { add: boolean, labels: Label[] }) {

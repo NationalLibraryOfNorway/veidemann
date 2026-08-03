@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Observable} from 'rxjs';
 import {ConfigObject} from '../../../shared/models/config';
@@ -10,9 +10,9 @@ import {OptionsService} from '../services/options.service';
     standalone: true
 })
 export class PolitenessConfigNamePipe implements PipeTransform {
+  private route = inject(ActivatedRoute);
+  private optionsService = inject(OptionsService);
 
-  constructor(private route: ActivatedRoute, private optionsService: OptionsService) {
-  }
 
   transform(configObject: ConfigObject): Observable<string> {
     return this.optionsService.options$.pipe(

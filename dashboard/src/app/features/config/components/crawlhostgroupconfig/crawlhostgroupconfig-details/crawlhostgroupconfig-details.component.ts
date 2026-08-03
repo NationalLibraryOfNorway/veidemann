@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -44,6 +44,9 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true
 })
 export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
   readonly UnitOfTime = UnitOfTime;
 
   @Input()
@@ -60,8 +63,7 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
 
   form: UntypedFormGroup;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 
@@ -239,4 +241,3 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
     });
   }
 }
-

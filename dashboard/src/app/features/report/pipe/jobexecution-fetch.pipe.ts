@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {JobExecutionService} from '../services';
 import {Observable, of} from 'rxjs';
 import {JobExecutionStatus} from '../../../shared/models';
@@ -8,9 +8,8 @@ import {JobExecutionStatus} from '../../../shared/models';
     standalone: true
 })
 export class JobExecutionFetchPipe implements PipeTransform {
+  private jobExecutionService = inject(JobExecutionService);
 
-  constructor(private jobExecutionService: JobExecutionService) {
-  }
 
   transform(execution: JobExecutionStatus): Observable<JobExecutionStatus> {
     if (!JobExecutionStatus.DONE_STATES.includes(execution.state)) {

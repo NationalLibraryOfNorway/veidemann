@@ -1,4 +1,4 @@
-import {Pipe, PipeTransform} from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import { SedPipe } from './sed.pipe';
 
@@ -7,9 +7,8 @@ import { SedPipe } from './sed.pipe';
     standalone: true
 })
 export class UrlFormatPipe implements PipeTransform {
+  private domSanitizer = inject(DomSanitizer);
 
-  constructor(private domSanitizer: DomSanitizer) {
-  }
 
   transform(url: string, stripQueryParams?: boolean): SafeHtml {
     let anchor = ``;

@@ -2,19 +2,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SeedMetaComponent } from './seed-meta.component';
 
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { LabelService } from '../../services';
 import { of } from 'rxjs';
-import { AnnotationComponent, LabelComponent } from '..';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { MatFormFieldHarness } from '@angular/material/form-field/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { ConfigObject, ConfigRef, Kind, Meta, Seed } from '../../../../shared/models';
 import { MatActionListHarness, MatListHarness } from '@angular/material/list/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
-import { RouterTestingModule } from '@angular/router/testing';
 import { ConfigApiService } from '../../../../core';
 import { provideCoreTesting } from '../../../../core/core.testing.module';
 import { ActivatedRoute } from '@angular/router';
@@ -343,5 +338,4 @@ describe('SeedMetaComponent', () => {
     });
 
 });
-
 

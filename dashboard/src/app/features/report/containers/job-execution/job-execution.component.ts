@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, Signal, inject } from '@angular/core';
 import {AsyncPipe} from '@angular/common';
 import {MatDialog} from '@angular/material/dialog';
 import {MatIconModule} from '@angular/material/icon';
@@ -52,6 +52,15 @@ import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
   ]
 })
 export class JobExecutionComponent {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private jobExecutionService = inject(JobExecutionService);
+  private errorService = inject(ErrorService);
+  private dialog = inject(MatDialog);
+  private controllerApiService = inject(ControllerApiService);
+  private snackBarService = inject(SnackBarService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   readonly jobExecutionStates = jobExecutionStates;
   readonly JobExecutionState = JobExecutionState;
   readonly crawlJobOptions: ConfigObject[];
@@ -66,15 +75,9 @@ export class JobExecutionComponent {
   readonly pageLength$: Observable<number>;
   readonly loading$: Observable<boolean>;
 
-  constructor(private route: ActivatedRoute,
-              private router: Router,
-              private jobExecutionService: JobExecutionService,
-              private errorService: ErrorService,
-              private dialog: MatDialog,
-              private controllerApiService: ControllerApiService,
-              private snackBarService: SnackBarService,
-              private abilityService: AbilityServiceSignal<MongoAbility>,
-              destroyRef: DestroyRef) {
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+
     this.crawlJobOptions = this.route.snapshot.data['options'].crawlJobs;
     this.can = this.abilityService.can;
 

@@ -2,7 +2,11 @@
   <div fxLayout="row">
     <h2 mat-dialog-title>Crawljob - Mass update</h2>
     <span fxFlex></span>
-    <div (click)="disabled.disabled ? disabled.enable() : null">
+    <div role="button"
+      tabindex="0"
+      (click)="disabled.disabled ? disabled.enable() : null"
+      (keydown.enter)="disabled.disabled ? disabled.enable() : null"
+      (keydown.space)="disabled.disabled ? disabled.enable() : null">
       @if (!allSelected) {
         <mat-slide-toggle
           i18n="@@disableCrawljobToggleSwitch"

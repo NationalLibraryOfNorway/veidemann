@@ -93,7 +93,7 @@ export class CrawlHostGroupConfigIpValidation {
       try {
         ipv4From = new Address4(fromIp);
         ipv4To = new Address4(toIp);
-      } catch (e) {
+      } catch {
         return false;
       }
 

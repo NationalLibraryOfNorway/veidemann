@@ -15,13 +15,11 @@ import {MatButtonModule} from '@angular/material/button';
     MatButtonModule,
     MatListSubheaderCssMatStyler
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 
 export class AboutDialogComponent {
   readonly environment = environment;
 
-  constructor() {
-  }
 }

@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {NavigationEnd, Router} from '@angular/router';
 
 @Injectable({
@@ -6,11 +6,15 @@ import {NavigationEnd, Router} from '@angular/router';
 })
 
 export class RouterExtraService {
+  private router = inject(Router);
+
 
   private previousUrl: string = undefined;
   private currentUrl: string = undefined;
 
-  constructor(private router: Router) {
+  constructor() {
+    const router = this.router;
+
 
     this.currentUrl = this.router.url;
     router.events.subscribe(event => {

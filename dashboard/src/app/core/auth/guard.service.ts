@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot} from '@angular/router';
 import {Observable, of} from 'rxjs';
 
@@ -9,10 +9,9 @@ import {Kind} from '../../shared/models';
   providedIn: 'root'
 })
 export class GuardService implements CanActivate {
-  readonly Kind = Kind;
+  authService = inject(AuthService);
 
-  constructor(public authService: AuthService) {
-  }
+  readonly Kind = Kind;
 
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> {

@@ -1,11 +1,11 @@
-import {Component, ChangeDetectionStrategy} from '@angular/core';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {CrawlLogQuery} from '../../services';
-import {QueryComponent} from '../../../../shared/components';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatCheckboxModule} from '@angular/material/checkbox';
-import {MatInputModule} from '@angular/material/input';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
+import { ChangeDetectionStrategy,Component } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { LayoutDirective } from '@ngbracket/ngx-layout';
+import { QueryComponent } from '../../../../shared/components';
+import { CrawlLogQuery } from '../../services';
 
 @Component({
   selector: 'app-crawl-log-query',
@@ -18,14 +18,10 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     MatInputModule,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlLogQueryComponent extends QueryComponent<CrawlLogQuery> {
-
-  constructor(protected override fb: UntypedFormBuilder) {
-    super(fb);
-  }
 
   protected override createForm(): void {
     this.form = this.fb.group({

@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, Signal, inject } from '@angular/core';
 import {AsyncPipe} from '@angular/common';
 import {MatIconModule} from '@angular/material/icon';
 import {PageEvent} from '@angular/material/paginator';
@@ -43,6 +43,12 @@ import {CrawlLogQuery, CrawlLogService} from '../../services';
   ]
 })
 export class CrawlLogComponent {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private crawlLogService = inject(CrawlLogService);
+  private errorService = inject(ErrorService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly pageLength$: Observable<number>;
   readonly pageSize: Signal<number>;
@@ -53,12 +59,9 @@ export class CrawlLogComponent {
   readonly dataSource: ListDataSource<CrawlLog, CrawlLogQuery>;
   readonly loading$: Observable<boolean>;
 
-  constructor(private route: ActivatedRoute,
-              private router: Router,
-              private crawlLogService: CrawlLogService,
-              private errorService: ErrorService,
-              private abilityService: AbilityServiceSignal<MongoAbility>,
-              destroyRef: DestroyRef) {
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+
     this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});

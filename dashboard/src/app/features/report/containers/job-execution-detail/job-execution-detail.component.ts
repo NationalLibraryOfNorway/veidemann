@@ -1,6 +1,5 @@
-import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
-import {ActivatedRoute} from '@angular/router';
 import {combineLatest, merge, Observable} from 'rxjs';
 import {filter, map, switchMap, takeWhile} from 'rxjs/operators';
 import {ControllerApiService, SnackBarService} from '../../../../core';
@@ -20,7 +19,7 @@ import {CommonModule} from '@angular/common';
   templateUrl: './job-execution-detail.component.html',
   styleUrls: ['../detail-layout.scss'],
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     JobExecutionStatusComponent,
@@ -28,17 +27,14 @@ import {CommonModule} from '@angular/common';
   ]
 })
 export class JobExecutionDetailComponent extends DetailDirective<JobExecutionStatus> implements OnInit {
+  protected override service = inject(JobExecutionService);
+  protected controllerApiService = inject(ControllerApiService);
+  protected dialog = inject(MatDialog);
+  protected snackBarService = inject(SnackBarService);
+
   readonly JobExecutionState = JobExecutionState;
 
   declare protected query$: Observable<Detail>;
-
-  constructor(protected override route: ActivatedRoute,
-              protected override service: JobExecutionService,
-              protected controllerApiService: ControllerApiService,
-              protected dialog: MatDialog,
-              protected snackBarService: SnackBarService) {
-    super(route, service);
-  }
 
   override ngOnInit() {
     super.ngOnInit();

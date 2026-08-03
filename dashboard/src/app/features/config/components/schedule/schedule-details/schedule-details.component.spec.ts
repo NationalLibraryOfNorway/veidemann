@@ -17,6 +17,7 @@ import {nb} from 'date-fns/locale';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {MatInputHarness} from '@angular/material/input/testing';
 
 const exampleCrawlSchedule: ConfigObject = {
   id: 'configObject_id',
@@ -57,15 +58,15 @@ describe('ScheduleDetailsComponent', () => {
   let validToToggle: MatDatepickerToggleHarness;
 
   let cronMinuteFormField: MatFormFieldHarness;
-  let cronMinuteInput: any;
+  let cronMinuteInput: MatInputHarness;
   let cronHourFormField: MatFormFieldHarness;
-  let cronHourInput: any;
+  let cronHourInput: MatInputHarness;
   let cronDomFormField: MatFormFieldHarness;
-  let cronDomInput: any;
+  let cronDomInput: MatInputHarness;
   let cronMonthFormField: MatFormFieldHarness;
-  let cronMonthInput: any;
+  let cronMonthInput: MatInputHarness;
   let cronDowFormField: MatFormFieldHarness;
-  let cronDowInput: any;
+  let cronDowInput: MatInputHarness;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -118,19 +119,19 @@ describe('ScheduleDetailsComponent', () => {
       .with({selector: '[data-testid="validToToggle"]'}));
     cronMinuteFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
       .with({selector: '[data-testid="cronMinute"]'}));
-    cronMinuteInput = (await cronMinuteFormField.getControl()) as any;
+    cronMinuteInput = (await cronMinuteFormField.getControl()) as MatInputHarness;
     cronHourFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
       .with({selector: '[data-testid="cronHour"]'}));
-    cronHourInput = (await cronHourFormField.getControl()) as any;
+    cronHourInput = (await cronHourFormField.getControl()) as MatInputHarness;
     cronDomFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
       .with({selector: '[data-testid="cronDayOfMonth"]'}));
-    cronDomInput = (await cronDomFormField.getControl()) as any;
+    cronDomInput = (await cronDomFormField.getControl()) as MatInputHarness;
     cronMonthFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
       .with({selector: '[data-testid="cronMonth"]'}));
-    cronMonthInput = (await cronMonthFormField.getControl()) as any;
+    cronMonthInput = (await cronMonthFormField.getControl()) as MatInputHarness;
     cronDowFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
       .with({selector: '[data-testid="cronDayOfWeek"]'}));
-    cronDowInput = (await cronDowFormField.getControl()) as any;
+    cronDowInput = (await cronDowFormField.getControl()) as MatInputHarness;
   });
 
   it('should create', () => {

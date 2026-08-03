@@ -2,7 +2,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {AbortCrawlDialogComponent} from './abort-crawl-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import { provideZonelessChangeDetection } from '@angular/core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 
 describe('AbortCrawlDialogComponent', () => {

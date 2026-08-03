@@ -1,6 +1,7 @@
-import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
 import {Annotation} from '../../../../../shared/models/config';
 import {AbilityServiceSignal} from "@casl/angular";
+import {MongoAbility} from '@casl/ability';
 import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatChipsModule} from '@angular/material/chips';
 
@@ -15,11 +16,13 @@ import {MatChipsModule} from '@angular/material/chips';
   standalone: true
 })
 export class ScriptAnnotationComponent {
-  protected readonly can: AbilityServiceSignal<any>['can'];
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   @Input()
   annotations: Annotation[];
 
-  constructor(abilityService: AbilityServiceSignal<any>) {
+  constructor() {
+    const abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
     this.can = abilityService.can;
   }
 }

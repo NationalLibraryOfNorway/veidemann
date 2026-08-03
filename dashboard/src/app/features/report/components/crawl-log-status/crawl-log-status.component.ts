@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
 import {ExtraStatusCodes} from '../../../../shared/models/report';
 import {CrawlLog} from '../../../../shared/models/log';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
@@ -29,6 +29,9 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true
 })
 export class CrawlLogStatusComponent implements OnInit{
+  private datePipe = inject(DatePipe);
+  private fileSizePipe = inject(FileSizePipe);
+
   readonly ExtraStatusCodes = ExtraStatusCodes;
   dataSource = new MatTableDataSource<CrawlLog>();
   crawlLogRequestDisplayedColumns: string[] = ['requestedUri', 'referrer'];
@@ -38,9 +41,6 @@ export class CrawlLogStatusComponent implements OnInit{
 
   @Input()
   crawlLog: CrawlLog;
-
-  constructor(private datePipe: DatePipe, private fileSizePipe: FileSizePipe) {
-  }
 
   ngOnInit(): void {
     this.dataSource = new MatTableDataSource<CrawlLog>([this.crawlLog]);
@@ -65,7 +65,7 @@ export class CrawlLogStatusComponent implements OnInit{
     {key: 'Collection name', value: this.crawlLog.collectionFinalName},
     {key: 'Method', value: this.crawlLog.method},
     ]
-    for(let report of reports) {
+    for(const report of reports) {
       if(report.value) {
         datasource.push(report);
       }

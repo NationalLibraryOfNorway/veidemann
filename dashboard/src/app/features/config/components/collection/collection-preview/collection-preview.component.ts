@@ -15,7 +15,7 @@ import {FormsModule} from '@angular/forms';
     MatLabel,
     FileSizePipe
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CollectionPreviewComponent {
@@ -25,6 +25,4 @@ export class CollectionPreviewComponent {
   @Input()
   configObject: ConfigObject;
 
-  constructor() {
-  }
 }

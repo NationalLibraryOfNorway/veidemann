@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, forwardRef, OnDestroy, OnInit} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, forwardRef, OnDestroy, OnInit, inject } from '@angular/core';
 
 import {DatePipe} from '@angular/common';
 import {
@@ -47,18 +47,16 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 })
 
 export class MetaComponent implements AfterViewInit, OnInit, OnDestroy, ControlValueAccessor, Validator {
+  protected fb = inject(FormBuilder);
+  protected datePipe = inject(DatePipe);
 
   form;
 
   // ControlValueAccessor callbacks
   onChange: (meta: Meta) => void;
-  onTouched: (meta: Meta) => void;
+  onTouched: () => void;
 
   ngUnsubscribe: Subject<void> = new Subject<void>();
-
-  constructor(protected fb: FormBuilder,
-              protected datePipe: DatePipe) {
-  }
 
   get name(): AbstractControl {
     return this.form.get('name');
@@ -115,22 +113,26 @@ export class MetaComponent implements AfterViewInit, OnInit, OnDestroy, ControlV
   }
 
   // implement ControlValueAccessor
-  registerOnChange(fn: any): void {
+  registerOnChange(fn: (meta: Meta) => void): void {
     this.onChange = fn;
   }
 
   // implement ControlValueAccessor
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
 
   // implement ControlValueAccessor
   setDisabledState(disabled: boolean): void {
-    disabled ? this.form.disable() : this.form.enable();
+    if (disabled) {
+      this.form.disable();
+    } else {
+      this.form.enable();
+    }
   }
 
   // implement Validator
-  validate(ctrl: AbstractControl): ValidationErrors | null {
+  validate(): ValidationErrors | null {
     return this.name.valid ? null : this.name.errors;
   }
 

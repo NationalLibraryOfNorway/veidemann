@@ -17,7 +17,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     MatCheckbox,
     MatLabel
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class PolitenessconfigPreviewComponent {
@@ -25,9 +25,6 @@ export class PolitenessconfigPreviewComponent {
 
   @Input()
   configObject: ConfigObject;
-
-  constructor() {
-  }
 
 
 }

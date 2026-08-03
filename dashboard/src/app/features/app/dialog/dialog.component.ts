@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import {MatDialog, MatDialogRef} from '@angular/material/dialog';
 
 import {Subject} from 'rxjs';
@@ -16,11 +16,14 @@ import {ErrorService} from '../../../core';
     standalone: true
 })
 export class DialogComponent implements OnInit, OnDestroy {
+  private dialog = inject(MatDialog);
+  private errorService = inject(ErrorService);
+
 
   private ngUnsubscribe: Subject<void>;
   private dialogRef: MatDialogRef<ErrorDialogComponent>;
 
-  constructor(private dialog: MatDialog, private errorService: ErrorService) {
+  constructor() {
     this.ngUnsubscribe = new Subject<void>();
   }
 

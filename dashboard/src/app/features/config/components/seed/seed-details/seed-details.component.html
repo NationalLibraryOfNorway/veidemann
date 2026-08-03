@@ -11,7 +11,11 @@
         </mat-card-subtitle>
       }
       <span fxFlex></span>
-      <div (click)="disabled.disabled ? disabled.enable(): null">
+      <div role="button"
+        tabindex="0"
+        (click)="disabled.disabled ? disabled.enable(): null"
+        (keydown.enter)="disabled.disabled ? disabled.enable(): null"
+        (keydown.space)="disabled.disabled ? disabled.enable(): null">
         <mat-slide-toggle class="disabled-toggle"
           color="warn"
           formControlName="disabled"

@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import {ReactiveFormsModule, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {takeUntil} from 'rxjs/operators';
 import {Subject} from 'rxjs';
@@ -34,6 +34,13 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class LoglevelComponent implements OnInit, OnDestroy {
+  private logService = inject(LogService);
+  private fb = inject(UntypedFormBuilder);
+  private snackBarService = inject(SnackBarService);
+  private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
+
   readonly Level = Level;
   readonly levelOptions: Level[];
 
@@ -43,12 +50,9 @@ export class LoglevelComponent implements OnInit, OnDestroy {
 
   private ngUnsubscribe = new Subject<void>();
 
-  constructor(private logService: LogService,
-              private fb: UntypedFormBuilder,
-              private snackBarService: SnackBarService,
-              private authService: AuthService,
-              private cdr: ChangeDetectorRef,
-              private route: ActivatedRoute) {
+  constructor() {
+    const route = this.route;
+
     this.createForm();
     this.levelOptions = route.snapshot.data['levels'];
   }

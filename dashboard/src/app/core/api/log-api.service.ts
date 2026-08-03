@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {CallOptions, Client, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
 import {EMPTY, Observable} from 'rxjs';
@@ -13,13 +13,11 @@ import {fromServerStream} from './connect-observable';
 
 @Injectable({providedIn: 'root'})
 export class LogApiService {
-  private client?: Client<typeof Log>;
+  private authService = inject(AuthService);
+  private appConfig = inject(AppConfig);
+  private errorService = inject(ErrorService);
 
-  constructor(
-    private authService: AuthService,
-    private appConfig: AppConfig,
-    private errorService: ErrorService,
-  ) {}
+  private client?: Client<typeof Log>;
 
   private getClient(): Client<typeof Log> {
     if (!this.client) {

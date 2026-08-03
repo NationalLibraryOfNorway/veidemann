@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, Signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, Signal, inject } from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
@@ -46,6 +46,15 @@ import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
   ]
 })
 export class CrawlExecutionComponent {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private crawlExecutionService = inject(CrawlExecutionService);
+  private errorService = inject(ErrorService);
+  private dialog = inject(MatDialog);
+  private controllerApiService = inject(ControllerApiService);
+  private snackBarService = inject(SnackBarService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   readonly CrawlExecutionState = CrawlExecutionState;
   readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
@@ -59,15 +68,9 @@ export class CrawlExecutionComponent {
   readonly loading$: Observable<boolean>;
   readonly crawlJobOptions: ConfigObject[];
 
-  constructor(private route: ActivatedRoute,
-              private router: Router,
-              private crawlExecutionService: CrawlExecutionService,
-              private errorService: ErrorService,
-              private dialog: MatDialog,
-              private controllerApiService: ControllerApiService,
-              private snackBarService: SnackBarService,
-              private abilityService: AbilityServiceSignal<MongoAbility>,
-              destroyRef: DestroyRef) {
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+
     this.crawlJobOptions = this.route.snapshot.data['options'].crawlJobs;
     this.can = this.abilityService.can;
 

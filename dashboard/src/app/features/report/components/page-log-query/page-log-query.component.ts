@@ -1,18 +1,18 @@
-import {Component, ChangeDetectionStrategy} from '@angular/core';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {MatCheckboxModule} from '@angular/material/checkbox';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {QueryComponent} from '../../../../shared/components';
-import {PageLogQuery} from '../../services';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatInputModule} from '@angular/material/input';
+import { ChangeDetectionStrategy,Component } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { LayoutDirective } from '@ngbracket/ngx-layout';
+import { QueryComponent } from '../../../../shared/components';
+import { PageLogQuery } from '../../services';
 
 @Component({
   selector: 'app-page-log-query',
   templateUrl: './page-log-query.component.html',
   styleUrls: ['./page-log-query.component.css'],
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     LayoutDirective,
     MatFormFieldModule,
@@ -22,10 +22,6 @@ import {MatInputModule} from '@angular/material/input';
   ]
 })
 export class PageLogQueryComponent extends QueryComponent<PageLogQuery> {
-
-  constructor(protected override fb: UntypedFormBuilder) {
-    super(fb);
-  }
 
   protected override createForm(): void {
     this.form = this.fb.group({

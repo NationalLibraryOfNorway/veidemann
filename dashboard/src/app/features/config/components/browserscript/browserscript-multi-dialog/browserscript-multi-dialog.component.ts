@@ -1,11 +1,10 @@
-import {ChangeDetectorRef, Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {BrowserScriptDetailsComponent} from '..';
-import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import { AuthService } from '../../../../../core/auth';
-import {ConfigObject, Kind, Label} from '../../../../../shared/models';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { AbstractControl,ReactiveFormsModule } from '@angular/forms';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { BrowserScriptDetailsComponent } from '..';
+import { ConfigObject,Kind,Label } from '../../../../../shared/models';
+import { ConfigDialogData } from '../../../func';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-browserscript-multi-dialog',
@@ -16,22 +15,23 @@ import {ConfigObject, Kind, Label} from '../../../../../shared/models';
     MatDialogModule,
     LabelMultiComponent
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<BrowserScriptMultiDialogComponent>>(MatDialogRef);
+
 
   shouldAddLabel = undefined;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<BrowserScriptMultiDialogComponent>,
-              protected override cdr: ChangeDetectorRef) {
-    super(fb, authService, cdr);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.allSelected = this.data.allSelected;
   }
@@ -82,7 +82,7 @@ export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsCompo
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const formModel = this.form.value;
     const pathList: string[] = [];
     const updateTemplate = new ConfigObject({
@@ -102,6 +102,6 @@ export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsCompo
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 }

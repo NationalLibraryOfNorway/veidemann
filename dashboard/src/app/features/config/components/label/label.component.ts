@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  Input,
-  OnInit,
-  ViewChild
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, OnInit, ViewChild, inject } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -35,6 +27,11 @@ import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
+interface LabelGroup {
+  key: string;
+  values: string[];
+}
+
 
 @Component({
   selector: 'app-labels',
@@ -62,6 +59,10 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 })
 
 export class LabelComponent implements ControlValueAccessor, OnInit {
+  protected fb = inject(UntypedFormBuilder);
+  protected cdr = inject(ChangeDetectorRef);
+  protected labelService = inject(LabelService);
+
 
   @Input()
   removable = true;
@@ -76,7 +77,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
 
   // ControlValueAccessor callback functions
   onChange: (labels: Label[]) => void;
-  onTouched: (labels: Label[]) => void;
+  onTouched: () => void;
 
   labelForm: UntypedFormGroup;
   labelInputSeparators = [ENTER, COMMA];
@@ -90,8 +91,8 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   protected clickedIndex = -1;
   protected showUpdateLabel = false;
 
-  protected groupsSubject: BehaviorSubject<any[]> = new BehaviorSubject([]);
-  groups$: Observable<any> = this.groupsSubject.asObservable();
+  protected groupsSubject = new BehaviorSubject<LabelGroup[]>([]);
+  groups$: Observable<LabelGroup[]> = this.groupsSubject.asObservable();
 
   protected labels: Label[];
 
@@ -99,9 +100,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
 
   @ViewChild('chipInput', {static: true}) chipInputControl: ElementRef;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected cdr: ChangeDetectorRef,
-              protected labelService: LabelService) {
+  constructor() {
     this.createForm();
     this.fetchLabelKeys = new Subject();
   }
@@ -162,14 +161,18 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   }
 
   // implement ControlValueAccessor
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
 
   // implement ControlValueAccessor
   setDisabledState(disabled: boolean): void {
     this.disabled = disabled;
-    this.disabled ? this.control.disable() : this.control.enable();
+    if (this.disabled) {
+      this.control.disable();
+    } else {
+      this.control.enable();
+    }
     this.cdr.markForCheck();
   }
 
@@ -277,10 +280,10 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
 
   // group labels with similar key together
   protected regroup(): void {
-    const grouping = {};
+    const grouping: Record<string, string[]> = {};
 
     this.labels.forEach(label => {
-      if (grouping.hasOwnProperty(label.key)) {
+      if (Object.hasOwn(grouping, label.key)) {
         grouping[label.key].push(label.value);
       } else {
         grouping[label.key] = [label.value];

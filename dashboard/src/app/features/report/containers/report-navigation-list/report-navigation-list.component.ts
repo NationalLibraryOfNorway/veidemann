@@ -1,11 +1,10 @@
-import {Component, ChangeDetectionStrategy} from '@angular/core';
-import {AuthService} from '../../../../core';
-import {NavigationListComponent} from '../../../../shared/components';
-import {AbilityServiceSignal} from '@casl/angular';
-import {MongoAbility} from '@casl/ability';
-import {MatIcon} from '@angular/material/icon';
-import {RouterLink} from '@angular/router';
-import {MatCardModule} from '@angular/material/card';
+import { ChangeDetectionStrategy,Component,inject } from '@angular/core';
+import { MatCardModule } from '@angular/material/card';
+import { MatIcon } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
+import { MongoAbility } from '@casl/ability';
+import { AbilityServiceSignal } from '@casl/angular';
+import { NavigationListComponent } from '../../../../shared/components';
 
 
 @Component({
@@ -21,11 +20,14 @@ import {MatCardModule} from '@angular/material/card';
   standalone: true
 })
 export class ReportNavigationListComponent extends NavigationListComponent {
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
-  constructor(protected override authService: AuthService,
-              private abilityService: AbilityServiceSignal<MongoAbility>) {
-    super(authService);
+  constructor() {
+
+    super();
+
     this.can = this.abilityService.can;
   }
 }

@@ -19,7 +19,7 @@ import {MatLabel} from '@angular/material/form-field';
     ScriptAnnotationComponent,
     ScriptAnnotationsPipe
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawljobPreviewComponent {
@@ -27,6 +27,4 @@ export class CrawljobPreviewComponent {
   @Input()
   configObject: ConfigObject;
 
-  constructor() {
-  }
 }

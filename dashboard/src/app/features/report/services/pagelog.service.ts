@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {Observable} from 'rxjs';
 import {create} from '@bufbuild/protobuf';
 import { Detail, Page, Sort, Watch } from '../../../shared/func';
@@ -22,9 +22,11 @@ export interface PageLogQuery extends Page, Sort, Watch {
   providedIn: 'root'
 })
 export class PageLogService extends LoadingService {
+  private logApiService = inject(LogApiService);
+
   private readonly cache: Map<string, ConfigObject>;
 
-  constructor(private logApiService: LogApiService) {
+  constructor() {
     super();
     this.cache = new Map();
   }

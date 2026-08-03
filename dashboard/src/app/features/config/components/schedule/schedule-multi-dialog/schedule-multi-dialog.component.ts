@@ -1,20 +1,19 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {ScheduleDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
-import {DateTime} from '../../../../../shared/func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatTooltip} from '@angular/material/tooltip';
-import {MatInput} from '@angular/material/input';
-import {MatDatepickerModule} from '@angular/material/datepicker';
-import {MatIcon} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective, FlexLayoutModule, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInput } from '@angular/material/input';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexDirective,FlexLayoutModule,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { ScheduleDetailsComponent } from '..';
+import { DateTime } from '../../../../../shared/func';
+import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-schedule-multi-dialog',
@@ -35,10 +34,13 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     ReactiveFormsModule,
     FlexLayoutModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<ScheduleMultiDialogComponent>>(MatDialogRef);
+
 
   shouldAddLabel = undefined;
   allSelected = false;
@@ -46,11 +48,10 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<ScheduleMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.allSelected = this.data.allSelected;
   }
@@ -149,7 +150,7 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const formModel = this.form.value;
     const pathList: string[] = [];
 
@@ -187,7 +188,7 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 
 }

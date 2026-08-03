@@ -1,4 +1,4 @@
-import {ErrorHandler, Injectable} from '@angular/core';
+import { ErrorHandler, Injectable, inject } from '@angular/core';
 import {CallOptions, Client, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
 import {from, MonoTypeOperatorFunction, Observable, of} from 'rxjs';
@@ -30,13 +30,11 @@ const catchConfigError = <T>(errorService: ErrorHandler, returnValue: T): MonoTy
 
 @Injectable({providedIn: 'root'})
 export class ConfigApiService {
-  private client?: Client<typeof Config>;
+  protected authService = inject(AuthService);
+  private appConfig = inject(AppConfig);
+  private errorHandler = inject(ApplicationErrorHandler);
 
-  constructor(
-    protected authService: AuthService,
-    private appConfig: AppConfig,
-    private errorHandler: ApplicationErrorHandler,
-  ) {}
+  private client?: Client<typeof Config>;
 
   private getClient(): Client<typeof Config> {
     if (!this.client) {

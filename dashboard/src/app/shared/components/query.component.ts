@@ -1,20 +1,11 @@
-import {
-  AfterViewInit,
-  Directive,
-  EventEmitter,
-  Input,
-  OnChanges,
-  OnDestroy,
-  Output,
-  SimpleChanges
-} from '@angular/core';
+import { AfterViewInit, Directive, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject } from '@angular/core';
 import {UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 import {Subscription} from 'rxjs';
 import {isValidDate} from '../../shared/func';
 
 @Directive()
-// eslint-disable-next-line @angular-eslint/directive-class-suffix
 export abstract class QueryComponent<T> implements AfterViewInit, OnChanges, OnDestroy {
+  protected fb = inject(UntypedFormBuilder);
 
   form: UntypedFormGroup;
 
@@ -26,7 +17,7 @@ export abstract class QueryComponent<T> implements AfterViewInit, OnChanges, OnD
   @Output()
   queryChange: EventEmitter<Partial<T>>;
 
-  protected constructor(protected fb: UntypedFormBuilder) {
+  constructor() {
     this.subscription = Subscription.EMPTY;
     this.queryChange = new EventEmitter<Partial<T>>();
     this.createForm();

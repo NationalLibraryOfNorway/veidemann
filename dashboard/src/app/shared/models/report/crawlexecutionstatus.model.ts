@@ -6,6 +6,7 @@ import {
 import {fromTimestampProto, isNumeric, toTimestampProto} from '../../func';
 import {ApiError} from '../commons/api-error.model';
 import {fromRethinkTimeStamp} from '../../func/rethinkdb';
+import type {Timestamp} from '../../func/rethinkdb';
 
 export enum CrawlExecutionState {
   UNDEFINED = 0,
@@ -99,15 +100,15 @@ export class CrawlExecutionStatus {
    * If a member contains nested objects, the nested objects are transformed before the parent object is.
    * @see JSON.parse
    */
-  static reviver(key: string, value: any) {
+  static reviver(key: string, value: unknown): unknown {
     switch (key) {
       case 'state':
-        return CrawlExecutionState[value];
+        return CrawlExecutionState[value as keyof typeof CrawlExecutionState];
       case 'startTime':
       case 'endTime':
       case 'lastChangeTime':
       case 'createdTime':
-        return fromRethinkTimeStamp(value);
+        return fromRethinkTimeStamp(value as Timestamp);
       default:
         return value;
     }

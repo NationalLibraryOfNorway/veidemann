@@ -1,19 +1,18 @@
-import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
-import {CrawlConfigDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject, ConfigRef, Kind, Label} from '../../../../../shared/models/config';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatCheckbox} from '@angular/material/checkbox';
-import {MatTooltip} from '@angular/material/tooltip';
-import {MatInputModule} from '@angular/material/input';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
+import { ReactiveFormsModule,Validators } from '@angular/forms';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { CrawlConfigDetailsComponent } from '..';
+import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
+import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
+import { ConfigDialogData } from '../../../func';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 
 @Component({
   selector: 'app-crawlconfig-multi-dialog',
@@ -32,21 +31,23 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatTooltip,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<CrawlConfigMultiDialogComponent>>(MatDialogRef);
+
 
   shouldAddLabel = undefined;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<CrawlConfigMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.browserConfigs = this.data.options.browserConfigs;
     this.politenessConfigs = this.data.options.politenessConfigs;
@@ -123,7 +124,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
     }
   }
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const pathList: string[] = [];
 
     const formModel = this.form.value;
@@ -187,6 +188,6 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 }

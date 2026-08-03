@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, OnDestroy, Signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, OnDestroy, Signal, inject } from '@angular/core';
 import {ActivatedRoute, NavigationStart, Params, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
@@ -103,6 +103,19 @@ import {MongoAbility} from '@casl/ability';
   standalone: true
 })
 export class ConfigurationsComponent implements OnDestroy {
+  private authService = inject(AuthService);
+  private configService = inject(ConfigService);
+  private dataService = inject(ConfigService);
+  private snackBarService = inject(SnackBarService);
+  private errorService = inject(ErrorService);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private route = inject(ActivatedRoute);
+  private controllerApiService = inject(ControllerApiService);
+  private optionsService = inject(OptionsService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+  private destroyRef = inject(DestroyRef);
+
   readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
@@ -137,18 +150,7 @@ export class ConfigurationsComponent implements OnDestroy {
   // selected configObject
   configObject$: BehaviorSubject<ConfigObject>;
 
-  constructor(private authService: AuthService,
-              private configService: ConfigService,
-              private dataService: ConfigService,
-              private snackBarService: SnackBarService,
-              private errorService: ErrorService,
-              private router: Router,
-              private dialog: MatDialog,
-              private route: ActivatedRoute,
-              private controllerApiService: ControllerApiService,
-              private optionsService: OptionsService,
-              private abilityService: AbilityServiceSignal<MongoAbility>,
-              private destroyRef: DestroyRef) {
+  constructor() {
 
     this.options$ = this.optionsService.options$.pipe(
       tap(options => this.options = options)

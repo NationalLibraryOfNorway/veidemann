@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Inject} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {MatButtonModule} from '@angular/material/button';
 
@@ -14,9 +14,13 @@ import {MatButtonModule} from '@angular/material/button';
   standalone: true
 })
 export class CrawlerStatusDialogComponent {
+  data = inject(MAT_DIALOG_DATA);
+
   shouldPause: boolean;
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: any) {
+  constructor() {
+    const data = this.data;
+
     this.shouldPause = data.shouldPause;
   }
 

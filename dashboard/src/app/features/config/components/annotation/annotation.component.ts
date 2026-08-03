@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  Input,
-  OnInit,
-  ViewChild
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -18,12 +10,12 @@ import {
 } from '@angular/forms';
 import {Annotation, Label} from '../../../../shared/models';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {map, startWith} from 'rxjs/operators';
 import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {NO_COLON} from '../../../../shared/validation/patterns';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {AuthService} from '../../../../core';
 import {AbilityServiceSignal} from "@casl/angular";
+import {MongoAbility} from '@casl/ability';
 import {AsyncPipe} from '@angular/common';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
@@ -32,6 +24,11 @@ import {MatCardModule} from '@angular/material/card';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
+
+interface AnnotationGroup {
+  key: string;
+  values: string[];
+}
 
 @Component({
   selector: 'app-annotation',
@@ -54,8 +51,13 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   ],
   standalone: true
 })
-export class AnnotationComponent implements ControlValueAccessor, OnInit {
-  protected readonly can: AbilityServiceSignal<any>['can'];
+export class AnnotationComponent implements ControlValueAccessor {
+  protected fb = inject(UntypedFormBuilder);
+  protected cdr = inject(ChangeDetectorRef);
+  protected authService = inject(AuthService);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+
+  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input() removable = true;
 
@@ -63,7 +65,7 @@ export class AnnotationComponent implements ControlValueAccessor, OnInit {
 
   // ControlValueAccessor callback functions
   onChange: (annotations: Annotation[]) => void;
-  onTouched: (annotations: Annotation[]) => void;
+  onTouched: () => void;
 
   annotationForm;
   annotationInputSeparators = [ENTER, COMMA];
@@ -74,15 +76,12 @@ export class AnnotationComponent implements ControlValueAccessor, OnInit {
   protected annotations: Annotation[];
   protected showUpdateAnnotation = false;
 
-  protected groupsSubject: BehaviorSubject<any[]> = new BehaviorSubject([]);
-  groups$: Observable<any> = this.groupsSubject.asObservable();
+  protected groupsSubject = new BehaviorSubject<AnnotationGroup[]>([]);
+  groups$: Observable<AnnotationGroup[]> = this.groupsSubject.asObservable();
 
   @ViewChild('chipInput') chipInputControl: ElementRef;
 
-  constructor(protected fb: UntypedFormBuilder,
-              protected cdr: ChangeDetectorRef,
-              protected authService: AuthService,
-              private abilityService: AbilityServiceSignal<any>) {
+  constructor() {
     this.createForm();
     this.can = this.abilityService.can;
   }
@@ -107,13 +106,6 @@ export class AnnotationComponent implements ControlValueAccessor, OnInit {
     return this.annotationForm.get('value');
   }
 
-  ngOnInit(): void {
-    const value$ = this.control.valueChanges.pipe(
-      startWith(''),
-      map(value => value || '')
-    );
-  }
-
   writeValue(annotations: Annotation[]): void {
     if (annotations === null) {
       this.annotations = [];
@@ -129,14 +121,18 @@ export class AnnotationComponent implements ControlValueAccessor, OnInit {
   }
 
   // implement ControlValueAccessor
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
 
   // implement ControlValueAccessor
   setDisabledState(disabled: boolean): void {
     this.disabled = disabled;
-    this.disabled ? this.control.disable() : this.control.enable();
+    if (this.disabled) {
+      this.control.disable();
+    } else {
+      this.control.enable();
+    }
     this.cdr.markForCheck();
   }
 
@@ -237,10 +233,10 @@ export class AnnotationComponent implements ControlValueAccessor, OnInit {
 
   // group annotations with similar key together
   protected regroup(): void {
-    const grouping = {};
+    const grouping: Record<string, string[]> = {};
 
     this.annotations.forEach(annotation => {
-      if (grouping.hasOwnProperty(annotation.key)) {
+      if (Object.hasOwn(grouping, annotation.key)) {
         grouping[annotation.key].push(annotation.value);
       } else {
         grouping[annotation.key] = [annotation.value];

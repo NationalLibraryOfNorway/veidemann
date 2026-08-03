@@ -1,23 +1,22 @@
-import {ChangeDetectionStrategy, Component, Inject, OnInit, ViewChild} from '@angular/core';
-import {BrowserConfigDetailsComponent} from '..';
-import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {LabelMultiComponent} from '../../label/label-multi/label-multi.component';
-import {ConfigObject, ConfigRef, Kind, Label} from '../../../../../shared/models';
-import {AuthService} from '../../../../../core/auth';
-import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatSelectModule} from '@angular/material/select';
-import {MatButtonToggleModule} from '@angular/material/button-toggle';
-import {SelectorComponent} from '../../selector/selector.component';
-import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import { ChangeDetectionStrategy,Component,OnInit,ViewChild,inject } from '@angular/core';
+import { AbstractControl,ReactiveFormsModule,Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatChipsModule } from '@angular/material/chips';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { BrowserConfigDetailsComponent } from '..';
+import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models';
+import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
+import { SelectorComponent } from '../../selector/selector.component';
 
 @Component({
   selector: 'app-browserconfig-multi-dialog',
@@ -45,6 +44,9 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 })
 
 export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<BrowserConfigMultiDialogComponent>>(MatDialogRef);
+
   override readonly Kind = Kind;
 
   allSelected = false;
@@ -55,11 +57,10 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<BrowserConfigMultiDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+
     this.configObject = this.data.configObject;
     this.browserScripts = this.data.options.browserScripts;
     this.allSelected = this.data.allSelected;
@@ -154,7 +155,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
   }
 
 
-  protected override prepareSave(): any {
+  protected prepareMultiSave(): {updateTemplate: ConfigObject; pathList: string[]} {
     const pathList: string[] = [];
     const formModel = this.form.value;
 
@@ -220,7 +221,7 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
   }
 
   onDialogClose(): { updateTemplate: ConfigObject, pathList: string[] } {
-    return this.prepareSave();
+    return this.prepareMultiSave();
   }
 
 }

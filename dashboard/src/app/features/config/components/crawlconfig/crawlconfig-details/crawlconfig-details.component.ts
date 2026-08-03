@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {ConfigObject, ConfigRef, CrawlConfig, Kind, Meta} from '../../../../../shared/models';
@@ -35,6 +35,9 @@ import {MatButtonModule} from '@angular/material/button';
   standalone: true
 })
 export class CrawlConfigDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
   readonly Kind = Kind;
 
   @Input()
@@ -61,7 +64,7 @@ export class CrawlConfigDetailsComponent implements OnChanges {
 
   form: UntypedFormGroup;
 
-  constructor(protected fb: UntypedFormBuilder, protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 
@@ -209,4 +212,3 @@ export class CrawlConfigDetailsComponent implements OnChanges {
     return configObject;
   }
 }
-

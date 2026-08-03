@@ -1,12 +1,9 @@
-import {Directive} from '@angular/core';
+import { Directive, inject } from '@angular/core';
 import { AuthService } from '../../../core';
 
 @Directive()
-// eslint-disable-next-line @angular-eslint/directive-class-suffix
 export abstract class NavigationListComponent {
-
-  protected constructor(protected authService: AuthService) {
-  }
+  protected authService = inject(AuthService);
 
   get canAdministrate(): boolean {
     return this.authService.isAdmin();

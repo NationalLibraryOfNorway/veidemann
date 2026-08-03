@@ -1,18 +1,17 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
-import {NG_VALUE_ACCESSOR, ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {Label} from '../../../../shared/models';
-import {LabelService} from '../../services/label.service';
-import {LabelComponent} from '../label/label.component';
-import {AsyncPipe} from '@angular/common';
-import {CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatIcon} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
+import { CdkDrag,CdkDropList } from '@angular/cdk/drag-drop';
+import { AsyncPipe } from '@angular/common';
+import { ChangeDetectionStrategy,Component,Input,OnInit } from '@angular/core';
+import { NG_VALUE_ACCESSOR,ReactiveFormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { FlexLayoutModule } from '@ngbracket/ngx-layout';
+import { Label } from '../../../../shared/models';
+import { LabelComponent } from '../label/label.component';
 
 
 @Component({
@@ -39,15 +38,10 @@ import {MatInputModule} from '@angular/material/input';
 })
 export class SelectorComponent extends LabelComponent implements OnInit {
 
+
   @Input()
   override placeholderText = 'New selector...';
   override labelText = 'Script selector';
-
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override cdr: ChangeDetectorRef,
-              protected override labelService: LabelService) {
-    super(fb, cdr, labelService);
-  }
 
   // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
   override ngOnInit(): void {

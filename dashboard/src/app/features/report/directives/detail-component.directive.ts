@@ -1,4 +1,4 @@
-import {Directive, OnInit} from '@angular/core';
+import { Directive, OnInit, inject } from '@angular/core';
 import {combineLatest, Observable, Subject} from 'rxjs';
 import {ActivatedRoute} from '@angular/router';
 import {debounceTime, distinctUntilChanged, map, share, startWith} from 'rxjs/operators';
@@ -13,19 +13,15 @@ interface Getter<T> extends Loader {
 
 @Directive()
 export abstract class DetailDirective<T extends ListItem> implements OnInit {
+  protected route = inject(ActivatedRoute);
+  protected abstract service: Getter<T>;
 
-  protected query$: Observable<any>;
+  protected query$: Observable<Detail>;
 
-  protected reload$: Observable<void>;
-  protected reload: Subject<void>;
+  protected reload = new Subject<void>();
+  protected reload$ = this.reload.asObservable();
 
   item$: Observable<T>;
-
-  protected constructor(protected route: ActivatedRoute,
-                        protected service: Getter<T>) {
-    this.reload = new Subject<void>();
-    this.reload$ = this.reload.asObservable();
-  }
 
   ngOnInit(): void {
     const routeParam$ = combineLatest([this.route.paramMap, this.route.queryParamMap]).pipe(

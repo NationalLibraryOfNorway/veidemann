@@ -1,6 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawlHostGroupConfigDetailsComponent} from './crawlhostgroupconfig-details.component';
-import {SimpleChange} from '@angular/core';
+import {DebugElement, SimpleChange} from '@angular/core';
 import {Annotation, ConfigObject, CrawlHostGroupConfig, Kind, Label, Meta} from '../../../../../shared/models';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
@@ -9,6 +9,7 @@ import {By} from '@angular/platform-browser';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import { describe, it, expect, beforeEach } from 'vitest';
+import {MatInputHarness} from '@angular/material/input/testing';
 
 const exampleCrawlHostGroupConfig: ConfigObject = {
   id: 'configObject_id',
@@ -46,13 +47,13 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
   let addIpRangeButton: MatButtonHarness;
   let removeIpRangeButton: MatButtonHarness;
 
-  let ipRangeListElement: any;
+  let ipRangeListElement: DebugElement;
   let delayFactorFormField: MatFormFieldHarness;
-  let delayFactorInput: any;
+  let delayFactorInput: MatInputHarness;
   let ipRangeFromFormField: MatFormFieldHarness;
-  let ipRangeFromInput: any;
+  let ipRangeFromInput: MatInputHarness;
   let ipRangeToFormField: MatFormFieldHarness;
-  let ipRangeToInput: any;
+  let ipRangeToInput: MatInputHarness;
 
 
   beforeEach(() => {
@@ -79,7 +80,7 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
 
     delayFactorFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
       .with({ selector: '[data-testid="delayFactor"]' }));
-    delayFactorInput = await delayFactorFormField.getControl();
+    delayFactorInput = (await delayFactorFormField.getControl()) as MatInputHarness;
   });
 
   it('should create', () => {
@@ -153,10 +154,10 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
       expect(ipRangeListElement).toBeDefined();
       ipRangeFromFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
         .with({ selector: '[data-testid="ipRangeFrom"]' }));
-      ipRangeFromInput = await ipRangeFromFormField.getControl();
+      ipRangeFromInput = (await ipRangeFromFormField.getControl()) as MatInputHarness;
       ipRangeToFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
         .with({ selector: '[data-testid="ipRangeTo"]' }));
-      ipRangeToInput = await ipRangeToFormField.getControl();
+      ipRangeToInput = (await ipRangeToFormField.getControl()) as MatInputHarness;
 
       expect(await ipRangeFromInput.getValue()).toEqual('');
       expect(await ipRangeToInput.getValue()).toEqual('');
@@ -181,12 +182,12 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
       ipRangeFromFormField = await loader.getHarness<MatFormFieldHarness>(
         MatFormFieldHarness.with({ selector: '[data-testid="ipRangeFrom"]' })
       );
-      ipRangeFromInput = await ipRangeFromFormField.getControl();
+      ipRangeFromInput = (await ipRangeFromFormField.getControl()) as MatInputHarness;
 
       ipRangeToFormField = await loader.getHarness<MatFormFieldHarness>(
         MatFormFieldHarness.with({ selector: '[data-testid="ipRangeTo"]' })
       );
-      ipRangeToInput = await ipRangeToFormField.getControl();
+      ipRangeToInput = (await ipRangeToFormField.getControl()) as MatInputHarness;
 
       // Set invalid range
       await ipRangeFromInput.setValue('192.168.1.1');
@@ -222,7 +223,7 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
         expect(await revertButton.isDisabled()).toBeTruthy();
         expect(component.canRevert).toBeFalsy();
 
-        await delayFactorInput.setValue(3.0);
+        await delayFactorInput.setValue('3.0');
         await fixture.whenStable();
         expect(await revertButton.isDisabled()).toBeFalsy();
         expect(component.canRevert).toBeTruthy();

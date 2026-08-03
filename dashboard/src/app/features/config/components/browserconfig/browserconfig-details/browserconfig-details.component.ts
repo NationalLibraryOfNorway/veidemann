@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {BrowserConfig, ConfigObject, ConfigRef, Kind, Label, Meta} from '../../../../../shared/models';
 import {AuthService} from '../../../../../core';
@@ -34,6 +34,9 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   standalone: true
 })
 export class BrowserConfigDetailsComponent implements OnChanges {
+  protected fb = inject(UntypedFormBuilder);
+  protected authService = inject(AuthService);
+
   readonly Kind = Kind;
   readonly UnitOfTime = UnitOfTime;
 
@@ -55,7 +58,7 @@ export class BrowserConfigDetailsComponent implements OnChanges {
 
   form: UntypedFormGroup;
 
-  constructor(protected fb: UntypedFormBuilder, protected authService: AuthService) {
+  constructor() {
     this.createForm();
   }
 

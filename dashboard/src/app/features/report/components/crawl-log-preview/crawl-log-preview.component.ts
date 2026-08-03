@@ -21,13 +21,11 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     UrlFormatPipe,
 
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlLogPreviewComponent {
   @Input()
   crawlLog: CrawlLog;
 
-  constructor() {
-  }
 }

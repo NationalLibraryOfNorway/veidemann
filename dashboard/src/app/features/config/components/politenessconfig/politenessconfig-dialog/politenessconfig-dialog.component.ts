@@ -1,19 +1,18 @@
-import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {PolitenessConfigDetailsComponent} from '..';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../../shared/models/config';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatCheckbox} from '@angular/material/checkbox';
-import {MetaComponent} from '../../meta/meta.component';
-import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { PolitenessConfigDetailsComponent } from '..';
+import { ConfigObject } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { MetaComponent } from '../../meta/meta.component';
 
 @Component({
   selector: 'app-politenessconfig-dialog',
@@ -32,16 +31,18 @@ import {MatButtonModule} from '@angular/material/button';
     MetaComponent,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class PolitenessConfigDialogComponent extends PolitenessConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<PolitenessConfigDialogComponent>>(MatDialogRef);
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<PolitenessConfigDialogComponent>) {
-    super(fb, authService);
+
+  constructor() {
+
+    super();
+
     this.createForm();
     this.configObject = this.data.configObject;
     this.robotsPolicies = this.data.options.robotsPolicies;

@@ -6,7 +6,7 @@ import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 
-import {RunCrawlDialogComponent} from './run-crawl-dialog.component';
+import {RunCrawlDialogComponent, RunCrawlDialogData} from './run-crawl-dialog.component';
 import {ConfigObject, CrawlJob, Kind, Meta} from '../../../../shared/models';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 
@@ -65,7 +65,7 @@ const exampleSeedsToCrawl = {
  * Helper
  * ------------------------------------------------------------------ */
 
-async function setup(data: any) {
+async function setup(data: RunCrawlDialogData) {
   const dialogRefMock = {
     close: vi.fn(),
   };

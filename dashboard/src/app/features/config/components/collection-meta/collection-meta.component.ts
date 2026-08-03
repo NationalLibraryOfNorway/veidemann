@@ -1,24 +1,22 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef} from '@angular/core';
-import {MetaComponent} from '../meta/meta.component';
-import {DatePipe} from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy,ChangeDetectorRef,Component,forwardRef,inject } from '@angular/core';
 import {
-  AbstractControl,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule,
-  UntypedFormBuilder,
-  ValidationErrors,
-  Validators
+NG_VALUE_ACCESSOR,
+ReactiveFormsModule,
+ValidationErrors,
+Validators
 } from '@angular/forms';
-import {Meta} from '../../../../shared/models';
-import {VALID_COLLECTION_NAME} from '../../../../shared/validation/patterns';
-import {Observable, of} from 'rxjs';
-import {first, map, tap} from 'rxjs/operators';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {LabelComponent} from '../label/label.component';
-import {AnnotationComponent} from '../annotation/annotation.component';
-import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { Observable,of } from 'rxjs';
+import { first,map,tap } from 'rxjs/operators';
+import { Meta } from '../../../../shared/models';
+import { VALID_COLLECTION_NAME } from '../../../../shared/validation/patterns';
+import { AnnotationComponent } from '../annotation/annotation.component';
+import { LabelComponent } from '../label/label.component';
+import { MetaComponent } from '../meta/meta.component';
 
 @Component({
   selector: 'app-collection-meta',
@@ -42,12 +40,7 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true
 })
 export class CollectionMetaComponent extends MetaComponent {
-
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override datePipe: DatePipe,
-              private cdr: ChangeDetectorRef) {
-    super(fb, datePipe);
-  }
+  private cdr = inject(ChangeDetectorRef);
 
   protected override createForm() {
     super.createForm();
@@ -65,7 +58,7 @@ export class CollectionMetaComponent extends MetaComponent {
     super.updateForm(meta);
   }
 
-  override validate(control: AbstractControl): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
+  override validate(): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {
     return (this.name.pending
         ? this.name.statusChanges.pipe(
           map(state => state === 'VALID' ? null : this.name.errors),

@@ -1,7 +1,6 @@
 import {ActionShortcutComponent} from './action-shortcut.component';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {MatListModule} from '@angular/material/list';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 describe('ActionShortcutComponent', () => {

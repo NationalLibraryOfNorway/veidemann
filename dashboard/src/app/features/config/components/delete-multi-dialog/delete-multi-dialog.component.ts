@@ -1,4 +1,4 @@
-import {Component, Inject, ChangeDetectionStrategy} from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {FormsModule} from '@angular/forms';
@@ -22,13 +22,12 @@ export interface DeleteDialogData {
     MatInputModule,
     FormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class DeleteMultiDialogComponent {
+  data = inject<DeleteDialogData>(MAT_DIALOG_DATA);
+
 
   numberOfConfigs: number;
-
-  constructor(@Inject(MAT_DIALOG_DATA) public data: DeleteDialogData) {
-  }
 }

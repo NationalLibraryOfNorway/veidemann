@@ -161,7 +161,11 @@ export abstract class BaseListComponent<T extends ListItem> implements OnDestroy
     this.sort.emit(sort);
   }
 
-  onRowClick(item: T) {
+  onRowClick(item: T, event?: MouseEvent) {
+    if (event?.target instanceof Element && event.target.closest('a')) {
+      return;
+    }
+
     this.allSelected.set(false);
     this.selectedRowIndex = null;
     this.selectedRow = this.selectedRow?.id === item.id ? null : item;

@@ -61,7 +61,7 @@ export class Seed {
     return seeds
       .map(seed => seed.jobRefList)
       .reduce((acc, curr) => acc.concat(curr), [])
-      .filter(function addIfNotPresent({id}, _, arr) {
+      .filter(function addIfNotPresent({id}) {
         return !this.has(id) && this.add(id);
       }, new Set());
   }

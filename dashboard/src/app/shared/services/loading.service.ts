@@ -15,7 +15,7 @@ export abstract class LoadingService implements Loader {
     distinctUntilChanged()
   );
 
-  protected load(observable: Observable<any>): Observable<any> {
+  protected load<T>(observable: Observable<T>): Observable<T> {
     this.loading.next(true);
     return observable.pipe(finalize(() => this.loading.next(false)));
   }

@@ -1,19 +1,18 @@
-import {Component, Inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {ConfigObject} from '../../../../../shared/models/config';
-import {CrawlHostGroupConfigDetailsComponent} from '..';
-import {MetaComponent} from '../../meta/meta.component';
-import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatIcon} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatCardModule} from '@angular/material/card';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {MatButtonModule} from '@angular/material/button';
+import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { CrawlHostGroupConfigDetailsComponent } from '..';
+import { ConfigObject } from '../../../../../shared/models/config';
+import { ConfigDialogData } from '../../../func';
+import { DurationPickerComponent } from '../../durationpicker/duration-picker';
+import { MetaComponent } from '../../meta/meta.component';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-dialog',
@@ -33,16 +32,18 @@ import {MatButtonModule} from '@angular/material/button';
     MetaComponent,
     ReactiveFormsModule
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class CrawlHostGroupConfigDialogComponent extends CrawlHostGroupConfigDetailsComponent implements OnInit {
+  data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<CrawlHostGroupConfigDialogComponent>>(MatDialogRef);
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) public data: ConfigDialogData,
-              public dialogRef: MatDialogRef<CrawlHostGroupConfigDialogComponent>) {
-    super(fb, authService);
+
+  constructor() {
+
+    super();
+
     this.createForm();
     this.configObject = this.data.configObject;
   }

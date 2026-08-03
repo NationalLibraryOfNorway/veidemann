@@ -1,17 +1,16 @@
-import {ChangeDetectionStrategy, Component, Inject, OnInit} from '@angular/core';
-import {ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
-import {AuthService} from '../../../../../core/auth';
-import {ConfigObject} from '../../../../../shared/models';
-import {SeedDetailsComponent} from '..';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {ConfigDialogData} from '../../../func';
-import {MatSlideToggle} from '@angular/material/slide-toggle';
-import {SeedMetaComponent} from '../../seed-meta/seed-meta.component';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
-import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective} from '@ngbracket/ngx-layout';
+import { ChangeDetectionStrategy,Component,OnInit,inject } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { FlexDirective } from '@ngbracket/ngx-layout';
+import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
+import { SeedDetailsComponent } from '..';
+import { ConfigObject } from '../../../../../shared/models';
+import { ConfigDialogData } from '../../../func';
+import { SeedMetaComponent } from '../../seed-meta/seed-meta.component';
 
 @Component({
   selector: 'app-entity-dialog',
@@ -31,13 +30,16 @@ import {FlexDirective} from '@ngbracket/ngx-layout';
   standalone: true
 })
 export class SeedDialogComponent extends SeedDetailsComponent implements OnInit {
+  private data = inject<ConfigDialogData>(MAT_DIALOG_DATA);
+  dialogRef = inject<MatDialogRef<SeedDialogComponent>>(MatDialogRef);
+
   declare crawlJobs: ConfigObject[];
 
-  constructor(protected override fb: UntypedFormBuilder,
-              protected override authService: AuthService,
-              @Inject(MAT_DIALOG_DATA) private data: ConfigDialogData,
-              public dialogRef: MatDialogRef<SeedDialogComponent>) {
-    super(fb, authService);
+  constructor() {
+
+    super();
+    const data = this.data;
+
     this.createForm();
     this.crawlJobs = data.options.crawlJobs;
     this.configObject = data.configObject;
