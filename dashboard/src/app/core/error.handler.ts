@@ -1,7 +1,7 @@
 import {ErrorHandler, Injectable} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
-import {StatusCode} from 'grpc-web';
+import {Code, ConnectError} from '@connectrpc/connect';
 
 import {ErrorService} from './error.service';
 import { ReferrerError } from '../shared/error';
@@ -31,23 +31,25 @@ export class ApplicationErrorHandler extends ErrorHandler {
     }
   }
 
-  handleGrpcError(error: { code: any; message: any; }) {
-    switch (error.code) {
-      case StatusCode.NOT_FOUND:
-        console.error('NOT FOUND', error.message);
+  handleGrpcError(error: unknown) {
+    const connectError = ConnectError.from(error);
+    switch (connectError.code) {
+      case Code.NotFound:
+        console.error('NOT FOUND', connectError.rawMessage);
         break;
-      case StatusCode.UNAUTHENTICATED:
-        console.error('UNAUTHENTICATED', error.message);
+      case Code.Unauthenticated:
+        console.error('UNAUTHENTICATED', connectError.rawMessage);
         break;
       default:
-        console.error('gRPC code:', error.code, 'message:', error.message);
+        console.error('gRPC code:', connectError.code, 'message:', connectError.rawMessage);
         break;
     }
   }
 
-  handleDeleteError(error: Error, configObject: ConfigObject): void {
-    if (error.message) {
-      const errorString = error.message.split(':')[1];
+  handleDeleteError(error: unknown, configObject: ConfigObject): void {
+    const connectError = ConnectError.from(error);
+    if (connectError.rawMessage) {
+      const errorString = connectError.rawMessage;
       const deleteError = /(?=.*delete)(?=.*there are)/gm;
       if (deleteError.test(errorString)) {
         this.errorService.dispatch(new ReferrerError({errorString, configObject}));
@@ -55,4 +57,3 @@ export class ApplicationErrorHandler extends ErrorHandler {
     }
   }
 }
-

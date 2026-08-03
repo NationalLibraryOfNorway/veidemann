@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
 import {ActivatedRoute, Router} from '@angular/router';
 import {ErrorService} from '../../../../core';
@@ -16,6 +16,7 @@ import {ShortcutListComponent} from './shortcut-list/shortcut-list.component';
     FilterShortcutComponent,
     ShortcutListComponent
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class ShortcutComponent {

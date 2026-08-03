@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlHostGroupConfigDetailsComponent} from '..';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -27,6 +27,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatInputModule,
     ReactiveFormsModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlHostGroupConfigMultiDialogComponent extends CrawlHostGroupConfigDetailsComponent implements OnInit {

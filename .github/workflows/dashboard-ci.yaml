@@ -5,9 +5,15 @@ on:
       - 'main'
     paths:
       - 'dashboard/**'
+      - 'proto/**'
+      - 'buf.yaml'
+      - '.github/workflows/dashboard-ci.yaml'
   pull_request:
     paths:
       - 'dashboard/**'
+      - 'proto/**'
+      - 'buf.yaml'
+      - '.github/workflows/dashboard-ci.yaml'
   workflow_dispatch:
 
 jobs:
@@ -29,6 +35,13 @@ jobs:
       - name: Install dependencies
         working-directory: dashboard
         run: npm ci --no-fund --no-audit
+
+      - name: Generate dashboard API
+        working-directory: dashboard
+        run: npm run proto:generate
+
+      - name: Verify generated dashboard API is current
+        run: git diff --exit-code -- dashboard/src/api
 
       - name: Run tests
         working-directory: dashboard

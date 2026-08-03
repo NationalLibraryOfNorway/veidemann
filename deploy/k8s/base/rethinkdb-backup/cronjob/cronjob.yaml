@@ -34,7 +34,7 @@ spec:
               image: ghcr.io/nlnwa/rethinkdb-backup:0.5.1
               env:
                 - name: DB_HOST
-                  value: "rethinkdb-proxy"
+                  value: "rethinkdb-client"
                 - name: DB_PORT
                   value: "28015"
                 - name: FILE_PREFIX

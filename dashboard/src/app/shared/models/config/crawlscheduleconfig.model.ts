@@ -1,4 +1,8 @@
-import {CrawlScheduleConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlScheduleConfig as CrawlScheduleConfigProto,
+  CrawlScheduleConfigSchema,
+} from '../../../../api/config/v1/resources_pb';
 import {fromTimestampProto, toTimestampProto} from '../../func';
 import {ConfigObject} from './configobject.model';
 
@@ -19,9 +23,9 @@ export class CrawlScheduleConfig {
 
   static fromProto(proto: CrawlScheduleConfigProto): CrawlScheduleConfig {
     return new CrawlScheduleConfig({
-      cronExpression: proto.getCronExpression(),
-      validFrom: fromTimestampProto(proto.getValidFrom()),
-      validTo: fromTimestampProto(proto.getValidTo())
+      cronExpression: proto.cronExpression,
+      validFrom: fromTimestampProto(proto.validFrom),
+      validTo: fromTimestampProto(proto.validTo)
     });
   }
 
@@ -60,10 +64,10 @@ export class CrawlScheduleConfig {
   }
 
   static toProto(crawlScheduleConfig: CrawlScheduleConfig): CrawlScheduleConfigProto {
-    const proto = new CrawlScheduleConfigProto();
-    proto.setCronExpression(crawlScheduleConfig.cronExpression);
-    proto.setValidFrom(toTimestampProto(crawlScheduleConfig.validFrom));
-    proto.setValidTo(toTimestampProto(crawlScheduleConfig.validTo));
-    return proto;
+    return create(CrawlScheduleConfigSchema, {
+      cronExpression: crawlScheduleConfig.cronExpression,
+      validFrom: toTimestampProto(crawlScheduleConfig.validFrom),
+      validTo: toTimestampProto(crawlScheduleConfig.validTo),
+    });
   }
 }

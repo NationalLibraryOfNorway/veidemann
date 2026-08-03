@@ -1,4 +1,8 @@
-import {ConfigObjectProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  ConfigObject as ConfigObjectProto,
+  ConfigObjectSchema,
+} from '../../../../api/config/v1/resources_pb';
 import {intersectLabel} from '../../func/group-update/labels/common-labels';
 import {Collection} from './collection.model';
 import {CrawlEntity} from './crawlentity.model';
@@ -80,77 +84,59 @@ export class ConfigObject {
 
   static fromProto(proto: ConfigObjectProto): ConfigObject {
     const config = new ConfigObject({
-      id: proto.getId(),
-      apiVersion: proto.getApiversion(),
-      kind: proto.getKind().valueOf(),
-      meta: Meta.fromProto(proto.getMeta()),
+      id: proto.id,
+      apiVersion: proto.apiVersion,
+      kind: proto.kind.valueOf(),
+      meta: proto.meta ? Meta.fromProto(proto.meta) : undefined,
     });
-    if (proto.getCrawlEntity()) {
-      config.crawlEntity = CrawlEntity.fromProto(proto.getCrawlEntity());
-
-    } else if (proto.getSeed()) {
-      config.seed = Seed.fromProto(proto.getSeed());
-
-    } else if (proto.getCrawlJob()) {
-      config.crawlJob = CrawlJob.fromProto(proto.getCrawlJob());
-
-    } else if (proto.getCrawlConfig()) {
-      config.crawlConfig = CrawlConfig.fromProto(proto.getCrawlConfig());
-
-    } else if (proto.getCrawlScheduleConfig()) {
-      config.crawlScheduleConfig = CrawlScheduleConfig.fromProto(proto.getCrawlScheduleConfig());
-
-    } else if (proto.getBrowserConfig()) {
-      config.browserConfig = BrowserConfig.fromProto(proto.getBrowserConfig());
-
-    } else if (proto.getPolitenessConfig()) {
-      config.politenessConfig = PolitenessConfig.fromProto(proto.getPolitenessConfig());
-
-    } else if (proto.getBrowserScript()) {
-      config.browserScript = BrowserScript.fromProto(proto.getBrowserScript());
-
-    } else if (proto.getCrawlHostGroupConfig()) {
-      config.crawlHostGroupConfig = CrawlHostGroupConfig.fromProto(proto.getCrawlHostGroupConfig());
-
-    } else if (proto.getRoleMapping()) {
-      config.roleMapping = RoleMapping.fromProto(proto.getRoleMapping());
-    } else if (proto.getCollection()) {
-      config.collection = Collection.fromProto(proto.getCollection());
+    switch (proto.spec.case) {
+      case 'crawlEntity': config.crawlEntity = CrawlEntity.fromProto(proto.spec.value); break;
+      case 'seed': config.seed = Seed.fromProto(proto.spec.value); break;
+      case 'crawlJob': config.crawlJob = CrawlJob.fromProto(proto.spec.value); break;
+      case 'crawlConfig': config.crawlConfig = CrawlConfig.fromProto(proto.spec.value); break;
+      case 'crawlScheduleConfig': config.crawlScheduleConfig = CrawlScheduleConfig.fromProto(proto.spec.value); break;
+      case 'browserConfig': config.browserConfig = BrowserConfig.fromProto(proto.spec.value); break;
+      case 'politenessConfig': config.politenessConfig = PolitenessConfig.fromProto(proto.spec.value); break;
+      case 'browserScript': config.browserScript = BrowserScript.fromProto(proto.spec.value); break;
+      case 'crawlHostGroupConfig': config.crawlHostGroupConfig = CrawlHostGroupConfig.fromProto(proto.spec.value); break;
+      case 'roleMapping': config.roleMapping = RoleMapping.fromProto(proto.spec.value); break;
+      case 'collection': config.collection = Collection.fromProto(proto.spec.value); break;
     }
     return config;
   }
 
   static toProto(configObject: ConfigObject): ConfigObjectProto {
-    const proto = new ConfigObjectProto();
-    proto.setApiversion('v1');
-    proto.setId(configObject.id);
-    proto.setMeta(Meta.toProto(configObject.meta));
-    proto.setKind(configObject.kind.valueOf());
-
+    let spec: ConfigObjectProto['spec'] = {case: undefined};
     if (configObject.crawlEntity) {
-      proto.setCrawlEntity(CrawlEntity.toProto(configObject.crawlEntity));
+      spec = {case: 'crawlEntity', value: CrawlEntity.toProto(configObject.crawlEntity)};
     } else if (configObject.seed) {
-      proto.setSeed(Seed.toProto(configObject.seed));
+      spec = {case: 'seed', value: Seed.toProto(configObject.seed)};
     } else if (configObject.crawlJob) {
-      proto.setCrawlJob(CrawlJob.toProto(configObject.crawlJob));
+      spec = {case: 'crawlJob', value: CrawlJob.toProto(configObject.crawlJob)};
     } else if (configObject.crawlConfig) {
-      proto.setCrawlConfig(CrawlConfig.toProto(configObject.crawlConfig));
+      spec = {case: 'crawlConfig', value: CrawlConfig.toProto(configObject.crawlConfig)};
     } else if (configObject.crawlScheduleConfig) {
-      proto.setCrawlScheduleConfig(CrawlScheduleConfig.toProto(configObject.crawlScheduleConfig));
+      spec = {case: 'crawlScheduleConfig', value: CrawlScheduleConfig.toProto(configObject.crawlScheduleConfig)};
     } else if (configObject.browserConfig) {
-      proto.setBrowserConfig(BrowserConfig.toProto(configObject.browserConfig));
+      spec = {case: 'browserConfig', value: BrowserConfig.toProto(configObject.browserConfig)};
     } else if (configObject.politenessConfig) {
-      proto.setPolitenessConfig(PolitenessConfig.toProto(configObject.politenessConfig));
+      spec = {case: 'politenessConfig', value: PolitenessConfig.toProto(configObject.politenessConfig)};
     } else if (configObject.browserScript) {
-      proto.setBrowserScript(BrowserScript.toProto(configObject.browserScript));
+      spec = {case: 'browserScript', value: BrowserScript.toProto(configObject.browserScript)};
     } else if (configObject.crawlHostGroupConfig) {
-      proto.setCrawlHostGroupConfig(CrawlHostGroupConfig.toProto(configObject.crawlHostGroupConfig));
+      spec = {case: 'crawlHostGroupConfig', value: CrawlHostGroupConfig.toProto(configObject.crawlHostGroupConfig)};
     } else if (configObject.roleMapping) {
-      proto.setRoleMapping(RoleMapping.toProto(configObject.roleMapping));
+      spec = {case: 'roleMapping', value: RoleMapping.toProto(configObject.roleMapping)};
     } else if (configObject.collection) {
-      proto.setCollection(Collection.toProto(configObject.collection));
+      spec = {case: 'collection', value: Collection.toProto(configObject.collection)};
     }
-    return proto;
+    return create(ConfigObjectSchema, {
+      apiVersion: configObject.apiVersion || 'v1',
+      id: configObject.id,
+      meta: Meta.toProto(configObject.meta),
+      kind: configObject.kind.valueOf(),
+      spec,
+    });
   }
 
   static toConfigRef(configObject: ConfigObject): ConfigRef {

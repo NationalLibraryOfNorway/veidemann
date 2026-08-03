@@ -1,4 +1,5 @@
-import {Annotation as AnnotationProto, Label as LabelProto, MetaProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {Meta as MetaProto, MetaSchema} from '../../../../api/config/v1/resources_pb';
 import {fromTimestampProto} from '../../func';
 import {Label} from './label.model';
 import {Annotation} from './annotation.model';
@@ -35,34 +36,23 @@ export class Meta {
 
   static fromProto(proto: MetaProto): Meta {
     return new Meta({
-      name: proto.getName(),
-      description: proto.getDescription(),
-      created: fromTimestampProto(proto.getCreated()),
-      createdBy: proto.getCreatedBy(),
-      lastModified: fromTimestampProto(proto.getLastModified()),
-      lastModifiedBy: proto.getLastModifiedBy(),
-      labelList: proto.getLabelList().map(label => new Label({key: label.getKey(), value: label.getValue()})),
-      annotationList: proto.getAnnotationList().map(annotation => new Annotation({key: annotation.getKey(), value: annotation.getValue()}))
+      name: proto.name,
+      description: proto.description,
+      created: fromTimestampProto(proto.created),
+      createdBy: proto.createdBy,
+      lastModified: fromTimestampProto(proto.lastModified),
+      lastModifiedBy: proto.lastModifiedBy,
+      labelList: proto.label.map(Label.fromProto),
+      annotationList: proto.annotation.map(Annotation.fromProto)
     });
   }
 
   static toProto(meta: Meta): MetaProto {
-    const proto = new MetaProto();
-    proto.setName(meta.name);
-    proto.setDescription(meta.description);
-    proto.setLabelList(meta.labelList.map(label => {
-      const l = new LabelProto();
-      l.setKey(label.key);
-      l.setValue(label.value);
-      return l;
-    }));
-    proto.setAnnotationList(meta.annotationList.map(annotation => {
-      const a = new AnnotationProto();
-      a.setKey(annotation.key);
-      a.setValue(annotation.value);
-      return a;
-    }));
-
-    return proto;
+    return create(MetaSchema, {
+      name: meta.name,
+      description: meta.description,
+      label: meta.labelList.map(Label.toProto),
+      annotation: meta.annotationList.map(Annotation.toProto),
+    });
   }
 }

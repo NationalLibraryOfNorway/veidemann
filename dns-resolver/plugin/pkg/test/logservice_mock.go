@@ -7,6 +7,7 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // LogServiceMock is used to implement ContentWriterServer.
@@ -23,7 +24,7 @@ func (s *LogServiceMock) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) err
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
-			break
+			return stream.SendAndClose(&emptypb.Empty{})
 		}
 		if err != nil {
 			return err
@@ -33,7 +34,6 @@ func (s *LogServiceMock) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) err
 		s.CrawlLog = req.GetCrawlLog()
 		s.m.Unlock()
 	}
-	return nil
 }
 
 // Close implements ContentWriterServer
@@ -49,6 +49,8 @@ func (s *LogServiceMock) Reset() {
 }
 
 func (s *LogServiceMock) Len() int {
+	s.m.Lock()
+	defer s.m.Unlock()
 	return s.len
 }
 

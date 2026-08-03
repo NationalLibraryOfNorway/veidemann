@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {PageLogService} from '../../services';
 import {DetailDirective} from '../../directives';
@@ -21,6 +21,7 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     PageLogShortcutsComponent,
     CommonModule,
   ],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: true
 })
 export class PageLogDetailComponent extends DetailDirective<PageLog> implements OnInit {

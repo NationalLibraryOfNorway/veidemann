@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {AbilityService} from "@casl/angular";
 import {PureAbility} from '@casl/ability';
@@ -38,6 +38,7 @@ import {MatIcon} from '@angular/material/icon';
     PolitenessConfigNamePipe,
     RouterLink
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class ShortcutListComponent {

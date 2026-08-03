@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlConfigDetailsComponent} from '..';
 import {ReactiveFormsModule, UntypedFormBuilder, Validators} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
@@ -32,6 +32,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatTooltip,
     ReactiveFormsModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent implements OnInit {

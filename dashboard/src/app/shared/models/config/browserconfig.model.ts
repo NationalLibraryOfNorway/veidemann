@@ -1,4 +1,5 @@
-import {BrowserConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {BrowserConfig as BrowserConfigProto, BrowserConfigSchema} from '../../../../api/config/v1/resources_pb';
 import {intersectString} from '../../func';
 import {ConfigRef} from './configref.model';
 import {ConfigObject} from './configobject.model';
@@ -35,15 +36,15 @@ export class BrowserConfig {
 
   static fromProto(proto: BrowserConfigProto): BrowserConfig {
     return new BrowserConfig({
-      userAgent: proto.getUserAgent(),
-      windowWidth: proto.getWindowWidth(),
-      windowHeight: proto.getWindowHeight(),
-      pageLoadTimeoutMs: proto.getPageLoadTimeoutMs(),
-      scriptSelectorList: proto.getScriptSelectorList(),
-      scriptRefList: proto.getScriptRefList().map(ref => ConfigRef.fromProto(ref)),
+      userAgent: proto.userAgent,
+      windowWidth: proto.windowWidth,
+      windowHeight: proto.windowHeight,
+      pageLoadTimeoutMs: Number(proto.pageLoadTimeoutMs),
+      scriptSelectorList: proto.scriptSelector,
+      scriptRefList: proto.scriptRef.map(ref => ConfigRef.fromProto(ref)),
       // script_parameters?: Map<string, string>; not implemented
       // headers
-      maxInactivityTimeMs: proto.getMaxInactivityTimeMs()
+      maxInactivityTimeMs: Number(proto.maxInactivityTimeMs)
     });
   }
 
@@ -119,15 +120,14 @@ export class BrowserConfig {
   }
 
   static toProto(browserConfig: BrowserConfig): BrowserConfigProto {
-    const proto = new BrowserConfigProto();
-    proto.setUserAgent(browserConfig.userAgent);
-    proto.setWindowWidth(browserConfig.windowWidth || 0);
-    proto.setWindowHeight(browserConfig.windowHeight || 0);
-    proto.setPageLoadTimeoutMs(browserConfig.pageLoadTimeoutMs || 0);
-    proto.setMaxInactivityTimeMs(browserConfig.maxInactivityTimeMs || 0);
-    proto.setScriptRefList(browserConfig.scriptRefList.map(ConfigRef.toProto));
-    proto.setScriptSelectorList(browserConfig.scriptSelectorList);
-
-    return proto;
+    return create(BrowserConfigSchema, {
+      userAgent: browserConfig.userAgent,
+      windowWidth: browserConfig.windowWidth || 0,
+      windowHeight: browserConfig.windowHeight || 0,
+      pageLoadTimeoutMs: BigInt(browserConfig.pageLoadTimeoutMs || 0),
+      maxInactivityTimeMs: BigInt(browserConfig.maxInactivityTimeMs || 0),
+      scriptRef: browserConfig.scriptRefList.map(ConfigRef.toProto),
+      scriptSelector: browserConfig.scriptSelectorList,
+    });
   }
 }

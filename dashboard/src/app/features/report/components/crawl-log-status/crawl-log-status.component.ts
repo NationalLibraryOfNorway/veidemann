@@ -3,7 +3,7 @@ import {ExtraStatusCodes} from '../../../../shared/models/report';
 import {CrawlLog} from '../../../../shared/models/log';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {DatePipe} from '@angular/common';
-import {FileSizePipe} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {RouterLink} from '@angular/router';
 import {MatCardModule} from '@angular/material/card';

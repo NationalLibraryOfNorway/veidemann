@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models/report';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {DatePipe} from '@angular/common';
-import {NgxFilesizeModule} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {RouterLink} from '@angular/router';
 import {MatListModule} from '@angular/material/list';
 import {FlexDirective} from '@ngbracket/ngx-layout';
@@ -16,7 +16,7 @@ import {FlexDirective} from '@ngbracket/ngx-layout';
     MatExpansionModule,
     MatListModule,
     DatePipe,
-    NgxFilesizeModule,
+    FileSizePipe,
     RouterLink,
     FlexDirective
   ],

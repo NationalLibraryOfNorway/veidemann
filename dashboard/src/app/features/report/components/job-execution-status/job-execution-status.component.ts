@@ -6,7 +6,7 @@ import {
   JobExecutionStatus
 } from '../../../../shared/models/report';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {FileSizePipe} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
 import {RouterLink} from '@angular/router';
 import {AsyncPipe, DatePipe} from '@angular/common';

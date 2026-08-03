@@ -1,4 +1,5 @@
-import {ConfigRefProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {ConfigRef as ConfigRefProto, ConfigRefSchema} from '../../../../api/config/v1/resources_pb';
 import {Kind} from './kind.model';
 
 export class ConfigRef {
@@ -15,8 +16,8 @@ export class ConfigRef {
 
   static fromProto(proto: ConfigRefProto): ConfigRef {
     return new ConfigRef({
-      id: proto.getId(),
-      kind: proto.getKind().valueOf()
+      id: proto.id,
+      kind: proto.kind.valueOf()
     });
   }
 
@@ -24,9 +25,6 @@ export class ConfigRef {
     if (!configRef) {
       return undefined;
     }
-    const proto = new ConfigRefProto();
-    proto.setId(configRef.id);
-    proto.setKind(configRef.kind.valueOf());
-    return proto;
+    return create(ConfigRefSchema, {id: configRef.id, kind: configRef.kind.valueOf()});
   }
 }

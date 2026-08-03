@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/dns-resolver/plugin/pkg/serviceconnections"
 	"github.com/coredns/caddy"
@@ -42,7 +41,7 @@ func setup(c *caddy.Controller) error {
 // OnStartup connects to content writer and log writer.
 func (a *ArchivingCache) OnStartup() error {
 	if a.cache == nil {
-		cache, err := NewOlricCache(a.olricAddresses, a.olricDMap, a.eviction)
+		cache, err := NewOlricCache(a.olricAddresses, a.olricDMap)
 		if err != nil {
 			return fmt.Errorf("failed to connect to olric: %w", err)
 		}
@@ -84,7 +83,6 @@ func (a *ArchivingCache) OnShutdown() (err error) {
 }
 
 func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
-	eviction := defaultEviction
 	olricAddresses := []string{defaultOlricAddress}
 	olricAddressesConfigured := false
 	olricDMap := defaultOlricDMap
@@ -105,16 +103,6 @@ func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
 		}
 		for c.NextBlock() {
 			switch c.Val() {
-			case "eviction":
-				if arg, err := getArg(c); err != nil {
-					return nil, err
-				} else {
-					duration, err := time.ParseDuration(arg)
-					if err != nil {
-						return nil, err
-					}
-					eviction = duration
-				}
 			case "olricAddress":
 				args, err := getArgs(c)
 				if err != nil {
@@ -196,7 +184,6 @@ func parseArchivingCache(c *caddy.Controller) (*ArchivingCache, error) {
 		)
 	}
 	a := NewArchivingCache(nil, lw, cw)
-	a.eviction = eviction
 	a.olricAddresses = olricAddresses
 	a.olricDMap = olricDMap
 	return a, nil
@@ -222,7 +209,6 @@ func getArgs(c *caddy.Controller) ([]string, error) {
 }
 
 const (
-	defaultEviction     = 1 * time.Hour
 	defaultOlricAddress = "localhost:3320"
 	defaultOlricDMap    = "dns-resolver-archivingcache"
 )

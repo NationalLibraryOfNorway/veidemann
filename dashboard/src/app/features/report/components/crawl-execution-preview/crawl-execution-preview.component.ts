@@ -1,8 +1,8 @@
-import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import {Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
 import {durationBetweenDates} from '../../../../shared/func';
 import {MatCardModule} from '@angular/material/card';
-import {NgxFilesizeModule} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {NgxEchartsDirective} from 'ngx-echarts';
 import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
@@ -25,8 +25,9 @@ export enum CrawlExecutionStatusColors {
     LayoutGapDirective,
     MatCardModule,
     NgxEchartsDirective,
-    NgxFilesizeModule
+    FileSizePipe
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlExecutionPreviewComponent implements OnChanges {

@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: contentwriter
+  labels:
+    app.kubernetes.io/name: contentwriter
+    app.kubernetes.io/component: contentwriter
+  annotations:
+    sidecar.jaegertracing.io/inject: jaeger
+spec:
+  replicas: 1
+  serviceName: contentwriter
+  podManagementPolicy: Parallel
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: contentwriter
+      app.kubernetes.io/component: contentwriter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: contentwriter
+        app.kubernetes.io/component: contentwriter
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: contentwriter
+          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.6.1
+          ports:
+            - name: grpc
+              containerPort: 8082
+            - name: http-metrics
+              containerPort: 9153
+          volumeMounts:
+            - mountPath: /workdir
+              name: warcs
+              subPath: workdir
+            - mountPath: /warcs
+              name: warcs
+              subPath: warcs
+          env:
+            - name: CONTENTWRITER_DB_HOST
+              value: "rethinkdb-client"
+            - name: CONTENTWRITER_DB_PORT
+              value: "28015"
+            - name: CONTENTWRITER_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rethinkdb-env
+                  key: DB_USER
+                  optional: false
+            - name: CONTENTWRITER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rethinkdb-env
+                  key: DB_PASSWORD
+                  optional: false
+            - name: CONTENTWRITER_DB_NAME
+              value: "veidemann"
+            - name: CONTENTWRITER_REDIS_HOST
+              value: "kvrocks"
+            - name: CONTENTWRITER_REDIS_PORT
+              value: "6666"
+            - name: CONTENTWRITER_REDIS_DB
+              value: "0"
+            - name: CONTENTWRITER_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: redis-password
+                  optional: true
+            - name: CONTENTWRITER_REDIS_MASTER_NAME
+              value: "kvrocks"
+            - name: CONTENTWRITER_REDIS_SENTINEL_ADDRS
+              value: "kvrocks-sentinel:26379"
+            - name: CONTENTWRITER_REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kvrocks-auth
+                  key: sentinel-password
+                  optional: true
+            - name: CONTENTWRITER_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CONTENTWRITER_TERMINATION_GRACE_PERIOD_SECONDS
+              value: "300"
+            - name: CONTENTWRITER_PORT
+              value: "8082"
+            - name: CONTENTWRITER_WARC_DIR
+              value: "/warcs"
+            - name: CONTENTWRITER_WORK_DIR
+              value: "/workdir"
+            - name: CONTENTWRITER_LOG_LEVEL
+              value: "debug"
+            - name: CONTENTWRITER_WARC_WRITER_POOL_SIZE
+              value: "1"
+            - name: CONTENTWRITER_WARC_VERSION
+              value: "1.1"
+            - name: JAEGER_SERVICE_NAME
+              value: contentwriter
+            - name: JAEGER_AGENT_HOST
+              value: localhost
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+            - name: JAEGER_SAMPLER_TYPE
+              value: remote
+            - name: JAEGER_SAMPLER_PARAM
+              value: "0.1"
+          readinessProbe:
+            httpGet:
+              path: "/readyz"
+              port: http-metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: grpc
+            initialDelaySeconds: 15
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: warcs
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

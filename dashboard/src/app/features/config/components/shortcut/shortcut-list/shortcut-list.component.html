@@ -1,5 +1,5 @@
 @if (ability$ | async; as ability) {
-  @switch (configObject?.kind) {
+  @switch ($safeNavigationMigration(configObject?.kind)) {
     @case (Kind.SEED) {
       <mat-nav-list>
         <div mat-subheader>Entity</div>

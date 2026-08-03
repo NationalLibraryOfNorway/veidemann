@@ -1,4 +1,4 @@
-import {Component, Inject} from '@angular/core';
+import {Component, Inject, ChangeDetectionStrategy} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ExecutionId} from '../../../../shared/models/controller/controller.model';
 import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/models/report';
@@ -19,6 +19,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatDialogModule,
     SeedNamePipe
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class AbortCrawlDialogComponent {

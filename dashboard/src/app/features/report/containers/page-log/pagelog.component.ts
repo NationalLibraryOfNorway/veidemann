@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {UntypedFormBuilder} from '@angular/forms';
 import {combineLatest, Observable, of} from 'rxjs';
 import {ListDataSource, ListItem} from '../../../../shared/models';
@@ -44,6 +44,7 @@ import {MatMenuItem} from '@angular/material/menu';
     RouterLink,
     QueryPageLogDirective
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class PageLogComponent implements OnInit {

@@ -80,7 +80,7 @@ spec:
               value: "-Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStore=/opt/java/openjdk/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
           volumeMounts:
             - name: log4j2
-              mountPath: /veidemann/config/log4j2.xml
+              mountPath: /app/resources/log4j2.xml
               subPath: log4j2.xml
         - name: rethinkdb-ast-service
           image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.1

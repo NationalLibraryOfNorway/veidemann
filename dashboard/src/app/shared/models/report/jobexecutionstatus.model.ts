@@ -1,7 +1,10 @@
-import {JobExecutionStatusProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  JobExecutionStatus as JobExecutionStatusProto,
+  JobExecutionStatusSchema,
+} from '../../../../api/frontier/v1/resources_pb';
 import {fromTimestampProto, isNumeric} from '../../func';
 import { ApiError } from '../commons';
-import {ExtraStatusCodes} from './extrastatuscodes.model';
 
 export enum JobExecutionState {
   UNDEFINED = 0,
@@ -74,42 +77,39 @@ export class JobExecutionStatus {
   }
 
   static fromProto(proto: JobExecutionStatusProto): JobExecutionStatus {
-    const extraStatusCodes = ExtraStatusCodes;
     return new JobExecutionStatus({
-      id: proto.getId(),
-      jobId: proto.getJobId(),
-      state: JobExecutionState[JobExecutionState[proto.getState()]],
-      executionsStateMap: new Map(proto.getExecutionsStateMap().toArray()),
-      startTime: fromTimestampProto(proto.getStartTime()),
-      endTime: fromTimestampProto(proto.getEndTime()),
-      documentsCrawled: proto.getDocumentsCrawled(),
-      bytesCrawled: proto.getBytesCrawled(),
-      urisCrawled: proto.getUrisCrawled(),
-      documentsFailed: proto.getDocumentsFailed(),
-      documentsOutOfScope: proto.getDocumentsOutOfScope(),
-      documentsRetried: proto.getDocumentsRetried(),
-      documentsDenied: proto.getDocumentsDenied(),
-      error: ApiError.fromProto(proto.getError()),
-      desiredState: JobExecutionState[JobExecutionState[proto.getDesiredState()]]
+      id: proto.id,
+      jobId: proto.jobId,
+      state: proto.state as unknown as JobExecutionState,
+      executionsStateMap: new Map(Object.entries(proto.executionsState)),
+      startTime: fromTimestampProto(proto.startTime),
+      endTime: fromTimestampProto(proto.endTime),
+      documentsCrawled: Number(proto.documentsCrawled),
+      bytesCrawled: Number(proto.bytesCrawled),
+      urisCrawled: Number(proto.urisCrawled),
+      documentsFailed: Number(proto.documentsFailed),
+      documentsOutOfScope: Number(proto.documentsOutOfScope),
+      documentsRetried: Number(proto.documentsRetried),
+      documentsDenied: Number(proto.documentsDenied),
+      error: ApiError.fromProto(proto.error),
+      desiredState: proto.desiredState as unknown as JobExecutionState
     });
   }
 
   static toProto(jobExecutionStatus: JobExecutionStatus): JobExecutionStatusProto {
-    const proto = new JobExecutionStatusProto();
-    proto.setId(jobExecutionStatus.id);
-    proto.setJobId(jobExecutionStatus.jobId);
-    proto.setState(jobExecutionStatus.state.valueOf());
-    proto.setDocumentsCrawled(jobExecutionStatus.documentsCrawled);
-    proto.setBytesCrawled(jobExecutionStatus.bytesCrawled);
-    proto.setUrisCrawled(jobExecutionStatus.urisCrawled);
-    proto.setDocumentsFailed(jobExecutionStatus.documentsFailed);
-    proto.setDocumentsOutOfScope(jobExecutionStatus.documentsOutOfScope);
-    proto.setDocumentsRetried(jobExecutionStatus.documentsRetried);
-    proto.setDocumentsDenied(jobExecutionStatus.documentsDenied);
-    proto.setDesiredState(jobExecutionStatus.desiredState.valueOf());
-
-    return proto;
+    return create(JobExecutionStatusSchema, {
+      id: jobExecutionStatus.id,
+      jobId: jobExecutionStatus.jobId,
+      state: jobExecutionStatus.state.valueOf(),
+      executionsState: Object.fromEntries(jobExecutionStatus.executionsStateMap),
+      documentsCrawled: BigInt(jobExecutionStatus.documentsCrawled || 0),
+      bytesCrawled: BigInt(jobExecutionStatus.bytesCrawled || 0),
+      urisCrawled: BigInt(jobExecutionStatus.urisCrawled || 0),
+      documentsFailed: BigInt(jobExecutionStatus.documentsFailed || 0),
+      documentsOutOfScope: BigInt(jobExecutionStatus.documentsOutOfScope || 0),
+      documentsRetried: BigInt(jobExecutionStatus.documentsRetried || 0),
+      documentsDenied: BigInt(jobExecutionStatus.documentsDenied || 0),
+      desiredState: jobExecutionStatus.desiredState.valueOf(),
+    });
   }
 }
-
-

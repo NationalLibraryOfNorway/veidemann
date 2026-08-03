@@ -1,5 +1,11 @@
 import {ConfigObject} from './configobject.model';
-import {ApiKeyProto, RoleMappingProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  ApiKey as ApiKeyProto,
+  ApiKeySchema,
+  RoleMapping as RoleMappingProto,
+  RoleMappingSchema,
+} from '../../../../api/config/v1/resources_pb';
 import {Role} from './role.model';
 import {fromTimestampProto, toTimestampProto} from '../../func';
 
@@ -23,24 +29,22 @@ export class RoleMapping {
 
   static fromProto(proto: RoleMappingProto): RoleMapping {
     return new RoleMapping({
-      apiKey: proto.getApiKey() ? ApiKey.fromProto(proto.getApiKey()) : undefined,
-      email: proto.getEmail(),
-      group: proto.getGroup(),
-      roleList: proto.getRoleList()
+      apiKey: proto.emailOrGroup.case === 'apiKey' ? ApiKey.fromProto(proto.emailOrGroup.value) : undefined,
+      email: proto.emailOrGroup.case === 'email' ? proto.emailOrGroup.value : '',
+      group: proto.emailOrGroup.case === 'group' ? proto.emailOrGroup.value : '',
+      roleList: proto.role
     });
   }
 
   static toProto(roleMapping: RoleMapping): RoleMappingProto {
-    const proto = new RoleMappingProto();
-
-    proto.setApiKey(ApiKey.toProto(roleMapping.apiKey));
-    proto.setRoleList(roleMapping.roleList);
-    proto.setEmail(roleMapping.email);
-    if (roleMapping.group) {
-      proto.setGroup(roleMapping.group);
-    }
-
-    return proto;
+    const emailOrGroup = roleMapping.group
+      ? {case: 'group' as const, value: roleMapping.group}
+      : roleMapping.email
+        ? {case: 'email' as const, value: roleMapping.email}
+        : roleMapping.apiKey
+          ? {case: 'apiKey' as const, value: ApiKey.toProto(roleMapping.apiKey)}
+          : {case: undefined, value: undefined};
+    return create(RoleMappingSchema, {emailOrGroup, role: roleMapping.roleList});
   }
 
   static mergeConfigs(configObjects: ConfigObject[]): RoleMapping {
@@ -80,15 +84,12 @@ export class ApiKey {
 
   static fromProto(proto: ApiKeyProto): ApiKey {
     return new ApiKey({
-      token: proto.getToken(),
-      validUntil: fromTimestampProto(proto.getValiduntil()),
+      token: proto.token,
+      validUntil: fromTimestampProto(proto.validUntil),
     });
   }
 
   static toProto(apiKey: ApiKey): ApiKeyProto {
-    const proto = new ApiKeyProto();
-    proto.setToken(apiKey.token);
-    proto.setValiduntil(toTimestampProto(apiKey.validUntil));
-    return proto;
+    return create(ApiKeySchema, {token: apiKey.token, validUntil: toTimestampProto(apiKey.validUntil)});
   }
 }

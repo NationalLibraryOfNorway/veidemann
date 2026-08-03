@@ -1,6 +1,9 @@
-import {CrawlExecutionStatusProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlExecutionStatus as CrawlExecutionStatusProto,
+  CrawlExecutionStatusSchema,
+} from '../../../../api/frontier/v1/resources_pb';
 import {fromTimestampProto, isNumeric, toTimestampProto} from '../../func';
-import {ExtraStatusCodes} from './extrastatuscodes.model';
 import {ApiError} from '../commons/api-error.model';
 import {fromRethinkTimeStamp} from '../../func/rethinkdb';
 
@@ -111,53 +114,50 @@ export class CrawlExecutionStatus {
   }
 
   static fromProto(proto: CrawlExecutionStatusProto): CrawlExecutionStatus {
-    const extraStatusCodes = ExtraStatusCodes;
-    const state = CrawlExecutionState;
-
     const crawlExecutionStatus = new CrawlExecutionStatus({
-      id: proto.getId(),
-      jobId: proto.getJobId(),
-      seedId: proto.getSeedId(),
-      state: CrawlExecutionState[CrawlExecutionState[proto.getState()]],
-      startTime: fromTimestampProto(proto.getStartTime()),
-      endTime: fromTimestampProto(proto.getEndTime()),
-      documentsCrawled: proto.getDocumentsCrawled(),
-      bytesCrawled: proto.getBytesCrawled(),
-      urisCrawled: proto.getUrisCrawled(),
-      documentsFailed: proto.getDocumentsFailed(),
-      documentsOutOfScope: proto.getDocumentsOutOfScope(),
-      documentsRetried: proto.getDocumentsRetried(),
-      documentsDenied: proto.getDocumentsDenied(),
-      lastChangeTime: fromTimestampProto(proto.getLastChangeTime()),
-      createdTime: fromTimestampProto(proto.getCreatedTime()),
-      currentUriIdList: proto.getCurrentUriIdList(),
-      jobExecutionId: proto.getJobExecutionId(),
-      error: ApiError.fromProto(proto.getError()),
-      desiredState: CrawlExecutionState[CrawlExecutionState[proto.getDesiredState()]]
+      id: proto.id,
+      jobId: proto.jobId,
+      seedId: proto.seedId,
+      state: proto.state as unknown as CrawlExecutionState,
+      startTime: fromTimestampProto(proto.startTime),
+      endTime: fromTimestampProto(proto.endTime),
+      documentsCrawled: Number(proto.documentsCrawled),
+      bytesCrawled: Number(proto.bytesCrawled),
+      urisCrawled: Number(proto.urisCrawled),
+      documentsFailed: Number(proto.documentsFailed),
+      documentsOutOfScope: Number(proto.documentsOutOfScope),
+      documentsRetried: Number(proto.documentsRetried),
+      documentsDenied: Number(proto.documentsDenied),
+      lastChangeTime: fromTimestampProto(proto.lastChangeTime),
+      createdTime: fromTimestampProto(proto.createdTime),
+      currentUriIdList: proto.currentUriId,
+      jobExecutionId: proto.jobExecutionId,
+      error: ApiError.fromProto(proto.error),
+      desiredState: proto.desiredState as unknown as CrawlExecutionState
     });
     return crawlExecutionStatus;
   }
 
   static toProto(crawlExecutionStatus: CrawlExecutionStatus): CrawlExecutionStatusProto {
-    const proto = new CrawlExecutionStatusProto();
-    proto.setId(crawlExecutionStatus.id);
-    proto.setJobId(crawlExecutionStatus.jobId);
-    proto.setSeedId(crawlExecutionStatus.seedId);
-    proto.setState(crawlExecutionStatus.state.valueOf());
-    proto.setStartTime(toTimestampProto(crawlExecutionStatus.startTime));
-    proto.setEndTime(toTimestampProto(crawlExecutionStatus.endTime));
-    proto.setDocumentsCrawled(crawlExecutionStatus.documentsCrawled);
-    proto.setBytesCrawled(crawlExecutionStatus.bytesCrawled);
-    proto.setUrisCrawled(crawlExecutionStatus.urisCrawled);
-    proto.setDocumentsFailed(crawlExecutionStatus.documentsFailed);
-    proto.setDocumentsOutOfScope(crawlExecutionStatus.documentsOutOfScope);
-    proto.setDocumentsRetried(crawlExecutionStatus.documentsRetried);
-    proto.setDocumentsDenied(crawlExecutionStatus.documentsDenied);
-    proto.setLastChangeTime(toTimestampProto(crawlExecutionStatus.lastChangeTime));
-    proto.setCreatedTime(toTimestampProto(crawlExecutionStatus.createdTime));
-    proto.setCurrentUriIdList(crawlExecutionStatus.currentUriIdList);
-    proto.setJobExecutionId(crawlExecutionStatus.jobExecutionId);
-    proto.setDesiredState(crawlExecutionStatus.desiredState.valueOf());
-    return proto;
+    return create(CrawlExecutionStatusSchema, {
+      id: crawlExecutionStatus.id,
+      jobId: crawlExecutionStatus.jobId,
+      seedId: crawlExecutionStatus.seedId,
+      state: crawlExecutionStatus.state.valueOf(),
+      startTime: toTimestampProto(crawlExecutionStatus.startTime),
+      endTime: toTimestampProto(crawlExecutionStatus.endTime),
+      documentsCrawled: BigInt(crawlExecutionStatus.documentsCrawled || 0),
+      bytesCrawled: BigInt(crawlExecutionStatus.bytesCrawled || 0),
+      urisCrawled: BigInt(crawlExecutionStatus.urisCrawled || 0),
+      documentsFailed: BigInt(crawlExecutionStatus.documentsFailed || 0),
+      documentsOutOfScope: BigInt(crawlExecutionStatus.documentsOutOfScope || 0),
+      documentsRetried: BigInt(crawlExecutionStatus.documentsRetried || 0),
+      documentsDenied: BigInt(crawlExecutionStatus.documentsDenied || 0),
+      lastChangeTime: toTimestampProto(crawlExecutionStatus.lastChangeTime),
+      createdTime: toTimestampProto(crawlExecutionStatus.createdTime),
+      currentUriId: crawlExecutionStatus.currentUriIdList,
+      jobExecutionId: crawlExecutionStatus.jobExecutionId,
+      desiredState: crawlExecutionStatus.desiredState.valueOf(),
+    });
   }
 }

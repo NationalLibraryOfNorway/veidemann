@@ -2,7 +2,7 @@ import {AbstractControl, ValidationErrors} from '@angular/forms';
 import {from, Observable, of} from 'rxjs';
 import {catchError, filter, map, mergeMap, toArray} from 'rxjs/operators';
 import {ConfigObject, ConfigRef, Kind} from '../models';
-import {ListRequest} from '../../../api';
+import {ListRequest} from '../../../api/config/v1/config_pb';
 import {createSimilarDomainRegExpString} from './patterns';
 import { createListRequest } from '../../features/config/func/query';
 import { ConfigApiService } from '../../core';
@@ -12,7 +12,7 @@ function seedWithMatchingUrl(url: string): ListRequest | null {
   const request = createListRequest(Kind.SEED);
   const similarUrlRegexp = createSimilarDomainRegExpString(url);
   if (similarUrlRegexp) {
-    request.setNameRegex(similarUrlRegexp);
+    request.nameRegex = similarUrlRegexp;
     return request;
   } else {
     return null;
@@ -48,7 +48,7 @@ export class SeedUrlValidator {
               seedsOnSameDomain.length ? {seedExistsOnEntity: seedsOnSameDomain} : {});
             return validationErrors;
           }),
-          catchError((error) => {
+          catchError(() => {
             return of(null);
           })
         );
@@ -56,4 +56,3 @@ export class SeedUrlValidator {
     };
   }
 }
-

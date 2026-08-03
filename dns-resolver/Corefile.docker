@@ -6,7 +6,6 @@
     reload 60s
     metadata
     archivingcache {
-        eviction 1h
         olricAddress {$OLRIC_ADDRESS}
         olricDmap {$OLRIC_DMAP}
         contentWriterHost {$CONTENT_WRITER_HOST}

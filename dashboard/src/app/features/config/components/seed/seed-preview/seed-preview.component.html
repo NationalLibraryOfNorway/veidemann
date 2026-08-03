@@ -17,7 +17,7 @@
         <tr>
           @if (execution) {
             <td>
-              <a class="formattedUri" [routerLink]="['/report/crawlexecution/'+execution?.id]"
+              <a class="formattedUri" [routerLink]="['/report/crawlexecution/'+$safeNavigationMigration(execution?.id)]"
                 matTooltip="Show crawlexecution report">
               {{execution.jobId | getJobNamePipe | async}}</a>
             </td>

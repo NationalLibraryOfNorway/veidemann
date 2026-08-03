@@ -1,109 +1,132 @@
 import {ErrorHandler, Injectable} from '@angular/core';
-
-import {from, Observable, Observer, of} from 'rxjs';
+import {CallOptions, Client, createClient} from '@connectrpc/connect';
+import {createGrpcWebTransport} from '@connectrpc/connect-web';
+import {from, MonoTypeOperatorFunction, Observable, of} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 
 import {
-  ConfigObjectProto,
-  ConfigPromiseClient,
+  Config,
   GetLabelKeysRequest,
   GetScriptAnnotationsRequest,
-  GetScriptAnnotationsResponse,
-  LabelKeysResponse,
   ListRequest,
-  UpdateRequest
-} from '../../../api';
+  UpdateRequest,
+} from '../../../api/config/v1/config_pb';
 import {AuthService} from '../auth';
-import {Annotation, ConfigObject, ConfigRef} from '../../shared/models/config';
+import {
+  Annotation,
+  ConfigObject,
+  ConfigRef,
+  LogLevels,
+} from '../../shared/models/config';
 import {ApplicationErrorHandler} from '../error.handler';
 import {AppConfig} from '../../app.config';
+import {fromServerStream} from './connect-observable';
 
-const catchConfigError = (errorService: ErrorHandler, returnValue: any) =>
-  catchError(error => {
+const catchConfigError = <T>(errorService: ErrorHandler, returnValue: T): MonoTypeOperatorFunction<T> =>
+  catchError((error: unknown) => {
     errorService.handleError(error);
     return of(returnValue);
   });
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({providedIn: 'root'})
 export class ConfigApiService {
+  private client?: Client<typeof Config>;
 
-  private configPromiseClient: ConfigPromiseClient;
+  constructor(
+    protected authService: AuthService,
+    private appConfig: AppConfig,
+    private errorHandler: ApplicationErrorHandler,
+  ) {}
 
-  constructor(protected authService: AuthService,
-              private appConfig: AppConfig,
-              private errorHandler: ApplicationErrorHandler) {
-    this.configPromiseClient = new ConfigPromiseClient(appConfig.grpcWebUrl, null, null);
+  private getClient(): Client<typeof Config> {
+    if (!this.client) {
+      if (!this.appConfig.grpcWebUrl) {
+        throw new Error('grpcWebUrl is not configured yet');
+      }
+      this.client = createClient(Config, createGrpcWebTransport({
+        baseUrl: this.appConfig.grpcWebUrl,
+      }));
+    }
+    return this.client;
+  }
+
+  private get callOptions(): CallOptions {
+    return {headers: this.authService.metadata};
   }
 
   list(listRequest: ListRequest): Observable<ConfigObject> {
-    return new Observable((observer: Observer<ConfigObjectProto>) => {
-      const stream = this.configPromiseClient.listConfigObjects(listRequest, this.authService.metadata)
-        .on('data', (data) => observer.next(data))
-        .on('error', error => observer.error(error))
-        .on('end', () => observer.complete());
-      return () => stream.cancel();
-    }).pipe(
+    return fromServerStream(signal => this.getClient().listConfigObjects(listRequest, {
+      ...this.callOptions,
+      signal,
+    })).pipe(
       map(ConfigObject.fromProto),
-      catchConfigError(this.errorHandler, null)
+      catchConfigError<ConfigObject>(this.errorHandler, null),
     );
   }
 
   count(request: ListRequest): Observable<number> {
-    return from(this.configPromiseClient.countConfigObjects(request, this.authService.metadata))
-      .pipe(
-        map(listCountResponse => listCountResponse.getCount()),
-        catchConfigError(this.errorHandler, 0)
-      );
+    return from(this.getClient().countConfigObjects(request, this.callOptions)).pipe(
+      map(response => Number(response.count)),
+      catchConfigError<number>(this.errorHandler, 0),
+    );
   }
 
   get(configRef: ConfigRef): Observable<ConfigObject> {
-    return from(this.configPromiseClient.getConfigObject(ConfigRef.toProto(configRef), this.authService.metadata))
-      .pipe(
-        map(ConfigObject.fromProto),
-        catchConfigError(this.errorHandler, null)
-      );
+    return from(this.getClient().getConfigObject(ConfigRef.toProto(configRef), this.callOptions)).pipe(
+      map(ConfigObject.fromProto),
+      catchConfigError<ConfigObject>(this.errorHandler, null),
+    );
   }
 
   save(config: ConfigObject): Observable<ConfigObject> {
-    return from(this.configPromiseClient.saveConfigObject(ConfigObject.toProto(config), this.authService.metadata)).pipe(
+    return from(this.getClient().saveConfigObject(ConfigObject.toProto(config), this.callOptions)).pipe(
       map(ConfigObject.fromProto),
-      catchConfigError(this.errorHandler, null)
+      catchConfigError<ConfigObject>(this.errorHandler, null),
     );
   }
 
   update(updateRequest: UpdateRequest): Observable<number> {
-    return from(this.configPromiseClient.updateConfigObjects(updateRequest, this.authService.metadata)).pipe(
-      map(updateResponse => updateResponse.getUpdated()),
-      catchConfigError(this.errorHandler, null)
+    return from(this.getClient().updateConfigObjects(updateRequest, this.callOptions)).pipe(
+      map(response => Number(response.updated)),
+      catchConfigError<number>(this.errorHandler, 0),
     );
   }
 
   delete(configObject: ConfigObject): Observable<boolean> {
-    return from(this.configPromiseClient.deleteConfigObject(ConfigObject.toProto(configObject), this.authService.metadata))
-      .pipe(
-        map(deleteResponse => deleteResponse.getDeleted()),
-        catchError(error => {
-          this.errorHandler.handleDeleteError(error, configObject);
-          return of(false);
-        })
-      );
+    return from(this.getClient().deleteConfigObject(ConfigObject.toProto(configObject), this.callOptions)).pipe(
+      map(response => response.deleted),
+      catchError(error => {
+        this.errorHandler.handleDeleteError(error, configObject);
+        return of(false);
+      }),
+    );
   }
 
-  getLabelKeys(request: GetLabelKeysRequest): Observable<Array<string>> {
-    return from(this.configPromiseClient.getLabelKeys(request, this.authService.metadata))
-      .pipe(
-        map((response: LabelKeysResponse) => response.getKeyList()),
-        catchConfigError(this.errorHandler, [])
-      );
+  getLabelKeys(request: GetLabelKeysRequest): Observable<string[]> {
+    return from(this.getClient().getLabelKeys(request, this.callOptions)).pipe(
+      map(response => response.key),
+      catchConfigError<string[]>(this.errorHandler, []),
+    );
   }
 
-  getScriptAnnotations(request: GetScriptAnnotationsRequest): Observable<Array<Annotation>> {
-    return from(this.configPromiseClient.getScriptAnnotations(request, this.authService.metadata))
-      .pipe(
-        map((response: GetScriptAnnotationsResponse) => response.getAnnotationList().map(Annotation.fromProto)),
-        catchConfigError(this.errorHandler, [])
-      );
+  getScriptAnnotations(request: GetScriptAnnotationsRequest): Observable<Annotation[]> {
+    return from(this.getClient().getScriptAnnotations(request, this.callOptions)).pipe(
+      map(response => response.annotation.map(Annotation.fromProto)),
+      catchConfigError<Annotation[]>(this.errorHandler, []),
+    );
+  }
+
+  getLogConfig(): Observable<LogLevels> {
+    return from(this.getClient().getLogConfig({}, this.callOptions)).pipe(
+      map(LogLevels.fromProto),
+      catchConfigError<LogLevels>(this.errorHandler, null),
+    );
+  }
+
+  saveLogConfig(logLevels: LogLevels): Observable<LogLevels> {
+    return from(this.getClient().saveLogConfig(LogLevels.toProto(logLevels), this.callOptions)).pipe(
+      map(LogLevels.fromProto),
+      catchConfigError<LogLevels>(this.errorHandler, null),
+    );
   }
 }

@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {Observable, Subject, throwError} from 'rxjs';
 import {catchError} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
@@ -19,6 +19,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     CrawlerStatusComponent,
     LayoutDirective,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class DashboardComponent implements OnInit {

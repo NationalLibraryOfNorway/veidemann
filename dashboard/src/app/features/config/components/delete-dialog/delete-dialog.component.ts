@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Inject, Output} from '@angular/core';
+import {Component, EventEmitter, Inject, Output, ChangeDetectionStrategy} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
 import {MatButtonModule} from '@angular/material/button';
@@ -12,6 +12,7 @@ import {FlexDirective} from '@ngbracket/ngx-layout';
     MatButtonModule,
     MatDialogModule
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class DeleteDialogComponent {

@@ -1,18 +1,19 @@
+import {create} from '@bufbuild/protobuf';
 import {ConfigObject, Kind} from '../../../shared/models';
-import {FieldMask, ListRequest} from '../../../../api';
+import {FieldMask} from '../../../../api/commons/v1/resources_pb';
+import {ListRequest, ListRequestSchema} from '../../../../api/config/v1/config_pb';
 
 export function createListRequest(kind: Kind, queryTemplate?: Partial<ConfigObject>, queryMask?: FieldMask) {
-  const listRequest = new ListRequest();
-  listRequest.setKind(kind.valueOf());
+  const listRequest = create(ListRequestSchema, {kind: kind.valueOf()});
 
   if (queryTemplate) {
     const configObject = new ConfigObject();
     Object.assign(configObject, queryTemplate);
 
-    listRequest.setQueryTemplate(ConfigObject.toProto(configObject));
+    listRequest.queryTemplate = ConfigObject.toProto(configObject);
   }
   if (queryMask) {
-    listRequest.setQueryMask(queryMask);
+    listRequest.queryMask = queryMask;
   }
   return listRequest;
 }

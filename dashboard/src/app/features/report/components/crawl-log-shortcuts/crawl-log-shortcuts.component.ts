@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {CrawlLog} from '../../../../shared/models';
 import {Observable} from 'rxjs';
 import {AbilityService} from '@casl/angular';
@@ -18,6 +18,7 @@ import {MatIcon} from '@angular/material/icon';
     MatListModule,
 
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawlLogShortcutsComponent {

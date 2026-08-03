@@ -216,7 +216,7 @@
                     @if (row.crawlConfig?.collectionRef?.id) {
                       @if (ability.can('read', Kind[Kind.COLLECTION])) {
                         <a mat-menu-item
-                          [routerLink]="['../collection', row.crawlConfig.collectionRef?.id]"
+                          [routerLink]="['../collection', $safeNavigationMigration(row.crawlConfig.collectionRef?.id)]"
                           i18n="@@configListActionButtonGoToCollection"
                           matTooltip="Go to collection: {{row | getCollectionName | async}}"
                           matTooltipPosition="left"
@@ -231,7 +231,7 @@
                     @if (row.crawlConfig?.browserConfigRef?.id) {
                       @if (ability.can('read', Kind[Kind.BROWSERCONFIG])) {
                         <a mat-menu-item
-                          [routerLink]="['../browserconfig', row.crawlConfig.browserConfigRef?.id]"
+                          [routerLink]="['../browserconfig', $safeNavigationMigration(row.crawlConfig.browserConfigRef?.id)]"
                           i18n="@@configListActionButtonGoToBrowserconfig"
                           matTooltip="Go to browserconfig: {{row | getBrowserConfigName | async}}"
                           matTooltipPosition="left"
@@ -246,7 +246,7 @@
                     @if (row.crawlConfig?.politenessRef?.id) {
                       @if (ability.can('read', Kind[Kind.POLITENESSCONFIG])) {
                         <a mat-menu-item
-                          [routerLink]="['../politenessconfig', row.crawlConfig.politenessRef?.id]"
+                          [routerLink]="['../politenessconfig', $safeNavigationMigration(row.crawlConfig.politenessRef?.id)]"
                           i18n="@@configListActionButtonGoToPolitenessconfig"
                           matTooltip="Go to politenessconfig: {{row | getPolitenessConfigName | async}}"
                           matTooltipPosition="left"
@@ -334,7 +334,7 @@
                     @if (row.crawlJob?.scheduleRef.id) {
                       @if (ability.can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
                         <a mat-menu-item
-                          [routerLink]="['../schedule', row.crawlJob.scheduleRef?.id ]"
+                          [routerLink]="['../schedule', $safeNavigationMigration(row.crawlJob.scheduleRef?.id) ]"
                           i18n="@@configListActionButtonGoToSchedule"
                           matTooltip="Go to schedule: {{row | getCrawlScheduleName | async}}"
                           matTooltipPosition="left"
@@ -349,7 +349,7 @@
                     @if (row.crawlJob?.crawlConfigRef?.id) {
                       @if (ability.can('read', Kind[Kind.CRAWLCONFIG])) {
                         <a mat-menu-item
-                          [routerLink]="['../crawlconfig', row.crawlJob.crawlConfigRef?.id]"
+                          [routerLink]="['../crawlconfig', $safeNavigationMigration(row.crawlJob.crawlConfigRef?.id)]"
                           i18n="@@configListActionButtonGoToCrawlconfig"
                           matTooltip="Go to crawlconfig: {{row | getCrawlConfigName | async}}"
                           matTooltipPosition="left"

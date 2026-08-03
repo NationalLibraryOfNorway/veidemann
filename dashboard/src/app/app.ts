@@ -1,5 +1,5 @@
 import {CommonModule} from "@angular/common";
-import {Component} from "@angular/core";
+import {Component, ChangeDetectionStrategy} from "@angular/core";
 import {initError} from "./app.config";
 import {RouterOutlet} from '@angular/router';
 
@@ -7,6 +7,7 @@ import {RouterOutlet} from '@angular/router';
   standalone: true,
   selector: 'app-root',
   imports: [CommonModule, RouterOutlet],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
   @defer (when appReady()) {
     <router-outlet />

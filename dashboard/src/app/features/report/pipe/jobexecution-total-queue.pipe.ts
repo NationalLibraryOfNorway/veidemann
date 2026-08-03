@@ -4,7 +4,9 @@ import {Observable, of} from 'rxjs';
 import {map, mergeMap, reduce,} from 'rxjs/operators';
 import {ExecutionId} from '../../../shared/models';
 import {ControllerApiService, ReportApiService} from '../../../core';
-import {CrawlExecutionsListRequest, FieldMask} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
+import {CrawlExecutionsListRequestSchema} from '../../../../api/report/v1/report_pb';
 
 @Pipe({
     name: 'getUrlQueueForJobExecution',
@@ -34,26 +36,16 @@ export class JobexecutionTotalQueuePipe implements PipeTransform {
       return of(0);
     }
 
-    const listRequest = new CrawlExecutionsListRequest();
-
     const queryTemplate = new CrawlExecutionStatus();
     queryTemplate.jobExecutionId = jobExectionStatus.id;
     queryTemplate.jobId = jobExectionStatus.jobId;
 
-    const fieldMask = new FieldMask();
-    fieldMask.addPaths('jobExecutionId');
-    fieldMask.addPaths('jobId')
-
-
-    const returnedFields = new FieldMask();
-    returnedFields.addPaths('state');
-    returnedFields.addPaths('id');
-    returnedFields.addPaths('jobExecutionId');
-
-    listRequest.setQueryTemplate(CrawlExecutionStatus.toProto(queryTemplate));
-    listRequest.setQueryMask(fieldMask);
-    listRequest.setReturnedFieldsMask(returnedFields);
-    listRequest.setStateList(activeExecutionStates);
+    const listRequest = create(CrawlExecutionsListRequestSchema, {
+      queryTemplate: CrawlExecutionStatus.toProto(queryTemplate),
+      queryMask: create(FieldMaskSchema, {paths: ['jobExecutionId', 'jobId']}),
+      returnedFieldsMask: create(FieldMaskSchema, {paths: ['state', 'id', 'jobExecutionId']}),
+      state: activeExecutionStates
+    });
 
     return this.reportApiService.listCrawlExecutions(listRequest).pipe(
       mergeMap(crawlExecutionStatus => {

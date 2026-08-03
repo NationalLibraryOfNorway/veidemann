@@ -1,4 +1,5 @@
-import {SeedProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {Seed as SeedProto, SeedSchema} from '../../../../api/config/v1/resources_pb';
 import {ConfigRef} from './configref.model';
 import {Kind} from './kind.model';
 
@@ -19,22 +20,21 @@ export class Seed {
 
   static fromProto(proto: SeedProto): Seed {
     return new Seed({
-      entityRef: proto.getEntityRef() ? ConfigRef.fromProto(proto.getEntityRef()) : new ConfigRef({kind: Kind.CRAWLENTITY}),
-      jobRefList: proto.getJobRefList().map(ref => ConfigRef.fromProto(ref)),
-      disabled: proto.getDisabled()
+      entityRef: proto.entityRef ? ConfigRef.fromProto(proto.entityRef) : new ConfigRef({kind: Kind.CRAWLENTITY}),
+      jobRefList: proto.jobRef.map(ref => ConfigRef.fromProto(ref)),
+      disabled: proto.disabled
     });
   }
 
   static toProto(seed: Seed): SeedProto {
-    const proto = new SeedProto();
-    if (seed.entityRef && seed.entityRef.id) {
-      const entityRef = new ConfigRef({kind: Kind.CRAWLENTITY, id: seed.entityRef.id});
-      proto.setEntityRef(ConfigRef.toProto(entityRef));
-    }
-    proto.setJobRefList(seed.jobRefList.map(ConfigRef.toProto));
-    proto.setDisabled(seed.disabled);
-
-    return proto;
+    const entityRef = seed.entityRef?.id
+      ? ConfigRef.toProto(new ConfigRef({kind: Kind.CRAWLENTITY, id: seed.entityRef.id}))
+      : undefined;
+    return create(SeedSchema, {
+      entityRef,
+      jobRef: seed.jobRefList.map(ConfigRef.toProto),
+      disabled: seed.disabled,
+    });
   }
 
   static merge(seeds: Seed[]): Seed {

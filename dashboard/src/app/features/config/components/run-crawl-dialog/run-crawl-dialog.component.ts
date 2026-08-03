@@ -1,4 +1,4 @@
-import {Component, Inject} from '@angular/core';
+import {Component, Inject, ChangeDetectionStrategy} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {RunCrawlReply, RunCrawlRequest} from '../../../../shared/models/controller/controller.model';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
@@ -18,6 +18,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatSelectModule,
     FormsModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 

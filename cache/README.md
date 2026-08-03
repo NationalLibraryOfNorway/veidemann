@@ -53,6 +53,12 @@ The child configuration uses `cache deny all`; `proxy-only` also prevents
 objects received from a parent from being stored by the child. Object storage
 therefore belongs exclusively to the parent tier.
 
+Both Squid roles resolve names through the configured `DNS_SERVERS`. Their DNS
+cache accepts positive answers for at most seven days and uses a one-second
+negative TTL, which is also Squid's minimum positive-cache lifetime. The DNS
+resolver supplies the remaining authoritative TTL, so shorter positive TTLs
+remain shorter except for Squid's unavoidable one-second minimum.
+
 The parent renders `squid.conf.template`, which configures TLS bump, the
 `storeid` helper, origin-compliant caching, and origin access. When disk-cache
 sizing is enabled, the entrypoint measures the filesystem mounted at

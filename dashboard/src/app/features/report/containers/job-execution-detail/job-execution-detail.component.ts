@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute} from '@angular/router';
 import {combineLatest, merge, Observable} from 'rxjs';
@@ -21,6 +21,7 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   templateUrl: './job-execution-detail.component.html',
   styleUrls: ['./job-execution-detail.component.css'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     FlexDirective,

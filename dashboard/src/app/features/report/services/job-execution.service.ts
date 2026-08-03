@@ -1,7 +1,9 @@
-import {Inject, Injectable} from '@angular/core';
+import {Injectable} from '@angular/core';
 import {EMPTY, Observable} from 'rxjs';
+import {create} from '@bufbuild/protobuf';
 
-import {FieldMask, JobExecutionsListRequest} from '../../../../api';
+import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
+import {JobExecutionsListRequest, JobExecutionsListRequestSchema} from '../../../../api/report/v1/report_pb';
 import {ConfigObject, ConfigRef, JobExecutionState, JobExecutionStatus, Kind} from '../../../shared/models';
 import {ReportApiService} from '../../../core';
 import {catchError, shareReplay} from 'rxjs/operators';
@@ -31,52 +33,50 @@ export class JobExecutionService extends LoadingService
   }
 
   private static getListRequest(query: JobExecutionStatusQuery): JobExecutionsListRequest {
-    const listRequest = new JobExecutionsListRequest();
+    const listRequest = create(JobExecutionsListRequestSchema, {
+      offset: query.pageIndex * query.pageSize,
+      pageSize: query.pageSize
+    });
     const queryTemplate = new JobExecutionStatus();
-    const fieldMask = new FieldMask();
-
-    listRequest.setOffset(query.pageIndex * query.pageSize);
-    listRequest.setPageSize(query.pageSize);
+    const fieldMask = create(FieldMaskSchema);
 
     if (query.jobId) {
       queryTemplate.jobId = query.jobId;
-      fieldMask.addPaths('jobId');
+      fieldMask.paths.push('jobId');
     }
 
-    if (fieldMask.getPathsList().length > 0) {
-      listRequest.setQueryTemplate(JobExecutionStatus.toProto(queryTemplate));
-      listRequest.setQueryMask(fieldMask);
+    if (fieldMask.paths.length > 0) {
+      listRequest.queryTemplate = JobExecutionStatus.toProto(queryTemplate);
+      listRequest.queryMask = fieldMask;
     }
 
     if (query.startTimeTo) {
-      listRequest.setStartTimeTo(toTimestampProto(query.startTimeTo));
+      listRequest.startTimeTo = toTimestampProto(query.startTimeTo);
     }
 
     if (query.startTimeFrom) {
-      listRequest.setStartTimeFrom(toTimestampProto(query.startTimeFrom));
+      listRequest.startTimeFrom = toTimestampProto(query.startTimeFrom);
     }
 
     if (query.stateList.length) {
-      listRequest.setStateList(query.stateList.map(state => state.valueOf()));
+      listRequest.state = query.stateList.map(state => state.valueOf());
     }
 
     if (query.watch) {
-      listRequest.setWatch(query.watch);
+      listRequest.watch = query.watch;
     }
 
 
     if (query.direction && query.active) {
-      listRequest.setOrderByPath(query.active);
-      listRequest.setOrderDescending(query.direction === 'desc');
+      listRequest.orderByPath = query.active;
+      listRequest.orderDescending = query.direction === 'desc';
     }
 
     return listRequest;
   }
 
   get(query: Detail): Observable<JobExecutionStatus> {
-    const listRequest = new JobExecutionsListRequest();
-    listRequest.addId(query.id);
-    listRequest.setWatch(query.watch);
+    const listRequest = create(JobExecutionsListRequestSchema, {id: [query.id], watch: query.watch});
     return this.reportApiService.listJobExecutions(listRequest);
   }
 
@@ -87,7 +87,7 @@ export class JobExecutionService extends LoadingService
     }
     const job$: Observable<ConfigObject> = this.configService.get(configRef).pipe(
       shareReplay(1),
-      catchError(err => {
+      catchError(() => {
         this.cache.delete(id);
         return EMPTY;
       })

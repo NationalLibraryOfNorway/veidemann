@@ -1,5 +1,5 @@
 import {CommonModule} from '@angular/common';
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import {MatIconModule} from '@angular/material/icon';
 import {ActivatedRoute} from '@angular/router';
 import {Observable} from 'rxjs';
@@ -16,6 +16,7 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   templateUrl: './crawl-log-detail.component.html',
   styleUrls: ['./crawl-log-detail.component.css'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     CrawlLogShortcutsComponent,

@@ -1,7 +1,7 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {DurationFormatPipe} from '../../../../../shared/pipes/duration-format.pipe';
-import {NgxFilesizeModule} from 'ngx-filesize';
+import {FileSizePipe} from '../../../../../shared/pipes/filesize.pipe';
 import {ScriptAnnotationsPipe} from '../../../pipe';
 import {AsyncPipe} from '@angular/common';
 import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
@@ -15,10 +15,11 @@ import {MatLabel} from '@angular/material/form-field';
     AsyncPipe,
     DurationFormatPipe,
     MatLabel,
-    NgxFilesizeModule,
+    FileSizePipe,
     ScriptAnnotationComponent,
     ScriptAnnotationsPipe
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class CrawljobPreviewComponent {

@@ -1,4 +1,9 @@
-import {Collection as CollectionProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  Collection_SubCollection as SubCollectionProto,
+  Collection_SubCollectionSchema,
+  Collection_SubCollectionType as SubCollectionTypeProto,
+} from '../../../../api/config/v1/resources_pb';
 import {isNumeric} from '../../func';
 
 
@@ -22,17 +27,17 @@ export class SubCollection {
     this.name = name;
   }
 
-  static fromProto(proto: CollectionProto.SubCollection): SubCollection {
+  static fromProto(proto: SubCollectionProto): SubCollection {
     return new SubCollection({
-      type: proto.getType(),
-      name: proto.getName()
+      type: proto.type as unknown as SubCollectionType,
+      name: proto.name
     });
   }
 
-  static toProto(subCollection: SubCollection): CollectionProto.SubCollection {
-    const proto = new CollectionProto.SubCollection();
-    proto.setType(subCollection.type);
-    proto.setName(subCollection.name);
-    return proto;
+  static toProto(subCollection: SubCollection): SubCollectionProto {
+    return create(Collection_SubCollectionSchema, {
+      type: subCollection.type as unknown as SubCollectionTypeProto,
+      name: subCollection.name
+    });
   }
 }

@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../../shared/models/config';
 import {Params, RouterLink} from '@angular/router';
 import {Observable} from "rxjs";
@@ -18,6 +18,7 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatTooltip,
     RouterLink,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class FilterShortcutComponent {

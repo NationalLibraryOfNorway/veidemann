@@ -1538,10 +1538,13 @@ func (x *BrowserConfig) GetMaxInactivityTimeMs() int64 {
 }
 
 type PolitenessConfig struct {
-	state                          protoimpl.MessageState        `protogen:"open.v1"`
-	RobotsPolicy                   PolitenessConfig_RobotsPolicy `protobuf:"varint,3,opt,name=robots_policy,json=robotsPolicy,proto3,enum=veidemann.api.config.v1.PolitenessConfig_RobotsPolicy" json:"robots_policy,omitempty"`
-	MinimumRobotsValidityDurationS int32                         `protobuf:"varint,11,opt,name=minimum_robots_validity_duration_s,json=minimumRobotsValidityDurationS,proto3" json:"minimum_robots_validity_duration_s,omitempty"`
-	CustomRobots                   string                        `protobuf:"bytes,20,opt,name=custom_robots,json=customRobots,proto3" json:"custom_robots,omitempty"`
+	state        protoimpl.MessageState        `protogen:"open.v1"`
+	RobotsPolicy PolitenessConfig_RobotsPolicy `protobuf:"varint,3,opt,name=robots_policy,json=robotsPolicy,proto3,enum=veidemann.api.config.v1.PolitenessConfig_RobotsPolicy" json:"robots_policy,omitempty"`
+	// Deprecated: robots cache freshness is configured by robots-evaluator.
+	//
+	// Deprecated: Marked as deprecated in config/v1/resources.proto.
+	MinimumRobotsValidityDurationS int32  `protobuf:"varint,11,opt,name=minimum_robots_validity_duration_s,json=minimumRobotsValidityDurationS,proto3" json:"minimum_robots_validity_duration_s,omitempty"`
+	CustomRobots                   string `protobuf:"bytes,20,opt,name=custom_robots,json=customRobots,proto3" json:"custom_robots,omitempty"`
 	// If true, use hostname instead of ip for politeness
 	UseHostname   bool `protobuf:"varint,10,opt,name=use_hostname,json=useHostname,proto3" json:"use_hostname,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1585,6 +1588,7 @@ func (x *PolitenessConfig) GetRobotsPolicy() PolitenessConfig_RobotsPolicy {
 	return PolitenessConfig_OBEY_ROBOTS
 }
 
+// Deprecated: Marked as deprecated in config/v1/resources.proto.
 func (x *PolitenessConfig) GetMinimumRobotsValidityDurationS() int32 {
 	if x != nil {
 		return x.MinimumRobotsValidityDurationS
@@ -2292,10 +2296,10 @@ const file_config_v1_resources_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aC\n" +
 	"\x15ScriptParametersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb5\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb9\x03\n" +
 	"\x10PolitenessConfig\x12[\n" +
-	"\rrobots_policy\x18\x03 \x01(\x0e26.veidemann.api.config.v1.PolitenessConfig.RobotsPolicyR\frobotsPolicy\x12J\n" +
-	"\"minimum_robots_validity_duration_s\x18\v \x01(\x05R\x1eminimumRobotsValidityDurationS\x12#\n" +
+	"\rrobots_policy\x18\x03 \x01(\x0e26.veidemann.api.config.v1.PolitenessConfig.RobotsPolicyR\frobotsPolicy\x12N\n" +
+	"\"minimum_robots_validity_duration_s\x18\v \x01(\x05B\x02\x18\x01R\x1eminimumRobotsValidityDurationS\x12#\n" +
 	"\rcustom_robots\x18\x14 \x01(\tR\fcustomRobots\x12!\n" +
 	"\fuse_hostname\x18\n" +
 	" \x01(\bR\vuseHostname\"\xaf\x01\n" +

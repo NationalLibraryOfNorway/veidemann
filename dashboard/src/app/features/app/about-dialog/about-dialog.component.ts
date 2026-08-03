@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {environment} from '../../../../environments/environment';
 import {MatDivider, MatList, MatListSubheaderCssMatStyler} from '@angular/material/list';
 import {MatDialogModule} from '@angular/material/dialog';
@@ -15,6 +15,7 @@ import {MatButtonModule} from '@angular/material/button';
     MatButtonModule,
     MatListSubheaderCssMatStyler
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 

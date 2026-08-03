@@ -1,4 +1,11 @@
-import {LogLevelsProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  LogLevels as LogLevelsProto,
+  LogLevelsSchema,
+  LogLevels_LogLevel as LogLevelProto,
+  LogLevels_LogLevelSchema,
+  LogLevels_Level as LevelProto,
+} from '../../../../api/config/v1/resources_pb';
 import {isNumeric} from '../../func';
 
 export enum Level {
@@ -27,17 +34,17 @@ export class LogLevel {
     this.level = level;
   }
 
-  static toProto(logLevel: LogLevel): LogLevelsProto.LogLevel {
-    const logLevelProto = new LogLevelsProto.LogLevel();
-    logLevelProto.setLogger(logLevel.logger);
-    logLevelProto.setLevel(logLevel.level);
-    return logLevelProto;
+  static toProto(logLevel: LogLevel): LogLevelProto {
+    return create(LogLevels_LogLevelSchema, {
+      logger: logLevel.logger,
+      level: logLevel.level as unknown as LevelProto
+    });
   }
 
-  static fromProto(logLevel: LogLevelsProto.LogLevel): LogLevel {
+  static fromProto(logLevel: LogLevelProto): LogLevel {
     return new LogLevel({
-      level: logLevel.getLevel(),
-      logger: logLevel.getLogger()
+      level: logLevel.level as unknown as Level,
+      logger: logLevel.logger
     });
   }
 }
@@ -50,15 +57,12 @@ export class LogLevels {
   }
 
   static toProto(logLevels: LogLevels): LogLevelsProto {
-    const proto = new LogLevelsProto();
-    proto.setLogLevelList(logLevels.logLevelList.map(logLevel => LogLevel.toProto(logLevel)));
-    return proto;
+    return create(LogLevelsSchema, {logLevel: logLevels.logLevelList.map(LogLevel.toProto)});
   }
 
   static fromProto(logLevels: LogLevelsProto): LogLevels {
     return {
-      logLevelList: logLevels.getLogLevelList()
-        .map(logLevel => new LogLevel({logger: logLevel.getLogger(), level: logLevel.getLevel()}))
+      logLevelList: logLevels.logLevel.map(LogLevel.fromProto)
     };
   }
 }

@@ -43,20 +43,45 @@ The marker only authorizes the Sentinel sidecar on `kvrocks-0` to create initial
 
 During that first handoff, the Sentinel sidecar waits for the local StatefulSet pod FQDN to resolve and then monitors the bootstrap master by that stable DNS name. This avoids the initial DNS race without persisting a pod IP as durable master identity.
 
-On startup, pods first ask existing Sentinels for the current master. Sentinel state is stored on the pod PVC, so normal restarts preserve the last known master and config epoch.
+On startup, pods first ask existing Sentinels for the current master. Sentinel state is stored on the pod PVC, so normal restarts preserve the last known master and config epoch. An empty `kvrocks-0` still bootstraps immediately. Other pods wait up to 90 seconds, polling every 2 seconds, so Sentinel can become available without forcing an otherwise healthy pod through repeated startup restarts.
 
-If a pod has existing data but no Sentinel can provide the current master, the pod now fails closed instead of falling back to `kvrocks-0`. This prevents stale-master resurrection after a full outage.
+If a pod has existing data but no Sentinel can provide the current master by the end of that wait, the pod fails closed instead of falling back to `kvrocks-0`. This prevents stale-master resurrection after a full outage. The wait is shorter than the 150-second startup-probe allowance.
 
 If durable Sentinel state is unavailable and operator recovery is required, set `KVROCKS_RECOVERY_MASTER` to the chosen pod DNS name before restarting the StatefulSet, for example `kvrocks-1.kvrocks-headless.<namespace>.svc`.
 Choose `KVROCKS_RECOVERY_MASTER` only after identifying the member with the most recent valid data; setting it incorrectly can replicate stale data over newer data.
 
 During termination of the active master, the `preStop` hook asks the local Sentinel to trigger failover and waits briefly for a new master to be elected.
 
-StatefulSet updates use `OnDelete` so normal image or config rollouts do not automatically restart the current master.
+StatefulSet updates use `OnDelete` so normal image or config rollouts do not automatically restart the current master. With this strategy, `kubectl rollout restart statefulset/kvrocks` only changes the StatefulSet pod template; the controller deliberately leaves existing pods running until an operator deletes them.
 
-The StatefulSet uses `podManagementPolicy: Parallel` intentionally. With fail-closed startup, ordered startup can deadlock after a failover if `kvrocks-0` starts first, cannot discover the durable master, and blocks later pods from starting. Parallel startup avoids that recovery deadlock at the cost of some initial restart noise during first bootstrap.
+The StatefulSet uses `podManagementPolicy: Parallel` intentionally. With fail-closed startup, ordered startup can deadlock after a failover if `kvrocks-0` starts first, cannot discover the durable master, and blocks later pods from starting. Parallel startup allows every pod with durable Sentinel state to participate in recovery. The 90-second discovery wait prevents normal Sentinel startup delay from causing recurring restarts of `kvrocks-1` and `kvrocks-2` during a fresh bootstrap.
 
 The base uses best-effort pod anti-affinity so multi-node clusters spread replicas when possible, while still allowing single-node development clusters. Production overlays should replace this with required anti-affinity and stricter topology spread constraints.
+
+## Restarting Pods With `OnDelete`
+
+Use a controlled replica-first, master-last restart whenever an intended StatefulSet template change must reach existing pods. Do not delete all pods together, and do not force-delete them.
+
+1. Confirm all three pods are Ready, Sentinel reports quorum, and exactly one Kvrocks member is master with two connected replicas.
+2. Record the StatefulSet `currentRevision` and `updateRevision`, then identify the current master through Sentinel. Do not infer the master from its ordinal.
+3. Delete one replica pod. Wait for the replacement to become Ready, confirm its `controller-revision-hash` matches `updateRevision`, confirm its role is replica with a connected master, and recheck Sentinel quorum.
+4. Repeat the previous step for the other replica.
+5. Query Sentinel again because the master may have changed. Delete the current master last. Its normal `preStop` hook requests a failover before termination.
+6. Wait for the replacement pod to become Ready. Verify one master, two connected replicas, Sentinel quorum, and that every pod has the StatefulSet `updateRevision` label. The StatefulSet `currentRevision` and `updateRevision` should then match.
+
+Useful generic checks are:
+
+```sh
+kubectl -n <namespace> get pods -l app.kubernetes.io/name=kvrocks \
+  -L controller-revision-hash
+kubectl -n <namespace> get statefulset kvrocks \
+  -o jsonpath='{.status.currentRevision}{"\n"}{.status.updateRevision}{"\n"}'
+kubectl -n <namespace> wait --for=condition=Ready pod/<pod-name> --timeout=10m
+```
+
+Run authenticated `SENTINEL get-master-addr-by-name kvrocks`, `SENTINEL replicas kvrocks`, and `SENTINEL ckquorum kvrocks` checks before and after each deletion. Check the restarted member's authenticated `ROLE` output before continuing.
+
+This procedure is not suitable for credential rotation. A secret-backed environment variable changes only when a container starts, while Sentinel also retains authentication values in durable configuration. Follow the separate credential-rotation warning below instead of restarting members with mixed credentials.
 
 ## Fail-Closed Recovery
 
@@ -89,7 +114,7 @@ Do not use this path for production recovery.
 5. Scale the StatefulSet back to three replicas.
 6. Verify one master, two replicas, and healthy Sentinel quorum.
 7. Remove `KVROCKS_RECOVERY_MASTER` after the cluster has recovered.
-8. Because the StatefulSet uses `OnDelete`, recreate pods after removing the recovery env so normal Sentinel-based startup resumes.
+8. Because the StatefulSet uses `OnDelete`, use the replica-first, master-last procedure above to recreate pods after removing the recovery env so normal Sentinel-based startup resumes.
 
 To choose `KVROCKS_RECOVERY_MASTER`, prefer the known last master from logs, recent Sentinel output, or operational history. If available, use backups or other evidence to identify the newest valid data. Do not choose arbitrarily in production; picking an older member can replicate stale data over newer data.
 
@@ -110,8 +135,9 @@ After successful recovery:
 
 ```sh
 kubectl set env statefulset/kvrocks KVROCKS_RECOVERY_MASTER-
-kubectl delete pod kvrocks-0 kvrocks-1 kvrocks-2
 ```
+
+Then recreate each member with the controlled `OnDelete` procedure above. Do not delete all three pods together.
 
 ### Temporary Kustomize Patch
 
@@ -219,6 +245,12 @@ kustomize build deploy/k8s/overlays/dev/kvrocks
 
 Before applying it, replace the example passwords in [deploy/k8s/overlays/dev/kvrocks/kustomization.yaml](../../overlays/dev/kvrocks/kustomization.yaml) with real values or switch the secret generator to your normal secret source.
 
+### Credential Rotation
+
+Updating the Kubernetes Secret does not rotate credentials in running containers because secret-backed environment variables are read only when a container starts. Sentinel also persists its generated configuration, including authentication settings, on each pod's PVC.
+
+Do not automatically restart the StatefulSet when `kvrocks-auth` changes. A password change must use a separately tested, coordinated recovery procedure that updates Kvrocks clients, Kvrocks replication authentication, Sentinel client authentication, and durable Sentinel state together. Until that procedure has been validated in an isolated namespace, treat the two password values as immutable for the lifetime of a production installation.
+
 ## Usage
 
 1. Reference this base from an overlay.
@@ -283,12 +315,13 @@ This means a lone surviving master in degraded mode will keep serving internally
 Before calling an overlay production-ready, validate at least these cases:
 
 1. Deploy the base without the backup component and verify the Sentinel-managed StatefulSet still works.
-2. Empty PVC bootstrap from scratch.
-3. Simultaneous pod deletion and recreation.
-4. Simultaneous restart after failover to a non-zero ordinal master.
-5. Full cluster/node outage followed by restart, where all pods and Sentinels are unavailable at the same time.
-6. Recovery using `KVROCKS_RECOVERY_MASTER`.
-7. If using the backup component, verify each pod mounts the shared RWX backup volume and renders `backup-dir /var/lib/kvrocks-backups/<pod-name>` plus `bgsave-cron ...` into the generated Kvrocks config.
-8. If using the backup component, verify per-pod backup directories do not collide and that `BGSAVE` updates `CURRENT` as expected on the target Kvrocks image.
-9. If using the backup component, run the uploader job manually once and verify objects land in the expected bucket prefix.
-10. If using the backup component, restore at least one uploaded backup into an isolated namespace and repeat after Sentinel failover.
+2. Bootstrap from empty PVCs and verify `kvrocks-1` and `kvrocks-2` discover the master without recurring restarts.
+3. Delay Sentinel availability and verify a non-bootstrap member discovers the master within the 90-second polling window.
+4. Delete the active master and verify failover, then recreate all pods simultaneously after the master has moved to a non-zero ordinal.
+5. Make all Sentinels unavailable, restart a member with existing data, and verify startup fails closed after the discovery timeout.
+6. Recover explicitly using `KVROCKS_RECOVERY_MASTER`.
+7. Exercise the replica-first, master-last `OnDelete` restart and verify readiness, quorum, roles, pod revisions, and matching StatefulSet `currentRevision` and `updateRevision` at the end.
+8. If using the backup component, verify each pod mounts the shared RWX backup volume and renders `backup-dir /var/lib/kvrocks-backups/<pod-name>` plus `bgsave-cron ...` into the generated Kvrocks config.
+9. If using the backup component, verify per-pod backup directories do not collide and that `BGSAVE` updates `CURRENT` as expected on the target Kvrocks image.
+10. If using the backup component, run the uploader job manually once and verify objects land in the expected bucket prefix.
+11. If using the backup component, restore at least one uploaded backup into an isolated namespace and repeat after Sentinel failover.

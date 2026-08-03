@@ -44,8 +44,6 @@
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [
-              "google-protobuf/google/protobuf/timestamp_pb.js",
-              "google-protobuf/google/protobuf/empty_pb.js",
               "ip-address"
             ],
             "browser": "src/main.ts",
@@ -91,17 +89,6 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "prebundle": {
-              "exclude": [
-                "google-protobuf",
-                "google-protobuf/google/protobuf/any_pb.js",
-                "google-protobuf/google/protobuf/timestamp_pb.js",
-                "google-protobuf/google/protobuf/empty_pb.js",
-                "grpc-web"
-              ]
-            }
-          },
           "configurations": {
             "production": {
               "buildTarget": "veidemann-dashboard:build:production"
@@ -113,14 +100,6 @@
             }
           },
           "defaultConfiguration": "development"
-        },
-        "i18n": {
-          "sourceLocale": "en",
-          "locales": {
-            "no": {
-              "translation": "src/locales/messages.no.xlf"
-            }
-          }
         },
         "extract-i18n": {
           "builder": "ng-extract-i18n-merge:ng-extract-i18n-merge",
@@ -147,6 +126,14 @@
               "src/**/*.ts",
               "src/**/*.html"
             ]
+          }
+        }
+      },
+      "i18n": {
+        "sourceLocale": "en",
+        "locales": {
+          "no": {
+            "translation": "src/locales/messages.no.xlf"
           }
         }
       }

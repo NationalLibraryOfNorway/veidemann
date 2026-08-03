@@ -1,6 +1,7 @@
 import {Injectable} from '@angular/core';
 import {Observable, of} from 'rxjs';
-import {GetLabelKeysRequest} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {GetLabelKeysRequestSchema} from '../../../../api/config/v1/config_pb';
 import {ConfigApiService} from '../../../core';
 import {Kind} from '../../../shared/models';
 
@@ -26,8 +27,7 @@ export class LabelService {
     if (!this.kind) {
       return of([]);
     }
-    const request = new GetLabelKeysRequest();
-    request.setKind(this._kind.valueOf());
+    const request = create(GetLabelKeysRequestSchema, {kind: this._kind.valueOf()});
     return this.configService.getLabelKeys(request);
   }
 }

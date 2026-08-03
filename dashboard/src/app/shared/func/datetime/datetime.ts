@@ -1,4 +1,4 @@
-import * as timestamp_pb from 'google-protobuf/google/protobuf/timestamp_pb.js';
+import { timestampDate, timestampFromDate, type Timestamp } from '@bufbuild/protobuf/wkt';
 import {
   endOfDay,
   isValid,
@@ -47,22 +47,17 @@ export function isValidDate(d: Date): boolean {
   return isValid(d);
 }
 
-export function fromTimestampProto(proto: any): string {
+export function fromTimestampProto(proto?: Timestamp): string {
   if (proto) {
-    const ms = new Date(proto.getSeconds() * 1e3 + proto.getNanos() / 1e6);
-    return ms.toISOString();
+    return timestampDate(proto).toISOString();
   } else {
     return '';
   }
 }
 
-export function toTimestampProto(timestamp: string): any {
+export function toTimestampProto(timestamp: string): Timestamp | undefined {
   if (timestamp) {
-    const date = new Date(timestamp);
-    const timestampProto = new timestamp_pb.Timestamp();
-    const seconds = date.getTime() / 1000;
-    timestampProto.setSeconds(~(~seconds));
-    return timestampProto;
+    return timestampFromDate(new Date(timestamp));
   } else {
     return undefined;
   }

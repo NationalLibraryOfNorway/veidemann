@@ -1,4 +1,10 @@
-import {CrawlConfigProto, ExtraConfig as ExtraConfigProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  CrawlConfig as CrawlConfigProto,
+  CrawlConfigSchema,
+  ExtraConfig as ExtraConfigProto,
+  ExtraConfigSchema,
+} from '../../../../api/config/v1/resources_pb';
 import {ConfigRef} from './configref.model';
 import {Kind} from './kind.model';
 import {ConfigObject} from './configobject.model';
@@ -12,14 +18,12 @@ export class ExtraConfig {
 
   static fromProto(proto: ExtraConfigProto): ExtraConfig {
     return new ExtraConfig({
-      createScreenshot: proto.getCreateScreenshot()
+      createScreenshot: proto.createScreenshot
     });
   }
 
   static toProto(extraConfig: ExtraConfig): ExtraConfigProto {
-    const proto = new ExtraConfigProto();
-    proto.setCreateScreenshot(extraConfig.createScreenshot);
-    return proto;
+    return create(ExtraConfigSchema, {createScreenshot: extraConfig.createScreenshot});
   }
 }
 
@@ -49,24 +53,24 @@ export class CrawlConfig {
 
   static fromProto(proto: CrawlConfigProto): CrawlConfig {
     return new CrawlConfig({
-      collectionRef: proto.getCollectionRef() ? ConfigRef.fromProto(proto.getCollectionRef()) : null,
-      browserConfigRef: proto.getBrowserConfigRef() ? ConfigRef.fromProto(proto.getBrowserConfigRef()) : null,
-      politenessRef: proto.getPolitenessRef() ? ConfigRef.fromProto(proto.getPolitenessRef()) : null,
-      extra: ExtraConfig.fromProto(proto.getExtra()),
-      minimumDnsTtlS: proto.getMinimumDnsTtlS(),
-      priorityWeight: proto.getPriorityWeight(),
+      collectionRef: proto.collectionRef ? ConfigRef.fromProto(proto.collectionRef) : null,
+      browserConfigRef: proto.browserConfigRef ? ConfigRef.fromProto(proto.browserConfigRef) : null,
+      politenessRef: proto.politenessRef ? ConfigRef.fromProto(proto.politenessRef) : null,
+      extra: proto.extra ? ExtraConfig.fromProto(proto.extra) : undefined,
+      minimumDnsTtlS: proto.minimumDnsTtlS,
+      priorityWeight: proto.priorityWeight,
     });
   }
 
   static toProto(crawlConfig: CrawlConfig): CrawlConfigProto {
-    const proto = new CrawlConfigProto();
-    proto.setCollectionRef(ConfigRef.toProto(crawlConfig.collectionRef));
-    proto.setBrowserConfigRef(ConfigRef.toProto(crawlConfig.browserConfigRef));
-    proto.setPolitenessRef(ConfigRef.toProto(crawlConfig.politenessRef));
-    proto.setExtra(ExtraConfig.toProto(crawlConfig.extra));
-    proto.setMinimumDnsTtlS(crawlConfig.minimumDnsTtlS);
-    proto.setPriorityWeight(crawlConfig.priorityWeight);
-    return proto;
+    return create(CrawlConfigSchema, {
+      collectionRef: ConfigRef.toProto(crawlConfig.collectionRef),
+      browserConfigRef: ConfigRef.toProto(crawlConfig.browserConfigRef),
+      politenessRef: ConfigRef.toProto(crawlConfig.politenessRef),
+      extra: ExtraConfig.toProto(crawlConfig.extra),
+      minimumDnsTtlS: crawlConfig.minimumDnsTtlS,
+      priorityWeight: crawlConfig.priorityWeight,
+    });
   }
 
   static mergeConfigs(configObjects: ConfigObject[]): CrawlConfig {

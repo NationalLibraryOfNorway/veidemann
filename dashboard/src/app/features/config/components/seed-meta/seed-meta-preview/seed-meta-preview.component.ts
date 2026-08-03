@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models';
 import {AuthService, SnackBarService} from '../../../../../core';
 import {UrlFormatPipe} from '../../../../../shared/pipes/url-format.pipe';
@@ -22,6 +22,7 @@ import {MatTooltip} from '@angular/material/tooltip';
     MatTooltip,
     UrlFormatPipe
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class SeedMetaPreviewComponent {

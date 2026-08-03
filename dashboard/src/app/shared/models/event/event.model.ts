@@ -1,4 +1,12 @@
-import {ActivityProto, DataProto, EventObjectProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {
+  Activity_Change as ChangeProto,
+  DataSchema,
+  EventObject as EventObjectProto,
+  EventObjectSchema,
+  EventObject_Severity as SeverityProto,
+  EventObject_State as StateProto,
+} from '../../../../api/eventhandler/v1/resources_pb';
 import {fromTimestampProto, intersectString} from '../../func';
 
 export enum State {
@@ -51,12 +59,12 @@ export class Change {
     this.newVal = newVal;
   }
 
-  static fromProto(proto: ActivityProto.Change): Change {
+  static fromProto(proto: ChangeProto): Change {
     return new Change({
-      type: proto.getType(),
-      field: proto.getField(),
-      oldVal: proto.getOldVal(),
-      newVal: proto.getNewVal()
+      type: proto.type as unknown as ChangeType,
+      field: proto.field,
+      oldVal: proto.oldVal,
+      newVal: proto.newVal
     });
   }
 
@@ -107,44 +115,34 @@ export class EventObject {
 
   static fromProto(proto: EventObjectProto): EventObject {
     return new EventObject({
-      id: proto.getId(),
-      type: proto.getType(),
-      source: proto.getSource(),
-      state: proto.getState(),
-      assignee: proto.getAssignee(),
-      activityList: proto.getActivityList().map(activity => new Activity({
-        modifiedTime: fromTimestampProto(activity.getModifiedTime()),
-        modifiedBy: activity.getModifiedBy(),
-        description: activity.getDescriptionList().map(change => new Change({
-          type: ChangeType[change.getType()] as any as ChangeType,
-          field: change.getField(),
-          oldVal: change.getOldVal(),
-          newVal: change.getNewVal()
-        })),
-        comment: activity.getComment()
+      id: proto.id,
+      type: proto.type,
+      source: proto.source,
+      state: proto.state,
+      assignee: proto.assignee,
+      activityList: proto.activity.map(activity => new Activity({
+        modifiedTime: fromTimestampProto(activity.modifiedTime),
+        modifiedBy: activity.modifiedBy,
+        description: activity.description.map(Change.fromProto),
+        comment: activity.comment
       })),
-      dataList: proto.getDataList().map(data => new Data({key: data.getKey(), value: data.getValue()})),
-      severity: proto.getSeverity(),
-      labelList: proto.getLabelList()
+      dataList: proto.data.map(data => new Data({key: data.key, value: data.value})),
+      severity: proto.severity,
+      labelList: proto.label
     });
   }
 
   static toProto(eventObject: EventObject): EventObjectProto {
-    const proto = new EventObjectProto();
-    proto.setId(eventObject.id);
-    proto.setAssignee(eventObject.assignee);
-    proto.setSeverity(eventObject.severity);
-    proto.setState(eventObject.state);
-    proto.setSource(eventObject.source);
-    proto.setType(eventObject.type);
-    proto.setDataList(eventObject.dataList.map(data => {
-      const d = new DataProto();
-      d.setKey(data.key);
-      d.setValue(data.value);
-      return d;
-    }));
-    proto.setLabelList(eventObject.labelList);
-    return proto;
+    return create(EventObjectSchema, {
+      id: eventObject.id,
+      assignee: eventObject.assignee,
+      severity: eventObject.severity as unknown as SeverityProto,
+      state: eventObject.state as unknown as StateProto,
+      source: eventObject.source,
+      type: eventObject.type,
+      data: eventObject.dataList.map(data => create(DataSchema, {key: data.key, value: data.value})),
+      label: eventObject.labelList,
+    });
   }
 
   static mergeEvents(eventObjects: EventObject[]): EventObject {

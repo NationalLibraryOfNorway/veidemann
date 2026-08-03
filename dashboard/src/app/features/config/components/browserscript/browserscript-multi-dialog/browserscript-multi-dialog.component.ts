@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {ChangeDetectorRef, Component, Inject, OnInit, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import {BrowserScriptDetailsComponent} from '..';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
@@ -16,6 +16,7 @@ import {ConfigObject, Kind, Label} from '../../../../../shared/models';
     MatDialogModule,
     LabelMultiComponent
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class BrowserScriptMultiDialogComponent extends BrowserScriptDetailsComponent implements OnInit {

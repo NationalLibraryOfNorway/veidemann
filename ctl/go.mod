@@ -9,7 +9,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/gofrs/flock v0.13.0
 	github.com/invopop/yaml v0.3.1
-	github.com/magiconair/properties v1.8.10
+	github.com/magiconair/properties v1.18.11
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/spf13/cast v1.10.0

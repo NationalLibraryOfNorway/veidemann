@@ -1,5 +1,6 @@
 import {ApiError} from '../commons/api-error.model';
-import {PageLogProto} from '../../../../api';
+import {create} from '@bufbuild/protobuf';
+import {PageLog_Resource as ResourceProto, PageLog_ResourceSchema} from '../../../../api/log/v1/resources_pb';
 
 export class Resource {
   uri: string;
@@ -40,35 +41,34 @@ export class Resource {
     this.method = method;
   }
 
-  static fromProto(proto: PageLogProto.Resource): Resource {
+  static fromProto(proto: ResourceProto): Resource {
     return new Resource({
-      uri: proto.getUri(),
-      fromCache: proto.getFromCache(),
-      renderable: proto.getRenderable(),
-      resourceType: proto.getResourceType(),
-      mimeType: proto.getContentType(),
-      statusCode: proto.getStatusCode(),
-      discoveryPath: proto.getDiscoveryPath(),
-      warcId: proto.getWarcId(),
-      referrer: proto.getReferrer(),
-      error: ApiError.fromProto(proto.getError()),
-      method: proto.getMethod()
+      uri: proto.uri,
+      fromCache: proto.fromCache,
+      renderable: proto.renderable,
+      resourceType: proto.resourceType,
+      mimeType: proto.contentType,
+      statusCode: proto.statusCode,
+      discoveryPath: proto.discoveryPath,
+      warcId: proto.warcId,
+      referrer: proto.referrer,
+      error: ApiError.fromProto(proto.error),
+      method: proto.method
     });
   }
 
-  static toProto(resource: Resource): PageLogProto.Resource {
-    const proto = new PageLogProto.Resource();
-    proto.setUri(resource.uri);
-    proto.setFromCache(resource.fromCache);
-    proto.setRenderable(resource.renderable);
-    proto.setResourceType(resource.resourceType);
-    proto.setContentType(resource.mimeType);
-    proto.setStatusCode(resource.statusCode);
-    proto.setDiscoveryPath(resource.discoveryPath);
-    proto.setWarcId(resource.warcId);
-    proto.setReferrer(resource.referrer);
-    proto.setMethod(resource.method);
-    return proto;
+  static toProto(resource: Resource): ResourceProto {
+    return create(PageLog_ResourceSchema, {
+      uri: resource.uri,
+      fromCache: resource.fromCache,
+      renderable: resource.renderable,
+      resourceType: resource.resourceType,
+      contentType: resource.mimeType,
+      statusCode: resource.statusCode,
+      discoveryPath: resource.discoveryPath,
+      warcId: resource.warcId,
+      referrer: resource.referrer,
+      method: resource.method,
+    });
   }
 }
-

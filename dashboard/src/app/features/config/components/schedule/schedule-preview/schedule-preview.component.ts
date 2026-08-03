@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 import {ConfigObject} from '../../../../../shared/models/config';
 import {DatePipe} from '@angular/common';
 import {MatLabel} from '@angular/material/form-field';
@@ -14,6 +14,7 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
     LayoutDirective,
     MatLabel
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true
 })
 export class SchedulePreviewComponent {
