@@ -14,7 +14,7 @@ The files and their indexes must be kept together.
 
 Use one log-service replica per Parquet directory. Concurrent pods must not
 write to or scan the same directory. The Kubernetes manifests provide a
-`base/log-service-statefulset` alternative that gives each replica its own
+`base/log-service/statefulset` alternative that gives each replica its own
 claim and stable ordinal. `ReadWriteOnce` alone does not guarantee
 single-process access because multiple pods on the same node may still be able
 to mount the volume.
