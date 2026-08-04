@@ -6,8 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { CrawlConfigDetailsComponent } from '..';
 import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
@@ -19,9 +17,6 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   templateUrl: './crawlconfig-multi-dialog.component.html',
   styleUrls: ['./crawlconfig-multi-dialog.component.css'],
   imports: [
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     LabelMultiComponent,
     MatCheckbox,
     MatDialogModule,

@@ -4,16 +4,12 @@ import {MatListItemIcon, MatListModule} from '@angular/material/list';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatIcon} from '@angular/material/icon';
 import {RouterLink} from '@angular/router';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-entity-view',
   templateUrl: './entity-view.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    LayoutDirective,
-    LayoutGapDirective,
     MatChipsModule,
     MatIcon,
     MatListItemIcon,

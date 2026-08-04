@@ -2,13 +2,11 @@ import { Component, EventEmitter, Output, ChangeDetectionStrategy, inject } from
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-delete-dialog',
   templateUrl: 'delete-dialog.component.html',
   imports: [
-    FlexDirective,
     MatButtonModule,
     MatDialogModule
   ],

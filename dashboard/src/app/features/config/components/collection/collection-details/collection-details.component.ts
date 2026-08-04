@@ -28,8 +28,6 @@ import {MatCheckbox} from '@angular/material/checkbox';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInputModule} from '@angular/material/input';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -46,9 +44,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     MatInputModule,
     MatSelectModule,
     FilesizeInputComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatCheckbox,
     MatTooltip,
     MatButtonModule,

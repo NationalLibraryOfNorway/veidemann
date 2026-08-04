@@ -3,15 +3,15 @@
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
     @if (query(); as query) {
-      <div class="container no-scroll" fxLayout="row">
+      <div class="container no-scroll layout-row">
         <app-crawl-log-query class="content-padding scroll"
         [query]="query" (queryChange)="onQueryChange($event)"></app-crawl-log-query>
-        <app-crawl-log-list fxFlex
+        <app-crawl-log-list
           [dataSource]="dataSource"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)"
+          (sort)="onSort($event)" class="flex-fill"
           >
           @if (can('read', 'jobexecution')) {
             <ng-container *appExtra="let row">

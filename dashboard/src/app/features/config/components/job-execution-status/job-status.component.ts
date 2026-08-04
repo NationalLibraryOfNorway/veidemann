@@ -3,7 +3,6 @@ import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models/r
 import {DatePipe} from '@angular/common';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {MatTableModule} from '@angular/material/table';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-config-job-execution-status',
@@ -12,7 +11,6 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
-    LayoutDirective,
     MatExpansionModule,
     MatTableModule
   ],

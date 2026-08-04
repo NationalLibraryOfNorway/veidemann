@@ -3,17 +3,17 @@
       @if (loading$ | async) {
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
       }
-      <div fxLayout="row" class="container no-scroll">
+      <div class="container no-scroll layout-row">
         <app-job-execution-status-query class="content-padding scroll"
           [crawlJobOptions]="crawlJobOptions"
           [query]="query"
         (queryChange)="onQueryChange($event)"></app-job-execution-status-query>
-        <app-job-execution-status-list fxFlex
+        <app-job-execution-status-list
           [dataSource]="dataSource"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)"
+          (sort)="onSort($event)" class="flex-fill"
           >
           <ng-container *appExtra="let row">
             @if (row.state === JobExecutionState.RUNNING && can('abort', 'jobexecution')) {

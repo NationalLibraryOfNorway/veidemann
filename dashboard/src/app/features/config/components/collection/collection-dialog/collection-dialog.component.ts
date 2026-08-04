@@ -9,8 +9,6 @@ import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { CollectionDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -24,9 +22,6 @@ import { FilesizeInputComponent } from '../../filesize-input/filesize-input.comp
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FilesizeInputComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatCheckbox,

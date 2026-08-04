@@ -6,7 +6,6 @@ import {SortDirection} from '@angular/material/sort';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
 import {MatTooltip} from '@angular/material/tooltip';
 import {combineLatest, Observable} from 'rxjs';
@@ -32,9 +31,7 @@ import {CrawlLogQuery, CrawlLogService} from '../../services';
     AsyncPipe,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
-    FlexDirective,
     ExtraDirective,
-    LayoutDirective,
     MatIconModule,
     MatMenuItem,
     MatProgressBarModule,

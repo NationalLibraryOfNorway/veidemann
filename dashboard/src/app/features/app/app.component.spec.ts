@@ -48,8 +48,13 @@ describe('AppComponent navigation', () => {
   });
 
   it('renders only authorized primary destinations in the drawer', () => {
+    expect(fixture.nativeElement.querySelector('mat-nav-list.mat-mdc-nav-list')).not.toBeNull();
+
     const links = fixture.nativeElement.querySelectorAll('a[href="/config"]');
     expect(links.length).toBe(1);
+    expect(links[0].textContent).toContain('Configuration');
+    expect(links[0].classList).toContain('mat-mdc-list-item');
+    expect(links[0].querySelector('mat-icon').classList).toContain('mat-mdc-list-item-icon');
     expect(fixture.nativeElement.querySelector('a[href="/"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('a[href="/report"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('a[href="/logconfig"]')).toBeNull();
@@ -62,5 +67,6 @@ describe('AppComponent navigation', () => {
 
     const activeLinks = fixture.nativeElement.querySelectorAll('a[href="/config"][aria-current="page"]');
     expect(activeLinks.length).toBe(1);
+    expect(activeLinks[0].classList).toContain('mdc-list-item--activated');
   });
 });

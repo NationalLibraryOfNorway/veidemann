@@ -41,10 +41,32 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
+.row-disabled .formattedUri,
+.row-error .formattedUri {
+  color: var(--mat-sys-error);
+}
+
 .action-region {
   display: flex;
+  flex: 0 0 auto;
+  align-self: center;
   align-items: center;
   gap: 4px;
+  min-height: 48px;
+  margin-block: 0;
+}
+
+.item-row .action-region::before {
+  display: none;
+}
+
+.selection-control {
+  display: flex;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-block: 0;
 }
 
 .visible-action:nth-child(n + 4) {
@@ -85,7 +107,28 @@ table {
 
 .action-cell,
 .mat-column-action {
+  box-sizing: border-box;
+  width: 1%;
+  min-width: 48px;
+  padding-inline: 0;
   text-align: right;
+  white-space: nowrap;
+}
+
+.mat-column-select {
+  box-sizing: border-box;
+  width: 48px;
+  min-width: 48px;
+  padding-inline: 0;
+  text-align: center;
+}
+
+.action-cell .action,
+.mat-column-action .action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 48px;
 }
 
 tr.item-row:hover {

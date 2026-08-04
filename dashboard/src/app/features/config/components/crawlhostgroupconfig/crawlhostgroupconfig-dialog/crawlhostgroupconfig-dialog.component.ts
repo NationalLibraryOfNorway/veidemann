@@ -6,8 +6,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { CrawlHostGroupConfigDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -20,9 +18,6 @@ import { MetaComponent } from '../../meta/meta.component';
   styleUrls: ['./crawlhostgroupconfig-dialog.component.css'],
   imports: [
     DurationPickerComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,

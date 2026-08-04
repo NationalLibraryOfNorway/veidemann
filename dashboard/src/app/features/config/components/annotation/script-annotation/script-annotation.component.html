@@ -1,5 +1,5 @@
 @if (can('read', 'annotation')) {
-    <div fxLayout="column">
+    <div class="layout-column">
       @if (annotations) {
         <mat-chip-listbox [selectable]="false">
           @for (annotation of annotations; track annotation) {

@@ -5,8 +5,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { FlexDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { RoleMappingDetailsComponent } from '..';
 import { AuthService } from '../../../../../core/auth';
 import { ConfigObject } from '../../../../../shared/models/config';
@@ -17,8 +15,6 @@ import { ConfigDialogData } from '../../../func';
   templateUrl: './rolemapping-dialog.component.html',
   styleUrls: ['./rolemapping-dialog.component.css'],
   imports: [
-    FlexDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,

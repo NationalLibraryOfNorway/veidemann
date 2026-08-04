@@ -7,8 +7,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatTooltip } from '@angular/material/tooltip';
-import { FlexDirective,FlexLayoutModule,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { ScheduleDetailsComponent } from '..';
 import { DateTime } from '../../../../../shared/func';
 import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
@@ -20,10 +18,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   templateUrl: './schedule-multi-dialog.component.html',
   styleUrls: ['./schedule-multi-dialog.component.css'],
   imports: [
-    FlexDirective,
     LabelMultiComponent,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatDatepickerModule,
     MatDialogModule,
@@ -32,7 +27,6 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
     MatInput,
     MatTooltip,
     ReactiveFormsModule,
-    FlexLayoutModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true

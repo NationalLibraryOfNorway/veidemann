@@ -7,7 +7,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTimepickerModule } from '@angular/material/timepicker';
-import { FlexLayoutModule } from '@ngbracket/ngx-layout';
 import { QueryComponent } from '../../../../shared/components';
 import { ConfigObject,CrawlExecutionState,crawlExecutionStates } from '../../../../shared/models';
 import { CrawlExecutionStatusQuery } from '../../services';
@@ -20,7 +19,6 @@ import { CrawlExecutionStatusQuery } from '../../services';
     standalone: true,
   imports: [
     CommonModule,
-    FlexLayoutModule,
     MatCheckboxModule,
     MatDatepickerModule,
     MatFormFieldModule,

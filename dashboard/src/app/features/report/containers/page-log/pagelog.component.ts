@@ -6,7 +6,6 @@ import {MatProgressBar} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatMenuItem} from '@angular/material/menu';
 import {MatTooltip} from '@angular/material/tooltip';
 import {combineLatest, Observable} from 'rxjs';
@@ -30,8 +29,6 @@ import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
     ActionDirective,
     ExtraDirective,
     AsyncPipe,
-    FlexDirective,
-    LayoutDirective,
     MatIcon,
     MatMenuItem,
     MatProgressBar,

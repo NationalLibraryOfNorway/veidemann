@@ -17,52 +17,22 @@ html, body {
   color: var(--mat-sys-on-surface);
 }
 
-// Flex row/col + grid.
-.flex-row { display: flex; flex-direction: row; }
-.flex-col { display: flex; flex-direction: column; }
+// Lightweight layout primitives. Keep spacing on Material's 8px grid.
 .grid { display: grid; }
-
-// Flex/grow/shrink properties https://developer.mozilla.org/en-US/docs/Web/CSS/flex.
-.flex-1 { flex: 1 }  // Same as flex: 1 1 0 (grow, shrink, basis 0). Has similar effect to width: 100%;
-.flex-grow { flex-grow: 1; }  // Same as flex: 1 1 auto (grow, shrink, basis auto). For spacer, etc.
-
-// Flex-wrap utils.
-.flex-wrap { flex-wrap: wrap; }  // Mostly used with flex-row, when wrapping is desired.
-.flex-col-xs { @media screen and (max-width: 599px) { flex-direction: column; } }  // Switch from flex-row to flex-col on mobile.
-.mat-mdc-tooltip {
-  font-size: 0.8rem !important;
-}
-// Gap.
-.gap-4 { gap: 4px; }
+.layout-row { display: flex; flex-direction: row; min-width: 0; }
+.layout-column { display: flex; flex-direction: column; min-height: 0; }
+.layout-wrap { flex-wrap: wrap; }
+.layout-space-evenly { justify-content: space-evenly; }
+.flex-fill { flex: 1 1 0; min-width: 0; min-height: 0; }
+.flex-70 { flex: 1 1 70%; min-width: 0; }
 .gap-8 { gap: 8px; }
-.gap-10 { gap: 10px; }
-.gap-12 { gap: 12px; }
 .gap-16 { gap: 16px; }
-.mat-mdc-card {
-  padding: 16px;
-}
+.gap-24 { gap: 24px; }
 
-// Justify content.
-.space-between { justify-content: space-between; }  // Used very often with flex-row.
-.justify-center { justify-content: center; }  // Used to center something via flexbox.
-
-// Align items. (Naming inspiration: https://tailwindcss.com/docs/align-items.)
-.items-center { align-items: center; }  // Used very often with flex-row.
-
-
-.action-button.mat-mat-fab,
-.action-button-secondary.mat-mat-fab {
-  position: fixed;
-  right: 1rem;
-  z-index: 100;
-}
-
-.action-button.mat-mat-fab {
-  bottom: 1rem;
-}
-
-.action-button-secondary.mat-mat-fab {
-  bottom: 5.5rem;
+@media (max-width: 599px) {
+  .layout-stack-compact {
+    flex-direction: column;
+  }
 }
 
 .content-padding {
@@ -86,13 +56,6 @@ html, body {
   font-family: monospace;
 }
 
-.tooltip-overflow {
-  word-wrap: break-word;
-  white-space: unset;
-  overflow: hidden;
-  overflow-wrap: break-word;
-}
-
 .formattedUri {
   text-decoration: none;
   color: var(--mat-sys-primary);
@@ -101,4 +64,3 @@ html, body {
 .formattedUri:hover {
   text-decoration: underline;
 }
-

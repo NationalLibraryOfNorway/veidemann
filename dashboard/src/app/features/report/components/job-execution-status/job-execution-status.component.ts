@@ -12,8 +12,6 @@ import {RouterLink} from '@angular/router';
 import {AsyncPipe, DatePipe} from '@angular/common';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-job-execution-status',
@@ -24,11 +22,8 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   imports: [
     AsyncPipe,
     DatePipe,
-    FlexDirective,
     JobexecutionTotalQueuePipe,
     JobNamePipe,
-    LayoutDirective,
-    LayoutGapDirective,
     MatCardModule,
     MatIcon,
     MatTableModule,

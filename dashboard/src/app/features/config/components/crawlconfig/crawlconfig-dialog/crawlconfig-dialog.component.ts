@@ -6,7 +6,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { CrawlConfigDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -17,7 +16,6 @@ import { MetaComponent } from '../../meta/meta.component';
   templateUrl: './crawlconfig-dialog.component.html',
   styleUrls: ['./crawlconfig-dialog.component.css'],
   imports: [
-    LayoutGapDirective,
     MatButtonModule,
     MatCheckbox,
     MatDialogModule,

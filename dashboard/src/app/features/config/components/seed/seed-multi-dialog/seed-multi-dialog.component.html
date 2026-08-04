@@ -1,7 +1,7 @@
 <form [formGroup]="form">
-  <div fxLayout="row">
+  <div class="layout-row">
     <h2 mat-dialog-title>Seed - Mass update</h2>
-    <span fxFlex></span>
+    <span class="flex-fill"></span>
     <div role="button"
       tabindex="0"
       (click)="disabled.disabled ? disabled.enable(): null"
@@ -39,22 +39,22 @@
   </div>
 
   <mat-dialog-content>
-    <div fxLayout="row wrap" fxLayoutGap="24px">
-      <div fxFlex fxLayout="column" fxLayoutGap="16px">
+    <div class="layout-row layout-wrap gap-24">
+      <div class="layout-column gap-16 flex-fill">
         <app-label-multi [configObject]="configObject"
           [allSelected]="allSelected"
           (update)="onUpdateLabels($event)">
         </app-label-multi>
 
-        <div fxLayout="column" fxLayoutGap="16px">
+        <div class="layout-column gap-16">
           @if (!allSelected) {
             <h5>Common crawljob for the selected configs:</h5>
           }
           @if (allSelected) {
             <h5>Crawljobs:</h5>
           }
-          <div fxLayout="row" fxLayoutGap="16px">
-            <mat-form-field fxFlex>
+          <div class="layout-row gap-16">
+            <mat-form-field class="flex-fill">
               <mat-label i18n="@@seedDetailsFormJobRefListLabel">
                 Crawljob
               </mat-label>

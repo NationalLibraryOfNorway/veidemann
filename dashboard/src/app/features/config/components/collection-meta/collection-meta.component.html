@@ -1,4 +1,4 @@
-<div [formGroup]="form" fxLayout="column">
+<div [formGroup]="form" class="layout-column">
 
   <mat-form-field data-testid="name">
     <mat-label i18n="@@metaNameInputLabel">
@@ -39,9 +39,9 @@
   <app-annotation [removable]="editable" formControlName="annotationList"></app-annotation>
 
   <ng-container>
-    <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
+    <div class="layout-stack-compact layout-row gap-8">
       @if (created.value) {
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-fill">
           <mat-label i18n="@@metaCreatedInputPlaceholder">
             Created
           </mat-label>
@@ -51,7 +51,7 @@
       }
 
       @if (createdBy.value) {
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-fill">
           <mat-label i18n="@@metaCreatedByInputLabel">
             Created by
           </mat-label>
@@ -60,9 +60,9 @@
       }
     </div>
 
-    <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
+    <div class="layout-stack-compact layout-row gap-8">
       @if (lastModified.value) {
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-fill">
           <mat-label i18n="@@metaLastModifiedInputLabel">
             Last modified
           </mat-label>
@@ -71,7 +71,7 @@
       }
 
       @if (lastModifiedBy.value) {
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-fill">
           <mat-label i18n="@@metaLastModifiedByInputLabel">
             Last modified by
           </mat-label>

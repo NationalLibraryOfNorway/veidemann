@@ -9,7 +9,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { FlexLayoutModule } from '@ngbracket/ngx-layout';
 import { Label } from '../../../../shared/models';
 import { LabelComponent } from '../label/label.component';
 
@@ -24,7 +23,6 @@ import { LabelComponent } from '../label/label.component';
     AsyncPipe,
     CdkDrag,
     CdkDropList,
-    FlexLayoutModule,
     MatAutocompleteModule,
     MatButtonModule,
     MatCardModule,

@@ -1,14 +1,14 @@
 <form [formGroup]="form">
   <h2 mat-dialog-title>PolitenessConfig - Mass update</h2>
 
-  <mat-dialog-content fxLayout="row" fxLayoutGap="16px">
-    <div fxFlex fxLayout="column" fxLayoutGap="16px">
+  <mat-dialog-content class="layout-row gap-16">
+    <div class="layout-column gap-16 flex-fill">
       <app-label-multi [configObject]="configObject"
         [allSelected]="allSelected"
       (update)="onUpdateLabels($event)"></app-label-multi>
     </div>
 
-    <div fxFlex fxLayout="column">
+    <div class="layout-column flex-fill">
       <div role="button"
         tabindex="0"
         (click)="onEnableRobotsPolicy()"

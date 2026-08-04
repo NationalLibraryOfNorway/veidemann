@@ -3,7 +3,7 @@
     <h2 mat-dialog-title>
       <ng-container i18n="@@entityDetailsCardTitle">Crawljob</ng-container>
     </h2>
-    <span fxFlex></span>
+    <span class="flex-fill"></span>
     <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
       formControlName="disabled"
       color="warn"
@@ -28,7 +28,7 @@
       }
       <app-filesize-input [placeholder]="'Max size'" formControlName="maxBytes"></app-filesize-input>
     </ng-container>
-    <div fxLayoutGap="16px">
+    <div class="layout-column gap-16">
       <ng-container formGroupName="scheduleRef">
         <mat-form-field>
           <mat-label i18n="@@scheduleDropdownLabel">

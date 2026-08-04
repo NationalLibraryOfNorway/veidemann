@@ -5,7 +5,6 @@ import {DatePipe} from '@angular/common';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {RouterLink} from '@angular/router';
 import {MatListModule} from '@angular/material/list';
-import {FlexDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-config-crawl-execution-status',
@@ -18,7 +17,6 @@ import {FlexDirective} from '@ngbracket/ngx-layout';
     DatePipe,
     FileSizePipe,
     RouterLink,
-    FlexDirective
   ],
   standalone: true
 })

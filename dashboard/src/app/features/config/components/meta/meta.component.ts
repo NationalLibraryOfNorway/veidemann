@@ -19,8 +19,6 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {LabelComponent} from '../label/label.component';
 import {AnnotationComponent} from '../annotation/annotation.component';
 import {MatInputModule} from '@angular/material/input';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -35,10 +33,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AnnotationComponent,
-    FlexDirective,
     LabelComponent,
-    LayoutDirective,
-    LayoutGapDirective,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule

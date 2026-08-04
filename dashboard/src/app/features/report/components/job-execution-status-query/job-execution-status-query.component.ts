@@ -6,7 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTimepickerModule } from '@angular/material/timepicker';
-import { LayoutDirective } from '@ngbracket/ngx-layout';
 import { QueryComponent } from '../../../../shared/components';
 import { JobExecutionState,jobExecutionStates } from '../../../../shared/models';
 import { ConfigObject } from '../../../../shared/models/config';
@@ -18,7 +17,6 @@ import { JobExecutionStatusQuery } from '../../services';
   styleUrls: ['./job-execution-status-query.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    LayoutDirective,
     MatCheckboxModule,
     MatDatepickerModule,
     MatFormFieldModule,

@@ -10,8 +10,6 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatIcon} from '@angular/material/icon';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 
 @Component({
@@ -20,9 +18,6 @@ import {MatButtonModule} from '@angular/material/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,

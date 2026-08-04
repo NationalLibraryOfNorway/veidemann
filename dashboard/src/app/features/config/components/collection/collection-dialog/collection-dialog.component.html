@@ -2,7 +2,7 @@
   <ng-container i18n="@@collectionDetailsCardTitle">Collection</ng-container>
 </h2>
 <mat-dialog-content>
-  <form [formGroup]="form" fxLayoutGap="16px">
+  <form [formGroup]="form" class="layout-column gap-16">
     <app-collection-meta formControlName="meta"></app-collection-meta>
     <mat-form-field>
       <mat-label i18n="@@collectionDedupPolicyDropdownLabel">
@@ -50,11 +50,9 @@
 
       @for (subCollectionsList of subCollectionControlArray.controls; track subCollectionsList; let i = $index) {
         <div
-          [formGroupName]="i"
-          fxLayout="row"
-          fxLayoutGap="16px">
-          <mat-form-field [hideRequiredMarker]="subCollectionNameInput.value.length >= 2" fxFlex
-            data-testid="subCollectionName">
+          [formGroupName]="i" class="layout-row gap-16">
+          <mat-form-field [hideRequiredMarker]="subCollectionNameInput.value.length >= 2"
+            data-testid="subCollectionName" class="flex-fill">
             <mat-label i18n="@@collectionFormSubCollectionNameLabel">
             Name
           </mat-label>
@@ -140,13 +138,12 @@
       i18n="@@commonButtonRevert">
     REVERT
   </button>
-    <span fxFlex></span>
+    <span class="flex-fill"></span>
     <button mat-button
       mat-dialog-close
       i18n="@@commonButtonCancel">CANCEL
   </button>
   </mat-dialog-actions>
 }
-
 
 

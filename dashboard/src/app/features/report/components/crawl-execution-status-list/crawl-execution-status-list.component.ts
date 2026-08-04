@@ -10,7 +10,6 @@ import {ExecutionQueueCountPipe, JobNamePipe, SeedNamePipe} from '../../pipe';
 import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatSortModule} from '@angular/material/sort';
-import {FlexLayoutModule} from '@ngbracket/ngx-layout';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatMenuModule} from '@angular/material/menu';
@@ -27,7 +26,6 @@ import {MatMenuModule} from '@angular/material/menu';
     AsyncPipe,
     DatePipe,
     ExecutionQueueCountPipe,
-    FlexLayoutModule,
     JobNamePipe,
     MatButtonModule,
     MatIcon,

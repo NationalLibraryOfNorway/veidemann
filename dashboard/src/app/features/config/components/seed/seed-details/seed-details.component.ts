@@ -20,8 +20,6 @@ import {JobNamePipe} from '../../../../report/pipe';
 import {MatTableModule} from '@angular/material/table';
 import {MatTab, MatTabGroup} from '@angular/material/tabs';
 import {MatInput} from '@angular/material/input';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
   selector: 'app-seed-details',
@@ -29,10 +27,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
-    FlexDirective,
     JobNamePipe,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,

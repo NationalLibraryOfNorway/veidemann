@@ -3,7 +3,6 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { LayoutDirective } from '@ngbracket/ngx-layout';
 import { QueryComponent } from '../../../../shared/components';
 import { CrawlLogQuery } from '../../services';
 
@@ -12,7 +11,6 @@ import { CrawlLogQuery } from '../../services';
   templateUrl: './crawl-log-query.component.html',
   styleUrls: ['./crawl-log-query.component.css'],
   imports: [
-    LayoutDirective,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,

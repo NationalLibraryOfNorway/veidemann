@@ -8,8 +8,6 @@ import { MatIcon } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatTooltip } from '@angular/material/tooltip';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { SeedDetailsComponent } from '..';
 import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -20,10 +18,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   templateUrl: './seed-multi-dialog.component.html',
   styleUrls: ['./seed-multi-dialog.component.css'],
   imports: [
-    FlexDirective,
     LabelMultiComponent,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatButtonToggleModule,
     MatDialogModule,

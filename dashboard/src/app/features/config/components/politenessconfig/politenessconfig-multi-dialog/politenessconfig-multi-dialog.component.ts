@@ -7,8 +7,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { PolitenessConfigDetailsComponent } from '..';
 import { ConfigObject,Kind,Label,RobotsPolicy } from '../../../../../shared/models/config';
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
@@ -22,10 +20,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   styleUrls: ['./politenessconfig-multi-dialog.component.css'],
   imports: [
     DurationPickerComponent,
-    FlexDirective,
     LabelMultiComponent,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCheckbox,
     MatDialogModule,

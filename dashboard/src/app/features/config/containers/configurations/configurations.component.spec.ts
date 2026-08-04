@@ -1,8 +1,11 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {BreakpointObserver, BreakpointState} from '@angular/cdk/layout';
+import {By} from '@angular/platform-browser';
 import {MatDialog} from '@angular/material/dialog';
+import {MatDrawer} from '@angular/material/sidenav';
 import {ActivatedRoute, convertToParamMap, ParamMap, Router} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
-import {BehaviorSubject, EMPTY, of, Subscription} from 'rxjs';
+import {BehaviorSubject, EMPTY, of} from 'rxjs';
 
 import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
@@ -17,7 +20,7 @@ describe('ConfigurationsComponent query loading', () => {
   let component: ConfigurationsComponent;
   let queryParams: BehaviorSubject<ParamMap>;
   let kindParams: BehaviorSubject<ParamMap>;
-  let lengthSubscription: Subscription;
+  let breakpointState: BehaviorSubject<BreakpointState>;
 
   const search = vi.fn((query: ConfigQuery, range: ListRange) => {
     void query;
@@ -48,6 +51,7 @@ describe('ConfigurationsComponent query loading', () => {
     save.mockClear();
     deleteConfig.mockClear();
     dialog.open.mockClear();
+    breakpointState = new BehaviorSubject({matches: false, breakpoints: {}});
 
     await TestBed.configureTestingModule({
       imports: [ConfigurationsComponent],
@@ -79,22 +83,18 @@ describe('ConfigurationsComponent query loading', () => {
         {provide: OptionsService, useValue: {options$: of({})}},
         {provide: ControllerApiService, useValue: {}},
         {provide: AbilityServiceSignal, useValue: {can: () => false}},
+        {provide: BreakpointObserver, useValue: {observe: () => breakpointState}},
         {provide: AuthService, useValue: {}},
         {provide: ErrorService, useValue: {dispatch: vi.fn()}},
         {provide: SnackBarService, useValue: {openSnackBar: vi.fn()}},
       ]
-    })
-      .overrideComponent(ConfigurationsComponent, {set: {template: ''}})
-      .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ConfigurationsComponent);
     component = fixture.componentInstance;
-    lengthSubscription = component.length$.subscribe();
     fixture.detectChanges();
     await fixture.whenStable();
   });
-
-  afterEach(() => lengthSubscription.unsubscribe());
 
   it('performs one initial search and one atomic search for a parameter-map change', async () => {
     expect(search).toHaveBeenCalledTimes(1);
@@ -174,5 +174,35 @@ describe('ConfigurationsComponent query loading', () => {
 
     expect(state.selectedConfigs).toEqual([]);
     expect(component.isAllSelected).toBe(false);
+  });
+
+  it('uses a fixed side filter drawer on wide screens', () => {
+    const drawer = fixture.debugElement.query(By.directive(MatDrawer)).componentInstance as MatDrawer;
+
+    expect(drawer.mode).toBe('side');
+    expect(drawer.opened).toBe(true);
+    expect(fixture.nativeElement.querySelector('mat-drawer').getAttribute('aria-label'))
+      .toBe('Configuration filters');
+    expect(fixture.nativeElement.querySelector('button[aria-label="Open configuration filters"]')).toBeNull();
+  });
+
+  it('opens the filter drawer from the compact tonal button', async () => {
+    breakpointState.next({matches: true, breakpoints: {'(max-width: 839px)': true}});
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const drawer = fixture.debugElement.query(By.directive(MatDrawer)).componentInstance as MatDrawer;
+    const filterButton = fixture.nativeElement.querySelector(
+      'button[aria-label="Open configuration filters"]'
+    ) as HTMLButtonElement;
+    expect(drawer.mode).toBe('over');
+    expect(drawer.opened).toBe(false);
+    expect(filterButton).not.toBeNull();
+
+    filterButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(drawer.opened).toBe(true);
   });
 });

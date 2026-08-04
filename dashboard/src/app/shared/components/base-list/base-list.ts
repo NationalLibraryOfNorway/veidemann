@@ -22,7 +22,6 @@ import {MatSortModule, Sort, SortDirection} from '@angular/material/sort';
 import {MatTableModule} from '@angular/material/table';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatToolbarModule} from '@angular/material/toolbar';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {combineLatest, Subscription} from 'rxjs';
 import {startWith} from 'rxjs/operators';
 
@@ -32,8 +31,6 @@ import {UrlFormatPipe} from '../../pipes/url-format.pipe';
 
 export const BASE_LIST_IMPORTS = [
   AsyncPipe,
-  LayoutDirective,
-  FlexDirective,
   MatButtonModule,
   MatCheckboxModule,
   MatIconModule,

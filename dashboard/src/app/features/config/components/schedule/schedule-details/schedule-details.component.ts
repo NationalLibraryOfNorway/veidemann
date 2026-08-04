@@ -20,11 +20,9 @@ import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
 import {MatListSubheaderCssMatStyler} from '@angular/material/list';
-import {FlexDirective, LayoutAlignDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -33,11 +31,7 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   styleUrls: ['./schedule-details.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexDirective,
     JsonPipe,
-    LayoutAlignDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatDatepickerModule,

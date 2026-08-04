@@ -2,7 +2,6 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 import {CrawlLog} from '../../../../shared/models';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {DatePipe, NgTemplateOutlet} from '@angular/common';
@@ -20,8 +19,6 @@ import {MatMenuModule} from '@angular/material/menu';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
-    FlexDirective,
-    LayoutDirective,
     MatButtonModule,
     MatIcon,
     MatMenuModule,

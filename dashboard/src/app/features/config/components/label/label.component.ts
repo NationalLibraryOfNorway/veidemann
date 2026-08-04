@@ -22,10 +22,8 @@ import {CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
 import {AsyncPipe} from '@angular/common';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 interface LabelGroup {
   key: string;
@@ -43,9 +41,6 @@ interface LabelGroup {
     AsyncPipe,
     CdkDrag,
     CdkDropList,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatAutocompleteModule,
     MatButtonModule,
     MatCardModule,

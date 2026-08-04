@@ -9,7 +9,6 @@ import {CrawlerStatus} from '../../../shared/models/controller/controller.model'
 import {CrawlerStatusDialogComponent} from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
 import {AsyncPipe} from '@angular/common';
 import {CrawlerStatusComponent} from '../crawlerstatus/crawlerstatus.component';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,7 +17,6 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
   imports: [
     AsyncPipe,
     CrawlerStatusComponent,
-    LayoutDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true

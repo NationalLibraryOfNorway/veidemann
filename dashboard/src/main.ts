@@ -3,11 +3,5 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
-import {provideAnimations} from '@angular/platform-browser/animations';
 
-bootstrapApplication(App, {
-  providers: [
-    ...appConfig.providers,
-    provideAnimations(),
-  ]
-}).catch(console.error);
+bootstrapApplication(App, appConfig).catch(console.error);

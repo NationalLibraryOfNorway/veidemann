@@ -6,8 +6,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { PolitenessConfigDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -20,8 +18,6 @@ import { MetaComponent } from '../../meta/meta.component';
   styleUrls: ['./politenessconfig-dialog.component.css'],
   imports: [
     DurationPickerComponent,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCheckbox,
     MatDialogModule,

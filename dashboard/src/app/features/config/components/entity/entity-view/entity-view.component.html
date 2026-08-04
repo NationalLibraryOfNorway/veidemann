@@ -4,7 +4,7 @@
     {{name}}
     @if (labels.length > 0) {
       <mat-chip-listbox
-        [disabled]="true" fxLayout="row wrap" fxLayoutGap="8px">
+        [disabled]="true" class="layout-row layout-wrap gap-8">
         @for (label of labels; track label) {
           <mat-chip-option
             [selectable]="false"

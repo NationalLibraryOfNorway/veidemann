@@ -7,9 +7,7 @@ import {MatIcon} from '@angular/material/icon';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInput} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -17,9 +15,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   templateUrl: './rolemapping-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,

@@ -1,10 +1,10 @@
 @if (crawlerStatus) {
-  <div fxLayout="row" fxLayoutGap="16px">
+  <div class="layout-row gap-16">
       <mat-card appearance="outlined">
         <h2>Crawler status</h2>
         <mat-card-content>
           @if (crawlerStatus.runStatus === RunStatus.RUNNING) {
-            <div fxLayout="column">
+            <div class="layout-column">
               <h1 class="crawlerRunning">RUNNING</h1>
               @if (can('update', 'crawlerStatus')) {
                 <button mat-raised-button
@@ -18,14 +18,14 @@
             </div>
           }
           @if (crawlerStatus.runStatus === RunStatus.PAUSE_REQUESTED) {
-            <div fxLayout="column">
+            <div class="layout-column">
               <h1 class="crawlerPausing" i18n="@@crawlerStatusPauseRequestedTitle">
           IS PAUSING
         </h1>
             </div>
           }
           @if (crawlerStatus.runStatus === RunStatus.PAUSED) {
-            <div fxLayout="column">
+            <div class="layout-column">
               <h1 class="crawlerPaused">PAUSED</h1>
               @if (can('update', 'crawlerStatus')) {
                 <button mat-raised-button

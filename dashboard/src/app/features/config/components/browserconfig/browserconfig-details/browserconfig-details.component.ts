@@ -11,10 +11,8 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
 import {SelectorComponent} from '../../selector/selector.component';
 import {MetaComponent} from '../../meta/meta.component';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -27,9 +25,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
     SelectorComponent,
     MetaComponent,
     ReactiveFormsModule,
-    LayoutDirective,
-    FlexDirective,
-    LayoutGapDirective
   ],
   standalone: true
 })

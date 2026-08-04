@@ -50,13 +50,13 @@ export class ReportComponent {
   private getSectionTitle(path: string): string {
     switch (path) {
       case 'jobexecution':
-        return $localize`:@@reportNavigationLinkJobExecution:JobExecution`;
+        return $localize`:@@reportNavigationLinkJobExecution:Job execution`;
       case 'crawlexecution':
-        return $localize`:@@reportNavigationLinkCrawlExecution:CrawlExecution`;
+        return $localize`:@@reportNavigationLinkCrawlExecution:Crawl execution`;
       case 'pagelog':
-        return $localize`:@@reportNavigationLinkPageLog:PageLog`;
+        return $localize`:@@reportNavigationLinkPageLog:Page log`;
       case 'crawllog':
-        return $localize`:@@reportNavigationLinkCrawlLog:CrawlLog`;
+        return $localize`:@@reportNavigationLinkCrawlLog:Crawl log`;
       default:
         return this.reportsLabel;
     }

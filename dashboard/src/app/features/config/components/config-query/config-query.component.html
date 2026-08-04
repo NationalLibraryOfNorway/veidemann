@@ -16,7 +16,7 @@
     </mat-form-field>
   }
 
-  <form [formGroup]="form" fxLayout="column" fxLayoutGap="16px">
+  <form [formGroup]="form" class="layout-column gap-16">
     @switch ($safeNavigationMigration(query?.kind)) {
       @case (Kind.CRAWLJOB) {
         <mat-form-field>
@@ -39,7 +39,7 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-radio-group fxLayout="column" fxLayoutGap="16px" formControlName="disabled">
+        <mat-radio-group formControlName="disabled" class="layout-column gap-16">
           <mat-radio-button [value]="null">Show all</mat-radio-button>
           <mat-radio-button [value]="true">Show disabled</mat-radio-button>
           <mat-radio-button [value]="false">Show enabled</mat-radio-button>
@@ -63,7 +63,7 @@
         </mat-label>
           <input matInput formControlName="entityId">
         </mat-form-field>
-        <mat-radio-group fxLayout="column" fxLayoutGap="16px" formControlName="disabled">
+        <mat-radio-group formControlName="disabled" class="layout-column gap-16">
           <mat-radio-button [value]="null">Show all</mat-radio-button>
           <mat-radio-button [value]="true">Show disabled</mat-radio-button>
           <mat-radio-button [value]="false">Show enabled</mat-radio-button>

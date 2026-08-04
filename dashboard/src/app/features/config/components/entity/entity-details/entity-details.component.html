@@ -14,7 +14,7 @@
 
       </mat-card-subtitle>
     </mat-card-header>
-    <mat-card-content fxLayout="column">
+    <mat-card-content class="layout-column">
       <app-meta formControlName="meta"></app-meta>
       @if (!showSave) {
         <mat-form-field>
@@ -29,14 +29,14 @@
     @if (canEdit) {
       <mat-card-actions>
         @if (showSave) {
-          <button matButton="filled" class="btn-tertiary"
+          <button matButton="filled"
             [disabled]="!canSave"
             (click)="onSave()"
             i18n="@@commonButtonSave">SAVE
       </button>
         }
         @if (!showSave) {
-          <button matButton="filled" class="btn-tertiary"
+          <button matButton="filled"
             [disabled]="!canUpdate"
             (click)="onUpdate()"
             i18n="@@commonButtonUpdate">UPDATE
@@ -47,7 +47,7 @@
           [disabled]="!canRevert"
           i18n="@@commonButtonRevert">REVERT
       </button>
-        <span fxFlex></span>
+        <span class="flex-fill"></span>
         @if (!showSave && canDelete) {
           <button matButton
             (click)="onDelete()"

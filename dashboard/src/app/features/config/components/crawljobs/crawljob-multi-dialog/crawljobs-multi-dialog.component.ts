@@ -6,8 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltip } from '@angular/material/tooltip';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { CrawlJobDetailsComponent } from '..';
 import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
@@ -23,10 +21,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   imports: [
     DurationPickerComponent,
     FilesizeInputComponent,
-    FlexDirective,
     LabelMultiComponent,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,

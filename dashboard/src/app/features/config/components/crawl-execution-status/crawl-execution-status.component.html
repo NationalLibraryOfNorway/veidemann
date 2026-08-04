@@ -5,8 +5,8 @@
     <mat-panel-description i18n="@@crawlExecutionStatusPanelDescription">State</mat-panel-description>
   </mat-expansion-panel-header>
 
-  <div fxLayout="column">
-    <div fxFlex>
+  <div class="layout-column">
+    <div class="flex-fill">
       <table class="mat-table table">
         <thead>
           <tr class="mat-header-row">
@@ -28,7 +28,7 @@
       </table>
     </div>
 
-    <div fxFlex>
+    <div class="flex-fill">
       <table class="mat-table">
         <thead>
           <tr class="mat-header-row">
@@ -69,7 +69,7 @@
       </table>
     </div>
     @if (crawlExecutionStatus.currentUriIdList.length) {
-      <mat-list fxFlex>
+      <mat-list class="flex-fill">
         <h3 matSubheader i18n="@@crawlExecutionStatusCurrentUrisHeader">Current URIs</h3>
         <mat-list-item>https://www.http.url.no/path</mat-list-item>
         @for (uri of crawlExecutionStatus.currentUriIdList; track uri) {
@@ -78,14 +78,14 @@
       </mat-list>
     }
     @if (crawlExecutionStatus.error; as error) {
-      <mat-list fxFlex>
+      <mat-list class="flex-fill">
         <h3 matSubheader i18n="@@crawlExecutionStatusErrorHeader">Error</h3>
         <mat-list-item>{{error.code}}</mat-list-item>
         <mat-list-item>{{error.msg}}</mat-list-item>
         <mat-list-item>{{error.detail}}</mat-list-item>
       </mat-list>
     }
-    <div fxFlex>
+    <div class="flex-fill">
       <table class="mat-table table" style="margin-bottom: 1rem;">
         <thead>
           <tr class="mat-header-row">

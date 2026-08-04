@@ -1,8 +1,8 @@
 <form [formGroup]="form">
   <h2 mat-dialog-title>BrowserConfig - Mass update </h2>
 
-  <mat-dialog-content fxLayout="row" fxLayoutGap="16px">
-    <div fxFlex fxLayout="column" fxLayoutGap="16px">
+  <mat-dialog-content class="layout-row gap-16">
+    <div class="layout-column gap-16 flex-fill">
       <app-label-multi [configObject]="configObject"
         [allSelected]="allSelected"
         (update)="onUpdateLabels($event)">
@@ -14,8 +14,8 @@
       @if (allSelected) {
         <h5>Browserscripts:</h5>
       }
-      <div fxlayout="row" fxLayoutGap="16px">
-        <mat-form-field fxFlex>
+      <div class="layout-row gap-16">
+        <mat-form-field class="flex-fill">
           <mat-label i18n="@@browserconfigFormBrowserscriptsDropdownLabel">
             BrowserScripts
           </mat-label>
@@ -42,8 +42,8 @@
         </div>
       </div>
       @if (shouldAddBrowserScript !== undefined) {
-        <div fxLayout="column">
-          <mat-form-field fxFlex>
+        <div class="layout-column">
+          <mat-form-field class="flex-fill">
             <mat-label i18n="@@browserconfigFormBrowserscriptsDropdownLabel">
             BrowserScripts
           </mat-label>
@@ -70,8 +70,8 @@
       @if (allSelected) {
         <h5>Script selectors:</h5>
       }
-      <div fxlayout="row" fxLayoutGap="16px">
-        <mat-chip-listbox fxFlex>
+      <div class="layout-row gap-16">
+        <mat-chip-listbox class="flex-fill">
           @for (scriptSelector of configObject.browserConfig.scriptSelectorList; track scriptSelector) {
             <mat-chip-option [selectable]="false">
               {{scriptSelector}}
@@ -95,9 +95,9 @@
         </div>
       </div>
       @if (shouldAddSelector !== undefined) {
-        <div fxLayout="column">
-          <app-selector fxFlex formControlName="scriptSelectorList"
-            [removable]="true">
+        <div class="layout-column">
+          <app-selector formControlName="scriptSelectorList"
+            [removable]="true" class="flex-fill">
           </app-selector>
           @if (shouldAddSelector) {
             <mat-hint>Enter script selectors to add</mat-hint>
@@ -109,7 +109,7 @@
       }
     </div>
 
-    <div fxFlex fxLayout="column">
+    <div class="layout-column flex-fill">
       <mat-form-field>
         <mat-label i18n="@@browserconfigFormUserAgentLabel">
           User agent

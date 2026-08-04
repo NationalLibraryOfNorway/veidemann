@@ -1,19 +1,19 @@
-<div fxLayout="column" class="container">
+<div class="container layout-column">
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
     @if (query(); as query) {
-      <div fxFlex fxLayout="row" class="no-scroll">
+      <div class="no-scroll layout-row flex-fill">
         <app-crawl-execution-status-query class="content-padding scroll"
           [crawlJobOptions]="crawlJobOptions"
           [query]="query"
         (queryChange)="onQueryChange($event)"></app-crawl-execution-status-query>
-        <app-crawl-execution-status-list fxFlex
+        <app-crawl-execution-status-list
           [dataSource]="dataSource"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)"
+          (sort)="onSort($event)" class="flex-fill"
           >
           <ng-container *appExtra="let row">
             @if (canAbort(row.state) && can('abort','crawlexecution')) {

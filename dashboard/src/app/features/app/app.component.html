@@ -13,15 +13,16 @@
       </button>
       }
     </div>
-    <nav mat-nav-list aria-label="Primary navigation" i18n-aria-label="@@primaryNavigationLabel">
+    <mat-nav-list class="primary-navigation" aria-label="Primary navigation"
+                  i18n-aria-label="@@primaryNavigationLabel">
       @for (destination of primaryDestinations; track destination.route) {
         @if (canNavigate(destination)) {
           <a mat-list-item
              [routerLink]="destination.route"
-             routerLinkActive="is-active"
+             routerLinkActive
              [routerLinkActiveOptions]="{exact: destination.route === '/'}"
              #drawerLink="routerLinkActive"
-             [attr.aria-current]="drawerLink.isActive ? 'page' : null"
+             [activated]="drawerLink.isActive"
              (click)="!expandedNavigation() && primaryDrawer.close()">
             <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
             <span matListItemTitle>{{destination.label}}</span>
@@ -29,11 +30,12 @@
         }
       }
       @if (activeSection() === 'config') {
-        <div mat-subheader>Configuration</div>
+        <mat-divider></mat-divider>
+        <div class="navigation-section" matSubheader>Configuration</div>
         @for (destination of configDestinations; track destination.route) {
           @if (canNavigate(destination)) {
-            <a mat-list-item [routerLink]="destination.route" routerLinkActive="is-active"
-              #childLink="routerLinkActive" [attr.aria-current]="childLink.isActive ? 'page' : null"
+            <a mat-list-item [routerLink]="destination.route" routerLinkActive
+              #childLink="routerLinkActive" [activated]="childLink.isActive"
               (click)="!expandedNavigation() && primaryDrawer.close()">
               <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
               <span matListItemTitle>{{destination.label}}</span>
@@ -42,11 +44,12 @@
         }
       }
       @if (activeSection() === 'report') {
-        <div mat-subheader>Reports</div>
+        <mat-divider></mat-divider>
+        <div class="navigation-section" matSubheader>Reports</div>
         @for (destination of reportDestinations; track destination.route) {
           @if (canNavigate(destination)) {
-            <a mat-list-item [routerLink]="destination.route" routerLinkActive="is-active"
-              #childLink="routerLinkActive" [attr.aria-current]="childLink.isActive ? 'page' : null"
+            <a mat-list-item [routerLink]="destination.route" routerLinkActive
+              #childLink="routerLinkActive" [activated]="childLink.isActive"
               (click)="!expandedNavigation() && primaryDrawer.close()">
               <mat-icon matListItemIcon>{{destination.icon}}</mat-icon>
               <span matListItemTitle>{{destination.label}}</span>
@@ -54,7 +57,7 @@
           }
         }
       }
-    </nav>
+    </mat-nav-list>
   </mat-sidenav>
 
   <mat-sidenav-content class="app-content">

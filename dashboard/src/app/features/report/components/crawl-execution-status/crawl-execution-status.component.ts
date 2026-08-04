@@ -7,8 +7,6 @@ import {RouterLink} from '@angular/router';
 import {JobNamePipe, SeedNamePipe} from '../../pipe';
 import {AsyncPipe, DatePipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 @Component({
     selector: 'app-crawl-execution-status',
@@ -20,8 +18,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   imports: [
     AsyncPipe,
     DatePipe,
-    LayoutDirective,
-    LayoutGapDirective,
     JobNamePipe,
     MatCardModule,
     MatIcon,

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core
 import {Annotation} from '../../../../../shared/models/config';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatChipsModule} from '@angular/material/chips';
 
 @Component({
@@ -11,7 +10,6 @@ import {MatChipsModule} from '@angular/material/chips';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatChipsModule,
-    LayoutDirective,
   ],
   standalone: true
 })

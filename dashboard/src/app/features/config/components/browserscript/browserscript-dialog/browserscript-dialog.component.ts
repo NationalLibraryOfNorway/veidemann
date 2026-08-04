@@ -9,8 +9,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { EditorComponent } from 'ngx-monaco-editor-v2';
 import { ConfigObject } from '../../../../../shared/models';
 import { ConfigDialogData } from '../../../func';
@@ -23,9 +21,6 @@ import { MetaComponent } from '../../meta/meta.component';
   styleUrls: ['./browserscript-dialog.component.css'],
   imports: [
     EditorComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,

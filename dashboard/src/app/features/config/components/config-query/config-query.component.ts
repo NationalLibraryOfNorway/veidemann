@@ -7,8 +7,6 @@ import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { QueryComponent } from '../../../../shared/components';
 import { ConfigQuery } from '../../../../shared/func';
 import { Kind } from '../../../../shared/models';
@@ -22,8 +20,6 @@ import { ConfigOptions } from '../../func';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIcon,

@@ -1,36 +1,51 @@
-<div fxLayout="column" class="container">
+<div class="container layout-column">
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
-    <div fxFlex fxLayout="row" class="container no-scroll">
-      <div fxLayout="column" class="scroll">
-        <mat-action-list>
-          @if (currentKind(); as kind) {
-            @if (can('create', Kind[kind]) && showCreateButton()) {
-              <button mat-list-item
-                (click)="onCreateConfigWithDialog()"
-                i18n="@@configurationSideBarMenuAddConfigButton"
-                matTooltip="Create a new configuration"
-                i18n-matTooltip="@@configurationSideBarMenuAddConfigButtonTooltip">
-            <mat-icon matListItemIcon>add_circle</mat-icon>
-            Create new
-          </button>
-            }
-          }
-        </mat-action-list>
+    <mat-drawer-container class="filter-layout flex-fill">
+      <mat-drawer #filterDrawer class="filter-drawer"
+        [mode]="compactFilters() ? 'over' : 'side'"
+        [opened]="!compactFilters()"
+        [disableClose]="!compactFilters()"
+        aria-label="Configuration filters"
+        i18n-aria-label="@@configurationFiltersDrawerLabel">
         <app-config-query [options]="options$ | async" [query]="query()"
         (queryChange)="onQueryChange($event)"></app-config-query>
-      </div>
+      </mat-drawer>
+      <mat-drawer-content class="results-pane">
       @if (currentKind(); as kind) {
+        <div class="list-toolbar" aria-label="Configuration list actions"
+          i18n-aria-label="@@configurationListActionsLabel">
+          @if (compactFilters()) {
+            <button matButton="tonal" type="button" (click)="filterDrawer.open()"
+              aria-label="Open configuration filters"
+              i18n-aria-label="@@configurationOpenFiltersButtonLabel">
+              <mat-icon>filter_list</mat-icon>
+              <span i18n="@@configurationOpenFiltersButton">Filters</span>
+            </button>
+          }
+          <span class="toolbar-spacer"></span>
+          @if (can('create', Kind[kind]) && showCreateButton()) {
+            <button matButton="filled" type="button"
+              (click)="onCreateConfigWithDialog()"
+              i18n="@@configurationSideBarMenuAddConfigButton"
+              matTooltip="Create a new configuration"
+              i18n-matTooltip="@@configurationSideBarMenuAddConfigButtonTooltip">
+              <mat-icon>add</mat-icon>
+              Create new
+            </button>
+          }
+        </div>
+        <div class="result-content">
         @switch (kind) {
           @case (Kind.ROLEMAPPING) {
-            <div fxFlex fxLayout="column">
-              <app-rolemapping-list fxFlex [dataSource]="dataSource"
+            <div class="layout-column flex-fill">
+              <app-rolemapping-list [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"
                 [length]="length$ | async"
                 (selectedChange)="onSelectedChange($event)"
                 (rowClick)="onRowClick($event)"
-                (selectAll)="onSelectAll()">
+                (selectAll)="onSelectAll()" class="flex-fill">
                 <button mat-icon-button
                   aria-label="Edit selected role mappings"
                   (click)="onEditSelected()">
@@ -49,12 +64,12 @@
             </div>
           }
           @default {
-            <div fxFlex fxLayout="column">
+            <div class="layout-column flex-fill">
               @if (entity(); as entity) {
                 <app-entity-view
                 [configObject]="entity"></app-entity-view>
               }
-              <app-config-list fxFlex
+              <app-config-list
                 [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"
                 [length]="length$ | async"
@@ -64,7 +79,7 @@
                 (selectedChange)="onSelectedChange($event)"
                 (selectAll)="onSelectAll()"
                 (sort)="onSort($event)"
-                (rowClick)="onRowClick($event)">
+                (rowClick)="onRowClick($event)" class="flex-fill">
                 @if (kind===Kind.SEED && !isAllSelected) {
                   <button mat-icon-button
                     aria-label="Start crawl for selected seeds"
@@ -395,6 +410,8 @@
             </div>
           }
         }
+        </div>
       }
-    </div>
+      </mat-drawer-content>
+    </mat-drawer-container>
 </div>

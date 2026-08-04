@@ -9,7 +9,6 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatTooltip} from '@angular/material/tooltip';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {combineLatest, Observable} from 'rxjs';
 import {distinctUntilChanged, map} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
@@ -37,8 +36,6 @@ import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
     CrawlExecutionStatusQueryComponent,
     FilterDirective,
     ExtraDirective,
-    FlexDirective,
-    LayoutDirective,
     MatIconModule,
     MatMenuModule,
     MatProgressBarModule,

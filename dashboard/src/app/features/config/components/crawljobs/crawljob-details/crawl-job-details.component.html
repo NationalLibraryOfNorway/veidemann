@@ -10,7 +10,7 @@
           <ng-container i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</ng-container>
         }
       </mat-card-subtitle>
-      <span fxFlex></span>
+      <span class="flex-fill"></span>
       <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
         formControlName="disabled"
         color="warn">
@@ -19,8 +19,8 @@
     </mat-card-header>
 
     <mat-card-content>
-      <div fxLayout="row wrap" fxLayoutGap="24px">
-        <div fxFlex fxLayout="column">
+      <div class="layout-row layout-wrap gap-24">
+        <div class="layout-column flex-fill">
           <app-meta formControlName="meta"></app-meta>
 
           @if (!showSave) {
@@ -34,7 +34,7 @@
             </mat-form-field>
           }
         </div>
-        <div fxFlex fxLayout="column">
+        <div class="layout-column flex-fill">
           <ng-container formGroupName="limits">
             <mat-label i18n="@@crawljobFormMaxDurationLabel">Max duration</mat-label>
             <app-duration-picker formControlName="maxDurationS"
@@ -149,7 +149,7 @@
             i18n="@@commonButtonDelete">DELETE
       </button>
         }
-        <span fxFlex></span>
+        <span class="flex-fill"></span>
         @if (!showSave) {
           <button mat-button
             matTooltip="Run crawljob"

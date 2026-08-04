@@ -14,8 +14,8 @@
       </mat-card-subtitle>
     </mat-card-header>
 
-    <mat-card-content fxLayout="row wrap" fxLayoutGap="24px">
-      <div fxFlex fxLayout="column">
+    <mat-card-content class="layout-row layout-wrap gap-24">
+      <div class="layout-column flex-fill">
         <app-meta formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
@@ -28,7 +28,7 @@
           </mat-form-field>
         }
       </div>
-      <div fxFlex fxLayout="column">
+      <div class="layout-column flex-fill">
         <mat-form-field data-testid="userAgent">
           <mat-label i18n="@@browserconfigFormUserAgentLabel">
             User agent
@@ -144,7 +144,7 @@
           data-testid="buttonRevert">
         REVERT
       </button>
-        <span fxFlex></span>
+        <span class="flex-fill"></span>
         @if (!showSave && canDelete) {
           <button mat-button
             (click)="onDelete()"

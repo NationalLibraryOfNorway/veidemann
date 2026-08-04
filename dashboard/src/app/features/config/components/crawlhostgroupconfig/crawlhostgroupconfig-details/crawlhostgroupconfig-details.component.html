@@ -1,4 +1,4 @@
-<form [formGroup]="form" fxFlex>
+<form [formGroup]="form" class="flex-fill">
   <mat-card appearance="outlined">
     <mat-card-header>
       <mat-icon mat-card-avatar>group_work</mat-icon>
@@ -13,8 +13,8 @@
         }
       </mat-card-subtitle>
     </mat-card-header>
-    <mat-card-content fxLayout="row wrap" fxLayoutGap="24px">
-      <div fxFlex fxLayout="column">
+    <mat-card-content class="layout-row layout-wrap gap-24">
+      <div class="layout-column flex-fill">
         <app-meta formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
@@ -27,7 +27,7 @@
           </mat-form-field>
         }
       </div>
-      <div fxFlex fxLayout="column" fxLayoutGap="16px">
+      <div class="layout-column gap-16 flex-fill">
         <mat-label i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadLabel">
           Minimum time between page load
         </mat-label>
@@ -101,12 +101,10 @@
         <fieldset class="mat-elevation-z1" formArrayName="ipRangeList">
           <legend mat-card-subtitle i18n="@@ipRangeListHeader">IP range</legend>
           @for (ipRange of ipRangeControlArray.controls; track ipRange; let i = $index) {
-            <div fxLayout="column"
-              data-testid="ipRangeList">
-              <div [formGroupName]="i"
-                fxLayout="row"
-                fxLayoutGap="16px">
-                <mat-form-field fxFlex data-testid="ipRangeFrom">
+            <div
+              data-testid="ipRangeList" class="layout-column">
+              <div [formGroupName]="i" class="layout-row gap-16">
+                <mat-form-field data-testid="ipRangeFrom" class="flex-fill">
                   <mat-label i18n="@@crawlhostgroupconfigFormIpFromLabel">
                   IP address
                 </mat-label>
@@ -119,7 +117,7 @@
                 </mat-error>
                   }
                 </mat-form-field>
-                <mat-form-field fxFlex data-testid="ipRangeTo">
+                <mat-form-field data-testid="ipRangeTo" class="flex-fill">
                   <mat-label i18n="@@crawlhostgroupconfigFormIpToLabel">
                   IP address
                 </mat-label>
@@ -186,7 +184,7 @@
           i18n="@@commonButtonRevert">
         REVERT
       </button>
-        <span fxFlex></span>
+        <span class="flex-fill"></span>
         @if (!showSave && canDelete) {
           <button mat-button
             (click)="onDelete()"

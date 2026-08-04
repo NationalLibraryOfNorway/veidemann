@@ -2,7 +2,7 @@
   <ng-container i18n="@@browserscriptDetailsCardTitle">BrowserScript</ng-container>
 </h2>
 <mat-dialog-content>
-  <form [formGroup]="form" fxLayout="column">
+  <form [formGroup]="form" class="layout-column">
     <app-meta formControlName="meta"></app-meta>
 
     <mat-form-field>
@@ -46,8 +46,8 @@
             <mat-icon mat-card-avatar>edit</mat-icon>
             <mat-card-title i18n="@@browserscriptRegexpEditFormTitle">Edit the expression</mat-card-title>
           </mat-card-header>
-          <mat-card-content fxLayout="row" fxLayoutGap="16px">
-            <mat-form-field fxFlex>
+          <mat-card-content class="layout-row gap-16">
+            <mat-form-field class="flex-fill">
               <mat-label i18n="@@browserscriptRegexpEditFormInputLabel">
               Regexp
             </mat-label>
@@ -68,7 +68,7 @@
         </mat-card>
       </form>
     }
-    <ngx-monaco-editor fxFlex #editor class="editor"
+    <ngx-monaco-editor #editor class="editor flex-fill"
       formControlName="script"
       [options]="editorOptions"
       (onInit)="initEditor($event)">
@@ -108,6 +108,6 @@
       mat-dialog-close
       i18n="@@commonButtonCancel">CANCEL
   </button>
-    <span fxFlex></span>
+    <span class="flex-fill"></span>
   </mat-dialog-actions>
 }

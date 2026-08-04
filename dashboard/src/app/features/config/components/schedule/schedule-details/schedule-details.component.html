@@ -13,8 +13,8 @@
         }
       </mat-card-subtitle>
     </mat-card-header>
-    <mat-card-content fxLayout="row wrap" fxLayoutGap="24px">
-      <div fxFlex fxLayout="column">
+    <mat-card-content class="layout-row layout-wrap gap-24">
+      <div class="layout-column flex-fill">
         <app-meta formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
@@ -26,10 +26,10 @@
         }
       </div>
 
-      <div fxFlex fxLayout="column" fxLayoutAlign="space-evenly">
+      <div class="layout-column layout-space-evenly flex-fill">
         <div formGroupName="cronExpression" class="cron-expression">
           <h3 mat-subheader i18n="@@scheduleFormCronExpressionHeader">CRON expression</h3>
-          <div fxLayout="row wrap" fxLayoutGap="12px">
+          <div class="layout-row layout-wrap gap-16">
             <mat-form-field data-testid="cronMinute">
               <mat-label i18n="@@scheduleCronExpressionMinuteLabel">
                 Minute
@@ -76,7 +76,7 @@
 
         <div>
           <h3 mat-subheader i18n="@@scheduleDetailsValidFromToHeader">Time limit</h3>
-          <div fxLayout="row wrap" fxLayoutGap="24px">
+          <div class="layout-row layout-wrap gap-24">
             <mat-form-field data-testid="validFrom">
               <mat-label i18n="@@scheduleDetailsValidFromInputLabel">
                 Valid from
@@ -130,7 +130,7 @@
           i18n="@@commonButtonRevert">
         REVERT
       </button>
-        <span fxFlex></span>
+        <span class="flex-fill"></span>
         @if (!showSave && canDelete) {
           <button mat-button
             (click)="onDelete()"
@@ -142,5 +142,4 @@
     }
   </mat-card>
 </form>
-
 

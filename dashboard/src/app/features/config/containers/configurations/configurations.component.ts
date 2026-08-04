@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, OnDestroy, Signal, inject } from '@angular/core';
+import {BreakpointObserver} from '@angular/cdk/layout';
 import {ActivatedRoute, NavigationStart, Params, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
@@ -61,9 +62,9 @@ import {
   PolitenessConfigNamePipe
 } from '../../pipe';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
 import {MongoAbility} from '@casl/ability';
+import {MatSidenavModule} from '@angular/material/sidenav';
 
 
 @Component({
@@ -76,8 +77,6 @@ import {MongoAbility} from '@casl/ability';
     ConfigListComponent,
     ConfigQueryComponent,
     EntityViewComponent,
-    FlexDirective,
-    LayoutDirective,
     MatListModule,
     MatIcon,
     MatProgressBar,
@@ -96,6 +95,7 @@ import {MongoAbility} from '@casl/ability';
     CrawlScheduleNamePipe,
     CrawlConfigNamePipe,
     MatButtonModule,
+    MatSidenavModule,
     ExtraDirective,
   ],
   standalone: true
@@ -113,6 +113,7 @@ export class ConfigurationsComponent implements OnDestroy {
   private optionsService = inject(OptionsService);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
   private destroyRef = inject(DestroyRef);
+  private breakpointObserver = inject(BreakpointObserver);
 
   readonly Kind = Kind;
   readonly ConfigPath = ConfigPath;
@@ -143,6 +144,7 @@ export class ConfigurationsComponent implements OnDestroy {
   options$: Observable<ConfigOptions>;
 
   readonly currentKind: Signal<Kind>;
+  readonly compactFilters: Signal<boolean>;
 
   constructor() {
 
@@ -156,6 +158,10 @@ export class ConfigurationsComponent implements OnDestroy {
 
     this.recount = new Subject();
     this.can = this.abilityService.can;
+    this.compactFilters = toSignal(
+      this.breakpointObserver.observe('(max-width: 839px)').pipe(map(state => state.matches)),
+      {initialValue: false}
+    );
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     const kindParamMap = toSignal(this.route.parent.paramMap, {requireSync: true});

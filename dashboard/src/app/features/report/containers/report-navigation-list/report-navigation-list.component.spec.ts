@@ -30,6 +30,6 @@ describe('ReportNavigationListComponent', () => {
     const links = fixture.nativeElement.querySelectorAll('.destination-link');
     expect(links.length).toBe(1);
     expect(links[0].getAttribute('href')).toBe('/report/pagelog');
-    expect(links[0].textContent).toContain('PageLog');
+    expect(links[0].textContent).toContain('Page log');
   });
 });

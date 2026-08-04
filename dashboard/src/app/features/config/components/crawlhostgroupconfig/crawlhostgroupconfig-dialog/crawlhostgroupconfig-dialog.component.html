@@ -5,7 +5,7 @@
 <mat-dialog-content>
   <form [formGroup]="form">
     <app-meta formControlName="meta"></app-meta>
-    <div fxLayout="column" fxLayoutGap="16px">
+    <div class="layout-column gap-16">
       <mat-label i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadLabel">
         Minimum time between page load
       </mat-label>
@@ -74,11 +74,9 @@
       <fieldset class="mat-elevation-z1" formArrayName="ipRangeList">
         <legend mat-card-subtitle i18n="@@ipRangeListHeader">IP range</legend>
         @for (ipRange of ipRangeControlArray.controls; track ipRange; let i = $index) {
-          <div fxLayout="column">
-            <div [formGroupName]="i"
-              fxLayout="row"
-              fxLayoutGap="16px">
-              <mat-form-field fxFlex>
+          <div class="layout-column">
+            <div [formGroupName]="i" class="layout-row gap-16">
+              <mat-form-field class="flex-fill">
                 <mat-label i18n="@@crawlhostgroupconfigFormIpFromLabel">
                 IP address
               </mat-label>
@@ -91,7 +89,7 @@
               </mat-error>
                 }
               </mat-form-field>
-              <mat-form-field fxFlex>
+              <mat-form-field class="flex-fill">
                 <mat-label i18n="@@crawlhostgroupconfigFormIpToLabel">
                 IP address
               </mat-label>

@@ -1,7 +1,7 @@
 <form [formGroup]="form">
-  <div fxLayout="row">
+  <div class="layout-row">
     <h2 mat-dialog-title>Crawljob - Mass update</h2>
-    <span fxFlex></span>
+    <span class="flex-fill"></span>
     <div role="button"
       tabindex="0"
       (click)="disabled.disabled ? disabled.enable() : null"
@@ -39,14 +39,14 @@
     </div>
   </div>
   <mat-dialog-content>
-    <div fxLayout="row wrap" fxLayoutGap="24px">
-      <div fxFlex fxLayout="column" fxLayoutGap="16px">
+    <div class="layout-row layout-wrap gap-24">
+      <div class="layout-column gap-16 flex-fill">
         <app-label-multi [configObject]="configObject"
           [allSelected]="allSelected"
         (update)="onUpdateLabels($event)"></app-label-multi>
       </div>
 
-      <div fxFlex fxLayout="column">
+      <div class="layout-column flex-fill">
         <ng-container formGroupName="limits">
           <app-duration-picker formControlName="maxDurationS"
             [unit]="UnitOfTime.SECOND"

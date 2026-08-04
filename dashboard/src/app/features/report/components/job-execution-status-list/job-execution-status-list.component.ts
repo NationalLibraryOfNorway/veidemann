@@ -10,7 +10,6 @@ import {MatIcon} from '@angular/material/icon';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-job-execution-status-list',
@@ -22,9 +21,7 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   imports: [
     AsyncPipe,
     DatePipe,
-    FlexDirective,
     JobNamePipe,
-    LayoutDirective,
     MatButtonModule,
     MatIcon,
     MatMenuModule,

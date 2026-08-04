@@ -6,8 +6,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatListSubheaderCssMatStyler } from '@angular/material/list';
-import { LayoutAlignDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { ScheduleDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -18,9 +16,6 @@ import { MetaComponent } from '../../meta/meta.component';
   templateUrl: './schedule-dialog.component.html',
   styleUrls: ['./schedule-dialog.component.css'],
   imports: [
-    LayoutAlignDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatDatepickerModule,
     MatDialogModule,

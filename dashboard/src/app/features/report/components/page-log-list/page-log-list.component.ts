@@ -7,7 +7,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {MatButtonModule} from '@angular/material/button';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-pagelog-list',
@@ -19,8 +18,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   standalone: true,
   imports: [
     CommonModule,
-    FlexDirective,
-    LayoutDirective,
     MatButtonModule,
     MatMenuModule,
     MatIconModule,

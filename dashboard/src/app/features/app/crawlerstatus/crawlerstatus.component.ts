@@ -6,9 +6,7 @@ import {MongoAbility} from '@casl/ability';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatTooltip} from '@angular/material/tooltip';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
@@ -17,8 +15,6 @@ import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
   styleUrls: ['./crawlerstatus.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    LayoutGapDirective,
-    LayoutDirective,
     MatButtonModule,
     MatCardModule,
     MatIcon,

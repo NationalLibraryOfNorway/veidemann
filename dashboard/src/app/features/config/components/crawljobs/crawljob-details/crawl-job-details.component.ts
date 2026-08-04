@@ -16,8 +16,6 @@ import {AsyncPipe} from '@angular/common';
 import {MatSelectModule} from '@angular/material/select';
 import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
 import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltipModule} from '@angular/material/tooltip';
 
@@ -30,9 +28,6 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     AsyncPipe,
     DurationPickerComponent,
     FilesizeInputComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,

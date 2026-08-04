@@ -86,21 +86,21 @@ export class ConfigComponent {
       case Kind.SEED:
         return $localize`:@@configurationSidebarMenuSeed:Seed`;
       case Kind.CRAWLJOB:
-        return $localize`:@@configurationSidebarMenuCrawljobs:Crawljobs`;
+        return $localize`:@@configurationSidebarMenuCrawljobs:Crawl jobs`;
       case Kind.CRAWLSCHEDULECONFIG:
         return $localize`:@@configurationSidebarMenuSchedule:Schedule`;
       case Kind.CRAWLCONFIG:
-        return $localize`:@@configurationSidebarMenuCrawlconfig:CrawlConfig`;
+        return $localize`:@@configurationSidebarMenuCrawlconfig:Crawl config`;
       case Kind.COLLECTION:
         return $localize`:@@configurationSidebarMenuCollection:Collection`;
       case Kind.BROWSERCONFIG:
-        return $localize`:@@configurationSidebarMenuBrowserconfig:BrowserConfig`;
+        return $localize`:@@configurationSidebarMenuBrowserconfig:Browser config`;
       case Kind.BROWSERSCRIPT:
-        return $localize`:@@configurationSidebarMenuBrowserscript:BrowserScript`;
+        return $localize`:@@configurationSidebarMenuBrowserscript:Browser script`;
       case Kind.POLITENESSCONFIG:
         return $localize`:@@configurationSidebarMenuPolitenessconfig:Politeness`;
       case Kind.CRAWLHOSTGROUPCONFIG:
-        return $localize`:@@configurationSidebarMenuCrawlhostgroupconfig:CrawlHostGroup`;
+        return $localize`:@@configurationSidebarMenuCrawlhostgroupconfig:Crawl host group`;
       case Kind.ROLEMAPPING:
         return $localize`:@@configurationSidebarMenuRolemapping:Users`;
       default:

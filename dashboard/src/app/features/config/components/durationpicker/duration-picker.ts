@@ -17,8 +17,6 @@ import {Subject} from 'rxjs';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../shared/validation/patterns';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-duration-picker',
@@ -38,9 +36,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule

@@ -8,8 +8,6 @@ import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {RouterLink} from '@angular/router';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawl-log-status',
@@ -18,8 +16,6 @@ import {LayoutDirective} from '@ngbracket/ngx-layout';
   providers: [DatePipe, FileSizePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    LayoutDirective,
-    LayoutGapDirective,
     MatCardModule,
     MatIcon,
     MatTableModule,

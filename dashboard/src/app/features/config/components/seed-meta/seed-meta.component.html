@@ -1,4 +1,4 @@
-<div [formGroup]="form" fxLayout="column">
+<div [formGroup]="form" class="layout-column">
 
   <mat-form-field data-testid="name">
     <mat-label i18n="@@seedMetaUrlInputLabel">
@@ -82,7 +82,7 @@
       }
       @for (seed of name.errors['seedExists']; track seed) {
         <mat-list-item>
-          <div fxLayout="row">
+          <div class="layout-row">
             <a matTooltip="Go to entity with existing seed"
               matListItemTitle
               i18n-matTooltip="@@seedMetaGoToEntityWithExistingSeedButtonTooltip"
@@ -118,9 +118,9 @@
   <app-labels [removable]="editable" formControlName="labelList"></app-labels>
   <app-annotation [removable]="editable" formControlName="annotationList"></app-annotation>
 
-  <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
+  <div class="layout-stack-compact layout-row gap-8">
     @if (created.value) {
-      <mat-form-field fxFlex>
+      <mat-form-field class="flex-fill">
         <input matInput
           readonly="true"
           formControlName="created"
@@ -130,7 +130,7 @@
     }
 
     @if (createdBy.value) {
-      <mat-form-field fxFlex>
+      <mat-form-field class="flex-fill">
         <input matInput
           readonly="true"
           formControlName="createdBy"
@@ -140,9 +140,9 @@
     }
   </div>
 
-  <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
+  <div class="layout-stack-compact layout-row gap-8">
     @if (lastModified.value) {
-      <mat-form-field fxFlex>
+      <mat-form-field class="flex-fill">
         <input matInput
           readonly="true"
           formControlName=lastModified
@@ -152,7 +152,7 @@
     }
 
     @if (lastModifiedBy.value) {
-      <mat-form-field fxFlex>
+      <mat-form-field class="flex-fill">
         <input matInput
           readonly="true"
           formControlName="lastModifiedBy"

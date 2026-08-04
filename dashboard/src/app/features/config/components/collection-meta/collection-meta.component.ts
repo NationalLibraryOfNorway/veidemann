@@ -8,8 +8,6 @@ Validators
 } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { Observable,of } from 'rxjs';
 import { first,map,tap } from 'rxjs/operators';
 import { Meta } from '../../../../shared/models';
@@ -33,9 +31,6 @@ import { MetaComponent } from '../meta/meta.component';
     ReactiveFormsModule,
     LabelComponent,
     AnnotationComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
   ],
   standalone: true
 })

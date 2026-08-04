@@ -8,8 +8,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { BrowserConfigDetailsComponent } from '..';
 import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models';
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
@@ -36,9 +34,6 @@ import { SelectorComponent } from '../../selector/selector.component';
     SelectorComponent,
     MatIconModule,
     MatInputModule,
-    LayoutDirective,
-    FlexDirective,
-    LayoutGapDirective
   ],
   standalone: true
 })

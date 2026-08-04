@@ -21,6 +21,7 @@ import {MatIcon} from '@angular/material/icon';
 @Component({
   selector: 'app-shortcut-list',
   templateUrl: './shortcut-list.component.html',
+  styleUrls: ['./shortcut-list.component.scss'],
   imports: [
     AsyncPipe,
     BrowserConfigNamePipe,

@@ -19,7 +19,7 @@
 
 .primary-drawer {
   width: min(300px, 85vw);
-  background: var(--mat-sys-surface-container);
+  background-color: var(--mat-sys-surface-container);
   color: var(--mat-sys-on-surface);
 }
 
@@ -30,6 +30,15 @@
   min-height: 56px;
   padding: 0 8px 0 24px;
   font: var(--mat-sys-title-medium);
+}
+
+.primary-navigation {
+  box-sizing: border-box;
+  padding: 8px 12px;
+}
+
+.navigation-section {
+  padding-top: 8px;
 }
 
 .main-toolbar {

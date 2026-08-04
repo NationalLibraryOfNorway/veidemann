@@ -2,15 +2,15 @@
   <h2 mat-dialog-title>CrawlConfig - Mass update</h2>
 
   <mat-dialog-content>
-    <div fxLayout="row" fxLayoutGap="16px">
+    <div class="layout-row gap-16">
 
-      <div fxFlex>
+      <div class="flex-fill">
         <app-label-multi [configObject]="configObject"
                          [allSelected]="allSelected"
                          (update)="onUpdateLabels($event)"></app-label-multi>
       </div>
 
-      <div fxFlex fxLayout="column">
+      <div class="layout-column flex-fill">
         <mat-form-field>
           <mat-label i18n="@@collectionDropdownLabel">
             Collection

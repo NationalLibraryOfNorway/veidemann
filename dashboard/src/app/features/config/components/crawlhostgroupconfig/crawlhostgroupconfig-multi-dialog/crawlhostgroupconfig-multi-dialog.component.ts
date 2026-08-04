@@ -4,7 +4,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { LayoutDirective } from '@ngbracket/ngx-layout';
 import { CrawlHostGroupConfigDetailsComponent } from '..';
 import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
 import { ANY_DECIMAL_NUMBER_OR_EMPTY_STRING,NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
@@ -19,7 +18,6 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   imports: [
     DurationPickerComponent,
     LabelMultiComponent,
-    LayoutDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatDialogModule,

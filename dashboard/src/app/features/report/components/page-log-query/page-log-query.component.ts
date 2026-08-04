@@ -3,7 +3,6 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { LayoutDirective } from '@ngbracket/ngx-layout';
 import { QueryComponent } from '../../../../shared/components';
 import { PageLogQuery } from '../../services';
 
@@ -14,7 +13,6 @@ import { PageLogQuery } from '../../services';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    LayoutDirective,
     MatFormFieldModule,
     MatInputModule,
     MatCheckboxModule,

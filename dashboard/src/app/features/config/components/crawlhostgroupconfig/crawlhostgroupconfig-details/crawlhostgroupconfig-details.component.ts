@@ -20,8 +20,6 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-details',
@@ -37,9 +35,6 @@ import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
     DurationPickerComponent,
     MetaComponent,
     ReactiveFormsModule,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective
   ],
   standalone: true
 })

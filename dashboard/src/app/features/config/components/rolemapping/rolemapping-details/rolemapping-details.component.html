@@ -15,7 +15,7 @@
       </mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
-      <div fxLayout="row wrap" fxLayoutGap="24px">
+      <div class="layout-row layout-wrap gap-24">
         <mat-form-field>
           <mat-label i18n-placeholder="@@roleMappingDetailsTypeDropdownLabel">
             Type
@@ -26,7 +26,7 @@
           </mat-select>
         </mat-form-field>
         @if (selectedType === 'email') {
-          <mat-form-field fxFlex>
+          <mat-form-field class="flex-fill">
             <mat-label i18n="@@roleMappingDetailsEmailInputLabel">
             Email
           </mat-label>
@@ -34,14 +34,14 @@
           </mat-form-field>
         }
         @if (selectedType === 'group') {
-          <mat-form-field fxFlex>
+          <mat-form-field class="flex-fill">
             <mat-label i18n="@@roleMappingDetailsGroupInputLabel">
             Group
           </mat-label>
             <input matInput formControlName="group">
           </mat-form-field>
         }
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-fill">
           <mat-label i18n="@@rolemappingDetailsRoleDropdownLabel">
             Role
           </mat-label>
@@ -82,7 +82,7 @@
         i18n="@@commonButtonRevert">
         REVERT
       </button>
-      <span fxFlex></span>
+      <span class="flex-fill"></span>
       @if (!showSave) {
         <button mat-button
           (click)="onDelete()"

@@ -1,15 +1,15 @@
 <form [formGroup]="form">
   <h2 mat-dialog-title>Schedule - Mass update</h2>
   <mat-dialog-content>
-    <div fxLayout="row wrap" fxLayoutGap="24px">
-      <div fxFlex fxLayout="column" fxLayoutGap="16px">
+    <div class="layout-row layout-wrap gap-24">
+      <div class="layout-column gap-16 flex-fill">
         <app-label-multi [configObject]="configObject"
           [allSelected]="allSelected"
           (update)="onUpdateLabels($event)">
         </app-label-multi>
       </div>
-      <div fxFlex fxLayout="column" fxLayoutGap="16px">
-        <div fxLayout="row" fxLayoutGap="24px">
+      <div class="layout-column gap-16 flex-fill">
+        <div class="layout-row gap-24">
           <div role="button"
             tabindex="0"
             (click)="validFrom.disabled ? validFrom.enable() : null"

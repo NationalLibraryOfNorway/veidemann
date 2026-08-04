@@ -1,9 +1,9 @@
 @if (can('read', 'annotation')) {
-    <div fxLayout="column">
+    <div class="layout-column">
       <form>
         <mat-form-field>
           <mat-label i18n="@@annotationListInputLabel">Annotation</mat-label>
-          <mat-chip-grid [disabled]="disabled" #chipList fxLayout="row wrap" fxLayoutGap="8px">
+          <mat-chip-grid [disabled]="disabled" #chipList class="layout-row layout-wrap gap-8">
             @for (group of groups$ | async; track group) {
               @for (value of group.values; track value) {
                 <mat-chip-row
@@ -37,8 +37,8 @@
               <mat-icon mat-card-avatar>note</mat-icon>
               <mat-card-title i18n="@@annotationEditCardTitle">Edit annotation</mat-card-title>
             </mat-card-header>
-            <mat-card-content class="newLabelCard" fxLayout="row" fxLayoutGap="16px">
-              <mat-form-field fxFlex>
+            <mat-card-content class="newLabelCard layout-row gap-16">
+              <mat-form-field class="flex-fill">
                 <input #newKey matInput placeholder="Key" formControlName="key"
                   i18n-placeholder="@@annotationFormAddNewKeyPlaceholder">
                 @if (!key.valid) {
@@ -48,7 +48,7 @@
             </mat-error>
                 }
               </mat-form-field>
-              <mat-form-field fxFlex>
+              <mat-form-field class="flex-fill">
                 <input #newValue matInput placeholder="Value" formControlName="value"
                   i18n-placeholder="@@annotationFormAddNewValuePlaceholder">
                 @if (!value.valid) {

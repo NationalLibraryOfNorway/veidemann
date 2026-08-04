@@ -19,8 +19,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatTooltip } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { FlexDirective,LayoutDirective } from '@ngbracket/ngx-layout';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { Observable,of } from 'rxjs';
 import { first,map,tap } from 'rxjs/operators';
 import { ConfigApiService } from '../../../../core';
@@ -48,9 +46,6 @@ export interface Parcel {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CdkTextareaAutosize,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIcon,

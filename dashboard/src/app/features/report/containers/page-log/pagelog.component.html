@@ -1,18 +1,18 @@
-<div fxLayout="column" class="container">
+<div class="container layout-column">
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
     @if (query(); as query) {
-      <div fxFlex class="no-scroll" fxLayout="row">
+      <div class="no-scroll layout-row flex-fill">
         <app-page-log-query class="content-padding scroll"
           [query]="query"
         (queryChange)="onQueryChange($event)"></app-page-log-query>
-        <app-pagelog-list fxFlex
+        <app-pagelog-list
           [dataSource]="dataSource"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)">
+          (sort)="onSort($event)" class="flex-fill">
           @if (can('read', 'jobexecution')) {
             <ng-container *appExtra="let row">
               <a mat-icon-button [routerLink]="['/report', 'jobexecution', row.jobExecutionId]"

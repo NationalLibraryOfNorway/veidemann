@@ -12,8 +12,6 @@ import {MatSelectModule} from '@angular/material/select';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
 import {MatButtonModule} from '@angular/material/button';
 
 
@@ -23,9 +21,6 @@ import {MatButtonModule} from '@angular/material/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DurationPickerComponent,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatButtonModule,
     MatCardModule,
     MatCheckbox,

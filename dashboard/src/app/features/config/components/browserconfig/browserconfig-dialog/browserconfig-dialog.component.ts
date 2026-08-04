@@ -5,7 +5,6 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { LayoutGapDirective } from '@ngbracket/ngx-layout/flex';
 import { BrowserConfigDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models';
 import { ConfigDialogData } from '../../../func';
@@ -28,7 +27,6 @@ import { SelectorComponent } from '../../selector/selector.component';
     ReactiveFormsModule,
     MatSelectModule,
     SelectorComponent,
-    LayoutGapDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true

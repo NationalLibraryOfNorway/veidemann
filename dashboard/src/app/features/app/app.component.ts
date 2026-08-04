@@ -79,19 +79,19 @@ export class AppComponent implements OnInit {
     {
       route: '/config',
       icon: 'settings',
-      label: $localize`:@@mainMenuConfiguration:CONFIGURATION`,
+      label: $localize`:@@mainMenuConfiguration:Configuration`,
       permissionSubject: 'configs',
     },
     {
       route: '/report',
       icon: 'assessment',
-      label: $localize`:@@mainMenuReport:REPORT`,
+      label: $localize`:@@mainMenuReport:Reports`,
       permissionSubject: 'report',
     },
     {
       route: '/logconfig',
       icon: 'notes',
-      label: $localize`:@@mainMenuLogConfiguration:LOG LEVEL`,
+      label: $localize`:@@mainMenuLogConfiguration:Log level`,
       permissionSubject: 'logconfig',
     },
   ];
@@ -99,22 +99,22 @@ export class AppComponent implements OnInit {
   readonly configDestinations: readonly PrimaryDestination[] = [
     {route: '/config/entity', icon: 'business', label: 'Entity', permissionSubject: 'CRAWLENTITY'},
     {route: '/config/seed', icon: 'link', label: 'Seed', permissionSubject: 'SEED'},
-    {route: '/config/crawljobs', icon: 'work', label: 'Crawljobs', permissionSubject: 'CRAWLJOB'},
+    {route: '/config/crawljobs', icon: 'work', label: 'Crawl jobs', permissionSubject: 'CRAWLJOB'},
     {route: '/config/schedule', icon: 'schedule', label: 'Schedule', permissionSubject: 'CRAWLSCHEDULECONFIG'},
-    {route: '/config/crawlconfig', icon: 'settings_system_daydream', label: 'CrawlConfig', permissionSubject: 'CRAWLCONFIG'},
+    {route: '/config/crawlconfig', icon: 'settings_system_daydream', label: 'Crawl config', permissionSubject: 'CRAWLCONFIG'},
     {route: '/config/collection', icon: 'collections_bookmark', label: 'Collection', permissionSubject: 'COLLECTION'},
-    {route: '/config/browserconfig', icon: 'web', label: 'BrowserConfig', permissionSubject: 'BROWSERCONFIG'},
-    {route: '/config/browserscript', icon: 'web_asset', label: 'BrowserScript', permissionSubject: 'BROWSERSCRIPT'},
+    {route: '/config/browserconfig', icon: 'web', label: 'Browser config', permissionSubject: 'BROWSERCONFIG'},
+    {route: '/config/browserscript', icon: 'web_asset', label: 'Browser script', permissionSubject: 'BROWSERSCRIPT'},
     {route: '/config/politenessconfig', icon: 'sentiment_satisfied', label: 'Politeness', permissionSubject: 'POLITENESSCONFIG'},
-    {route: '/config/crawlhostgroupconfig', icon: 'group_work', label: 'CrawlHostGroup', permissionSubject: 'CRAWLHOSTGROUPCONFIG'},
+    {route: '/config/crawlhostgroupconfig', icon: 'group_work', label: 'Crawl host group', permissionSubject: 'CRAWLHOSTGROUPCONFIG'},
     {route: '/config/rolemapping', icon: 'people', label: 'Users', permissionSubject: 'ROLEMAPPING'},
   ];
 
   readonly reportDestinations: readonly PrimaryDestination[] = [
-    {route: '/report/jobexecution', icon: 'hdr_strong', label: 'JobExecution', permissionSubject: 'jobexecution'},
-    {route: '/report/crawlexecution', icon: 'hdr_weak', label: 'CrawlExecution', permissionSubject: 'crawlexecution'},
-    {route: '/report/pagelog', icon: 'art_track', label: 'PageLog', permissionSubject: 'pagelog'},
-    {route: '/report/crawllog', icon: 'event_note', label: 'CrawlLog', permissionSubject: 'crawllog'},
+    {route: '/report/jobexecution', icon: 'hdr_strong', label: 'Job execution', permissionSubject: 'jobexecution'},
+    {route: '/report/crawlexecution', icon: 'hdr_weak', label: 'Crawl execution', permissionSubject: 'crawlexecution'},
+    {route: '/report/pagelog', icon: 'art_track', label: 'Page log', permissionSubject: 'pagelog'},
+    {route: '/report/crawllog', icon: 'event_note', label: 'Crawl log', permissionSubject: 'crawllog'},
   ];
 
   readonly expandedNavigation: Signal<boolean>;

@@ -12,8 +12,6 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {AsyncPipe} from '@angular/common';
-import {FlexDirective, LayoutDirective} from '@ngbracket/ngx-layout';
-import {LayoutGapDirective} from '@ngbracket/ngx-layout/flex';
 
 export interface LabelUpdate {
   add: boolean;
@@ -29,9 +27,6 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     AsyncPipe,
     CdkDrag,
     CdkDropList,
-    FlexDirective,
-    LayoutDirective,
-    LayoutGapDirective,
     MatAutocompleteModule,
     MatButtonToggleModule,
     MatChipsModule,

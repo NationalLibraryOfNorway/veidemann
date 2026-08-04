@@ -7,8 +7,8 @@
     <mat-card-content>
       @for (logLevelItem of logLevelList.controls; track logLevelItem; let i = $index) {
         <ng-container formArrayName="logLevelList">
-          <div [formGroupName]="i" fxLayout="row" fxLayoutGap="1em">
-            <mat-form-field fxFlex="70">
+          <div [formGroupName]="i" class="layout-row gap-16">
+            <mat-form-field class="flex-70">
               <mat-label i18n="@@logconfigFormLoggerInputLabel">
               Logger
             </mat-label>
@@ -19,7 +19,7 @@
             </mat-error>
               }
             </mat-form-field>
-            <mat-form-field fxFlex>
+            <mat-form-field class="flex-fill">
               <mat-label i18n="@@logconfigFormLevelSelectLabel">
               Level
             </mat-label>
@@ -57,7 +57,7 @@
           [disabled]="!canRevert"
           i18n="@@commonButtonRevert">REVERT
       </button>
-        <span fxFlex></span>
+        <span class="flex-fill"></span>
         <button mat-flat-button
           i18n="@@logconfigAddLogconfigButton"
           color="primary"
