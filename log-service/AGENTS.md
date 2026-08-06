@@ -4,7 +4,18 @@
 
 These notes apply to work inside `log-service/`.
 
-## Current Parquet Archival Behavior
+## Current Storage Behavior
+
+- Every accepted log is appended to Parquet first and then synchronously written
+  to a bounded SQLite recent-log store.
+- All production gRPC reads query SQLite only. Parquet and S3 are archival-only;
+  they are never queried or backfilled into the recent store.
+- Crawl and page retention limits are independent, and page resources/outlinks
+  remain embedded in the retained page-log protobuf.
+- The recent SQLite database and Parquet archive require separate persistent,
+  single-writer volumes.
+
+## Parquet Archival Behavior
 
 - Parquet files are written locally under the configured `parquet-dir` and indexed with per-collection `.index.json` files.
 - If S3 is not configured, finalized parquet files remain on local disk.
@@ -18,17 +29,16 @@ These notes apply to work inside `log-service/`.
 
 - With no S3 configured, operators may manually copy finalized parquet files out of the volume and remove the local parquet files.
 - If the `.index.json` file is also removed, future closes recreate the index file automatically.
-- Important: deleting only `.index.json` while leaving old parquet files behind makes those old local parquet files invisible to log-service reads, because current reads are driven by the local index.
+- Parquet cleanup does not change gRPC read results, which are driven only by the
+  SQLite retention window. Do not modify open files or indexes while the service
+  is running.
 
-## Deferred Future Feature
+## Archival Reads
 
-- Historical reads from S3 endpoints are a separate future feature.
-- They are not implemented in this iteration.
-- Do not treat upload-to-S3 as implying read-from-S3 support.
-
-## Relevant Constraints For Future S3 Reads
-
-- Current read paths only read local parquet files referenced by `.index.json`.
-- After successful S3 archival, local parquet files and local index entries are intentionally removed.
-- A future S3 read feature will need explicit object discovery, query/filter behavior for `warcId` and `executionId`, pagination semantics, and a rule for merging local and remote history.
-- Any future implementation should preserve the current write-side archival behavior unless the task explicitly changes retention semantics.
+- Historical Parquet/S3 access is deliberately separate from the log-service
+  gRPC API.
+- Do not add a Parquet fallback, merge local and remote history, or backfill
+  SQLite unless a task explicitly changes the architecture.
+- Keep Parquet indexes for finalized-file discovery and S3 retry/handoff only.
+- Parquet decoding belongs in archival tests and offline tooling, not production
+  read paths.

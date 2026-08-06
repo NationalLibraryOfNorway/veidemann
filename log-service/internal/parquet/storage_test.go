@@ -1,6 +1,7 @@
 package parquet
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sync"
@@ -46,43 +47,7 @@ func TestRotationAtLineBoundary(t *testing.T) {
 	}
 }
 
-func TestExecutionIDPaginationAcrossFiles(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
-	store, err := New(dir, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	warcIDs := []string{"w1", "w2", "w3", "w4", "w5"}
-	for _, id := range warcIDs {
-		if err := store.WriteCrawlLog(&logV1.CrawlLog{
-			WarcId:              id,
-			ExecutionId:         "exec-pagination",
-			CollectionFinalName: "collection-b",
-		}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	err = store.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	page, err := store.ListCrawlLogsByExecutionID("exec-pagination", 1, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(page) != 2 {
-		t.Fatalf("expected page size 2, got %d", len(page))
-	}
-	if page[0].GetWarcId() != "w2" || page[1].GetWarcId() != "w3" {
-		t.Fatalf("unexpected page content: got [%s, %s]", page[0].GetWarcId(), page[1].GetWarcId())
-	}
-}
-
-func TestReadsIgnoreOpenFiles(t *testing.T) {
+func TestOpenFilesAreFinalizedOnClose(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -99,14 +64,6 @@ func TestReadsIgnoreOpenFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	page, err := store.ListCrawlLogsByExecutionID("exec-open", 0, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(page) != 0 {
-		t.Fatalf("expected no visible rows from open parquet files, got %d", len(page))
-	}
-
 	files, err := filepath.Glob(filepath.Join(dir, tableCrawlLog, "collection-open", "*.parquet"))
 	if err != nil {
 		t.Fatal(err)
@@ -119,12 +76,12 @@ func TestReadsIgnoreOpenFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	page, err = store.ListCrawlLogsByExecutionID("exec-open", 0, 10)
+	files, err = filepath.Glob(filepath.Join(dir, tableCrawlLog, "collection-open", "*.parquet"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(page) != 1 || page[0].GetWarcId() != "w-open" {
-		t.Fatalf("expected closed parquet file to become visible after close, got %+v", page)
+	if len(files) != 1 {
+		t.Fatalf("expected one finalized parquet file after close, got %d", len(files))
 	}
 }
 
@@ -150,19 +107,30 @@ func TestPageLogOutlinksRoundTripLosslessly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pageLogs, err := store.ListPageLogsByWarcID([]string{"page-1"})
+	files, err := filepath.Glob(filepath.Join(dir, tablePageLog, "collection-outlinks", "*.parquet"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pageLogs) != 1 {
-		t.Fatalf("expected one page log, got %d", len(pageLogs))
+	if len(files) != 1 {
+		t.Fatalf("expected one page log parquet file, got %d", len(files))
 	}
-	if len(pageLogs[0].GetOutlink()) != len(expected) {
-		t.Fatalf("expected %d outlinks, got %d", len(expected), len(pageLogs[0].GetOutlink()))
+	rows, err := readPageRowsFromFile(files[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected one archived page row, got %d", len(rows))
+	}
+	var actual []string
+	if err := json.Unmarshal([]byte(rows[0].Outlinks), &actual); err != nil {
+		t.Fatal(err)
+	}
+	if len(actual) != len(expected) {
+		t.Fatalf("expected %d outlinks, got %d", len(expected), len(actual))
 	}
 	for i := range expected {
-		if pageLogs[0].GetOutlink()[i] != expected[i] {
-			t.Fatalf("expected outlink %d to be %q, got %q", i, expected[i], pageLogs[0].GetOutlink()[i])
+		if actual[i] != expected[i] {
+			t.Fatalf("expected outlink %d to be %q, got %q", i, expected[i], actual[i])
 		}
 	}
 }
@@ -308,11 +276,11 @@ func TestMissingIndexIsRecreatedAfterManualCleanup(t *testing.T) {
 		t.Fatalf("expected recreated index to contain one file, got %+v", index.Files)
 	}
 
-	logs, err := store.ListCrawlLogsByWarcID([]string{"w-new"})
+	files, err = filepath.Glob(filepath.Join(collectionDir, "*.parquet"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(logs) != 1 || logs[0].GetWarcId() != "w-new" {
-		t.Fatalf("expected recreated index to expose the new crawl log, got %+v", logs)
+	if len(files) != 1 {
+		t.Fatalf("expected one new archived crawl log file, got %d", len(files))
 	}
 }

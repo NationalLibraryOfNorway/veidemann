@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -37,10 +38,12 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/logservice"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/parquet"
+	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/recentlog"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -66,6 +69,9 @@ func parseFlags() (Options, error) {
 
 	flags.String("parquet-dir", "./data/parquet", "Directory where parquet files are written")
 	flags.Int64("max-lines-per-file", 100000, "Rotate parquet file when this many rows are written")
+	flags.String("recent-log-db-path", "./data/recent-logs.db", "Path to the SQLite database used for recent log reads")
+	flags.Int64("recent-crawl-log-max-entries", 1000000, "Maximum number of crawl logs retained in the recent read store")
+	flags.Int64("recent-page-log-max-entries", 250000, "Maximum number of page logs retained in the recent read store")
 	flags.String("s3-endpoint", "", "S3-compatible endpoint for parquet handoff. If empty, parquet files remain on local disk")
 	flags.String("s3-bucket", "", "S3-compatible bucket for parquet handoff")
 	flags.String("s3-access-key", "", "Access key for S3-compatible parquet handoff")
@@ -109,6 +115,18 @@ func (o Options) ParquetDir() string {
 
 func (o Options) MaxLinesPerFile() int64 {
 	return viper.GetInt64("max-lines-per-file")
+}
+
+func (o Options) RecentLogDBPath() string {
+	return viper.GetString("recent-log-db-path")
+}
+
+func (o Options) RecentCrawlLogMaxEntries() int64 {
+	return viper.GetInt64("recent-crawl-log-max-entries")
+}
+
+func (o Options) RecentPageLogMaxEntries() int64 {
+	return viper.GetInt64("recent-page-log-max-entries")
 }
 
 func (o Options) Host() string {
@@ -233,7 +251,36 @@ func run() error {
 
 	slog.Info("Initialized parquet storage backend", "dir", opts.ParquetDir(), "maxLinesPerFile", opts.MaxLinesPerFile())
 
-	logServer := logservice.New(storage)
+	if strings.TrimSpace(opts.RecentLogDBPath()) == "" {
+		return fmt.Errorf("recent-log-db-path must not be empty")
+	}
+	recentLogDBPath, err := filepath.Abs(opts.RecentLogDBPath())
+	if err != nil {
+		return fmt.Errorf("resolve recent log database path: %w", err)
+	}
+	recentMetrics := recentlog.NewMetrics(prometheus.DefaultRegisterer, recentLogDBPath)
+	recentStore, err := recentlog.New(ctx, recentlog.Config{
+		Path:            recentLogDBPath,
+		CrawlMaxEntries: opts.RecentCrawlLogMaxEntries(),
+		PageMaxEntries:  opts.RecentPageLogMaxEntries(),
+		Metrics:         recentMetrics,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize recent log read store: %w", err)
+	}
+	defer func() {
+		slog.Info("Closing recent log read store")
+		if err := recentStore.Close(); err != nil {
+			slog.Error("Failed to close recent log read store", "error", err)
+		}
+	}()
+	slog.Info("Initialized recent log read store",
+		"path", recentLogDBPath,
+		"crawlMaxEntries", opts.RecentCrawlLogMaxEntries(),
+		"pageMaxEntries", opts.RecentPageLogMaxEntries(),
+	)
+
+	logServer := logservice.New(storage, recentStore)
 	logV1.RegisterLogServer(grpcServer, logServer)
 
 	g, groupCtx := errgroup.WithContext(ctx)

@@ -40,6 +40,12 @@ spec:
               value: "debug"
             - name: PARQUET_DIR
               value: "/parquet"
+            - name: RECENT_LOG_DB_PATH
+              value: "/recent-logs/logs.db"
+            - name: RECENT_CRAWL_LOG_MAX_ENTRIES
+              value: "1000000"
+            - name: RECENT_PAGE_LOG_MAX_ENTRIES
+              value: "250000"
             - name: JAEGER_SERVICE_NAME
               value: log-service
             - name: JAEGER_AGENT_HOST

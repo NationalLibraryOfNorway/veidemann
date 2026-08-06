@@ -163,16 +163,3 @@ func loadFinalizedParquetFiles(baseDir, table string) ([]FinalizedParquetFile, e
 	}
 	return files, nil
 }
-
-func (s *Storage) indexedParquetFiles(table string) ([]string, error) {
-	finalizedFiles, err := loadFinalizedParquetFiles(s.baseDir, table)
-	if err != nil {
-		return nil, err
-	}
-
-	files := make([]string, 0, len(finalizedFiles))
-	for _, file := range finalizedFiles {
-		files = append(files, file.Path)
-	}
-	return files, nil
-}

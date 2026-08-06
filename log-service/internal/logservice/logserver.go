@@ -17,12 +17,13 @@
 package logservice
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/parquet"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -33,31 +34,41 @@ const (
 	TableResource = "resource"
 )
 
-type LogWriter interface {
+type LogService interface {
 	WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error
 	WritePageLog(stream logV1.Log_WritePageLogServer) error
 	ListPageLogs(req *logV1.PageLogListRequest, stream logV1.Log_ListPageLogsServer) error
 	ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error
-	Close() error
+}
+
+type ArchiveWriter interface {
+	WriteCrawlLog(crawlLog *logV1.CrawlLog) error
+	WritePageLog(pageLog *logV1.PageLog) error
+}
+
+type RecentLogStore interface {
+	WriteCrawlLog(ctx context.Context, crawlLog *logV1.CrawlLog) error
+	WritePageLog(ctx context.Context, pageLog *logV1.PageLog) error
+	ListCrawlLogsByWarcID(ctx context.Context, warcIDs []string, emit func(*logV1.CrawlLog) error) error
+	ListCrawlLogsByExecutionID(ctx context.Context, executionID string, offset, pageSize int, emit func(*logV1.CrawlLog) error) error
+	ListPageLogsByWarcID(ctx context.Context, warcIDs []string, emit func(*logV1.PageLog) error) error
+	ListPageLogsByExecutionID(ctx context.Context, executionID string, offset, pageSize int, emit func(*logV1.PageLog) error) error
 }
 
 type LogServer struct {
 	logV1.UnimplementedLogServer
-	storage *parquet.Storage
+	archive ArchiveWriter
+	recent  RecentLogStore
 }
 
-// Assert that LogServer implements LogWriter.
-var _ LogWriter = (*LogServer)(nil)
+// Assert that LogServer implements LogService.
+var _ LogService = (*LogServer)(nil)
 
-func New(storage *parquet.Storage) *LogServer {
+func New(archive ArchiveWriter, recent RecentLogStore) *LogServer {
 	return &LogServer{
-		storage: storage,
+		archive: archive,
+		recent:  recent,
 	}
-}
-
-// Close flushes and closes any open parquet writers.
-func (l *LogServer) Close() error {
-	return l.storage.Close()
 }
 
 func (l *LogServer) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error {
@@ -71,19 +82,29 @@ func (l *LogServer) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error {
 		}
 		crawlLog := req.GetCrawlLog()
 		CollectCrawlLog(crawlLog)
-		if err := writeCrawlLog(l.storage, crawlLog); err != nil {
+		if err := writeCrawlLog(stream.Context(), l.archive, l.recent, crawlLog); err != nil {
 			return fmt.Errorf("error writing crawl log: %w", err)
 		}
 	}
 }
 
-func writeCrawlLog(storage *parquet.Storage, crawlLog *logV1.CrawlLog) error {
+func writeCrawlLog(ctx context.Context, archive ArchiveWriter, recent RecentLogStore, crawlLog *logV1.CrawlLog) error {
 	// Generate timestamp with millisecond precision.
 	// Preserve existing behavior and ensure deterministic timestamp precision.
 	crawlLog.TimeStamp = timestamppb.New(time.Now().UTC().Truncate(time.Millisecond))
 	// Convert FetchTimeStamp to millisecond precision
 	crawlLog.FetchTimeStamp = timestamppb.New(crawlLog.FetchTimeStamp.AsTime().Truncate(time.Millisecond))
-	return storage.WriteCrawlLog(crawlLog)
+	if err := archive.WriteCrawlLog(crawlLog); err != nil {
+		return err
+	}
+	if err := recent.WriteCrawlLog(ctx, crawlLog); err != nil {
+		slog.Error("Failed to write crawl log to recent read store",
+			"error", err,
+			"warcId", crawlLog.GetWarcId(),
+			"executionId", crawlLog.GetExecutionId(),
+		)
+	}
+	return nil
 }
 
 func (l *LogServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
@@ -92,7 +113,7 @@ func (l *LogServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
 		req, err := stream.Recv()
 		if err == io.EOF {
 			CollectPageLog(pageLog)
-			if err := writePageLog(l.storage, pageLog); err != nil {
+			if err := writePageLog(stream.Context(), l.archive, l.recent, pageLog); err != nil {
 				return fmt.Errorf("error writing page log: %w", err)
 			}
 			return stream.SendAndClose(&emptypb.Empty{})
@@ -118,48 +139,40 @@ func (l *LogServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
 	}
 }
 
-func writePageLog(storage *parquet.Storage, pageLog *logV1.PageLog) error {
-	return storage.WritePageLog(pageLog)
+func writePageLog(ctx context.Context, archive ArchiveWriter, recent RecentLogStore, pageLog *logV1.PageLog) error {
+	if err := archive.WritePageLog(pageLog); err != nil {
+		return err
+	}
+	if err := recent.WritePageLog(ctx, pageLog); err != nil {
+		slog.Error("Failed to write page log to recent read store",
+			"error", err,
+			"warcId", pageLog.GetWarcId(),
+			"executionId", pageLog.GetExecutionId(),
+		)
+	}
+	return nil
 }
 
 func (l *LogServer) ListPageLogs(req *logV1.PageLogListRequest, stream logV1.Log_ListPageLogsServer) error {
-	var rows []*logV1.PageLog
-	var err error
 	if len(req.GetWarcId()) > 0 {
-		rows, err = l.storage.ListPageLogsByWarcID(req.GetWarcId())
-	} else if len(req.GetQueryTemplate().GetExecutionId()) > 0 {
-		rows, err = l.storage.ListPageLogsByExecutionID(req.GetQueryTemplate().GetExecutionId(), int(req.GetOffset()), int(req.GetPageSize()))
-	} else {
-		return fmt.Errorf("request must provide warcId or executionId")
+		return l.recent.ListPageLogsByWarcID(stream.Context(), req.GetWarcId(), stream.Send)
 	}
-	if err != nil {
-		return err
+	if executionID := req.GetQueryTemplate().GetExecutionId(); executionID != "" {
+		return l.recent.ListPageLogsByExecutionID(
+			stream.Context(), executionID, int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
+		)
 	}
-	for _, row := range rows {
-		if err := stream.Send(row); err != nil {
-			return err
-		}
-	}
-	return nil
+	return fmt.Errorf("request must provide warcId or executionId")
 }
 
 func (l *LogServer) ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error {
-	var rows []*logV1.CrawlLog
-	var err error
 	if len(req.GetWarcId()) > 0 {
-		rows, err = l.storage.ListCrawlLogsByWarcID(req.GetWarcId())
-	} else if len(req.GetQueryTemplate().GetExecutionId()) > 0 {
-		rows, err = l.storage.ListCrawlLogsByExecutionID(req.GetQueryTemplate().GetExecutionId(), int(req.GetOffset()), int(req.GetPageSize()))
-	} else {
-		return fmt.Errorf("request must provide warcId or executionId")
+		return l.recent.ListCrawlLogsByWarcID(stream.Context(), req.GetWarcId(), stream.Send)
 	}
-	if err != nil {
-		return err
+	if executionID := req.GetQueryTemplate().GetExecutionId(); executionID != "" {
+		return l.recent.ListCrawlLogsByExecutionID(
+			stream.Context(), executionID, int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
+		)
 	}
-	for _, row := range rows {
-		if err := stream.Send(row); err != nil {
-			return err
-		}
-	}
-	return nil
+	return fmt.Errorf("request must provide warcId or executionId")
 }

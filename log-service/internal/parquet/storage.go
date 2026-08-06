@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 National Library of Norway.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package parquet
 
 import (
@@ -117,131 +133,4 @@ func (s *Storage) WritePageLog(pageLog *logV1.PageLog) error {
 		}
 	}
 	return nil
-}
-
-func (s *Storage) ListCrawlLogsByWarcID(warcIDs []string) ([]*logV1.CrawlLog, error) {
-	if len(warcIDs) == 0 {
-		return nil, nil
-	}
-
-	wanted := make(map[string]struct{}, len(warcIDs))
-	for _, id := range warcIDs {
-		wanted[id] = struct{}{}
-	}
-
-	rows, err := s.readAllCrawlRows()
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*logV1.CrawlLog, 0, len(warcIDs))
-	for i := range rows {
-		if _, ok := wanted[rows[i].WarcID]; !ok {
-			continue
-		}
-		result = append(result, crawlLogRowToProto(&rows[i]))
-	}
-	if len(result) == 0 {
-		return nil, fmt.Errorf("crawl log not found")
-	}
-	return result, nil
-}
-
-func (s *Storage) ListCrawlLogsByExecutionID(executionID string, offset, pageSize int) ([]*logV1.CrawlLog, error) {
-	rows, err := s.readAllCrawlRows()
-	if err != nil {
-		return nil, err
-	}
-
-	filtered := make([]*crawlLogRow, 0)
-	for i := range rows {
-		if rows[i].ExecutionID == executionID {
-			filtered = append(filtered, &rows[i])
-		}
-	}
-
-	start, end := paginate(len(filtered), offset, pageSize)
-	result := make([]*logV1.CrawlLog, 0, end-start)
-	for _, row := range filtered[start:end] {
-		result = append(result, crawlLogRowToProto(row))
-	}
-	return result, nil
-}
-
-func (s *Storage) ListPageLogsByWarcID(warcIDs []string) ([]*logV1.PageLog, error) {
-	if len(warcIDs) == 0 {
-		return nil, nil
-	}
-
-	wanted := make(map[string]struct{}, len(warcIDs))
-	for _, id := range warcIDs {
-		wanted[id] = struct{}{}
-	}
-
-	rows, err := s.readAllPageRows()
-	if err != nil {
-		return nil, err
-	}
-	resourcesByPage, err := s.readResourcesByPageID()
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*logV1.PageLog, 0, len(warcIDs))
-	for i := range rows {
-		if _, ok := wanted[rows[i].WarcID]; !ok {
-			continue
-		}
-		pageLog := pageLogRowToProto(&rows[i])
-		pageLog.Resource = resourcesByPage[pageLog.GetWarcId()]
-		result = append(result, pageLog)
-	}
-	if len(result) == 0 {
-		return nil, fmt.Errorf("page log not found")
-	}
-	return result, nil
-}
-
-func (s *Storage) ListPageLogsByExecutionID(executionID string, offset, pageSize int) ([]*logV1.PageLog, error) {
-	rows, err := s.readAllPageRows()
-	if err != nil {
-		return nil, err
-	}
-	resourcesByPage, err := s.readResourcesByPageID()
-	if err != nil {
-		return nil, err
-	}
-
-	filtered := make([]*pageLogRow, 0)
-	for i := range rows {
-		if rows[i].ExecutionID == executionID {
-			filtered = append(filtered, &rows[i])
-		}
-	}
-
-	start, end := paginate(len(filtered), offset, pageSize)
-	result := make([]*logV1.PageLog, 0, end-start)
-	for _, row := range filtered[start:end] {
-		pageLog := pageLogRowToProto(row)
-		pageLog.Resource = resourcesByPage[pageLog.GetWarcId()]
-		result = append(result, pageLog)
-	}
-	return result, nil
-}
-
-func paginate(total, offset, pageSize int) (int, int) {
-	if offset < 0 {
-		offset = 0
-	}
-	if offset >= total {
-		return total, total
-	}
-	if pageSize <= 0 {
-		return offset, total
-	}
-	end := offset + pageSize
-	if end > total {
-		end = total
-	}
-	return offset, end
 }

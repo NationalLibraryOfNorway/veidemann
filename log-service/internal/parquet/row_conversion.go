@@ -3,10 +3,7 @@ package parquet
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
 
-	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -133,93 +130,11 @@ func pageLogResourceToRow(pageID string, resource *logV1.PageLog_Resource) *reso
 	}
 }
 
-func crawlLogRowToProto(row *crawlLogRow) *logV1.CrawlLog {
-	crawlLog := &logV1.CrawlLog{
-		WarcId:              row.WarcID,
-		ExecutionId:         row.ExecutionID,
-		JobExecutionId:      row.JobExecutionID,
-		CollectionFinalName: row.CollectionFinalName,
-		StatusCode:          row.StatusCode,
-		Size:                row.Size,
-		FetchTimeMs:         row.FetchTimeMs,
-		Retries:             row.Retries,
-		RequestedUri:        row.RequestedURI,
-		ResponseUri:         row.ResponseURI,
-		DiscoveryPath:       row.DiscoveryPath,
-		Referrer:            row.Referrer,
-		ContentType:         row.ContentType,
-		BlockDigest:         row.BlockDigest,
-		PayloadDigest:       row.PayloadDigest,
-		StorageRef:          row.StorageRef,
-		RecordType:          row.RecordType,
-		WarcRefersTo:        row.WarcRefersTo,
-		IpAddress:           row.IPAddress,
-		Method:              row.Method,
-		TimeStamp:           millisToProtoTimestamp(row.TimeStamp),
-		FetchTimeStamp:      millisToProtoTimestamp(row.FetchTimeStamp),
-	}
-	if row.ErrorCode != 0 || row.ErrorMsg != "" || row.ErrorDetail != "" {
-		crawlLog.Error = &commonsV1.Error{
-			Code:   row.ErrorCode,
-			Msg:    row.ErrorMsg,
-			Detail: row.ErrorDetail,
-		}
-	}
-	return crawlLog
-}
-
-func pageLogRowToProto(row *pageLogRow) *logV1.PageLog {
-	pageLog := &logV1.PageLog{
-		WarcId:              row.WarcID,
-		ExecutionId:         row.ExecutionID,
-		JobExecutionId:      row.JobExecutionID,
-		CollectionFinalName: row.CollectionFinalName,
-		Uri:                 row.URI,
-		Referrer:            row.Referrer,
-		Method:              row.Method,
-	}
-	outlinks, err := unmarshalOutlinks(row.Outlinks)
-	if err == nil {
-		pageLog.Outlink = outlinks
-	}
-	return pageLog
-}
-
-func resourceRowToProto(row *resourceRow) *logV1.PageLog_Resource {
-	resource := &logV1.PageLog_Resource{
-		WarcId:        row.WarcID,
-		Uri:           row.URI,
-		Referrer:      row.Referrer,
-		ResourceType:  row.ResourceType,
-		ContentType:   row.ContentType,
-		DiscoveryPath: row.DiscoveryPath,
-		Method:        row.Method,
-		StatusCode:    row.StatusCode,
-		FromCache:     row.FromCache,
-		Renderable:    row.Renderable,
-	}
-	if row.ErrorCode != 0 || row.ErrorMsg != "" || row.ErrorDetail != "" {
-		resource.Error = &commonsV1.Error{
-			Code:   row.ErrorCode,
-			Msg:    row.ErrorMsg,
-			Detail: row.ErrorDetail,
-		}
-	}
-	return resource
-}
-
 func protoTimestampToMillis(timestamp *timestamppb.Timestamp) int64 {
 	if timestamp == nil {
 		return 0
 	}
 	return timestamp.AsTime().UnixMilli()
-}
-
-func millisToProtoTimestamp(millis int64) *timestamppb.Timestamp {
-	if millis == 0 {
-		return nil
-	}
-	return timestamppb.New(time.UnixMilli(millis))
 }
 
 func marshalOutlinks(outlinks []string) (string, error) {
@@ -231,15 +146,4 @@ func marshalOutlinks(outlinks []string) (string, error) {
 		return "", fmt.Errorf("marshal outlinks: %w", err)
 	}
 	return string(buf), nil
-}
-
-func unmarshalOutlinks(raw string) ([]string, error) {
-	if raw == "" {
-		return nil, nil
-	}
-	var outlinks []string
-	if err := json.Unmarshal([]byte(raw), &outlinks); err == nil {
-		return outlinks, nil
-	}
-	return strings.Split(raw, ","), nil
 }
