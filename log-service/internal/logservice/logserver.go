@@ -24,6 +24,7 @@ import (
 	"time"
 
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -51,8 +52,10 @@ type RecentLogStore interface {
 	WritePageLog(ctx context.Context, pageLog *logV1.PageLog) error
 	ListCrawlLogsByWarcID(ctx context.Context, warcIDs []string, emit func(*logV1.CrawlLog) error) error
 	ListCrawlLogsByExecutionID(ctx context.Context, executionID string, offset, pageSize int, emit func(*logV1.CrawlLog) error) error
+	ListRecentCrawlLogs(ctx context.Context, offset, pageSize int, emit func(*logV1.CrawlLog) error) error
 	ListPageLogsByWarcID(ctx context.Context, warcIDs []string, emit func(*logV1.PageLog) error) error
 	ListPageLogsByExecutionID(ctx context.Context, executionID string, offset, pageSize int, emit func(*logV1.PageLog) error) error
+	ListRecentPageLogs(ctx context.Context, offset, pageSize int, emit func(*logV1.PageLog) error) error
 }
 
 type LogServer struct {
@@ -162,7 +165,12 @@ func (l *LogServer) ListPageLogs(req *logV1.PageLogListRequest, stream logV1.Log
 			stream.Context(), executionID, int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
 		)
 	}
-	return fmt.Errorf("request must provide warcId or executionId")
+	if hasQueryFilter(req.GetQueryTemplate(), req.GetQueryMask().GetPaths()) {
+		return fmt.Errorf("request must provide warcId or executionId")
+	}
+	return l.recent.ListRecentPageLogs(
+		stream.Context(), int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
+	)
 }
 
 func (l *LogServer) ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error {
@@ -174,5 +182,14 @@ func (l *LogServer) ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.L
 			stream.Context(), executionID, int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
 		)
 	}
-	return fmt.Errorf("request must provide warcId or executionId")
+	if hasQueryFilter(req.GetQueryTemplate(), req.GetQueryMask().GetPaths()) {
+		return fmt.Errorf("request must provide warcId or executionId")
+	}
+	return l.recent.ListRecentCrawlLogs(
+		stream.Context(), int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
+	)
+}
+
+func hasQueryFilter(template proto.Message, queryPaths []string) bool {
+	return proto.Size(template) > 0 || len(queryPaths) > 0
 }

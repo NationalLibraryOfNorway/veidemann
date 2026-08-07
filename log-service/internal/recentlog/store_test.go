@@ -112,6 +112,98 @@ func TestStoreRoundTripAndNewestFirstPagination(t *testing.T) {
 	}
 }
 
+func TestListRecentLogs(t *testing.T) {
+	store := newTestStore(t, 10, 10, nil)
+	ctx := context.Background()
+
+	var emptyCrawlLogs []*logV1.CrawlLog
+	if err := store.ListRecentCrawlLogs(ctx, 0, 0, func(crawlLog *logV1.CrawlLog) error {
+		emptyCrawlLogs = append(emptyCrawlLogs, crawlLog)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var emptyPageLogs []*logV1.PageLog
+	if err := store.ListRecentPageLogs(ctx, 0, 0, func(pageLog *logV1.PageLog) error {
+		emptyPageLogs = append(emptyPageLogs, pageLog)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(emptyCrawlLogs) != 0 || len(emptyPageLogs) != 0 {
+		t.Fatalf("expected empty recent queries, got crawl=%d page=%d", len(emptyCrawlLogs), len(emptyPageLogs))
+	}
+
+	for _, id := range []string{"crawl-1", "crawl-2", "crawl-3"} {
+		if err := store.WriteCrawlLog(ctx, crawlLog(id, "exec-"+id, id)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, id := range []string{"page-1", "page-2"} {
+		if err := store.WritePageLog(ctx, &logV1.PageLog{WarcId: id, ExecutionId: "exec-" + id}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var latestCrawlIDs []string
+	if err := store.ListRecentCrawlLogs(ctx, 0, 0, func(crawlLog *logV1.CrawlLog) error {
+		latestCrawlIDs = append(latestCrawlIDs, crawlLog.GetWarcId())
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(latestCrawlIDs) != fmt.Sprint([]string{"crawl-3"}) {
+		t.Fatalf("expected the latest crawl log by default, got %v", latestCrawlIDs)
+	}
+
+	var latestPageIDs []string
+	if err := store.ListRecentPageLogs(ctx, 0, 0, func(pageLog *logV1.PageLog) error {
+		latestPageIDs = append(latestPageIDs, pageLog.GetWarcId())
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(latestPageIDs) != fmt.Sprint([]string{"page-2"}) {
+		t.Fatalf("expected the latest page log by default, got %v", latestPageIDs)
+	}
+
+	var recentCrawlIDs []string
+	if err := store.ListRecentCrawlLogs(ctx, 0, 2, func(crawlLog *logV1.CrawlLog) error {
+		recentCrawlIDs = append(recentCrawlIDs, crawlLog.GetWarcId())
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(recentCrawlIDs) != fmt.Sprint([]string{"crawl-3", "crawl-2"}) {
+		t.Fatalf("expected two newest crawl logs, got %v", recentCrawlIDs)
+	}
+
+	var offsetCrawlIDs []string
+	if err := store.ListRecentCrawlLogs(ctx, 1, 1, func(crawlLog *logV1.CrawlLog) error {
+		offsetCrawlIDs = append(offsetCrawlIDs, crawlLog.GetWarcId())
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(offsetCrawlIDs) != fmt.Sprint([]string{"crawl-2"}) {
+		t.Fatalf("expected the second-newest crawl log, got %v", offsetCrawlIDs)
+	}
+
+	if err := store.WriteCrawlLog(ctx, crawlLog("crawl-2", "replacement-exec", "replacement")); err != nil {
+		t.Fatal(err)
+	}
+	var replacement *logV1.CrawlLog
+	if err := store.ListRecentCrawlLogs(ctx, 0, 0, func(crawlLog *logV1.CrawlLog) error {
+		replacement = crawlLog
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if replacement.GetWarcId() != "crawl-2" || replacement.GetRequestedUri() != "replacement" {
+		t.Fatalf("expected duplicate replacement to be newest, got %v", replacement)
+	}
+}
+
 func TestIndependentRetentionAndDuplicatePromotion(t *testing.T) {
 	store := newTestStore(t, 2, 1, nil)
 	ctx := context.Background()

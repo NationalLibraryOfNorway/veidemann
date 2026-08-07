@@ -320,6 +320,54 @@ func (s *Store) ListPageLogsByWarcID(ctx context.Context, warcIDs []string, emit
 	return nil
 }
 
+func (s *Store) ListRecentCrawlLogs(ctx context.Context, offset, pageSize int, emit func(*logV1.CrawlLog) error) error {
+	return listRecent(ctx, s.db, crawlLogTable, offset, pageSize, func(payload []byte) error {
+		crawlLog := &logV1.CrawlLog{}
+		if err := proto.Unmarshal(payload, crawlLog); err != nil {
+			return fmt.Errorf("unmarshal recent crawl log: %w", err)
+		}
+		return emit(crawlLog)
+	})
+}
+
+func (s *Store) ListRecentPageLogs(ctx context.Context, offset, pageSize int, emit func(*logV1.PageLog) error) error {
+	return listRecent(ctx, s.db, pageLogTable, offset, pageSize, func(payload []byte) error {
+		pageLog := &logV1.PageLog{}
+		if err := proto.Unmarshal(payload, pageLog); err != nil {
+			return fmt.Errorf("unmarshal recent page log: %w", err)
+		}
+		return emit(pageLog)
+	})
+}
+
+func listRecent(ctx context.Context, db *sql.DB, table string, offset, pageSize int, emit func([]byte) error) error {
+	if offset < 0 {
+		offset = 0
+	}
+	if pageSize <= 0 {
+		pageSize = 1
+	}
+	rows, err := db.QueryContext(ctx,
+		"SELECT payload FROM "+table+" ORDER BY ingestion_sequence DESC LIMIT ? OFFSET ?",
+		pageSize, offset,
+	)
+	if err != nil {
+		return fmt.Errorf("query recent logs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var payload []byte
+		if err := rows.Scan(&payload); err != nil {
+			return fmt.Errorf("scan recent log: %w", err)
+		}
+		if err := emit(payload); err != nil {
+			return err
+		}
+	}
+	return rows.Err()
+}
+
 func listByWarcID(ctx context.Context, db *sql.DB, table, warcID string, emit func([]byte) error) (int, error) {
 	rows, err := db.QueryContext(ctx,
 		"SELECT payload FROM "+table+" WHERE warc_id = ? ORDER BY ingestion_sequence DESC",

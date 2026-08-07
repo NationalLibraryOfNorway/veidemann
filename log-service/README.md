@@ -198,6 +198,11 @@ existing offset and page-size fields. Page resources and outlinks are embedded
 in the page-log protobuf and count as one retained page row. Lowering either
 limit prunes that table before the service becomes ready.
 
+Requests without WARC-ID or execution-ID filters return logs newest-first across
+the selected log type. An empty request returns only the latest inserted row;
+setting a positive page size returns that many rows, and offset skips newer rows.
+This ordering uses SQLite ingestion sequence rather than embedded log timestamps.
+
 The database stores protobuf payloads uncompressed. Core SQLite does not provide
 native transparent compression, and the proprietary ZIPVFS extension is not
 compatible with the pure-Go `modernc.org/sqlite` driver used to keep

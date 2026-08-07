@@ -9,6 +9,7 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/parquet"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/recentlog"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -183,6 +184,68 @@ func TestParquetOnlyLogsAreInvisibleToRecentReads(t *testing.T) {
 	}
 }
 
+func TestUnfilteredListRequestsUseRecentQueries(t *testing.T) {
+	recent := &recentStoreStub{}
+	server := New(&archiveStub{}, recent)
+
+	crawlStream := &crawlListStream{ctx: context.Background()}
+	if err := server.ListCrawlLogs(&logV1.CrawlLogListRequest{Offset: 2, PageSize: 3}, crawlStream); err != nil {
+		t.Fatal(err)
+	}
+	if len(recent.crawlRecentReads) != 1 || recent.crawlRecentReads[0] != (recentRead{offset: 2, pageSize: 3}) {
+		t.Fatalf("expected unfiltered crawl query, got %+v", recent.crawlRecentReads)
+	}
+
+	pageStream := &pageListStream{ctx: context.Background()}
+	if err := server.ListPageLogs(&logV1.PageLogListRequest{}, pageStream); err != nil {
+		t.Fatal(err)
+	}
+	if len(recent.pageRecentReads) != 1 || recent.pageRecentReads[0] != (recentRead{}) {
+		t.Fatalf("expected unfiltered page query, got %+v", recent.pageRecentReads)
+	}
+}
+
+func TestListFilterPrecedenceAndUnsupportedTemplates(t *testing.T) {
+	recent := &recentStoreStub{}
+	server := New(&archiveStub{}, recent)
+	crawlStream := &crawlListStream{ctx: context.Background()}
+	pageStream := &pageListStream{ctx: context.Background()}
+
+	if err := server.ListCrawlLogs(&logV1.CrawlLogListRequest{
+		WarcId:        []string{"crawl-1"},
+		QueryTemplate: &logV1.CrawlLog{JobExecutionId: "ignored"},
+	}, crawlStream); err != nil {
+		t.Fatal(err)
+	}
+	if recent.crawlWarcReads != 1 || len(recent.crawlRecentReads) != 0 {
+		t.Fatalf("expected WARC-ID query precedence, got warc=%d recent=%d", recent.crawlWarcReads, len(recent.crawlRecentReads))
+	}
+
+	if err := server.ListPageLogs(&logV1.PageLogListRequest{
+		QueryTemplate: &logV1.PageLog{ExecutionId: "exec-1", JobExecutionId: "ignored"},
+	}, pageStream); err != nil {
+		t.Fatal(err)
+	}
+	if recent.pageExecutionReads != 1 || len(recent.pageRecentReads) != 0 {
+		t.Fatalf("expected execution-ID query precedence, got execution=%d recent=%d", recent.pageExecutionReads, len(recent.pageRecentReads))
+	}
+
+	if err := server.ListCrawlLogs(&logV1.CrawlLogListRequest{
+		QueryTemplate: &logV1.CrawlLog{JobExecutionId: "unsupported"},
+	}, crawlStream); err == nil {
+		t.Fatal("expected an unsupported crawl-log template to fail")
+	}
+	if err := server.ListPageLogs(&logV1.PageLogListRequest{
+		QueryTemplate: &logV1.PageLog{JobExecutionId: "unsupported"},
+	}, pageStream); err == nil {
+		t.Fatal("expected an unsupported page-log template to fail")
+	}
+	if len(recent.crawlRecentReads) != 0 || len(recent.pageRecentReads) != 0 {
+		t.Fatalf("unsupported templates must not run unfiltered queries: crawl=%d page=%d",
+			len(recent.crawlRecentReads), len(recent.pageRecentReads))
+	}
+}
+
 type archiveStub struct {
 	crawlWrites int
 	pageWrites  int
@@ -201,10 +264,19 @@ func (s *archiveStub) WritePageLog(*logV1.PageLog) error {
 }
 
 type recentStoreStub struct {
-	crawlWrites int
-	pageWrites  int
-	crawlErr    error
-	pageErr     error
+	crawlWrites        int
+	pageWrites         int
+	crawlErr           error
+	pageErr            error
+	crawlWarcReads     int
+	pageExecutionReads int
+	crawlRecentReads   []recentRead
+	pageRecentReads    []recentRead
+}
+
+type recentRead struct {
+	offset   int
+	pageSize int
 }
 
 func (s *recentStoreStub) WriteCrawlLog(context.Context, *logV1.CrawlLog) error {
@@ -218,10 +290,16 @@ func (s *recentStoreStub) WritePageLog(context.Context, *logV1.PageLog) error {
 }
 
 func (s *recentStoreStub) ListCrawlLogsByWarcID(context.Context, []string, func(*logV1.CrawlLog) error) error {
+	s.crawlWarcReads++
 	return nil
 }
 
 func (s *recentStoreStub) ListCrawlLogsByExecutionID(context.Context, string, int, int, func(*logV1.CrawlLog) error) error {
+	return nil
+}
+
+func (s *recentStoreStub) ListRecentCrawlLogs(_ context.Context, offset, pageSize int, _ func(*logV1.CrawlLog) error) error {
+	s.crawlRecentReads = append(s.crawlRecentReads, recentRead{offset: offset, pageSize: pageSize})
 	return nil
 }
 
@@ -230,5 +308,37 @@ func (s *recentStoreStub) ListPageLogsByWarcID(context.Context, []string, func(*
 }
 
 func (s *recentStoreStub) ListPageLogsByExecutionID(context.Context, string, int, int, func(*logV1.PageLog) error) error {
+	s.pageExecutionReads++
+	return nil
+}
+
+func (s *recentStoreStub) ListRecentPageLogs(_ context.Context, offset, pageSize int, _ func(*logV1.PageLog) error) error {
+	s.pageRecentReads = append(s.pageRecentReads, recentRead{offset: offset, pageSize: pageSize})
+	return nil
+}
+
+type crawlListStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *crawlListStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *crawlListStream) Send(*logV1.CrawlLog) error {
+	return nil
+}
+
+type pageListStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *pageListStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *pageListStream) Send(*logV1.PageLog) error {
 	return nil
 }
