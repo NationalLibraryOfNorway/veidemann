@@ -1,21 +1,61 @@
-<button class="more-actions" mat-icon-button [matMenuTriggerFor]="shortcutMenu"
-        aria-label="More actions" i18n-aria-label="@@commonMoreActionsLabel">
-  <mat-icon>more_vert</mat-icon>
-</button>
-<mat-menu #shortcutMenu="matMenu">
-  <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
-  @if (can('read', 'jobexecution')) {
-    <a mat-menu-item [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]"
-       i18n="@@reportDetailGoToJobExecutionAction">
-      <mat-icon>hdr_strong</mat-icon>
-      <span>Go to job execution</span>
-    </a>
+<mat-chip-set aria-label="Page log metadata" i18n-aria-label="@@pageLogMetadataLabel">
+  @if (pageLog.warcId) {
+    <mat-chip role="button" tabindex="0" [appCopyId]="pageLog.warcId"
+      matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip"
+      aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip">
+      <mat-icon matChipAvatar>content_copy</mat-icon>
+      <span i18n="@@pageLogWarcIdChip">WARC ID: {{pageLog.warcId}}</span>
+    </mat-chip>
   }
-  @if (can('read', 'crawlexecution')) {
-    <a mat-menu-item [routerLink]="['/report', 'crawlexecution', pageLog.executionId]"
-       i18n="@@reportDetailGoToCrawlExecutionAction">
-      <mat-icon>hdr_weak</mat-icon>
-      <span>Go to crawl execution</span>
-    </a>
+  @if (pageLog.referrer) {
+    @if (referrerHref; as href) {
+      <a mat-chip [href]="href" target="_blank" rel="noopener noreferrer">
+        <mat-icon matChipAvatar>open_in_new</mat-icon>
+        <span i18n="@@pageLogReferrerChip">Referrer: {{pageLog.referrer}}</span>
+      </a>
+    } @else {
+      <mat-chip>
+        <mat-icon matChipAvatar>link</mat-icon>
+        <span i18n="@@pageLogReferrerChip">Referrer: {{pageLog.referrer}}</span>
+      </mat-chip>
+    }
   }
-</mat-menu>
+  @if (pageLog.collectionFinalName) {
+    <mat-chip>
+      <mat-icon matChipAvatar>collections_bookmark</mat-icon>
+      <span i18n="@@pageLogCollectionChip">Collection: {{pageLog.collectionFinalName}}</span>
+    </mat-chip>
+  }
+  @if (pageLog.method) {
+    <mat-chip>
+      <mat-icon matChipAvatar>http</mat-icon>
+      <span i18n="@@pageLogMethodChip">Method: {{pageLog.method}}</span>
+    </mat-chip>
+  }
+  @if (pageLog.jobExecutionId) {
+    @if (can('read', 'jobexecution')) {
+      <a mat-chip [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]">
+        <mat-icon matChipAvatar>hdr_strong</mat-icon>
+        <span i18n="@@pageLogJobExecutionChip">Job execution: {{pageLog.jobExecutionId}}</span>
+      </a>
+    } @else {
+      <mat-chip>
+        <mat-icon matChipAvatar>hdr_strong</mat-icon>
+        <span i18n="@@pageLogJobExecutionChip">Job execution: {{pageLog.jobExecutionId}}</span>
+      </mat-chip>
+    }
+  }
+  @if (pageLog.executionId) {
+    @if (can('read', 'crawlexecution')) {
+      <a mat-chip [routerLink]="['/report', 'crawlexecution', pageLog.executionId]">
+        <mat-icon matChipAvatar>hdr_weak</mat-icon>
+        <span i18n="@@pageLogCrawlExecutionChip">Crawl execution: {{pageLog.executionId}}</span>
+      </a>
+    } @else {
+      <mat-chip>
+        <mat-icon matChipAvatar>hdr_weak</mat-icon>
+        <span i18n="@@pageLogCrawlExecutionChip">Crawl execution: {{pageLog.executionId}}</span>
+      </mat-chip>
+    }
+  }
+</mat-chip-set>

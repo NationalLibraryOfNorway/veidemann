@@ -1,20 +1,22 @@
-<mat-nav-list>
-  <a mat-list-item [routerLink]="['/config', 'entity', id]">
-    <mat-icon matListItemIcon>business</mat-icon>
-    {{name}}
-    @if (labels.length > 0) {
-      <mat-chip-listbox
-        [disabled]="true" class="layout-row layout-wrap gap-8">
+<mat-card appearance="outlined" class="entity-card">
+  <mat-card-header>
+    <mat-icon mat-card-avatar>business</mat-icon>
+    <mat-card-title>{{name}}</mat-card-title>
+    <mat-card-subtitle i18n="@@entityViewFilteredByLabel">Filtered by entity</mat-card-subtitle>
+  </mat-card-header>
+  @if (labels.length > 0) {
+    <mat-card-content>
+      <mat-chip-set aria-label="Entity labels" i18n-aria-label="@@entityViewLabelsAriaLabel">
         @for (label of labels; track label) {
-          <mat-chip-option
-            [selectable]="false"
-            [disabled]="true"
-            [removable]="false">
-            {{label.key + ':' + label.value}}
-          </mat-chip-option>
+          <mat-chip><app-label-display [key]="label.key" [value]="label.value"></app-label-display></mat-chip>
         }
-      </mat-chip-listbox>
-    }
-  </a>
-</mat-nav-list>
-
+      </mat-chip-set>
+    </mat-card-content>
+  }
+  <mat-card-actions align="end">
+    <a matButton [routerLink]="['/config', 'entity', id]">
+      <mat-icon>arrow_forward</mat-icon>
+      <span i18n="@@entityViewOpenEntityButton">View entity</span>
+    </a>
+  </mat-card-actions>
+</mat-card>

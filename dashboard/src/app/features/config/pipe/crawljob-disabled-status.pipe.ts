@@ -18,7 +18,7 @@ export class CrawlJobDisabledStatusPipe implements PipeTransform {
     return this.optionsService.options$.pipe(
       first(),
       map(options => {
-        const found = options.crawlJobs.find(
+        const found = options?.crawlJobs?.find(
           crawlJob => crawlJob.id === id);
         return found ? found.crawlJob.disabled : false;
       }));

@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.label-multi-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+h5 {
+  margin: 0 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.label-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.label-summary mat-button-toggle-group {
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+}
+
+.label-input-section {
+  display: block;
+  min-width: 0;
+  padding-bottom: 4px;
+}
+
+.label-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+mat-chip-listbox,
+mat-chip-grid,
+mat-form-field {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+mat-chip-option,
+mat-chip-row {
+  max-width: 100%;
+}
+
+app-label-display {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

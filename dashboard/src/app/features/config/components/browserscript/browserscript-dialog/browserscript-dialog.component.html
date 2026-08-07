@@ -71,7 +71,7 @@
     <ngx-monaco-editor #editor class="editor flex-fill"
       formControlName="script"
       [options]="editorOptions"
-      (onInit)="initEditor($event)">
+      (onInit)="initEditor()">
     </ngx-monaco-editor>
     @if (!script.valid) {
       <mat-error

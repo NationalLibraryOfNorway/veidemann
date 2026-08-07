@@ -1,5 +1,5 @@
 import {create} from '@bufbuild/protobuf';
-import {ConfigObject, Kind} from '../../../shared/models';
+import {BrowserScriptType, ConfigObject, Kind} from '../../../shared/models';
 import {FieldMask} from '../../../../api/commons/v1/resources_pb';
 import {ListRequestSchema} from '../../../../api/config/v1/config_pb';
 import {ParamMap} from '@angular/router';
@@ -34,6 +34,7 @@ export function configQueryFromParamMap(kind: Kind, params: ParamMap): ConfigQue
     browserConfigId: params.get('browser_config_id'),
     politenessId: params.get('politeness_id'),
     disabled: params.has('disabled') ? params.get('disabled') === 'true' : null,
+    browserScriptType: browserScriptTypeFromParamMap(params),
     crawlJobIdList: params.getAll('crawl_job_id'),
     scriptIdList: params.getAll('script_id'),
     term: params.get('q'),
@@ -51,6 +52,7 @@ export function equalConfigQuery(previous: ConfigQuery, current: ConfigQuery): b
     && previous.browserConfigId === current.browserConfigId
     && previous.politenessId === current.politenessId
     && previous.disabled === current.disabled
+    && previous.browserScriptType === current.browserScriptType
     && equalArrayValues(previous.crawlJobIdList, current.crawlJobIdList)
     && equalArrayValues(previous.scriptIdList, current.scriptIdList)
     && previous.term === current.term
@@ -67,9 +69,24 @@ export function equalConfigCountQuery(previous: ConfigQuery, current: ConfigQuer
     && previous.browserConfigId === current.browserConfigId
     && previous.politenessId === current.politenessId
     && previous.disabled === current.disabled
+    && previous.browserScriptType === current.browserScriptType
     && equalArrayValues(previous.crawlJobIdList, current.crawlJobIdList)
     && equalArrayValues(previous.scriptIdList, current.scriptIdList)
     && previous.term === current.term;
+}
+
+function browserScriptTypeFromParamMap(params: ParamMap): BrowserScriptType | null {
+  const rawValue = params.get('script_type');
+  if (rawValue === null || rawValue.trim() === '') {
+    return null;
+  }
+
+  const value = Number(rawValue);
+  return Number.isInteger(value)
+    && value !== BrowserScriptType.UNDEFINED
+    && BrowserScriptType[value] !== undefined
+    ? value as BrowserScriptType
+    : null;
 }
 
 function equalArrayValues(previous: readonly string[], current: readonly string[]): boolean {

@@ -1,16 +1,7 @@
 <form [formGroup]="form">
-  <div>
-    <h2 mat-dialog-title>
-      <ng-container i18n="@@entityDetailsCardTitle">Crawljob</ng-container>
-    </h2>
-    <span class="flex-fill"></span>
-    <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
-      formControlName="disabled"
-      color="warn"
-      mat-dialog-title>
-      Deactivated
-    </mat-slide-toggle>
-  </div>
+  <h2 mat-dialog-title>
+    <ng-container i18n="@@entityDetailsCardTitle">Crawljob</ng-container>
+  </h2>
 
   <mat-dialog-content>
     <app-meta formControlName="meta"></app-meta>
@@ -85,6 +76,11 @@
         <input type="hidden" formControlName="kind">
       </ng-container>
     </div>
+    <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
+      formControlName="disabled"
+      color="warn">
+      Deactivated
+    </mat-slide-toggle>
   </mat-dialog-content>
 </form>
 

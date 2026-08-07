@@ -8,8 +8,9 @@ import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abo
 import {DetailDirective} from '../../directives';
 import {CrawlExecutionService} from '../../services';
 import {
-  CrawlExecutionShortcutsComponent
+  CrawlExecutionShortcutHelpersComponent
 } from '../../components/crawl-execution-shortcuts/crawl-execution-shortcuts.component';
+import {ExecutionAbortActionComponent} from '../../components/execution-abort-action/execution-abort-action.component';
 import {CrawlExecutionStatusComponent} from '../../components';
 import {CommonModule} from '@angular/common';
 
@@ -22,7 +23,8 @@ import {CommonModule} from '@angular/common';
     imports: [
       CommonModule,
       CrawlExecutionStatusComponent,
-      CrawlExecutionShortcutsComponent,
+      CrawlExecutionShortcutHelpersComponent,
+      ExecutionAbortActionComponent,
     ],
 })
 export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutionStatus> implements OnInit {
@@ -51,6 +53,10 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
     );
 
     this.item$ = merge(item$, watchedItem$);
+  }
+
+  canAbort(crawlExecutionStatus: CrawlExecutionStatus): boolean {
+    return !CrawlExecutionStatus.DONE_STATES.includes(crawlExecutionStatus.state);
   }
 
   onAbortCrawlExecution(crawlExecutionStatus: CrawlExecutionStatus) {

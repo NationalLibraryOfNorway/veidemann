@@ -1,10 +1,9 @@
 @if (item$ | async; as crawlLog) {
   <div class="detail-page">
-    <div class="detail-action-bar">
-      <app-crawl-log-shortcuts [crawlLog]="crawlLog"></app-crawl-log-shortcuts>
-    </div>
     <div class="detail-content">
-      <app-crawl-log-status [crawlLog]="crawlLog"></app-crawl-log-status>
+      <app-crawl-log-status [crawlLog]="crawlLog">
+        <app-crawl-log-shortcuts cardHeaderHelpers [crawlLog]="crawlLog"></app-crawl-log-shortcuts>
+      </app-crawl-log-status>
     </div>
   </div>
 }

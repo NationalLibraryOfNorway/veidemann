@@ -8,7 +8,6 @@ import {MatInputModule} from '@angular/material/input';
 import {MatListModule} from '@angular/material/list';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {RouterLink} from '@angular/router';
 
 import {PageLog, Resource} from '../../../../shared/models';
 
@@ -66,7 +65,6 @@ export class ResourceMetadataDialogComponent {
     MatListModule,
     MatTabsModule,
     MatTooltipModule,
-    RouterLink,
   ]
 })
 export class PageLogStatusComponent implements OnChanges {

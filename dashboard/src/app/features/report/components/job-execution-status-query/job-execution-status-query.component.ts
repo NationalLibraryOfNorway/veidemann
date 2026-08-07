@@ -1,15 +1,15 @@
-import { ChangeDetectionStrategy,Component,Input } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTimepickerModule } from '@angular/material/timepicker';
-import { QueryComponent } from '../../../../shared/components';
-import { JobExecutionState,jobExecutionStates } from '../../../../shared/models';
-import { ConfigObject } from '../../../../shared/models/config';
-import { JobExecutionStatusQuery } from '../../services';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {ReactiveFormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatDatepickerModule} from '@angular/material/datepicker';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
+import {MatSelectModule} from '@angular/material/select';
+import {JobExecutionState, jobExecutionStates} from '../../../../shared/models';
+import {ConfigObject} from '../../../../shared/models/config';
+import {JobExecutionStatusQuery} from '../../services';
+import {StartTimeDateRangeQueryComponent} from '../start-time-date-range-query.component';
 
 @Component({
   selector: 'app-job-execution-status-query',
@@ -17,17 +17,17 @@ import { JobExecutionStatusQuery } from '../../services';
   styleUrls: ['./job-execution-status-query.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    MatButtonModule,
     MatCheckboxModule,
     MatDatepickerModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatTimepickerModule,
     ReactiveFormsModule
   ],
   standalone: true
 })
-export class JobExecutionStatusQueryComponent extends QueryComponent<JobExecutionStatusQuery> {
+export class JobExecutionStatusQueryComponent extends StartTimeDateRangeQueryComponent<JobExecutionStatusQuery> {
 
   readonly JobExecutionState = JobExecutionState;
   readonly jobExecutionStates = jobExecutionStates;
@@ -44,4 +44,5 @@ export class JobExecutionStatusQueryComponent extends QueryComponent<JobExecutio
       watch: {value: null, disabled: true},
     });
   }
+
 }

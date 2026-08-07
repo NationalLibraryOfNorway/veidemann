@@ -1,9 +1,91 @@
 
+:host {
+  display: block;
+}
+
+.query-fields {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 12px;
+}
+
+.query-fields > .mat-mdc-form-field {
+  flex: 1 1 180px;
+  min-width: 160px;
+  max-width: 280px;
+}
+
 .search-form.mat-mdc-form-field {
-  width: 100%;
+  flex-basis: 220px;
+  min-width: 180px;
+  max-width: 320px;
+}
+
+.seed-chip-filter {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.script-type-filter {
+  box-sizing: border-box;
+  flex: 0 0 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.seed-chip-filter legend,
+.script-type-filter legend {
+  margin-bottom: 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.label-search-suggestions {
+  display: grid;
+  flex: 0 0 100%;
+  gap: 8px;
+  min-width: 0;
+}
+
+.label-search-suggestions__label {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.label-search-suggestions mat-chip {
+  cursor: pointer;
 }
 
 .search-form .mat-mdc-button {
   font-size: inherit;
   height: inherit;
+}
+
+@media (max-width: 599px) {
+  .search-form.mat-mdc-form-field,
+  .query-fields > .mat-mdc-form-field,
+  .label-search-suggestions {
+    flex-basis: 100%;
+    width: 100%;
+    max-width: none;
+  }
+
+  .seed-chip-filter {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .script-type-filter {
+    flex-basis: 100%;
+    width: 100%;
+  }
 }

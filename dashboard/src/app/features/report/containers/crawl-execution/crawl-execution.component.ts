@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, Signal, inject } from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, Signal, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
@@ -8,15 +8,15 @@ import {SortDirection} from '@angular/material/sort';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {MatMenuModule} from '@angular/material/menu';
-import {MatTooltip} from '@angular/material/tooltip';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {combineLatest, Observable} from 'rxjs';
 import {distinctUntilChanged, map} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
-import {ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
-import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {ControllerApiService, SnackBarService} from '../../../../core';
+import {ActionDirective} from '../../../../shared/directives';
 import {Sort} from '../../../../shared/func';
-import {ConfigObject, Kind, ListDataSource} from '../../../../shared/models';
+import {ConfigObject, ListDataSource} from '../../../../shared/models';
 import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models/report';
 import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
 import {CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent} from '../../components';
@@ -34,28 +34,24 @@ import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
     CommonModule,
     CrawlExecutionStatusListComponent,
     CrawlExecutionStatusQueryComponent,
-    FilterDirective,
-    ExtraDirective,
     MatIconModule,
     MatMenuModule,
     MatProgressBarModule,
-    MatTooltip,
+    MatTooltipModule,
     RouterModule,
-    ShortcutDirective,
   ]
 })
 export class CrawlExecutionComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private crawlExecutionService = inject(CrawlExecutionService);
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
   private dialog = inject(MatDialog);
   private controllerApiService = inject(ControllerApiService);
   private snackBarService = inject(SnackBarService);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
   readonly CrawlExecutionState = CrawlExecutionState;
-  readonly Kind = Kind;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
@@ -63,6 +59,10 @@ export class CrawlExecutionComponent {
   readonly dataSource: ListDataSource<CrawlExecutionStatus, CrawlExecutionStatusQuery>;
   readonly loading$: Observable<boolean>;
   readonly crawlJobOptions: ConfigObject[];
+  readonly hasActions = (row: CrawlExecutionStatus): boolean =>
+    this.can('read', 'pagelog')
+    || this.can('read', 'crawllog')
+    || (this.canAbort(row.state) && this.can('abort', 'crawlexecution'));
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -105,7 +105,7 @@ export class CrawlExecutionComponent {
       watch: query.watch || null
     };
     this.router.navigate([], {relativeTo: this.route, queryParams})
-      .catch(error => this.errorService.dispatch(error));
+      .catch(error => this.errorHandler.handleError(error));
   }
 
   onSort(sort: Sort) {
@@ -113,12 +113,12 @@ export class CrawlExecutionComponent {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
       queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   onRowClick(row: CrawlExecutionStatus): void {
     this.router.navigate([row.id], {relativeTo: this.route})
-      .catch(error => this.errorService.dispatch(error));
+      .catch(error => this.errorHandler.handleError(error));
   }
 
   isDone(item: CrawlExecutionStatus): boolean {

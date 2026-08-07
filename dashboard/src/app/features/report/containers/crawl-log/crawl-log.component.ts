@@ -1,22 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, Signal, inject } from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ErrorHandler, Signal, inject} from '@angular/core';
 import {AsyncPipe} from '@angular/common';
-import {MatIconModule} from '@angular/material/icon';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
-import {ActivatedRoute, Router, RouterModule} from '@angular/router';
-import {AbilityServiceSignal} from '@casl/angular';
-import {MongoAbility} from '@casl/ability';
-import {MatMenuItem} from '@angular/material/menu';
-import {MatTooltip} from '@angular/material/tooltip';
+import {ActivatedRoute, Router} from '@angular/router';
 import {combineLatest, Observable} from 'rxjs';
 import {distinctUntilChanged, map} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
-import {ErrorService} from '../../../../core';
-import {ExtraDirective, ShortcutDirective} from '../../../../shared/directives';
 import {compareListValues, Sort} from '../../../../shared/func';
 import {CrawlLog, ListDataSource} from '../../../../shared/models';
-import {CrawlLogListComponent} from '../../components';
+import {CrawlLogListComponent, LogListShortcutsComponent} from '../../components';
 import {CrawlLogQueryComponent} from '../../components/crawl-log-query/crawl-log-query.component';
 import {crawlLogQueryFromParamMap, equalCrawlLogQuery} from '../../func';
 import {CrawlLogQuery, CrawlLogService} from '../../services';
@@ -31,23 +24,15 @@ import {CrawlLogQuery, CrawlLogService} from '../../services';
     AsyncPipe,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
-    ExtraDirective,
-    MatIconModule,
-    MatMenuItem,
+    LogListShortcutsComponent,
     MatProgressBarModule,
-    MatTooltip,
-    RouterModule,
-    ShortcutDirective,
   ]
 })
 export class CrawlLogComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private crawlLogService = inject(CrawlLogService);
-  private errorService = inject(ErrorService);
-  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
-
-  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
+  private errorHandler = inject(ErrorHandler);
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
   readonly query: Signal<CrawlLogQuery>;
@@ -56,8 +41,6 @@ export class CrawlLogComponent {
 
   constructor() {
     const destroyRef = inject(DestroyRef);
-
-    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     this.query = computed(
@@ -89,7 +72,7 @@ export class CrawlLogComponent {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
       queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   onQueryChange(query: Partial<CrawlLogQuery>) {
@@ -103,12 +86,12 @@ export class CrawlLogComponent {
         execution_id: query.executionId || null,
         watch: query.watch || null
       },
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   onRowClick(row: CrawlLog): void {
     this.router.navigate([row.id], {relativeTo: this.route})
-      .catch(error => this.errorService.dispatch(error));
+      .catch(error => this.errorHandler.handleError(error));
   }
 
   private applySort(active: string, direction: SortDirection): void {

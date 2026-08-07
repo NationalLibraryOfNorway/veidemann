@@ -5,7 +5,6 @@ import {AuthService} from '../../../../../core';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 import {MatCardModule} from '@angular/material/card';
-import {MatIconModule} from '@angular/material/icon';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
@@ -13,17 +12,24 @@ import {SelectorComponent} from '../../selector/selector.component';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 
 @Component({
   selector: 'app-browserconfig-details',
   templateUrl: './browserconfig-details.component.html',
+  styleUrls: ['../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    [MatCardModule, MatIconModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
+    [MatCardModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
+    CopyIdDirective,
     DurationPickerComponent,
     SelectorComponent,
     MetaComponent,
+    MatIcon,
+    MatTooltip,
     ReactiveFormsModule,
   ],
   standalone: true

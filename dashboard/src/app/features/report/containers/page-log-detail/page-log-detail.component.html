@@ -1,10 +1,9 @@
 @if (item$ | async; as pageLog) {
   <div class="detail-page">
-    <div class="detail-action-bar">
-      <app-page-log-shortcuts [pageLog]="pageLog"></app-page-log-shortcuts>
-    </div>
     <div class="detail-content">
-      <app-page-log-status [pageLog]="pageLog"></app-page-log-status>
+      <app-page-log-status [pageLog]="pageLog">
+        <app-page-log-shortcuts cardHeaderHelpers [pageLog]="pageLog"></app-page-log-shortcuts>
+      </app-page-log-status>
     </div>
   </div>
 }

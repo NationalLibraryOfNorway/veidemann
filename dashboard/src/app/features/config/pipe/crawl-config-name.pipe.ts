@@ -18,9 +18,9 @@ export class CrawlConfigNamePipe implements PipeTransform {
   transform(configObject: ConfigObject): Observable<string> {
     return this.optionsService.options$.pipe(
       map(options => {
-        const found = options.crawlConfigs.find(
+        const found = options?.crawlConfigs?.find(
           crawlConfig => crawlConfig.id === configObject.crawlJob.crawlConfigRef.id);
-        return found ? found.meta.name : 'crawlConfig';
+        return found?.meta.name || configObject.crawlJob.crawlConfigRef.id;
       }));
   }
 }

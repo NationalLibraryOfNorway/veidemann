@@ -1,3 +1,19 @@
+:host,
+form {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
 .duration {
-  width: 80%
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.duration mat-form-field {
+  flex: 1 1 112px;
+  min-width: min(112px, 100%);
+  max-width: 100%;
 }

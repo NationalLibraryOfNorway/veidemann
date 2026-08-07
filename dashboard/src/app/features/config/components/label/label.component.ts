@@ -13,7 +13,7 @@ import {BehaviorSubject, combineLatest, Observable, Subject} from 'rxjs';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {NO_COLON} from '../../../../shared/validation/patterns';
 import {Label} from '../../../../shared/models';
-import {map, startWith, switchMap} from 'rxjs/operators';
+import {filter, map, startWith, switchMap, take} from 'rxjs/operators';
 import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {LabelService} from '../../services/label.service';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -24,6 +24,9 @@ import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {MatDialog} from '@angular/material/dialog';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {EMOJI_LABEL_KEY, LabelDisplayComponent} from '../../../../shared/components';
 
 interface LabelGroup {
   key: string;
@@ -48,6 +51,8 @@ interface LabelGroup {
     MatFormFieldModule,
     MatIcon,
     MatInput,
+    MatTooltipModule,
+    LabelDisplayComponent,
     ReactiveFormsModule
   ],
   standalone: true
@@ -57,6 +62,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   protected fb = inject(UntypedFormBuilder);
   protected cdr = inject(ChangeDetectorRef);
   protected labelService = inject(LabelService);
+  private dialog = inject(MatDialog);
 
 
   @Input()
@@ -65,6 +71,8 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   @Input()
   placeholderText = 'New label...';
   labelText = 'Label';
+
+  protected emojiPickerEnabled = true;
 
   private fetchLabelKeys: Subject<void>;
 
@@ -186,6 +194,23 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     this.save(label);
   }
 
+  async onChooseEmoji(): Promise<void> {
+    if (this.disabled || !this.emojiPickerEnabled) {
+      return;
+    }
+
+    const {EmojiPickerDialogComponent} = await import('../../../../shared/components/emoji-picker/emoji-picker-dialog.component');
+    this.dialog.open<InstanceType<typeof EmojiPickerDialogComponent>, void, string>(EmojiPickerDialogComponent, {
+      width: '464px',
+      maxWidth: 'calc(100vw - 24px)',
+      autoFocus: false,
+      restoreFocus: true,
+    }).afterClosed().pipe(
+      filter((unicode): unicode is string => !!unicode),
+      take(1),
+    ).subscribe(unicode => this.onEmojiSelected(unicode));
+  }
+
   onSave(event: MatChipInputEvent): void {
     if (this.seq) {
       this.seq = false;
@@ -224,6 +249,18 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     }
 
     this.labels.push(new Label({key, value}));
+  }
+
+  private onEmojiSelected(unicode: string): void {
+    const previousLength = this.labels.length;
+    this.save(`${EMOJI_LABEL_KEY}:${unicode}`);
+    if (this.labels.length === previousLength) {
+      return;
+    }
+    this.onChange(this.labels);
+    this.reset();
+    this.control.setValue('');
+    this.chipInputControl.nativeElement.value = '';
   }
 
   onUpdateLabel(key: string, value: string): void {

@@ -1,45 +1,58 @@
 <section class="destination-page">
-  <h1 i18n="@@reportPageTitle">Reports</h1>
-  <nav class="destination-grid" aria-label="Report types" i18n-aria-label="@@reportTypesNavigationLabel">
-    @if (can('read', 'jobexecution')) {
-      <a class="destination-link" [routerLink]="['/report', 'jobexecution']">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>hdr_strong</mat-icon>
-            <mat-card-title i18n="@@reportNavigationLinkJobExecution">Job execution</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
+  <div class="destination-hero">
+    <mat-card class="destination-hero-card destination-intro-card" appearance="outlined">
+      <mat-card-content class="destination-intro-content">
+        <div class="destination-intro-copy">
+          <h1 i18n="@@reportPageTitle">Reports</h1>
+          <p i18n="@@reportPageSubtitle">
+            Explore crawl activity, execution details, and collected logs.
+          </p>
+        </div>
+
+        @if (can('read', 'jobexecution')) {
+          <mat-chip-set class="destination-assists" aria-label="Report shortcuts"
+                        i18n-aria-label="@@reportShortcutsLabel">
+            <a class="destination-assist-chip" mat-chip
+               [routerLink]="['/report', 'jobexecution']"
+               [queryParams]="runningReportQueryParams">
+              <mat-icon matChipAvatar>play_circle</mat-icon>
+              <span i18n="@@reportRunningCrawlsShortcut">Running crawls</span>
+            </a>
+          </mat-chip-set>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="destination-hero-card destination-artwork-card" appearance="outlined"
+              aria-hidden="true">
+      <picture class="destination-brand-picture">
+        <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
+        <img class="destination-brand-logo" src="public/logo/veidemann_logo_inline_black.png" alt="">
+      </picture>
+    </mat-card>
+  </div>
+
+  <div class="destination-groups">
+    @for (group of destinationGroups; track group.label) {
+      @if (visibleDestinations(group); as destinations) {
+        @if (destinations.length) {
+          <section class="destination-group">
+            <h2>{{group.label}}</h2>
+            <nav class="destination-grid" [attr.aria-label]="group.label">
+              @for (destination of destinations; track destination.route) {
+                <a class="destination-link" [routerLink]="['/report', destination.route]">
+                  <mat-card class="destination-card" appearance="outlined">
+                    <mat-card-header>
+                      <mat-icon mat-card-avatar>{{destination.icon}}</mat-icon>
+                      <mat-card-title>{{destination.label}}</mat-card-title>
+                    </mat-card-header>
+                  </mat-card>
+                </a>
+              }
+            </nav>
+          </section>
+        }
+      }
     }
-    @if (can('read', 'crawlexecution')) {
-      <a class="destination-link" [routerLink]="['/report', 'crawlexecution']">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>hdr_weak</mat-icon>
-            <mat-card-title i18n="@@reportNavigationLinkCrawlExecution">Crawl execution</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', 'pagelog')) {
-      <a class="destination-link" [routerLink]="['/report', 'pagelog']">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>art_track</mat-icon>
-            <mat-card-title i18n="@@reportNavigationLinkPageLog">Page log</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', 'crawllog')) {
-      <a class="destination-link" [routerLink]="['/report', 'crawllog']">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>event_note</mat-icon>
-            <mat-card-title i18n="@@reportNavigationLinkCrawlLog">Crawl log</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-  </nav>
+  </div>
 </section>

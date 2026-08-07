@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angu
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatTooltip } from '@angular/material/tooltip';
 import { SeedDetailsComponent } from '..';
 import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
@@ -16,16 +16,16 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-seed-multi-dialog',
   templateUrl: './seed-multi-dialog.component.html',
-  styleUrls: ['./seed-multi-dialog.component.css'],
+  styleUrls: ['./seed-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
     MatButtonModule,
     MatButtonToggleModule,
+    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIcon,
     MatSelectModule,
-    MatSlideToggle,
     MatTooltip,
     ReactiveFormsModule,
   ],
@@ -39,6 +39,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   shouldAddLabel = undefined;
   shouldAddCrawlJob = undefined;
+  disabledSelection: boolean | null = null;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
@@ -68,13 +69,17 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
   override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
+      || this.disabledSelection !== null
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
       || (this.shouldAddCrawlJob !== undefined && this.updateJobRefListId.value.length > 0)
     );
   }
 
   override get canRevert(): boolean {
-    return this.form.dirty || this.shouldAddLabel !== undefined || this.shouldAddCrawlJob !== undefined;
+    return this.form.dirty
+      || this.disabledSelection !== null
+      || this.shouldAddLabel !== undefined
+      || this.shouldAddCrawlJob !== undefined;
   }
 
   ngOnInit(): void {
@@ -83,8 +88,13 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   override onRevert() {
     this.shouldAddCrawlJob = this.shouldAddLabel = undefined;
+    this.disabledSelection = null;
     this.labelMulti.onRevert();
     super.onRevert();
+  }
+
+  onDisabledSelectionChange(disabled: boolean | null | undefined): void {
+    this.disabledSelection = disabled ?? null;
   }
 
   onToggleShouldAddCrawlJob(shouldAdd: boolean): void {
@@ -95,26 +105,16 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
   protected override createForm() {
     this.form = this.fb.group({
       labelList: [[]],
-      disabled: {value: '', disabled: true},
       commonJobRefListId: [[]],
       updateJobRefListId: [[]]
     });
   }
 
   protected override updateForm() {
-    if (this.configObject.seed.disabled !== undefined) {
-      this.disabled.enable();
-    } else {
-      this.disabled.disable();
-    }
-
-    if (this.allSelected) {
-      this.disabled.disable();
-    }
+    this.disabledSelection = null;
 
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
-      disabled: !!this.configObject.seed.disabled,
       commonJobRefListId: this.configObject.seed.jobRefList.map(job => job.id),
       updateJobRefListId: []
     });
@@ -136,8 +136,8 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     const updateTemplate = new ConfigObject({kind: Kind.SEED});
     const seed = updateTemplate.seed;
 
-    if (this.disabled.dirty && formModel.disabled !== undefined) {
-      seed.disabled = formModel.disabled;
+    if (this.disabledSelection !== null) {
+      seed.disabled = this.disabledSelection;
       pathList.push('seed.disabled');
     }
 

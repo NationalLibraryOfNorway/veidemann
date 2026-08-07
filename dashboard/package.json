@@ -27,7 +27,6 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "^22.1.0",
     "@angular/cdk": "^22.1.0",
     "@angular/common": "^22.1.0",
     "@angular/compiler": "^22.1.0",
@@ -54,6 +53,8 @@
     "cron-schedule": "^6.0.0",
     "date-fns": "^4.1.0",
     "echarts": "^6.0.0",
+    "emoji-regex": "^10.6.0",
+    "emojibase-data": "^17.0.0",
     "filesize": "^11.0.22",
     "ip-address": "^10.2.0",
     "minimist": "~1.2.8",

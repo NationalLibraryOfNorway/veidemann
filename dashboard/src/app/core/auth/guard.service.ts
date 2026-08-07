@@ -33,8 +33,6 @@ export class GuardService implements CanActivate {
         return of(ability.can('read', 'pagelog'));
       case 'crawllog':
         return of(ability.can('read', 'crawllog'));
-      case 'logconfig':
-        return of(ability.can('read', 'logconfig'));
       case 'config':
         return of(ability.can('read', 'configs'));
       case 'browserconfig':

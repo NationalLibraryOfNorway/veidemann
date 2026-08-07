@@ -9,7 +9,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-browserscript-multi-dialog',
   templateUrl: './browserscript-multi-dialog.component.html',
-  styleUrls: ['./browserscript-multi-dialog.component.css'],
+  styleUrls: ['./browserscript-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     ReactiveFormsModule,
     MatDialogModule,

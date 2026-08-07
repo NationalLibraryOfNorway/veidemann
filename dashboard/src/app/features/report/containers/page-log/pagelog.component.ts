@@ -1,22 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, Signal, inject } from '@angular/core';
-import {ActivatedRoute, Router, RouterLink} from '@angular/router';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ErrorHandler, Signal, inject} from '@angular/core';
+import {ActivatedRoute, Router} from '@angular/router';
 import {AsyncPipe} from '@angular/common';
-import {MatIcon} from '@angular/material/icon';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
-import {AbilityServiceSignal} from '@casl/angular';
-import {MongoAbility} from '@casl/ability';
-import {MatMenuItem} from '@angular/material/menu';
-import {MatTooltip} from '@angular/material/tooltip';
 import {combineLatest, Observable} from 'rxjs';
 import {distinctUntilChanged, map} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
-import {ErrorService} from '../../../../core';
-import {ActionDirective, ExtraDirective} from '../../../../shared/directives';
 import {compareListValues, Sort} from '../../../../shared/func';
 import {ListDataSource, ListItem, PageLog} from '../../../../shared/models';
-import {PageLogListComponent} from '../../components';
+import {LogListShortcutsComponent, PageLogListComponent} from '../../components';
 import {PageLogQueryComponent} from '../../components/page-log-query/page-log-query.component';
 import {equalPageLogQuery, pageLogQueryFromParamMap} from '../../func';
 import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
@@ -26,16 +19,11 @@ import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
   templateUrl: './pagelog.component.html',
   styleUrls: ['./pagelog.component.css'],
   imports: [
-    ActionDirective,
-    ExtraDirective,
     AsyncPipe,
-    MatIcon,
-    MatMenuItem,
+    LogListShortcutsComponent,
     MatProgressBar,
-    MatTooltip,
     PageLogQueryComponent,
     PageLogListComponent,
-    RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
@@ -44,10 +32,7 @@ export class PageLogComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private pageLogService = inject(PageLogService);
-  private errorService = inject(ErrorService);
-  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
-
-  protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
+  private errorHandler = inject(ErrorHandler);
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
   readonly query: Signal<PageLogQuery>;
@@ -56,8 +41,6 @@ export class PageLogComponent {
 
   constructor() {
     const destroyRef = inject(DestroyRef);
-
-    this.can = this.abilityService.can;
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     this.query = computed(
@@ -88,7 +71,7 @@ export class PageLogComponent {
     if (item !== null) {
       this.router.navigate([item.id], {
         relativeTo: this.route,
-      }).catch(error => this.errorService.dispatch(error));
+      }).catch(error => this.errorHandler.handleError(error));
     }
   }
 
@@ -97,7 +80,7 @@ export class PageLogComponent {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
       queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   onQueryChange(query: Partial<PageLogQuery>) {
@@ -112,7 +95,7 @@ export class PageLogComponent {
         execution_id: query.executionId || null,
         watch: query.watch || null
       },
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   private applySort(active: string, direction: SortDirection): void {

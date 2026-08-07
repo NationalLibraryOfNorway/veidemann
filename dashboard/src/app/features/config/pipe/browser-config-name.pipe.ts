@@ -19,9 +19,9 @@ export class BrowserConfigNamePipe implements PipeTransform {
     return this.optionsService.options$.pipe(
       first(),
       map(options => {
-        const found = options.browserConfigs.find(
+        const found = options?.browserConfigs?.find(
           browserConfig => browserConfig.id === configObject.crawlConfig.browserConfigRef.id);
-        return found ? found.meta.name : 'browserConfig';
+        return found?.meta.name || configObject.crawlConfig.browserConfigRef.id;
       }));
   }
 }

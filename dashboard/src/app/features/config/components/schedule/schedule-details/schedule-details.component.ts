@@ -15,30 +15,32 @@ import {
 import {AuthService} from '../../../../../core/auth';
 import {DateTime} from '../../../../../shared/func';
 import {MatCardModule} from '@angular/material/card';
-import {MatIcon} from '@angular/material/icon';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
-import {MatListSubheaderCssMatStyler} from '@angular/material/list';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 
 @Component({
   selector: 'app-schedule-details',
   templateUrl: './schedule-details.component.html',
-  styleUrls: ['./schedule-details.component.css'],
+  styleUrls: ['./schedule-details.component.css', '../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CopyIdDirective,
     JsonPipe,
     MatButtonModule,
     MatCardModule,
     MatDatepickerModule,
     MatFormFieldModule,
-    MatIcon,
     MatInput,
-    MatListSubheaderCssMatStyler,
+    MatIcon,
+    MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
   ],

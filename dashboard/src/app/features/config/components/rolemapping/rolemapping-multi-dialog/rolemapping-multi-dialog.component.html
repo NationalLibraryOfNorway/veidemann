@@ -1,8 +1,12 @@
-<h2 mat-dialog-title>Users</h2>
-<p>Mass update</p>
+<div mat-dialog-title class="mass-update-header">
+  <h2 i18n="@@roleMappingMassUpdateDialogTitle">Update user roles</h2>
+  <p i18n="@@massUpdateDialogDescription">
+    Only changed settings will be applied. Values left untouched will be preserved.
+  </p>
+</div>
 
-<mat-dialog-content>
-  <form [formGroup]="form">
+<mat-dialog-content class="mass-update-content">
+  <form [formGroup]="form" class="mass-update-form">
     <mat-form-field>
       <mat-label i18n="@@rolemappingDetailsRoleDropdownLabel">
         Role
@@ -20,12 +24,7 @@
     </mat-form-field>
   </form>
 </mat-dialog-content>
-<mat-dialog-actions>
-  <button mat-raised-button color="accent"
-    [disabled]="!canUpdate"
-    [mat-dialog-close]="onDialogClose()"
-    i18n="@@commonButtonSave">UPDATE
-  </button>
+<mat-dialog-actions align="end">
   <button mat-button
     (click)="onRevert()"
     [disabled]="!canRevert"
@@ -35,5 +34,10 @@
   <button mat-button
     mat-dialog-close
     i18n="@@commonButtonCancel">CANCEL
+  </button>
+  <button mat-flat-button
+    [disabled]="!canUpdate"
+    [mat-dialog-close]="onDialogClose()"
+    i18n="@@commonButtonSave">UPDATE
   </button>
 </mat-dialog-actions>

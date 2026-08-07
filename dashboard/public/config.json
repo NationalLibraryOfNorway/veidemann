@@ -1,5 +1,7 @@
 {
   "grpcWebUrl": "/veidemann/api",
+  "playbackBaseUrl": "https://veidemann.test/pywb",
+  "labelLinks": {},
   "authConfig": {
     "issuer": "",
     "redirectUri": "https://localhost:4200/",

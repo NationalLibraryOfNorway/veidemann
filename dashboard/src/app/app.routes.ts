@@ -22,11 +22,6 @@ export const routes: Routes = [
         loadChildren: () => import('./features/report/report.routes').then(m => m.routes),
         canActivate: [GuardService],
       },
-      {
-        path: 'logconfig',
-        loadChildren: () => import('./features/log/log.routes').then(m => m.routes),
-        canActivate: [GuardService],
-      },
     ],
   },
 ];

@@ -1,12 +1,15 @@
 @if (item$ | async; as jobExecutionStatus) {
   <div class="detail-page">
-    <div class="detail-action-bar">
-      <app-job-execution-shortcuts [jobExecutionStatus]="jobExecutionStatus"
-        (abortJobExecution)="onAbortJobExecution($event)">
-      </app-job-execution-shortcuts>
-    </div>
     <div class="detail-content">
-      <app-job-execution-status [jobExecutionStatus]="jobExecutionStatus"></app-job-execution-status>
+      <app-job-execution-status [jobExecutionStatus]="jobExecutionStatus">
+        <app-job-execution-shortcut-helpers cardHeaderHelpers
+          [jobExecutionStatus]="jobExecutionStatus">
+        </app-job-execution-shortcut-helpers>
+        <app-execution-abort-action detailActions subject="jobexecution"
+          [abortable]="jobExecutionStatus.state === JobExecutionState.RUNNING"
+          (abort)="onAbortJobExecution(jobExecutionStatus)">
+        </app-execution-abort-action>
+      </app-job-execution-status>
     </div>
   </div>
 }

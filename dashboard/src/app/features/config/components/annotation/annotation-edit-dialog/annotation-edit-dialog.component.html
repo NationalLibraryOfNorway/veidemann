@@ -1,0 +1,28 @@
+<form [formGroup]="form" (ngSubmit)="onApply()">
+  <h2 mat-dialog-title i18n="@@annotationEditCardTitle">Edit annotation</h2>
+
+  <mat-dialog-content>
+    <mat-form-field>
+      <mat-label i18n="@@annotationFormAddNewKeyPlaceholder">Key</mat-label>
+      <input matInput formControlName="key">
+      @if (key.invalid) {
+        <mat-error i18n="@@annotationKeyEmptyError">
+          Can't be empty or contain a colon.
+        </mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label i18n="@@annotationFormAddNewValuePlaceholder">Value</mat-label>
+      <input #valueInput matInput formControlName="value">
+      @if (value.invalid) {
+        <mat-error i18n="@@annotationValueEmptyError">Can't be empty.</mat-error>
+      }
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close i18n="@@commonButtonCancel">CANCEL</button>
+    <button mat-flat-button type="submit" [disabled]="!canApply" i18n="@@commonButtonApply">APPLY</button>
+  </mat-dialog-actions>
+</form>

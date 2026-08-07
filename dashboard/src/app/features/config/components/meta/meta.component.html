@@ -24,7 +24,11 @@
   </mat-form-field>
 
   <app-labels [removable]="editable" formControlName="labelList"></app-labels>
-  <app-annotation [removable]="editable" formControlName="annotationList"></app-annotation>
+  <app-annotation
+    [removable]="editable"
+    [suggestions]="annotationSuggestions"
+    formControlName="annotationList">
+  </app-annotation>
 
   <ng-container>
     <div class="layout-stack-compact layout-row gap-8">

@@ -1,0 +1,9 @@
+@if (abortable && can('abort', subject)) {
+  <section class="destructive-actions" aria-labelledby="execution-crawl-actions-title">
+    <h2 id="execution-crawl-actions-title" i18n="@@executionCrawlActionsTitle">Crawl actions</h2>
+    <button class="abort-action" mat-stroked-button type="button" (click)="abort.emit()">
+      <mat-icon>cancel</mat-icon>
+      <span i18n="@@reportDetailAbortCrawlAction">Abort crawl</span>
+    </button>
+  </section>
+}

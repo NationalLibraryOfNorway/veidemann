@@ -171,7 +171,6 @@ export class AuthService {
       can(['create', 'read', 'update', 'updateAll'], operatorConfigs);
       can('runCrawl', [Kind[Kind.SEED], Kind[Kind.CRAWLJOB]]);
       can('abort', ['jobexecution', 'crawlexecution']);
-      can(['read', 'update'], 'logconfig');
       can('read', 'scheduleOverview');
     }
 

@@ -2,15 +2,9 @@
   @if (configObject$ | async; as configObject) {
     @if (options$ | async; as options) {
       <div class="detail-page">
-        <div class="detail-action-bar">
-          <app-shortcut [configObject]="configObject"
-          (runCrawl)="onRunCrawl($event)"
-          (clone)="onClone($event)"
-          (createSeed)="onCreateSeedFromEntity($event)">
-          </app-shortcut>
-        </div>
-        <div class="content-padding">
-          @switch (configObject.kind) {
+        <div class="content-padding detail-pane-layout">
+          <main class="primary-pane">
+            @switch (configObject.kind) {
             @case (Kind.COLLECTION) {
               <app-collection-details
                 [configObject]="configObject"
@@ -19,18 +13,26 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-collection-details>
             }
             @case (Kind.CRAWLJOB) {
               <app-crawljob-details
                 [configObject]="configObject"
+                [annotationSuggestions]="(annotationSuggestions$ | async) || []"
                 [crawlConfigs]="options.crawlConfigs"
                 [crawlScheduleConfigs]="options.crawlScheduleConfigs"
                 [scopeScripts]="options.scopeScripts"
-                (runCrawl)="onRunCrawl($event)"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-crawljob-details>
               <div class="list-container__margin">
                 @if (configObject | getJobStatus | async; as jobExecutionStatus) {
@@ -48,6 +50,10 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-crawlconfig-details>
             }
             @case (Kind.CRAWLSCHEDULECONFIG) {
@@ -56,6 +62,10 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-schedule-details>
             }
             @case (Kind.BROWSERCONFIG) {
@@ -65,6 +75,10 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-browserconfig-details>
             }
             @case (Kind.POLITENESSCONFIG) {
@@ -74,15 +88,25 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-politenessconfig-details>
             }
             @case (Kind.BROWSERSCRIPT) {
-              <app-browserscript-details
+              <app-browserscript-details #browserScriptDetails
                 [configObject]="configObject"
                 [browserScriptTypes]="options.browserScriptTypes"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  [showScriptEditorAction]="true"
+                  (openScriptEditor)="browserScriptDetails.onOpenFullscreenEditor()"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-browserscript-details>
             }
             @case (Kind.CRAWLHOSTGROUPCONFIG) {
@@ -91,18 +115,16 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-crawlhostgroupconfig-details>
             }
             @case (Kind.SEED) {
-              @if ((configObject | getCrawlExecutionStatus | async); as crawlExecutionStatus) {
-                <div
-                  class="list-container__margin">
-                  <app-config-crawl-execution-status
-                  [crawlExecutionStatus]="crawlExecutionStatus"></app-config-crawl-execution-status>
-                </div>
-              }
               <app-seed-details
                 [configObject]="configObject"
+                [annotationSuggestions]="(annotationSuggestions$ | async) || []"
                 [crawlJobs]="options.crawlJobs"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
@@ -110,14 +132,23 @@
                 (move)="onMoveSeed($event)"
                 (saveMultiple)="onSaveMultipleSeeds($event)"
                 (runCrawl)="onRunCrawl($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-seed-details>
             }
             @case (Kind.CRAWLENTITY) {
               <app-entity-details
                 [configObject]="configObject"
+                [annotationSuggestions]="(annotationSuggestions$ | async) || []"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-entity-details>
             }
             @case (Kind.ROLEMAPPING) {
@@ -127,7 +158,50 @@
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)"
                 (delete)="onDeleteConfig($event)">
+                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
               </app-rolemapping-details>
+            }
+            }
+          </main>
+          @if (relatedConfigs$ | async; as relatedConfigs) {
+            @if (scriptAnnotationContexts$ | async; as scriptAnnotationContexts) {
+              @if (relatedConfigs.length ||
+                (configObject.kind !== Kind.CRAWLENTITY && scriptAnnotationContexts.length)) {
+                <aside class="supporting-pane" aria-labelledby="related-context-title">
+                  <h2 id="related-context-title" i18n="@@configRelatedContextTitle">Related configurations</h2>
+                  <div class="related-context-grid">
+                    @for (related of relatedConfigs; track related.ref.kind + ':' + related.ref.id) {
+                      <app-config-context-card
+                        [configRef]="related.ref"
+                        [configObject]="related.configObject"
+                        [unavailable]="related.unavailable">
+                        @if (!related.unavailable && related.configObject) {
+                          <app-config-shortcut-helpers cardHeaderHelpers [configObject]="related.configObject"
+                            [showMainId]="false"
+                            [showReferenceKindLabels]="true"
+                            (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                            (createSeed)="onCreateSeedFromEntity($event)">
+                          </app-config-shortcut-helpers>
+                        }
+                      </app-config-context-card>
+                      @if (configObject.kind === Kind.SEED && related.ref.kind === Kind.CRAWLENTITY) {
+                        @if ((configObject | getCrawlExecutionStatus | async); as crawlExecutionStatus) {
+                          <app-config-crawl-execution-status
+                            [crawlExecutionStatus]="crawlExecutionStatus">
+                          </app-config-crawl-execution-status>
+                        }
+                      }
+                    }
+                    @if (configObject.kind !== Kind.CRAWLENTITY && scriptAnnotationContexts.length) {
+                      <app-script-annotations-card [contexts]="scriptAnnotationContexts">
+                      </app-script-annotations-card>
+                    }
+                  </div>
+                </aside>
+              }
             }
           }
         </div>

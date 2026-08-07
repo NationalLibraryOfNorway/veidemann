@@ -15,13 +15,19 @@ import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { ApplicationErrorHandler, AuthService, ControllerApiService, LocaleService } from './core';
 
+export interface LabelLinkConfig {
+  text: string;
+  urlTemplate: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AppConfig {
   authConfig: AuthConfig;
   grpcWebUrl: string;
-
+  playbackBaseUrl = '';
+  labelLinks: Record<string, LabelLinkConfig> = {};
 
   load(json?: Partial<AppConfig>) {
     if (json) {
@@ -57,7 +63,7 @@ export const appConfig: ApplicationConfig = {
     },
     {
       provide: MAT_DATE_LOCALE,
-      useFactory: (localeService: LocaleService) => localeService.getLocale(),
+      useFactory: (localeService: LocaleService) => localeService.getDateLocale(),
       deps: [LocaleService]
     },
     {

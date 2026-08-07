@@ -5,6 +5,7 @@ export * from './crawl-log-list/crawl-log-list.component';
 export * from './crawl-log-status/crawl-log-status.component';
 export * from './job-execution-status-query/job-execution-status-query.component';
 export * from './job-execution-status-list/job-execution-status-list.component';
+export * from './log-list-shortcuts/log-list-shortcuts.component';
 export * from './page-log-list/page-log-list.component';
 export * from './page-log-status/page-log-status.component';
 export * from './crawl-execution-status-list/crawl-execution-status-list.component';

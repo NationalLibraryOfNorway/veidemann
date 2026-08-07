@@ -1,25 +1,23 @@
-<div class="content-padding">
+<form [formGroup]="form" class="query-fields">
   @if (query?.kind) {
-    <mat-form-field class="search-form">
-      <mat-label i18n="@@configQuerySearchInputLabel">
-      Search
-    </mat-label>
+    <mat-form-field appearance="outline" class="search-form" subscriptSizing="dynamic">
+      <mat-label>{{searchLabel}}</mat-label>
       <input matInput
         #search
         [(ngModel)]="term"
+        [ngModelOptions]="{standalone: true}"
         (keyup.enter)="onSearch(term)">
       @if (term) {
-        <button mat-icon-button matSuffix (click)="term = ''; onSearch(term);">
+        <button mat-icon-button matSuffix type="button" (click)="term = ''; onSearch(term);">
           <mat-icon>close</mat-icon>
         </button>
       }
     </mat-form-field>
   }
 
-  <form [formGroup]="form" class="layout-column gap-16">
-    @switch ($safeNavigationMigration(query?.kind)) {
+  @switch ($safeNavigationMigration(query?.kind)) {
       @case (Kind.CRAWLJOB) {
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryScheduleDropdownLabel">Schedule</mat-label>
           <mat-select formControlName="scheduleId">
             <mat-option [value]=""></mat-option>
@@ -29,7 +27,7 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryCrawlConfigDropdownLabel">CrawlConfig</mat-label>
           <mat-select formControlName="crawlConfigId">
             <mat-option [value]=""></mat-option>
@@ -39,15 +37,18 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-radio-group formControlName="disabled" class="layout-column gap-16">
-          <mat-radio-button [value]="null">Show all</mat-radio-button>
-          <mat-radio-button [value]="true">Show disabled</mat-radio-button>
-          <mat-radio-button [value]="false">Show enabled</mat-radio-button>
-        </mat-radio-group>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label i18n="@@configQueryStatusDropdownLabel">Status</mat-label>
+          <mat-select formControlName="disabled" [canSelectNullableOptions]="true">
+            <mat-option [value]="null" i18n="@@configQueryStatusShowAll">Show all</mat-option>
+            <mat-option [value]="true" i18n="@@configQueryStatusShowDisabled">Show disabled</mat-option>
+            <mat-option [value]="false" i18n="@@configQueryStatusShowEnabled">Show enabled</mat-option>
+          </mat-select>
+        </mat-form-field>
       }
       @case (Kind.SEED) {
-        <mat-form-field>
-          <mat-label i18n-placeholder="@@configQueryCrawlJobDropdownLabel">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label i18n="@@configQueryCrawlJobDropdownLabel">
             CrawlJob
           </mat-label>
           <mat-select multiple formControlName="crawlJobIdList">
@@ -57,20 +58,40 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryEntityIdInputLabel">
           Entity Id
         </mat-label>
           <input matInput formControlName="entityId">
         </mat-form-field>
-        <mat-radio-group formControlName="disabled" class="layout-column gap-16">
-          <mat-radio-button [value]="null">Show all</mat-radio-button>
-          <mat-radio-button [value]="true">Show disabled</mat-radio-button>
-          <mat-radio-button [value]="false">Show enabled</mat-radio-button>
-        </mat-radio-group>
+        <fieldset class="seed-chip-filter status-filter">
+          <legend id="seed-status-filter-label" i18n="@@configQueryStatusDropdownLabel">Status</legend>
+          <mat-chip-listbox formControlName="disabled" aria-labelledby="seed-status-filter-label">
+            <mat-chip-option [value]="false" i18n="@@configQueryStatusShowEnabled">Show enabled</mat-chip-option>
+            <mat-chip-option [value]="true" i18n="@@configQueryStatusShowDisabled">Show disabled</mat-chip-option>
+          </mat-chip-listbox>
+        </fieldset>
+        @if (selectedCrawlJobs.length) {
+          <fieldset class="seed-chip-filter crawl-job-filters">
+            <legend id="seed-crawl-job-filter-label"
+              i18n="@@configQuerySelectedCrawlJobsLabel">Crawl jobs</legend>
+            <mat-chip-set aria-labelledby="seed-crawl-job-filter-label">
+              @for (crawlJob of selectedCrawlJobs; track crawlJob.id) {
+                <mat-chip>
+                  {{crawlJob.name}}
+                  <button matChipRemove type="button"
+                    [attr.aria-label]="crawlJobRemoveLabel(crawlJob.name)"
+                    (click)="removeCrawlJob(crawlJob.id)">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip>
+              }
+            </mat-chip-set>
+          </fieldset>
+        }
       }
       @case (Kind.CRAWLCONFIG) {
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryCollectionDropdownLabel">Collection</mat-label>
           <mat-select formControlName="collectionId">
             <mat-option value=""></mat-option>
@@ -80,7 +101,7 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryBrowserConfigDropdownLabel">BrowserConfig</mat-label>
           <mat-select formControlName="browserConfigId">
             <mat-option value=""></mat-option>
@@ -90,7 +111,7 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryPolitenessDropdownLabel">Politeness</mat-label>
           <mat-select formControlName="politenessId">
             <mat-option value=""></mat-option>
@@ -102,7 +123,7 @@
         </mat-form-field>
       }
       @case (Kind.BROWSERCONFIG) {
-        <mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label i18n="@@configQueryBrowserScriptDropdownLabel">
           BrowserScript
         </mat-label>
@@ -114,6 +135,42 @@
           </mat-select>
         </mat-form-field>
       }
-    }
-  </form>
-</div>
+      @case (Kind.BROWSERSCRIPT) {
+        <fieldset class="script-type-filter">
+          <legend id="browser-script-type-filter-label"
+            i18n="@@browserScriptFormBrowserScriptTypeDropdownLabel">
+            Script type
+          </legend>
+          <mat-chip-listbox formControlName="browserScriptType"
+            aria-labelledby="browser-script-type-filter-label">
+            @for (type of filterBrowserScriptTypes; track type) {
+              <mat-chip-option [value]="type">{{BrowserScriptType[type]}}</mat-chip-option>
+            }
+          </mat-chip-listbox>
+        </fieldset>
+      }
+  }
+
+  @if (showLabelSearchSuggestions) {
+    <div class="label-search-suggestions">
+      <span class="label-search-suggestions__label" i18n="@@configQueryLabelSuggestionsLabel">
+        Try a label search
+      </span>
+      <mat-chip-set
+        aria-label="Suggested label searches"
+        i18n-aria-label="@@configQueryLabelSuggestionsAriaLabel">
+        @for (suggestion of labelSearchSuggestions; track suggestion.term) {
+          <mat-chip
+            role="button"
+            tabindex="0"
+            (click)="onSearch(suggestion.term)"
+            (keydown.enter)="onSearch(suggestion.term)"
+            (keydown.space)="onSearch(suggestion.term); $event.preventDefault()">
+            <mat-icon matChipAvatar aria-hidden="true">search</mat-icon>
+            {{suggestion.label}}: {{suggestion.term}}
+          </mat-chip>
+        }
+      </mat-chip-set>
+    </div>
+  }
+</form>

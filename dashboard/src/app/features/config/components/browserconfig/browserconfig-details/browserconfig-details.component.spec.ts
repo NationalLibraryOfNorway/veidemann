@@ -1,6 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {BrowserConfigDetailsComponent} from './browserconfig-details.component';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {LabelService} from '../../../services';
 import {of} from 'rxjs';
 import {
@@ -121,7 +120,6 @@ describe('BrowserConfigDetailsComponent', () => {
         BrowserConfigDetailsComponent,
         ReactiveFormsModule,
         MatInputModule,
-        NoopAnimationsModule,
       ],
       providers: [
         provideCoreTesting,
@@ -170,6 +168,10 @@ describe('BrowserConfigDetailsComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('offers a copy button for the saved ID field', () => {
+    expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
   });
 
   describe('Creating a new browserconfig', () => {

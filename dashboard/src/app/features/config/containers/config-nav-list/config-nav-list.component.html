@@ -1,116 +1,46 @@
 <section class="destination-page">
-  <h1 i18n="@@configurationPageTitle">Configuration</h1>
-  <nav class="destination-grid" aria-label="Configuration types"
-       i18n-aria-label="@@configurationTypesNavigationLabel">
-    @if (can('read', Kind[Kind.CRAWLENTITY])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.CRAWLENTITY]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>business</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuEntity">Entity</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
+  <div class="destination-hero">
+    <mat-card class="destination-hero-card destination-intro-card" appearance="outlined">
+      <mat-card-content class="destination-intro-content">
+        <div class="destination-intro-copy">
+          <h1 i18n="@@configurationPageTitle">Configuration</h1>
+          <p i18n="@@configurationPageSubtitle">
+            Create and manage crawl targets, jobs, and supporting settings.
+          </p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="destination-hero-card destination-artwork-card" appearance="outlined"
+              aria-hidden="true">
+      <picture class="destination-brand-picture">
+        <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
+        <img class="destination-brand-logo" src="public/logo/veidemann_logo_inline_black.png" alt="">
+      </picture>
+    </mat-card>
+  </div>
+
+  <div class="destination-groups">
+    @for (group of destinationGroups; track group.label) {
+      @if (visibleDestinations(group); as destinations) {
+        @if (destinations.length) {
+          <section class="destination-group">
+            <h2>{{group.label}}</h2>
+            <nav class="destination-grid" [attr.aria-label]="group.label">
+              @for (destination of destinations; track destination.kind) {
+                <a class="destination-link" [routerLink]="['/config', ConfigPath[destination.kind]]">
+                  <mat-card class="destination-card" appearance="outlined">
+                    <mat-card-header>
+                      <mat-icon mat-card-avatar>{{destination.icon}}</mat-icon>
+                      <mat-card-title>{{destination.label}}</mat-card-title>
+                    </mat-card-header>
+                  </mat-card>
+                </a>
+              }
+            </nav>
+          </section>
+        }
+      }
     }
-    @if (can('read', Kind[Kind.SEED])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.SEED]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>link</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuSeed">Seed</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.CRAWLJOB])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.CRAWLJOB]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>work</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuCrawljobs">Crawl jobs</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.CRAWLSCHEDULECONFIG]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>schedule</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuSchedule">Schedule</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.CRAWLCONFIG])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.CRAWLCONFIG]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>settings_system_daydream</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuCrawlconfig">Crawl config</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.COLLECTION])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.COLLECTION]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>collections_bookmark</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuCollection">Collection</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.BROWSERCONFIG])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.BROWSERCONFIG]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>web</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuBrowserconfig">Browser config</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.BROWSERSCRIPT])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.BROWSERSCRIPT]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>web_asset</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuBrowserscript">Browser script</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.POLITENESSCONFIG])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.POLITENESSCONFIG]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>sentiment_very_satisfied</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuPolitenessconfig">Politeness</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.CRAWLHOSTGROUPCONFIG])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.CRAWLHOSTGROUPCONFIG]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>group_work</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuCrawlhostgroupconfig">Crawl host group</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-    @if (can('read', Kind[Kind.ROLEMAPPING])) {
-      <a class="destination-link" [routerLink]="['/config', ConfigPath[Kind.ROLEMAPPING]]">
-        <mat-card class="destination-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>people</mat-icon>
-            <mat-card-title i18n="@@configurationSidebarMenuRolemapping">Users</mat-card-title>
-          </mat-card-header>
-        </mat-card>
-      </a>
-    }
-  </nav>
+  </div>
 </section>

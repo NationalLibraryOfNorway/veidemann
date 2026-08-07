@@ -9,7 +9,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Label } from '../../../../shared/models';
+import { LabelDisplayComponent } from '../../../../shared/components';
 import { LabelComponent } from '../label/label.component';
 
 
@@ -30,6 +32,8 @@ import { LabelComponent } from '../label/label.component';
     MatFormFieldModule,
     MatIcon,
     MatInputModule,
+    MatTooltipModule,
+    LabelDisplayComponent,
     ReactiveFormsModule
   ],
   standalone: true
@@ -40,6 +44,7 @@ export class SelectorComponent extends LabelComponent implements OnInit {
   @Input()
   override placeholderText = 'New selector...';
   override labelText = 'Script selector';
+  protected override emojiPickerEnabled = false;
 
   // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
   override ngOnInit(): void {

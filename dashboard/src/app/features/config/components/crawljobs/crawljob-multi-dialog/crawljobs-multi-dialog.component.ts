@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
 import { ReactiveFormsModule,Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltip } from '@angular/material/tooltip';
 import { CrawlJobDetailsComponent } from '..';
 import { ConfigObject,Kind,Label } from '../../../../../shared/models/config';
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
@@ -17,17 +16,16 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-crawljobs-multi-dialog',
   templateUrl: './crawljobs-multi-dialog.component.html',
-  styleUrls: ['./crawljobs-multi-dialog.component.css'],
+  styleUrls: ['./crawljobs-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     DurationPickerComponent,
     FilesizeInputComponent,
     LabelMultiComponent,
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatSlideToggleModule,
-    MatTooltip,
     ReactiveFormsModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +37,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
 
 
   shouldAddLabel: boolean = undefined;
+  disabledSelection: boolean | null = null;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
@@ -61,12 +60,14 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
   override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
+      || this.disabledSelection !== null
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
     );
   }
 
   override get canRevert(): boolean {
     return this.form.dirty
+      || this.disabledSelection !== null
       || this.shouldAddLabel !== undefined;
   }
 
@@ -80,8 +81,13 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
 
   override onRevert() {
     this.shouldAddLabel = undefined;
+    this.disabledSelection = null;
     this.labelMulti.onRevert();
     super.onRevert();
+  }
+
+  onDisabledSelectionChange(disabled: boolean | null | undefined): void {
+    this.disabledSelection = disabled ?? null;
   }
 
   onUpdateLabels({add, labels}: { add: boolean, labels: Label[] }) {
@@ -106,7 +112,6 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
         id: '',
         kind: Kind.BROWSERSCRIPT,
       }),
-      disabled: {value: '', disabled: true},
       limits: this.fb.group({
         maxDurationS: ['', [Validators.pattern(NUMBER_OR_EMPTY_STRING)]],
         maxBytes: ['', [Validators.pattern(NUMBER_OR_EMPTY_STRING)]],
@@ -115,19 +120,10 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
   }
 
   protected override updateForm() {
-    if (this.configObject.crawlJob.disabled !== undefined) {
-      this.disabled.enable();
-    } else {
-      this.disabled.disable();
-    }
-
-    if (this.allSelected) {
-      this.disabled.disable();
-    }
+    this.disabledSelection = null;
 
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
-      disabled: !!this.configObject.crawlJob.disabled,
       scheduleRef: this.configObject.crawlJob.scheduleRef,
       crawlConfigRef: this.configObject.crawlJob.crawlConfigRef,
       scopeScriptRef: this.configObject.crawlJob.scopeScriptRef,
@@ -160,8 +156,8 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
       }
     }
 
-    if (this.disabled.dirty && formModel.disabled !== undefined) {
-      crawlJob.disabled = formModel.disabled;
+    if (this.disabledSelection !== null) {
+      crawlJob.disabled = this.disabledSelection;
       pathList.push('crawlJob.disabled');
     }
 

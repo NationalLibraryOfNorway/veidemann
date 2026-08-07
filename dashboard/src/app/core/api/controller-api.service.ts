@@ -58,12 +58,24 @@ export class ControllerApiService {
     return from(this.getClient().status({}, this.callOptions)).pipe(map(CrawlerStatus.fromProto));
   }
 
-  pauseCrawler(): void {
-    void this.getClient().pauseCrawler({}, this.callOptions).catch(error => this.errorHandler.handleError(error));
+  pauseCrawler(): Observable<void> {
+    return from(this.getClient().pauseCrawler({}, this.callOptions)).pipe(
+      map(() => undefined),
+      catchError(error => {
+        this.errorHandler.handleError(error);
+        return EMPTY;
+      }),
+    );
   }
 
-  unpauseCrawler(): void {
-    void this.getClient().unPauseCrawler({}, this.callOptions).catch(error => this.errorHandler.handleError(error));
+  unpauseCrawler(): Observable<void> {
+    return from(this.getClient().unPauseCrawler({}, this.callOptions)).pipe(
+      map(() => undefined),
+      catchError(error => {
+        this.errorHandler.handleError(error);
+        return EMPTY;
+      }),
+    );
   }
 
   runCrawl(request: RunCrawlRequest): Observable<RunCrawlReply> {

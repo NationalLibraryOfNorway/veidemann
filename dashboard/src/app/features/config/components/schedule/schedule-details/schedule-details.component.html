@@ -1,7 +1,6 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
-    <mat-card-header>
-      <mat-icon mat-card-avatar>schedule</mat-icon>
+    <mat-card-header class="card-header-with-helpers">
       <mat-card-title>
         @if (configObject) {
           <span i18n="@@scheduleDetailsCardTitle">Schedule</span>
@@ -12,8 +11,9 @@
           <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
       </mat-card-subtitle>
+      <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
-    <mat-card-content class="layout-row layout-wrap gap-24">
+    <mat-card-content class="config-details-grid">
       <div class="layout-column flex-fill">
         <app-meta formControlName="meta"></app-meta>
         @if (!showSave) {
@@ -22,13 +22,18 @@
             <input matInput
               formControlName="id"
               readonly>
+            <button mat-icon-button matSuffix type="button" [appCopyId]="configObject.id"
+              matTooltip="Copy ID" i18n-matTooltip="@@copyIdTooltip"
+              aria-label="Copy ID" i18n-aria-label="@@copyIdTooltip">
+              <mat-icon>content_copy</mat-icon>
+            </button>
           </mat-form-field>
         }
       </div>
 
       <div class="layout-column layout-space-evenly flex-fill">
-        <div formGroupName="cronExpression" class="cron-expression">
-          <h3 mat-subheader i18n="@@scheduleFormCronExpressionHeader">CRON expression</h3>
+        <section formGroupName="cronExpression" class="schedule-section cron-expression">
+          <h3 class="schedule-section-title" i18n="@@scheduleFormCronExpressionHeader">CRON expression</h3>
           <div class="layout-row layout-wrap gap-16">
             <mat-form-field data-testid="cronMinute">
               <mat-label i18n="@@scheduleCronExpressionMinuteLabel">
@@ -72,10 +77,10 @@
             CRON expression required
           </mat-error>
           }
-        </div>
+        </section>
 
-        <div>
-          <h3 mat-subheader i18n="@@scheduleDetailsValidFromToHeader">Time limit</h3>
+        <section class="schedule-section">
+          <h3 class="schedule-section-title" i18n="@@scheduleDetailsValidFromToHeader">Time limit</h3>
           <div class="layout-row layout-wrap gap-24">
             <mat-form-field data-testid="validFrom">
               <mat-label i18n="@@scheduleDetailsValidFromInputLabel">
@@ -102,7 +107,7 @@
               <mat-datepicker #validToDatepicker></mat-datepicker>
             </mat-form-field>
           </div>
-        </div>
+        </section>
       </div>
     </mat-card-content>
 
@@ -142,4 +147,3 @@
     }
   </mat-card>
 </form>
-

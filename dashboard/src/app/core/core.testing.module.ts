@@ -1,11 +1,17 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import {ErrorHandler, Provider, provideZonelessChangeDetection} from '@angular/core';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { of } from 'rxjs';
-import { AuthService, ConfigApiService, ErrorService, GuardService, SnackBarService } from '.';
+import {AuthService, ConfigApiService, GuardService, SnackBarService} from '.';
 import { AbilityServiceSignal } from '@casl/angular';
 import { AppConfig } from '../app.config';
 
+export function provideMaterialAnimationsDisabled(): Provider {
+  return { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } };
+}
+
 export const provideCoreTesting = [
   provideZonelessChangeDetection(),
+  provideMaterialAnimationsDisabled(),
   {
     provide: AppConfig,
     useValue: {
@@ -34,6 +40,6 @@ export const provideCoreTesting = [
       canDelete: () => true,
     },
   },
-  { provide: ErrorService, useValue: {} },
+  {provide: ErrorHandler, useValue: {handleError: () => undefined}},
   { provide: SnackBarService, useValue: {} },
 ];

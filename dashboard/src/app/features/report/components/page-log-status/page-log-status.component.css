@@ -3,27 +3,6 @@ mat-card {
   color: var(--mat-sys-on-surface);
 }
 
-.page-metadata {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 16px;
-  margin: 24px 0;
-}
-
-.page-metadata div {
-  min-width: 0;
-}
-
-.page-metadata dt {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-medium);
-}
-
-.page-metadata dd {
-  margin: 4px 0 0;
-  overflow-wrap: anywhere;
-}
-
 .tab-content {
   padding: 24px 0;
 }

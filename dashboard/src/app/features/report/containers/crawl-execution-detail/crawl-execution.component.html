@@ -1,12 +1,16 @@
 @if (item$ | async; as crawlExecutionStatus) {
   <div class="detail-page">
-    <div class="detail-action-bar">
-      <app-crawl-execution-shortcuts [crawlExecutionStatus]="crawlExecutionStatus"
-        (abortCrawlExecution)="onAbortCrawlExecution($event)">
-      </app-crawl-execution-shortcuts>
-    </div>
     <div class="detail-content">
-      <app-crawl-execution-status [crawlExecutionStatus]="crawlExecutionStatus"></app-crawl-execution-status>
+      <app-crawl-execution-status [crawlExecutionStatus]="crawlExecutionStatus">
+        <app-crawl-execution-shortcut-helpers cardHeaderHelpers
+          [crawlExecutionStatus]="crawlExecutionStatus"
+          [showPlayback]="true">
+        </app-crawl-execution-shortcut-helpers>
+        <app-execution-abort-action detailActions subject="crawlexecution"
+          [abortable]="canAbort(crawlExecutionStatus)"
+          (abort)="onAbortCrawlExecution(crawlExecutionStatus)">
+        </app-execution-abort-action>
+      </app-crawl-execution-status>
     </div>
   </div>
 }

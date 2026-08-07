@@ -115,6 +115,10 @@ describe('CollectionDetailsComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('offers a copy button for the saved ID field', () => {
+    expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
+  });
+
   describe('Creating a new collection', () => {
 
     beforeEach(async () => {

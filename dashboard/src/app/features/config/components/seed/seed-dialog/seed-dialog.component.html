@@ -1,20 +1,12 @@
 <form [formGroup]="form">
-  <div>
-    <h2 mat-dialog-title>
-      <ng-container i18n="@@seedDetailsCardTitle">Seed</ng-container>
-    </h2>
-    <span class="flex-fill"></span>
-    <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
-      formControlName="disabled"
-      color="warn"
-      mat-dialog-title>
-      Deactivated
-    </mat-slide-toggle>
-  </div>
+  <h2 mat-dialog-title>
+    <ng-container i18n="@@seedDetailsCardTitle">Seed</ng-container>
+  </h2>
 
   <mat-dialog-content>
     <app-seed-meta formControlName="meta"
       [entityRef]="entityRef.value"
+      [showOpenUrl]="!showSave"
     (move)="move.emit($event)"></app-seed-meta>
     <div class="layout-column gap-16">
       <mat-form-field>
@@ -29,6 +21,11 @@
         </mat-select>
       </mat-form-field>
     </div>
+    <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
+      formControlName="disabled"
+      color="warn">
+      Deactivated
+    </mat-slide-toggle>
   </mat-dialog-content>
 </form>
 

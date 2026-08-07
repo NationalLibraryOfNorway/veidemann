@@ -13,6 +13,7 @@ import {
 import {
   Annotation,
   BrowserConfig,
+  BrowserScript,
   ConfigObject,
   ConfigRef,
   CrawlConfig,
@@ -183,6 +184,14 @@ export class ConfigService
             id,
             kind: Kind.BROWSERSCRIPT
           }));
+        }
+        break;
+      case Kind.BROWSERSCRIPT:
+        queryTemplate.browserScript = new BrowserScript();
+
+        if (query.browserScriptType !== null) {
+          fieldMask.paths.push('browserScript.browserScriptType');
+          queryTemplate.browserScript.browserScriptType = query.browserScriptType;
         }
         break;
       case Kind.SEED:

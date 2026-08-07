@@ -5,7 +5,8 @@ import localeNb from '@angular/common/locales/nb';
 
 registerLocaleData(localeNb, 'nb', localeNbExtra);
 
-import { nb } from 'date-fns/locale'
+import type {Locale} from 'date-fns';
+import {enUS, nb} from 'date-fns/locale';
 
 const defaultLocale = 'en'
 const supportedLocales: string[] = [nb.code, 'en'];
@@ -38,5 +39,9 @@ function normalizeLocale(browserLocale: string) {
 export class LocaleService {
   getLocale(): string {
     return normalizeLocale(navigator.language);
+  }
+
+  getDateLocale(): Locale {
+    return this.getLocale() === nb.code ? nb : enUS;
   }
 }

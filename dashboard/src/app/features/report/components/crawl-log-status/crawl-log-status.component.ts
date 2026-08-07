@@ -5,7 +5,6 @@ import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {DatePipe} from '@angular/common';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
-import {RouterLink} from '@angular/router';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 
@@ -19,7 +18,6 @@ import {MatIcon} from '@angular/material/icon';
     MatCardModule,
     MatIcon,
     MatTableModule,
-    RouterLink,
     UrlFormatPipe,
   ],
   standalone: true
@@ -33,7 +31,6 @@ export class CrawlLogStatusComponent implements OnInit{
   crawlLogRequestDisplayedColumns: string[] = ['requestedUri', 'referrer'];
   crawlLogRespsoneDisplayedColumns: string[] = ['responseUri', 'discoveryPath'];
   crawlLogReportDisplayedColumns: string[] = ['crawlLogEntry', 'value'];
-  crawlLogIdsDisplayedColumns: string[] = ['id','crawlExecId','jobExecId'];
 
   @Input()
   crawlLog: CrawlLog;

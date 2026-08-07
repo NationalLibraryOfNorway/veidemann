@@ -1,10 +1,9 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {provideRouter} from '@angular/router';
 
 import {CrawlExecutionStatusComponent} from './crawl-execution-status.component';
-import {CrawlExecutionStatus} from '../../../../shared/models';
+import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {ActivatedRoute} from '@angular/router';
-import {of} from 'rxjs';
 
 describe('CrawlExecutionStatusComponent', () => {
   let component: CrawlExecutionStatusComponent;
@@ -15,7 +14,7 @@ describe('CrawlExecutionStatusComponent', () => {
       imports: [CrawlExecutionStatusComponent],
       providers: [
         ...provideCoreTesting,
-        { provide: ActivatedRoute, useValue: { snapshot: {}, params: of({}), queryParams: of({}) } }
+        provideRouter([]),
       ]
     })
       .compileComponents();
@@ -24,12 +23,40 @@ describe('CrawlExecutionStatusComponent', () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(CrawlExecutionStatusComponent);
     component = fixture.componentInstance;
-    component.crawlExecutionStatus = new CrawlExecutionStatus();
+    component.crawlExecutionStatus = new CrawlExecutionStatus({
+      id: 'crawl-execution-1',
+      state: CrawlExecutionState.FINISHED,
+      jobId: 'crawl-job-1',
+      jobExecutionId: 'job-execution-1',
+      startTime: '2025-01-01T10:00:00Z',
+      endTime: '2025-01-01T10:10:00Z',
+      urisCrawled: 42,
+      documentsCrawled: 40,
+      bytesCrawled: 1024,
+    });
+    fixture.detectChanges();
     await fixture.whenStable();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('renders the latest crawl execution as a related information card', () => {
+    const card = fixture.nativeElement.querySelector('mat-card');
+    expect(card.getAttribute('appearance')).toBe('outlined');
+    expect(card.textContent).toContain('Last crawl execution');
+    expect(card.textContent).toContain('Finished');
+    expect(card.textContent).toContain('42');
+    expect(card.textContent).toContain('1.02 kB');
+    expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeNull();
+
+    const hrefs = Array.from(
+      fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>
+    ).map(link => link.getAttribute('href'));
+    expect(hrefs).toContain('/report/crawlexecution/crawl-execution-1');
+    expect(hrefs).toContain('/config/crawljobs/crawl-job-1');
+    expect(hrefs).toContain('/report/jobexecution/job-execution-1');
   });
 
 });

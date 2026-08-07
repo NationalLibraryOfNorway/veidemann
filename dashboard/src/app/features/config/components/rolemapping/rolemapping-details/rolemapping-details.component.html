@@ -1,7 +1,6 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
-    <mat-card-header>
-      <mat-icon mat-card-avatar>person</mat-icon>
+    <mat-card-header class="card-header-with-helpers">
       <mat-card-title>
         @if (configObject) {
           <span i18n="@@roleMappingDetailsCardTitle">Rolemapping</span>
@@ -13,6 +12,7 @@
           i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
       </mat-card-subtitle>
+      <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content>
       <div class="layout-row layout-wrap gap-24">
@@ -93,4 +93,3 @@
     </mat-card-actions>
   </mat-card>
 </form>
-

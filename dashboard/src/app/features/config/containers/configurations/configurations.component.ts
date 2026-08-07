@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, OnDestroy, Signal, inject } from '@angular/core';
-import {BreakpointObserver} from '@angular/cdk/layout';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, OnDestroy, Signal, inject} from '@angular/core';
 import {ActivatedRoute, NavigationStart, Params, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
@@ -15,14 +14,15 @@ import {
 } from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
-import {ConfigObject, ConfigRef, Kind, ListDataSource, Seed} from '../../../../shared/models';
-import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {ConfigObject, ConfigRef, Kind, Label, ListDataSource, Seed} from '../../../../shared/models';
+import {AuthService, ControllerApiService, SnackBarService} from '../../../../core';
 import {
+  ActiveConfigFilterChip,
+  ActiveFilterChipsComponent,
   ConfigListComponent,
   ConfigQueryComponent,
   DeleteDialogComponent,
   DeleteMultiDialogComponent,
-  EntityViewComponent,
   Parcel,
   RoleMappingListComponent,
   RunCrawlDialogComponent
@@ -64,7 +64,6 @@ import {
 import {MatButtonModule} from '@angular/material/button';
 import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
 import {MongoAbility} from '@casl/ability';
-import {MatSidenavModule} from '@angular/material/sidenav';
 
 
 @Component({
@@ -74,9 +73,9 @@ import {MatSidenavModule} from '@angular/material/sidenav';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
+    ActiveFilterChipsComponent,
     ConfigListComponent,
     ConfigQueryComponent,
-    EntityViewComponent,
     MatListModule,
     MatIcon,
     MatProgressBar,
@@ -95,7 +94,6 @@ import {MatSidenavModule} from '@angular/material/sidenav';
     CrawlScheduleNamePipe,
     CrawlConfigNamePipe,
     MatButtonModule,
-    MatSidenavModule,
     ExtraDirective,
   ],
   standalone: true
@@ -105,7 +103,7 @@ export class ConfigurationsComponent implements OnDestroy {
   private configService = inject(ConfigService);
   private dataService = inject(ConfigService);
   private snackBarService = inject(SnackBarService);
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private route = inject(ActivatedRoute);
@@ -113,13 +111,12 @@ export class ConfigurationsComponent implements OnDestroy {
   private optionsService = inject(OptionsService);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
   private destroyRef = inject(DestroyRef);
-  private breakpointObserver = inject(BreakpointObserver);
 
   readonly Kind = Kind;
   readonly ConfigPath = ConfigPath;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
-  length$: Observable<number>;
+  readonly totalLength: Signal<number | null>;
   readonly sortDirection: Signal<SortDirection>;
   readonly sortActive: Signal<string>;
 
@@ -144,7 +141,6 @@ export class ConfigurationsComponent implements OnDestroy {
   options$: Observable<ConfigOptions>;
 
   readonly currentKind: Signal<Kind>;
-  readonly compactFilters: Signal<boolean>;
 
   constructor() {
 
@@ -158,10 +154,6 @@ export class ConfigurationsComponent implements OnDestroy {
 
     this.recount = new Subject();
     this.can = this.abilityService.can;
-    this.compactFilters = toSignal(
-      this.breakpointObserver.observe('(max-width: 839px)').pipe(map(state => state.matches)),
-      {initialValue: false}
-    );
 
     const queryParamMap = toSignal(this.route.queryParamMap, {requireSync: true});
     const kindParamMap = toSignal(this.route.parent.paramMap, {requireSync: true});
@@ -196,17 +188,17 @@ export class ConfigurationsComponent implements OnDestroy {
       distinctUntilChanged()
     );
 
-    const length$: Observable<number> = combineLatest([
+    const totalLength$: Observable<number | null> = combineLatest([
       this.recount.pipe(startWith(null as string)),
       query$.pipe(
         filter(query => query.kind !== Kind.UNDEFINED),
         distinctUntilChanged(equalConfigCountQuery)
       )
     ]).pipe(
-      switchMap(([, query]) => this.configService.count(query)),
+      switchMap(([, query]) => this.configService.count(query).pipe(startWith(null))),
     );
 
-    this.length$ = length$;
+    this.totalLength = toSignal(totalLength$, {initialValue: null});
 
     const entity$ = toObservable(this.entityId).pipe(
       switchMap(id => id
@@ -303,7 +295,7 @@ export class ConfigurationsComponent implements OnDestroy {
   onShowDetails(configObject: ConfigObject) {
     this.router.navigate([configObject.id], {
       relativeTo: this.route,
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   onClone(configObject: ConfigObject) {
@@ -315,6 +307,7 @@ export class ConfigurationsComponent implements OnDestroy {
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(() => {
         this.dataSource.reload();
+        this.recountIfFiltered();
         this.snackBarService.openSnackBar($localize`:@snackBarMessage.updated:Updated`);
       });
   }
@@ -354,6 +347,7 @@ export class ConfigurationsComponent implements OnDestroy {
       browser_config_id: value.browserConfigId || null,
       politeness_id: value.politenessId || null,
       disabled: value.disabled === null ? null : value.disabled,
+      script_type: value.browserScriptType ?? null,
       crawl_job_id: value.crawlJobIdList.length ? value.crawlJobIdList : null,
       script_id: value.scriptIdList.length ? value.scriptIdList : null,
       q: value.term || null
@@ -363,7 +357,30 @@ export class ConfigurationsComponent implements OnDestroy {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
       queryParams: {...queryParams, id: null}
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
+  }
+
+  onFilterByLabel(label: Label): void {
+    this.onQueryChange({
+      ...this.query(),
+      term: `label:${label.key}:${label.value}`,
+    });
+  }
+
+  onRemoveFilter(chip: ActiveConfigFilterChip): void {
+    const query: ConfigQuery = {
+      ...this.query(),
+      scriptIdList: [...this.query().scriptIdList],
+    };
+    switch (chip.key) {
+      case 'entityId':
+        query.entityId = null;
+        break;
+      case 'scriptIdList':
+        query.scriptIdList = query.scriptIdList.filter(id => id !== chip.value);
+        break;
+    }
+    this.onQueryChange(query);
   }
 
   onSort(sort: Sort) {
@@ -371,7 +388,7 @@ export class ConfigurationsComponent implements OnDestroy {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
       queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
-    }).catch(error => this.errorService.dispatch(error));
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   onSelectAll() {
@@ -380,7 +397,7 @@ export class ConfigurationsComponent implements OnDestroy {
 
   onRowClick(config: ConfigObject) {
     this.router.navigate([config.id], {relativeTo: this.route})
-      .catch(error => this.errorService.dispatch(error));
+      .catch(error => this.errorHandler.handleError(error));
   }
 
   onSelectedChange(configs: ConfigObject[]) {
@@ -461,6 +478,10 @@ export class ConfigurationsComponent implements OnDestroy {
       : this.dataService.move(parcel.seed, parcel.entityRef))
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(moved => {
+        if (this.hasCountAffectingFilter()) {
+          this.dataSource.reload();
+          this.recount.next();
+        }
         this.snackBarService.openSnackBar(moved + $localize`:@snackBarMessage.multipleMoved: configurations moved`);
       });
   }
@@ -469,7 +490,14 @@ export class ConfigurationsComponent implements OnDestroy {
     const configObject = ConfigObject.mergeConfigs(this.selectedConfigs);
     const data: ConfigDialogData = {configObject, options: this.options, allSelected: this.isAllSelected};
     const componentType = multiDialogByKind(configObject.kind);
-    const dialogRef = this.dialog.open(componentType, {data});
+    const dialogRef = this.dialog.open(componentType, {
+      data,
+      width: '720px',
+      maxWidth: 'calc(100vw - 32px)',
+      maxHeight: 'calc(100dvh - 32px)',
+      autoFocus: 'first-tabbable',
+      restoreFocus: true,
+    });
     dialogRef.afterClosed().pipe(
       filter(_ => !!_)
     ).subscribe(({updateTemplate, pathList}: { updateTemplate: ConfigObject, pathList: string[] }) => {
@@ -483,6 +511,7 @@ export class ConfigurationsComponent implements OnDestroy {
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(updatedConfigs => {
         this.dataSource.reload();
+        this.recountIfFiltered();
         this.snackBarService.openSnackBar(
           updatedConfigs + $localize`:@snackBarMessage.multipleUpdated: configurations updated`);
       });
@@ -504,7 +533,7 @@ export class ConfigurationsComponent implements OnDestroy {
       .subscribe(() => {
         this.router.navigate([], {
           relativeTo: this.route.parent,
-        }).catch(error => this.errorService.dispatch(error));
+        }).catch(error => this.errorHandler.handleError(error));
         this.dataSource.reload();
         this.recount.next();
         this.snackBarService.openSnackBar($localize`:@snackBarMessage.deleted:Deleted`);
@@ -529,7 +558,7 @@ export class ConfigurationsComponent implements OnDestroy {
       )
       .subscribe(numDeleted => {
         if (configObjects.length !== numDeleted) {
-          this.errorService.dispatch(new ReferrerError({numConfigs: configObjects.length, numDeleted}));
+          this.errorHandler.handleError(new ReferrerError({numConfigs: configObjects.length, numDeleted}));
         } else {
           this.snackBarService.openSnackBar(
             numDeleted + $localize`:@snackBarMessage.multipleDeleted: configurations deleted`);
@@ -537,6 +566,27 @@ export class ConfigurationsComponent implements OnDestroy {
         this.dataSource.reload();
         this.recount.next();
       });
+  }
+
+  private recountIfFiltered(): void {
+    if (this.hasCountAffectingFilter()) {
+      this.recount.next();
+    }
+  }
+
+  private hasCountAffectingFilter(): boolean {
+    const query = this.query();
+    return query.disabled !== null
+      || query.browserScriptType !== null
+      || !!query.entityId
+      || !!query.scheduleId
+      || !!query.crawlConfigId
+      || !!query.collectionId
+      || !!query.browserConfigId
+      || !!query.politenessId
+      || !!query.term
+      || query.crawlJobIdList.length > 0
+      || query.scriptIdList.length > 0;
   }
 
   onRunCrawl(configObject: ConfigObject) {
@@ -561,12 +611,12 @@ export class ConfigurationsComponent implements OnDestroy {
                       seed_id: configObject.id,
                     }
                   }
-                ).catch(error => this.errorService.dispatch(error));
+                ).catch(error => this.errorHandler.handleError(error));
               } else {
                 this.router.navigate(
                   ['report', 'jobexecution', runCrawlReply.jobExecutionId],
                   {queryParams: {watch: true}}
-                ).catch(error => this.errorService.dispatch(error));
+                ).catch(error => this.errorHandler.handleError(error));
               }
             });
         }
@@ -598,7 +648,7 @@ export class ConfigurationsComponent implements OnDestroy {
                         job_execution_id: runCrawlReply.jobExecutionId,
                       }
                     }
-                  ).catch(error => this.errorService.dispatch(error));
+                  ).catch(error => this.errorHandler.handleError(error));
                 }
               });
             }
@@ -613,7 +663,7 @@ export class ConfigurationsComponent implements OnDestroy {
                       seed_id: configObjects[0].id,
                     }
                   }
-                ).catch(error => this.errorService.dispatch(error));
+                ).catch(error => this.errorHandler.handleError(error));
               });
           }
         }

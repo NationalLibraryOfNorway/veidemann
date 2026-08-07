@@ -18,9 +18,9 @@ export class CollectionNamePipe implements PipeTransform {
   transform(configObject: ConfigObject): Observable<string> {
     return this.optionsService.options$.pipe(
       map(options => {
-        const found = options.collections.find(
+        const found = options?.collections?.find(
           collection => collection.id === configObject.crawlConfig.collectionRef.id);
-        return found ? found.meta.name : 'Collection';
+        return found?.meta.name || configObject.crawlConfig.collectionRef.id;
       }));
   }
 }

@@ -7,24 +7,29 @@ import {MatCardModule} from '@angular/material/card';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
-import {MatIcon} from '@angular/material/icon';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 @Component({
   selector: 'app-crawlconfig-details',
   templateUrl: './crawlconfig-details.component.html',
+  styleUrls: ['../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CopyIdDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
+    MatIcon,
     MatSelectModule,
+    MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
-    MatIcon,
     MatCheckbox,
   ],
   standalone: true

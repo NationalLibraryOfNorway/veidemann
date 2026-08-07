@@ -16,7 +16,6 @@ import {
   Annotation,
   ConfigObject,
   ConfigRef,
-  LogLevels,
 } from '../../shared/models/config';
 import {ApplicationErrorHandler} from '../error.handler';
 import {AppConfig} from '../../app.config';
@@ -114,17 +113,4 @@ export class ConfigApiService {
     );
   }
 
-  getLogConfig(): Observable<LogLevels> {
-    return from(this.getClient().getLogConfig({}, this.callOptions)).pipe(
-      map(LogLevels.fromProto),
-      catchConfigError<LogLevels>(this.errorHandler, null),
-    );
-  }
-
-  saveLogConfig(logLevels: LogLevels): Observable<LogLevels> {
-    return from(this.getClient().saveLogConfig(LogLevels.toProto(logLevels), this.callOptions)).pipe(
-      map(LogLevels.fromProto),
-      catchConfigError<LogLevels>(this.errorHandler, null),
-    );
-  }
 }

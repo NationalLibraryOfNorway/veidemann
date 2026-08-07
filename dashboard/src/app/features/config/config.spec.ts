@@ -1,5 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {ActivatedRoute, convertToParamMap, provideRouter} from '@angular/router';
+import {ActivatedRoute, provideRouter} from '@angular/router';
 import {of} from 'rxjs';
 
 import {OptionsService} from './services';
@@ -9,7 +9,8 @@ describe('ConfigComponent navigation shell', () => {
   let fixture: ComponentFixture<ConfigComponent>;
   const optionsService = {next: vi.fn()};
 
-  async function createComponent(detailId?: string): Promise<void> {
+  beforeEach(async () => {
+    optionsService.next.mockClear();
     await TestBed.configureTestingModule({
       imports: [ConfigComponent],
       providers: [
@@ -18,11 +19,7 @@ describe('ConfigComponent navigation shell', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            paramMap: of(convertToParamMap({kind: 'seed'})),
             data: of({options: {}}),
-            firstChild: {
-              snapshot: {paramMap: convertToParamMap(detailId ? {id: detailId} : {})},
-            },
           },
         },
       ],
@@ -31,19 +28,14 @@ describe('ConfigComponent navigation shell', () => {
     fixture = TestBed.createComponent(ConfigComponent);
     fixture.detectChanges();
     await fixture.whenStable();
-  }
-
-  it('removes the configuration type drawer after a type is selected', async () => {
-    await createComponent();
-
-    expect(fixture.nativeElement.querySelector('mat-drawer')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.compact-title').textContent).toContain('Seed');
-    expect(fixture.nativeElement.querySelector('.back-button').getAttribute('href')).toBe('/config');
   });
 
-  it('links detail pages back to their deterministic type list', async () => {
-    await createComponent('seed-id');
+  it('renders the configuration content shell', () => {
+    expect(fixture.nativeElement.querySelector('mat-drawer')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.section-shell > .section-content')).not.toBeNull();
+  });
 
-    expect(fixture.nativeElement.querySelector('.back-button').getAttribute('href')).toBe('/config/seed');
+  it('provides resolved options to child configuration pages', () => {
+    expect(optionsService.next).toHaveBeenCalledWith({});
   });
 });

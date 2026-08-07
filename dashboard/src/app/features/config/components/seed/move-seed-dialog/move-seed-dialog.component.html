@@ -1,0 +1,47 @@
+<h2 mat-dialog-title i18n="@@moveSeedDialogTitle">Move seed to another entity</h2>
+
+<mat-dialog-content>
+  <p class="seed-name">{{data.seed.meta.name}}</p>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label i18n="@@moveSeedDialogSearchLabel">Search entities</mat-label>
+    <input matInput [formControl]="search" autocomplete="off">
+    @if (search.value) {
+      <button mat-icon-button matSuffix type="button"
+        aria-label="Clear entity search" i18n-aria-label="@@moveSeedDialogClearSearchLabel"
+        (click)="clearSearch()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (entities$ | async; as entities) {
+    @if (!loading() && !entities.length) {
+      <p class="empty-state" role="status" i18n="@@moveSeedDialogNoEntities">No matching entities found.</p>
+    }
+    <mat-selection-list [multiple]="false" (selectionChange)="onSelectionChange($event)"
+      aria-label="Destination entity" i18n-aria-label="@@moveSeedDialogDestinationLabel">
+      @for (entity of entities; track entity.id) {
+        <mat-list-option [value]="entity">
+          <span matListItemTitle>{{entity.meta.name || entity.id}}</span>
+          @if (entity.meta.description) {
+            <span matListItemLine>{{entity.meta.description}}</span>
+          }
+          <span matListItemLine class="entity-id">{{entity.id}}</span>
+        </mat-list-option>
+      }
+    </mat-selection-list>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close i18n="@@commonButtonCancel">CANCEL</button>
+  <button mat-raised-button type="button" color="primary"
+    [disabled]="!selectedEntity"
+    [mat-dialog-close]="result()"
+    i18n="@@moveSeedDialogMoveButton">MOVE</button>
+</mat-dialog-actions>

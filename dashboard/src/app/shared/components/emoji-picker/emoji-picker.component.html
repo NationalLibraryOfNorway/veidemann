@@ -1,0 +1,68 @@
+<section class="emoji-picker" aria-label="Emoji picker" i18n-aria-label="@@emojiPickerRegionLabel">
+  <div class="emoji-picker__controls">
+    <mat-form-field subscriptSizing="dynamic" class="emoji-picker__search">
+      <mat-label i18n="@@emojiPickerSearchLabel">Search emoji</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [formControl]="searchControl" autocomplete="off">
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic" class="emoji-picker__skin-tone">
+      <mat-label i18n="@@emojiPickerSkinToneLabel">Skin tone</mat-label>
+      <mat-select [formControl]="skinToneControl">
+        @for (tone of skinTones(); track tone.hexcode) {
+          <mat-option [value]="tone.hexcode">
+            <span class="emoji-font" aria-hidden="true">{{tone.unicode}}</span>
+            {{tone.label}}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (loading()) {
+    <div class="emoji-picker__state" role="status">
+      <mat-spinner diameter="36"></mat-spinner>
+      <span i18n="@@emojiPickerLoading">Loading emoji…</span>
+    </div>
+  } @else if (loadFailed()) {
+    <div class="emoji-picker__state" role="alert">
+      <span i18n="@@emojiPickerLoadFailed">Could not load emoji.</span>
+      <button mat-button type="button" (click)="loadData()" i18n="@@commonButtonRetry">RETRY</button>
+    </div>
+  } @else {
+    <nav class="emoji-picker__groups" aria-label="Emoji categories" i18n-aria-label="@@emojiPickerCategoriesLabel">
+      <button mat-icon-button type="button"
+        [class.emoji-picker__group--active]="selectedGroup() === null"
+        aria-label="All emoji" i18n-aria-label="@@emojiPickerAllCategory"
+        (click)="selectGroup(null)">
+        <mat-icon>apps</mat-icon>
+      </button>
+      @for (group of groups(); track group.key) {
+        <button mat-icon-button type="button"
+          [class.emoji-picker__group--active]="selectedGroup() === group.order"
+          [attr.aria-label]="group.message"
+          [matTooltip]="group.message"
+          (click)="selectGroup(group.order)">
+          <span class="emoji-font" aria-hidden="true">{{group.icon}}</span>
+        </button>
+      }
+    </nav>
+
+    @if (emojiRows().length) {
+      <cdk-virtual-scroll-viewport class="emoji-picker__grid" itemSize="48" minBufferPx="192" maxBufferPx="384">
+        <div *cdkVirtualFor="let row of emojiRows(); trackBy: trackRow" class="emoji-picker__row">
+          @for (emoji of row; track emoji.hexcode) {
+            <button mat-icon-button type="button" class="emoji-picker__emoji"
+              [attr.aria-label]="displayEmoji(emoji).label"
+              [matTooltip]="displayEmoji(emoji).label"
+              (click)="selectEmoji(emoji)">
+              <span class="emoji-font" aria-hidden="true">{{displayEmoji(emoji).unicode}}</span>
+            </button>
+          }
+        </div>
+      </cdk-virtual-scroll-viewport>
+    } @else {
+      <div class="emoji-picker__state" role="status" i18n="@@emojiPickerNoResults">No emoji found.</div>
+    }
+  }
+</section>

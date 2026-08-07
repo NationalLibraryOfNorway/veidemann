@@ -1,0 +1,48 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.context-card {
+  min-width: 0;
+}
+
+mat-card-content {
+  padding-top: 16px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin-block: 0 16px;
+}
+
+.summary-grid dt {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.summary-grid dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--mat-sys-error);
+}
+
+@media (max-width: 599px) {
+  .summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .summary-grid dd {
+    margin-bottom: 8px;
+  }
+}

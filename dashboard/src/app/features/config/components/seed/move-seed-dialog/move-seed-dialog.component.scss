@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  min-width: min(560px, 80vw);
+}
+
+.seed-name {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+mat-selection-list {
+  max-height: min(480px, 55vh);
+  overflow: auto;
+}
+
+.entity-id {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 599px) {
+  mat-dialog-content {
+    min-width: 0;
+  }
+}

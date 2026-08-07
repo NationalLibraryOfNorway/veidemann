@@ -12,7 +12,7 @@ import { ConfigDialogData } from '../../../func';
 @Component({
   selector: 'app-rolemapping-multi-dialog',
   templateUrl: './rolemapping-multi-dialog.component.html',
-  styleUrls: ['./rolemapping-multi-dialog.component.css'],
+  styleUrls: ['./rolemapping-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     MatButtonModule,
     MatDialogModule,

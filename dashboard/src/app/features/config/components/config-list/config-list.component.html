@@ -1,0 +1,153 @@
+<div class="container layout-column">
+  @let total = totalLength();
+  @if (multiSelect || total !== null) {
+    <mat-list class="list-header" aria-label="Configuration list controls"
+      i18n-aria-label="@@configurationListControlsAriaLabel">
+      <mat-list-item class="list-header-row">
+        @if (multiSelect) {
+          <mat-checkbox matListItemIcon class="master-selection-control selection-control"
+            [checked]="isAllLoadedSelected()"
+            [indeterminate]="selectedRows().length > 0 && !isAllLoadedSelected()"
+            [disabled]="!dataSource?.length"
+            aria-label="Select all loaded configurations"
+            i18n-aria-label="@@configurationListSelectAllLoadedAriaLabel"
+            (change)="onMasterCheckboxToggle($event.checked)"></mat-checkbox>
+        }
+        @if (multiSelect && selectedRows().length > 0) {
+          <span matListItemTitle class="selection-actions" role="group" aria-label="Bulk actions"
+            i18n-aria-label="@@configurationListBulkActionsAriaLabel">
+            <ng-content></ng-content>
+          </span>
+        }
+        @if (total !== null) {
+          <span matListItemMeta class="result-count" role="status" aria-live="polite"
+            i18n="@@configurationListResultCount">
+            Showing {{ loadedLength() | number }} of {{ total | number }} items
+          </span>
+        }
+      </mat-list-item>
+    </mat-list>
+  }
+  @if (multiSelect) {
+    @if (selectedRows().length > 0) {
+      <div class="selection-summary" role="status" aria-live="polite">
+        @if (!allSelected()) {
+          @if (isAllLoadedSelected()) {
+            <span i18n="@@configurationListAllLoadedSelectedMessage">
+              All <strong>{{ selectedRows().length | number }}</strong> {{ configTypePluralLabel() }} on this page are selected.
+            </span>
+          } @else {
+            <span i18n="@@configurationListLoadedSelectedMessage">
+              <strong>{{ selectedRows().length | number }}</strong> loaded configurations selected.
+            </span>
+          }
+          @if (isAllLoadedSelected() && total !== null && total > dataSource.length) {
+            <mat-chip-set aria-label="Database selection"
+              i18n-aria-label="@@configurationListDatabaseSelectionAriaLabel">
+              <mat-chip class="database-selection-chip" role="button" tabindex="0"
+                (click)="onSelectAll()" (keydown)="onSelectionChipKeydown($event)"
+                i18n="@@configurationListSelectAllInDatabaseChip">
+                Select all {{ total | number }} {{ configTypePluralLabel() }} in the database.
+              </mat-chip>
+            </mat-chip-set>
+          }
+        } @else {
+          <span i18n="@@configurationListAllDatabaseSelectedMessage">
+            All <strong>{{ total | number }}</strong> {{ configTypePluralLabel() }} in the database are selected.
+          </span>
+          <mat-chip-set aria-label="Database selection"
+            i18n-aria-label="@@configurationListDatabaseSelectionAriaLabel">
+            <mat-chip class="database-selection-chip" role="button" tabindex="0"
+              (click)="onDeselectAll()" (keydown)="onSelectionChipKeydown($event)"
+              i18n="@@configurationListRemoveSelectionChip">Remove the selection</mat-chip>
+          </mat-chip-set>
+        }
+      </div>
+    }
+  }
+
+  <div class="scroll flex-fill">
+    <mat-list aria-label="Configurations">
+      @for (row of dataSource?.rows$ | async; track row.id) {
+        <mat-list-item class="item-row"
+          [class.row-checked]="isChecked(row)"
+          [class.row-disabled]="isDisabled(row)"
+          [class.row-with-labels]="row.meta.labelList.length > 0"
+          tabindex="0"
+          (click)="onRowClick(row, $event)"
+          (keydown)="onRowKeydown(row, $event)">
+          @if (multiSelect) {
+            <mat-checkbox matListItemIcon class="selection-control"
+              [checked]="isChecked(row)"
+              [attr.aria-label]="'Select ' + row.meta.name"
+              (click)="$event.stopPropagation()"
+              (change)="onCheckboxToggle(row)"></mat-checkbox>
+          }
+          <a matListItemTitle class="primary-detail-link" [href]="detailHref(row)"
+            (click)="onPrimaryLink(row, $event)">{{ row.meta.name }}</a>
+          <span matListItemLine>{{ row.meta.description }}</span>
+          @if (row.meta.labelList.length) {
+            <span matListItemMeta class="label-region">
+              <mat-chip-set
+                aria-label="Configuration labels"
+                i18n-aria-label="@@configurationListLabelsAriaLabel">
+                @for (label of row.meta.labelList; track label.key + ':' + label.value) {
+                  <mat-chip
+                    role="button"
+                    tabindex="0"
+                    [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)"
+                    [aria-label]="labelSearchAriaLabel(label)"
+                    (click)="onLabelClick(label, $event)"
+                    (keydown.enter)="onLabelClick(label, $event)"
+                    (keydown.space)="onLabelClick(label, $event)">
+                    <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+                  </mat-chip>
+                  @if (externalLabelLink(label); as link) {
+                    <a mat-chip class="external-label-link"
+                      [href]="link.href"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      (click)="$event.stopPropagation()">{{link.text}}</a>
+                  }
+                }
+              </mat-chip-set>
+            </span>
+          }
+          <span matListItemMeta class="action-region" role="group" aria-label="Row actions">
+            @for (extraTemplate of extraTemplates; track extraTemplate) {
+              <span class="visible-action">
+                <ng-container *ngTemplateOutlet="extraTemplate; context: {$implicit: row}"></ng-container>
+              </span>
+            }
+            <button mat-icon-button [matMenuTriggerFor]="actionMenu"
+              aria-label="More actions" matTooltip="More actions"
+              (click)="$event.stopPropagation()">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #actionMenu>
+              @for (filterTemplate of filterButtonTemplates; track filterTemplate) {
+                <ng-container *ngTemplateOutlet="filterTemplate; context: {$implicit: row}"></ng-container>
+              }
+              @for (shortcutTemplate of shortcutButtonTemplates; track shortcutTemplate) {
+                <ng-container *ngTemplateOutlet="shortcutTemplate; context: {$implicit: row}"></ng-container>
+              }
+              @for (actionTemplate of actionButtonTemplates; track actionTemplate) {
+                <ng-container *ngTemplateOutlet="actionTemplate; context: {$implicit: row}"></ng-container>
+              }
+            </mat-menu>
+          </span>
+        </mat-list-item>
+      }
+    </mat-list>
+    <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>
+    @if (dataSource?.appendLoading$ | async) {
+      <div class="load-state" role="status">Loading more…</div>
+    }
+    @if (dataSource?.appendFailed$ | async) {
+      <div class="load-state" role="alert">
+        Could not load more rows.
+        <button mat-button (click)="retry()">Retry</button>
+      </div>
+    }
+  </div>
+</div>

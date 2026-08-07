@@ -1,7 +1,8 @@
 <mat-card appearance="outlined">
-  <mat-card-header>
+  <mat-card-header class="card-header-with-helpers">
     <mat-icon mat-card-avatar>event_notes</mat-icon>
     <mat-card-title i18n="@@crawlLogReportStatusCardTitle">CrawlLog</mat-card-title>
+    <ng-content select="[cardHeaderHelpers]"></ng-content>
   </mat-card-header>
 
   <mat-card-content>
@@ -66,39 +67,6 @@
         <tr mat-row *matRowDef="let row; columns: crawlLogReportDisplayedColumns"></tr>
       </table>
 
-      <table mat-table [dataSource]="dataSource">
-        <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef i18n="@@crawlLogReportStatusIdHeaderCell">
-            Id
-          </th>
-          <td mat-cell *matCellDef="let crawlLog">
-            {{crawlLog.id}}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="crawlExecId">
-          <th mat-header-cell *matHeaderCellDef i18n="@@crawlLogReportStatusCrawlExecIdHeaderCell">
-            Crawl execution id
-          </th>
-          <td mat-cell *matCellDef="let crawlLog">
-            <a [routerLink]="['/report', 'crawlexecution', crawlLog.executionId]">
-              {{crawlLog.executionId}}
-            </a>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="jobExecId">
-          <th mat-header-cell *matHeaderCellDef i18n="@@crawlLogReportStatusJobExecIdHeaderCell">
-            Job execution id
-          </th>
-          <td mat-cell *matCellDef="let crawlLog">
-            <a [routerLink]="['/report', 'jobexecution', crawlLog.jobExecutionId]">
-              {{crawlLog.jobExecutionId}}
-            </a>
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="crawlLogIdsDisplayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: crawlLogIdsDisplayedColumns"></tr>
-      </table>
-
       @if (crawlLog.error; as error) {
         <div class="content-padding">
           <h2>Error</h2>
@@ -110,6 +78,5 @@
     </div>
   </mat-card-content>
 </mat-card>
-
 
 

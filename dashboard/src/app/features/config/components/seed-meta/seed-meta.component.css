@@ -3,3 +3,22 @@
 .mat-chip-error {
   color: #f44336;
 }
+
+.duplicate-url-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.duplicate-url-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.duplicate-url-row mat-chip-set {
+  min-width: 0;
+}

@@ -20,18 +20,22 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-details',
   templateUrl: './crawlhostgroupconfig-details.component.html',
-  styleUrls: ['./crawlhostgroupconfig-details.component.scss'],
+  styleUrls: ['./crawlhostgroupconfig-details.component.scss', '../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CopyIdDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatIcon,
+    MatTooltip,
     DurationPickerComponent,
     MetaComponent,
     ReactiveFormsModule,

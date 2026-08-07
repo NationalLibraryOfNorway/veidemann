@@ -4,19 +4,20 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {MatMenuModule} from '@angular/material/menu';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../shared/directives';
 
 @Component({
   selector: 'app-crawl-log-shortcuts',
   templateUrl: './crawl-log-shortcuts.component.html',
-  styleUrls: ['../shortcut-actions.scss'],
+  styleUrls: ['../execution-shortcut-helpers.scss'],
   imports: [
+    CopyIdDirective,
     RouterLink,
     MatIcon,
-    MatButtonModule,
-    MatMenuModule,
-
+    MatChipsModule,
+    MatTooltipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true

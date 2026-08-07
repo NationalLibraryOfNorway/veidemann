@@ -2,7 +2,7 @@
   @if (selectedRows().length > 0) {
     <mat-toolbar class="selection-bar" aria-label="Selection actions">
       <span><strong>{{selectedRows().length}}</strong> loaded mappings selected</span>
-      @if (isAllLoadedSelected() && totalLength() > dataSource.length) {
+      @if (isAllLoadedSelected() && totalLength() !== null && totalLength() > dataSource.length) {
         <button mat-button (click)="onSelectAll()">Select all {{totalLength()}} matching mappings</button>
       }
       <span class="selection-spacer"></span>
@@ -12,7 +12,7 @@
   <div class="scroll flex-fill">
     <mat-list aria-label="Role mappings">
       @for (row of dataSource?.rows$ | async; track row.id) {
-        <mat-list-item class="item-row" tabindex="0"
+        <mat-list-item class="item-row" [class.row-checked]="isChecked(row)" tabindex="0"
           (click)="onRowClick(row, $event)" (keydown)="onRowKeydown(row, $event)">
           <mat-checkbox matListItemIcon class="selection-control" [checked]="isChecked(row)"
             [attr.aria-label]="'Select role mapping ' + (row.roleMapping.email || row.roleMapping.group)"

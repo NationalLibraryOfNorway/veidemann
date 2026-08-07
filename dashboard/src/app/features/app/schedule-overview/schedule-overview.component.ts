@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, ViewEncapsulation, inject } from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ErrorHandler, OnDestroy, OnInit, ViewChild, ViewEncapsulation, inject} from '@angular/core';
 import {FullCalendarComponent, FullCalendarModule} from '@fullcalendar/angular';
 import {forkJoin, Subject} from 'rxjs';
 import {ConfigObject, Kind} from '../../../shared/models';
@@ -14,7 +14,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { endOfYear, isAfter, isBefore, parseISO, startOfYear } from 'date-fns';
-import { ConfigApiService, ErrorService } from '../../../core';
+import {ConfigApiService} from '../../../core';
 
 interface ScheduledJob {
   crawlJobName: string;
@@ -44,7 +44,7 @@ interface ScheduleValidRange {
   ]
 })
 export class ScheduleOverviewComponent implements OnInit, OnDestroy {
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
   private configApiService = inject(ConfigApiService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
@@ -124,7 +124,7 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
           }, 150);
         },
         error => {
-          this.errorService.dispatch(error);
+          this.errorHandler.handleError(error);
         }
       );
   }
@@ -222,7 +222,7 @@ export class ScheduleOverviewComponent implements OnInit, OnDestroy {
           }
       }
     } catch (err) {
-      this.errorService.dispatch(err);
+      this.errorHandler.handleError(err);
     }
     return schedule;
   }

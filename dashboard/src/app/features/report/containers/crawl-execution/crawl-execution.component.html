@@ -1,65 +1,50 @@
-<div class="container layout-column">
+<div class="container layout-column report-list-page">
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
     @if (query(); as query) {
-      <div class="no-scroll layout-row flex-fill">
-        <app-crawl-execution-status-query class="content-padding scroll"
+      <div class="report-filter-toolbar" aria-label="Report filters" i18n-aria-label="@@reportFiltersLabel">
+        <app-crawl-execution-status-query class="report-filter-controls"
           [crawlJobOptions]="crawlJobOptions"
-          [query]="query"
+        [query]="query"
         (queryChange)="onQueryChange($event)"></app-crawl-execution-status-query>
+      </div>
+      <div class="report-result-content flex-fill">
         <app-crawl-execution-status-list
           [dataSource]="dataSource"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
+          [hasOverflowActions]="hasActions"
           (rowClick)="onRowClick($event)"
           (sort)="onSort($event)" class="flex-fill"
           >
-          <ng-container *appExtra="let row">
-            @if (canAbort(row.state) && can('abort','crawlexecution')) {
-              <button mat-icon-button (click)="onAbortCrawlExecution(row); $event.stopPropagation()"
-                aria-label="Abort crawl" matTooltip="Abort crawl"><mat-icon>cancel</mat-icon></button>
-            }
-          </ng-container>
-          <ng-container *appShortcut="let row">
-            @if (can('read', Kind[Kind.SEED])) {
-              <a mat-menu-item
-                [routerLink]="['/config', 'seed', row.seedId]"
-                i18n="@@reportListActionButtonGoToSeed">
-          <mat-icon>link</mat-icon>
-          Go to seed
-        </a>
-            }
-            @if (can('read', Kind[Kind.CRAWLJOB])) {
-              <a mat-menu-item
-                [routerLink]="['/config', 'crawljobs', row.jobId]"
-                i18n="@@reportListActionButtonGoToCrawljob">
-          <mat-icon>work</mat-icon>
-          Go to crawljob
-        </a>
-            }
-          </ng-container>
-          <ng-container *appFilter="let row">
+          <ng-container *appAction="let row">
             @if (can('read', 'pagelog')) {
               <a mat-menu-item
                 [routerLink]="['../pagelog']"
                 [queryParams]="{execution_id: row.id, watch: isDone(row) ? null : true}"
-                i18n="@@reportListActionButtonGoToPagelog">
-          <mat-icon>art_track</mat-icon>
-          Go to pagelog
-        </a>
+                aria-label="Go to Page Log" i18n-aria-label="@@reportListActionButtonGoToPagelog"
+                matTooltip="Go to Page Log" i18n-matTooltip="@@reportListActionButtonGoToPagelog">
+                <mat-icon>art_track</mat-icon>
+                <span i18n="@@reportDetailPageLogAction">Page log</span>
+              </a>
             }
             @if (can('read', 'crawllog')) {
               <a mat-menu-item
                 [routerLink]="['../crawllog']"
                 [queryParams]="{execution_id: row.id}"
-                i18n="@@reportListActionButtonGoToCrawlog">
-          <mat-icon>event_note</mat-icon>
-          Go to crawllog
-        </a>
+                aria-label="Go to Crawl Log" i18n-aria-label="@@reportListActionButtonGoToCrawlog"
+                matTooltip="Go to Crawl Log" i18n-matTooltip="@@reportListActionButtonGoToCrawlog">
+                <mat-icon>event_note</mat-icon>
+                <span i18n="@@reportDetailCrawlLogAction">Crawl log</span>
+              </a>
             }
-          </ng-container>
-          <ng-container *appAction="let row">
+            @if (canAbort(row.state) && can('abort', 'crawlexecution')) {
+              <button mat-menu-item type="button" (click)="onAbortCrawlExecution(row)">
+                <mat-icon>cancel</mat-icon>
+                <span i18n="@@reportDetailAbortCrawlAction">Abort crawl</span>
+              </button>
+            }
           </ng-container>
         </app-crawl-execution-status-list>
       </div>

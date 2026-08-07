@@ -1,20 +1,12 @@
 @if (pageLog) {
   <mat-card appearance="outlined">
-    <mat-card-header>
+    <mat-card-header class="card-header-with-helpers">
       <mat-icon mat-card-avatar>art_track</mat-icon>
       <mat-card-title>Page log</mat-card-title>
       <mat-card-subtitle>{{pageLog.uri}}</mat-card-subtitle>
+      <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content>
-      <dl class="page-metadata">
-        <div><dt>Referrer</dt><dd>{{pageLog.referrer || '—'}}</dd></div>
-        <div><dt>Collection</dt><dd>{{pageLog.collectionFinalName || '—'}}</dd></div>
-        <div><dt>Method</dt><dd>{{pageLog.method || '—'}}</dd></div>
-        <div><dt>WARC ID</dt><dd>{{pageLog.warcId}}</dd></div>
-        <div><dt>Job execution</dt><dd><a [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]">{{pageLog.jobExecutionId}}</a></dd></div>
-        <div><dt>Crawl execution</dt><dd><a [routerLink]="['/report', 'crawlexecution', pageLog.executionId]">{{pageLog.executionId}}</a></dd></div>
-      </dl>
-
       <mat-tab-group>
         <mat-tab [label]="'Resources (' + pageLog.resource.length + ')'">
           <div class="tab-content">
@@ -66,7 +58,7 @@
                   <a mat-list-item [href]="outlink.href" target="_blank" rel="noopener noreferrer">
                     <span matListItemTitle>{{outlink.raw}}</span>
                     <span matListItemLine>{{outlink.host}} · {{outlink.path}}</span>
-                    <mat-icon matListItemMeta>open_in_new</mat-icon>
+                    <span matListItemMeta><mat-icon>open_in_new</mat-icon></span>
                   </a>
                 } @else {
                   <mat-list-item class="error-item">

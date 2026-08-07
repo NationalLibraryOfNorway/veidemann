@@ -12,7 +12,7 @@
               (click)="onClickLabel(group.key, value)"
               cdkDrag
               [cdkDragData]="group.key + ':' + value">
-              {{group.key + ':' + value}}
+              <app-label-display [key]="group.key" [value]="value"></app-label-display>
               @if (removable && !disabled) {
                 <button matChipRemove aria-label="'remove label ' + group + ':' + value">
                   <mat-icon>cancel</mat-icon>
@@ -31,6 +31,15 @@
           (matChipInputTokenEnd)="onSave($event);"
           [matAutocomplete]="auto"/>
       </mat-chip-grid>
+      @if (emojiPickerEnabled && !disabled) {
+        <button mat-icon-button matSuffix type="button"
+          data-testid="emoji-picker-button"
+          aria-label="Choose emoji" i18n-aria-label="@@emojiPickerButtonLabel"
+          matTooltip="Choose emoji" i18n-matTooltip="@@emojiPickerButtonLabel"
+          (click)="onChooseEmoji()">
+          <mat-icon>add_reaction</mat-icon>
+        </button>
+      }
     </mat-form-field>
 
     <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onAutocompleteOptionSelected($event)">
@@ -84,5 +93,4 @@
     </form>
   }
 </div>
-
 

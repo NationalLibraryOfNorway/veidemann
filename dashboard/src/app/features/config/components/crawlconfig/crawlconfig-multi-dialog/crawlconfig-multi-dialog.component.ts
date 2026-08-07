@@ -15,7 +15,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-crawlconfig-multi-dialog',
   templateUrl: './crawlconfig-multi-dialog.component.html',
-  styleUrls: ['./crawlconfig-multi-dialog.component.css'],
+  styleUrls: ['./crawlconfig-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
     MatCheckbox,

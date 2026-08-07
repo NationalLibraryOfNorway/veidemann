@@ -2,11 +2,20 @@ fieldset {
   border: 0px;
 }
 
+.schedule-section + .schedule-section {
+  margin-top: 24px;
+}
+
+.schedule-section-title {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-medium);
+}
+
 .cron-expression {
   width: 100%;
 }
 .cron-expression .mat-mdc-form-field {
   width: 18%;
 }
-
 

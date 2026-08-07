@@ -1,6 +1,5 @@
 <mat-card appearance="outlined">
-  <mat-card-header>
-    <mat-icon mat-card-avatar>sentiment_neutral</mat-icon>
+  <mat-card-header class="card-header-with-helpers">
     <mat-card-title>
       <span i18n="@@politenessconfigDetailsCardTitle">Politenessconfig</span>
     </mat-card-title>
@@ -10,10 +9,11 @@
         i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
       }
     </mat-card-subtitle>
+    <ng-content select="[cardHeaderHelpers]"></ng-content>
   </mat-card-header>
 
   <form [formGroup]="form">
-    <mat-card-content class="layout-row layout-wrap gap-24">
+    <mat-card-content class="config-details-grid">
       <div class="layout-column flex-fill">
         <app-meta formControlName="meta"></app-meta>
         @if (!showSave) {
@@ -24,6 +24,11 @@
             <input matInput
               formControlName="id"
               readonly>
+            <button mat-icon-button matSuffix type="button" [appCopyId]="configObject.id"
+              matTooltip="Copy ID" i18n-matTooltip="@@copyIdTooltip"
+              aria-label="Copy ID" i18n-aria-label="@@copyIdTooltip">
+              <mat-icon>content_copy</mat-icon>
+            </button>
           </mat-form-field>
         }
       </div>

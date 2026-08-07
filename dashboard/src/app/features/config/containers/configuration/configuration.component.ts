@@ -1,12 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, OnDestroy, signal, inject } from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, ErrorHandler, OnDestroy, signal, inject} from '@angular/core';
 import {ActivatedRoute, NavigationStart, Router} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
-import {merge, Observable, of, Subject} from 'rxjs';
-import {filter, switchMap, takeUntil, tap} from 'rxjs/operators';
+import {combineLatest, forkJoin, merge, Observable, of, Subject} from 'rxjs';
+import {catchError, filter, map, shareReplay, switchMap, take, takeUntil, tap} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {
+  Annotation,
   BrowserScriptType,
   ConfigObject,
   ConfigRef,
@@ -17,11 +18,12 @@ import {
   Seed,
   SubCollectionType
 } from '../../../../shared/models';
-import {AuthService, ControllerApiService, ErrorService, SnackBarService} from '../../../../core';
+import {AuthService, ControllerApiService, SnackBarService} from '../../../../core';
 import {
   BrowserConfigDetailsComponent,
   BrowserScriptDetailsComponent,
   CollectionDetailsComponent,
+  ConfigContextCardComponent,
   CrawlConfigDetailsComponent,
   CrawlExecutionStatusComponent,
   CrawlHostGroupConfigDetailsComponent,
@@ -33,15 +35,17 @@ import {
   PolitenessConfigDetailsComponent,
   RoleMappingDetailsComponent,
   ScheduleDetailsComponent,
+  ScriptAnnotationContext,
+  ScriptAnnotationsCardComponent,
   SeedDetailsComponent
 } from '../../components';
-import {OptionsService} from '../../services';
+import {OptionsResolver, OptionsService} from '../../services';
 import {RunCrawlDialogComponent} from '../../components/run-crawl-dialog/run-crawl-dialog.component';
 import {ConfigService} from '../../../../shared/services';
-import {configKindFromPath, ConfigDialogData, dialogByKind} from '../../func';
+import {configKindFromPath, ConfigDialogData, ConfigPath, dialogByKind, relatedConfigRefs} from '../../func';
 import {RouterExtraService} from '../../services/router-extra.service';
 import {AsyncPipe, Location} from '@angular/common';
-import {ShortcutComponent} from '../../components/shortcut/shortcut.component';
+import {ConfigShortcutHelpersComponent} from '../../components/shortcut/shortcut.component';
 import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
 import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
 
@@ -62,6 +66,12 @@ export interface ConfigOptions {
   roles?: Role[];
 }
 
+export interface RelatedConfigContext {
+  ref: ConfigRef;
+  configObject: ConfigObject | null;
+  unavailable: boolean;
+}
+
 @Component({
   selector: 'app-configuration',
   templateUrl: './configuration.component.html',
@@ -72,6 +82,7 @@ export interface ConfigOptions {
     BrowserScriptDetailsComponent,
     BrowserConfigDetailsComponent,
     CollectionDetailsComponent,
+    ConfigContextCardComponent,
     CrawlConfigDetailsComponent,
     CrawlExecutionStatusComponent,
     CrawlExecutionStatusPipe,
@@ -83,8 +94,9 @@ export interface ConfigOptions {
     PolitenessConfigDetailsComponent,
     ScheduleDetailsComponent,
     SeedDetailsComponent,
-    ShortcutComponent,
-    RoleMappingDetailsComponent
+    ConfigShortcutHelpersComponent,
+    RoleMappingDetailsComponent,
+    ScriptAnnotationsCardComponent,
   ],
   standalone: true
 })
@@ -92,11 +104,12 @@ export class ConfigurationComponent implements OnDestroy {
   private authService = inject(AuthService);
   private dataService = inject(ConfigService);
   private snackBarService = inject(SnackBarService);
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private route = inject(ActivatedRoute);
   private optionsService = inject(OptionsService);
+  private optionsResolver = inject(OptionsResolver);
   private controllerApiService = inject(ControllerApiService);
   private routerExtraService = inject(RouterExtraService);
   private location = inject(Location);
@@ -107,6 +120,9 @@ export class ConfigurationComponent implements OnDestroy {
 
   private configObject: Subject<ConfigObject>;
   configObject$: Observable<ConfigObject>;
+  relatedConfigs$: Observable<RelatedConfigContext[]>;
+  scriptAnnotationContexts$: Observable<ScriptAnnotationContext[]>;
+  annotationSuggestions$: Observable<string[]>;
 
   private readonly reload = signal(0);
 
@@ -137,11 +153,101 @@ export class ConfigurationComponent implements OnDestroy {
         configRef && configRef.id ? this.dataService.get(configRef) : of(null))
     );
 
-    this.configObject$ = merge(this.configObject.asObservable(), configObject$);
+    this.configObject$ = merge(this.configObject.asObservable(), configObject$).pipe(
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
+    this.relatedConfigs$ = combineLatest([this.configObject$, this.options$]).pipe(
+      switchMap(([configObject, options]) => {
+        const refs = relatedConfigRefs(configObject, options?.browserScripts)
+          .filter(ref => this.authService.canRead(ref.kind));
+        if (!refs.length) {
+          return of([] as RelatedConfigContext[]);
+        }
+        return forkJoin(refs.map(ref => this.dataService.get(ref).pipe(
+          map(related => ({ref, configObject: related, unavailable: false} as RelatedConfigContext)),
+          catchError(() => of({ref, configObject: null, unavailable: true} as RelatedConfigContext)),
+        )));
+      }),
+    );
+
+    this.scriptAnnotationContexts$ = combineLatest([this.configObject$, this.options$]).pipe(
+      switchMap(([configObject, options]) => this.loadScriptAnnotationContexts(configObject, options)),
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
+    this.annotationSuggestions$ = this.scriptAnnotationContexts$.pipe(
+      map(contexts => Array.from(new Set(
+        contexts.flatMap(context => context.annotations.map(annotation => annotation.key))
+      )).sort((a, b) => a.localeCompare(b))),
+    );
   }
 
   get loading$(): Observable<boolean> {
     return this.dataService.loading$;
+  }
+
+  private loadScriptAnnotationContexts(
+    configObject: ConfigObject,
+    options: ConfigOptions | null,
+  ): Observable<ScriptAnnotationContext[]> {
+    const jobs = this.scriptAnnotationJobs(configObject, options);
+    if (!jobs.length) {
+      return of([]);
+    }
+
+    const seedId = configObject.kind === Kind.SEED ? configObject.id : undefined;
+    return forkJoin(jobs.map(job => this.dataService.getScriptAnnotations(job.ref.id, seedId).pipe(
+      map((annotations: Annotation[]) => ({
+        jobRef: job.ref,
+        jobName: job.name,
+        annotations,
+        unavailable: false,
+      } as ScriptAnnotationContext)),
+      catchError(() => of({
+        jobRef: job.ref,
+        jobName: job.name,
+        annotations: [],
+        unavailable: true,
+      } as ScriptAnnotationContext)),
+    )));
+  }
+
+  private scriptAnnotationJobs(
+    configObject: ConfigObject,
+    options: ConfigOptions | null,
+  ): {ref: ConfigRef; name: string}[] {
+    let jobs: {ref: ConfigRef; name: string}[] = [];
+
+    switch (configObject?.kind) {
+      case Kind.CRAWLJOB:
+        if (configObject.id) {
+          jobs = [{
+            ref: ConfigObject.toConfigRef(configObject),
+            name: configObject.meta.name || configObject.id,
+          }];
+        }
+        break;
+      case Kind.SEED:
+        jobs = (configObject.seed?.jobRefList ?? []).map(ref => ({
+          ref,
+          name: options?.crawlJobs?.find(job => job.id === ref.id)?.meta.name || ref.id,
+        }));
+        break;
+      case Kind.CRAWLENTITY:
+        jobs = (options?.crawlJobs ?? []).map(job => ({
+          ref: ConfigObject.toConfigRef(job),
+          name: job.meta.name || job.id,
+        }));
+        break;
+    }
+
+    const seen = new Set<string>();
+    return jobs.filter(job => {
+      if (!job.ref?.id || seen.has(job.ref.id)) {
+        return false;
+      }
+      seen.add(job.ref.id);
+      return true;
+    });
   }
 
   ngOnDestroy(): void {
@@ -157,34 +263,51 @@ export class ConfigurationComponent implements OnDestroy {
   }
 
   onCreateConfigWithDialog(configObject: ConfigObject) {
-    if (configObject) {
+    if (!configObject) {
+      return;
+    }
 
-      const data: ConfigDialogData = {configObject, options: this.options};
-      const componentType = dialogByKind(configObject.kind);
-      const dialogRef = this.dialog.open(componentType, {data});
+    this.optionsResolver.load(configObject.kind).pipe(
+      take(1),
+      takeUntil(this.ngUnsubscribe),
+    ).subscribe({
+      next: kindOptions => {
+        const options = {...this.options, ...kindOptions};
+        this.optionsService.next(kindOptions);
+        this.openConfigDialog(configObject, options);
+      },
+      error: error => this.errorHandler.handleError(error),
+    });
+  }
 
-      if (configObject.kind === Kind.SEED) {
-        const move = (dialogRef.componentInstance as SeedDialogComponent).move.subscribe((parcel: Parcel) => {
-          this.onMoveSeed(parcel);
-          move.unsubscribe();
-        });
-      }
+  private openConfigDialog(configObject: ConfigObject, options: ConfigOptions) {
+    const data: ConfigDialogData = {configObject, options};
+    const componentType = dialogByKind(configObject.kind);
+    const dialogRef = this.dialog.open(componentType, {data});
 
-      this.router.events.pipe(
-        filter(event => event instanceof NavigationStart),
-        tap(() => this.dialog.closeAll())
-      ).subscribe();
-
-      dialogRef.afterClosed().pipe(
-        filter(_ => !!_)
-      ).subscribe((config: ConfigObject) => {
-        if (config.id) {
-          this.onUpdateConfig(config);
-        } else {
-          this.onSaveConfig(config);
-        }
+    if (configObject.kind === Kind.SEED) {
+      const move = (dialogRef.componentInstance as SeedDialogComponent).move.subscribe((parcel: Parcel) => {
+        this.onMoveSeed(parcel);
+        move.unsubscribe();
       });
     }
+
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationStart),
+      tap(() => this.dialog.closeAll()),
+      takeUntil(this.ngUnsubscribe),
+    ).subscribe();
+
+    dialogRef.afterClosed().pipe(
+      filter(_ => !!_),
+      takeUntil(this.ngUnsubscribe),
+    ).subscribe((config: ConfigObject) => {
+      if (config.id) {
+        this.onUpdateConfig(config);
+      } else {
+        this.onSaveConfig(config);
+      }
+    });
   }
 
   onClone(configObject: ConfigObject) {
@@ -196,10 +319,8 @@ export class ConfigurationComponent implements OnDestroy {
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(newConfig => {
         this.configObject.next(newConfig);
-        this.router.navigate(['../', newConfig.id], {
-          relativeTo: this.route,
-        })
-          .catch(error => this.errorService.dispatch(error));
+        this.router.navigate(['/config', ConfigPath[newConfig.kind], newConfig.id])
+          .catch(error => this.errorHandler.handleError(error));
         this.snackBarService.openSnackBar($localize`:@snackBarMessage.saved:Saved`);
       });
   }
@@ -234,7 +355,7 @@ export class ConfigurationComponent implements OnDestroy {
         } else {
           this.router.navigate(['../'], {
             relativeTo: this.route,
-          }).catch(error => this.errorService.dispatch(error));
+          }).catch(error => this.errorHandler.handleError(error));
         }
         this.snackBarService.openSnackBar($localize`:@snackBarMessage.deleted:Deleted`);
       });
@@ -256,6 +377,9 @@ export class ConfigurationComponent implements OnDestroy {
       : this.dataService.move(parcel.seed, parcel.entityRef))
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(moved => {
+        if (moved > 0) {
+          this.reload.update(value => value + 1);
+        }
         this.snackBarService.openSnackBar(moved + $localize`:@snackBarMessage.multipleMoved: configurations moved`);
       });
   }
@@ -281,12 +405,12 @@ export class ConfigurationComponent implements OnDestroy {
                       seed_id: configObject.id,
                     }
                   }
-                ).catch(error => this.errorService.dispatch(error));
+                ).catch(error => this.errorHandler.handleError(error));
               } else {
                 this.router.navigate(
                   ['report', 'jobexecution', runCrawlReply.jobExecutionId],
                   {queryParams: {watch: true}}
-                ).catch(error => this.errorService.dispatch(error));
+                ).catch(error => this.errorHandler.handleError(error));
               }
             });
         }

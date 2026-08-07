@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import {ErrorHandler, Injectable, inject} from '@angular/core';
 import {create} from '@bufbuild/protobuf';
 import {CallOptions, Client, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
@@ -14,7 +14,6 @@ import {
   Report,
 } from '../../../api/report/v1/report_pb';
 import {AuthService} from '../auth';
-import {ErrorService} from '../error.service';
 import {CrawlExecutionStatus, JobExecutionStatus} from '../../shared/models';
 import {AppConfig} from '../../app.config';
 import {fromServerStream} from './connect-observable';
@@ -23,7 +22,7 @@ import {fromServerStream} from './connect-observable';
 export class ReportApiService {
   private authService = inject(AuthService);
   private appConfig = inject(AppConfig);
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
 
   private client?: Client<typeof Report>;
 
@@ -50,7 +49,7 @@ export class ReportApiService {
     })).pipe(
       map(JobExecutionStatus.fromProto),
       catchError(error => {
-        this.errorService.dispatch(error);
+        this.errorHandler.handleError(error);
         return EMPTY;
       }),
     );
@@ -63,7 +62,7 @@ export class ReportApiService {
     })).pipe(
       map(CrawlExecutionStatus.fromProto),
       catchError(error => {
-        this.errorService.dispatch(error);
+        this.errorHandler.handleError(error);
         return EMPTY;
       }),
     );

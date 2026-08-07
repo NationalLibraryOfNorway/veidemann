@@ -19,7 +19,7 @@ import { SelectorComponent } from '../../selector/selector.component';
 @Component({
   selector: 'app-browserconfig-multi-dialog',
   templateUrl: './browserconfig-multi-dialog.component.html',
-  styleUrls: ['./browserconfig-multi-dialog.component.css'],
+  styleUrls: ['./browserconfig-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     LabelMultiComponent,

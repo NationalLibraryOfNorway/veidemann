@@ -29,6 +29,10 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
     const pathKind = configKindFromPath(route.paramMap.get('kind'));
     const kind: Kind = pathKind === Kind.UNDEFINED ? route.data['kind'] ?? Kind.UNDEFINED : pathKind;
 
+    return this.load(kind);
+  }
+
+  load(kind: Kind): Observable<ConfigOptions> {
     switch (kind) {
       case Kind.CRAWLJOB: {
         const crawlScheduleConfig$ = this.backendService.list(createListRequest(Kind.CRAWLSCHEDULECONFIG.valueOf())).pipe(
@@ -85,13 +89,13 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
         );
 
       case Kind.POLITENESSCONFIG:
-        return {robotsPolicies};
+        return of({robotsPolicies});
 
       case Kind.COLLECTION:
-        return {rotationPolicies, subCollectionTypes};
+        return of({rotationPolicies, subCollectionTypes});
 
       case Kind.ROLEMAPPING:
-        return {roles};
+        return of({roles});
 
       case Kind.SEED:
         return this.backendService.list(createListRequest(Kind.CRAWLJOB.valueOf())).pipe(
@@ -108,7 +112,7 @@ export class OptionsResolver implements Resolve<ConfigOptions> {
         );
 
       case Kind.BROWSERSCRIPT:
-        return {browserScriptTypes};
+        return of({browserScriptTypes});
 
       default:
         return of({});

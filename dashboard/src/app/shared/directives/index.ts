@@ -1,4 +1,5 @@
 export * from './action.directive';
+export * from './copy-id.directive';
 export * from './extra.directive';
 export * from './shortcut.directive';
 export * from './filter.directive';

@@ -1,5 +1,5 @@
-<form [formGroup]="form" class="layout-column">
-  <mat-form-field>
+<form [formGroup]="form" class="report-filter-form">
+  <mat-form-field appearance="outline">
     <mat-label i18n="@@crawlExecutionReportFilterStateLabel">
       State
     </mat-label>
@@ -12,7 +12,7 @@
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field>
+  <mat-form-field appearance="outline">
     <mat-label i18n="@@crawlExecutionReportFilterCrawlJobLabel">
       CrawlJob
     </mat-label>
@@ -26,46 +26,40 @@
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field>
+  <mat-form-field appearance="outline">
     <mat-label i18n="@@crawlExecutionReportFilterJobExecutionIdLabel">
       JobExecution ID
     </mat-label>
     <input matInput formControlName="jobExecutionId">
   </mat-form-field>
 
-  <mat-form-field>
+  <mat-form-field appearance="outline">
     <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
       Seed ID
     </mat-label>
     <input matInput formControlName="seedId">
   </mat-form-field>
 
-  <mat-label i18n="@@crawlExecutionReportFilterStartTimeFromLabel">
-    From:
-  </mat-label>
-  <mat-form-field>
-    <input matInput [matDatepicker]="startTimeFromDatePicker" formControlName="startTimeFrom">
-    <mat-datepicker-toggle matSuffix [for]="startTimeFromDatePicker"></mat-datepicker-toggle>
-    <mat-datepicker #startTimeFromDatePicker></mat-datepicker>
-  </mat-form-field>
-  <mat-form-field>
-    <input matInput [matTimepicker]="startTimeFromTimepicker" formControlName="startTimeFrom">
-    <mat-timepicker-toggle matSuffix [for]="startTimeFromTimepicker"></mat-timepicker-toggle>
-    <mat-timepicker #startTimeFromTimepicker></mat-timepicker>
-  </mat-form-field>
-
-  <mat-label i18n="@@crawlExecutionReportFilterStartDateToLabel">
-    To:
-  </mat-label>
-  <mat-form-field>
-    <input matInput [matDatepicker]="startTimeToDatePicker" formControlName="startTimeTo">
-    <mat-datepicker-toggle matSuffix [for]="startTimeToDatePicker"></mat-datepicker-toggle>
-    <mat-datepicker #startTimeToDatePicker></mat-datepicker>
-  </mat-form-field>
-  <mat-form-field>
-    <input matInput [matTimepicker]="startTimeToTimepicker" formControlName="startTimeTo">
-    <mat-timepicker-toggle matSuffix [for]="startTimeToTimepicker"></mat-timepicker-toggle>
-    <mat-timepicker #startTimeToTimepicker></mat-timepicker>
+  <mat-form-field appearance="outline">
+    <mat-label i18n="@@crawlExecutionReportFilterStartDateRangeLabel">Crawl start date</mat-label>
+    <mat-date-range-input [rangePicker]="startTimeRangePicker">
+      <input matStartDate formControlName="startTimeFrom" placeholder="From"
+        i18n-placeholder="@@crawlExecutionReportFilterStartTimeFromLabel">
+      <input matEndDate formControlName="startTimeTo" placeholder="To"
+        i18n-placeholder="@@crawlExecutionReportFilterStartDateToLabel">
+    </mat-date-range-input>
+    <mat-datepicker-toggle matIconSuffix [for]="startTimeRangePicker"></mat-datepicker-toggle>
+    <mat-date-range-picker #startTimeRangePicker>
+      <mat-date-range-picker-actions>
+        <button mat-button matDateRangePickerCancel type="button" i18n="@@reportDateRangeCancelAction">Cancel</button>
+        <button mat-flat-button matDateRangePickerApply type="button" i18n="@@reportDateRangeApplyAction">Apply</button>
+      </mat-date-range-picker-actions>
+    </mat-date-range-picker>
+    <mat-hint i18n="@@crawlExecutionReportFilterDateRangeHint">Both dates are inclusive</mat-hint>
+    @if (form.controls['startTimeFrom'].hasError('matStartDateInvalid') ||
+         form.controls['startTimeTo'].hasError('matEndDateInvalid')) {
+      <mat-error i18n="@@crawlExecutionReportFilterDateRangeError">From must be on or before To</mat-error>
+    }
   </mat-form-field>
 
   <mat-checkbox labelPosition="after" formControlName="hasError"

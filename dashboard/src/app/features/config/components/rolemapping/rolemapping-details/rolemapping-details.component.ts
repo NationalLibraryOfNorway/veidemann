@@ -3,7 +3,6 @@ import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} f
 import {CustomValidators} from '../../../../../shared/validation';
 import {ConfigObject, Kind, Meta, Role, RoleMapping} from '../../../../../shared/models';
 import {MatCardModule} from '@angular/material/card';
-import {MatIcon} from '@angular/material/icon';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
@@ -18,7 +17,6 @@ import {MatInput} from '@angular/material/input';
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
-    MatIcon,
     MatInput,
     MatSelectModule,
     ReactiveFormsModule

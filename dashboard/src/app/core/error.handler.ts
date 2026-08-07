@@ -1,47 +1,19 @@
-import { ErrorHandler, Injectable, inject } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
+import {ErrorHandler, Injectable, inject} from '@angular/core';
 
-import {Code, ConnectError} from '@connectrpc/connect';
+import {ConnectError} from '@connectrpc/connect';
 
-import {ErrorService} from './error.service';
-import { ReferrerError } from '../shared/error';
-import { ConfigObject } from '../shared/models';
+import {SnackBarService} from './snack-bar/snack-bar.service';
+import {ReferrerError} from '../shared/error';
+import {ConfigObject} from '../shared/models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApplicationErrorHandler extends ErrorHandler {
-  private errorService = inject(ErrorService);
-
+  private snackBarService = inject(SnackBarService);
 
   override handleError(error: unknown): void {
-    console.warn('error handler', error);
-    if (typeof error === 'object' && error !== null && 'code' in error) {
-      this.handleGrpcError(error);
-      return;
-    }
-    if (error instanceof HttpErrorResponse)
-        this.errorService.dispatch(error);
-    else if (error instanceof ReferrerError) {
-        this.errorService.dispatch(error);
-    } else {
-        console.error(error);
-    }
-  }
-
-  handleGrpcError(error: unknown) {
-    const connectError = ConnectError.from(error);
-    switch (connectError.code) {
-      case Code.NotFound:
-        console.error('NOT FOUND', connectError.rawMessage);
-        break;
-      case Code.Unauthenticated:
-        console.error('UNAUTHENTICATED', connectError.rawMessage);
-        break;
-      default:
-        console.error('gRPC code:', connectError.code, 'message:', connectError.rawMessage);
-        break;
-    }
+    this.snackBarService.openError(error);
   }
 
   handleDeleteError(error: unknown, configObject: ConfigObject): void {
@@ -50,8 +22,10 @@ export class ApplicationErrorHandler extends ErrorHandler {
       const errorString = connectError.rawMessage;
       const deleteError = /(?=.*delete)(?=.*there are)/gm;
       if (deleteError.test(errorString)) {
-        this.errorService.dispatch(new ReferrerError({errorString, configObject}));
+        this.handleError(new ReferrerError({errorString, configObject}));
+        return;
       }
     }
+    this.handleError(error);
   }
 }

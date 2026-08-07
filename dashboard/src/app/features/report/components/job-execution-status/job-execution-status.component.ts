@@ -1,83 +1,67 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
+import {AsyncPipe, DatePipe, DecimalPipe} from '@angular/common';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {MatCardModule} from '@angular/material/card';
+import {MatIcon} from '@angular/material/icon';
+import {RouterLink} from '@angular/router';
+
 import {
   CrawlExecutionState,
   ExtraStatusCodes,
-  JobExecutionState,
   JobExecutionStatus
 } from '../../../../shared/models/report';
-import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {crawlExecutionStatePresentation, jobExecutionStatePresentation} from '../../func';
 import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
-import {RouterLink} from '@angular/router';
-import {AsyncPipe, DatePipe} from '@angular/common';
-import {MatCardModule} from '@angular/material/card';
-import {MatIcon} from '@angular/material/icon';
+
+interface CrawlExecutionStateCount {
+  count: number;
+  state: CrawlExecutionState;
+}
 
 @Component({
   selector: 'app-job-execution-status',
   templateUrl: './job-execution-status.component.html',
   styleUrls: ['./job-execution-status.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [FileSizePipe, JobexecutionTotalQueuePipe],
   imports: [
     AsyncPipe,
     DatePipe,
+    DecimalPipe,
+    FileSizePipe,
     JobexecutionTotalQueuePipe,
     JobNamePipe,
     MatCardModule,
     MatIcon,
-    MatTableModule,
     RouterLink,
   ],
-  standalone: true
+  standalone: true,
 })
-
-export class JobExecutionStatusComponent implements OnInit {
-  private fileSizePipe = inject(FileSizePipe);
-
-  readonly JobExecutionState = JobExecutionState;
-  readonly CrawlExecutionState = CrawlExecutionState;
+export class JobExecutionStatusComponent {
   readonly ExtraStatusCodes = ExtraStatusCodes;
+  readonly crawlStatePresentation = crawlExecutionStatePresentation;
+  readonly statePresentation = jobExecutionStatePresentation;
 
-  @Input()
+  @Input({required: true})
   jobExecutionStatus: JobExecutionStatus;
-  dataSource = new MatTableDataSource<JobExecutionStatus>()
-  jobExecStateDisplayedColumns: string[] = ['crawlJob', 'state', 'queueCount'];
-  jobExecRuntimeDisplayedColumns: string[] = ['startTime', 'endTime'];
-  jobExecStatisticsDisplayedColumns: string[] = ['statistics', 'count'];
-  jobExecExecutionsDisplayedColumns: string[] = ['state', 'count'];
 
-  getExecMap(executionStateMap: Map<string, number>) {
-    const datasource = [];
-    for (const [key, value] of executionStateMap) {
-      if (value) {
-        datasource.push({key, value});
-      }
+  get executionStateCounts(): readonly CrawlExecutionStateCount[] {
+    return [...this.jobExecutionStatus.executionsStateMap.entries()]
+      .map(([key, count]) => ({count, state: this.toCrawlExecutionState(key)}))
+      .filter(({count, state}) => count > 0 && state !== null)
+      .sort((left, right) => left.state - right.state);
+  }
+
+  hasError(): boolean {
+    const error = this.jobExecutionStatus.error;
+    return !!error && (error.code !== 0 || !!error.msg?.trim() || !!error.detail?.trim());
+  }
+
+  private toCrawlExecutionState(key: string): CrawlExecutionState | null {
+    const numericState = Number.parseInt(key, 10);
+    if (!Number.isNaN(numericState)) {
+      return numericState as CrawlExecutionState;
     }
-    return datasource;
+    const state = CrawlExecutionState[key as keyof typeof CrawlExecutionState];
+    return typeof state === 'number' ? state : null;
   }
-
-  getStatistics(){
-    const datasource = [];
-    const stats = [
-      {stat:'URIs crawled', count: this.jobExecutionStatus.urisCrawled},
-      {stat:'Bytes crawled', count: this.fileSizePipe.transform(this.jobExecutionStatus.bytesCrawled)},
-      {stat:'Documents crawled', count: this.jobExecutionStatus.documentsCrawled},
-      {stat:'Documents denied', count: this.jobExecutionStatus.documentsDenied},
-      {stat:'Documents failed', count: this.jobExecutionStatus.documentsFailed},
-      {stat:'Documents out of scope', count: this.jobExecutionStatus.documentsOutOfScope},
-      {stat:'Documents retried', count: this.jobExecutionStatus.documentsRetried}
-      ];
-    for (const stat of stats) {
-      if (stat.count !== 0) {
-        datasource.push(stat);
-      }
-    }
-    return datasource;
-  }
-
-  ngOnInit(): void {
-    this.dataSource = new MatTableDataSource<JobExecutionStatus>([this.jobExecutionStatus]);
-  }
-
 }

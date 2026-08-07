@@ -1,18 +1,12 @@
 :host {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
+  flex: 1 0 100%;
+  min-width: 0;
+  width: 100%;
 }
 
-.more-actions {
-  min-width: 48px;
-  min-height: 48px;
-}
-
-.menu-heading {
-  padding: 8px 16px 4px;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-medium);
+.shortcut-groups {
+  min-width: 0;
 }
 
 .disabledJob {

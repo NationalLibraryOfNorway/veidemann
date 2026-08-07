@@ -10,7 +10,7 @@
       cdkAutosizeMinRows="1"
       cdkAutosizeMaxRows="10">
     </textarea>
-    @if (isSingleUrl) {
+    @if (showOpenUrl && isSingleUrl) {
       <button
         mat-icon-button matSuffix
         matTooltip="Open URL in a new tab"
@@ -49,63 +49,66 @@
     }
   </mat-form-field>
 
-  @if (name.hasError('seedExistsOnEntity')) {
-    <mat-action-list dense data-testid="seedExistsOnEntityList">
-      @if (name.errors['seedExistsOnEntity']?.length > 1) {
-        <button mat-list-item
-          (click)="onRemoveExistingUrls(name.errors['seedExistsOnEntity'])">
-          <mat-icon matListItemIcon>remove_circle</mat-icon>
+  @if (seedsOnCurrentEntity.length) {
+    <div class="duplicate-url-group" data-testid="seedExistsOnEntityList">
+      @if (seedsOnCurrentEntity.length > 1) {
+        <button mat-button type="button" (click)="onRemoveExistingUrls(seedsOnCurrentEntity)">
+          <mat-icon>remove_circle</mat-icon>
           <span i18n="@@seedMetaRemoveAlreadyExistingSeedsButton">Remove all from list</span>
         </button>
       }
-      @for (seed of name.errors['seedExistsOnEntity']; track seed) {
-        <button mat-list-item
-          (click)="onRemoveExistingUrl(seed)"
-          matTooltip="Remove url from list" i18n-matTooltip="@@seedMetaRemoveSeedFromListTooltip">
-          <mat-icon matListItemIcon>remove_circle_outline</mat-icon>
-          {{seed.meta.name}}
-        </button>
-      }
-    </mat-action-list>
+      <mat-chip-set aria-label="URLs already on this entity"
+        i18n-aria-label="@@seedMetaExistingUrlsOnEntityLabel">
+        @for (seed of seedsOnCurrentEntity; track seed.id || seed.meta.name) {
+          <mat-chip>
+            {{seed.meta.name}}
+            <button matChipRemove type="button"
+              [attr.aria-label]="removeUrlLabel(seed.meta.name)"
+              (click)="onRemoveExistingUrl(seed)">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip>
+        }
+      </mat-chip-set>
+    </div>
   }
 
-  @if (name.hasError('seedExists') && entityRef.id) {
-    <mat-list data-testid="seedExistsList">
-      @if (name.errors['seedExists'].length) {
-        <mat-list-item>
-          <button mat-stroked-button data-testid="moveAllExistingSeedsToCurrentEntity"
-            (click)="onMoveSeedsToCurrentEntity(name.errors['seedExists'])">
-            <mat-icon matListItemIcon>swap_vert</mat-icon>
-            <span i18n="@@seedMetaMoveAllExistingSeedsToEntityButton">Move all to this entity</span>
-          </button>
-        </mat-list-item>
-      }
-      @for (seed of name.errors['seedExists']; track seed) {
-        <mat-list-item>
-          <div class="layout-row">
-            <a matTooltip="Go to entity with existing seed"
-              matListItemTitle
-              i18n-matTooltip="@@seedMetaGoToEntityWithExistingSeedButtonTooltip"
-              [routerLink]="['config','seed']"
-              [queryParams]="{entity_id: seed.seed.entityRef.id}">
+  @if (seedsOnOtherEntities.length && entityRef.id) {
+    <div class="duplicate-url-group" data-testid="seedExistsList">
+      <button mat-stroked-button type="button" data-testid="moveAllExistingSeedsToCurrentEntity"
+        (click)="onMoveSeedsToCurrentEntity(seedsOnOtherEntities)">
+        <mat-icon>swap_vert</mat-icon>
+        <span i18n="@@seedMetaMoveAllExistingSeedsToEntityButton">Move all to this entity</span>
+      </button>
+      @for (seed of seedsOnOtherEntities; track seed.id || seed.meta.name) {
+        <div class="duplicate-url-row">
+          <mat-chip-set>
+            <mat-chip>
               {{seed.meta.name}}
-            </a>
-            <button mat-icon-button
-              (click)="onMoveSeedToCurrentEntity(seed)"
-              matTooltip="Move seed to this entity"
-              i18n-matTooltip="@@seedMetaMoveExistingSeedToEntityButtonTooltip"
-              data-testid="seedExistsListMoveSeedToEntityButton">
-              <mat-icon>swap_horiz</mat-icon>
-            </button>
-            <button mat-icon-button (click)="onRemoveExistingUrl(seed.meta.name)"
-              matTooltip="Remove URL from the list"
-              i18n-matTooltip="@@seedMetaRemoveExistingSeedFromTheListButtonTooltip">
-              <mat-icon>remove_circle_outline</mat-icon>
-            </button>
-          </div>
-        </mat-list-item>
+              <button matChipRemove type="button"
+                [attr.aria-label]="removeUrlLabel(seed.meta.name)"
+                (click)="onRemoveExistingUrl(seed)">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          </mat-chip-set>
+          <a mat-icon-button
+            matTooltip="Go to entity with existing seed"
+            i18n-matTooltip="@@seedMetaGoToEntityWithExistingSeedButtonTooltip"
+            [routerLink]="['config','seed']"
+            [queryParams]="{entity_id: seed.seed.entityRef.id}">
+            <mat-icon>open_in_new</mat-icon>
+          </a>
+          <button mat-icon-button type="button"
+            (click)="onMoveSeedToCurrentEntity(seed)"
+            matTooltip="Move seed to this entity"
+            i18n-matTooltip="@@seedMetaMoveExistingSeedToEntityButtonTooltip"
+            data-testid="seedExistsListMoveSeedToEntityButton">
+            <mat-icon>swap_horiz</mat-icon>
+          </button>
+        </div>
       }
-    </mat-list>
+    </div>
   }
 
   <mat-form-field>
@@ -116,7 +119,11 @@
   </mat-form-field>
 
   <app-labels [removable]="editable" formControlName="labelList"></app-labels>
-  <app-annotation [removable]="editable" formControlName="annotationList"></app-annotation>
+  <app-annotation
+    [removable]="editable"
+    [suggestions]="annotationSuggestions"
+    formControlName="annotationList">
+  </app-annotation>
 
   <div class="layout-stack-compact layout-row gap-8">
     @if (created.value) {

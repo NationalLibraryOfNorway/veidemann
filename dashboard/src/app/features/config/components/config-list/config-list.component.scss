@@ -1,0 +1,46 @@
+.scroll {
+  padding: 0;
+}
+
+mat-list .item-row.row-with-labels {
+  height: auto;
+  min-height: 64px;
+  padding-block: 8px;
+}
+
+.label-region {
+  display: flex;
+  flex: 0 1 clamp(14rem, 30vw, 32rem);
+  min-inline-size: 0;
+  inline-size: clamp(14rem, 30vw, 32rem);
+  align-items: center;
+}
+
+.label-region mat-chip-set {
+  display: block;
+  inline-size: 100%;
+}
+
+.label-region mat-chip {
+  cursor: pointer;
+}
+
+.label-region .emoji-label-chip {
+  --mat-chip-outline-width: 0;
+}
+
+.item-row.mat-mdc-list-item .label-region {
+  align-self: center;
+  margin-block: 0;
+  margin-inline-end: 0;
+}
+
+.item-row.mat-mdc-list-item .label-region::before {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .label-region {
+    display: none;
+  }
+}

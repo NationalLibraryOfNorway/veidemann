@@ -10,7 +10,6 @@ import {isNumeric} from '../../func';
 export enum BrowserScriptType {
   UNDEFINED = 0,
   EXTRACT_OUTLINKS = 1,
-  REPLACEMENT = 2,
   ON_LOAD = 3,
   ON_NEW_DOCUMENT = 4,
   SCOPE_CHECK = 5,

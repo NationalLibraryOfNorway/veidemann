@@ -2,47 +2,28 @@
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
-    <mat-drawer-container class="filter-layout flex-fill">
-      <mat-drawer #filterDrawer class="filter-drawer"
-        [mode]="compactFilters() ? 'over' : 'side'"
-        [opened]="!compactFilters()"
-        [disableClose]="!compactFilters()"
-        aria-label="Configuration filters"
-        i18n-aria-label="@@configurationFiltersDrawerLabel">
-        <app-config-query [options]="options$ | async" [query]="query()"
-        (queryChange)="onQueryChange($event)"></app-config-query>
-      </mat-drawer>
-      <mat-drawer-content class="results-pane">
-      @if (currentKind(); as kind) {
-        <div class="list-toolbar" aria-label="Configuration list actions"
-          i18n-aria-label="@@configurationListActionsLabel">
-          @if (compactFilters()) {
-            <button matButton="tonal" type="button" (click)="filterDrawer.open()"
-              aria-label="Open configuration filters"
-              i18n-aria-label="@@configurationOpenFiltersButtonLabel">
-              <mat-icon>filter_list</mat-icon>
-              <span i18n="@@configurationOpenFiltersButton">Filters</span>
-            </button>
-          }
-          <span class="toolbar-spacer"></span>
-          @if (can('create', Kind[kind]) && showCreateButton()) {
-            <button matButton="filled" type="button"
-              (click)="onCreateConfigWithDialog()"
-              i18n="@@configurationSideBarMenuAddConfigButton"
-              matTooltip="Create a new configuration"
-              i18n-matTooltip="@@configurationSideBarMenuAddConfigButtonTooltip">
-              <mat-icon>add</mat-icon>
-              Create new
-            </button>
-          }
+    @if (currentKind(); as kind) {
+        <div class="filter-toolbar" aria-label="Configuration filters"
+          i18n-aria-label="@@configurationFiltersLabel">
+          <app-config-query class="filter-controls"
+            [options]="options$ | async"
+            [query]="query()"
+            (queryChange)="onQueryChange($event)"></app-config-query>
         </div>
-        <div class="result-content">
+        <app-active-filter-chips
+          [query]="query()"
+          [options]="options$ | async"
+          [entity]="entity()"
+          (removeFilter)="onRemoveFilter($event)">
+        </app-active-filter-chips>
+        @let total = totalLength();
+        <div class="result-content flex-fill">
         @switch (kind) {
           @case (Kind.ROLEMAPPING) {
             <div class="layout-column flex-fill">
               <app-rolemapping-list [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"
-                [length]="length$ | async"
+                [length]="total"
                 (selectedChange)="onSelectedChange($event)"
                 (rowClick)="onRowClick($event)"
                 (selectAll)="onSelectAll()" class="flex-fill">
@@ -65,20 +46,17 @@
           }
           @default {
             <div class="layout-column flex-fill">
-              @if (entity(); as entity) {
-                <app-entity-view
-                [configObject]="entity"></app-entity-view>
-              }
               <app-config-list
                 [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"
-                [length]="length$ | async"
+                [length]="total"
                 [sortDirection]="sortDirection()"
                 [sortActive]="sortActive()"
                 [multiSelect]="kind !== Kind.COLLECTION"
                 (selectedChange)="onSelectedChange($event)"
                 (selectAll)="onSelectAll()"
                 (sort)="onSort($event)"
+                (labelClick)="onFilterByLabel($event)"
                 (rowClick)="onRowClick($event)" class="flex-fill">
                 @if (kind===Kind.SEED && !isAllSelected) {
                   <button mat-icon-button
@@ -154,11 +132,16 @@
                   }
                 }
                 @if (kind === Kind.SEED) {
-                  <ng-container *appExtra="let row">
+                  <ng-container *appAction="let row">
                     @if (canRunCrawl(row)) {
-                      <button mat-icon-button (click)="onRunCrawl(row); $event.stopPropagation()"
-                        aria-label="Start crawling seed" matTooltip="Start crawling seed">
+                      <button mat-menu-item
+                        (click)="onRunCrawl(row)"
+                        i18n="@@configListActionButtonRunCrawl"
+                        matTooltip="Start crawling seed: {{row.meta.name}}"
+                        matTooltipPosition="left"
+                        i18n-matTooltip="@@configListActionButtonRunCrawlOfSeedTooltip">
                         <mat-icon>play_arrow</mat-icon>
+                        Run crawl
                       </button>
                     }
                   </ng-container>
@@ -322,11 +305,16 @@
                   </ng-container>
                 }
                 @if (kind === Kind.CRAWLJOB) {
-                  <ng-container *appExtra="let row">
+                  <ng-container *appAction="let row">
                     @if (canRunCrawl(row)) {
-                      <button mat-icon-button (click)="onRunCrawl(row); $event.stopPropagation()"
-                        aria-label="Run crawljob" matTooltip="Run crawljob">
+                      <button mat-menu-item
+                        (click)="onRunCrawl(row)"
+                        i18n="@@configListActionButtonRunCrawl"
+                        matTooltip="Run crawljob: {{row.meta.name}}"
+                        matTooltipPosition="left"
+                        i18n-matTooltip="@@runCrawlActionButtonTooltip">
                         <mat-icon>play_arrow</mat-icon>
+                        Run crawl
                       </button>
                     }
                   </ng-container>
@@ -411,7 +399,15 @@
           }
         }
         </div>
-      }
-      </mat-drawer-content>
-    </mat-drawer-container>
+        @if (can('create', Kind[kind]) && showCreateButton()) {
+          <button class="create-fab" mat-fab type="button"
+            (click)="onCreateConfigWithDialog()"
+            aria-label="Create a new configuration"
+            i18n-aria-label="@@configurationSideBarMenuAddConfigButtonTooltip"
+            matTooltip="Create a new configuration"
+            i18n-matTooltip="@@configurationSideBarMenuAddConfigButtonTooltip">
+            <mat-icon>add</mat-icon>
+          </button>
+        }
+    }
 </div>

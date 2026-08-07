@@ -1,6 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CrawlJobDetailsComponent} from './crawl-job-details.component';
-import {ScriptAnnotationComponent} from '../..';
 import {
   Annotation,
   BrowserScript,
@@ -21,8 +20,6 @@ import {SimpleChange} from '@angular/core';
 import {MatSlideToggleHarness} from '@angular/material/slide-toggle/testing';
 import {ExtraConfig} from '../../../../../shared/models/config/crawlconfig.model';
 import {MatSelectHarness} from '@angular/material/select/testing';
-import {MockComponent, MockPipe} from 'ng-mocks';
-import {ScriptAnnotationsPipe} from '../../../pipe';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
 
@@ -133,7 +130,6 @@ describe('CrawljobDetailsComponent', () => {
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
   let deleteButton: MatButtonHarness;
-  let runCrawlButton: MatButtonHarness;
 
   let disableToggle: MatSlideToggleHarness;
   let crawlConfigSelect: MatSelectHarness;
@@ -144,10 +140,6 @@ describe('CrawljobDetailsComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         CrawlJobDetailsComponent,
-      ],
-      declarations: [
-        MockComponent(ScriptAnnotationComponent),
-        MockPipe(ScriptAnnotationsPipe)
       ],
       providers: [
         ...provideCoreTesting,
@@ -181,6 +173,17 @@ describe('CrawljobDetailsComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('offers a copy button for the saved ID field', () => {
+    expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
+  });
+
+  it('places the deactivated control after metadata in document order', () => {
+    const metadata = fixture.nativeElement.querySelector('app-meta') as HTMLElement;
+    const deactivated = fixture.nativeElement.querySelector('mat-slide-toggle') as HTMLElement;
+
+    expect(metadata.compareDocumentPosition(deactivated) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   describe('Creating a new crawlJob', () => {
     beforeEach(async () => {
       component.configObject.id = '';
@@ -209,7 +212,6 @@ describe('CrawljobDetailsComponent', () => {
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
       deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
       revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
-      runCrawlButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'RUN CRAWL'}));
     });
 
     it('update button should be active if form is updated and valid', async () => {
@@ -302,15 +304,12 @@ describe('CrawljobDetailsComponent', () => {
       expect(del.crawlJob).toBe(component.configObject.crawlJob);
     });
 
-    it('clicking run crawl button should emit runCrawl event', async () => {
-      let runCfg: ConfigObject | undefined;
-      component.runCrawl.subscribe((config: ConfigObject) => {
-        runCfg = config;
-      });
-      expect(await runCrawlButton.isDisabled()).toBeFalsy();
-      await runCrawlButton.click();
-      expect(runCfg).toBe(component.configObject);
+    it('does not duplicate the run crawl action inside the details card', async () => {
+      const runCrawlButtons = await loader.getAllHarnesses<MatButtonHarness>(
+        MatButtonHarness.with({text: 'RUN CRAWL'}),
+      );
 
+      expect(runCrawlButtons).toHaveLength(0);
     });
   });
 });

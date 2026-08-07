@@ -1,20 +1,68 @@
 :host {
+  display: contents;
+}
+
+.action-section {
+  min-width: 0;
+  padding: 16px 20px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 16px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.action-section h2 {
+  margin: 0 0 12px;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-medium);
+}
+
+.action-buttons {
   display: flex;
-  align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
+.action-buttons a,
+.action-buttons button {
+  max-width: 100%;
+  min-height: 40px;
+  height: auto;
+  white-space: normal;
+}
+
+.action-buttons mat-icon {
+  flex: 0 0 auto;
+}
+
+.related-reports {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-primary-container);
+}
+
+.destructive-actions {
+  border-color: var(--mat-sys-error);
+  background: var(--mat-sys-error-container);
+}
+
+.destructive-actions h2,
 .abort-action {
   color: var(--mat-sys-error);
 }
 
-.more-actions {
-  min-width: 48px;
-  min-height: 48px;
-}
+@media (max-width: 599px) {
+  .action-section {
+    padding: 16px;
+  }
 
-.menu-heading {
-  padding: 8px 16px 4px;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-medium);
+  .action-buttons {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .action-buttons a,
+  .action-buttons button {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }

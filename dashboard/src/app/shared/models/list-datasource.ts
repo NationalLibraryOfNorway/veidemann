@@ -145,6 +145,18 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
     this.request({offset: 0, pageSize: this.pageSize}, false);
   }
 
+  /** Refreshes every currently loaded page and keeps the existing rows visible until replacement completes. */
+  refreshLoaded(): void {
+    if (!this.hasQuery || this.capacity > 0 || this.initialLoading.value || this.appendLoading.value) {
+      return;
+    }
+    ++this.generation;
+    this.activeLoad.unsubscribe();
+    this.failedRange = null;
+    this.appendFailed.next(false);
+    this.requestReplacement({offset: 0, pageSize: Math.max(this.offset, this.pageSize)});
+  }
+
   private connectQuery(): void {
     this.querySubscription = this.options.query$.subscribe(query => {
       this.latestQuery = query;
@@ -211,6 +223,45 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
         this.offset += received;
         this.exhausted.next(this.capacity > 0 || received < range.pageSize);
         this.completed.next({query: this.latestQuery, rows: this.snapshot, range, received});
+      })
+    ).subscribe();
+  }
+
+  private requestReplacement(range: ListRange): void {
+    const generation = this.generation;
+    const rows: T[] = [];
+    let completed = false;
+
+    this.activeLoad = this.options.load(this.latestQuery, range).pipe(
+      tap({
+        next: item => {
+          if (generation !== this.generation || !item) {
+            return;
+          }
+          const index = rows.findIndex(row => row.id === item.id);
+          if (index >= 0) {
+            rows[index] = item;
+          } else {
+            rows.push(item);
+          }
+        },
+        complete: () => completed = true,
+      }),
+      catchError(() => EMPTY),
+      finalize(() => {
+        if (generation !== this.generation || !completed) {
+          return;
+        }
+        this.accumulated = rows;
+        this.offset = rows.length;
+        this.exhausted.next(rows.length < range.pageSize);
+        this.publish();
+        this.completed.next({
+          query: this.latestQuery,
+          rows: this.snapshot,
+          range,
+          received: rows.length,
+        });
       })
     ).subscribe();
   }

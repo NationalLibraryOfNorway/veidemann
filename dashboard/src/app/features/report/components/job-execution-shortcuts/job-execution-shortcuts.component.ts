@@ -1,42 +1,36 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
-import {JobExecutionState, JobExecutionStatus, Kind} from '../../../../shared/models';
+import {Component, Input, ChangeDetectionStrategy, inject} from '@angular/core';
+import {JobExecutionStatus, Kind} from '../../../../shared/models';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {MatMenuModule} from '@angular/material/menu';
+import {MatChipsModule} from '@angular/material/chips';
 
 @Component({
-  selector: 'app-job-execution-shortcuts',
+  selector: 'app-job-execution-shortcut-helpers',
   templateUrl: './job-execution-shortcuts.component.html',
-  styleUrls: ['../shortcut-actions.scss'],
+  styleUrls: ['../execution-shortcut-helpers.scss'],
   imports: [
-    MatButtonModule,
-    MatMenuModule,
+    MatChipsModule,
     MatIcon,
     RouterLink
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
-export class JobExecutionShortcutsComponent {
+export class JobExecutionShortcutHelpersComponent {
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
   readonly Kind = Kind;
-  readonly JobExecutionState = JobExecutionState;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input() jobExecutionStatus: JobExecutionStatus;
 
-  @Output()
-  abortJobExecution = new EventEmitter<JobExecutionStatus>();
+  @Input() showJobExecution = false;
+  @Input() showCrawlJob = true;
+  @Input() showCrawlExecutions = true;
 
   constructor() {
     this.can = this.abilityService.can;
-  }
-
-  onAbortJobExecution(jobExecutionStatus: JobExecutionStatus) {
-    this.abortJobExecution.emit(jobExecutionStatus);
   }
 }

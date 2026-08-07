@@ -5,7 +5,7 @@ import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGro
 import {AuthService} from '../../../../../core/auth';
 import {ConfigObject, ConfigRef, Kind, Meta} from '../../../../../shared/models';
 import {Subject} from 'rxjs';
-import {Parcel, ScriptAnnotationComponent, SeedMetaComponent} from '../..';
+import {Parcel, SeedMetaComponent} from '../..';
 import {configRefIdRequired} from '../../../../../shared/validation/configref';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
@@ -14,20 +14,22 @@ import {MatTooltip} from '@angular/material/tooltip';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatButtonModule} from '@angular/material/button';
 import {MatSelectModule} from '@angular/material/select';
-import {ScriptAnnotationsPipe} from '../../../pipe';
-import {AsyncPipe} from '@angular/common';
-import {JobNamePipe} from '../../../../report/pipe';
-import {MatTableModule} from '@angular/material/table';
-import {MatTab, MatTabGroup} from '@angular/material/tabs';
 import {MatInput} from '@angular/material/input';
+import {CopyIdDirective} from '../../../../../shared/directives';
+import {MatDialog} from '@angular/material/dialog';
+import {filter, takeUntil} from 'rxjs/operators';
+import {
+  MoveSeedDialogComponent,
+  MoveSeedDialogData,
+  MoveSeedDialogResult,
+} from '../move-seed-dialog/move-seed-dialog.component';
 
 @Component({
   selector: 'app-seed-details',
   templateUrl: './seed-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe,
-    JobNamePipe,
+    CopyIdDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -35,13 +37,8 @@ import {MatInput} from '@angular/material/input';
     MatInput,
     MatSelectModule,
     MatSlideToggleModule,
-    MatTableModule,
-    MatTab,
-    MatTabGroup,
     MatTooltip,
     ReactiveFormsModule,
-    ScriptAnnotationComponent,
-    ScriptAnnotationsPipe,
     SeedMetaComponent,
   ],
   standalone: true
@@ -49,6 +46,7 @@ import {MatInput} from '@angular/material/input';
 export class SeedDetailsComponent implements OnChanges, OnDestroy {
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
+  private dialog = inject(MatDialog);
 
 
   @Input()
@@ -56,6 +54,9 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
 
   @Input()
   crawlJobs: ConfigObject[];
+
+  @Input()
+  annotationSuggestions: string[] = [];
 
   @Output()
   save = new EventEmitter<ConfigObject>();
@@ -79,8 +80,6 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
   form: UntypedFormGroup;
 
   ngUnsubscribe = new Subject<void>();
-
-  entityIdReadonly = true;
 
   constructor() {
     this.createForm();
@@ -133,7 +132,6 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['configObject']) {
-      this.entityIdReadonly = true;
       if (this.configObject) {
         this.updateForm();
       } else {
@@ -172,8 +170,24 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
     this.updateForm();
   }
 
-  onEditEntityId() {
-    this.entityIdReadonly = false;
+  onMoveSeed(): void {
+    if (!this.configObject?.id || this.form.dirty) {
+      return;
+    }
+
+    this.dialog.open<MoveSeedDialogComponent, MoveSeedDialogData, MoveSeedDialogResult>(MoveSeedDialogComponent, {
+      data: {seed: this.configObject},
+      autoFocus: true,
+    }).afterClosed().pipe(
+      filter((entityRef): entityRef is ConfigRef => !!entityRef),
+      takeUntil(this.ngUnsubscribe),
+    ).subscribe(entityRef => this.move.emit({seed: this.configObject, entityRef}));
+  }
+
+  get moveSeedTooltip(): string {
+    return this.form.dirty
+      ? $localize`:@@seedDetailsMoveRequiresCleanFormTooltip:Save or revert changes before moving this seed`
+      : $localize`:@@seedDetailsEditEntityIdButtonTooltip:Move seed to another entity`;
   }
 
   onRunCrawl(): void {

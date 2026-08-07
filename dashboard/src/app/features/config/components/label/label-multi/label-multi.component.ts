@@ -1,13 +1,26 @@
-import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  EventEmitter,
+  inject,
+  Input,
+  OnInit,
+  Output,
+  QueryList,
+  ViewChild,
+  ViewChildren
+} from '@angular/core';
 import {ConfigObject, Label} from '../../../../../shared/models/config';
 import {ENTER} from '@angular/cdk/keycodes';
-import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
+import {MatChipInputEvent, MatChipOption, MatChipSelectionChange, MatChipsModule} from '@angular/material/chips';
 import {combineLatest, Observable, Subject} from 'rxjs';
 import {CdkDrag, CdkDragDrop, CdkDropList} from '@angular/cdk/drag-drop';
-import {map, startWith, switchMap} from 'rxjs/operators';
+import {filter, map, startWith, switchMap, take} from 'rxjs/operators';
 import {LabelService} from '../../../services/label.service';
 import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
+import {MatButtonModule} from '@angular/material/button';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
@@ -18,6 +31,8 @@ export interface LabelUpdate {
   labels: Label[];
 }
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatDialog} from '@angular/material/dialog';
+import {EMOJI_LABEL_KEY, LabelDisplayComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-label-multi',
@@ -28,10 +43,12 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     CdkDrag,
     CdkDropList,
     MatAutocompleteModule,
+    MatButtonModule,
     MatButtonToggleModule,
     MatChipsModule,
     MatFormFieldModule,
     MatIcon,
+    LabelDisplayComponent,
     MatTooltipModule,
     ReactiveFormsModule,
   ],
@@ -40,6 +57,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 })
 export class LabelMultiComponent implements OnInit {
   protected labelService = inject(LabelService);
+  private dialog = inject(MatDialog);
 
   @Input()
   configObject: ConfigObject;
@@ -64,6 +82,7 @@ export class LabelMultiComponent implements OnInit {
   protected seq = false;
 
   @ViewChild('chipInput') chipInputControl: ElementRef;
+  @ViewChildren(MatChipOption) commonLabelOptions: QueryList<MatChipOption>;
 
   constructor() {
     this.fetchLabelKeys = new Subject();
@@ -90,6 +109,7 @@ export class LabelMultiComponent implements OnInit {
   onToggleShouldAddLabels(shouldAdd: boolean): void {
     if (this.shouldAddLabel !== undefined) {
       this.labels = [];
+      this.clearCommonLabelSelection();
     }
     this.shouldAddLabel = shouldAdd;
     this.update.emit({add: this.shouldAddLabel, labels: this.labels});
@@ -118,19 +138,44 @@ export class LabelMultiComponent implements OnInit {
       return;
     }
 
-    if (this.findLabelIndex(key, value) > -1) {
+    this.addLabel(key, value);
+  }
+
+  async onChooseEmoji(): Promise<void> {
+    if (this.shouldAddLabel !== true) {
       return;
     }
 
-    this.labels.push(new Label({key, value}));
-    this.update.emit({add: this.shouldAddLabel, labels: this.labels});
+    const {EmojiPickerDialogComponent} = await import('../../../../../shared/components/emoji-picker/emoji-picker-dialog.component');
+    this.dialog.open<InstanceType<typeof EmojiPickerDialogComponent>, void, string>(EmojiPickerDialogComponent, {
+      width: '464px',
+      maxWidth: 'calc(100vw - 24px)',
+      autoFocus: false,
+      restoreFocus: true,
+    }).afterClosed().pipe(
+      filter((unicode): unicode is string => !!unicode),
+      take(1),
+    ).subscribe(unicode => this.addLabel(EMOJI_LABEL_KEY, unicode));
   }
 
   onRemove(key: string, value: string) {
     const index = this.findLabelIndex(key, value);
     if (index !== -1) {
       this.labels.splice(index, 1);
+      this.findCommonLabelOption(key, value)?.deselect();
       this.update.emit({add: this.shouldAddLabel, labels: this.labels});
+    }
+  }
+
+  onCommonLabelSelectionChange(label: Label, event: MatChipSelectionChange): void {
+    if (!event.isUserInput || this.shouldAddLabel === undefined) {
+      return;
+    }
+
+    if (event.selected) {
+      this.addLabel(label.key, label.value);
+    } else {
+      this.onRemove(label.key, label.value);
     }
   }
 
@@ -140,9 +185,20 @@ export class LabelMultiComponent implements OnInit {
     });
   }
 
+  private addLabel(key: string, value: string): void {
+    if (this.findLabelIndex(key, value) > -1) {
+      return;
+    }
+
+    this.labels.push(new Label({key, value}));
+    this.findCommonLabelOption(key, value)?.select();
+    this.update.emit({add: this.shouldAddLabel, labels: this.labels});
+  }
+
   onRevert() {
     this.shouldAddLabel = undefined;
     this.labels = [];
+    this.clearCommonLabelSelection();
   }
 
   onDrop(event: CdkDragDrop<string[]>): void {
@@ -153,6 +209,15 @@ export class LabelMultiComponent implements OnInit {
   onAutocompleteOptionSelected(event) {
     this.seq = true;
     this.chipInputControl.nativeElement.value = event.option.value;
+  }
+
+  private findCommonLabelOption(key: string, value: string): MatChipOption | undefined {
+    const optionValue = `${key}:${value}`;
+    return this.commonLabelOptions?.find(option => option.value === optionValue);
+  }
+
+  private clearCommonLabelSelection(): void {
+    this.commonLabelOptions?.forEach(option => option.deselect());
   }
 
 }

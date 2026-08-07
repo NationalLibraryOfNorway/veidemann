@@ -1,0 +1,14 @@
+@if (chips.length) {
+  <mat-chip-set class="filter-chips" aria-label="Active filters" i18n-aria-label="@@activeConfigFiltersLabel">
+    @for (chip of chips; track chip.key + ':' + chip.value) {
+      <mat-chip>
+        {{chip.label}}
+        <button matChipRemove type="button"
+          [attr.aria-label]="'Remove ' + chip.label + ' filter'"
+          (click)="removeFilter.emit(chip)">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip>
+    }
+  </mat-chip-set>
+}

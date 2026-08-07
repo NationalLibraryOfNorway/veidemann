@@ -1,121 +1,146 @@
+@let crawlState = statePresentation(crawlExecutionStatus.state);
+<mat-card appearance="outlined" class="context-card">
+  <mat-card-header>
+    <mat-icon mat-card-avatar aria-hidden="true">hdr_weak</mat-icon>
+    <mat-card-title i18n="@@configLastCrawlExecutionTitle">Last crawl execution</mat-card-title>
+    <mat-card-subtitle>
+      <span class="state-badge" [class]="'state-badge state-' + crawlState.tone">
+        <mat-icon aria-hidden="true">{{crawlState.icon}}</mat-icon>
+        <span>{{crawlState.label}}</span>
+      </span>
+    </mat-card-subtitle>
+  </mat-card-header>
 
-<mat-expansion-panel>
-  <mat-expansion-panel-header>
-    <mat-panel-title>{{CrawlExecutionState[crawlExecutionStatus.state]}}</mat-panel-title>
-    <mat-panel-description i18n="@@crawlExecutionStatusPanelDescription">State</mat-panel-description>
-  </mat-expansion-panel-header>
+  <mat-card-content>
+    <dl class="summary-grid">
+      <dt i18n="@@crawlExecutionIdLabel">Execution ID</dt>
+      <dd>
+        <a matButton class="monospace"
+          [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]">
+          {{crawlExecutionStatus.id}}
+        </a>
+      </dd>
 
-  <div class="layout-column">
-    <div class="flex-fill">
-      <table class="mat-table table">
-        <thead>
-          <tr class="mat-header-row">
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusStartHeaderCell">Start</th>
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusEndHeaderCell">End</th>
+      <dt i18n="@@crawlExecutionCrawlJobLabel">Crawl job</dt>
+      <dd>
+        <a matButton class="monospace"
+          [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]">
+          {{crawlExecutionStatus.jobId}}
+        </a>
+      </dd>
 
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusCreatedHeaderCell">Created</th>
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusLastModifiedHeaderCell">Last modified</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="mat-row">
-            <td class="mat-cell">{{crawlExecutionStatus.startTime | date : 'long'}}</td>
-            <td class="mat-cell">{{crawlExecutionStatus.endTime | date : 'long'}}</td>
-            <td class="mat-cell">{{crawlExecutionStatus.createdTime | date : 'long'}}</td>
-            <td class="mat-cell">{{crawlExecutionStatus.lastChangeTime | date : 'long'}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      @if (crawlExecutionStatus.jobExecutionId) {
+        <dt i18n="@@crawlExecutionParentJobExecutionLabel">Job execution</dt>
+        <dd>
+          <a matButton class="monospace"
+            [routerLink]="['/report', 'jobexecution', crawlExecutionStatus.jobExecutionId]">
+            {{crawlExecutionStatus.jobExecutionId}}
+          </a>
+        </dd>
+      }
 
-    <div class="flex-fill">
-      <table class="mat-table">
-        <thead>
-          <tr class="mat-header-row">
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusStatisticsHeaderCell">Statistics</th>
-            <th class="mat-header-cell"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsUrisCrawledHeaderCell">URIs crawled</td>
-            <td class="mat-cell">{{crawlExecutionStatus.urisCrawled}}</td>
-          </tr>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsBytesCrawledHeaderCell">Bytes crawled</td>
-            <td class="mat-cell">{{crawlExecutionStatus.bytesCrawled| filesize}}</td>
-          </tr>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsDocumentsCrawledHeaderCell">Documents crawled</td>
-            <td class="mat-cell">{{crawlExecutionStatus.documentsCrawled}}</td>
-          </tr>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsDocumentsDeniedHeaderCell">Documents denied</td>
-            <td class="mat-cell">{{crawlExecutionStatus.documentsDenied}}</td>
-          </tr>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsDocumentsFailedHeaderCell">Documents failed</td>
-            <td class="mat-cell">{{crawlExecutionStatus.documentsFailed}}</td>
-          </tr>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsOutOfScopeHeaderCell">Documents out of scope</td>
-            <td class="mat-cell">{{crawlExecutionStatus.documentsOutOfScope}}</td>
-          </tr>
-          <tr class="mat-row">
-            <td class="mat-cell" i18n="@@crawlExecutionStatusStatisticsDocumentsRetriedHeaderCell">Documents retried</td>
-            <td class="mat-cell">{{crawlExecutionStatus.documentsRetried}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    @if (crawlExecutionStatus.currentUriIdList.length) {
-      <mat-list class="flex-fill">
-        <h3 matSubheader i18n="@@crawlExecutionStatusCurrentUrisHeader">Current URIs</h3>
-        <mat-list-item>https://www.http.url.no/path</mat-list-item>
-        @for (uri of crawlExecutionStatus.currentUriIdList; track uri) {
-          <mat-list-item>{{uri}}</mat-list-item>
+      <dt i18n="@@executionCreatedLabel">Created</dt>
+      <dd>
+        @if (crawlExecutionStatus.createdTime) {
+          {{crawlExecutionStatus.createdTime | date:'medium'}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
         }
-      </mat-list>
-    }
-    @if (crawlExecutionStatus.error; as error) {
-      <mat-list class="flex-fill">
-        <h3 matSubheader i18n="@@crawlExecutionStatusErrorHeader">Error</h3>
-        <mat-list-item>{{error.code}}</mat-list-item>
-        <mat-list-item>{{error.msg}}</mat-list-item>
-        <mat-list-item>{{error.detail}}</mat-list-item>
-      </mat-list>
-    }
-    <div class="flex-fill">
-      <table class="mat-table table" style="margin-bottom: 1rem;">
-        <thead>
-          <tr class="mat-header-row">
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusIdHeaderCell">Id</th>
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusSeedIdHeaderCell">Seed Id</th>
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusCrawljobIdHeaderCell">Job Id</th>
-            <th class="mat-header-cell" i18n="@@crawlExecutionStatusJobExecutionIdHeaderCell">Job Execution Id</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="mat-row">
-            <td class="mat-cell">
-              <a [routerLink]="['/report', 'crawlexecution']"
-              [queryParams]="{id: crawlExecutionStatus.id}">{{crawlExecutionStatus.id}}</a>
-            </td>
-            <td class="mat-cell">
-              <a [routerLink]="['/report', 'crawlexecution']"
-              [queryParams]="{seedId: crawlExecutionStatus.seedId}">{{crawlExecutionStatus.seedId}}</a>
-            </td>
-            <td class="mat-cell">
-              <a [routerLink]="['/report', 'jobexecution']"
-              [queryParams]="{jobId: crawlExecutionStatus.jobId}">{{crawlExecutionStatus.jobId}}</a>
-            </td>
-            <td class="mat-cell">
-              <a [routerLink]="['/report', 'jobexecution']"
-              [queryParams]="{id: crawlExecutionStatus.jobExecutionId}">{{crawlExecutionStatus.jobExecutionId}}</a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      </dd>
+
+      <dt i18n="@@executionStartedLabel">Started</dt>
+      <dd>
+        @if (crawlExecutionStatus.startTime) {
+          {{crawlExecutionStatus.startTime | date:'medium'}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
+        }
+      </dd>
+
+      <dt i18n="@@executionEndedLabel">Ended</dt>
+      <dd>
+        @if (crawlExecutionStatus.endTime) {
+          {{crawlExecutionStatus.endTime | date:'medium'}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
+        }
+      </dd>
+
+      <dt i18n="@@executionLastChangedLabel">Last changed</dt>
+      <dd>
+        @if (crawlExecutionStatus.lastChangeTime) {
+          {{crawlExecutionStatus.lastChangeTime | date:'medium'}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
+        }
+      </dd>
+    </dl>
+
+    <div class="metric-grid">
+      <div class="metric">
+        <span i18n="@@executionUrisCrawledMetric">URIs crawled</span>
+        <strong>{{crawlExecutionStatus.urisCrawled | number:'1.0-0'}}</strong>
+      </div>
+      <div class="metric">
+        <span i18n="@@executionBytesCrawledMetric">Bytes crawled</span>
+        <strong>{{crawlExecutionStatus.bytesCrawled | filesize}}</strong>
+      </div>
+      <div class="metric">
+        <span i18n="@@executionDocumentsCrawledMetric">Documents crawled</span>
+        <strong>{{crawlExecutionStatus.documentsCrawled | number:'1.0-0'}}</strong>
+      </div>
+      <div class="metric">
+        <span i18n="@@executionDocumentsFailedMetric">Documents failed</span>
+        <strong>{{crawlExecutionStatus.documentsFailed | number:'1.0-0'}}</strong>
+      </div>
+      <div class="metric">
+        <span i18n="@@executionDocumentsDeniedMetric">Documents denied</span>
+        <strong>{{crawlExecutionStatus.documentsDenied | number:'1.0-0'}}</strong>
+      </div>
+      <div class="metric">
+        <span i18n="@@executionDocumentsOutOfScopeMetric">Documents out of scope</span>
+        <strong>{{crawlExecutionStatus.documentsOutOfScope | number:'1.0-0'}}</strong>
+      </div>
+      <div class="metric">
+        <span i18n="@@executionDocumentsRetriedMetric">Documents retried</span>
+        <strong>{{crawlExecutionStatus.documentsRetried | number:'1.0-0'}}</strong>
+      </div>
+      @if (crawlExecutionStatus.currentUriIdList.length) {
+        <div class="metric">
+          <span i18n="@@crawlExecutionStatusCurrentUrisHeader">Current URIs</span>
+          <strong>{{crawlExecutionStatus.currentUriIdList.length | number:'1.0-0'}}</strong>
+        </div>
+      }
     </div>
-  </div>
-</mat-expansion-panel>
+
+    @if (hasError()) {
+      <section class="error-summary" role="alert">
+        <h3>
+          <mat-icon aria-hidden="true">error</mat-icon>
+          <span i18n="@@executionErrorTitle">Error</span>
+        </h3>
+        <dl>
+          @if (crawlExecutionStatus.error.code !== 0) {
+            <dt i18n="@@executionErrorCodeLabel">Code</dt>
+            <dd>{{crawlExecutionStatus.error.code}}</dd>
+          }
+          @if (crawlExecutionStatus.error.msg) {
+            <dt i18n="@@executionErrorMessageLabel">Message</dt>
+            <dd>{{crawlExecutionStatus.error.msg}}</dd>
+          }
+          @if (crawlExecutionStatus.error.detail) {
+            <dt i18n="@@executionErrorDetailLabel">Details</dt>
+            <dd>{{crawlExecutionStatus.error.detail}}</dd>
+          }
+        </dl>
+      </section>
+    }
+  </mat-card-content>
+
+  <mat-card-actions align="end">
+    <a matButton [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]">
+      <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+      <span i18n="@@configContextViewDetails">View details</span>
+    </a>
+  </mat-card-actions>
+</mat-card>

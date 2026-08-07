@@ -9,6 +9,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-entity-multi-dialog',
   templateUrl: './entity-multi-dialog.component.html',
+  styleUrls: ['../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
     MatButtonModule,

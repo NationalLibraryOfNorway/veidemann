@@ -16,7 +16,6 @@ import {endOfMonth, format, formatISO, startOfMonth} from 'date-fns';
 import {nb} from 'date-fns/locale';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {MatInputHarness} from '@angular/material/input/testing';
 
 const exampleCrawlSchedule: ConfigObject = {
@@ -70,7 +69,7 @@ describe('ScheduleDetailsComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ScheduleDetailsComponent, NoopAnimationsModule],
+      imports: [ScheduleDetailsComponent],
       providers: [
         ...provideCoreTesting,
         {
@@ -136,6 +135,23 @@ describe('ScheduleDetailsComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('offers a copy button for the saved ID field', () => {
+    expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
+  });
+
+  it('renders metadata and schedule fields in a responsive Material grid', () => {
+    const grid = fixture.nativeElement.querySelector('.config-details-grid') as HTMLElement;
+    const columns = Array.from(grid.children) as HTMLElement[];
+
+    expect(getComputedStyle(grid).display).toBe('grid');
+    expect(columns).toHaveLength(2);
+    expect(columns[0].querySelector('app-meta')).not.toBeNull();
+    expect(columns[1].querySelectorAll('.schedule-section-title')).toHaveLength(2);
+    expect(columns[1].textContent).toContain('CRON expression');
+    expect(columns[1].textContent).toContain('Time limit');
+    expect(columns[1].querySelector('[mat-subheader]')).toBeNull();
   });
 
   it('setting valid from date in calendar sets timestamp to beginning of day', async () => {

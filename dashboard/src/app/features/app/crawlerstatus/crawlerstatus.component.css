@@ -1,15 +1,65 @@
-.crawlerRunning {
-  color: forestgreen;
+:host {
+  display: block;
+  min-width: 0;
 }
 
-.crawlerPaused {
-  color: darkred;
+.status-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-.crawlerPausing {
-  color: darkorange;
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  border-radius: var(--mat-sys-corner-full);
+  font: var(--mat-sys-label-large);
 }
 
-mat-card {
-  text-align: center;
+.status-action {
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.status-action:hover {
+  border-color: currentColor;
+}
+
+.status-action:focus-visible {
+  outline: 3px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.status-action-divider {
+  opacity: 0.7;
+}
+
+.status-running {
+  color: var(--mat-sys-on-primary-container);
+  background: var(--mat-sys-primary-container);
+}
+
+.status-pausing {
+  color: var(--mat-sys-on-tertiary-container);
+  background: var(--mat-sys-tertiary-container);
+}
+
+.status-paused {
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+}
+
+.metric-badge {
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+}
+
+.metric-value {
+  font: var(--mat-sys-title-medium);
 }

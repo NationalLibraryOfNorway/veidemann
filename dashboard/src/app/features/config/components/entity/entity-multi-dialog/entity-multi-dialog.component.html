@@ -1,5 +1,10 @@
-<h2 mat-dialog-title>Entity - Mass update</h2>
-<mat-dialog-content>
+<div mat-dialog-title class="mass-update-header">
+  <h2 i18n="@@entityMassUpdateDialogTitle">Update entities</h2>
+  <p i18n="@@massUpdateDialogDescription">
+    Only changed settings will be applied. Values left untouched will be preserved.
+  </p>
+</div>
+<mat-dialog-content class="mass-update-content">
   <app-label-multi [configObject]="configObject"
     [allSelected]="allSelected"
     (update)="onUpdateLabels($event)">
@@ -7,14 +12,7 @@
 </mat-dialog-content>
 
 @if (canEdit) {
-  <mat-dialog-actions>
-    @if (canUpdate) {
-      <button mat-raised-button color="accent"
-        [disabled]="!canUpdate"
-        [mat-dialog-close]="onDialogClose()"
-        i18n="@@commonButtonSave">UPDATE
-  </button>
-    }
+  <mat-dialog-actions align="end">
     <button mat-button
       (click)="onRevert()"
       [disabled]="!canRevert"
@@ -23,6 +21,11 @@
     <button mat-button
       mat-dialog-close
       i18n="@@commonButtonCancel">CANCEL
-  </button>
+    </button>
+    <button mat-flat-button
+      [disabled]="!canUpdate"
+      [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">UPDATE
+    </button>
   </mat-dialog-actions>
 }

@@ -5,7 +5,6 @@ export {CrawlEntity} from './crawlentity.model';
 export {CrawlHostGroupConfig} from './crawlhostgroupconfig.model';
 export {CrawlJob} from './crawljob.model';
 export {CrawlScheduleConfig} from './crawlscheduleconfig.model';
-export {LogLevels, LogLevel, Level, levels} from './loglevel.model';
 export {PolitenessConfig, RobotsPolicy, robotsPolicies} from './politenessconfig.model';
 export {RoleMapping} from './rolemapping.model';
 export {Role, roles} from './role.model';

@@ -28,14 +28,16 @@ import {MatCheckbox} from '@angular/material/checkbox';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInputModule} from '@angular/material/input';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 
 @Component({
   selector: 'app-collection-details',
   templateUrl: './collection-details.component.html',
-  styleUrls: ['./collection-details.component.css'],
+  styleUrls: ['./collection-details.component.css', '../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CopyIdDirective,
     MatCardModule,
     ReactiveFormsModule,
     MatIcon,

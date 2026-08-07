@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, forwardRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, forwardRef, Input, OnDestroy, OnInit, inject } from '@angular/core';
 
 import {DatePipe} from '@angular/common';
 import {
@@ -52,6 +52,8 @@ export class MetaComponent implements AfterViewInit, OnInit, OnDestroy, ControlV
   onTouched: () => void;
 
   ngUnsubscribe: Subject<void> = new Subject<void>();
+
+  @Input() annotationSuggestions: string[] = [];
 
   get name(): AbstractControl {
     return this.form.get('name');

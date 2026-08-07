@@ -1,0 +1,21 @@
+@if (context$ | async; as context) {
+  <nav aria-label="Related records" i18n-aria-label="@@reportRelatedRecordsLabel">
+    @switch (context.kind) {
+      @case ('crawlExecution') {
+        <app-crawl-execution-shortcut-helpers
+          [crawlExecutionStatus]="context.status"
+          [showPageLog]="logKind === 'crawllog'"
+          [showCrawlLog]="false"
+          [showCrawlExecution]="true">
+        </app-crawl-execution-shortcut-helpers>
+      }
+      @case ('jobExecution') {
+        <app-job-execution-shortcut-helpers
+          [jobExecutionStatus]="context.status"
+          [showJobExecution]="true"
+          [showCrawlExecutions]="false">
+        </app-job-execution-shortcut-helpers>
+      }
+    }
+  </nav>
+}

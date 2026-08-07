@@ -1,66 +1,39 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
+import {AsyncPipe, DatePipe, DecimalPipe} from '@angular/common';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatCardModule} from '@angular/material/card';
-import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
-import {CrawlExecutionState, CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
-import {RouterLink} from '@angular/router';
-import {JobNamePipe, SeedNamePipe} from '../../pipe';
-import {AsyncPipe, DatePipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
 
+import {CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {crawlExecutionStatePresentation} from '../../func';
+import {JobNamePipe, SeedNamePipe} from '../../pipe';
+
 @Component({
-    selector: 'app-crawl-execution-status',
-    templateUrl: './crawl-execution-status.component.html',
-    styleUrls: ['./crawl-execution-status.component.scss'],
-    providers: [FileSizePipe],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true,
+  selector: 'app-crawl-execution-status',
+  templateUrl: './crawl-execution-status.component.html',
+  styleUrls: ['./crawl-execution-status.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
   imports: [
     AsyncPipe,
     DatePipe,
+    DecimalPipe,
+    FileSizePipe,
     JobNamePipe,
     MatCardModule,
     MatIcon,
-    MatTableModule,
-    RouterLink,
-    SeedNamePipe
-  ]
+    SeedNamePipe,
+  ],
 })
-export class CrawlExecutionStatusComponent implements OnInit{
-  private fileSizePipe = inject(FileSizePipe);
-
-  readonly CrawlExecutionState = CrawlExecutionState;
+export class CrawlExecutionStatusComponent {
   readonly ExtraStatusCodes = ExtraStatusCodes;
+  readonly statePresentation = crawlExecutionStatePresentation;
 
-  @Input()
+  @Input({required: true})
   crawlExecutionStatus: CrawlExecutionStatus;
 
-  dataSource = new MatTableDataSource<CrawlExecutionStatus>();
-  crawlExecDisplayedColumns: string[] = ['jobExecution', 'job', 'state'];
-  crawlExecRuntimeDisplayedColumns: string[] = ['createdTime', 'startTime', 'endTime', 'lastChangeTime'];
-  crawlExecStatisticsDisplayedColumns: string[] = ['statistics', 'count'];
-
-  ngOnInit(): void {
-    this.dataSource = new MatTableDataSource<CrawlExecutionStatus>([this.crawlExecutionStatus]);
+  hasError(): boolean {
+    const error = this.crawlExecutionStatus.error;
+    return !!error && (error.code !== 0 || !!error.msg?.trim() || !!error.detail?.trim());
   }
-
-  getStatistics(){
-    const datasource = [];
-    const stats = [
-      {stat:'URIs crawled', count: this.crawlExecutionStatus.urisCrawled},
-      {stat:'Bytes crawled', count: this.fileSizePipe.transform(this.crawlExecutionStatus.bytesCrawled)},
-      {stat:'Documents crawled', count: this.crawlExecutionStatus.documentsCrawled},
-      {stat:'Documents denied', count: this.crawlExecutionStatus.documentsDenied},
-      {stat:'Documents failed', count: this.crawlExecutionStatus.documentsFailed},
-      {stat:'Documents out of scope', count: this.crawlExecutionStatus.documentsOutOfScope},
-      {stat:'Documents retried', count: this.crawlExecutionStatus.documentsRetried}
-    ];
-    for (const stat of stats) {
-      if (stat.count !== 0) {
-        datasource.push(stat);
-      }
-    }
-    return datasource;
-  }
-
 }

@@ -1,0 +1,124 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mass-update-form {
+  min-width: 0;
+}
+
+mat-dialog-content.mass-update-content {
+  box-sizing: border-box;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.mass-update-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    color: var(--mat-sys-on-surface);
+    font: var(--mat-sys-headline-small);
+  }
+
+  p {
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-body-medium);
+  }
+}
+
+.mass-update-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+}
+
+.mass-update-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mass-update-section + .mass-update-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.mass-update-section-title {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.mass-update-section h5 {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.mass-update-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mass-update-inline > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mass-update-choice {
+  box-sizing: border-box;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 8px;
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-label-large);
+  }
+
+  mat-chip-listbox {
+    display: block;
+    max-width: 100%;
+  }
+}
+
+mat-form-field,
+app-label-multi,
+app-duration-picker,
+app-filesize-input,
+app-selector {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+mat-chip-listbox,
+mat-chip-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+mat-dialog-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

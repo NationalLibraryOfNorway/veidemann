@@ -1,29 +1,25 @@
-@if (jobExecutionStatus.state === JobExecutionState.RUNNING && can('abort', 'jobexecution')) {
-  <button class="abort-action" mat-button (click)="onAbortJobExecution(jobExecutionStatus)">
-    <mat-icon>cancel</mat-icon>
-    <span i18n="@@reportDetailAbortCrawlAction">Abort crawl</span>
-  </button>
+@if ((showJobExecution && can('read', 'jobexecution'))
+  || (showCrawlJob && can('read', Kind[Kind.CRAWLJOB]))
+  || (showCrawlExecutions && can('read', 'crawlexecution'))) {
+  <mat-chip-set aria-label="Report shortcuts" i18n-aria-label="@@reportShortcutsLabel">
+    @if (showJobExecution && can('read', 'jobexecution')) {
+      <a mat-chip [routerLink]="['/report', 'jobexecution', jobExecutionStatus.id]">
+        <mat-icon matChipAvatar>hdr_strong</mat-icon>
+        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+      </a>
+    }
+    @if (showCrawlJob && can('read', Kind[Kind.CRAWLJOB])) {
+      <a mat-chip [routerLink]="['/config', 'crawljobs', jobExecutionStatus.jobId]">
+        <mat-icon matChipAvatar>work</mat-icon>
+        <span i18n="@@reportDetailCrawlJobAction">Crawl job</span>
+      </a>
+    }
+    @if (showCrawlExecutions && can('read', 'crawlexecution')) {
+      <a mat-chip [routerLink]="['/report', 'crawlexecution']"
+         [queryParams]="{job_id: jobExecutionStatus.jobId, job_execution_id: jobExecutionStatus.id}">
+        <mat-icon matChipAvatar>hdr_weak</mat-icon>
+        <span i18n="@@reportDetailCrawlExecutionsAction">Crawl executions</span>
+      </a>
+    }
+  </mat-chip-set>
 }
-<button class="more-actions" mat-icon-button [matMenuTriggerFor]="shortcutMenu"
-        aria-label="More actions" i18n-aria-label="@@commonMoreActionsLabel">
-  <mat-icon>more_vert</mat-icon>
-</button>
-<mat-menu #shortcutMenu="matMenu">
-  <div class="menu-heading" i18n="@@commonRelatedMenuHeading">Related</div>
-  @if (can('read', Kind[Kind.CRAWLJOB])) {
-    <a mat-menu-item [routerLink]="['/config', 'crawljobs', jobExecutionStatus.jobId]"
-       i18n="@@reportDetailGoToCrawljobAction">
-      <mat-icon>work</mat-icon>
-      <span>Go to crawljob</span>
-    </a>
-  }
-  @if (can('read', 'crawlexecution')) {
-    <a mat-menu-item
-       [routerLink]="['/report', 'crawlexecution']"
-       [queryParams]="{job_id: jobExecutionStatus.jobId, job_execution_id: jobExecutionStatus.id}"
-       i18n="@@reportDetailGoToCrawlExecutionAction">
-      <mat-icon>hdr_weak</mat-icon>
-      <span>Go to crawl execution</span>
-    </a>
-  }
-</mat-menu>

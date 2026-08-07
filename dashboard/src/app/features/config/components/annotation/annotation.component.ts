@@ -1,18 +1,15 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
 import {
-  AbstractControl,
   ControlValueAccessor,
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule,
-  UntypedFormBuilder,
-  UntypedFormControl,
-  Validators
+  UntypedFormControl
 } from '@angular/forms';
 import {Annotation, Label} from '../../../../shared/models';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
-import {NO_COLON} from '../../../../shared/validation/patterns';
 import {BehaviorSubject, Observable} from 'rxjs';
+import {filter, take} from 'rxjs/operators';
 import {AuthService} from '../../../../core';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
@@ -20,8 +17,12 @@ import {AsyncPipe} from '@angular/common';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
-import {MatCardModule} from '@angular/material/card';
-import {MatButtonModule} from '@angular/material/button';
+import {MatDialog} from '@angular/material/dialog';
+import {
+  AnnotationEditDialogComponent,
+  AnnotationEditDialogData,
+  AnnotationEditDialogResult,
+} from './annotation-edit-dialog/annotation-edit-dialog.component';
 
 interface AnnotationGroup {
   key: string;
@@ -36,8 +37,6 @@ interface AnnotationGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
-    MatButtonModule,
-    MatCardModule,
     MatChipsModule,
     MatFormFieldModule,
     MatIcon,
@@ -47,14 +46,17 @@ interface AnnotationGroup {
   standalone: true
 })
 export class AnnotationComponent implements ControlValueAccessor {
-  protected fb = inject(UntypedFormBuilder);
   protected cdr = inject(ChangeDetectorRef);
   protected authService = inject(AuthService);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+  private dialog = inject(MatDialog);
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input() removable = true;
+
+  /** Product-authored annotation keys that can be inserted into the input. */
+  @Input() suggestions: string[] = [];
 
   control = new UntypedFormControl();
 
@@ -62,14 +64,11 @@ export class AnnotationComponent implements ControlValueAccessor {
   onChange: (annotations: Annotation[]) => void;
   onTouched: () => void;
 
-  annotationForm;
   annotationInputSeparators = [ENTER, COMMA];
 
   disabled = false;
 
-  protected clickedIndex = -1;
   protected annotations: Annotation[];
-  protected showUpdateAnnotation = false;
 
   protected groupsSubject = new BehaviorSubject<AnnotationGroup[]>([]);
   groups$: Observable<AnnotationGroup[]> = this.groupsSubject.asObservable();
@@ -77,28 +76,14 @@ export class AnnotationComponent implements ControlValueAccessor {
   @ViewChild('chipInput') chipInputControl: ElementRef;
 
   constructor() {
-    this.createForm();
     this.can = this.abilityService.can;
+    if (!this.canEdit) {
+      this.setDisabledState(true);
+    }
   }
 
   get canEdit(): boolean {
     return this.authService.canUpdate('annotation');
-  }
-
-  get showUpdate(): boolean {
-    return this.showUpdateAnnotation;
-  }
-
-  get canUpdate(): boolean {
-    return !this.disabled;
-  }
-
-  get key(): AbstractControl {
-    return this.annotationForm.get('key');
-  }
-
-  get value(): AbstractControl {
-    return this.annotationForm.get('value');
   }
 
   writeValue(annotations: Annotation[]): void {
@@ -135,10 +120,24 @@ export class AnnotationComponent implements ControlValueAccessor {
     if (this.disabled) {
       return;
     }
-    this.showUpdateAnnotation = true;
-    this.clickedIndex = this.findAnnotationIndex(key, value);
-    this.annotationForm.enable();
-    this.annotationForm.reset({key, value});
+    const clickedIndex = this.findAnnotationIndex(key, value);
+    if (clickedIndex === -1) {
+      return;
+    }
+
+    this.dialog.open<AnnotationEditDialogComponent, AnnotationEditDialogData, AnnotationEditDialogResult>(
+      AnnotationEditDialogComponent,
+      {
+        data: {key, value},
+        width: '480px',
+        maxWidth: 'calc(100vw - 32px)',
+        autoFocus: false,
+        restoreFocus: true,
+      }
+    ).afterClosed().pipe(
+      filter((result): result is AnnotationEditDialogResult => !!result),
+      take(1),
+    ).subscribe(result => this.onUpdateAnnotation(clickedIndex, result));
   }
 
   onSave(event: MatChipInputEvent): void {
@@ -146,7 +145,18 @@ export class AnnotationComponent implements ControlValueAccessor {
     this.onChange(this.annotations);
     this.reset();
 
-    this.chipInputControl.nativeElement.value = '';
+    this.control.setValue('');
+  }
+
+  onUseSuggestion(key: string): void {
+    if (this.disabled || !this.chipInputControl) {
+      return;
+    }
+
+    const value = `${key}:`;
+    this.control.setValue(value);
+    this.chipInputControl.nativeElement.focus();
+    this.chipInputControl.nativeElement.setSelectionRange(value.length, value.length);
   }
 
   protected save(value: string): void {
@@ -175,14 +185,11 @@ export class AnnotationComponent implements ControlValueAccessor {
     this.annotations.push(new Label({key, value}));
   }
 
-  onUpdateAnnotation(key: string, value: string): void {
-    key = key.trim();
-    value = value.trim();
-
-    // remove old
-    this.annotations.splice(this.clickedIndex, 1);
-    // add updated
-    this.annotations.push(new Annotation({key, value}));
+  onUpdateAnnotation(index: number, result: AnnotationEditDialogResult): void {
+    this.annotations.splice(index, 1, new Annotation({
+      key: result.key.trim(),
+      value: result.value.trim(),
+    }));
 
     this.onChange(this.annotations);
     this.reset();
@@ -197,14 +204,8 @@ export class AnnotationComponent implements ControlValueAccessor {
     this.reset();
   }
 
-  onAbort(): void {
-    this.annotationForm.disable();
-  }
-
   protected reset() {
     this.regroup();
-    this.annotationForm.reset();
-    this.annotationForm.disable();
     this.cdr.detectChanges();
   }
 
@@ -212,18 +213,6 @@ export class AnnotationComponent implements ControlValueAccessor {
     return this.annotations.findIndex((element) => {
       return element.key === key && element.value === value;
     });
-  }
-
-  protected createForm(): void {
-    this.annotationForm = this.fb.group({
-      key: ['', [Validators.required, Validators.pattern(NO_COLON)]],
-      value: ['', Validators.required]
-    });
-    this.annotationForm.disable();
-    if (!this.canEdit) {
-      this.setDisabledState(true);
-    }
-
   }
 
   // group annotations with similar key together

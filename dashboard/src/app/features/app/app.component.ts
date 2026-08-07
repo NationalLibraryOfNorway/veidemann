@@ -1,42 +1,55 @@
-import { ChangeDetectionStrategy, Component, computed, OnInit, Signal, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ErrorHandler,
+  inject,
+  OnInit,
+  Signal,
+  signal
+} from '@angular/core';
 import {BreakpointObserver} from '@angular/cdk/layout';
 import {
   ActivatedRoute,
   NavigationEnd,
-  RouteConfigLoadEnd,
-  RouteConfigLoadStart,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet
 } from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
-import {Observable} from 'rxjs';
 import {filter, map, startWith} from 'rxjs/operators';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 
-import {AuthService, ErrorService, SnackBarService} from '../../core';
+import {AuthService, SnackBarService} from '../../core';
 import {AboutDialogComponent} from './about-dialog/about-dialog.component';
 import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
-import {AsyncPipe} from '@angular/common';
 import {MatToolbar} from '@angular/material/toolbar';
-import {TimeComponent} from './time/time.component';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
-import {DialogComponent} from './dialog/dialog.component';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatProgressSpinner} from '@angular/material/progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatListModule} from '@angular/material/list';
 import {toSignal} from '@angular/core/rxjs-interop';
 
-interface PrimaryDestination {
+type NavigationSection = 'config' | 'report';
+type DrawerLevel = 'main' | NavigationSection;
+
+const RAIL_BREAKPOINT = '(min-width: 840px)';
+const PERSISTENT_DRAWER_BREAKPOINT = '(min-width: 1200px)';
+
+interface NavigationDestination {
   readonly route: string;
-  readonly icon: string;
   readonly label: string;
   readonly permissionSubject?: string;
+}
+
+interface PrimaryDestination extends NavigationDestination {
+  readonly icon: string;
+  readonly section?: NavigationSection;
 }
 
 @Component({
@@ -46,20 +59,17 @@ interface PrimaryDestination {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
-    AsyncPipe,
     MatButtonModule,
     MatIcon,
     MatListModule,
     MatMenuModule,
     MatSidenavModule,
     MatToolbar,
-    TimeComponent,
     RouterLink,
     RouterLinkActive,
     MatTooltip,
     MatProgressSpinner,
-    RouterOutlet,
-    DialogComponent
+    RouterOutlet
   ]
 })
 export class AppComponent implements OnInit {
@@ -68,86 +78,92 @@ export class AppComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private snackBarService = inject(SnackBarService);
   private dialog = inject(MatDialog);
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
   private breakpointObserver = inject(BreakpointObserver);
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   readonly primaryDestinations: readonly PrimaryDestination[] = [
-    {route: '/', icon: 'home', label: $localize`:@@mainMenuDashboard:Dashboard`},
+    {
+      route: '/',
+      icon: 'home',
+      label: $localize`:@@mainMenuHome:Home`,
+    },
     {
       route: '/config',
       icon: 'settings',
       label: $localize`:@@mainMenuConfiguration:Configuration`,
+      section: 'config',
       permissionSubject: 'configs',
     },
     {
       route: '/report',
       icon: 'assessment',
       label: $localize`:@@mainMenuReport:Reports`,
+      section: 'report',
       permissionSubject: 'report',
     },
-    {
-      route: '/logconfig',
-      icon: 'notes',
-      label: $localize`:@@mainMenuLogConfiguration:Log level`,
-      permissionSubject: 'logconfig',
-    },
   ];
 
-  readonly configDestinations: readonly PrimaryDestination[] = [
-    {route: '/config/entity', icon: 'business', label: 'Entity', permissionSubject: 'CRAWLENTITY'},
-    {route: '/config/seed', icon: 'link', label: 'Seed', permissionSubject: 'SEED'},
-    {route: '/config/crawljobs', icon: 'work', label: 'Crawl jobs', permissionSubject: 'CRAWLJOB'},
-    {route: '/config/schedule', icon: 'schedule', label: 'Schedule', permissionSubject: 'CRAWLSCHEDULECONFIG'},
-    {route: '/config/crawlconfig', icon: 'settings_system_daydream', label: 'Crawl config', permissionSubject: 'CRAWLCONFIG'},
-    {route: '/config/collection', icon: 'collections_bookmark', label: 'Collection', permissionSubject: 'COLLECTION'},
-    {route: '/config/browserconfig', icon: 'web', label: 'Browser config', permissionSubject: 'BROWSERCONFIG'},
-    {route: '/config/browserscript', icon: 'web_asset', label: 'Browser script', permissionSubject: 'BROWSERSCRIPT'},
-    {route: '/config/politenessconfig', icon: 'sentiment_satisfied', label: 'Politeness', permissionSubject: 'POLITENESSCONFIG'},
-    {route: '/config/crawlhostgroupconfig', icon: 'group_work', label: 'Crawl host group', permissionSubject: 'CRAWLHOSTGROUPCONFIG'},
-    {route: '/config/rolemapping', icon: 'people', label: 'Users', permissionSubject: 'ROLEMAPPING'},
+  readonly configDestinations: readonly NavigationDestination[] = [
+    {route: '/config/entity', label: 'Entity', permissionSubject: 'CRAWLENTITY'},
+    {route: '/config/seed', label: 'Seed', permissionSubject: 'SEED'},
+    {route: '/config/crawljobs', label: 'Crawl jobs', permissionSubject: 'CRAWLJOB'},
+    {route: '/config/schedule', label: 'Schedule', permissionSubject: 'CRAWLSCHEDULECONFIG'},
+    {route: '/config/crawlconfig', label: 'Crawl config', permissionSubject: 'CRAWLCONFIG'},
+    {route: '/config/collection', label: 'Collection', permissionSubject: 'COLLECTION'},
+    {route: '/config/browserconfig', label: 'Browser config', permissionSubject: 'BROWSERCONFIG'},
+    {route: '/config/browserscript', label: 'Browser script', permissionSubject: 'BROWSERSCRIPT'},
+    {route: '/config/politenessconfig', label: 'Politeness', permissionSubject: 'POLITENESSCONFIG'},
+    {route: '/config/crawlhostgroupconfig', label: 'Crawl host group', permissionSubject: 'CRAWLHOSTGROUPCONFIG'},
+    {route: '/config/rolemapping', label: 'Users', permissionSubject: 'ROLEMAPPING'},
   ];
 
-  readonly reportDestinations: readonly PrimaryDestination[] = [
-    {route: '/report/jobexecution', icon: 'hdr_strong', label: 'Job execution', permissionSubject: 'jobexecution'},
-    {route: '/report/crawlexecution', icon: 'hdr_weak', label: 'Crawl execution', permissionSubject: 'crawlexecution'},
-    {route: '/report/pagelog', icon: 'art_track', label: 'Page log', permissionSubject: 'pagelog'},
-    {route: '/report/crawllog', icon: 'event_note', label: 'Crawl log', permissionSubject: 'crawllog'},
+  readonly reportDestinations: readonly NavigationDestination[] = [
+    {route: '/report/jobexecution', label: 'Job execution', permissionSubject: 'jobexecution'},
+    {route: '/report/crawlexecution', label: 'Crawl execution', permissionSubject: 'crawlexecution'},
+    {route: '/report/pagelog', label: 'Page log', permissionSubject: 'pagelog'},
+    {route: '/report/crawllog', label: 'Crawl log', permissionSubject: 'crawllog'},
   ];
 
+  readonly railNavigation: Signal<boolean>;
   readonly expandedNavigation: Signal<boolean>;
-  readonly activeSection: Signal<'config' | 'report' | null>;
-
-  isModuleLoading$: Observable<boolean>;
-  private moduleLoadSemaphore = 0;
+  readonly activeSection: Signal<NavigationSection | null>;
+  readonly compactDrawerOpen = signal(false);
+  readonly drawerLevel = signal<DrawerLevel>('main');
+  readonly visibleDrawerLevel: Signal<DrawerLevel>;
+  readonly isNavigating: Signal<boolean>;
 
   constructor() {
     this.can = this.abilityService.can;
-    this.expandedNavigation = toSignal(
-      this.breakpointObserver.observe('(min-width: 1200px)').pipe(map(state => state.matches)),
-      {initialValue: false}
-    );
+    const navigationBreakpoints = toSignal(this.breakpointObserver.observe([
+      RAIL_BREAKPOINT,
+      PERSISTENT_DRAWER_BREAKPOINT,
+    ]), {
+      initialValue: {
+        matches: false,
+        breakpoints: {
+          [RAIL_BREAKPOINT]: false,
+          [PERSISTENT_DRAWER_BREAKPOINT]: false,
+        },
+      },
+    });
+    this.railNavigation = computed(() => navigationBreakpoints().breakpoints[RAIL_BREAKPOINT]);
+    this.expandedNavigation = computed(() => navigationBreakpoints().breakpoints[PERSISTENT_DRAWER_BREAKPOINT]);
     const currentUrl = toSignal(this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
       map(() => this.router.url),
       startWith(this.router.url),
     ), {requireSync: true});
-    this.activeSection = computed(() => currentUrl().startsWith('/config')
+    const currentPath = computed(() => currentUrl().split(/[?#]/, 1)[0]);
+    this.activeSection = computed(() => currentPath() === '/config' || currentPath().startsWith('/config/')
       ? 'config'
-      : currentUrl().startsWith('/report') ? 'report' : null);
-    this.isModuleLoading$ = this.router.events.pipe(
-      filter(event => event instanceof RouteConfigLoadStart || event instanceof RouteConfigLoadEnd),
-      map(event => {
-        if (event instanceof RouteConfigLoadStart) {
-          this.moduleLoadSemaphore++;
-        } else if (event instanceof RouteConfigLoadEnd) {
-          this.moduleLoadSemaphore--;
-        }
-        return this.moduleLoadSemaphore > 0;
-      }),
-    );
+      : currentPath() === '/report' || currentPath().startsWith('/report/') ? 'report' : null);
+    this.visibleDrawerLevel = computed(() => this.expandedNavigation()
+      ? this.activeSection() ?? 'main'
+      : this.drawerLevel());
+    this.isNavigating = computed(() => this.router.currentNavigation() !== null);
   }
 
   ngOnInit(): void {
@@ -161,9 +177,9 @@ export class AppComponent implements OnInit {
         const fragment = url.hash.substring(1) || null;
         const commands = url.pathname.split('/');
         this.router.navigate(commands, { queryParams, fragment, replaceUrl: true })
-          .catch(e => this.errorService.dispatch(e));
+          .catch(e => this.errorHandler.handleError(e));
       } catch (e) {
-        this.errorService.dispatch(e);
+        this.errorHandler.handleError(e);
       }
     }
 
@@ -177,8 +193,24 @@ export class AppComponent implements OnInit {
     return this.authService.name;
   }
 
-  canNavigate(destination: PrimaryDestination): boolean {
+  canNavigate(destination: NavigationDestination): boolean {
     return !destination.permissionSubject || this.can('read', destination.permissionSubject);
+  }
+
+  togglePrimaryDrawer(): void {
+    const open = !this.compactDrawerOpen();
+    if (open) {
+      this.drawerLevel.set(this.activeSection() ?? 'main');
+    }
+    this.compactDrawerOpen.set(open);
+  }
+
+  closePrimaryDrawer(): void {
+    this.compactDrawerOpen.set(false);
+  }
+
+  showDrawerLevel(level: DrawerLevel): void {
+    this.drawerLevel.set(level);
   }
 
   onLogin() {

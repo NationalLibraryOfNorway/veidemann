@@ -1,7 +1,6 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
-    <mat-card-header>
-      <mat-icon mat-card-avatar>work</mat-icon>
+    <mat-card-header class="card-header-with-helpers">
       <mat-card-title>
         <span i18n="@@crawljobDetailsCardTitle">Crawljob</span>
       </mat-card-title>
@@ -10,18 +9,16 @@
           <ng-container i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</ng-container>
         }
       </mat-card-subtitle>
-      <span class="flex-fill"></span>
-      <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
-        formControlName="disabled"
-        color="warn">
-        Deactivated
-      </mat-slide-toggle>
+      <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
 
     <mat-card-content>
       <div class="layout-row layout-wrap gap-24">
         <div class="layout-column flex-fill">
-          <app-meta formControlName="meta"></app-meta>
+          <app-meta
+            formControlName="meta"
+            [annotationSuggestions]="annotationSuggestions">
+          </app-meta>
 
           @if (!showSave) {
             <mat-form-field>
@@ -31,6 +28,11 @@
               <input matInput
                 readonly
                 formControlName="id">
+              <button mat-icon-button matSuffix type="button" [appCopyId]="configObject.id"
+                matTooltip="Copy ID" i18n-matTooltip="@@copyIdTooltip"
+                aria-label="Copy ID" i18n-aria-label="@@copyIdTooltip">
+                <mat-icon>content_copy</mat-icon>
+              </button>
             </mat-form-field>
           }
         </div>
@@ -109,15 +111,11 @@
             </mat-form-field>
             <input type="hidden" formControlName="kind">
           </ng-container>
-          @if (this.configObject.id | getScriptAnnotations | async; as scriptAnnotations) {
-            @if (scriptAnnotations.length > 0) {
-              <mat-label>Script annotations</mat-label>
-            }
-            <ng-container>
-              <app-script-annotation
-              [annotations]="scriptAnnotations"></app-script-annotation>
-            </ng-container>
-          }
+          <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
+            formControlName="disabled"
+            color="warn">
+            Deactivated
+          </mat-slide-toggle>
         </div>
       </div>
     </mat-card-content>
@@ -143,19 +141,12 @@
           [disabled]="!canRevert"
           i18n="@@commonButtonRevert">REVERT
       </button>
+        <span class="flex-fill"></span>
         @if (!showSave && canDelete) {
           <button mat-button
             (click)="onDelete()"
             i18n="@@commonButtonDelete">DELETE
       </button>
-        }
-        <span class="flex-fill"></span>
-        @if (!showSave) {
-          <button mat-button
-            matTooltip="Run crawljob"
-            i18n-matTooltip="@@crawlJobDetailsRunCrawljobButtonTooltip"
-            (click)="onRunCrawlJob()">RUN CRAWL
-          </button>
         }
       </mat-card-actions>
     }

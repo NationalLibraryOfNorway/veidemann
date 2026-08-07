@@ -1,11 +1,24 @@
 import { ChangeDetectionStrategy,Component,inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
+import {MatChipsModule} from '@angular/material/chips';
 import { MatIcon } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { MongoAbility } from '@casl/ability';
 import { AbilityServiceSignal } from '@casl/angular';
 import { NavigationListComponent } from '../../../../shared/components';
+import {JobExecutionState} from '../../../../shared/models';
 
+interface ReportDestination {
+  readonly route: string;
+  readonly icon: string;
+  readonly label: string;
+  readonly permissionSubject: string;
+}
+
+interface ReportDestinationGroup {
+  readonly label: string;
+  readonly destinations: readonly ReportDestination[];
+}
 
 @Component({
   selector: 'app-report-navigation-list',
@@ -14,6 +27,7 @@ import { NavigationListComponent } from '../../../../shared/components';
   imports: [
     MatIcon,
     MatCardModule,
+    MatChipsModule,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +36,46 @@ import { NavigationListComponent } from '../../../../shared/components';
 export class ReportNavigationListComponent extends NavigationListComponent {
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
+  readonly destinationGroups: readonly ReportDestinationGroup[] = [
+    {
+      label: $localize`:@@reportGroupExecutions:Executions`,
+      destinations: [
+        {
+          route: 'jobexecution',
+          icon: 'hdr_strong',
+          label: $localize`:@@reportNavigationLinkJobExecution:Job execution`,
+          permissionSubject: 'jobexecution',
+        },
+        {
+          route: 'crawlexecution',
+          icon: 'hdr_weak',
+          label: $localize`:@@reportNavigationLinkCrawlExecution:Crawl execution`,
+          permissionSubject: 'crawlexecution',
+        },
+      ],
+    },
+    {
+      label: $localize`:@@reportGroupLogs:Logs`,
+      destinations: [
+        {
+          route: 'pagelog',
+          icon: 'art_track',
+          label: $localize`:@@reportNavigationLinkPageLog:Page log`,
+          permissionSubject: 'pagelog',
+        },
+        {
+          route: 'crawllog',
+          icon: 'event_note',
+          label: $localize`:@@reportNavigationLinkCrawlLog:Crawl log`,
+          permissionSubject: 'crawllog',
+        },
+      ],
+    },
+  ];
+  readonly runningReportQueryParams = {
+    state: JobExecutionState.RUNNING,
+    sort: 'startTime:desc',
+  } as const;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   constructor() {
@@ -29,5 +83,9 @@ export class ReportNavigationListComponent extends NavigationListComponent {
     super();
 
     this.can = this.abilityService.can;
+  }
+
+  visibleDestinations(group: ReportDestinationGroup): readonly ReportDestination[] {
+    return group.destinations.filter(destination => this.can('read', destination.permissionSubject));
   }
 }

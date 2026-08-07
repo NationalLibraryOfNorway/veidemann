@@ -8,8 +8,8 @@ import { MatFormFieldHarness } from '@angular/material/form-field/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { ConfigObject, ConfigRef, Kind, Meta, Seed } from '../../../../shared/models';
-import { MatActionListHarness, MatListHarness } from '@angular/material/list/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
+import {MatChipHarness} from '@angular/material/chips/testing';
 import { ConfigApiService } from '../../../../core';
 import { provideCoreTesting } from '../../../../core/core.testing.module';
 import { ActivatedRoute } from '@angular/router';
@@ -88,9 +88,6 @@ describe('SeedMetaComponent', () => {
 
     let nameFormField: MatFormFieldHarness;
     let nameInput: MatInputHarness;
-    let seedExistsOnEntityList: MatActionListHarness;
-    let seedExistsList: MatListHarness;
-
     const configApiServiceSpy = {
         list: vi.fn().mockName("ConfigApiService.list")
     };
@@ -125,6 +122,20 @@ describe('SeedMetaComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should hide the URL launcher when requested', async () => {
+        component.entityRef = new ConfigRef();
+        component.updateForm(new Meta());
+        await nameInput.setValue('https://www.nb.no');
+        fixture.componentRef.setInput('showOpenUrl', false);
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelector('button[mattooltip="Open URL in a new tab"]')).toBeNull();
+
+        fixture.componentRef.setInput('showOpenUrl', true);
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('button[mattooltip="Open URL in a new tab"]')).not.toBeNull();
     });
     describe('Creating new seed', async () => {
         it('should validate URL', async () => {
@@ -220,14 +231,7 @@ describe('SeedMetaComponent', () => {
                 expect(textErrors).toContain('URL with the same domain already exists for another entity');
                 expect(textErrors).not.toContain('URL with the same domain already exists for this entity');
 
-                seedExistsList = await loader.getHarness<MatListHarness>(MatListHarness
-                    .with({ selector: '[data-testid="seedExistsList"]' }));
-
-                const items = await seedExistsList.getItems();
-                expect(items.length).toEqual(2);
-                expect(await items[1].getText()).toContain('https://www.bokhylla.no');
-
-                const moveSeedToEntityButton = await items[1].getHarness<MatButtonHarness>(MatButtonHarness
+                const moveSeedToEntityButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness
                     .with({ selector: '[data-testid="seedExistsListMoveSeedToEntityButton"]' }));
 
                 await moveSeedToEntityButton.click();
@@ -254,13 +258,8 @@ describe('SeedMetaComponent', () => {
                 expect(textErrors).not.toContain('URL with the same domain already exists for another entity');
                 expect(textErrors).toContain('URL with the same domain already exists for this entity');
 
-                seedExistsOnEntityList = await loader.getHarness<MatActionListHarness>(MatActionListHarness
-                    .with({ selector: '[data-testid="seedExistsOnEntityList"]' }));
-                const listItems = await seedExistsOnEntityList.getItems();
-                expect(listItems.length).toEqual(1);
-
-                const removeDuplicateSeed = await seedExistsOnEntityList.getItems();
-                await removeDuplicateSeed[0].click();
+                const duplicateChip = await loader.getHarness(MatChipHarness.with({text: /http:\/\/www\.nb\.no/}));
+                await (await duplicateChip.getRemoveButton()).click();
 
                 expect(component.onRemoveExistingUrl)
                     .toHaveBeenCalledWith(exampleMatchingSeeds[0]);
@@ -283,28 +282,27 @@ describe('SeedMetaComponent', () => {
                 expect(textErrors).not.toContain('URL with the same domain already exists for another entity');
                 expect(textErrors).toContain('URL with the same domain already exists for this entity');
 
-                seedExistsOnEntityList = await loader.getHarness<MatActionListHarness>(MatActionListHarness
-                    .with({ selector: '[data-testid="seedExistsOnEntityList"]' }));
+                const duplicateChips = await loader.getAllHarnesses(MatChipHarness);
+                expect(duplicateChips.length).toEqual(2);
 
-                // TODO: Should only have 3 items in list (remove all button + 2 seeds).
-                //  But for some reason duplicates are added for each url entered.
-                const listItems = await seedExistsOnEntityList.getItems();
-                expect(listItems.length).toEqual(7);
-
-                const removeAllDupButton = await seedExistsOnEntityList.getItems({ text: 'Remove all from list' });
-                await removeAllDupButton[0].click();
-                // TODO: Same here, should be two values passed to method.
+                const removeAllDupButton = await loader.getHarness(MatButtonHarness.with({text: /Remove all from list/}));
+                await removeAllDupButton.click();
                 expect(component.onRemoveExistingUrls)
-                    .toHaveBeenCalledWith([exampleMatchingSeeds[0], exampleMatchingSeeds[1], exampleMatchingSeeds[0],
-                    exampleMatchingSeeds[1], exampleMatchingSeeds[0], exampleMatchingSeeds[1]]);
+                    .toHaveBeenCalledWith([exampleMatchingSeeds[0], exampleMatchingSeeds[1]]);
                 await fixture.whenStable();
                 await nameInput.blur();
                 await fixture.whenStable();
                 expect(await nameInput.getValue()).toBe('http://historiewiki.no');
-                // TODO: still has errors even if the url are removed from input.
-                //  (existing-url-validation createBackend() still return validationErrors even if duplicate url is removed)
-                // expect(await nameFormField.hasErrors()).toBeFalsy();
-                // expect(await nameFormField.isControlValid()).toBeTruthy();
+            });
+
+            it('should remove a matching domain without removing similar hostnames', async () => {
+                component.entityRef = exampleMatchingSeeds[0].seed.entityRef;
+                component.updateForm(new Meta());
+                await nameInput.setValue('nb.no notnb.no https://www.biblotekutvikling.no/path');
+
+                component.onRemoveExistingUrl(exampleMatchingSeeds[0]);
+
+                expect(await nameInput.getValue()).toBe('notnb.no\nhttps://www.biblotekutvikling.no/path');
             });
         });
 
@@ -338,4 +336,3 @@ describe('SeedMetaComponent', () => {
     });
 
 });
-

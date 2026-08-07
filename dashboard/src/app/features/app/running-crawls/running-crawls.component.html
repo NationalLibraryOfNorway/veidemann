@@ -1,0 +1,34 @@
+<section class="latest-crawl-jobs" aria-labelledby="latest-crawl-jobs-title">
+  <header class="latest-crawl-jobs-header">
+    <h2 id="latest-crawl-jobs-title" i18n="@@latestCrawlJobsTitle">Latest crawl jobs</h2>
+    <mat-chip-listbox multiple aria-label="Filter latest crawl jobs by state"
+      i18n-aria-label="@@latestCrawlJobsStateFilterLabel">
+      @for (chip of stateChips; track chip.label) {
+        <mat-chip-option [selected]="isChipSelected(chip)"
+          (selectionChange)="onChipSelectionChange(chip, $event)">
+          {{chip.label}}
+        </mat-chip-option>
+      }
+    </mat-chip-listbox>
+  </header>
+
+  @if (dataSource.rows$ | async; as rows) {
+    @if (dataSource.initialLoading$ | async) {
+      <p class="list-state" role="status" i18n="@@latestCrawlJobsLoading">Loading crawl jobs…</p>
+    } @else {
+      @if (rows.length > 0) {
+        <app-job-execution-status-list
+          [dataSource]="dataSource"
+          [displayedColumns]="['jobId', 'state', 'documentsCrawled', 'startTime', 'endTime', 'duration']"
+          [embedded]="true"
+          [sortActive]="sortActive"
+          [sortDirection]="sortDirection"
+          (rowClick)="rowClick.emit($event)"
+          (sort)="sort.emit($event)">
+        </app-job-execution-status-list>
+      } @else {
+        <p class="list-state" i18n="@@latestCrawlJobsEmpty">No crawl jobs match the selected states</p>
+      }
+    }
+  }
+</section>

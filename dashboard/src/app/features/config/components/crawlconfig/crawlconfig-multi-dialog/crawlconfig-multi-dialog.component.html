@@ -1,16 +1,21 @@
-<form [formGroup]="form">
-  <h2 mat-dialog-title>CrawlConfig - Mass update</h2>
+<form [formGroup]="form" class="mass-update-form">
+  <div mat-dialog-title class="mass-update-header">
+    <h2 i18n="@@crawlConfigMassUpdateDialogTitle">Update crawl configurations</h2>
+    <p i18n="@@massUpdateDialogDescription">
+      Only changed settings will be applied. Values left untouched will be preserved.
+    </p>
+  </div>
 
-  <mat-dialog-content>
-    <div class="layout-row gap-16">
+  <mat-dialog-content class="mass-update-content">
+    <div class="mass-update-grid">
 
-      <div class="flex-fill">
+      <div class="mass-update-section">
         <app-label-multi [configObject]="configObject"
                          [allSelected]="allSelected"
                          (update)="onUpdateLabels($event)"></app-label-multi>
       </div>
 
-      <div class="layout-column flex-fill">
+      <div class="mass-update-section">
         <mat-form-field>
           <mat-label i18n="@@collectionDropdownLabel">
             Collection
@@ -98,12 +103,7 @@
 </form>
 
 @if (canEdit) {
-  <mat-dialog-actions>
-    <button mat-raised-button color="accent"
-            [disabled]="!canUpdate"
-            [mat-dialog-close]="onDialogClose()"
-            i18n="@@commonButtonSave">UPDATE
-    </button>
+  <mat-dialog-actions align="end">
     <button mat-button
             (click)="onRevert()"
             [disabled]="!canRevert"
@@ -112,6 +112,11 @@
     <button mat-button
             mat-dialog-close
             i18n="@@commonButtonCancel">CANCEL
+    </button>
+    <button mat-flat-button
+            [disabled]="!canUpdate"
+            [mat-dialog-close]="onDialogClose()"
+            i18n="@@commonButtonSave">UPDATE
     </button>
   </mat-dialog-actions>
 }

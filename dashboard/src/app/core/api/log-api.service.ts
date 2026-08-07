@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import {ErrorHandler, Injectable, inject} from '@angular/core';
 import {CallOptions, Client, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
 import {EMPTY, Observable} from 'rxjs';
@@ -6,7 +6,6 @@ import {catchError, map} from 'rxjs/operators';
 
 import {CrawlLogListRequest, Log, PageLogListRequest} from '../../../api/log/v1/log_pb';
 import {AuthService} from '../auth';
-import {ErrorService} from '../error.service';
 import {AppConfig} from '../../app.config';
 import {CrawlLog, PageLog} from '../../shared/models';
 import {fromServerStream} from './connect-observable';
@@ -15,7 +14,7 @@ import {fromServerStream} from './connect-observable';
 export class LogApiService {
   private authService = inject(AuthService);
   private appConfig = inject(AppConfig);
-  private errorService = inject(ErrorService);
+  private errorHandler = inject(ErrorHandler);
 
   private client?: Client<typeof Log>;
 
@@ -42,7 +41,7 @@ export class LogApiService {
     })).pipe(
       map(PageLog.fromProto),
       catchError(error => {
-        this.errorService.dispatch(error);
+        this.errorHandler.handleError(error);
         return EMPTY;
       }),
     );
@@ -55,7 +54,7 @@ export class LogApiService {
     })).pipe(
       map(CrawlLog.fromProto),
       catchError(error => {
-        this.errorService.dispatch(error);
+        this.errorHandler.handleError(error);
         return EMPTY;
       }),
     );

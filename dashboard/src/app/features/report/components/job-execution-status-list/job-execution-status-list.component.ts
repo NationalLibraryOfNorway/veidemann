@@ -1,46 +1,42 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 
-import {AsyncPipe, DatePipe, NgTemplateOutlet} from '@angular/common';
+import {DatePipe, DecimalPipe} from '@angular/common';
 import {JobNamePipe} from '../../pipe';
-import {MatTableModule} from '@angular/material/table';
-import {MatSortModule} from '@angular/material/sort';
-import {MatMenuModule} from '@angular/material/menu';
-import {MatIcon} from '@angular/material/icon';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
-import {BASE_LIST_IMPORTS, BaseListComponent} from '../../../../shared/components';
-import {MatButtonModule} from '@angular/material/button';
+import {durationBetweenDates, isValidDate} from '../../../../shared/func';
+import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/report-list-base';
 
 @Component({
   selector: 'app-job-execution-status-list',
   templateUrl: './job-execution-status-list.component.html',
-  styleUrls: [
-    '../../../../shared/components/base-list/base-list.scss',
-  ],
+  styleUrls: ['../report-list/report-list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe,
     DatePipe,
+    DecimalPipe,
     JobNamePipe,
-    MatButtonModule,
-    MatIcon,
-    MatMenuModule,
-    MatSortModule,
-    MatTableModule,
-    NgTemplateOutlet,
-    ...BASE_LIST_IMPORTS,
+    ...REPORT_LIST_IMPORTS,
   ],
   standalone: true
 })
-export class JobExecutionStatusListComponent extends BaseListComponent<JobExecutionStatus> {
+export class JobExecutionStatusListComponent extends ReportListBaseComponent<JobExecutionStatus> {
   readonly JobExecutionState = JobExecutionState;
-
-  @Input()
-  override multiSelect = false;
 
   @Input()
   override sortActive = 'startTime';
 
-  override displayedColumns: string[] = ['jobId', 'state', 'desiredState', 'startTime', 'endTime', 'extra', 'action'];
+  @Input()
+  embedded = false;
+
+  override displayedColumns: string[] = ['jobId', 'state', 'desiredState', 'startTime', 'endTime', 'action'];
+
+  duration(row: JobExecutionStatus): string {
+    if (!row.startTime || !isValidDate(new Date(row.startTime)) ||
+      (row.endTime && !isValidDate(new Date(row.endTime)))) {
+      return '';
+    }
+    return durationBetweenDates(row.startTime, row.endTime);
+  }
 
 }

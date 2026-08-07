@@ -3,22 +3,26 @@ import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup} from '@angula
 import {AuthService} from '../../../../../core/auth';
 import {ConfigObject, Kind, Meta} from '../../../../../shared/models';
 import {MatCardModule} from '@angular/material/card';
-import {MatIcon} from '@angular/material/icon';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 @Component({
   selector: 'app-entity-details',
   templateUrl: './entity-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CopyIdDirective,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
-    MatIcon,
     MatInputModule,
+    MatIcon,
+    MatTooltip,
     MetaComponent,
     ReactiveFormsModule
   ],
@@ -35,6 +39,9 @@ export class EntityDetailsComponent implements OnChanges {
 
   @Input()
   seeds: ConfigObject[];
+
+  @Input()
+  annotationSuggestions: string[] = [];
 
   @Output()
   save = new EventEmitter<ConfigObject>();

@@ -29,7 +29,8 @@ describe('ReportComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('does not render a persistent report drawer', () => {
+  it('renders the report content shell', () => {
     expect(fixture.nativeElement.querySelector('mat-drawer')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.section-shell > .section-content')).not.toBeNull();
   });
 });

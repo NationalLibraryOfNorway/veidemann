@@ -37,6 +37,26 @@
                 "glob": "**/*",
                 "input": "node_modules/monaco-editor/min",
                 "output": "public/monaco/min"
+              },
+              {
+                "glob": "compact.json",
+                "input": "node_modules/emojibase-data/en",
+                "output": "public/emoji/en"
+              },
+              {
+                "glob": "messages.json",
+                "input": "node_modules/emojibase-data/en",
+                "output": "public/emoji/en"
+              },
+              {
+                "glob": "compact.json",
+                "input": "node_modules/emojibase-data/nb",
+                "output": "public/emoji/nb"
+              },
+              {
+                "glob": "messages.json",
+                "input": "node_modules/emojibase-data/nb",
+                "output": "public/emoji/nb"
               }
             ],
             "styles": [

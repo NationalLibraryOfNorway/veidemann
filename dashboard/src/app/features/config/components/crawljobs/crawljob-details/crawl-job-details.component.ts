@@ -5,19 +5,17 @@ import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns'
 import {ConfigObject, ConfigRef, CrawlJob, Kind, Meta} from '../../../../../shared/models';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 import {MatCardModule} from '@angular/material/card';
-import {MatIcon} from '@angular/material/icon';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MetaComponent} from '../../meta/meta.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
-import {ScriptAnnotationsPipe} from '../../../pipe';
-import {AsyncPipe} from '@angular/common';
 import {MatSelectModule} from '@angular/material/select';
-import {ScriptAnnotationComponent} from '../../annotation/script-annotation/script-annotation.component';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 
 @Component({
@@ -25,21 +23,19 @@ import {MatTooltipModule} from '@angular/material/tooltip';
   templateUrl: './crawl-job-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe,
+    CopyIdDirective,
     DurationPickerComponent,
     FilesizeInputComponent,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
-    MatIcon,
     MatInputModule,
+    MatIcon,
     MatSelectModule,
     MatSlideToggleModule,
-    MatTooltipModule,
+    MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
-    ScriptAnnotationComponent,
-    ScriptAnnotationsPipe
   ],
   standalone: true
 })
@@ -62,6 +58,9 @@ export class CrawlJobDetailsComponent implements OnChanges {
   @Input()
   scopeScripts: ConfigObject[];
 
+  @Input()
+  annotationSuggestions: string[] = [];
+
   @Output()
   save = new EventEmitter<ConfigObject>();
 
@@ -71,9 +70,6 @@ export class CrawlJobDetailsComponent implements OnChanges {
   // noinspection ReservedWordAsName
   @Output()
   delete = new EventEmitter<ConfigObject>();
-
-  @Output()
-  runCrawl = new EventEmitter<ConfigObject>();
 
   form;
 
@@ -160,10 +156,6 @@ export class CrawlJobDetailsComponent implements OnChanges {
 
   onRevert() {
     this.updateForm();
-  }
-
-  onRunCrawlJob() {
-    this.runCrawl.emit(this.configObject);
   }
 
   protected createForm() {

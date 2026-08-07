@@ -45,6 +45,22 @@ describe('PageLogStatusComponent', () => {
     expect(component.filteredOutlinks).toEqual([expect.objectContaining({raw: 'not a uri', href: null})]);
   });
 
+  it('projects helpers into the card header and renders the Outlinks external-link icon as list metadata', async () => {
+    fixture.componentRef.setInput('pageLog', new PageLog({
+      uri: 'https://example.org',
+      outlink: ['https://outlink.example/path'],
+    }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-card-header.card-header-with-helpers')).not.toBeNull();
+    const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]') as NodeListOf<HTMLElement>;
+    tabs[1].click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('mat-nav-list a[target="_blank"] span mat-icon')?.textContent)
+      .toContain('open_in_new');
+  });
+
   it('opens a metadata dialog with resource error details', () => {
     const dialog = component['dialog'];
     const open = vi.spyOn(dialog, 'open').mockReturnValue({} as never);

@@ -12,10 +12,10 @@ ValidationErrors,
 Validators
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
-import { MatListModule } from '@angular/material/list';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatTooltip } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
@@ -24,6 +24,7 @@ import { first,map,tap } from 'rxjs/operators';
 import { ConfigApiService } from '../../../../core';
 import { ConfigObject,ConfigRef,Meta } from '../../../../shared/models';
 import { SeedUrlValidator } from '../../../../shared/validation/existing-url-validation';
+import { SIMILAR_URL } from '../../../../shared/validation/patterns';
 import { AnnotationComponent } from '../annotation/annotation.component';
 import { LabelComponent } from '../label/label.component';
 import { MetaComponent } from '../meta/meta.component';
@@ -47,10 +48,10 @@ export interface Parcel {
   imports: [
     CdkTextareaAutosize,
     MatButtonModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatIcon,
     MatInput,
-    MatListModule,
     MatProgressBar,
     MatTooltip,
     ReactiveFormsModule,
@@ -68,6 +69,9 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
 
   @Input()
   entityRef: ConfigRef;
+
+  @Input()
+  showOpenUrl = true;
 
   @Output()
   move = new EventEmitter<Parcel>();
@@ -108,48 +112,20 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
     super.updateForm(meta);
   }
 
+  get seedsOnCurrentEntity(): ConfigObject[] {
+    return this.uniqueSeeds(this.name.errors?.['seedExistsOnEntity']);
+  }
+
+  get seedsOnOtherEntities(): ConfigObject[] {
+    return this.uniqueSeeds(this.name.errors?.['seedExists']);
+  }
+
   onRemoveExistingUrl(seed: ConfigObject) {
-    let value = '';
-    const match = this.name.value.includes(seed.meta.name) > 0;
-    if (match) {
-      value = this.name.value.replace(seed.meta.name, '').trim();
-      this.name.setValue(value);
-    } else {
-      const url = new URL(seed.meta.name);
-      const domain = url.hostname.replace('www.', '');
-      const urls = this.name.value.trim().split(/\s+/);
-      const expression = new RegExp(`.*(${domain}).*`);
-      const found = urls.findIndex(u => expression.test(u));
-      if (found > -1) {
-        urls.splice(found, 1);
-      }
-      value = urls.join('\n');
-      this.name.setValue(value);
-    }
-    if (!value) {
-      this.form.markAsPristine();
-      this.form.markAsUntouched();
-    }
+    this.removeDomains([seed]);
   }
 
   onRemoveExistingUrls(seeds: ConfigObject[]) {
-    const urls: string[] = this.name.value.trim().split(/\s+/);
-    for (const seed of seeds) {
-      const url = new URL(seed.meta.name);
-      const domain = url.hostname.replace('www.', '');
-      const expression = new RegExp(`.*(${domain}).*`);
-      const found = urls.findIndex(u => expression.test(u));
-      if (found > -1) {
-        urls.splice(found, 1);
-      }
-    }
-    const value: string = urls.join('\n');
-    this.name.setValue(value);
-
-    if (!value) {
-      this.form.markAsPristine();
-      this.form.markAsUntouched();
-    }
+    this.removeDomains(seeds);
   }
 
   onMoveSeedToCurrentEntity(seed: ConfigObject) {
@@ -164,6 +140,44 @@ export class SeedMetaComponent extends MetaComponent implements AsyncValidator {
 
   goToUrl(url: string): void {
     window.open(url, '_blank');
+  }
+
+  removeUrlLabel(url: string): string {
+    return $localize`:@@seedMetaRemoveUrlAriaLabel:Remove ${url} from the list`;
+  }
+
+  private removeDomains(seeds: ConfigObject[]): void {
+    const domains = new Set(seeds
+      .map(seed => this.domain(seed.meta.name))
+      .filter((domain): domain is string => !!domain));
+    const value = this.name.value
+      .trim()
+      .split(/\s+/)
+      .filter(url => !domains.has(this.domain(url)))
+      .join('\n');
+
+    this.name.setValue(value);
+    if (!value) {
+      this.form.markAsPristine();
+      this.form.markAsUntouched();
+    }
+  }
+
+  private domain(url: string): string | null {
+    const match = url?.match(SIMILAR_URL);
+    return match?.[1]?.toLowerCase() ?? null;
+  }
+
+  private uniqueSeeds(seeds: ConfigObject[] | null | undefined): ConfigObject[] {
+    const seen = new Set<string>();
+    return (seeds ?? []).filter(seed => {
+      const key = seed.id || `${seed.seed?.entityRef?.id}:${seed.meta?.name}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   }
 
   override validate(): Promise<ValidationErrors | null> | Observable<ValidationErrors | null> {

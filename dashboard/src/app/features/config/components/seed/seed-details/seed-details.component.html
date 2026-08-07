@@ -1,7 +1,6 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
-    <mat-card-header>
-      <mat-icon mat-card-avatar>link</mat-icon>
+    <mat-card-header class="card-header-with-helpers">
       <mat-card-title>
         <span i18n="@@seedDetailsCardTitle">Seed</span>
       </mat-card-title>
@@ -10,31 +9,15 @@
           <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         </mat-card-subtitle>
       }
-      <span class="flex-fill"></span>
-      <div role="button"
-        tabindex="0"
-        (click)="disabled.disabled ? disabled.enable(): null"
-        (keydown.enter)="disabled.disabled ? disabled.enable(): null"
-        (keydown.space)="disabled.disabled ? disabled.enable(): null">
-        <mat-slide-toggle class="disabled-toggle"
-          color="warn"
-          formControlName="disabled"
-          i18n="@@seedDisabledToggleSwitch"
-          i18n-matTooltip="@@seedDisabledToggleSwitchTooltip"
-                          [matTooltip]="disabled.disabled ?
-                            'Disabled state for all of the selected configs are not equal.'
-                             +'Click here and set desired state to override all, '
-                             + 'or leave untouched to keep the configurations original value.'
-                            : null">
-          Deactivated
-        </mat-slide-toggle>
-      </div>
+      <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content class="layout-column">
       <div class="layout-row layout-wrap gap-24">
         <div class="layout-column flex-fill">
           <app-seed-meta formControlName="meta"
             [entityRef]="entityRef.value"
+            [showOpenUrl]="!showSave"
+            [annotationSuggestions]="annotationSuggestions"
           (move)="move.emit($event)"></app-seed-meta>
           @if (configObject.id) {
             <mat-form-field>
@@ -44,6 +27,11 @@
               <input matInput
                 formControlName="id"
                 readonly>
+              <button mat-icon-button matSuffix type="button" [appCopyId]="configObject.id"
+                matTooltip="Copy ID" i18n-matTooltip="@@copyIdTooltip"
+                aria-label="Copy ID" i18n-aria-label="@@copyIdTooltip">
+                <mat-icon>content_copy</mat-icon>
+              </button>
             </mat-form-field>
           }
 
@@ -52,13 +40,15 @@
               Entity Id
             </mat-label>
             <input matInput formControlName="id"
-              [readonly]="entityIdReadonly">
-            <button mat-icon-button matSuffix
-              matTooltip="Move seed to another entity"
-              i18n-matTooltip="seedDetailsEditEntityIdButtonTooltip"
-              (click)="onEditEntityId()">
-              <mat-icon>swap_horiz</mat-icon>
-            </button>
+              readonly>
+            @if (configObject.id && canEdit) {
+              <button mat-icon-button matSuffix type="button"
+                [disabled]="form.dirty"
+                [matTooltip]="moveSeedTooltip"
+                (click)="onMoveSeed()">
+                <mat-icon>swap_horiz</mat-icon>
+              </button>
+            }
             <mat-error>
               Reference to entity is required
             </mat-error>
@@ -77,25 +67,12 @@
               }
             </mat-select>
           </mat-form-field>
-          @if (this.configObject.seed.jobRefList) {
-            <div class="layout-row">
-              <mat-tab-group>
-                @for ( job of configObject.seed.jobRefList; track  job) {
-                  @if (job.id | getScriptAnnotations: configObject.id | async; as scriptAnnotation) {
-                    @if (scriptAnnotation.length > 0) {
-                      <mat-tab label="{{job.id | getJobNamePipe | async}}">
-                        <div style="margin-top: 16px; overflow: hidden" class="layout-column">
-                          <app-script-annotation
-                            [annotations]=" scriptAnnotation">
-                          </app-script-annotation>
-                        </div>
-                      </mat-tab>
-                    }
-                  }
-                }
-              </mat-tab-group>
-            </div>
-          }
+          <mat-slide-toggle class="disabled-toggle"
+            color="warn"
+            formControlName="disabled"
+            i18n="@@seedDisabledToggleSwitch">
+            Deactivated
+          </mat-slide-toggle>
         </div>
       </div>
     </mat-card-content>

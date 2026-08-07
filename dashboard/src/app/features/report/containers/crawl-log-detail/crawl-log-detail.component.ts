@@ -1,6 +1,5 @@
 import {CommonModule} from '@angular/common';
 import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
-import {MatIconModule} from '@angular/material/icon';
 import {Observable} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 import {CrawlLog} from '../../../../shared/models';
@@ -19,7 +18,6 @@ import {CrawlLogService} from '../../services';
     CommonModule,
     CrawlLogShortcutsComponent,
     CrawlLogStatusComponent,
-    MatIconModule
   ]
 })
 export class CrawlLogDetailComponent extends DetailDirective<CrawlLog> implements OnInit {

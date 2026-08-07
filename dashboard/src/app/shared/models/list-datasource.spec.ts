@@ -206,6 +206,41 @@ describe('ListDataSource', () => {
     destroyRef.destroy();
   });
 
+  it('atomically refreshes the currently loaded range without collapsing its pages', () => {
+    const query = new BehaviorSubject('query');
+    const streams: Subject<TestItem>[] = [];
+    const ranges: ListRange[] = [];
+    const destroyRef = new TestDestroyRef();
+    const dataSource = ListDataSource.fromQuery({
+      query$: query,
+      pageSize: 2,
+      load: (_query, range) => {
+        ranges.push(range);
+        const stream = new Subject<TestItem>();
+        streams.push(stream);
+        return stream;
+      },
+      destroyRef,
+    });
+
+    streams[0].next({id: 'one', value: 'old one'});
+    streams[0].next({id: 'two', value: 'old two'});
+    streams[0].complete();
+    dataSource.loadMore();
+    streams[1].next({id: 'three', value: 'old three'});
+    streams[1].complete();
+
+    dataSource.refreshLoaded();
+    expect(ranges.at(-1)).toEqual({offset: 0, pageSize: 3});
+    streams[2].next({id: 'one', value: 'new one'});
+    streams[2].next({id: 'four', value: 'new four'});
+    expect(dataSource.snapshot.map(row => row.value)).toEqual(['old one', 'old two', 'old three']);
+
+    streams[2].complete();
+    expect(dataSource.snapshot.map(row => row.value)).toEqual(['new one', 'new four']);
+    destroyRef.destroy();
+  });
+
   it('replaces duplicate ids without mutating previously emitted arrays', () => {
     const query = new BehaviorSubject('query');
     const rows = new Subject<TestItem>();

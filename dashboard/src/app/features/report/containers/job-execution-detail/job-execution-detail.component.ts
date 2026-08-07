@@ -10,8 +10,9 @@ import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abo
 import {DetailDirective} from '../../directives';
 import {JobExecutionService} from '../../services';
 import {
-  JobExecutionShortcutsComponent
+  JobExecutionShortcutHelpersComponent
 } from '../../components/job-execution-shortcuts/job-execution-shortcuts.component';
+import {ExecutionAbortActionComponent} from '../../components/execution-abort-action/execution-abort-action.component';
 import {CommonModule} from '@angular/common';
 
 @Component({
@@ -23,7 +24,8 @@ import {CommonModule} from '@angular/common';
   imports: [
     CommonModule,
     JobExecutionStatusComponent,
-    JobExecutionShortcutsComponent,
+    JobExecutionShortcutHelpersComponent,
+    ExecutionAbortActionComponent,
   ]
 })
 export class JobExecutionDetailComponent extends DetailDirective<JobExecutionStatus> implements OnInit {

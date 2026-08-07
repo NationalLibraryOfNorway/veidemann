@@ -5,7 +5,6 @@ import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns'
 import {ConfigObject, Kind, Meta, PolitenessConfig, RobotsPolicy} from '../../../../../shared/models';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 import {MatCardModule} from '@angular/material/card';
-import {MatIcon} from '@angular/material/icon';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatSelectModule} from '@angular/material/select';
@@ -13,21 +12,27 @@ import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
+import {CopyIdDirective} from '../../../../../shared/directives';
 
 
 @Component({
   selector: 'app-politenessconfig-details',
   templateUrl: './politenessconfig-details.component.html',
+  styleUrls: ['../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CopyIdDirective,
     DurationPickerComponent,
     MatButtonModule,
     MatCardModule,
     MatCheckbox,
     MatFormFieldModule,
-    MatIcon,
     MatInputModule,
+    MatIcon,
     MatSelectModule,
+    MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
   ],

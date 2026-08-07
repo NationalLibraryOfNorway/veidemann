@@ -14,7 +14,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-crawlhostgroupconfig-multi-dialog',
   templateUrl: './crawlhostgroupconfig-multi-dialog.component.html',
-  styleUrls: ['./crawlhostgroupconfig-multi-dialog.component.css'],
+  styleUrls: ['./crawlhostgroupconfig-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     DurationPickerComponent,
     LabelMultiComponent,

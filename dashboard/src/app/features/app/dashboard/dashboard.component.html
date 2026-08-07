@@ -1,14 +1,45 @@
 @if (can('read', 'home')) {
-    <div class="container content-padding">
-      <div class="layout-row layout-wrap gap-16">
-        <div class="layout-column gap-16">
+  <section class="dashboard-page">
+    <div class="dashboard-grid">
+      <mat-card class="dashboard-hero-card dashboard-intro-card" appearance="outlined">
+        <mat-card-content class="dashboard-intro-content">
+          <div class="dashboard-intro-copy">
+            <h1 i18n="@@dashboardPageTitle">Dashboard</h1>
+            <p i18n="@@dashboardPageSubtitle">
+              Monitor crawler activity and follow running jobs in one place.
+            </p>
+          </div>
+
           @if (can('read', 'crawlerStatus')) {
             <app-crawlerstatus
               [crawlerStatus]="crawlerStatus$ | async"
               (changeRunStatus)="onChangeRunStatus($event)">
             </app-crawlerstatus>
           }
-        </div>
-      </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="dashboard-hero-card dashboard-artwork-card" appearance="outlined"
+                aria-hidden="true">
+        <picture class="dashboard-brand-picture">
+          <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
+          <img class="dashboard-brand-logo" src="public/logo/veidemann_logo_inline_black.png" alt="">
+        </picture>
+      </mat-card>
+
+      @if (can('read', 'jobexecution')) {
+        @if (latestJobsDataSource; as dataSource) {
+          <app-running-crawls class="dashboard-running-crawls"
+            [dataSource]="dataSource"
+            [selectedStates]="selectedStates"
+            [sortActive]="sortActive"
+            [sortDirection]="sortDirection"
+            (selectedStatesChange)="onSelectedStatesChange($event)"
+            (rowClick)="onJobExecutionClick($event)"
+            (sort)="onLatestJobsSort($event)">
+          </app-running-crawls>
+        }
+      }
     </div>
+  </section>
 }

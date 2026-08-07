@@ -17,9 +17,9 @@ export class PolitenessConfigNamePipe implements PipeTransform {
   transform(configObject: ConfigObject): Observable<string> {
     return this.optionsService.options$.pipe(
       map(options => {
-        const found = options.politenessConfigs.find(
+        const found = options?.politenessConfigs?.find(
           politenessConfig => politenessConfig.id === configObject.crawlConfig.politenessRef.id);
-        return found ? found.meta.name : 'politenessConfig';
+        return found?.meta.name || configObject.crawlConfig.politenessRef.id;
       }));
   }
 }

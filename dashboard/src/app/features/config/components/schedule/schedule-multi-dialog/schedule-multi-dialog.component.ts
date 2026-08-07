@@ -5,7 +5,6 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
-import { MatInput } from '@angular/material/input';
 import { MatTooltip } from '@angular/material/tooltip';
 import { ScheduleDetailsComponent } from '..';
 import { DateTime } from '../../../../../shared/func';
@@ -16,7 +15,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-schedule-multi-dialog',
   templateUrl: './schedule-multi-dialog.component.html',
-  styleUrls: ['./schedule-multi-dialog.component.css'],
+  styleUrls: ['./schedule-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
     MatButtonModule,
@@ -24,7 +23,6 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
     MatDialogModule,
     MatFormFieldModule,
     MatIcon,
-    MatInput,
     MatTooltip,
     ReactiveFormsModule,
   ],
@@ -39,6 +37,7 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
   shouldAddLabel = undefined;
   allSelected = false;
   shouldRemoveValidFromTo = false;
+  readonly validityRangeDisabledTooltip = $localize`:@@scheduleMassUpdateValidityRangeDisabledTooltip:The validity range is not equal for all selected schedules. Activate it to override the range, or leave it untouched to preserve each schedule's value.`;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
 
@@ -74,6 +73,10 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
     return this.form.get('validTo');
   }
 
+  get validityRangeDisabled(): boolean {
+    return this.validFrom.disabled || this.validTo.disabled;
+  }
+
   ngOnInit(): void {
     this.updateForm();
   }
@@ -90,6 +93,18 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
     } else {
       this.validTo.disable();
     }
+  }
+
+  enableValidityRange(): void {
+    if (!this.canEdit) {
+      return;
+    }
+    this.validFrom.enable();
+    this.validTo.enable();
+  }
+
+  onValidityRangeChanged(): void {
+    this.shouldRemoveValidFromTo = false;
   }
 
   override onRevert() {
@@ -127,6 +142,7 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
   }
 
   protected override updateForm() {
+    this.shouldRemoveValidFromTo = false;
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
       validFrom: this.configObject.crawlScheduleConfig.validFrom
@@ -162,20 +178,22 @@ export class ScheduleMultiDialogComponent extends ScheduleDetailsComponent imple
 
     // BUG in backend sets date to 1.1.1970 when validFrom/validTo is empty
 
-    if (this.validFrom.dirty && (this.allSelected || formModel.validFrom !== this.configObject.crawlScheduleConfig.validFrom)) {
-      crawlScheduleConfig.validFrom = formModel.validFrom ? DateTime.dateToUtc(formModel.validFrom, true) : null;
-      pathList.push('crawlScheduleConfig.validFrom');
-    }
-
-    if (this.validTo.dirty && (this.allSelected || formModel.validTo !== this.configObject.crawlScheduleConfig.validTo)) {
-      crawlScheduleConfig.validTo = formModel.validTo ? DateTime.dateToUtc(formModel.validTo, false) : null;
-      pathList.push('crawlScheduleConfig.validTo');
-    }
-
     if (this.shouldRemoveValidFromTo) {
       crawlScheduleConfig.validFrom = '';
       crawlScheduleConfig.validTo = '';
       pathList.push('crawlScheduleConfig.validFrom', 'crawlScheduleConfig.validTo');
+    } else {
+      if (this.validFrom.dirty &&
+        (this.allSelected || formModel.validFrom !== this.configObject.crawlScheduleConfig.validFrom)) {
+        crawlScheduleConfig.validFrom = formModel.validFrom ? DateTime.dateToUtc(formModel.validFrom, true) : '';
+        pathList.push('crawlScheduleConfig.validFrom');
+      }
+
+      if (this.validTo.dirty &&
+        (this.allSelected || formModel.validTo !== this.configObject.crawlScheduleConfig.validTo)) {
+        crawlScheduleConfig.validTo = formModel.validTo ? DateTime.dateToUtc(formModel.validTo, false) : '';
+        pathList.push('crawlScheduleConfig.validTo');
+      }
     }
 
     return {updateTemplate, pathList};

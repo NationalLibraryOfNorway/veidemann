@@ -3,10 +3,8 @@ import {RunStatus} from '../../../shared/models/controller';
 import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
-import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {MatTooltip} from '@angular/material/tooltip';
+import {DecimalPipe} from '@angular/common';
 
 
 @Component({
@@ -15,10 +13,8 @@ import {MatTooltip} from '@angular/material/tooltip';
   styleUrls: ['./crawlerstatus.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatButtonModule,
-    MatCardModule,
     MatIcon,
-    MatTooltip,
+    DecimalPipe,
   ],
   standalone: true
 })

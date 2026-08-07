@@ -1,0 +1,158 @@
+<mat-card appearance="outlined" class="context-card">
+  <mat-card-header class="card-header-with-helpers">
+    <mat-card-title>{{title}}</mat-card-title>
+    @if (subtitle) {
+      <mat-card-subtitle>{{subtitle}}</mat-card-subtitle>
+    }
+    <ng-content select="[cardHeaderHelpers]"></ng-content>
+  </mat-card-header>
+
+  <mat-card-content>
+    @if (unavailable || !configObject) {
+      <p class="unavailable" role="status">
+        <span i18n="@@configContextUnavailable">Related configuration is unavailable.</span>
+        <span class="monospace">{{configRef.id}}</span>
+      </p>
+    } @else {
+      <dl class="summary-grid">
+        <dt i18n="@@configContextId">ID</dt>
+        <dd>
+          <a matButton class="monospace" [routerLink]="routeFor(configRef)">{{configObject.id}}</a>
+        </dd>
+
+        @switch (configObject.kind) {
+          @case (Kind.SEED) {
+            <dt i18n="@@configContextStatus">Status</dt>
+            <dd>{{configObject.seed.disabled ? 'Deactivated' : 'Active'}}</dd>
+            <dt i18n="@@configContextEntity">Entity</dt>
+            <dd>
+              <a matButton class="monospace" [routerLink]="routeFor(configObject.seed.entityRef)">
+                {{configObject.seed.entityRef.id}}
+              </a>
+            </dd>
+            <dt i18n="@@configContextCrawljobs">Crawljobs</dt>
+            <dd>{{configObject.seed.jobRefList.length}}</dd>
+          }
+          @case (Kind.CRAWLJOB) {
+            <dt i18n="@@configContextStatus">Status</dt>
+            <dd>{{configObject.crawlJob.disabled ? 'Deactivated' : 'Active'}}</dd>
+            <dt i18n="@@configContextMaxDuration">Maximum duration</dt>
+            <dd>{{configObject.crawlJob.limits.maxDurationS}} s</dd>
+            <dt i18n="@@configContextMaxBytes">Maximum size</dt>
+            <dd>{{configObject.crawlJob.limits.maxBytes}} bytes</dd>
+            @if (configObject.crawlJob.scheduleRef.id) {
+              <dt i18n="@@configContextSchedule">Schedule</dt>
+              <dd>
+                <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlJob.scheduleRef)">
+                  {{configObject.crawlJob.scheduleRef.id}}
+                </a>
+              </dd>
+            }
+            <dt i18n="@@configContextCrawlConfig">CrawlConfig</dt>
+            <dd>
+              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlJob.crawlConfigRef)">
+                {{configObject.crawlJob.crawlConfigRef.id}}
+              </a>
+            </dd>
+            @if (configObject.crawlJob.scopeScriptRef.id) {
+              <dt i18n="@@configContextScopeScript">Scope script</dt>
+              <dd>
+                <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlJob.scopeScriptRef)">
+                  {{configObject.crawlJob.scopeScriptRef.id}}
+                </a>
+              </dd>
+            }
+          }
+          @case (Kind.CRAWLSCHEDULECONFIG) {
+            <dt i18n="@@configContextCron">CRON expression</dt>
+            <dd class="monospace">{{configObject.crawlScheduleConfig.cronExpression}}</dd>
+            <dt i18n="@@configContextValidFrom">Valid from</dt>
+            <dd>{{configObject.crawlScheduleConfig.validFrom || '—'}}</dd>
+            <dt i18n="@@configContextValidTo">Valid to</dt>
+            <dd>{{configObject.crawlScheduleConfig.validTo || '—'}}</dd>
+          }
+          @case (Kind.CRAWLCONFIG) {
+            <dt i18n="@@configContextCollection">Collection</dt>
+            <dd>
+              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlConfig.collectionRef)">
+                {{configObject.crawlConfig.collectionRef.id}}
+              </a>
+            </dd>
+            <dt i18n="@@configContextBrowserConfig">BrowserConfig</dt>
+            <dd>
+              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlConfig.browserConfigRef)">
+                {{configObject.crawlConfig.browserConfigRef.id}}
+              </a>
+            </dd>
+            <dt i18n="@@configContextPoliteness">Politeness</dt>
+            <dd>
+              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlConfig.politenessRef)">
+                {{configObject.crawlConfig.politenessRef.id}}
+              </a>
+            </dd>
+            <dt i18n="@@configContextDnsTtl">Minimum DNS TTL</dt>
+            <dd>{{configObject.crawlConfig.minimumDnsTtlS}} s</dd>
+            <dt i18n="@@configContextPriority">Priority weight</dt>
+            <dd>{{configObject.crawlConfig.priorityWeight}}</dd>
+            <dt i18n="@@configContextScreenshots">Screenshots</dt>
+            <dd>{{configObject.crawlConfig.extra.createScreenshot ? 'Enabled' : 'Disabled'}}</dd>
+          }
+          @case (Kind.BROWSERCONFIG) {
+            <dt i18n="@@configContextUserAgent">User agent</dt>
+            <dd>{{configObject.browserConfig.userAgent}}</dd>
+            <dt i18n="@@configContextWindow">Window</dt>
+            <dd>{{configObject.browserConfig.windowWidth}} × {{configObject.browserConfig.windowHeight}}</dd>
+            <dt i18n="@@configContextPageLoadTimeout">Page-load timeout</dt>
+            <dd>{{configObject.browserConfig.pageLoadTimeoutMs}} ms</dd>
+            <dt i18n="@@configContextInactivity">Maximum inactivity</dt>
+            <dd>{{configObject.browserConfig.maxInactivityTimeMs}} ms</dd>
+            <dt i18n="@@configContextScripts">Scripts</dt>
+            <dd>{{configObject.browserConfig.scriptRefList.length}}</dd>
+          }
+          @case (Kind.BROWSERSCRIPT) {
+            <dt i18n="@@configContextScriptType">Script type</dt>
+            <dd>{{BrowserScriptType[configObject.browserScript.browserScriptType]}}</dd>
+            <dt i18n="@@configContextUrlRegexps">URL expressions</dt>
+            <dd>{{configObject.browserScript.urlRegexpList.length}}</dd>
+          }
+          @case (Kind.POLITENESSCONFIG) {
+            <dt i18n="@@configContextRobotsPolicy">Robots policy</dt>
+            <dd>{{RobotsPolicy[configObject.politenessConfig.robotsPolicy]}}</dd>
+            <dt i18n="@@configContextRobotsValidity">Minimum robots validity</dt>
+            <dd>{{configObject.politenessConfig.minimumRobotsValidityDurationS}} s</dd>
+            <dt i18n="@@configContextUseHostname">Use hostname</dt>
+            <dd>{{configObject.politenessConfig.useHostname ? 'Yes' : 'No'}}</dd>
+          }
+          @case (Kind.COLLECTION) {
+            <dt i18n="@@configContextDeduplication">Deduplication</dt>
+            <dd>{{RotationPolicy[configObject.collection.collectionDedupPolicy]}}</dd>
+            <dt i18n="@@configContextFileRotation">File rotation</dt>
+            <dd>{{RotationPolicy[configObject.collection.fileRotationPolicy]}}</dd>
+            <dt i18n="@@configContextFileSize">File size</dt>
+            <dd>{{configObject.collection.fileSize}} bytes</dd>
+            <dt i18n="@@configContextCompression">Compression</dt>
+            <dd>{{configObject.collection.compress ? 'Enabled' : 'Disabled'}}</dd>
+          }
+        }
+      </dl>
+
+      @if (configObject.meta.labelList.length) {
+        <mat-chip-set aria-label="Configuration labels" i18n-aria-label="@@configContextLabels">
+          @for (label of configObject.meta.labelList; track label.key + ':' + label.value) {
+            <mat-chip><app-label-display [key]="label.key" [value]="label.value"></app-label-display></mat-chip>
+          }
+        </mat-chip-set>
+      }
+
+    }
+  </mat-card-content>
+
+  @if (!unavailable && configObject) {
+    <mat-card-actions align="end">
+      <a matButton [routerLink]="routeFor(configRef)">
+        <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+        <span i18n="@@configContextViewDetails">View details</span>
+      </a>
+    </mat-card-actions>
+  }
+</mat-card>

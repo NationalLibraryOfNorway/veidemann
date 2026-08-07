@@ -17,7 +17,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
 @Component({
   selector: 'app-politenessconfig-multi-dialog',
   templateUrl: './politenessconfig-multi-dialog.component.html',
-  styleUrls: ['./politenessconfig-multi-dialog.component.css'],
+  styleUrls: ['./politenessconfig-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     DurationPickerComponent,
     LabelMultiComponent,

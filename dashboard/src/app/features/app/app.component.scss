@@ -1,13 +1,18 @@
 @use '@angular/material' as mat;
 
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .app-shell {
-  width: 100%;
-  height: 100dvh;
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  min-height: 0;
 }
 
 .app-content {
@@ -19,17 +24,8 @@
 
 .primary-drawer {
   width: min(300px, 85vw);
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--mat-sys-surface-container-low);
   color: var(--mat-sys-on-surface);
-}
-
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 56px;
-  padding: 0 8px 0 24px;
-  font: var(--mat-sys-title-medium);
 }
 
 .primary-navigation {
@@ -37,8 +33,43 @@
   padding: 8px 12px;
 }
 
-.navigation-section {
-  padding-top: 8px;
+.primary-navigation .mat-mdc-list-item {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 2px 0;
+  border-radius: var(--mat-sys-corner-full);
+}
+
+.primary-navigation .mat-mdc-list-item.mdc-list-item--activated {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.drawer-section-trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.drawer-section-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.drawer-back {
+  margin: 0 4px 8px;
+  color: inherit;
+}
+
+.navigation-rail {
+  display: none;
 }
 
 .main-toolbar {
@@ -49,39 +80,45 @@
   gap: 4px;
   background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
 .brand-link {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  height: 48px;
-  padding: 0 4px;
+  flex: 0 0 auto;
+  color: inherit;
 }
 
-.veidemann-logo {
+.brand-link picture,
+.rail-icon-container picture,
+.grouse-icon {
   display: block;
-  width: auto;
-  max-width: 136px;
-  max-height: 40px;
+}
+
+.grouse-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.toolbar-title {
+  min-width: 0;
+  overflow: hidden;
+  font: var(--mat-sys-title-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-toolbar-link {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
 }
 
 .toolbar-spacer {
   flex: 1 1 auto;
 }
 
-.desktop-actions {
-  display: none;
-}
-
-.primary-drawer-toggle,
+.toolbar-leading,
 .toolbar-overflow {
   flex: 0 0 auto;
-}
-
-.desktop-actions button {
-  color: inherit;
 }
 
 .module-loader {
@@ -100,35 +137,81 @@ main {
   overflow: hidden;
 }
 
-@media (min-width: 600px) {
-  .veidemann-logo {
-    max-width: 180px;
-  }
-}
-
 @media (min-width: 840px) {
-  .main-toolbar {
-    flex-basis: 64px;
-    min-height: 64px;
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-left: max(12px, env(safe-area-inset-left));
-    gap: 12px;
+  :host {
+    flex-direction: row;
   }
 
-}
-
-@media (min-width: 1200px) {
-  .veidemann-logo {
-    max-width: 250px;
-  }
-
-  .desktop-actions {
+  .navigation-rail {
+    z-index: 2;
     display: flex;
     align-items: center;
-    gap: 4px;
+    flex: 0 0 80px;
+    flex-direction: column;
+    box-sizing: border-box;
+    gap: 8px;
+    width: 80px;
+    height: 100%;
+    padding: 12px 4px;
+    overflow: hidden;
+    background-color: var(--mat-sys-surface-container);
+    color: var(--mat-sys-on-surface);
   }
 
-  .toolbar-overflow {
-    display: none;
+  .rail-action {
+    flex: 0 0 auto;
+    color: inherit;
   }
+
+  .rail-destinations,
+  .rail-actions {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .rail-spacer {
+    flex: 1 1 auto;
+    min-height: 8px;
+  }
+
+  .rail-destination {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 4px;
+    width: 72px;
+    min-height: 56px;
+    color: inherit;
+    font: var(--mat-sys-label-medium);
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .rail-icon-container {
+    display: grid;
+    width: 56px;
+    height: 32px;
+    border-radius: var(--mat-sys-corner-full);
+    place-items: center;
+  }
+
+  .rail-destination:hover .rail-icon-container,
+  .rail-destination:focus-visible .rail-icon-container {
+    background-color: var(--mat-sys-surface-container-highest);
+  }
+
+  .rail-destination.active-rail-destination .rail-icon-container {
+    background-color: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+
+  .rail-label {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
 }

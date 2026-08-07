@@ -1,0 +1,7 @@
+<h2 mat-dialog-title i18n="@@emojiPickerDialogTitle">Choose emoji</h2>
+<mat-dialog-content>
+  <app-emoji-picker (emojiSelected)="selectEmoji($event)"></app-emoji-picker>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close i18n="@@commonButtonCancel">CANCEL</button>
+</mat-dialog-actions>
