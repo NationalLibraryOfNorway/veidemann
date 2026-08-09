@@ -1,11 +1,16 @@
-table {
-  width: 100%;
+:host,
+mat-expansion-panel {
+  display: block;
+  min-width: 0;
 }
 
-.grid {
-  display: grid;
-  overflow-x: hidden;
-  grid-template-columns: 50% 50%;
-  grid-gap: 16px;
-  place-items: start;
+mat-panel-title,
+mat-panel-description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+mat-panel-description {
+  justify-content: flex-end;
+  text-align: right;
 }

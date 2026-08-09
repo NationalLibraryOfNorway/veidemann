@@ -1,5 +1,9 @@
 <form [formGroup]="form" (ngSubmit)="onApply()">
-  <h2 mat-dialog-title i18n="@@annotationEditCardTitle">Edit annotation</h2>
+  @if (data.type === 'label') {
+    <h2 mat-dialog-title i18n="@@labelEditCardTitle">Edit label</h2>
+  } @else {
+    <h2 mat-dialog-title i18n="@@annotationEditCardTitle">Edit annotation</h2>
+  }
 
   <mat-dialog-content>
     <mat-form-field>

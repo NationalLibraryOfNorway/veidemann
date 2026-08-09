@@ -1,9 +1,9 @@
 import {Location} from '@angular/common';
-import {ErrorHandler} from '@angular/core';
+import {ErrorHandler, signal, WritableSignal} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, convertToParamMap, ParamMap, Router} from '@angular/router';
-import {BehaviorSubject, EMPTY, firstValueFrom, of, throwError} from 'rxjs';
+import {BehaviorSubject, EMPTY, firstValueFrom, NEVER, of, throwError} from 'rxjs';
 
 import {AuthService, ControllerApiService, SnackBarService} from '../../../../core';
 import {
@@ -21,6 +21,8 @@ import {ConfigService} from '../../../../shared/services';
 import {OptionsResolver, OptionsService} from '../../services';
 import {RouterExtraService} from '../../services/router-extra.service';
 import {ConfigurationComponent} from './configuration.component';
+import {AbilityServiceSignal} from '@casl/angular';
+import {AppConfig} from '../../../../app.config';
 
 describe('ConfigurationComponent route loading', () => {
   let fixture: ComponentFixture<ConfigurationComponent>;
@@ -31,8 +33,11 @@ describe('ConfigurationComponent route loading', () => {
   let loadOptions: ReturnType<typeof vi.fn>;
   let dialogOpen: ReturnType<typeof vi.fn>;
   let navigate: ReturnType<typeof vi.fn>;
+  let seedReadPermission: WritableSignal<boolean>;
+  let appConfig: AppConfig;
 
   const get = vi.fn((ref: ConfigRef) => of(new ConfigObject({id: ref.id, kind: ref.kind})));
+  const search = vi.fn(() => of<ConfigObject>());
   const getScriptAnnotations = vi.fn(() => of([]));
   const save = vi.fn((configObject: ConfigObject) => of(configObject));
   const move = vi.fn(() => of(1));
@@ -42,9 +47,12 @@ describe('ConfigurationComponent route loading', () => {
     kindParams = new BehaviorSubject(convertToParamMap({kind: 'entity'}));
     options = new BehaviorSubject({});
     get.mockClear();
+    search.mockReset();
+    search.mockReturnValue(of());
     getScriptAnnotations.mockClear();
     move.mockClear();
     canRead = vi.fn(() => true);
+    seedReadPermission = signal(true);
     loadOptions = vi.fn(() => of({}));
     dialogOpen = vi.fn(() => ({componentInstance: {}, afterClosed: () => EMPTY}));
     navigate = vi.fn(() => Promise.resolve(true));
@@ -56,14 +64,24 @@ describe('ConfigurationComponent route loading', () => {
           provide: ActivatedRoute,
           useValue: {paramMap: idParams, parent: {paramMap: kindParams}},
         },
-        {provide: ConfigService, useValue: {get, getScriptAnnotations, save, move, loading$: of(false)}},
+        {provide: ConfigService, useValue: {get, getScriptAnnotations, save, move, search, loading$: of(false)}},
         {provide: OptionsService, useValue: {options$: options, next: vi.fn()}},
         {provide: OptionsResolver, useValue: {load: loadOptions}},
         {provide: AuthService, useValue: {canRead}},
+        {
+          provide: AbilityServiceSignal,
+          useValue: {
+            can: (action: string, subject: string) =>
+              action === 'read' && subject === Kind[Kind.SEED] && seedReadPermission(),
+          },
+        },
         {provide: ControllerApiService, useValue: {}},
         {provide: ErrorHandler, useValue: {handleError: vi.fn()}},
         {provide: SnackBarService, useValue: {openSnackBar: vi.fn()}},
-        {provide: RouterExtraService, useValue: {}},
+        {
+          provide: RouterExtraService,
+          useValue: {getCurrentUrl: () => '', getPreviousUrl: () => ''},
+        },
         {provide: Location, useValue: {}},
         {provide: Router, useValue: {events: EMPTY, navigate}},
         {provide: MatDialog, useValue: {open: dialogOpen, closeAll: vi.fn()}},
@@ -72,6 +90,8 @@ describe('ConfigurationComponent route loading', () => {
       .overrideComponent(ConfigurationComponent, {set: {template: ''}})
       .compileComponents();
 
+    appConfig = TestBed.inject(AppConfig);
+    appConfig.labelLinks = {};
     fixture = TestBed.createComponent(ConfigurationComponent);
   });
 
@@ -96,6 +116,117 @@ describe('ConfigurationComponent route loading', () => {
       kind: Kind.CRAWLENTITY,
     }));
     expect(loaded.at(-1)).toEqual(expect.objectContaining({id: 'entity-2'}));
+  });
+
+  it('resolves matching label links for the detail context aside', () => {
+    appConfig.labelLinks = {
+      owner: {text: 'Owner registry', urlTemplate: 'https://example.com/owners/{value}'},
+      ignored: {text: 'Ignored', urlTemplate: 'javascript:{value}'},
+    };
+    const configObject = new ConfigObject({
+      meta: new Meta({labelList: [
+        new Label({key: 'owner', value: 'national archive'}),
+        new Label({key: 'ignored', value: 'unsafe'}),
+      ]}),
+    });
+
+    expect(fixture.componentInstance.labelLinksFor(configObject)).toEqual([{
+      text: 'Owner registry',
+      href: 'https://example.com/owners/national%20archive',
+    }]);
+  });
+
+  it('loads only the first seed page for an entity supporting list', async () => {
+    search.mockReturnValue(of(
+      new ConfigObject({id: 'seed-a', kind: Kind.SEED, meta: new Meta({name: 'Alpha'})}),
+      new ConfigObject({id: 'seed-z', kind: Kind.SEED, meta: new Meta({name: 'Zulu'})}),
+    ));
+    search.mockClear();
+    fixture.componentInstance.entitySeedDataSource.reload();
+    fixture.detectChanges();
+    const seeds = await firstValueFrom(fixture.componentInstance.entitySeedDataSource.rows$);
+
+    expect(seeds).toEqual([
+      expect.objectContaining({id: 'seed-a'}),
+      expect.objectContaining({id: 'seed-z'}),
+    ]);
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({kind: Kind.SEED, entityId: 'entity-1'}),
+      {offset: 0, pageSize: 100},
+    );
+  });
+
+  it('loads the initial entity seed page without requiring an explicit reload', async () => {
+    fixture.destroy();
+    search.mockReturnValue(of(
+      new ConfigObject({id: 'seed-initial', kind: Kind.SEED, meta: new Meta({name: 'Initial seed'})}),
+    ));
+    search.mockClear();
+    fixture = TestBed.createComponent(ConfigurationComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const rows = await firstValueFrom(fixture.componentInstance.entitySeedDataSource.rows$);
+    expect(rows).toEqual([expect.objectContaining({id: 'seed-initial'})]);
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({kind: Kind.SEED, entityId: 'entity-1'}),
+      {offset: 0, pageSize: 100},
+    );
+  });
+
+  it('starts loading seeds from the route before entity details finish loading', async () => {
+    fixture.destroy();
+    get.mockReturnValueOnce(NEVER);
+    search.mockReturnValue(of(
+      new ConfigObject({id: 'seed-before-entity', kind: Kind.SEED, meta: new Meta({name: 'Early seed'})}),
+    ));
+    search.mockClear();
+    fixture = TestBed.createComponent(ConfigurationComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({kind: Kind.SEED, entityId: 'entity-1'}),
+      {offset: 0, pageSize: 100},
+    );
+    await expect(firstValueFrom(fixture.componentInstance.entitySeedDataSource.rows$))
+      .resolves.toEqual([expect.objectContaining({id: 'seed-before-entity'})]);
+  });
+
+  it('loads the initial seed page when seed-read permission becomes available', async () => {
+    fixture.destroy();
+    seedReadPermission.set(false);
+    search.mockReturnValue(of(
+      new ConfigObject({id: 'seed-after-auth', kind: Kind.SEED, meta: new Meta({name: 'Authorized seed'})}),
+    ));
+    search.mockClear();
+    fixture = TestBed.createComponent(ConfigurationComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(search).not.toHaveBeenCalled();
+
+    seedReadPermission.set(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({kind: Kind.SEED, entityId: 'entity-1'}),
+      {offset: 0, pageSize: 100},
+    );
+    await expect(firstValueFrom(fixture.componentInstance.entitySeedDataSource.rows$))
+      .resolves.toEqual([expect.objectContaining({id: 'seed-after-auth'})]);
+  });
+
+  it('reloads the bounded entity seed list when its state chip changes', async () => {
+    search.mockClear();
+
+    fixture.componentInstance.onEntitySeedStatusChange(true);
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({kind: Kind.SEED, entityId: 'entity-1', disabled: true}),
+      {offset: 0, pageSize: 100},
+    );
   });
 
   it('reloads seed details after a successful entity move', async () => {
@@ -123,6 +254,32 @@ describe('ConfigurationComponent route loading', () => {
     expect(loadOptions).toHaveBeenCalledWith(Kind.COLLECTION);
     expect(dialogOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       data: expect.objectContaining({options: expect.objectContaining({rotationPolicies})}),
+    }));
+  });
+
+  it('opens confirmation and run dialogs as Escape-dismissible and accepts an empty result', () => {
+    dialogOpen.mockReturnValue({componentInstance: {}, afterClosed: () => of(undefined)});
+    const seed = new ConfigObject({id: 'seed', kind: Kind.SEED});
+    fixture.componentInstance.options = {crawlJobs: []};
+
+    fixture.componentInstance.onDeleteConfig(seed);
+    fixture.componentInstance.onRunCrawl(seed);
+
+    expect(dialogOpen).toHaveBeenCalledTimes(2);
+    for (const call of dialogOpen.mock.calls as unknown as [unknown, {disableClose?: boolean}][]) {
+      expect(call[1]).toEqual(expect.objectContaining({disableClose: false}));
+    }
+  });
+
+  it('opens a seed run dialog with the related crawljob preselected', () => {
+    const seed = new ConfigObject({id: 'seed-1', kind: Kind.SEED});
+    const crawlJob = new ConfigObject({id: 'job-1', kind: Kind.CRAWLJOB});
+    fixture.componentInstance.options = {crawlJobs: [crawlJob]};
+
+    fixture.componentInstance.onRunSeedInCrawlJob(seed, crawlJob);
+
+    expect(dialogOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      data: {configObject: seed, jobRefId: crawlJob.id, crawlJobs: [crawlJob]},
     }));
   });
 

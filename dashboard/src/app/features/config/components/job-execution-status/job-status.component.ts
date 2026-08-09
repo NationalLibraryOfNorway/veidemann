@@ -1,8 +1,14 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models/report';
 import {DatePipe} from '@angular/common';
+import {MatButtonModule} from '@angular/material/button';
 import {MatExpansionModule} from '@angular/material/expansion';
-import {MatTableModule} from '@angular/material/table';
+import {RouterLink} from '@angular/router';
+
+import {ConfigObject, JobExecutionStatus} from '../../../../shared/models';
+import {
+  JobExecutionStatisticsComponent
+} from '../../../report/components/job-execution-statistics/job-execution-statistics.component';
+import {jobExecutionStatePresentation} from '../../../report/func';
 
 @Component({
   selector: 'app-config-job-execution-status',
@@ -11,24 +17,22 @@ import {MatTableModule} from '@angular/material/table';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
+    JobExecutionStatisticsComponent,
+    MatButtonModule,
     MatExpansionModule,
-    MatTableModule
+    RouterLink,
   ],
   standalone: true
 })
 export class JobStatusComponent {
-  readonly JobExecutionState = JobExecutionState;
+  readonly statePresentation = jobExecutionStatePresentation;
 
-  @Input()
+  @Input({required: true})
   jobExecutionStatus: JobExecutionStatus;
 
-  displayedColumns: string[] = ['state', 'count'];
+  @Input({required: true})
+  crawlJob: ConfigObject;
 
-  getExecMap(executionStateMap: Map<string, number>) {
-    const datasource = [];
-    for (const [key, value] of executionStateMap) {
-      datasource.push({key, value});
-    }
-    return datasource;
-  }
+  @Input()
+  canReadJobExecution = true;
 }

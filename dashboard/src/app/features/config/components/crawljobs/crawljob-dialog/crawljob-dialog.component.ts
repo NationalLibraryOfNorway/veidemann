@@ -4,13 +4,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CrawlJobDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
 import { MetaComponent } from '../../meta/meta.component';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-crawljob-dialog',
@@ -21,7 +21,7 @@ import { MetaComponent } from '../../meta/meta.component';
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatSlideToggleModule,
+    BooleanStateChipComponent,
     MetaComponent,
     ReactiveFormsModule,
     DurationPickerComponent,

@@ -4,7 +4,7 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {EMPTY, Subject, of, throwError} from 'rxjs';
 
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/models';
+import {ConfigObject, CrawlExecutionStatus, JobExecutionStatus, Meta} from '../../../../shared/models';
 import {CrawlExecutionService, JobExecutionService} from '../../services';
 import {LogListShortcutsComponent} from './log-list-shortcuts.component';
 
@@ -34,7 +34,10 @@ describe('LogListShortcutsComponent', () => {
         provideRouter([]),
         {provide: AbilityServiceSignal, useValue: {can}},
         {provide: CrawlExecutionService, useValue: {get: getCrawlExecution}},
-        {provide: JobExecutionService, useValue: {get: getJobExecution}},
+        {provide: JobExecutionService, useValue: {
+          get: getJobExecution,
+          getJob: () => of(new ConfigObject({meta: new Meta({name: 'Daily crawl'})})),
+        }},
       ],
     }).compileComponents();
 
@@ -75,7 +78,7 @@ describe('LogListShortcutsComponent', () => {
 
     expect(getJobExecution).toHaveBeenCalledWith({id: 'job-execution-1', watch: false});
     expect(fixture.nativeElement.textContent).toContain('Job execution');
-    expect(fixture.nativeElement.textContent).toContain('Crawl job');
+    expect(fixture.nativeElement.textContent).toContain('Daily crawl');
     expect(fixture.nativeElement.textContent).not.toContain('Crawl executions');
     expect(fixture.nativeElement.textContent).not.toContain('Seed');
   });

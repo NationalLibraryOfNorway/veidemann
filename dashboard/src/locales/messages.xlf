@@ -48,6 +48,21 @@
         <source>Something went wrong. Try again.</source>
       </segment>
     </unit>
+    <unit id="statusCodeTooltip">
+      <segment>
+        <source>Status code</source>
+      </segment>
+    </unit>
+    <unit id="subcollectionTypeDns">
+      <segment>
+        <source>DNS</source>
+      </segment>
+    </unit>
+    <unit id="subcollectionTypeScreenshot">
+      <segment>
+        <source>Screenshot</source>
+      </segment>
+    </unit>
     <unit id="4675308506928673670">
       <notes>
         <note category="description">configIdLabel</note>
@@ -143,6 +158,11 @@
         <source>Active filters</source>
       </segment>
     </unit>
+    <unit id="activeConfigRemoveFilterLabel">
+      <segment>
+        <source>Remove <ph id="0" equiv="PH" disp="chip.label"/> filter</source>
+      </segment>
+    </unit>
     <unit id="annotationChipListPlaceholder">
       <segment>
         <source>New annotation...</source>
@@ -178,9 +198,14 @@
         <source>Suggested annotation keys</source>
       </segment>
     </unit>
-    <unit id="annotationSuggestionsLabel">
+    <unit id="annotationSuggestionsTriggerAriaLabel">
       <segment>
-        <source> Suggested annotation keys </source>
+        <source>Show suggested annotation keys</source>
+      </segment>
+    </unit>
+    <unit id="annotationSuggestionsTriggerLabel">
+      <segment>
+        <source> Suggested keys (<ph id="0" equiv="INTERPOLATION" disp="{{suggestions.length}}"/>) </source>
       </segment>
     </unit>
     <unit id="annotationValueEmptyError">
@@ -298,19 +323,14 @@
         <source>Browserscript</source>
       </segment>
     </unit>
+    <unit id="browserscriptEditorDialogLabel">
+      <segment>
+        <source>Script editor</source>
+      </segment>
+    </unit>
     <unit id="browserScriptFormBrowserScriptTypeDropdownLabel">
       <segment>
         <source> Script type </source>
-      </segment>
-    </unit>
-    <unit id="browserscriptEditScriptDialogTitle">
-      <segment>
-        <source>Edit script: <ph id="0" equiv="INTERPOLATION" disp="{{data.name}}"/></source>
-      </segment>
-    </unit>
-    <unit id="browserscriptFormScriptLabel">
-      <segment>
-        <source>Script</source>
       </segment>
     </unit>
     <unit id="browserscriptFormScriptRequiredError">
@@ -343,19 +363,29 @@
         <source>Edit the expression</source>
       </segment>
     </unit>
+    <unit id="browserscriptScriptActionsLabel">
+      <segment>
+        <source>Script actions</source>
+      </segment>
+    </unit>
     <unit id="browserscriptUrlRegexpInputLabel">
       <segment>
         <source> URL regexp </source>
       </segment>
     </unit>
-    <unit id="browserscriptViewScriptDialogTitle">
-      <segment>
-        <source>View script: <ph id="0" equiv="INTERPOLATION" disp="{{data.name}}"/></source>
-      </segment>
-    </unit>
     <unit id="collectionDedupPolicyDropdownLabel">
       <segment>
         <source> Deduplication policy </source>
+      </segment>
+    </unit>
+    <unit id="collectionAddDnsSubcollectionButton">
+      <segment>
+        <source>Add DNS collection</source>
+      </segment>
+    </unit>
+    <unit id="collectionAddScreenshotSubcollectionButton">
+      <segment>
+        <source>Add screenshot collection</source>
       </segment>
     </unit>
     <unit id="collectionDetailsCardTitle">
@@ -368,29 +398,34 @@
         <source> Collection </source>
       </segment>
     </unit>
+    <unit id="collectionDuplicateSubcollectionTypeError">
+      <segment>
+        <source>Only one subcollection of each type is allowed.</source>
+      </segment>
+    </unit>
     <unit id="collectionFileRotationPolicyDropdownLabel">
       <segment>
         <source> File rotation policy </source>
       </segment>
     </unit>
-    <unit id="collectionFormAddSubcollectionButton">
-      <segment>
-        <source>ADD SUBCOLLECTION</source>
-      </segment>
-    </unit>
     <unit id="collectionFormCompressLabel">
       <segment>
-        <source> Compress </source>
+        <source>Compression</source>
       </segment>
     </unit>
-    <unit id="collectionFormRemoveSubcollectionButton">
+    <unit id="collectionFormCompressedLabel">
       <segment>
-        <source>REMOVE</source>
+        <source>(compressed)</source>
+      </segment>
+    </unit>
+    <unit id="collectionFormUncompressedLabel">
+      <segment>
+        <source>(uncompressed)</source>
       </segment>
     </unit>
     <unit id="collectionFormSubCollectionNameLabel">
       <segment>
-        <source> Name </source>
+        <source>Name</source>
       </segment>
     </unit>
     <unit id="collectionFormSubCollectionTitle">
@@ -410,12 +445,7 @@
     </unit>
     <unit id="collectionMetaSubcollectionNamePatternError">
       <segment>
-        <source> Invalid name. (Valid characters are A-Å a-å 0-9 _) </source>
-      </segment>
-    </unit>
-    <unit id="collectionMetaSubcollectionNameRequiredError">
-      <segment>
-        <source> The field is required </source>
+        <source>Enter at least two valid characters.</source>
       </segment>
     </unit>
     <unit id="collectionMissingFileSizeError">
@@ -425,7 +455,17 @@
     </unit>
     <unit id="collectionSubCollectionTypeDropdownLabel">
       <segment>
-        <source> Subcollection type </source>
+        <source>Subcollection type</source>
+      </segment>
+    </unit>
+    <unit id="collectionSubcollectionActionsLabel">
+      <segment>
+        <source>Subcollection actions</source>
+      </segment>
+    </unit>
+    <unit id="collectionTooltip">
+      <segment>
+        <source>Collection</source>
       </segment>
     </unit>
     <unit id="commonButtonApply">
@@ -483,14 +523,34 @@
         <source> New (unsaved)</source>
       </segment>
     </unit>
+    <unit id="commonDisabled">
+      <segment>
+        <source>Disabled</source>
+      </segment>
+    </unit>
+    <unit id="commonEnabled">
+      <segment>
+        <source>Enabled</source>
+      </segment>
+    </unit>
     <unit id="commonMoreActionsLabel">
       <segment>
         <source>More actions</source>
       </segment>
     </unit>
+    <unit id="commonNo">
+      <segment>
+        <source>No</source>
+      </segment>
+    </unit>
     <unit id="commonNotAvailable">
       <segment>
         <source>Not available</source>
+      </segment>
+    </unit>
+    <unit id="commonYes">
+      <segment>
+        <source>Yes</source>
       </segment>
     </unit>
     <unit id="configContextBrowserConfig">
@@ -546,11 +606,6 @@
     <unit id="configContextFileSize">
       <segment>
         <source>File size</source>
-      </segment>
-    </unit>
-    <unit id="configContextId">
-      <segment>
-        <source>ID</source>
       </segment>
     </unit>
     <unit id="configContextInactivity">
@@ -613,11 +668,6 @@
         <source>Screenshots</source>
       </segment>
     </unit>
-    <unit id="configContextScripts">
-      <segment>
-        <source>Scripts</source>
-      </segment>
-    </unit>
     <unit id="configContextScriptType">
       <segment>
         <source>Script type</source>
@@ -626,6 +676,11 @@
     <unit id="configContextStatus">
       <segment>
         <source>Status</source>
+      </segment>
+    </unit>
+    <unit id="configContextSummary">
+      <segment>
+        <source>Summary</source>
       </segment>
     </unit>
     <unit id="configContextUnavailable">
@@ -640,7 +695,7 @@
     </unit>
     <unit id="configContextUseHostname">
       <segment>
-        <source>Use hostname</source>
+        <source>Hostname state</source>
       </segment>
     </unit>
     <unit id="configContextUserAgent">
@@ -665,7 +720,7 @@
     </unit>
     <unit id="configContextWindow">
       <segment>
-        <source>Window</source>
+        <source>Viewport</source>
       </segment>
     </unit>
     <unit id="configLastCrawlExecutionTitle">
@@ -873,6 +928,11 @@
         <source> BrowserScript </source>
       </segment>
     </unit>
+    <unit id="configQueryClearSearchLabel">
+      <segment>
+        <source>Clear search</source>
+      </segment>
+    </unit>
     <unit id="configQueryCollectionDropdownLabel">
       <segment>
         <source>Collection</source>
@@ -888,34 +948,19 @@
         <source> CrawlJob </source>
       </segment>
     </unit>
+    <unit id="configQueryEmojiSearchHelperLabel">
+      <segment>
+        <source>Choose label emoji</source>
+      </segment>
+    </unit>
     <unit id="configQueryEntityIdInputLabel">
       <segment>
         <source> Entity Id </source>
       </segment>
     </unit>
-    <unit id="configQueryExactLabelSuggestion">
+    <unit id="configQueryLabelSearchHelperLabel">
       <segment>
-        <source>Exact label</source>
-      </segment>
-    </unit>
-    <unit id="configQueryLabelKeySuggestion">
-      <segment>
-        <source>Label key</source>
-      </segment>
-    </unit>
-    <unit id="configQueryLabelSuggestionsAriaLabel">
-      <segment>
-        <source>Suggested label searches</source>
-      </segment>
-    </unit>
-    <unit id="configQueryLabelSuggestionsLabel">
-      <segment>
-        <source> Try a label search </source>
-      </segment>
-    </unit>
-    <unit id="configQueryLabelValuePrefixSuggestion">
-      <segment>
-        <source>Value prefix</source>
+        <source>Insert label search</source>
       </segment>
     </unit>
     <unit id="configQueryPolitenessDropdownLabel">
@@ -926,6 +971,11 @@
     <unit id="configQueryRemoveCrawlJobFilterLabel">
       <segment>
         <source>Remove <ph id="0" equiv="PH" disp="name"/> crawl job filter</source>
+      </segment>
+    </unit>
+    <unit id="configQueryRemoveLabelFilterLabel">
+      <segment>
+        <source>Remove <ph id="0" equiv="PH" disp="chip.value"/> label filter</source>
       </segment>
     </unit>
     <unit id="configQueryScheduleDropdownLabel">
@@ -1003,11 +1053,6 @@
         <source>Status</source>
       </segment>
     </unit>
-    <unit id="configQueryStatusShowAll">
-      <segment>
-        <source>Show all</source>
-      </segment>
-    </unit>
     <unit id="configQueryStatusShowDisabled">
       <segment>
         <source>Show disabled</source>
@@ -1021,6 +1066,11 @@
     <unit id="configRelatedContextTitle">
       <segment>
         <source>Related configurations</source>
+      </segment>
+    </unit>
+    <unit id="configLatestJobExecutionTitle">
+      <segment>
+        <source>Latest job execution</source>
       </segment>
     </unit>
     <unit id="configurationDeleteSelectedConfigurationsButtonTooltip">
@@ -1128,14 +1178,9 @@
         <source>Seed</source>
       </segment>
     </unit>
-    <unit id="copyConfigIdTooltip">
+    <unit id="copyIdChip">
       <segment>
-        <source>Copy configuration ID</source>
-      </segment>
-    </unit>
-    <unit id="copyCrawlLogIdTooltip">
-      <segment>
-        <source>Copy crawl log ID</source>
+        <source>Copy ID</source>
       </segment>
     </unit>
     <unit id="copyIdFailure">
@@ -1151,6 +1196,16 @@
     <unit id="copyIdTooltip">
       <segment>
         <source>Copy ID</source>
+      </segment>
+    </unit>
+    <unit id="copyJobExecutionIdTooltip">
+      <segment>
+        <source>Copy job execution ID</source>
+      </segment>
+    </unit>
+    <unit id="copyWarcIdChip">
+      <segment>
+        <source>Copy WARC ID</source>
       </segment>
     </unit>
     <unit id="copyWarcIdTooltip">
@@ -1180,7 +1235,7 @@
     </unit>
     <unit id="crawlconfigFormCreateScreenshotLabel">
       <segment>
-        <source> Create screenshot </source>
+        <source>Create screenshots</source>
       </segment>
     </unit>
     <unit id="crawlconfigFormMinDNSTTLValidationError">
@@ -1288,6 +1343,21 @@
         <source> Monitor crawler activity and follow running jobs in one place. </source>
       </segment>
     </unit>
+    <unit id="dashboardWelcomeTitle">
+      <segment>
+        <source>Logged out</source>
+      </segment>
+    </unit>
+    <unit id="dashboardWelcomeSubtitle">
+      <segment>
+        <source>Sign in to access Veidemann.</source>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFailedFilterLabel">
+      <segment>
+        <source>Failed filter</source>
+      </segment>
+    </unit>
     <unit id="crawlExecutionReportFilterCrawlJobLabel">
       <segment>
         <source> CrawlJob </source>
@@ -1301,6 +1371,11 @@
     <unit id="crawlExecutionReportFilterDateRangeHint">
       <segment>
         <source>Both dates are inclusive</source>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionReportFilterHasErrorLabel">
+      <segment>
+        <source>Failed</source>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterJobExecutionIdLabel">
@@ -1433,6 +1508,11 @@
         <source>Documents retried</source>
       </segment>
     </unit>
+    <unit id="executionDurationMetric">
+      <segment>
+        <source>Duration</source>
+      </segment>
+    </unit>
     <unit id="executionEndedLabel">
       <segment>
         <source>Ended</source>
@@ -1441,6 +1521,11 @@
     <unit id="reportDetailJobExecutionAction">
       <segment>
         <source>Job execution</source>
+      </segment>
+    </unit>
+    <unit id="viewJobExecutionAction">
+      <segment>
+        <source>View job execution</source>
       </segment>
     </unit>
     <unit id="reportDetailPageLogAction">
@@ -1466,56 +1551,6 @@
     <unit id="executionLastChangedLabel">
       <segment>
         <source>Last changed</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsBytesColumn">
-      <segment>
-        <source>Bytes</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsDocumentsColumn">
-      <segment>
-        <source>Documents</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsEmpty">
-      <segment>
-        <source>No crawls are running</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsJobColumn">
-      <segment>
-        <source>Crawl job</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsLoading">
-      <segment>
-        <source>Loading running crawls…</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsStartColumn">
-      <segment>
-        <source>Started</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsStatusColumn">
-      <segment>
-        <source>Status</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsSubtitle">
-      <segment>
-        <source>The 10 most recently started job executions</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsTitle">
-      <segment>
-        <source>Running crawls</source>
-      </segment>
-    </unit>
-    <unit id="runningCrawlsViewAll">
-      <segment>
-        <source>View all running crawls</source>
       </segment>
     </unit>
     <unit id="executionStartedLabel">
@@ -1768,6 +1803,16 @@
         <source>Desired state </source>
       </segment>
     </unit>
+    <unit id="crawlJobExecutionReportListDocumentsCrawledHeaderCell">
+      <segment>
+        <source>Documents crawled </source>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListDurationHeaderCell">
+      <segment>
+        <source>Duration </source>
+      </segment>
+    </unit>
     <unit id="crawlJobExecutionReportListEndTimeHeaderCell">
       <segment>
         <source>End </source>
@@ -1823,19 +1868,9 @@
         <source>Crawl executions</source>
       </segment>
     </unit>
-    <unit id="jobExecutionCrawlJobLabel">
-      <segment>
-        <source>Crawl job</source>
-      </segment>
-    </unit>
     <unit id="jobExecutionDetailGridLabel">
       <segment>
         <source>Job execution details</source>
-      </segment>
-    </unit>
-    <unit id="jobExecutionIdLabel">
-      <segment>
-        <source>Execution ID</source>
       </segment>
     </unit>
     <unit id="jobExecutionNoCrawlExecutions">
@@ -1953,24 +1988,9 @@
         <source> A scope script is required </source>
       </segment>
     </unit>
-    <unit id="crawlLogCrawlExecutionIdChip">
-      <segment>
-        <source>Crawl execution ID: <ph id="0" equiv="INTERPOLATION" disp="{{crawlLog.executionId}}"/></source>
-      </segment>
-    </unit>
-    <unit id="crawlLogIdChip">
-      <segment>
-        <source>ID: <ph id="0" equiv="INTERPOLATION" disp="{{crawlLog.id}}"/></source>
-      </segment>
-    </unit>
     <unit id="crawlLogIdentifiersLabel">
       <segment>
         <source>Crawl log identifiers</source>
-      </segment>
-    </unit>
-    <unit id="crawlLogJobExecutionIdChip">
-      <segment>
-        <source>Job execution ID: <ph id="0" equiv="INTERPOLATION" disp="{{crawlLog.jobExecutionId}}"/></source>
       </segment>
     </unit>
     <unit id="crawlLogReportListContentTypeHeaderCell">
@@ -2090,12 +2110,12 @@
     </unit>
     <unit id="effectiveScriptAnnotationsEmpty">
       <segment>
-        <source> No script annotations are active. </source>
+        <source>No script annotations are active.</source>
       </segment>
     </unit>
-    <unit id="effectiveScriptAnnotationsTitle">
+    <unit id="effectiveScriptAnnotationValuesLabel">
       <segment>
-        <source> Effective script annotations </source>
+        <source>Effective script annotation values</source>
       </segment>
     </unit>
     <unit id="effectiveScriptAnnotationsUnavailable">
@@ -2158,6 +2178,11 @@
         <source>Skin tone</source>
       </segment>
     </unit>
+    <unit id="emptyOutlinkLabel">
+      <segment>
+        <source>Empty outlink</source>
+      </segment>
+    </unit>
     <unit id="entityDetailsCardTitle">
       <segment>
         <source>CrawlConfig</source>
@@ -2198,6 +2223,11 @@
         <source> <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidUnit&apos;].unit}}"/> doesn&apos;t appear to be a valid unit </source>
       </segment>
     </unit>
+    <unit id="httpMethodTooltip">
+      <segment>
+        <source>HTTP method</source>
+      </segment>
+    </unit>
     <unit id="ipRangeListHeader">
       <segment>
         <source>IP range</source>
@@ -2206,21 +2236,6 @@
     <unit id="labelEditCardTitle">
       <segment>
         <source>Edit label</source>
-      </segment>
-    </unit>
-    <unit id="labelFormAddNewKeyPlaceholder">
-      <segment>
-        <source>Key</source>
-      </segment>
-    </unit>
-    <unit id="labelFormAddNewValuePlaceholder">
-      <segment>
-        <source>Value</source>
-      </segment>
-    </unit>
-    <unit id="labelKeyEmptyError">
-      <segment>
-        <source> Can&apos;t be empty or contain a colon. </source>
       </segment>
     </unit>
     <unit id="labelListInputLabel">
@@ -2243,9 +2258,34 @@
         <source>Remove labels from the selected configs</source>
       </segment>
     </unit>
-    <unit id="labelValueEmptyError">
+    <unit id="lastCrawlExecutionNavigationLabel">
       <segment>
-        <source> Can&apos;t be empty. </source>
+        <source>Last crawl execution navigation</source>
+      </segment>
+    </unit>
+    <unit id="lastCrawlExecutionStateLabel">
+      <segment>
+        <source>Execution state</source>
+      </segment>
+    </unit>
+    <unit id="latestCrawlJobsEmpty">
+      <segment>
+        <source>No crawl jobs match the selected states</source>
+      </segment>
+    </unit>
+    <unit id="latestCrawlJobsLoading">
+      <segment>
+        <source>Loading crawl jobs…</source>
+      </segment>
+    </unit>
+    <unit id="latestCrawlJobsStateFilterLabel">
+      <segment>
+        <source>Filter latest crawl jobs by state</source>
+      </segment>
+    </unit>
+    <unit id="latestCrawlJobsTitle">
+      <segment>
+        <source>Latest crawl jobs</source>
       </segment>
     </unit>
     <unit id="mainMenuConfiguration">
@@ -2265,7 +2305,12 @@
     </unit>
     <unit id="configurationListAllLoadedSelectedMessage">
       <segment>
-        <source> All <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ selectedRows().length | number }}"/></pc> <ph id="2" equiv="INTERPOLATION_1" disp="{{ configTypePluralLabel() }}"/> on this page are selected. </source>
+        <source> All <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ selectedRows().length | number }}"/></pc> <ph id="2" equiv="INTERPOLATION_1" disp="{{ configTypePluralLabel() }}"/> of <ph id="3" equiv="INTERPOLATION_2" disp="{{ total | number }}"/> selected. </source>
+      </segment>
+    </unit>
+    <unit id="configurationListAllLoadedSelectedWithoutTotalMessage">
+      <segment>
+        <source> All <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ selectedRows().length | number }}"/></pc> <ph id="2" equiv="INTERPOLATION_1" disp="{{ configTypePluralLabel() }}"/> selected. </source>
       </segment>
     </unit>
     <unit id="configurationListBulkActionsAriaLabel">
@@ -2283,6 +2328,16 @@
         <source>Database selection</source>
       </segment>
     </unit>
+    <unit id="configurationListDeactivatedStatus">
+      <segment>
+        <source>Deactivated</source>
+      </segment>
+    </unit>
+    <unit id="configurationListDeselectConfigurationAriaLabel">
+      <segment>
+        <source>Deselect <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></source>
+      </segment>
+    </unit>
     <unit id="configurationListLabelSearchAriaLabel">
       <segment>
         <source>Search for exact label <ph id="0" equiv="LABEL" disp="labelText"/></source>
@@ -2290,7 +2345,17 @@
     </unit>
     <unit id="configurationListLoadedSelectedMessage">
       <segment>
-        <source><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ selectedRows().length | number }}"/></pc> loaded configurations selected. </source>
+        <source><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ selectedRows().length | number }}"/></pc> <ph id="2" equiv="INTERPOLATION_1" disp="{{ configTypePluralLabel() }}"/> of <ph id="3" equiv="INTERPOLATION_2" disp="{{ total | number }}"/> selected. </source>
+      </segment>
+    </unit>
+    <unit id="configurationListLoadedSelectedWithoutTotalMessage">
+      <segment>
+        <source><pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ selectedRows().length | number }}"/></pc> <ph id="2" equiv="INTERPOLATION_1" disp="{{ configTypePluralLabel() }}"/> selected. </source>
+      </segment>
+    </unit>
+    <unit id="configurationListMoreActions">
+      <segment>
+        <source>More actions</source>
       </segment>
     </unit>
     <unit id="configurationListRemoveSelectionChip">
@@ -2308,6 +2373,16 @@
         <source>Select all loaded configurations</source>
       </segment>
     </unit>
+    <unit id="configurationListSelectConfigurationAriaLabel">
+      <segment>
+        <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListRowActionsAriaLabel">
+      <segment>
+        <source>Row actions</source>
+      </segment>
+    </unit>
     <unit id="configurationListTypeBrowserConfigurations">
       <segment>
         <source>browser configurations</source>
@@ -2315,7 +2390,7 @@
     </unit>
     <unit id="configurationListResultCount">
       <segment>
-        <source> Showing <ph id="0" equiv="INTERPOLATION" disp="{{ loadedLength() | number }}"/> of <ph id="1" equiv="INTERPOLATION_1" disp="{{ total | number }}"/> items </source>
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{ loadedLength() | number }}"/> of <ph id="1" equiv="INTERPOLATION_1" disp="{{ total | number }}"/> <ph id="2" equiv="INTERPOLATION_2" disp="{{ configTypePluralLabel() }}"/> </source>
       </segment>
     </unit>
     <unit id="configurationListTypeBrowserScripts">
@@ -2388,21 +2463,6 @@
         <source>Reports overview</source>
       </segment>
     </unit>
-    <unit id="mainToolbarAboutMenuItem">
-      <segment>
-        <source>About</source>
-      </segment>
-    </unit>
-    <unit id="mainToolbarDocsMenuItem">
-      <segment>
-        <source>Docs</source>
-      </segment>
-    </unit>
-    <unit id="mainToolbarHelpButtonLabel">
-      <segment>
-        <source>Help</source>
-      </segment>
-    </unit>
     <unit id="mainToolbarHomeLinkLabel">
       <segment>
         <source>Veidemann home</source>
@@ -2431,6 +2491,11 @@
     <unit id="mainToolbarScheduleMenuItem">
       <segment>
         <source>Crawljob schedule</source>
+      </segment>
+    </unit>
+    <unit id="malformedOutlinkLabel">
+      <segment>
+        <source>Malformed outlink</source>
       </segment>
     </unit>
     <unit id="massUpdateDialogDescription">
@@ -2523,19 +2588,19 @@
         <source> Name is required. </source>
       </segment>
     </unit>
-    <unit id="pageLogCollectionChip">
+    <unit id="openCollectionTooltip">
+      <segment>
+        <source>Open collection</source>
+      </segment>
+    </unit>
+    <unit id="outlinkUriHeader">
+      <segment>
+        <source>URI</source>
+      </segment>
+    </unit>
+    <unit id="pageLogCollectionAriaLabel">
       <segment>
         <source>Collection: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.collectionFinalName}}"/></source>
-      </segment>
-    </unit>
-    <unit id="pageLogCrawlExecutionChip">
-      <segment>
-        <source>Crawl execution: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.executionId}}"/></source>
-      </segment>
-    </unit>
-    <unit id="pageLogJobExecutionChip">
-      <segment>
-        <source>Job execution: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.jobExecutionId}}"/></source>
       </segment>
     </unit>
     <unit id="pageLogMetadataLabel">
@@ -2543,7 +2608,7 @@
         <source>Page log metadata</source>
       </segment>
     </unit>
-    <unit id="pageLogMethodChip">
+    <unit id="pageLogMethodAriaLabel">
       <segment>
         <source>Method: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.method}}"/></source>
       </segment>
@@ -2568,9 +2633,29 @@
         <source>URI</source>
       </segment>
     </unit>
-    <unit id="pageLogWarcIdChip">
+    <unit id="pageLogTitle">
       <segment>
-        <source>WARC ID: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.warcId}}"/></source>
+        <source>Page log</source>
+      </segment>
+    </unit>
+    <unit id="pageOutlinksTabLabel">
+      <segment>
+        <source>Outlinks (<ph id="0" equiv="OUTLINK_COUNT" disp="count"/>)</source>
+      </segment>
+    </unit>
+    <unit id="pageOutlinksTableLabel">
+      <segment>
+        <source>Page outlinks</source>
+      </segment>
+    </unit>
+    <unit id="pageResourcesTabLabel">
+      <segment>
+        <source>Resources (<ph id="0" equiv="RESOURCE_COUNT" disp="count"/>)</source>
+      </segment>
+    </unit>
+    <unit id="pageResourcesTableLabel">
+      <segment>
+        <source>Page resources</source>
       </segment>
     </unit>
     <unit id="pauseCrawlerDialogConfirmationText">
@@ -2615,7 +2700,17 @@
     </unit>
     <unit id="politenessconfigFormUseHostnameLabel">
       <segment>
-        <source> Use hostname </source>
+        <source>Use hostname</source>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormUseHostnameSelectedLabel">
+      <segment>
+        <source>Use hostname</source>
+      </segment>
+    </unit>
+    <unit id="politenessconfigFormUseIpAddressLabel">
+      <segment>
+        <source>Use IP-address</source>
       </segment>
     </unit>
     <unit id="politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
@@ -2646,6 +2741,16 @@
     <unit id="primaryNavigationOpenLabel">
       <segment>
         <source>Open navigation</source>
+      </segment>
+    </unit>
+    <unit id="removeLabelButtonLabel">
+      <segment>
+        <source>Remove label <ph id="0" equiv="LABEL_KEY" disp="key"/> <ph id="1" equiv="LABEL_VALUE" disp="value"/></source>
+      </segment>
+    </unit>
+    <unit id="removeSubcollectionAriaLabel">
+      <segment>
+        <source>Remove <ph id="0" equiv="SUBCOLLECTION_NAME" disp="this.nameControl(index).value"/> subcollection</source>
       </segment>
     </unit>
     <unit id="reportCrawlLogQueryExecutiondInputLabel">
@@ -2751,6 +2856,116 @@
     <unit id="reportShortcutsLabel">
       <segment>
         <source>Report shortcuts</source>
+      </segment>
+    </unit>
+    <unit id="reportWatchFilterLabel">
+      <segment>
+        <source>Watch filter</source>
+      </segment>
+    </unit>
+    <unit id="reportWatchFilterOption">
+      <segment>
+        <source>Watch</source>
+      </segment>
+    </unit>
+    <unit id="resourceDiscoveryPathHeader">
+      <segment>
+        <source>Discovery path</source>
+      </segment>
+    </unit>
+    <unit id="resourceErrorHeader">
+      <segment>
+        <source>Error</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataDialogTitle">
+      <segment>
+        <source>Resource metadata</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataDiscoveryPath">
+      <segment>
+        <source>Discovery path</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataError">
+      <segment>
+        <source>Error</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataFromCache">
+      <segment>
+        <source>From cache</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataHeader">
+      <segment>
+        <source>Metadata</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataMethod">
+      <segment>
+        <source>Method</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataMimeType">
+      <segment>
+        <source>MIME type</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataReferrer">
+      <segment>
+        <source>Referrer</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataRenderable">
+      <segment>
+        <source>Renderable</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataResourceType">
+      <segment>
+        <source>Resource type</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataStatusCode">
+      <segment>
+        <source>Status code</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataTooltip">
+      <segment>
+        <source>Resource metadata</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataUri">
+      <segment>
+        <source>URI</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataWarcId">
+      <segment>
+        <source>WARC ID</source>
+      </segment>
+    </unit>
+    <unit id="resourceMimeTypeHeader">
+      <segment>
+        <source>MIME type</source>
+      </segment>
+    </unit>
+    <unit id="resourceStatusHeader">
+      <segment>
+        <source>Status</source>
+      </segment>
+    </unit>
+    <unit id="resourceTypeHeader">
+      <segment>
+        <source>Resource type</source>
+      </segment>
+    </unit>
+    <unit id="resourceUriHeader">
+      <segment>
+        <source>URI</source>
       </segment>
     </unit>
     <unit id="reportRelatedRecordsLabel">
@@ -2868,19 +3083,9 @@
         <source>Schedule</source>
       </segment>
     </unit>
-    <unit id="scheduleDetailsValidFromInputLabel">
-      <segment>
-        <source> Valid from </source>
-      </segment>
-    </unit>
     <unit id="scheduleDetailsValidFromToHeader">
       <segment>
         <source>Time limit</source>
-      </segment>
-    </unit>
-    <unit id="scheduleDetailsValidToInputLabel">
-      <segment>
-        <source> Valid to </source>
       </segment>
     </unit>
     <unit id="scheduleDropdownLabel">
@@ -2930,7 +3135,7 @@
     </unit>
     <unit id="scheduleMassUpdateValidityRangeError">
       <segment>
-        <source> Valid from must be on or before Valid to. </source>
+        <source>Valid from must be on or before Valid to.</source>
       </segment>
     </unit>
     <unit id="scheduleMassUpdateValidityRangeHint">
@@ -2951,6 +3156,21 @@
     <unit id="scopeScriptDropdownLabel">
       <segment>
         <source> Scope script </source>
+      </segment>
+    </unit>
+    <unit id="scriptAnnotationsLabel">
+      <segment>
+        <source>Script annotations</source>
+      </segment>
+    </unit>
+    <unit id="searchOutlinksLabel">
+      <segment>
+        <source>Search outlinks</source>
+      </segment>
+    </unit>
+    <unit id="searchResourcesLabel">
+      <segment>
+        <source>Search resources</source>
       </segment>
     </unit>
     <unit id="seedDetailsCardTitle">
@@ -3033,9 +3253,9 @@
         <source> The field is required </source>
       </segment>
     </unit>
-    <unit id="subCollectionNameInputLengthHint">
+    <unit id="showResourceMetadataLabel">
       <segment>
-        <source> Minimum 2 characters </source>
+        <source>Show resource metadata</source>
       </segment>
     </unit>
     <unit id="unpauseCrawlerDialogConfirmationText">
@@ -3096,6 +3316,16 @@
     <unit id="moveSeedDialogTitle">
       <segment>
         <source>Move seed to another entity</source>
+      </segment>
+    </unit>
+    <unit id="noMatchingOutlinks">
+      <segment>
+        <source>No matching outlinks</source>
+      </segment>
+    </unit>
+    <unit id="noMatchingResources">
+      <segment>
+        <source> No matching resources </source>
       </segment>
     </unit>
     <unit id="moveSeedDialogSearchLabel">

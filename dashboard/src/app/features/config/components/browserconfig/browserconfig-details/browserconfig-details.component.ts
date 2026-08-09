@@ -1,6 +1,14 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {BrowserConfig, ConfigObject, ConfigRef, Kind, Label, Meta} from '../../../../../shared/models';
+import {
+  BrowserConfig,
+  BrowserScriptType,
+  ConfigObject,
+  ConfigRef,
+  Kind,
+  Label,
+  Meta,
+} from '../../../../../shared/models';
 import {AuthService} from '../../../../../core';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
@@ -15,6 +23,7 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -35,6 +44,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   standalone: true
 })
 export class BrowserConfigDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -54,9 +64,6 @@ export class BrowserConfigDetailsComponent implements OnChanges {
   update = new EventEmitter<ConfigObject>();
   // noinspection ReservedWordAsName
 
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
 
   constructor() {
@@ -65,10 +72,6 @@ export class BrowserConfigDetailsComponent implements OnChanges {
 
   get canEdit(): boolean {
     return this.authService.canUpdate(this.configObject.kind);
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get showSave(): boolean {
@@ -123,6 +126,12 @@ export class BrowserConfigDetailsComponent implements OnChanges {
     return this.scriptRefIdList.value ? this.scriptRefIdList.value.length > 0 : false;
   }
 
+  get selectableBrowserScripts(): ConfigObject[] {
+    return (this.browserScripts ?? []).filter(
+      script => script.browserScript?.browserScriptType !== BrowserScriptType.SCOPE_CHECK
+    );
+  }
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['configObject']) {
       if (!this.configObject) {
@@ -144,10 +153,6 @@ export class BrowserConfigDetailsComponent implements OnChanges {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

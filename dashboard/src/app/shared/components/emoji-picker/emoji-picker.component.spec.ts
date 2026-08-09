@@ -88,6 +88,10 @@ describe('EmojiPickerComponent', () => {
 
     expect(component.dataLocale).toBe('en');
     expect(testAccess.groups().map(group => group.message)).toEqual(['smileys & emotion', 'people & body']);
+    const formFields = fixture.nativeElement.querySelectorAll('mat-form-field') as NodeListOf<HTMLElement>;
+    expect(formFields).toHaveLength(2);
+    expect(Array.from(formFields).every(field => field.classList.contains('mat-form-field-appearance-outline')))
+      .toBe(true);
 
     testAccess.searchControl.setValue('wave');
     expect(testAccess.filteredEmojis().map(emoji => emoji.unicode)).toEqual(['👋']);

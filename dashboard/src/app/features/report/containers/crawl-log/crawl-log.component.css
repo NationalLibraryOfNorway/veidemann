@@ -1,0 +1,28 @@
+.facet-filter {
+  min-width: 0;
+  margin: 12px 0 0;
+}
+
+.facet-filter {
+  padding: 0;
+  border: 0;
+}
+
+.facet-filter legend {
+  margin-bottom: 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.facet-filter-row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.facet-filter-row .facet-filter {
+  margin-top: 0;
+}

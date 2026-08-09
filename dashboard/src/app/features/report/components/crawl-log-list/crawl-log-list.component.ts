@@ -23,6 +23,6 @@ export class CrawlLogListComponent extends ReportListBaseComponent<CrawlLog> {
   override sortActive = 'timestamp';
 
   override displayedColumns: string[] =
-    ['requestedUri', 'timestamp', 'statusCode', 'discoveryPath', 'contentType', 'action'];
+    ['method', 'requestedUri', 'statusCode', 'contentType', 'discoveryPath', 'timestamp'];
 
 }

@@ -85,17 +85,9 @@
           (click)="createScreenshot.disabled ? createScreenshot.enable() : null"
           (keydown.enter)="createScreenshot.disabled ? createScreenshot.enable() : null"
           (keydown.space)="createScreenshot.disabled ? createScreenshot.enable() : null">
-          <mat-checkbox formControlName="createScreenshot"
-                        labelPosition="after"
-                        i18n="@@crawlconfigFormCreateScreenshotLabel"
-                        i18n-matTooltip="@@crawlconfigFormDisabledCreateScreenshotExplanation"
-                        color="accent"
-                        [matTooltip]="createScreenshot.disabled ?
-                        'Setting is not equal for all selected configurations.'
-                         +'Click here and set desired state to override all, '
-                         + 'or leave untouched to keep the configurations original value.' : null">
-            Create screenshot
-          </mat-checkbox>
+          <app-boolean-state-chip formControlName="createScreenshot" label="Create screenshots"
+            i18n-label="@@crawlconfigFormCreateScreenshotLabel">
+          </app-boolean-state-chip>
         </div>
       </div>
     </div>

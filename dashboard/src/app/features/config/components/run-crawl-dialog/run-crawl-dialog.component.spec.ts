@@ -164,6 +164,16 @@ describe('RunCrawlDialogComponent', () => {
       expect(await runButton.isDisabled()).toBe(false);
     });
 
+    it('should start with the related crawljob selected when supplied as context', async () => {
+      const {component, loader} = await setup({...exampleSeedToCrawl, jobRefId: 'configObject_id2'});
+
+      expect(component.jobRefId).toBe('configObject_id2');
+      const select = await loader.getHarness(MatSelectHarness);
+      expect(await select.getValueText()).toBe('Example CrawlJob2');
+      const runButton = await loader.getHarness(MatButtonHarness.with({text: 'RUN'}));
+      expect(await runButton.isDisabled()).toBe(false);
+    });
+
     it('should close dialog when RUN clicked', async () => {
       const { loader, dialogRefMock, fixture } = await setup(exampleSeedToCrawl);
 

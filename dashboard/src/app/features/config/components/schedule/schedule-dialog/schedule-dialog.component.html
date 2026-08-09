@@ -4,7 +4,7 @@
 
 <mat-dialog-content>
   <form [formGroup]="form">
-    <app-meta formControlName="meta"></app-meta>
+    <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
     <div class="layout-column layout-space-evenly">
       <div formGroupName="cronExpression" class="cron-expression">
         <h3 mat-subheader i18n="@@scheduleFormCronExpressionHeader">CRON expression</h3>
@@ -55,25 +55,20 @@
 
       <div>
         <h3 mat-subheader i18n="@@scheduleDetailsValidFromToHeader">Time limit</h3>
-        <div class="layout-row layout-wrap gap-24">
-          <mat-form-field>
-            <mat-label i18n="@@scheduleDetailsValidFromInputLabel">
-              Valid from
-            </mat-label>
-            <input matInput [matDatepicker]="validFromDatepicker" formControlName="validFrom">
-            <mat-datepicker-toggle matSuffix [for]="validFromDatepicker"></mat-datepicker-toggle>
-            <mat-datepicker #validFromDatepicker></mat-datepicker>
-          </mat-form-field>
-
-          <mat-form-field>
-            <mat-label i18n="@@scheduleDetailsValidToInputLabel">
-              Valid to
-            </mat-label>
-            <input matInput [matDatepicker]="validToDatepicker" formControlName="validTo">
-            <mat-datepicker-toggle matSuffix [for]="validToDatepicker"></mat-datepicker-toggle>
-            <mat-datepicker #validToDatepicker></mat-datepicker>
-          </mat-form-field>
-        </div>
+        <mat-form-field>
+          <mat-label i18n="@@scheduleMassUpdateValidityRangeLabel">Validity period</mat-label>
+          <mat-date-range-input [rangePicker]="validityRangePicker">
+            <input matStartDate formControlName="validFrom" placeholder="Valid from"
+              i18n-placeholder="@@scheduleMassUpdateValidFromPlaceholder">
+            <input matEndDate formControlName="validTo" placeholder="Valid to"
+              i18n-placeholder="@@scheduleMassUpdateValidToPlaceholder">
+          </mat-date-range-input>
+          <mat-datepicker-toggle matIconSuffix [for]="validityRangePicker"></mat-datepicker-toggle>
+          <mat-date-range-picker #validityRangePicker></mat-date-range-picker>
+          @if (validFrom.hasError('matStartDateInvalid') || validTo.hasError('matEndDateInvalid')) {
+            <mat-error i18n="@@scheduleMassUpdateValidityRangeError">Valid from must be on or before Valid to.</mat-error>
+          }
+        </mat-form-field>
       </div>
     </div>
   </form>

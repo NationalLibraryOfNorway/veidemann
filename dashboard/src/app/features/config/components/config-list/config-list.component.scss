@@ -2,6 +2,39 @@
   padding: 0;
 }
 
+.selection-entry-control,
+.config-kind-icon {
+  flex: 0 0 auto;
+  align-self: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.selection-entry-control {
+  --mat-icon-button-state-layer-size: var(--mat-list-list-item-leading-icon-size, 24px);
+
+  cursor: pointer;
+}
+
+.selection-entry-control:hover {
+  color: var(--mat-sys-primary);
+}
+
+.extra-region {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 48px;
+}
+
+.item-row.mat-mdc-list-item .extra-region {
+  align-self: center;
+  margin-block: 0;
+}
+
+.item-row.mat-mdc-list-item .extra-region::before {
+  display: none;
+}
+
 mat-list .item-row.row-with-labels {
   height: auto;
   min-height: 64px;

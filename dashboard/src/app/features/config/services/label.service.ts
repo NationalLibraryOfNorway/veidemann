@@ -11,22 +11,11 @@ import {Kind} from '../../../shared/models';
 export class LabelService {
   private configService = inject(ConfigApiService);
 
-
-  private _kind: Kind;
-
-  get kind(): Kind {
-    return this._kind;
-  }
-
-  set kind(kind: Kind) {
-    this._kind = kind;
-  }
-
-  getLabelKeys(): Observable<string[]> {
-    if (!this.kind) {
+  getLabelKeys(kind: Kind): Observable<string[]> {
+    if (kind === Kind.UNDEFINED) {
       return of([]);
     }
-    const request = create(GetLabelKeysRequestSchema, {kind: this._kind.valueOf()});
+    const request = create(GetLabelKeysRequestSchema, {kind: kind.valueOf()});
     return this.configService.getLabelKeys(request);
   }
 }

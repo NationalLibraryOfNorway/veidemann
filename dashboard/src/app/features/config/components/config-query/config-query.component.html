@@ -8,9 +8,30 @@
         [ngModelOptions]="{standalone: true}"
         (keyup.enter)="onSearch(term)">
       @if (term) {
-        <button mat-icon-button matSuffix type="button" (click)="term = ''; onSearch(term);">
+        <button mat-icon-button matSuffix type="button"
+          data-testid="clear-search"
+          aria-label="Clear search" i18n-aria-label="@@configQueryClearSearchLabel"
+          (click)="clearSearch()">
           <mat-icon>close</mat-icon>
         </button>
+      }
+      @if (showLabelSearchHelpers) {
+        <span matSuffix class="search-helper-actions">
+          <button mat-icon-button type="button"
+            data-testid="label-search-helper"
+            aria-label="Insert label search" i18n-aria-label="@@configQueryLabelSearchHelperLabel"
+            matTooltip="Insert label search" i18n-matTooltip="@@configQueryLabelSearchHelperLabel"
+            (click)="insertLabelSearch()">
+            <mat-icon>label</mat-icon>
+          </button>
+          <button mat-icon-button type="button"
+            data-testid="emoji-search-helper"
+            aria-label="Choose label emoji" i18n-aria-label="@@configQueryEmojiSearchHelperLabel"
+            matTooltip="Choose label emoji" i18n-matTooltip="@@configQueryEmojiSearchHelperLabel"
+            (click)="chooseLabelEmoji()">
+            <mat-icon>add_reaction</mat-icon>
+          </button>
+        </span>
       }
     </mat-form-field>
   }
@@ -37,14 +58,13 @@
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label i18n="@@configQueryStatusDropdownLabel">Status</mat-label>
-          <mat-select formControlName="disabled" [canSelectNullableOptions]="true">
-            <mat-option [value]="null" i18n="@@configQueryStatusShowAll">Show all</mat-option>
-            <mat-option [value]="true" i18n="@@configQueryStatusShowDisabled">Show disabled</mat-option>
-            <mat-option [value]="false" i18n="@@configQueryStatusShowEnabled">Show enabled</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <fieldset class="seed-chip-filter status-filter">
+          <legend id="crawl-job-status-filter-label" i18n="@@configQueryStatusDropdownLabel">Status</legend>
+          <mat-chip-listbox formControlName="disabled" aria-labelledby="crawl-job-status-filter-label">
+            <mat-chip-option [value]="false" i18n="@@configQueryStatusShowEnabled">Show enabled</mat-chip-option>
+            <mat-chip-option [value]="true" i18n="@@configQueryStatusShowDisabled">Show disabled</mat-chip-option>
+          </mat-chip-listbox>
+        </fieldset>
       }
       @case (Kind.SEED) {
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -149,28 +169,26 @@
           </mat-chip-listbox>
         </fieldset>
       }
+      @case (Kind.POLITENESSCONFIG) {
+        <fieldset class="script-type-filter">
+          <legend id="robots-policy-filter-label" i18n="@@configContextRobotsPolicy">Robots policy</legend>
+          <mat-chip-listbox formControlName="robotsPolicy" aria-labelledby="robots-policy-filter-label">
+            @for (policy of options.robotsPolicies; track policy) {
+              <mat-chip-option [value]="policy">{{RobotsPolicy[policy]}}</mat-chip-option>
+            }
+          </mat-chip-listbox>
+        </fieldset>
+      }
+      @case (Kind.ROLEMAPPING) {
+        <fieldset class="script-type-filter role-filter">
+          <legend id="role-mapping-role-filter-label" i18n="@@roleMappingRoleFilterLabel">Role</legend>
+          <mat-chip-listbox formControlName="role" aria-labelledby="role-mapping-role-filter-label">
+            @for (role of options.roles ?? []; track role) {
+              <mat-chip-option [value]="role">{{Role[role]}}</mat-chip-option>
+            }
+          </mat-chip-listbox>
+        </fieldset>
+      }
   }
 
-  @if (showLabelSearchSuggestions) {
-    <div class="label-search-suggestions">
-      <span class="label-search-suggestions__label" i18n="@@configQueryLabelSuggestionsLabel">
-        Try a label search
-      </span>
-      <mat-chip-set
-        aria-label="Suggested label searches"
-        i18n-aria-label="@@configQueryLabelSuggestionsAriaLabel">
-        @for (suggestion of labelSearchSuggestions; track suggestion.term) {
-          <mat-chip
-            role="button"
-            tabindex="0"
-            (click)="onSearch(suggestion.term)"
-            (keydown.enter)="onSearch(suggestion.term)"
-            (keydown.space)="onSearch(suggestion.term); $event.preventDefault()">
-            <mat-icon matChipAvatar aria-hidden="true">search</mat-icon>
-            {{suggestion.label}}: {{suggestion.term}}
-          </mat-chip>
-        }
-      </mat-chip-set>
-    </div>
-  }
 </form>

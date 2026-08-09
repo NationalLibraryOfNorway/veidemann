@@ -6,11 +6,11 @@ import {CrawlLog} from '../../../shared/models';
 import {FieldMaskSchema} from '../../../../api/commons/v1/resources_pb';
 import {CrawlLogListRequest, CrawlLogListRequestSchema} from '../../../../api/log/v1/log_pb';
 import {LoadingService} from '../../../shared/services';
-import {Detail, Sort, Watch} from '../../../shared/func';
+import {Detail, Sort} from '../../../shared/func';
 import {ListRange} from '../../../shared/models';
 
 
-export interface CrawlLogQuery extends Sort, Watch {
+export interface CrawlLogQuery extends Sort {
   jobExecutionId: string;
   executionId: string;
 }
@@ -44,10 +44,6 @@ export class CrawlLogService extends LoadingService {
     if (fieldMask.paths.length > 0) {
       listRequest.queryTemplate = CrawlLog.toProto(queryTemplate);
       listRequest.queryMask = fieldMask;
-    }
-
-    if (query.watch) {
-      listRequest.watch = query.watch;
     }
 
     return listRequest;

@@ -3,7 +3,7 @@
 </h2>
 <mat-dialog-content>
   <form [formGroup]="form" class="layout-column gap-16">
-    <app-collection-meta formControlName="meta"></app-collection-meta>
+    <app-collection-meta [kind]="configObject.kind" formControlName="meta"></app-collection-meta>
     <mat-form-field>
       <mat-label i18n="@@collectionDedupPolicyDropdownLabel">
         Deduplication policy
@@ -38,73 +38,12 @@
     </mat-error>
     }
 
-    <mat-checkbox formControlName="compress"
-      labelPosition="after"
-      i18n="@@collectionFormCompressLabel"
-      color="accent">
-      Compress
-    </mat-checkbox>
+    <app-boolean-state-chip formControlName="compress" label="Compression"
+      i18n-label="@@collectionFormCompressLabel" selectedIcon="compress" unselectedIcon="unfold_more">
+    </app-boolean-state-chip>
 
-    <fieldset class="mat-elevation-z1" formArrayName="subCollectionsList">
-      <legend mat-card-subtitle i18n="@@collectionFormSubCollectionTitle">Subcollections</legend>
-
-      @for (subCollectionsList of subCollectionControlArray.controls; track subCollectionsList; let i = $index) {
-        <div
-          [formGroupName]="i" class="layout-row gap-16">
-          <mat-form-field [hideRequiredMarker]="subCollectionNameInput.value.length >= 2"
-            data-testid="subCollectionName" class="flex-fill">
-            <mat-label i18n="@@collectionFormSubCollectionNameLabel">
-            Name
-          </mat-label>
-            <input matInput #subCollectionNameInput formControlName="name">
-            @if (subCollectionNameInput.value.length < 2) {
-              <mat-hint i18n="@@subCollectionNameInputLengthHint">
-            Minimum 2 characters
-          </mat-hint>
-            }
-            @if (getSubCollectionName(i).hasError('required')) {
-              <mat-error
-                i18n="@@collectionMetaSubcollectionNameRequiredError">
-            The field is required
-          </mat-error>
-            }
-            @if (getSubCollectionName(i).hasError('pattern')) {
-              <mat-error
-                i18n="@@collectionMetaSubcollectionNamePatternError">
-            Invalid name. (Valid characters are A-Å a-å 0-9 _)
-          </mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label i18n="@@collectionSubCollectionTypeDropdownLabel">
-            Subcollection type
-          </mat-label>
-            <mat-select formControlName="type">
-              @for (type of subCollectionTypes; track type) {
-                <mat-option [value]="type">
-                  {{SubCollectionType[type]}}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          @if (canEdit) {
-            <button mat-button
-              (click)="onRemoveSubCollection(i)"
-              >
-              <mat-icon>remove_circle</mat-icon>&nbsp;
-              <span i18n="@@collectionFormRemoveSubcollectionButton">REMOVE</span>
-            </button>
-          }
-        </div>
-      }
-
-      @if (canEdit) {
-        <button mat-stroked-button (click)="onAddSubCollection()">
-          <mat-icon>add_circle</mat-icon>&nbsp;
-          <span i18n="@@collectionFormAddSubcollectionButton">ADD SUBCOLLECTION</span>
-        </button>
-      }
-    </fieldset>
+    <app-subcollection-chips formControlName="subCollectionsList"
+      [types]="subCollectionTypes" [editable]="canEdit"></app-subcollection-chips>
   </form>
 
 </mat-dialog-content>
@@ -145,5 +84,3 @@
   </button>
   </mat-dialog-actions>
 }
-
-

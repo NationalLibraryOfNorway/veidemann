@@ -44,7 +44,7 @@ describe('CrawlExecutionStatusComponent', () => {
 
   it('renders the latest crawl execution as a related information card', () => {
     const card = fixture.nativeElement.querySelector('mat-card');
-    expect(card.getAttribute('appearance')).toBe('outlined');
+    expect(card.getAttribute('appearance')).toBe('filled');
     expect(card.textContent).toContain('Last crawl execution');
     expect(card.textContent).toContain('Finished');
     expect(card.textContent).toContain('42');
@@ -57,6 +57,23 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(hrefs).toContain('/report/crawlexecution/crawl-execution-1');
     expect(hrefs).toContain('/config/crawljobs/crawl-job-1');
     expect(hrefs).toContain('/report/jobexecution/job-execution-1');
+    expect(card.textContent).not.toContain('crawl-execution-1');
+    expect(card.textContent).not.toContain('crawl-job-1');
+    expect(card.textContent).not.toContain('job-execution-1');
+    expect(card.textContent).toContain('Started');
+    expect(card.textContent).toContain('Ended');
+    expect(card.textContent).toContain('Duration');
+    expect(card.textContent).toContain('10 min');
+  });
+
+  it('does not expose unauthorized navigation or raw identifiers', () => {
+    fixture.componentRef.setInput('canReadCrawlExecution', false);
+    fixture.componentRef.setInput('canReadCrawlJob', false);
+    fixture.componentRef.setInput('canReadJobExecution', false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('a').length).toBe(0);
+    expect(fixture.nativeElement.textContent).not.toContain('crawl-execution-1');
   });
 
 });

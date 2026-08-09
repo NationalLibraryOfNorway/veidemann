@@ -3,11 +3,12 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
 import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
+import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatDateRangeInputHarness} from '@angular/material/datepicker/testing';
 import {enUS} from 'date-fns/locale';
 
 import {provideMaterialAnimationsDisabled} from '../../../../core/core.testing.module';
-import {CrawlExecutionState} from '../../../../shared/models';
+import {ConfigObject, CrawlExecutionState, Meta} from '../../../../shared/models';
 import {CrawlExecutionStatusQuery} from '../../services';
 import {CrawlExecutionStatusQueryComponent} from './crawl-execution-status-query.component';
 
@@ -27,11 +28,13 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(CrawlExecutionStatusQueryComponent);
-    fixture.componentRef.setInput('crawlJobOptions', []);
+    fixture.componentRef.setInput('crawlJobOptions', [
+      new ConfigObject({id: 'job-1', meta: new Meta({name: 'Daily crawl'})})
+    ]);
     fixture.componentRef.setInput('query', {
-      stateList: [CrawlExecutionState.FETCHING],
-      jobId: '',
-      jobExecutionId: '',
+      stateList: [CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED],
+      jobId: 'job-1',
+      jobExecutionId: 'execution-1',
       seedId: '',
       startTimeFrom: '',
       startTimeTo: '',
@@ -45,6 +48,36 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     loader = TestbedHarnessEnvironment.loader(fixture);
   });
 
+  it('selects all numeric states supplied by the route query', async () => {
+    const listbox = await loader.getHarness(MatChipListboxHarness.with({
+      selector: '[formControlName="stateList"]',
+    }));
+    const chips = await listbox.getChips();
+    const labels = await Promise.all(chips.map(chip => chip.getText()));
+    const selected = await Promise.all(chips.map(chip => chip.isSelected()));
+
+    expect(await listbox.isMultiple()).toBe(true);
+    expect(labels.filter((_, index) => selected[index])).toEqual(['FETCHING', 'FINISHED']);
+  });
+
+  it('uses chips for boolean filters without adding a contextual crawl-job chip', () => {
+    const filterChips = fixture.nativeElement.querySelectorAll(
+      'mat-chip-listbox:not([formcontrolname="stateList"]) mat-chip-option'
+    ) as NodeListOf<HTMLElement>;
+    const contextChip = fixture.nativeElement.querySelector('mat-chip:not(mat-chip-option)') as HTMLElement;
+
+    expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
+    expect([...filterChips].map(chip => chip.textContent.trim())).toEqual(['Failed', 'Watch']);
+    expect(contextChip).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('mat-select')).toHaveLength(1);
+  });
+
+  it('places the state filters after the other controls', () => {
+    const form = fixture.nativeElement.querySelector('.report-filter-form') as HTMLFormElement;
+
+    expect(form.lastElementChild?.classList).toContain('report-status-filter');
+  });
+
   it('renders an inclusive date range without time inputs', async () => {
     const range = await loader.getHarness(MatDateRangeInputHarness);
     const startInput = await range.getStartInput();
@@ -53,7 +86,7 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(await range.getLabel()).toBe('Crawl start date');
     expect(await startInput.getPlaceholder()).toBe('From');
     expect(await endInput.getPlaceholder()).toBe('To');
-    expect(fixture.nativeElement.querySelectorAll('mat-form-field')).toHaveLength(5);
+    expect(fixture.nativeElement.querySelectorAll('mat-form-field')).toHaveLength(4);
     expect(fixture.nativeElement.querySelector('mat-timepicker')).toBeNull();
     expect(fixture.nativeElement.querySelector('mat-timepicker-toggle')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Both dates are inclusive');

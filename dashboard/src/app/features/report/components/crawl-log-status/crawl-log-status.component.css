@@ -1,15 +1,71 @@
-table {
+.crawl-log-detail {
   width: 100%;
+  min-width: 0;
+}
+
+.detail-header {
+  padding: 16px 16px 0;
+}
+
+.crawl-log-content {
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+}
+
+table.report-table {
+  width: 100%;
+  table-layout: fixed;
+  background: transparent;
 }
 
 .mat-mdc-header-cell {
   text-align: left;
 }
 
-.mat-mdc-cell.requestedUri {
+.mat-column-crawlLogEntry {
+  width: 12rem;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.mat-column-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-.mat-mdc-cell.discoveryPath {
-  word-break: break-word;
+.error-details {
+  display: grid;
+  margin: 0;
+  gap: 16px;
+}
+
+.error-details dt {
+  margin-bottom: 4px;
+  color: var(--mat-sys-on-error-container);
+  font: var(--mat-sys-label-medium);
+}
+
+.error-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.error-text {
+  white-space: pre-wrap;
+}
+
+.error-callout {
+  margin: 0 16px 16px;
+}
+
+@media (min-width: 840px) {
+  .detail-header {
+    padding: 32px 32px 0;
+  }
+
+  .error-callout {
+    margin: 0 32px 32px;
+  }
 }

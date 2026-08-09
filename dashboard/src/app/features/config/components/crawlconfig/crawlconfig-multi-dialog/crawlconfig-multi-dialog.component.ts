@@ -1,16 +1,15 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
 import { ReactiveFormsModule,Validators } from '@angular/forms';
-import { MatCheckbox } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTooltip } from '@angular/material/tooltip';
 import { CrawlConfigDetailsComponent } from '..';
 import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
 import { ConfigDialogData } from '../../../func';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-crawlconfig-multi-dialog',
@@ -18,12 +17,11 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   styleUrls: ['./crawlconfig-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
-    MatCheckbox,
+    BooleanStateChipComponent,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatTooltip,
     ReactiveFormsModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

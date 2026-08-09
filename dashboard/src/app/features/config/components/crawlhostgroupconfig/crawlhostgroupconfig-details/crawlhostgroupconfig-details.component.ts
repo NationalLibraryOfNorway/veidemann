@@ -21,7 +21,9 @@ import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
+import {MatChipsModule} from '@angular/material/chips';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-details',
@@ -32,6 +34,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
     CopyIdDirective,
     MatButtonModule,
     MatCardModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatIcon,
@@ -43,6 +46,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   standalone: true
 })
 export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -57,9 +61,6 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
   @Output()
   update = new EventEmitter<ConfigObject>();
 
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
 
   constructor() {
@@ -70,23 +71,19 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
     return this.authService.canUpdate(this.configObject.kind);
   }
 
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
-  }
-
   get showSave(): boolean {
     return this.configObject && !this.configObject.id;
   }
 
   get canSave(): boolean {
     return this.form.valid
-      && (this.ipRangeControlArray.controls.length < 1 || CrawlHostGroupConfigIpValidation.allRangesValid());
+      && this.allIpRangesValid();
   }
 
   get canUpdate(): boolean {
     return this.form.valid
       && this.form.dirty
-      && (this.ipRangeControlArray.controls.length < 1 || CrawlHostGroupConfigIpValidation.allRangesValid());
+      && this.allIpRangesValid();
   }
 
   get canRevert(): boolean {
@@ -134,6 +131,18 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
     return CrawlHostGroupConfigIpValidation.isValidRange(fromIp, toIp);
   }
 
+  shouldShowControlError(control: AbstractControl): boolean {
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  shouldShowInvalidRange(index: number): boolean {
+    const from = this.ipFromControl(index);
+    const to = this.ipToControl(index);
+    return !!from.value && !!to.value
+      && (from.dirty || from.touched || to.dirty || to.touched)
+      && !this.isValidIpRange(from.value, to.value);
+  }
+
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['configObject']) {
@@ -154,10 +163,6 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
     this.update.emit(this.prepareSave());
   }
 
-  onDelete(): void {
-    this.delete.emit(this.configObject);
-  }
-
   onRevert() {
     this.updateForm();
   }
@@ -166,9 +171,19 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
     this.ipRangeControlArray.push(this.initIpRange());
   }
 
+  onAddIpRangeKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.onAddIpRange();
+  }
+
   onRemoveIpRange(i: number) {
     this.ipRangeControlArray.removeAt(i);
     this.form.markAsDirty();
+  }
+
+  removeIpRangeLabel(index: number): string {
+    return $localize`:@@crawlhostgroupconfigRemoveIpRangeAriaLabel:Remove IP range ${index + 1}`;
   }
 
   protected createForm() {
@@ -238,5 +253,14 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
       ipFrom: ['', [CrawlHostGroupConfigIpValidation.ipAddressValidator]],
       ipTo: ['', [CrawlHostGroupConfigIpValidation.ipAddressValidator]],
     });
+  }
+
+  private allIpRangesValid(): boolean {
+    return this.ipRangeControlArray.controls.every(control =>
+      CrawlHostGroupConfigIpValidation.isValidRange(
+        control.get('ipFrom').value,
+        control.get('ipTo').value,
+      )
+    );
   }
 }

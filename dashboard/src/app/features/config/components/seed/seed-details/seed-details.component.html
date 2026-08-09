@@ -1,20 +1,25 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
     <mat-card-header class="card-header-with-helpers">
+      <div mat-card-avatar class="config-kind-avatar">
+        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+      </div>
       <mat-card-title>
-        <span i18n="@@seedDetailsCardTitle">Seed</span>
-      </mat-card-title>
-      @if (!configObject.id) {
-        <mat-card-subtitle>
+        @if (configObject.meta.name) {
+          {{configObject.meta.name}}
+        } @else {
           <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-        </mat-card-subtitle>
+        }
+      </mat-card-title>
+      @if (configObject.meta.description) {
+        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
       }
       <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content class="layout-column">
       <div class="layout-row layout-wrap gap-24">
         <div class="layout-column flex-fill">
-          <app-seed-meta formControlName="meta"
+          <app-seed-meta [kind]="configObject.kind" formControlName="meta"
             [entityRef]="entityRef.value"
             [showOpenUrl]="!showSave"
             [annotationSuggestions]="annotationSuggestions"
@@ -35,6 +40,9 @@
             </mat-form-field>
           }
 
+        </div>
+
+        <div class="layout-column flex-fill">
           <mat-form-field formGroupName="entityRef">
             <mat-label i18n="@@metaEntityIdInputLabel">
               Entity Id
@@ -53,9 +61,6 @@
               Reference to entity is required
             </mat-error>
           </mat-form-field>
-        </div>
-
-        <div class="layout-column flex-fill">
           <mat-form-field>
             <mat-label i18n="@@crawlJobDropdownLabel">
               Crawljob
@@ -67,12 +72,12 @@
               }
             </mat-select>
           </mat-form-field>
-          <mat-slide-toggle class="disabled-toggle"
-            color="warn"
-            formControlName="disabled"
-            i18n="@@seedDisabledToggleSwitch">
-            Deactivated
-          </mat-slide-toggle>
+          <app-boolean-state-chip formControlName="disabled" label="Seed status"
+            i18n-label="@@seedStatusLabel" selectedLabel="Deactivated" unselectedLabel="Active"
+            i18n-selectedLabel="@@commonDeactivated" i18n-unselectedLabel="@@commonActive"
+            selectedIcon="pause_circle" unselectedIcon="check_circle"
+            selectedTone="negative" unselectedTone="positive">
+          </app-boolean-state-chip>
         </div>
       </div>
     </mat-card-content>
@@ -99,12 +104,6 @@
           (click)="onRevert()"
           i18n="@@commonButtonRevert">REVERT
       </button>
-        @if (!showSave && canDelete) {
-          <button mat-button
-            (click)="onDelete()"
-            i18n="@@commonButtonDelete">DELETE
-      </button>
-        }
       </mat-card-actions>
     }
   </mat-card>

@@ -11,24 +11,23 @@ import {
 import {
   AbstractControl,
   ReactiveFormsModule,
-  UntypedFormArray,
   UntypedFormBuilder,
-  UntypedFormGroup,
-  Validators
+  UntypedFormGroup
 } from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
-import {VALID_COLLECTION_NAME} from '../../../../../shared/validation/patterns';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {CollectionMetaComponent} from '../../collection-meta/collection-meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {FilesizeInputComponent} from '../../filesize-input/filesize-input.component';
-import {MatCheckbox} from '@angular/material/checkbox';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInputModule} from '@angular/material/input';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {SubcollectionChipsComponent} from '../subcollection-chips/subcollection-chips.component';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -38,6 +37,8 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CopyIdDirective,
+    BooleanStateChipComponent,
+    SubcollectionChipsComponent,
     MatCardModule,
     ReactiveFormsModule,
     MatIcon,
@@ -46,13 +47,13 @@ import {CopyIdDirective} from '../../../../../shared/directives';
     MatInputModule,
     MatSelectModule,
     FilesizeInputComponent,
-    MatCheckbox,
     MatTooltip,
     MatButtonModule,
   ],
   standalone: true
 })
 export class CollectionDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -63,10 +64,6 @@ export class CollectionDetailsComponent implements OnChanges {
 
   get canEdit(): boolean {
     return this.authService.canUpdate(this.configObject.kind);
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get showSave(): boolean {
@@ -87,10 +84,6 @@ export class CollectionDetailsComponent implements OnChanges {
 
   get fileSize(): AbstractControl {
     return this.form.get('fileSize');
-  }
-
-  get subCollectionControlArray(): UntypedFormArray {
-    return this.form.get('subCollectionsList') as UntypedFormArray;
   }
 
   get validFileSize(): boolean {
@@ -119,9 +112,6 @@ export class CollectionDetailsComponent implements OnChanges {
   update = new EventEmitter<ConfigObject>();
 
   // noinspection ReservedWordAsName
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
 
   ngOnChanges(changes: SimpleChanges) {
@@ -142,25 +132,8 @@ export class CollectionDetailsComponent implements OnChanges {
     this.update.emit(this.prepareSave());
   }
 
-  onDelete(): void {
-    this.delete.emit(this.configObject);
-  }
-
   onRevert(): void {
     this.updateForm();
-  }
-
-  onAddSubCollection() {
-    this.subCollectionControlArray.push(this.initSubCollection());
-  }
-
-  onRemoveSubCollection(index: number) {
-    this.subCollectionControlArray.removeAt(index);
-    this.form.markAsDirty();
-  }
-
-  getSubCollectionName(index: number): AbstractControl {
-    return this.form.get(['subCollectionsList', index, 'name']);
   }
 
   protected createForm(): void {
@@ -170,30 +143,25 @@ export class CollectionDetailsComponent implements OnChanges {
       fileRotationPolicy: '',
       compress: '',
       fileSize: '',
-      subCollectionsList: this.fb.array([]),
+      subCollectionsList: [[]],
       meta: new Meta()
     });
   }
 
   protected updateForm(): void {
-    const subCollectionsFG: UntypedFormGroup[] = this.configObject.collection.subCollectionsList
-      .map(subCollectionsList => this.fb.group(subCollectionsList));
-    const subCollectionsFGArray: UntypedFormArray = this.fb.array(subCollectionsFG);
-
     this.form.patchValue({
       id: this.configObject.id,
       meta: this.configObject.meta,
       collectionDedupPolicy: this.configObject.collection.collectionDedupPolicy || RotationPolicy.NONE,
       fileRotationPolicy: this.configObject.collection.fileRotationPolicy || RotationPolicy.NONE,
       compress: this.configObject.collection.compress,
-      fileSize: this.configObject.collection.fileSize || 1073741824
+      fileSize: this.configObject.collection.fileSize || 1073741824,
+      subCollectionsList: this.configObject.collection.subCollectionsList,
     });
-    this.form.setControl('subCollectionsList', subCollectionsFGArray);
     this.form.markAsPristine();
     this.form.markAsUntouched();
     if (!this.canEdit) {
       this.form.disable();
-      subCollectionsFGArray.disable();
     }
   }
 
@@ -218,10 +186,4 @@ export class CollectionDetailsComponent implements OnChanges {
     return configObject;
   }
 
-  private initSubCollection() {
-    return this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.pattern(VALID_COLLECTION_NAME)]],
-      type: SubCollectionType.UNDEFINED,
-    });
-  }
 }

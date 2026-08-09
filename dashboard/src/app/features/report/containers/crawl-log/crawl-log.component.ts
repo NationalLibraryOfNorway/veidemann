@@ -1,15 +1,23 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ErrorHandler, Signal, inject} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ErrorHandler, Signal, inject, signal} from '@angular/core';
 import {AsyncPipe} from '@angular/common';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
 import {ActivatedRoute, Router} from '@angular/router';
 import {combineLatest, Observable} from 'rxjs';
 import {distinctUntilChanged, map} from 'rxjs/operators';
-import {toObservable, toSignal} from '@angular/core/rxjs-interop';
+import {takeUntilDestroyed, toObservable, toSignal} from '@angular/core/rxjs-interop';
+import {MatChipsModule} from '@angular/material/chips';
 
 import {compareListValues, Sort} from '../../../../shared/func';
 import {CrawlLog, ListDataSource} from '../../../../shared/models';
-import {CrawlLogListComponent, LogListShortcutsComponent} from '../../components';
+import {
+  CrawlLogListComponent,
+  HttpStatusFamily,
+  HttpStatusFilterComponent,
+  httpStatusFamily,
+  LogListShortcutsComponent,
+  uniqueHttpStatusCodes,
+} from '../../components';
 import {CrawlLogQueryComponent} from '../../components/crawl-log-query/crawl-log-query.component';
 import {crawlLogQueryFromParamMap, equalCrawlLogQuery} from '../../func';
 import {CrawlLogQuery, CrawlLogService} from '../../services';
@@ -24,7 +32,9 @@ import {CrawlLogQuery, CrawlLogService} from '../../services';
     AsyncPipe,
     CrawlLogListComponent,
     CrawlLogQueryComponent,
+    HttpStatusFilterComponent,
     LogListShortcutsComponent,
+    MatChipsModule,
     MatProgressBarModule,
   ]
 })
@@ -38,6 +48,20 @@ export class CrawlLogComponent {
   readonly query: Signal<CrawlLogQuery>;
   readonly dataSource: ListDataSource<CrawlLog, CrawlLogQuery>;
   readonly loading$: Observable<boolean>;
+  readonly loadedContentTypes: Signal<readonly string[]>;
+  readonly loadedMethods: Signal<readonly string[]>;
+  readonly loadedStatusFamilies: Signal<readonly HttpStatusFamily[]>;
+  readonly loadedStatusCodes: Signal<readonly number[]>;
+  readonly selectedContentTypes = signal<string[]>([]);
+  readonly selectedMethods = signal<string[]>([]);
+  readonly selectedStatusFamilies = signal<HttpStatusFamily[]>([]);
+  readonly selectedStatusCodes = signal<number[]>([]);
+  readonly hasClientFilters = computed(() =>
+    this.selectedContentTypes().length > 0 ||
+    this.selectedMethods().length > 0 ||
+    this.selectedStatusFamilies().length > 0 ||
+    this.selectedStatusCodes().length > 0
+  );
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -58,9 +82,39 @@ export class CrawlLogComponent {
       query$,
       load: (query, range) => this.crawlLogService.search(query, range),
       destroyRef,
-      capacity: query => query.watch ? 100 : 0,
+    });
+    this.loadedContentTypes = toSignal(this.dataSource.rows$.pipe(
+      map(() => [...new Set(this.dataSource.loadedSnapshot
+        .map(row => normalizeContentType(row.contentType))
+        .filter(contentType => contentType.length > 0))]
+        .sort((left, right) => left.localeCompare(right))),
+      distinctUntilChanged((left, right) => arraysEqual(left, right))
+    ), {initialValue: []});
+    this.loadedMethods = toSignal(this.dataSource.rows$.pipe(
+      map(() => uniqueLoadedValues(this.dataSource.loadedSnapshot.map(row => normalizeMethod(row.method)))),
+      distinctUntilChanged((left, right) => arraysEqual(left, right))
+    ), {initialValue: []});
+    this.loadedStatusFamilies = toSignal(this.dataSource.rows$.pipe(
+      map(() => [...new Set(this.dataSource.loadedSnapshot
+        .map(row => httpStatusFamily(row.statusCode))
+        .filter((family): family is HttpStatusFamily => family !== null))]
+        .sort((left, right) => left - right)),
+      distinctUntilChanged((left, right) => arraysEqual(left, right))
+    ), {initialValue: []});
+    this.loadedStatusCodes = toSignal(this.dataSource.rows$.pipe(
+      map(() => uniqueHttpStatusCodes(this.dataSource.loadedSnapshot.map(row => row.statusCode))),
+      distinctUntilChanged((left, right) => arraysEqual(left, right))
+    ), {initialValue: []});
+    this.dataSource.reset$.pipe(takeUntilDestroyed(destroyRef)).subscribe(() => {
+      this.selectedContentTypes.set([]);
+      this.selectedMethods.set([]);
+      this.selectedStatusFamilies.set([]);
+      this.selectedStatusCodes.set([]);
     });
     effect(() => this.applySort(this.query().active, this.query().direction));
+    effect(() => this.applyClientFilters(
+      this.selectedContentTypes(), this.selectedMethods(), this.selectedStatusFamilies(), this.selectedStatusCodes()
+    ));
     this.loading$ = combineLatest([this.dataSource.loading$, this.crawlLogService.loading$]).pipe(
       map(([listLoading, operationLoading]) => listLoading || operationLoading),
       distinctUntilChanged()
@@ -84,7 +138,6 @@ export class CrawlLogComponent {
         s: null,
         job_execution_id: query.jobExecutionId || null,
         execution_id: query.executionId || null,
-        watch: query.watch || null
       },
     }).catch(error => this.errorHandler.handleError(error));
   }
@@ -94,12 +147,51 @@ export class CrawlLogComponent {
       .catch(error => this.errorHandler.handleError(error));
   }
 
+  onContentTypeFilterChange(contentTypes: string[] | null): void {
+    this.selectedContentTypes.set(contentTypes ?? []);
+  }
+
+  onStatusFamilyFilterChange(statusFamilies: HttpStatusFamily[]): void {
+    this.selectedStatusFamilies.set(statusFamilies);
+  }
+
+  onExactStatusFilterChange(statusCodes: number[]): void {
+    this.selectedStatusCodes.set(statusCodes);
+  }
+
+  onMethodFilterChange(methods: string[] | null): void {
+    this.selectedMethods.set(methods ?? []);
+  }
+
+  private applyClientFilters(
+    contentTypes: readonly string[], methods: readonly string[], statusFamilies: readonly HttpStatusFamily[],
+    statusCodes: readonly number[]
+  ): void {
+    if (contentTypes.length === 0 && methods.length === 0 &&
+      statusFamilies.length === 0 && statusCodes.length === 0) {
+      this.dataSource.setPredicate(null);
+      return;
+    }
+    const selectedContentTypes = new Set(contentTypes);
+    const selectedMethods = new Set(methods);
+    const selectedStatusFamilies = new Set(statusFamilies);
+    const selectedStatusCodes = new Set(statusCodes);
+    this.dataSource.setPredicate(row =>
+      (selectedContentTypes.size === 0 || selectedContentTypes.has(normalizeContentType(row.contentType))) &&
+      (selectedMethods.size === 0 || selectedMethods.has(normalizeMethod(row.method))) &&
+      (selectedStatusFamilies.size === 0 && selectedStatusCodes.size === 0 ||
+        selectedStatusFamilies.has(httpStatusFamily(row.statusCode) as HttpStatusFamily) ||
+        selectedStatusCodes.has(row.statusCode))
+    );
+  }
+
   private applySort(active: string, direction: SortDirection): void {
     if (!active || !direction) {
       this.dataSource.setComparator(null);
       return;
     }
     const selectors: Record<string, {value: (row: CrawlLog) => string | number; type: 'string' | 'number' | 'date'}> = {
+      method: {value: row => row.method, type: 'string'},
       requestedUri: {value: row => row.requestedUri, type: 'string'},
       timestamp: {value: row => row.timeStamp, type: 'date'},
       statusCode: {value: row => row.statusCode, type: 'number'},
@@ -111,4 +203,21 @@ export class CrawlLogComponent {
       ? (left, right) => compareListValues(selector.value(left), selector.value(right), direction, selector.type)
       : null);
   }
+}
+
+function normalizeContentType(contentType: string): string {
+  return contentType.split(';', 1)[0].trim().toLowerCase();
+}
+
+function normalizeMethod(method: string): string {
+  return method.trim().toLocaleUpperCase();
+}
+
+function uniqueLoadedValues(values: readonly string[]): string[] {
+  return [...new Set(values.filter(value => value.length > 0))]
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function arraysEqual<T>(left: readonly T[], right: readonly T[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }

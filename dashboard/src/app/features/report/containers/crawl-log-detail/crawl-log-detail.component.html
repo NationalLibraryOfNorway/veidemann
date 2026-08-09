@@ -1,8 +1,8 @@
 @if (item$ | async; as crawlLog) {
   <div class="detail-page">
-    <div class="detail-content">
+    <div class="detail-content detail-content-flush">
       <app-crawl-log-status [crawlLog]="crawlLog">
-        <app-crawl-log-shortcuts cardHeaderHelpers [crawlLog]="crawlLog"></app-crawl-log-shortcuts>
+        <app-crawl-log-shortcuts detailHeaderHelpers [crawlLog]="crawlLog"></app-crawl-log-shortcuts>
       </app-crawl-log-status>
     </div>
   </div>

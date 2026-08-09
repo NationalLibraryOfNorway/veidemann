@@ -24,7 +24,6 @@ import {
   DeleteDialogComponent,
   DeleteMultiDialogComponent,
   Parcel,
-  RoleMappingListComponent,
   RunCrawlDialogComponent
 } from '../../components';
 import {SortDirection} from '@angular/material/sort';
@@ -40,7 +39,8 @@ import {
   dialogByKind,
   equalConfigCountQuery,
   equalConfigQuery,
-  multiDialogByKind
+  multiDialogByKind,
+  parseConfigSearchTerm
 } from '../../func';
 import {ReferrerError} from '../../../../shared/error';
 import {RunCrawlRequest} from '../../../../shared/models/controller/controller.model';
@@ -49,7 +49,7 @@ import {AsyncPipe} from '@angular/common';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
-import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
 import {MatMenuItem} from '@angular/material/menu';
 import {MatTooltip} from '@angular/material/tooltip';
 import {
@@ -57,8 +57,6 @@ import {
   CollectionNamePipe,
   CrawlConfigNamePipe,
   CrawlScheduleNamePipe,
-  JobExecutionStatePipe,
-  JobExecutionStatusPipe,
   PolitenessConfigNamePipe
 } from '../../pipe';
 import {MatButtonModule} from '@angular/material/button';
@@ -79,7 +77,6 @@ import {MongoAbility} from '@casl/ability';
     MatListModule,
     MatIcon,
     MatProgressBar,
-    RoleMappingListComponent,
     FilterDirective,
     RouterLink,
     ActionDirective,
@@ -89,12 +86,9 @@ import {MongoAbility} from '@casl/ability';
     ShortcutDirective,
     BrowserConfigNamePipe,
     PolitenessConfigNamePipe,
-    JobExecutionStatusPipe,
-    JobExecutionStatePipe,
     CrawlScheduleNamePipe,
     CrawlConfigNamePipe,
     MatButtonModule,
-    ExtraDirective,
   ],
   standalone: true
 })
@@ -348,6 +342,8 @@ export class ConfigurationsComponent implements OnDestroy {
       politeness_id: value.politenessId || null,
       disabled: value.disabled === null ? null : value.disabled,
       script_type: value.browserScriptType ?? null,
+      robots_policy: value.robotsPolicy ?? null,
+      role: value.role ?? null,
       crawl_job_id: value.crawlJobIdList.length ? value.crawlJobIdList : null,
       script_id: value.scriptIdList.length ? value.scriptIdList : null,
       q: value.term || null
@@ -378,6 +374,9 @@ export class ConfigurationsComponent implements OnDestroy {
         break;
       case 'scriptIdList':
         query.scriptIdList = query.scriptIdList.filter(id => id !== chip.value);
+        break;
+      case 'labelSelector':
+        query.term = parseConfigSearchTerm(query.term ?? '').name;
         break;
     }
     this.onQueryChange(query);
@@ -519,7 +518,7 @@ export class ConfigurationsComponent implements OnDestroy {
 
   onDeleteConfig(configObject: ConfigObject) {
     const dialogRef = this.dialog.open(DeleteDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {configObject},
     });
@@ -546,7 +545,7 @@ export class ConfigurationsComponent implements OnDestroy {
 
   onDeleteConfigObjects(configObjects: ConfigObject[]) {
     const dialogRef = this.dialog.open(DeleteMultiDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {numberOfConfigs: configObjects.length}
     });
@@ -578,6 +577,7 @@ export class ConfigurationsComponent implements OnDestroy {
     const query = this.query();
     return query.disabled !== null
       || query.browserScriptType !== null
+      || query.robotsPolicy !== null
       || !!query.entityId
       || !!query.scheduleId
       || !!query.crawlConfigId
@@ -592,14 +592,14 @@ export class ConfigurationsComponent implements OnDestroy {
   onRunCrawl(configObject: ConfigObject) {
     const crawlJobs = this.options.crawlJobs;
     const dialogRef = this.dialog.open(RunCrawlDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {configObject, jobRefId: null, crawlJobs}
     });
 
     dialogRef.afterClosed()
       .subscribe(result => {
-        if (result.runCrawlRequest) {
+        if (result?.runCrawlRequest) {
           this.controllerApiService.runCrawl(result.runCrawlRequest)
             .subscribe(runCrawlReply => {
               if (configObject.kind === Kind.SEED) {
@@ -626,7 +626,7 @@ export class ConfigurationsComponent implements OnDestroy {
   onRunCrawlSelected(configObjects: ConfigObject[]) {
     const crawlJobs = this.options.crawlJobs;
     const dialogRef = this.dialog.open(RunCrawlDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {configObject: configObjects[0], jobRefId: null, crawlJobs, numberOfSeeds: configObjects.length}
     });

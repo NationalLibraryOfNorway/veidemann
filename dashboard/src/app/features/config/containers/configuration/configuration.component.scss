@@ -5,6 +5,7 @@
 }
 
 .detail-page {
+  container: configuration-detail / inline-size;
   box-sizing: border-box;
   height: 100%;
   overflow: auto;
@@ -31,7 +32,9 @@
 }
 
 .supporting-pane {
+  display: grid;
   min-width: 0;
+  gap: 24px;
 }
 
 .supporting-pane h2 {
@@ -45,7 +48,7 @@
   gap: 16px;
 }
 
-@media (min-width: 1200px) {
+@container configuration-detail (min-width: 50rem) {
   .detail-pane-layout {
     grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
   }

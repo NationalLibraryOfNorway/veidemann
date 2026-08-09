@@ -9,12 +9,13 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatSelectModule} from '@angular/material/select';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
-import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -24,10 +25,10 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CopyIdDirective,
+    BooleanStateChipComponent,
     DurationPickerComponent,
     MatButtonModule,
     MatCardModule,
-    MatCheckbox,
     MatFormFieldModule,
     MatInputModule,
     MatIcon,
@@ -40,6 +41,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
 })
 
 export class PolitenessConfigDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -58,9 +60,6 @@ export class PolitenessConfigDetailsComponent implements OnChanges {
   @Output()
   update = new EventEmitter<ConfigObject>();
 
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
 
 
@@ -70,10 +69,6 @@ export class PolitenessConfigDetailsComponent implements OnChanges {
 
   get canEdit(): boolean {
     return this.authService.canUpdate(this.configObject.kind);
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get showSave(): boolean {
@@ -128,10 +123,6 @@ export class PolitenessConfigDetailsComponent implements OnChanges {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete() {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

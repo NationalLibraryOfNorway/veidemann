@@ -7,7 +7,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatChipOptionHarness} from '@angular/material/chips/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {MatInputHarness} from '@angular/material/input/testing';
 
@@ -43,9 +43,8 @@ describe('CrawlConfigDetailsComponent', () => {
   let saveButton: MatButtonHarness;
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
 
-  let screenshotCheckbox: MatCheckboxHarness;
+  let screenshotChip: MatChipOptionHarness;
 
   let priorityWeightFormField: MatFormFieldHarness;
   let priorityWeightInput: MatInputHarness;
@@ -130,10 +129,9 @@ describe('CrawlConfigDetailsComponent', () => {
     beforeEach(async () => {
       await fixture.whenStable();
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
       revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
 
-      screenshotCheckbox = await loader.getHarness<MatCheckboxHarness>(MatCheckboxHarness.with({label: 'Create screenshot'}));
+      screenshotChip = await loader.getHarness(MatChipOptionHarness.with({selector: 'app-boolean-state-chip mat-chip-option'}));
     });
 
     it('update button should be active if form is updated and valid', async () => {
@@ -209,11 +207,11 @@ describe('CrawlConfigDetailsComponent', () => {
       expect(await priorityWeightFormField.getTextErrors()).toEqual([]);
     });
 
-    it('toggling screenshot checkbox updates form state', async () => {
+    it('toggling the screenshot state chip updates form state', async () => {
       expect(component.canUpdate).toBeFalsy();
-      expect(await screenshotCheckbox.isChecked()).toBe(true);
-      await screenshotCheckbox.uncheck();
-      expect(await screenshotCheckbox.isChecked()).toBe(false);
+      expect(await screenshotChip.isSelected()).toBe(true);
+      await screenshotChip.toggle();
+      expect(await screenshotChip.isSelected()).toBe(false);
     });
 
     /** Testing revert button */
@@ -230,18 +228,8 @@ describe('CrawlConfigDetailsComponent', () => {
         expect(component.canUpdate).toBeFalsy();
       });
 
-    /**  Testing delete button */
-    it('Clicking delete button emits a delete event', async () => {
-      let del: ConfigObject | undefined;
-      component.delete.subscribe((config: ConfigObject) => {
-        del = config;
-      });
-
-      expect(await deleteButton.isDisabled()).toBeFalsy();
-      expect(component.canDelete).toBeTruthy();
-      await deleteButton.click();
-
-      expect(del.crawlConfig).toBe(component.configObject.crawlConfig);
+    it('does not render delete in the card actions', async () => {
+      expect(await loader.getHarnessOrNull(MatButtonHarness.with({text: 'DELETE'}))).toBeNull();
     });
   });
 });

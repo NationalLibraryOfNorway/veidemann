@@ -3,16 +3,9 @@
 }
 
 .annotation-suggestions {
-  display: grid;
-  gap: 8px;
   margin: -8px 0 16px;
 }
 
-.annotation-suggestions__label {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-medium);
-}
-
-.annotation-suggestions mat-chip {
+.annotation-suggestions__trigger {
   cursor: pointer;
 }

@@ -35,6 +35,7 @@ export interface ListReloadOptions {
 }
 
 export type ListComparator<T> = (left: T, right: T) => number;
+export type ListPredicate<T> = (item: T) => boolean;
 
 /**
  * Renderer-neutral state for streamed lists.
@@ -60,6 +61,7 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
   private capacity = 0;
   private readonly pageSize: number;
   private comparator: ListComparator<T> | null = null;
+  private predicate: ListPredicate<T> | null = null;
   private activeLoad = Subscription.EMPTY;
   private querySubscription = Subscription.EMPTY;
   private failedRange: ListRange | null = null;
@@ -96,6 +98,11 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
     return this.data.value;
   }
 
+  /** All rows accumulated from the server, before client-side filtering and sorting. */
+  get loadedSnapshot(): readonly T[] {
+    return this.accumulated;
+  }
+
   connect(): Observable<readonly T[]> {
     return this.rows$;
   }
@@ -107,6 +114,12 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
   /** Changes only the derived view; accumulated server rows remain immutable. */
   setComparator(comparator: ListComparator<T> | null): void {
     this.comparator = comparator;
+    this.publish();
+  }
+
+  /** Changes only the derived view; accumulated server rows remain immutable. */
+  setPredicate(predicate: ListPredicate<T> | null): void {
+    this.predicate = predicate;
     this.publish();
   }
 
@@ -279,7 +292,10 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
   }
 
   private publish(): void {
-    const view = this.comparator ? [...this.accumulated].sort(this.comparator) : [...this.accumulated];
+    let view = this.predicate ? this.accumulated.filter(this.predicate) : [...this.accumulated];
+    if (this.comparator) {
+      view = view.sort(this.comparator);
+    }
     this.data.next(view);
   }
 

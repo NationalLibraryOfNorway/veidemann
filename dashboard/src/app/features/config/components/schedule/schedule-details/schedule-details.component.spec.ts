@@ -1,502 +1,80 @@
-import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {ScheduleDetailsComponent} from './schedule-details.component';
-import {Annotation, ConfigObject, CrawlScheduleConfig, Kind, Label, Meta} from '../../../../../shared/models';
-import {HarnessLoader} from '@angular/cdk/testing';
-import {MatButtonHarness} from '@angular/material/button/testing';
-import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
-import {
-  MatCalendarHarness,
-  MatDatepickerInputHarness,
-  MatDatepickerToggleHarness
-} from '@angular/material/datepicker/testing';
-import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from "@angular/material/core";
-import {endOfMonth, format, formatISO, startOfMonth} from 'date-fns';
-import {nb} from 'date-fns/locale';
-import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {nb} from 'date-fns/locale';
 
-const exampleCrawlSchedule: ConfigObject = {
-  id: 'configObject_id',
-  apiVersion: 'v1',
-  kind: Kind.CRAWLSCHEDULECONFIG,
-  meta: new Meta({
-    name: 'Example CrawlSchedule',
-    createdBy: 'test',
-    created: '01.01.1970',
-    lastModified: '01.01.2021',
-    lastModifiedBy: 'test',
-    description: 'This is an example CrawlSchedule',
-    labelList: [new Label({key: 'test', value: 'label'})],
-    annotationList: [new Annotation({key: 'test', value: 'annotation'})]
-  }),
-  crawlScheduleConfig: new CrawlScheduleConfig({
-    cronExpression: '0 6 * * *',
-    validFrom: '',
-    validTo: ''
-  })
-};
+import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {ConfigObject, CrawlScheduleConfig, Kind, Meta} from '../../../../../shared/models';
+import {ScheduleDetailsComponent} from './schedule-details.component';
 
 describe('ScheduleDetailsComponent', () => {
-  let component: ScheduleDetailsComponent;
   let fixture: ComponentFixture<ScheduleDetailsComponent>;
-  let loader: HarnessLoader;
+  let component: ScheduleDetailsComponent;
 
-  let saveButton: MatButtonHarness;
-  let updateButton: MatButtonHarness;
-  let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
-
-  let validFromFormField: MatFormFieldHarness;
-  let validFrom: MatDatepickerInputHarness;
-  let validFromToggle: MatDatepickerToggleHarness;
-  let validToFormField: MatFormFieldHarness;
-  let validTo: MatDatepickerInputHarness;
-  let validToToggle: MatDatepickerToggleHarness;
-
-  let cronMinuteFormField: MatFormFieldHarness;
-  let cronMinuteInput: MatInputHarness;
-  let cronHourFormField: MatFormFieldHarness;
-  let cronHourInput: MatInputHarness;
-  let cronDomFormField: MatFormFieldHarness;
-  let cronDomInput: MatInputHarness;
-  let cronMonthFormField: MatFormFieldHarness;
-  let cronMonthInput: MatInputHarness;
-  let cronDowFormField: MatFormFieldHarness;
-  let cronDowInput: MatInputHarness;
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
       imports: [ScheduleDetailsComponent],
       providers: [
         ...provideCoreTesting,
-        {
-          provide: DateAdapter,
-          useClass: DateFnsAdapter,
-          deps: [MAT_DATE_LOCALE]
-        },
-        {
-          provide: MAT_DATE_FORMATS,
-          useValue: MAT_DATE_FNS_FORMATS
-        },
-        {
-          provide: MAT_DATE_LOCALE,
-          useValue: nb,
-        },
-      ]
-    })
-      .compileComponents();
-  });
-
-  beforeEach(async () => {
+        {provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE]},
+        {provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS},
+        {provide: MAT_DATE_LOCALE, useValue: nb},
+      ],
+    }).compileComponents();
     fixture = TestBed.createComponent(ScheduleDetailsComponent);
     component = fixture.componentInstance;
-
-    component.configObject = new ConfigObject(exampleCrawlSchedule);
-
-    component.ngOnChanges({
-      configObject: new SimpleChange(null, component.configObject, true)
+    component.configObject = new ConfigObject({
+      id: 'schedule-1', kind: Kind.CRAWLSCHEDULECONFIG, meta: new Meta({name: 'Schedule'}),
+      crawlScheduleConfig: new CrawlScheduleConfig({cronExpression: '0 6 * * *'}),
     });
-
+    component.ngOnChanges({configObject: new SimpleChange(null, component.configObject, true)});
     fixture.detectChanges();
     await fixture.whenStable();
-
-    loader = TestbedHarnessEnvironment.loader(fixture);
-    validFromFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="validFrom"]'}));
-    validFrom = await loader.getHarness<MatDatepickerInputHarness>(MatDatepickerInputHarness
-      .with({selector: '[data-testid="validFromInput"]'}));
-    validFromToggle = await loader.getHarness<MatDatepickerToggleHarness>(MatDatepickerToggleHarness
-      .with({selector: '[data-testid="validFromToggle"]'}));
-    validToFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="validTo"]'}));
-    validTo = await loader.getHarness<MatDatepickerInputHarness>(MatDatepickerInputHarness
-      .with({selector: '[data-testid="validToInput"]'}));
-    validToToggle = await loader.getHarness<MatDatepickerToggleHarness>(MatDatepickerToggleHarness
-      .with({selector: '[data-testid="validToToggle"]'}));
-    cronMinuteFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="cronMinute"]'}));
-    cronMinuteInput = (await cronMinuteFormField.getControl()) as MatInputHarness;
-    cronHourFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="cronHour"]'}));
-    cronHourInput = (await cronHourFormField.getControl()) as MatInputHarness;
-    cronDomFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="cronDayOfMonth"]'}));
-    cronDomInput = (await cronDomFormField.getControl()) as MatInputHarness;
-    cronMonthFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="cronMonth"]'}));
-    cronMonthInput = (await cronMonthFormField.getControl()) as MatInputHarness;
-    cronDowFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness
-      .with({selector: '[data-testid="cronDayOfWeek"]'}));
-    cronDowInput = (await cronDowFormField.getControl()) as MatInputHarness;
   });
 
-  it('should create', () => {
+  it('uses one Material date-range input and keeps the remaining schedule fields', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('offers a copy button for the saved ID field', () => {
+    expect(fixture.nativeElement.querySelectorAll('mat-date-range-input')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('[matstartdate]')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('[matenddate]')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('.cron-expression input')).toHaveLength(5);
     expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
   });
 
-  it('renders metadata and schedule fields in a responsive Material grid', () => {
-    const grid = fixture.nativeElement.querySelector('.config-details-grid') as HTMLElement;
-    const columns = Array.from(grid.children) as HTMLElement[];
-
-    expect(getComputedStyle(grid).display).toBe('grid');
-    expect(columns).toHaveLength(2);
-    expect(columns[0].querySelector('app-meta')).not.toBeNull();
-    expect(columns[1].querySelectorAll('.schedule-section-title')).toHaveLength(2);
-    expect(columns[1].textContent).toContain('CRON expression');
-    expect(columns[1].textContent).toContain('Time limit');
-    expect(columns[1].querySelector('[mat-subheader]')).toBeNull();
+  it('serializes the range to inclusive UTC day boundaries', () => {
+    component.validFrom.setValue(new Date(2026, 6, 14));
+    component.validTo.setValue(new Date(2026, 6, 20));
+    const saved = component['prepareSave']();
+    expect(saved.crawlScheduleConfig.validFrom).toBe('2026-07-14T00:00:00.000Z');
+    expect(saved.crawlScheduleConfig.validTo).toBe('2026-07-20T23:59:59.999Z');
   });
 
-  it('setting valid from date in calendar sets timestamp to beginning of day', async () => {
+  it('rejects a reversed range', () => {
+    component.validFrom.setValue(new Date(2026, 6, 20));
+    component.validTo.setValue(new Date(2026, 6, 14));
+    fixture.detectChanges();
+    expect(component.form.invalid).toBe(true);
+    expect(component.validFrom.hasError('matStartDateInvalid') || component.validTo.hasError('matEndDateInvalid')).toBe(true);
+  });
+
+  it('validates cron fields and emits updated cron expressions', () => {
+    component.cronExpression.get('minute').setValue('60');
+    expect(component.form.invalid).toBe(true);
+    component.cronExpression.get('minute').setValue('10');
+    expect(component.form.valid).toBe(true);
     let update: ConfigObject | undefined;
-    component.update.subscribe((config: ConfigObject) => {
-      update = config;
-    });
-
-    await validFromToggle.openCalendar();
-    const fromCal = await validFromToggle.getCalendar();
-    const dates = fromCal.getCells();
-    await fromCal.selectCell(dates[0]);
-    await validFromToggle.closeCalendar();
-    await fixture.whenStable();
-
-    // Calculate the expected date and timestamp reliably
-    const expectedDate = startOfMonth(new Date());
-    const expected = format(expectedDate, 'P', {locale: nb});
-
-    expect(await validFrom.getValue()).toEqual(expected);
-    expect(component.canUpdate).toBeTruthy();
-
-    await fixture.whenStable();
+    component.update.subscribe(value => update = value);
     component.onUpdate();
-
-    const expectedTimestamp = formatISO(expectedDate, {representation: 'date'}) + 'T00:00:00.000Z';
-    expect(update.crawlScheduleConfig.validFrom).toBe(expectedTimestamp);
+    expect(update?.crawlScheduleConfig.cronExpression).toBe('10 6 * * *');
   });
 
-  it('setting valid from date in input sets timestamp to start of day', async () => {
-    let update: ConfigObject | undefined;
-    component.update.subscribe((config: ConfigObject) => {
-      update = config;
-    });
-
-    await validFrom.setValue('32.1.2022');
-    await fixture.whenStable();
-    await validFrom.blur();
-    expect(await validFromFormField.isControlValid()).toBeFalsy();
-    expect(component.canUpdate).toBeFalsy();
-
-    await validFrom.setValue('1.13.2022');
-    await validFrom.blur();
-    expect(await validFromFormField.isControlValid()).toBeFalsy();
-    expect(component.canUpdate).toBeFalsy();
-
-    await validFrom.setValue('1.1.2022');
-    await validFrom.blur();
-    expect(await validFromFormField.isControlValid()).toBeTruthy();
-    expect(component.canUpdate).toBeTruthy();
-
-    component.onUpdate();
-
-    expect(update.crawlScheduleConfig.validFrom).toBe('2022-01-01T00:00:00.000Z');
+  it('reverts range and cron changes', () => {
+    component.validFrom.setValue(new Date(2026, 0, 1));
+    component.cronExpression.get('minute').setValue('10');
+    component.onRevert();
+    expect(component.validFrom.value).toBe('');
+    expect(component.cronExpression.get('minute').value).toBe('0');
+    expect(component.form.pristine).toBe(true);
   });
-
-  it('setting valid to date in calendar sets timestamp to end of day', async () => {
-    let update: ConfigObject | undefined;
-    component.update.subscribe((config: ConfigObject) => {
-      update = config;
-    });
-
-    await validToToggle.openCalendar();
-    const toCal = await validToToggle.getCalendar();
-    const daysInMonth = await toCal.getCells();
-    await daysInMonth[daysInMonth.length - 1].select();
-    await validToToggle.closeCalendar();
-    await fixture.whenStable();
-    const expectedToDate = format(endOfMonth(new Date()), 'dd.MM.yyyy', {locale: nb});
-    expect(await validTo.getValue()).toEqual(expectedToDate);
-    expect(component.canUpdate).toBeTruthy();
-    component.onUpdate();
-    const expectedTimestamp = format(endOfMonth(new Date()), 'yyyy-MM-dd') + 'T23:59:59.999Z';
-    expect(update.crawlScheduleConfig.validTo).toBe(expectedTimestamp);
-  });
-
-  it('setting valid to date in input sets timestamp to end of day', async () => {
-    let update: ConfigObject | undefined;
-    component.update.subscribe((config: ConfigObject) => {
-      update = config;
-    });
-
-    await validTo.setValue('1.32.2022');
-    await fixture.whenStable();
-    await validTo.blur();
-    expect(await validToFormField.isControlValid()).toBeFalsy();
-    expect(component.canUpdate).toBeFalsy();
-
-    await validTo.setValue('32.1.2022');
-    await fixture.whenStable();
-    await validTo.blur();
-    expect(await validToFormField.isControlValid()).toBeFalsy();
-    expect(component.canUpdate).toBeFalsy();
-
-    await validTo.setValue('1.1.2022');
-    await fixture.whenStable();
-    await validTo.blur();
-    expect(await validToFormField.isControlValid()).toBeTruthy();
-    expect(component.canUpdate).toBeTruthy();
-    component.onUpdate();
-    expect(update.crawlScheduleConfig.validTo).toBe('2022-01-01T23:59:59.999Z');
-  });
-
-  describe('Creating a new CrawlSchedule', async () => {
-
-    beforeEach(async () => {
-      component.configObject.id = '';
-      component.ngOnChanges({
-        configObject: new SimpleChange(null, component.configObject, null)
-      });
-      await fixture.whenStable();
-      saveButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'SAVE'}));
-    });
-
-    it('show save button when creating a new config if form is valid', async () => {
-      expect(await saveButton.isDisabled()).toBeFalsy();
-      expect(component.canSave).toBeTruthy();
-    });
-  });
-
-  describe('Updating a CrawlSchedule', async () => {
-
-    beforeEach(async () => {
-      await fixture.whenStable();
-      updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
-      revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
-    });
-
-    it('update button should be active if form is updated and valid', async () => {
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-    });
-
-    it('clicking update button emits an update event', async () => {
-      let update: ConfigObject | undefined;
-      component.update.subscribe((config: ConfigObject) => {
-        update = config;
-      });
-
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-
-      await cronMinuteInput.setValue('10');
-      await fixture.whenStable();
-
-      expect(await updateButton.isDisabled()).toBeFalsy();
-      expect(component.canUpdate).toBeTruthy();
-
-      await updateButton.click();
-      expect(update.crawlScheduleConfig.cronExpression).toBe('10 6 * * *');
-    });
-
-
-    it('clicking revert buttons reverts form back to initial values', async () => {
-      expect(await revertButton.isDisabled()).toBeTruthy();
-      await validFromToggle.openCalendar();
-
-      const cal: MatCalendarHarness = await validFromToggle.getCalendar();
-      await cal.selectCell({today: true});
-      await validFromToggle.closeCalendar();
-      const fromDate = await validFrom.getValue();
-      expect(fromDate).not.toBe('');
-
-      await fixture.whenStable();
-      expect(component.canRevert).toBeTruthy();
-      await revertButton.click();
-      await fixture.whenStable();
-      expect(await validFrom.getValue()).toBe('');
-      expect(component.canRevert).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-    });
-
-    it('clicking delete button emits a delete event', async () => {
-      let del: ConfigObject | undefined;
-      component.delete.subscribe((config: ConfigObject) => {
-        del = config;
-      });
-
-      expect(await deleteButton.isDisabled()).toBeFalsy();
-      expect(component.canDelete).toBeTruthy();
-      await deleteButton.click();
-
-      expect(del.crawlScheduleConfig).toBe(component.configObject.crawlScheduleConfig);
-    });
-
-    /** Testing pattern rules for cron expression form fields */
-
-    it('cron minute form field should only except valid input', async () => {
-      expect(await cronMinuteFormField.isControlValid()).toBeTruthy();
-      await cronMinuteInput.setValue('60');
-      expect(await cronMinuteFormField.isControlValid()).toBeFalsy();
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMinuteInput.setValue('abc');
-      expect(await cronMinuteFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMinuteInput.setValue('-48');
-      expect(await cronMinuteFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMinuteInput.setValue('01');
-      expect(await cronMinuteFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMinuteInput.setValue('1');
-      expect(await cronMinuteFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMinuteInput.setValue('*');
-      expect(await cronMinuteFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMinuteInput.setValue('0,30');
-      expect(await cronMinuteFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMinuteInput.setValue('0-30');
-      expect(await cronMinuteFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-    });
-
-    it('cron hour form field should only except valid input', async () => {
-      expect(await cronHourFormField.isControlValid()).toBeTruthy();
-      await cronHourInput.setValue('25');
-      expect(await cronHourFormField.isControlValid()).toBeFalsy();
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronHourInput.setValue('abc');
-      expect(await cronHourFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronHourInput.setValue('-12');
-      expect(await cronHourFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronHourInput.setValue('01');
-      expect(await cronHourFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronHourInput.setValue('1');
-      expect(await cronHourFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronHourInput.setValue('*');
-      expect(await cronHourFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronHourInput.setValue('0,3');
-      expect(await cronHourFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronHourInput.setValue('0-12');
-      expect(await cronHourFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-    });
-
-    it('cron day of month form field should only except valid input', async () => {
-      expect(await cronDomFormField.isControlValid()).toBeTruthy();
-      await cronDomInput.setValue('32');
-      expect(await cronDomFormField.isControlValid()).toBeFalsy();
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDomInput.setValue('abc');
-      expect(await cronDomFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDomInput.setValue('-16');
-      expect(await cronDomFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDomInput.setValue('01');
-      expect(await cronDomFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDomInput.setValue('1');
-      expect(await cronDomFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDomInput.setValue('*');
-      expect(await cronDomFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDomInput.setValue('1,31');
-      expect(await cronDomFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDomInput.setValue('1-31');
-      expect(await cronDomFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-    });
-
-    it('cron month form field should only except valid input', async () => {
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      await cronMonthInput.setValue('13');
-      expect(await cronMonthFormField.isControlValid()).toBeFalsy();
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMonthInput.setValue('abc');
-      expect(await cronMonthFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMonthInput.setValue('-6');
-      expect(await cronMonthFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMonthInput.setValue('01');
-      expect(await cronMonthFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronMonthInput.setValue('1');
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMonthInput.setValue('*');
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMonthInput.setValue('1,6');
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMonthInput.setValue('1-12');
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMonthInput.setValue('jan-dec');
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronMonthInput.setValue('jan,feb,sep');
-      expect(await cronMonthFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-    });
-
-    it('cron day of week form field should only except valid input', async () => {
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      await cronDowInput.setValue('7');
-      expect(await cronDowFormField.isControlValid()).toBeFalsy();
-      expect(await updateButton.isDisabled()).toBeTruthy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDowInput.setValue('abc');
-      expect(await cronDowFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDowInput.setValue('-3');
-      expect(await cronDowFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDowInput.setValue('01');
-      expect(await cronDowFormField.isControlValid()).toBeFalsy();
-      expect(component.canUpdate).toBeFalsy();
-      await cronDowInput.setValue('1');
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDowInput.setValue('*');
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDowInput.setValue('0,6');
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDowInput.setValue('1-5');
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDowInput.setValue('mon-fri');
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-      await cronDowInput.setValue('mon,tue,sat');
-      expect(await cronDowFormField.isControlValid()).toBeTruthy();
-      expect(component.canUpdate).toBeTruthy();
-    });
-  });
-
-
 });

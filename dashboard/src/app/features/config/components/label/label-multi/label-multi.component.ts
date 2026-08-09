@@ -95,7 +95,7 @@ export class LabelMultiComponent implements OnInit {
     );
     const key$ = this.fetchLabelKeys.pipe(
       startWith(''),
-      switchMap(() => this.labelService.getLabelKeys())
+      switchMap(() => this.labelService.getLabelKeys(this.configObject.kind))
     );
     this.filteredKey$ = combineLatest([value$, key$])
       .pipe(
@@ -148,7 +148,7 @@ export class LabelMultiComponent implements OnInit {
 
     const {EmojiPickerDialogComponent} = await import('../../../../../shared/components/emoji-picker/emoji-picker-dialog.component');
     this.dialog.open<InstanceType<typeof EmojiPickerDialogComponent>, void, string>(EmojiPickerDialogComponent, {
-      width: '464px',
+      width: '552px',
       maxWidth: 'calc(100vw - 24px)',
       autoFocus: false,
       restoreFocus: true,

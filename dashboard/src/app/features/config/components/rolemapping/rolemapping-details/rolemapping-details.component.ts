@@ -7,6 +7,8 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
 import {MatInput} from '@angular/material/input';
+import {MatIcon} from '@angular/material/icon';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -17,6 +19,7 @@ import {MatInput} from '@angular/material/input';
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
+    MatIcon,
     MatInput,
     MatSelectModule,
     ReactiveFormsModule
@@ -25,6 +28,7 @@ import {MatInput} from '@angular/material/input';
 })
 
 export class RoleMappingDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
 
   readonly Role = Role;
@@ -41,12 +45,7 @@ export class RoleMappingDetailsComponent implements OnChanges {
   @Output()
   update = new EventEmitter<ConfigObject>();
 
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
-
-  selectedType = '';
 
   constructor() {
     this.createForm();
@@ -70,6 +69,10 @@ export class RoleMappingDetailsComponent implements OnChanges {
 
   get email() {
     return this.form.get('email');
+  }
+
+  get identityType() {
+    return this.form.get('identityType');
   }
 
   get group() {
@@ -98,10 +101,6 @@ export class RoleMappingDetailsComponent implements OnChanges {
     this.update.emit(this.prepareSave());
   }
 
-  onDelete(): void {
-    this.delete.emit(this.configObject);
-  }
-
   onRevert() {
     this.updateForm();
   }
@@ -109,26 +108,29 @@ export class RoleMappingDetailsComponent implements OnChanges {
   protected createForm() {
     this.form = this.fb.group({
       id: {value: '', disabled: true},
-      email: '',
-      group: '',
+      identityType: ['email', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      group: [{value: '', disabled: true}],
       roleList: [[], [Validators.required, CustomValidators.nonEmpty]]
     });
+    this.identityType.valueChanges.subscribe(type => this.applyIdentityType(type));
   }
 
   protected updateForm() {
     this.form.patchValue({
       id: this.configObject.id,
+      identityType: this.getIdentityType(),
       email: this.configObject.roleMapping.email,
       group: this.configObject.roleMapping.group,
       roleList: this.configObject.roleMapping.roleList,
     });
-    this.setUserType();
+    this.applyIdentityType(this.identityType.value);
     this.form.markAsPristine();
     this.form.markAsUntouched();
   }
 
   protected prepareSave(): ConfigObject {
-    const formModel = this.form.value;
+    const formModel = this.form.getRawValue();
 
     const configObject = new ConfigObject({kind: Kind.ROLEMAPPING});
     if (this.configObject.id !== '') {
@@ -137,16 +139,11 @@ export class RoleMappingDetailsComponent implements OnChanges {
 
     const roleMapping = new RoleMapping();
     roleMapping.roleList = formModel.roleList;
-    if (this.selectedType === 'email') {
+    if (formModel.identityType === 'email') {
       roleMapping.email = formModel.email;
-      roleMapping.group = null;
-    }
-    if (this.selectedType === 'group') {
-      roleMapping.group = formModel.group;
-      roleMapping.email = null;
-    }
-    if (this.selectedType === '') {
       roleMapping.group = '';
+    } else {
+      roleMapping.group = formModel.group;
       roleMapping.email = '';
     }
 
@@ -155,20 +152,23 @@ export class RoleMappingDetailsComponent implements OnChanges {
     return configObject;
   }
 
-  protected setUserType() {
-    const group = Object.hasOwn(this.configObject.roleMapping, 'group') && this.configObject.roleMapping.group !== '';
-    const email = Object.hasOwn(this.configObject.roleMapping, 'email') && this.configObject.roleMapping.email !== '';
+  private getIdentityType(): 'email' | 'group' {
+    return this.configObject?.roleMapping?.group ? 'group' : 'email';
+  }
 
-    if (email) {
-      this.selectedType = 'email';
+  private applyIdentityType(type: 'email' | 'group'): void {
+    if (type === 'group') {
+      this.email.reset('', {emitEvent: false});
+      this.email.disable({emitEvent: false});
+      this.group.enable({emitEvent: false});
+      this.group.setValidators(Validators.required);
+    } else {
+      this.group.reset('', {emitEvent: false});
+      this.group.disable({emitEvent: false});
+      this.email.enable({emitEvent: false});
+      this.email.setValidators([Validators.required, Validators.email]);
     }
-
-    if (group) {
-      this.selectedType = 'group';
-    }
-
-    if (!group && !email) {
-      this.selectedType = '';
-    }
+    this.email.updateValueAndValidity({emitEvent: false});
+    this.group.updateValueAndValidity({emitEvent: false});
   }
 }

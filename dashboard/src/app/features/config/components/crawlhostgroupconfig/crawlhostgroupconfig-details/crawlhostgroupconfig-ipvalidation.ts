@@ -3,12 +3,6 @@ import { Address4, Address6 } from "ip-address";
 
 export class CrawlHostGroupConfigIpValidation {
 
-  static validRanges: boolean;
-
-  static allRangesValid(): boolean {
-    return this.validRanges;
-  }
-
   /**
    * Custom validator
    */
@@ -77,10 +71,8 @@ export class CrawlHostGroupConfigIpValidation {
       const ipv6To = new Address6(toIp);
       if (Address6.isValid(ipv6From.address) && Address6.isValid(ipv6To.address)) {
         if (this.isInRange(ipv6From.correctForm(), ipv6To.correctForm(), true)) {
-          this.validRanges = true;
           return true;
         } else {
-          this.validRanges = false;
           return false;
         }
       }
@@ -99,10 +91,8 @@ export class CrawlHostGroupConfigIpValidation {
 
       if (Address4.isValid(ipv4From.address) && Address4.isValid(ipv4To.address)) {
         if (this.isInRange(ipv4From.correctForm(), ipv4To.correctForm(), false)) {
-          this.validRanges = true;
           return true;
         } else {
-          this.validRanges = false;
           return false;
         }
       }

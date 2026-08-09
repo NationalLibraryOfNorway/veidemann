@@ -7,26 +7,58 @@
   min-width: 0;
 }
 
+.context-card.inactive {
+  opacity: 0.58;
+}
+
 mat-card-content {
   padding-top: 16px;
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 6px 16px;
+.summary-chips {
   margin-block: 0 16px;
 }
 
-.summary-grid dt {
+.effective-annotations {
+  margin-block: 16px;
+}
+
+.annotation-toggle {
+  padding-inline: 0;
+}
+
+.annotation-empty,
+.annotation-unavailable {
+  margin-bottom: 0;
+}
+
+.annotation-empty {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.annotation-unavailable {
+  color: var(--mat-sys-error);
+}
+
+.state-active,
+.compression-enabled {
+  --mdc-chip-elevated-container-color: var(--mat-sys-primary-container);
+  --mdc-chip-label-text-color: var(--mat-sys-on-primary-container);
+}
+
+.state-inactive {
+  --mdc-chip-elevated-container-color: var(--mat-sys-error-container);
+  --mdc-chip-label-text-color: var(--mat-sys-on-error-container);
+}
+
+.label-heading {
+  margin: 16px 0 4px;
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-medium);
 }
 
-.summary-grid dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
+.label-chips mat-chip[draggable="true"] {
+  cursor: grab;
 }
 
 .unavailable {
@@ -34,15 +66,4 @@ mat-card-content {
   flex-wrap: wrap;
   gap: 8px;
   color: var(--mat-sys-error);
-}
-
-@media (max-width: 599px) {
-  .summary-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
-  }
-
-  .summary-grid dd {
-    margin-bottom: 8px;
-  }
 }

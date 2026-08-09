@@ -102,10 +102,12 @@ describe('AppComponent navigation', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Main menu');
 
     const homeLink = fixture.nativeElement.querySelector('.main-toolbar a[href="/"]') as HTMLAnchorElement;
-    expect(homeLink.classList).toContain('mat-mdc-icon-button');
-    const grouseIcon = homeLink.querySelector('img.grouse-icon') as HTMLImageElement;
-    expect(grouseIcon).not.toBeNull();
-    expect(grouseIcon.getAttribute('src')).toContain('veidemann_grouse_black.png');
+    expect(homeLink.classList).not.toContain('mat-mdc-icon-button');
+    expect(getComputedStyle(homeLink).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    const brandLogo = homeLink.querySelector('img.toolbar-brand-logo') as HTMLImageElement;
+    expect(brandLogo.getAttribute('src')).toContain('veidemann_logo_inline_black.png');
+    expect(homeLink.querySelector('source')?.getAttribute('srcset')).toContain('veidemann_horizontal_white.png');
+    expect(fixture.nativeElement.querySelector('.main-toolbar .toolbar-title')).toBeNull();
 
     const sectionTriggers = Array.from(
       fixture.nativeElement.querySelectorAll('.drawer-section-trigger')
@@ -238,7 +240,7 @@ describe('AppComponent navigation', () => {
     expect(menuButton.getAttribute('aria-label')).toBe('Open navigation');
     expect(menuButton.querySelector('mat-icon')?.textContent).toContain('menu');
     expect(fixture.nativeElement.querySelector('.main-toolbar a.brand-link[href="/"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.main-toolbar .toolbar-title')?.textContent).toContain('Veidemann');
+    expect(fixture.nativeElement.querySelector('.main-toolbar .toolbar-brand-logo')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar a.toolbar-leading')).toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar mat-icon')?.textContent).not.toContain('arrow_back');
 
@@ -261,7 +263,7 @@ describe('AppComponent navigation', () => {
     ) as HTMLButtonElement;
     expect(menuButton).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar a.brand-link[href="/"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.main-toolbar .toolbar-title')?.textContent).toContain('Veidemann');
+    expect(fixture.nativeElement.querySelector('.main-toolbar .toolbar-brand-logo')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar a.toolbar-leading')).toBeNull();
 
     menuButton.click();
@@ -298,7 +300,7 @@ describe('AppComponent navigation', () => {
     const actions = Array.from(
       fixture.nativeElement.querySelectorAll('.rail-actions .rail-action')
     ) as HTMLButtonElement[];
-    expect(actions).toHaveLength(3);
+    expect(actions).toHaveLength(2);
     expect(actions[0].getAttribute('aria-label')).toBe('Crawljob schedule');
     for (const action of actions) {
       expect(action.querySelector('mat-icon')).not.toBeNull();
@@ -320,10 +322,10 @@ describe('AppComponent navigation', () => {
     const menuItems = Array.from(document.querySelectorAll('.mat-mdc-menu-item')) as HTMLElement[];
     expect(menuItems.map(item => item.textContent)).toEqual(expect.arrayContaining([
       expect.stringContaining('Crawljob schedule'),
-      expect.stringContaining('Docs'),
-      expect.stringContaining('About'),
       expect.stringContaining('LOGIN'),
     ]));
+    expect(menuItems.some(item => item.textContent.includes('Docs'))).toBe(false);
+    expect(menuItems.some(item => item.textContent.includes('About'))).toBe(false);
     for (const item of menuItems) {
       expect(item.querySelector('mat-icon')).not.toBeNull();
     }

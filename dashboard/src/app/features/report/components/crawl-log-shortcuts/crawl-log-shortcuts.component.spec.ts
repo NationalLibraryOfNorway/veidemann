@@ -51,14 +51,18 @@ describe('CrawlLogShortcutsComponent', () => {
 
     const chipSet = fixture.nativeElement.querySelector('mat-chip-set') as HTMLElement;
     const links = fixture.nativeElement.querySelectorAll('a[mat-chip]') as NodeListOf<HTMLAnchorElement>;
+    const copyChip = fixture.nativeElement.querySelector('[aria-label="Copy WARC ID"]') as HTMLElement;
     expect(chipSet.getAttribute('aria-label')).toBe('Crawl log identifiers');
-    expect(fixture.nativeElement.textContent).toContain('ID: warc-1');
+    expect(fixture.nativeElement.textContent).toContain('Copy WARC ID');
+    expect(fixture.nativeElement.textContent).not.toContain('warc-1');
+    expect(getComputedStyle(copyChip).cursor).toBe('pointer');
+    expect([...links].every(link => getComputedStyle(link).cursor === 'pointer')).toBe(true);
     expect([...links].map(link => link.getAttribute('href'))).toEqual([
       '/report/crawlexecution/crawl-execution-1',
       '/report/jobexecution/job-execution-1',
     ]);
 
-    (fixture.nativeElement.querySelector('[aria-label="Copy crawl log ID"]') as HTMLElement).click();
+    copyChip.click();
     expect(copy).toHaveBeenCalledWith('warc-1');
   });
 
@@ -72,7 +76,19 @@ describe('CrawlLogShortcutsComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('a[mat-chip]').length).toBe(0);
-    expect(fixture.nativeElement.textContent).toContain('Crawl execution ID: crawl-execution-1');
-    expect(fixture.nativeElement.textContent).toContain('Job execution ID: job-execution-1');
+    expect(fixture.nativeElement.textContent).toContain('Crawl execution');
+    expect(fixture.nativeElement.textContent).toContain('Job execution');
+    expect(fixture.nativeElement.textContent).not.toContain('crawl-execution-1');
+  });
+
+  it('leaves status code and collection to the detail table', () => {
+    fixture.componentRef.setInput('crawlLog', new CrawlLog({
+      statusCode: 200,
+      collectionFinalName: 'archive_2026',
+    }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('200');
+    expect(fixture.nativeElement.textContent).not.toContain('archive_2026');
   });
 });

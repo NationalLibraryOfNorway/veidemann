@@ -1,21 +1,25 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
     <mat-card-header class="card-header-with-helpers">
+      <div mat-card-avatar class="config-kind-avatar">
+        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+      </div>
       <mat-card-title>
-        <span i18n="@@collectionDetailsCardTitle">Collection</span>
-      </mat-card-title>
-      <mat-card-subtitle>
-        @if (!configObject?.id) {
-          <span
-          i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        @if (configObject.meta.name) {
+          {{configObject.meta.name}}
+        } @else {
+          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
-      </mat-card-subtitle>
+      </mat-card-title>
+      @if (configObject.meta.description) {
+        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
+      }
       <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
 
     <mat-card-content class="config-details-grid">
       <div class="layout-column flex-fill">
-        <app-collection-meta formControlName="meta"></app-collection-meta>
+        <app-collection-meta [kind]="configObject.kind" formControlName="meta"></app-collection-meta>
         @if (!showSave) {
           <mat-form-field>
             <mat-label i18n="@@configIdLabel">
@@ -68,76 +72,15 @@
         </mat-error>
         }
 
-        <mat-checkbox formControlName="compress"
-          labelPosition="after"
-          i18n="@@collectionFormCompressLabel"
-          color="accent">
-          Compress
-        </mat-checkbox>
+        <app-boolean-state-chip formControlName="compress" label="Compression"
+          i18n-label="@@collectionFormCompressLabel"
+          selectedLabel="(compressed)" i18n-selectedLabel="@@collectionFormCompressedLabel"
+          unselectedLabel="(uncompressed)" i18n-unselectedLabel="@@collectionFormUncompressedLabel"
+          selectedIcon="compress" unselectedIcon="unfold_more">
+        </app-boolean-state-chip>
 
-        <fieldset class="mat-elevation-z1" formArrayName="subCollectionsList">
-          <legend mat-card-subtitle i18n="@@collectionFormSubCollectionTitle">Subcollections</legend>
-
-          @for (subCollectionsList of subCollectionControlArray.controls; track subCollectionsList; let i = $index) {
-            <div
-              [formGroupName]="i" class="layout-row gap-16">
-              <mat-form-field [hideRequiredMarker]="subCollectionNameInput.value.length >= 2"
-                data-testid="subCollectionName" class="flex-fill">
-                <mat-label i18n="@@collectionFormSubCollectionNameLabel">
-                Name
-              </mat-label>
-                <input matInput #subCollectionNameInput formControlName="name">
-                @if (subCollectionNameInput.value.length < 2) {
-                  <mat-hint i18n="@@subCollectionNameInputLengthHint">
-                Minimum 2 characters
-              </mat-hint>
-                }
-                @if (getSubCollectionName(i).hasError('required')) {
-                  <mat-error
-                    i18n="@@collectionMetaSubcollectionNameRequiredError">
-                The field is required
-              </mat-error>
-                }
-                @if (getSubCollectionName(i).hasError('pattern')) {
-                  <mat-error
-                    i18n="@@collectionMetaSubcollectionNamePatternError">
-                Invalid name. (Valid characters are A-Å a-å 0-9 _)
-              </mat-error>
-                }
-              </mat-form-field>
-              <mat-form-field>
-                <mat-label i18n="@@collectionSubCollectionTypeDropdownLabel">
-                Subcollection type
-              </mat-label>
-                <mat-select formControlName="type" data-testid="subCollectionType">
-                  @for (type of subCollectionTypes; track type) {
-                    <mat-option [value]="type">
-                      {{SubCollectionType[type]}}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              @if (canEdit) {
-                <button mat-button
-                  (click)="onRemoveSubCollection(i)"
-                  >
-                  <mat-icon>remove_circle</mat-icon>&nbsp;
-                  <span i18n="@@collectionFormRemoveSubcollectionButton">REMOVE</span>
-                </button>
-              }
-            </div>
-          }
-
-          @if (canEdit) {
-            <button mat-stroked-button
-              data-testid="addSubCollectionButton"
-              (click)="onAddSubCollection()"
-              >
-              <mat-icon>add_circle</mat-icon>&nbsp;
-              <span i18n="@@collectionFormAddSubcollectionButton">ADD SUBCOLLECTION</span>
-            </button>
-          }
-        </fieldset>
+        <app-subcollection-chips formControlName="subCollectionsList"
+          [types]="subCollectionTypes" [editable]="canEdit"></app-subcollection-chips>
       </div>
     </mat-card-content>
 
@@ -172,13 +115,6 @@
         REVERT
       </button>
         <span class="flex-fill"></span>
-        @if (!showSave && canDelete) {
-          <button mat-button
-            (click)="onDelete()"
-            i18n="@@commonButtonDelete">
-        DELETE
-      </button>
-        }
       </mat-card-actions>
     }
   </mat-card>

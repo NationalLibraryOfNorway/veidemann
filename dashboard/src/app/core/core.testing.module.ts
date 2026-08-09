@@ -22,6 +22,7 @@ export const provideCoreTesting = [
     provide: ConfigApiService,
     useValue: {
       list: () => of(null),
+      getLabelKeys: () => of([]),
     },
   },
   { provide: GuardService, useValue: {} },
@@ -36,6 +37,7 @@ export const provideCoreTesting = [
     useValue: {
       isAdmin: () => true,
       isCurator: () => true,
+      canCreate: () => true,
       canUpdate: () => true,
       canDelete: () => true,
     },

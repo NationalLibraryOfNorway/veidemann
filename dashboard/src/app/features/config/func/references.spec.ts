@@ -1,5 +1,7 @@
 import {
   BrowserConfig,
+  BrowserScript,
+  BrowserScriptType,
   ConfigObject,
   ConfigRef,
   CrawlConfig,
@@ -76,6 +78,20 @@ describe('directConfigRefs', () => {
     expect(relatedConfigRefs(config, browserScripts).map(ref => ref.id)).toEqual(['explicit', 'implicit']);
   });
 
+  it('excludes scope scripts from BrowserConfig selector results', () => {
+    const config = new ConfigObject({
+      kind: Kind.BROWSERCONFIG,
+      browserConfig: new BrowserConfig({scriptSelectorList: ['profile:default']}),
+    });
+    const labels = [new Label({key: 'profile', value: 'default'})];
+    const browserScripts = [
+      browserScript('on-load', labels, BrowserScriptType.ON_LOAD),
+      browserScript('scope', labels, BrowserScriptType.SCOPE_CHECK),
+    ];
+
+    expect(relatedConfigRefs(config, browserScripts).map(ref => ref.id)).toEqual(['on-load']);
+  });
+
   it('supports key-only and value-only selectors', () => {
     const config = new ConfigObject({
       kind: Kind.BROWSERCONFIG,
@@ -105,10 +121,15 @@ describe('directConfigRefs', () => {
   });
 });
 
-function browserScript(id: string, labelList: Label[] = []): ConfigObject {
+function browserScript(
+  id: string,
+  labelList: Label[] = [],
+  browserScriptType = BrowserScriptType.UNDEFINED,
+): ConfigObject {
   return new ConfigObject({
     id,
     kind: Kind.BROWSERSCRIPT,
     meta: new Meta({labelList}),
+    browserScript: new BrowserScript({browserScriptType}),
   });
 }

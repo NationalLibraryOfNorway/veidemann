@@ -10,6 +10,7 @@ import {NO_COLON} from '../../../../../shared/validation/patterns';
 export interface AnnotationEditDialogData {
   key: string;
   value: string;
+  type?: 'annotation' | 'label';
 }
 
 export type AnnotationEditDialogResult = AnnotationEditDialogData;

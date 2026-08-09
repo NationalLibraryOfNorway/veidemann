@@ -7,9 +7,11 @@ import {ControllerApiService, ReportApiService} from '../../../../core';
 import {
   ApiError,
   ConfigObject,
+  CrawlJob,
   CrawlExecutionState,
   JobExecutionState,
   JobExecutionStatus,
+  Kind,
   Meta
 } from '../../../../shared/models';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
@@ -19,7 +21,7 @@ import {JobExecutionStatusComponent} from './job-execution-status.component';
 @Component({
   template: `
     <app-job-execution-status [jobExecutionStatus]="status">
-      <span cardHeaderHelpers class="projected-helper">Helper</span>
+      <span detailHeaderHelpers class="projected-helper">Helper</span>
       <span detailActions class="projected-action">Action</span>
     </app-job-execution-status>
   `,
@@ -32,8 +34,10 @@ class JobExecutionStatusHostComponent {
 
 describe('JobExecutionStatusComponent', () => {
   let fixture: ComponentFixture<JobExecutionStatusComponent>;
+  let job: ConfigObject;
 
   beforeEach(async () => {
+    job = new ConfigObject({id: 'job-id', meta: new Meta({name: 'News crawl'})});
     await TestBed.configureTestingModule({
       imports: [JobExecutionStatusComponent, JobExecutionStatusHostComponent],
       providers: [
@@ -42,7 +46,7 @@ describe('JobExecutionStatusComponent', () => {
         {
           provide: JobExecutionService,
           useValue: {
-            getJob: (id: string) => of(new ConfigObject({id, meta: new Meta({name: 'News crawl'})})),
+            getJob: () => of(job),
           },
         },
         {
@@ -64,7 +68,7 @@ describe('JobExecutionStatusComponent', () => {
     fixture.detectChanges();
   }
 
-  it('uses semantic descriptions and always renders all seven metrics, including zeros', async () => {
+  it('uses the job name as title and places queue size first in crawl statistics', async () => {
     render(new JobExecutionStatus({
       id: 'execution-id-that-can-wrap',
       jobId: 'job-id-that-can-wrap',
@@ -75,11 +79,78 @@ describe('JobExecutionStatusComponent', () => {
 
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     expect(fixture.nativeElement.querySelector('dl.description-list')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('execution-id-that-can-wrap');
-    expect(fixture.nativeElement.textContent).toContain('News crawl');
-    expect(fixture.nativeElement.querySelectorAll('.metric-tile').length).toBe(7);
-    expect(fixture.nativeElement.querySelectorAll('.metric-tile strong').length).toBe(7);
-    expect(fixture.nativeElement.querySelector('.error-card')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('execution-id-that-can-wrap');
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('News crawl');
+    expect(fixture.nativeElement.querySelector('.queue-badge')).toBeNull();
+    const firstMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
+    expect(firstMetric.querySelector('span')?.textContent).toBe('Queue size');
+    expect(firstMetric.querySelector('strong')?.textContent).toBe('0');
+    expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(6);
+    expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
+  });
+
+  it('pairs state and desired state and orders optional crawl statistics after duration', () => {
+    render(new JobExecutionStatus({
+      state: JobExecutionState.RUNNING,
+      desiredState: JobExecutionState.ABORTED_MANUAL,
+      documentsDenied: 1,
+      documentsFailed: 2,
+      documentsRetried: 3,
+    }));
+
+    const rows = [...fixture.nativeElement.querySelectorAll('.overview-card .description-row')]
+      .map((row: HTMLElement) => [...row.querySelectorAll('dt')]
+        .map(term => term.textContent.trim()));
+    expect(rows).toEqual([
+      ['State', 'Desired state'],
+      ['Started', 'Ended'],
+    ]);
+    const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric-card > span')]
+      .map((label: HTMLElement) => label.textContent.trim());
+    expect(metricLabels).toEqual([
+      'Queue size',
+      'Documents crawled',
+      'Bytes crawled',
+      'Duration',
+      'Documents denied',
+      'Documents failed',
+      'Documents retried',
+      'Documents out of scope',
+      'URIs crawled',
+    ]);
+  });
+
+  it('shows configured remaining byte and time limits and clamps exhausted limits to zero', async () => {
+    job = new ConfigObject({
+      id: 'job-id',
+      kind: Kind.CRAWLJOB,
+      meta: new Meta({name: 'Limited crawl'}),
+      crawlJob: new CrawlJob({limits: {maxBytes: 2_000, maxDurationS: 3_600}}),
+    });
+    render(new JobExecutionStatus({
+      jobId: 'job-id',
+      bytesCrawled: 2_500,
+      startTime: '2026-08-09T10:00:00.000Z',
+      endTime: '2026-08-09T11:30:00.000Z',
+    }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const metrics = [...fixture.nativeElement.querySelectorAll('.metric-card')]
+      .map((card: HTMLElement) => ({
+        label: card.querySelector('span')?.textContent.trim(),
+        value: card.querySelector('strong')?.textContent.trim(),
+      }));
+    expect(metrics).toEqual([
+      {label: 'Queue size', value: '0'},
+      {label: 'Documents crawled', value: '0'},
+      {label: 'Bytes crawled', value: '2.5 kB'},
+      {label: 'Remaining bytes', value: '0 B'},
+      {label: 'Duration', value: '1 h 30 min'},
+      {label: 'Remaining time', value: '0 s'},
+      {label: 'Documents out of scope', value: '0'},
+      {label: 'URIs crawled', value: '0'},
+    ]);
   });
 
   it('shows compact state links with the job and execution filters', () => {
@@ -117,24 +188,55 @@ describe('JobExecutionStatusComponent', () => {
     expect(badge.textContent.trim().length).toBeGreaterThan(0);
   });
 
-  it('renders an error card only when the error contains meaningful data', () => {
+  it('renders an error callout only when the error contains meaningful data', () => {
     render(new JobExecutionStatus({error: new ApiError()}));
-    expect(fixture.nativeElement.querySelector('.error-card')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
 
     render(new JobExecutionStatus({
       error: new ApiError({msg: 'A long failure message', detail: 'A long\nwrapped detail'}),
     }));
-    expect(fixture.nativeElement.querySelector('.error-card')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.error-callout')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('A long\nwrapped detail');
   });
 
-  it('projects helpers into the overview header and destructive actions below the card', () => {
+  it('projects helpers into the page header and actions into the overview card actions', () => {
     const hostFixture = TestBed.createComponent(JobExecutionStatusHostComponent);
     hostFixture.detectChanges();
 
-    const header = hostFixture.nativeElement.querySelector('.overview-card mat-card-header') as HTMLElement;
+    const header = hostFixture.nativeElement.querySelector('.detail-header') as HTMLElement;
+    const actions = hostFixture.nativeElement.querySelector('.overview-card mat-card-actions') as HTMLElement;
     expect(header.querySelector('.projected-helper')).not.toBeNull();
     expect(header.querySelector('.projected-action')).toBeNull();
-    expect(hostFixture.nativeElement.querySelector('.detail-actions .projected-action')).not.toBeNull();
+    expect(actions.querySelector('.projected-action')).not.toBeNull();
+  });
+
+  it('shows desired state only when it is defined', () => {
+    render(new JobExecutionStatus({desiredState: JobExecutionState.UNDEFINED}));
+    expect(fixture.nativeElement.querySelector('.overview-card').textContent).not.toContain('Desired state');
+
+    render(new JobExecutionStatus({desiredState: JobExecutionState.ABORTED_MANUAL}));
+    const overview = fixture.nativeElement.querySelector('.overview-card') as HTMLElement;
+    expect(overview.textContent).toContain('Desired state');
+    expect(overview.textContent).toContain('Aborted');
+  });
+
+  it('places crawl statistics in the primary pane and textual state in a filled supporting card', () => {
+    render(new JobExecutionStatus());
+    const grid = fixture.nativeElement.querySelector('.detail-grid') as HTMLElement;
+    const primary = grid.querySelector(':scope > .primary-pane') as HTMLElement;
+    const statistics = primary.querySelector('.statistics-section') as HTMLElement;
+    const aside = grid.querySelector(':scope > .overview-aside') as HTMLElement;
+    const overviewCard = aside.querySelector(':scope > mat-card.overview-card') as HTMLElement;
+    const metrics = statistics.querySelector('.metric-grid') as HTMLElement;
+    expect(primary).not.toBeNull();
+    expect(aside.tagName).toBe('ASIDE');
+    expect(statistics.querySelector('h2')?.textContent).toBe('Crawl statistics');
+    expect(overviewCard.getAttribute('appearance')).toBe('filled');
+    expect(overviewCard.querySelector('dl.description-list')).not.toBeNull();
+    expect(overviewCard.querySelector('mat-card-actions.detail-actions')).not.toBeNull();
+    expect(statistics).not.toBeNull();
+    expect(primary.querySelector('.crawl-executions-section')).not.toBeNull();
+    expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(6);
+    expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(6);
   });
 });

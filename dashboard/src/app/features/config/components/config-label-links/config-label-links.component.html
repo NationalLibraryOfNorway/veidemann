@@ -1,0 +1,13 @@
+@if (links.length) {
+  <section class="label-links-context" aria-labelledby="label-links-context-title">
+    <h2 id="label-links-context-title" i18n="@@configLabelLinksContextTitle">Links</h2>
+    <mat-list class="context-link-list">
+      @for (link of links; track link.text + ':' + link.href) {
+        <a mat-list-item [href]="link.href" target="_blank" rel="noopener noreferrer"
+          [attr.aria-label]="linkAriaLabel(link.text)">
+          <span matListItemTitle>{{link.text}}</span>
+        </a>
+      }
+    </mat-list>
+  </section>
+}

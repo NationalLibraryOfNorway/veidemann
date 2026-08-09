@@ -3,6 +3,7 @@ import {convertToParamMap} from '@angular/router';
 import {JobExecutionState} from '../../../shared/models';
 import {
   equalJobExecutionQuery,
+  crawlLogQueryFromParamMap,
   jobExecutionQueryFromParamMap,
   pageLogQueryFromParamMap
 } from './query';
@@ -41,5 +42,12 @@ describe('report query route parsing', () => {
     const query = pageLogQueryFromParamMap(convertToParamMap({s: '25', p: '2'}));
     expect('pageSize' in query).toBe(false);
     expect('pageIndex' in query).toBe(false);
+  });
+
+  it('ignores legacy watch parameters for page and crawl logs', () => {
+    const params = convertToParamMap({watch: 'true'});
+
+    expect('watch' in pageLogQueryFromParamMap(params)).toBe(false);
+    expect('watch' in crawlLogQueryFromParamMap(params)).toBe(false);
   });
 });

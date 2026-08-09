@@ -19,36 +19,12 @@
         @let total = totalLength();
         <div class="result-content flex-fill">
         @switch (kind) {
-          @case (Kind.ROLEMAPPING) {
-            <div class="layout-column flex-fill">
-              <app-rolemapping-list [dataSource]="dataSource"
-                [detailPath]="ConfigPath[kind]"
-                [length]="total"
-                (selectedChange)="onSelectedChange($event)"
-                (rowClick)="onRowClick($event)"
-                (selectAll)="onSelectAll()" class="flex-fill">
-                <button mat-icon-button
-                  aria-label="Edit selected role mappings"
-                  (click)="onEditSelected()">
-                  <mat-icon matTooltip="Edit selected configurations"
-                    i18n-matTooltip="@@configurationEditSelectedConfigurationsButtonTooltip">edit
-                  </mat-icon>
-                </button>
-                <button mat-icon-button
-                  aria-label="Delete selected role mappings"
-                  (click)="onDeleteSelectedConfigs()">
-                  <mat-icon matTooltip="Delete selected configurations"
-                    i18n-matTooltip="@@configurationDeleteSelectedConfigurationsButtonTooltip">delete
-                  </mat-icon>
-                </button>
-              </app-rolemapping-list>
-            </div>
-          }
           @default {
             <div class="layout-column flex-fill">
               <app-config-list
                 [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"
+                [configKind]="kind"
                 [length]="total"
                 [sortDirection]="sortDirection()"
                 [sortActive]="sortActive()"
@@ -318,7 +294,6 @@
                       </button>
                     }
                   </ng-container>
-                  <span *appExtra="let row">{{ row | getJobStatus | jobState | async }}</span>
                   @if (can('read', 'reports')) {
                     <a *appShortcut="let row" mat-menu-item
                       [routerLink]="['/report/jobexecution']"

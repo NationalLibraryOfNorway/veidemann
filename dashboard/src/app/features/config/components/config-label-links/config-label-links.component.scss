@@ -1,0 +1,25 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font: var(--mat-sys-title-large);
+}
+
+.context-link-list {
+  display: grid;
+  padding: 0;
+  gap: 8px;
+}
+
+.context-link-list a[mat-list-item] {
+  border-radius: var(--mat-sys-corner-medium);
+  background: var(--mat-sys-surface-container-low);
+  cursor: pointer;
+}
+
+.context-link-list a[mat-list-item]:hover {
+  background: var(--mat-sys-surface-container-high);
+}

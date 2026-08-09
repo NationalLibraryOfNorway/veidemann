@@ -1,35 +1,41 @@
 <mat-chip-set aria-label="Crawl log identifiers" i18n-aria-label="@@crawlLogIdentifiersLabel">
-  @if (crawlLog.id) {
-    <mat-chip role="button" tabindex="0" [appCopyId]="crawlLog.id"
-      matTooltip="Copy crawl log ID" i18n-matTooltip="@@copyCrawlLogIdTooltip"
-      aria-label="Copy crawl log ID" i18n-aria-label="@@copyCrawlLogIdTooltip">
+  @if (crawlLog.warcId) {
+    <mat-chip role="button" tabindex="0" [appCopyId]="crawlLog.warcId"
+      matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip"
+      aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip">
       <mat-icon matChipAvatar>content_copy</mat-icon>
-      <span i18n="@@crawlLogIdChip">ID: {{crawlLog.id}}</span>
+      <span i18n="@@copyWarcIdChip">Copy WARC ID</span>
     </mat-chip>
   }
   @if (crawlLog.executionId) {
     @if (can('read', 'crawlexecution')) {
-      <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlLog.executionId]">
+      <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlLog.executionId]"
+        matTooltip="Open crawl execution {{crawlLog.executionId}}"
+        aria-label="Open crawl execution {{crawlLog.executionId}}">
         <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@crawlLogCrawlExecutionIdChip">Crawl execution ID: {{crawlLog.executionId}}</span>
+        <span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
       </a>
     } @else {
-      <mat-chip>
+      <mat-chip matTooltip="Crawl execution {{crawlLog.executionId}}"
+        aria-label="Crawl execution {{crawlLog.executionId}}">
         <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@crawlLogCrawlExecutionIdChip">Crawl execution ID: {{crawlLog.executionId}}</span>
+        <span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
       </mat-chip>
     }
   }
   @if (crawlLog.jobExecutionId) {
     @if (can('read', 'jobexecution')) {
-      <a mat-chip [routerLink]="['/report', 'jobexecution', crawlLog.jobExecutionId]">
+      <a mat-chip [routerLink]="['/report', 'jobexecution', crawlLog.jobExecutionId]"
+        matTooltip="Open job execution {{crawlLog.jobExecutionId}}"
+        aria-label="Open job execution {{crawlLog.jobExecutionId}}">
         <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@crawlLogJobExecutionIdChip">Job execution ID: {{crawlLog.jobExecutionId}}</span>
+        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
       </a>
     } @else {
-      <mat-chip>
+      <mat-chip matTooltip="Job execution {{crawlLog.jobExecutionId}}"
+        aria-label="Job execution {{crawlLog.jobExecutionId}}">
         <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@crawlLogJobExecutionIdChip">Job execution ID: {{crawlLog.jobExecutionId}}</span>
+        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
       </mat-chip>
     }
   }

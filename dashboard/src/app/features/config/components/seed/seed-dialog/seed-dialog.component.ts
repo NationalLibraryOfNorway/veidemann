@@ -4,11 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { SeedDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models';
 import { ConfigDialogData } from '../../../func';
 import { SeedMetaComponent } from '../../seed-meta/seed-meta.component';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-entity-dialog',
@@ -19,7 +19,7 @@ import { SeedMetaComponent } from '../../seed-meta/seed-meta.component';
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatSlideToggle,
+    BooleanStateChipComponent,
     ReactiveFormsModule,
     SeedMetaComponent
   ],

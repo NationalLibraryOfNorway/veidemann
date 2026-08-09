@@ -1,18 +1,16 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, OnInit, ViewChild, inject } from '@angular/core';
 import {
-  AbstractControl,
+  UntypedFormBuilder,
   ControlValueAccessor,
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule,
-  UntypedFormBuilder,
   UntypedFormControl,
   UntypedFormGroup,
-  Validators
+  Validators,
 } from '@angular/forms';
 import {BehaviorSubject, combineLatest, Observable, Subject} from 'rxjs';
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {NO_COLON} from '../../../../shared/validation/patterns';
-import {Label} from '../../../../shared/models';
+import {Kind, Label} from '../../../../shared/models';
 import {filter, map, startWith, switchMap, take} from 'rxjs/operators';
 import {MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
 import {LabelService} from '../../services/label.service';
@@ -20,13 +18,16 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
 import {AsyncPipe} from '@angular/common';
-import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDialog} from '@angular/material/dialog';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {EMOJI_LABEL_KEY, LabelDisplayComponent} from '../../../../shared/components';
+import {
+  AnnotationEditDialogComponent,
+  AnnotationEditDialogResult,
+} from '../annotation/annotation-edit-dialog/annotation-edit-dialog.component';
 
 interface LabelGroup {
   key: string;
@@ -46,7 +47,6 @@ interface LabelGroup {
     CdkDropList,
     MatAutocompleteModule,
     MatButtonModule,
-    MatCardModule,
     MatChipsModule,
     MatFormFieldModule,
     MatIcon,
@@ -70,6 +70,9 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
 
   @Input()
   placeholderText = 'New label...';
+
+  @Input({required: true})
+  kind: Kind;
   labelText = 'Label';
 
   protected emojiPickerEnabled = true;
@@ -77,12 +80,12 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   private fetchLabelKeys: Subject<void>;
 
   control = new UntypedFormControl();
+  protected labelForm: UntypedFormGroup;
 
   // ControlValueAccessor callback functions
   onChange: (labels: Label[]) => void;
   onTouched: () => void;
 
-  labelForm: UntypedFormGroup;
   labelInputSeparators = [ENTER, COMMA];
 
   disabled = false;
@@ -91,8 +94,6 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   // see: https://github.com/angular/components/issues/8176
   protected seq = false;
 
-  protected clickedIndex = -1;
-  protected showUpdateLabel = false;
 
   protected groupsSubject = new BehaviorSubject<LabelGroup[]>([]);
   groups$: Observable<LabelGroup[]> = this.groupsSubject.asObservable();
@@ -108,22 +109,6 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     this.fetchLabelKeys = new Subject();
   }
 
-  get showUpdate(): boolean {
-    return this.showUpdateLabel;
-  }
-
-  get canUpdate(): boolean {
-    return !this.disabled;
-  }
-
-  get key(): AbstractControl {
-    return this.labelForm.get('key');
-  }
-
-  get value(): AbstractControl {
-    return this.labelForm.get('value');
-  }
-
   ngOnInit(): void {
     const value$ = this.control.valueChanges.pipe(
       startWith(''),
@@ -131,7 +116,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     );
     const key$ = this.fetchLabelKeys.pipe(
       startWith(''),
-      switchMap(() => this.labelService.getLabelKeys())
+      switchMap(() => this.labelService.getLabelKeys(this.kind))
     );
     this.filteredKey$ = combineLatest([value$, key$])
       .pipe(
@@ -183,15 +168,42 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     if (this.disabled) {
       return;
     }
-    this.showUpdateLabel = true;
-    this.clickedIndex = this.findLabelIndex(key, value);
-    this.labelForm.enable();
-    this.labelForm.reset({key, value});
+    const index = this.findLabelIndex(key, value);
+    if (index < 0) return;
+    this.dialog.open<AnnotationEditDialogComponent, {key: string; value: string; type: 'label'}, AnnotationEditDialogResult>(
+      AnnotationEditDialogComponent,
+      {data: {key, value, type: 'label'}, width: '480px', maxWidth: 'calc(100vw - 32px)', autoFocus: false}
+    ).afterClosed().pipe(
+      filter((result): result is AnnotationEditDialogResult => !!result),
+      take(1),
+    ).subscribe(result => this.onUpdateLabel(index, result.key, result.value));
   }
 
   onDrop(event) {
     const label = event.item.data;
     this.save(label);
+  }
+
+  onNativeDragOver(event: DragEvent): void {
+    if (this.disabled || !event.dataTransfer?.types.includes('text/plain')) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
+  onNativeDrop(event: DragEvent): void {
+    if (this.disabled) {
+      return;
+    }
+    event.preventDefault();
+    const previousLength = this.labels.length;
+    this.save(event.dataTransfer?.getData('text/plain') ?? '');
+    if (this.labels.length === previousLength) {
+      return;
+    }
+    this.onChange(this.labels);
+    this.reset();
   }
 
   async onChooseEmoji(): Promise<void> {
@@ -201,7 +213,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
 
     const {EmojiPickerDialogComponent} = await import('../../../../shared/components/emoji-picker/emoji-picker-dialog.component');
     this.dialog.open<InstanceType<typeof EmojiPickerDialogComponent>, void, string>(EmojiPickerDialogComponent, {
-      width: '464px',
+      width: '552px',
       maxWidth: 'calc(100vw - 24px)',
       autoFocus: false,
       restoreFocus: true,
@@ -263,12 +275,12 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     this.chipInputControl.nativeElement.value = '';
   }
 
-  onUpdateLabel(key: string, value: string): void {
+  onUpdateLabel(index: number, key: string, value: string): void {
     key = key.trim();
     value = value.trim();
 
     // remove old
-    this.labels.splice(this.clickedIndex, 1);
+    this.labels.splice(index, 1);
     // add updated
     this.labels.push(new Label({key, value}));
 
@@ -285,8 +297,8 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
     this.reset();
   }
 
-  onAbort(): void {
-    this.labelForm.disable();
+  removeLabelAriaLabel(key: string, value: string): string {
+    return $localize`:@@removeLabelButtonLabel:Remove label ${key}:LABEL_KEY: ${value}:LABEL_VALUE:`;
   }
 
   protected reset() {
@@ -303,10 +315,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   }
 
   protected createForm(): void {
-    this.labelForm = this.fb.group({
-      key: ['', [Validators.required, Validators.pattern(NO_COLON)]],
-      value: ['', Validators.required]
-    });
+    this.labelForm = this.fb.group({key: ['', Validators.required], value: ['', Validators.required]});
     this.labelForm.disable();
   }
 

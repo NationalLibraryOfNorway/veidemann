@@ -19,6 +19,7 @@ export class ExecutionAbortActionComponent {
 
   @Input({required: true}) subject: 'jobexecution' | 'crawlexecution';
   @Input() abortable = false;
+  @Input() inline = false;
   // The shared action API intentionally uses the domain verb requested by its containers.
   // eslint-disable-next-line @angular-eslint/no-output-native
   @Output() abort = new EventEmitter<void>();

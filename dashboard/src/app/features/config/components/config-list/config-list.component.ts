@@ -1,35 +1,8 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, inject, Output} from '@angular/core';
-import {ConfigObject, Label} from '../../../../shared/models/config';
+import {ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {ConfigObject, Kind, Label} from '../../../../shared/models/config';
 import {CONFIG_LIST_IMPORTS, ConfigListBaseComponent} from './config-list-base';
 import {isEmojiLabel, LabelDisplayComponent} from '../../../../shared/components';
-import {AppConfig, LabelLinkConfig} from '../../../../app.config';
-
-interface ResolvedLabelLink {
-  href: string;
-  text: string;
-}
-
-export function resolveLabelLink(
-  links: Record<string, LabelLinkConfig>,
-  label: Label,
-): ResolvedLabelLink | null {
-  const link = links?.[label.key];
-  if (!link?.text?.trim() || !link.urlTemplate?.includes('{value}')) {
-    return null;
-  }
-
-  const href = link.urlTemplate.replaceAll('{value}', encodeURIComponent(label.value));
-  try {
-    const url = new URL(href);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return null;
-    }
-  } catch {
-    return null;
-  }
-
-  return {href, text: link.text};
-}
+import {configKindIcon} from '../../func/config-kind-icon';
 
 @Component({
     selector: 'app-config-list',
@@ -44,13 +17,78 @@ export function resolveLabelLink(
 })
 
 export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
-  private appConfig = inject(AppConfig);
+  @Input() configKind: Kind | null = null;
+  @Input() titleOnly = false;
+  @Input() showKindIcon = true;
+  @Input() flush = false;
   @Output() readonly labelClick = new EventEmitter<Label>();
+  readonly deactivatedAriaDescription = $localize`:@@configurationListDeactivatedStatus:Deactivated`;
   protected readonly isEmojiLabel = isEmojiLabel;
   protected override readonly autoSelectAppendedRows = true;
 
-  override isDisabled(config: ConfigObject): boolean {
-    return config?.crawlJob?.disabled || config?.seed?.disabled;
+  isSelectionMode(): boolean {
+    return this.multiSelect && this.selectedRows().length > 0;
+  }
+
+  isDeactivated(config: ConfigObject): boolean {
+    switch (config.kind) {
+      case this.Kind.SEED:
+        return !!config.seed?.disabled;
+      case this.Kind.CRAWLJOB:
+        return !!config.crawlJob?.disabled;
+      default:
+        return false;
+    }
+  }
+
+  configKindIcon(config: ConfigObject): string {
+    return configKindIcon(config.kind);
+  }
+
+  selectionAriaLabel(config: ConfigObject): string {
+    if (this.isChecked(config)) {
+      return $localize`:@@configurationListDeselectConfigurationAriaLabel:Deselect ${config.meta.name}:CONFIGURATION_NAME:`;
+    }
+    return $localize`:@@configurationListSelectConfigurationAriaLabel:Select ${config.meta.name}:CONFIGURATION_NAME:`;
+  }
+
+  onSelectionStart(config: ConfigObject, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.onCheckboxToggle(config);
+  }
+
+  override onRowClick(config: ConfigObject, event?: Event): void {
+    if (this.isSelectionMode()) {
+      this.onCheckboxToggle(config);
+      return;
+    }
+    super.onRowClick(config, event);
+  }
+
+  override onRowKeydown(config: ConfigObject, event: KeyboardEvent): void {
+    const nestedAction = event.target instanceof Element
+      && event.target !== event.currentTarget
+      && !!event.target.closest('a, button, input, [role="button"]');
+    if (nestedAction) {
+      return;
+    }
+    if (this.isSelectionMode() && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      this.onCheckboxToggle(config);
+      return;
+    }
+    super.onRowKeydown(config, event);
+  }
+
+  @HostListener('keydown.escape', ['$event'])
+  onSelectionEscape(event: Event): void {
+    if (!this.isSelectionMode()) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    this.onDeselectAll();
   }
 
   labelSearchAriaLabel(label: Label): string {
@@ -64,12 +102,8 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
     this.labelClick.emit(label);
   }
 
-  externalLabelLink(label: Label): ResolvedLabelLink | null {
-    return resolveLabelLink(this.appConfig.labelLinks, label);
-  }
-
   configTypePluralLabel(): string {
-    switch (this.selectedRows()[0]?.kind) {
+    switch (this.configKind ?? this.selectedRows()[0]?.kind) {
       case this.Kind.CRAWLENTITY:
         return $localize`:@@configurationListTypeEntities:entities`;
       case this.Kind.SEED:
@@ -90,6 +124,8 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
         return $localize`:@@configurationListTypePolitenessConfigurations:politeness configurations`;
       case this.Kind.CRAWLHOSTGROUPCONFIG:
         return $localize`:@@configurationListTypeCrawlHostGroups:crawl host groups`;
+      case this.Kind.ROLEMAPPING:
+        return $localize`:@@configurationListTypeRoleMappings:role mappings`;
       default:
         return $localize`:@@configurationListTypeConfigurations:configurations`;
     }

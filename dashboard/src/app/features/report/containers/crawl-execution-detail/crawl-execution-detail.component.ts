@@ -61,7 +61,7 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
 
   onAbortCrawlExecution(crawlExecutionStatus: CrawlExecutionStatus) {
     const dialogRef = this.dialog.open(AbortCrawlDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {crawlExecutionStatus}
     });

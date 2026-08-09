@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy,Component } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { QueryComponent } from '../../../../shared/components';
@@ -11,7 +10,6 @@ import { CrawlLogQuery } from '../../services';
   templateUrl: './crawl-log-query.component.html',
   styleUrls: ['./crawl-log-query.component.css'],
   imports: [
-    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule
@@ -25,7 +23,6 @@ export class CrawlLogQueryComponent extends QueryComponent<CrawlLogQuery> {
     this.form = this.fb.group({
       jobExecutionId: '',
       executionId: '',
-      watch: null,
     });
   }
 }

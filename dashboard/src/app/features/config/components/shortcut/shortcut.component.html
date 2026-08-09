@@ -1,13 +1,6 @@
-<mat-chip-set class="shortcut-groups" aria-label="Configuration shortcuts"
-  i18n-aria-label="@@configDetailShortcutsLabel">
-  @if (showMainId && configObject.id) {
-    <mat-chip class="main-id-chip" role="button" tabindex="0" [appCopyId]="configObject.id"
-      matTooltip="Copy configuration ID" i18n-matTooltip="@@copyConfigIdTooltip"
-      aria-label="Copy configuration ID" i18n-aria-label="@@copyConfigIdTooltip">
-      <mat-icon matChipAvatar>content_copy</mat-icon>
-      <span>{{configObject.id}}</span>
-    </mat-chip>
-  }
+<div class="shortcut-layout">
+  <mat-chip-set class="shortcut-groups reference-shortcuts" aria-label="Related configuration shortcuts"
+    i18n-aria-label="@@configDetailReferenceShortcutsLabel">
   @switch (configObject.kind) {
     @case (Kind.SEED) {
       @if (can('read', Kind[Kind.CRAWLENTITY]) || can('read', Kind[Kind.CRAWLJOB])) {
@@ -105,7 +98,10 @@
       }
     }
   }
+  </mat-chip-set>
 
+  <mat-chip-set class="shortcut-groups filter-shortcuts" aria-label="Configuration filters"
+    i18n-aria-label="@@configDetailFilterShortcutsLabel">
   @switch (configObject.kind) {
     @case (Kind.CRAWLENTITY) {
       @if (can('read', Kind[Kind.SEED])) {
@@ -203,41 +199,46 @@
       }
     }
   }
+  </mat-chip-set>
+
   @if (hasActions) {
-    @if (showScriptEditorAction) {
-      <mat-chip role="button" tabindex="0"
-        (click)="onOpenScriptEditor()" (keydown)="onActionKeydown($event, 'openScriptEditor')">
-        <mat-icon matChipAvatar>open_in_full</mat-icon>
-        <span i18n="@@browserscriptOpenScriptFullscreenAction">Edit script</span>
-      </mat-chip>
-    }
-    @if (configObject.kind === Kind.SEED && can('runCrawl', Kind[Kind.SEED])) {
-      <mat-chip role="button" tabindex="0"
-        (click)="onRunCrawl()" (keydown)="onActionKeydown($event, 'runCrawl')">
-        <mat-icon matChipAvatar>play_arrow</mat-icon>
-        <span i18n="@@configDetailRunSeedAction">Crawl seed</span>
-      </mat-chip>
-    }
-    @if (configObject.kind === Kind.CRAWLJOB && can('runCrawl', Kind[Kind.CRAWLJOB])) {
-      <mat-chip role="button" tabindex="0"
-        (click)="onRunCrawl()" (keydown)="onActionKeydown($event, 'runCrawl')">
-        <mat-icon matChipAvatar>play_arrow</mat-icon>
-        <span i18n="@@configDetailRunCrawljobAction">Run crawljob</span>
-      </mat-chip>
-    }
-    @if (can('create', Kind[configObject.kind])) {
-      <mat-chip role="button" tabindex="0"
-        (click)="onClone()" (keydown)="onActionKeydown($event, 'clone')">
-        <mat-icon matChipAvatar>file_copy</mat-icon>
-        <span i18n="@@configDetailCloneAction">Clone</span>
-      </mat-chip>
-    }
-    @if (configObject.kind === Kind.CRAWLENTITY && can('create', Kind[Kind.SEED])) {
-      <mat-chip role="button" tabindex="0"
-        (click)="onCreateSeed()" (keydown)="onActionKeydown($event, 'createSeed')">
-        <mat-icon matChipAvatar>add_circle</mat-icon>
-        <span i18n="@@configDetailCreateSeedAction">Create Seed</span>
-      </mat-chip>
-    }
+    <button mat-icon-button class="config-actions-menu-trigger"
+      data-testid="config-actions-menu"
+      type="button"
+      [matMenuTriggerFor]="configActionsMenu"
+      aria-label="Configuration actions"
+      i18n-aria-label="@@configDetailActionsMenuLabel">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #configActionsMenu="matMenu">
+      @if (canRunCrawl) {
+        <button mat-menu-item type="button" data-testid="run-crawl-action" (click)="onRunCrawl()">
+          <mat-icon>play_arrow</mat-icon>
+          @if (configObject.kind === Kind.SEED) {
+            <span i18n="@@configDetailRunSeedAction">Crawl seed</span>
+          } @else {
+            <span>{{crawlJobActionLabel}}</span>
+          }
+        </button>
+      }
+      @if (canCreateSeed) {
+        <button mat-menu-item type="button" data-testid="create-seed-action" (click)="onCreateSeed()">
+          <mat-icon>add_circle</mat-icon>
+          <span i18n="@@configDetailCreateSeedAction">Create Seed</span>
+        </button>
+      }
+      @if (showClone && can('create', Kind[configObject.kind])) {
+        <button mat-menu-item type="button" data-testid="clone-config-action" (click)="onClone()">
+          <mat-icon>file_copy</mat-icon>
+          <span i18n="@@configDetailCloneAction">Clone</span>
+        </button>
+      }
+      @if (showDelete && configObject.id && can('delete', Kind[configObject.kind])) {
+        <button mat-menu-item type="button" data-testid="delete-config-action" (click)="onDelete()">
+          <mat-icon>delete</mat-icon>
+          <span i18n="@@commonButtonDelete">Delete</span>
+        </button>
+      }
+    </mat-menu>
   }
-</mat-chip-set>
+</div>

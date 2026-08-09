@@ -4,7 +4,7 @@
 
 <mat-dialog-content>
   <form [formGroup]="form">
-    <app-meta formControlName="meta"></app-meta>
+    <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
     <div class="layout-column gap-16">
       <mat-label i18n="@@crawlhostgroupconfigFormMinTimeBetweenPageloadLabel">
         Minimum time between page load
@@ -71,7 +71,7 @@
         Must be a number.
       </mat-error>
       }
-      <fieldset class="mat-elevation-z1" formArrayName="ipRangeList">
+      <fieldset class="ip-range-group" formArrayName="ipRangeList">
         <legend mat-card-subtitle i18n="@@ipRangeListHeader">IP range</legend>
         @for (ipRange of ipRangeControlArray.controls; track ipRange; let i = $index) {
           <div class="layout-column">

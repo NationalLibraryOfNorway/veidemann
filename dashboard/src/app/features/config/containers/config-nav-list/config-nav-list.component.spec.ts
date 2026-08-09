@@ -31,6 +31,7 @@ describe('ConfigNavListComponent', () => {
   });
 
   it('renders the overview hero and only the authorized configuration group', () => {
+    const page = fixture.nativeElement.querySelector('.destination-page') as HTMLElement;
     const hero = fixture.nativeElement.querySelector('.destination-hero') as HTMLElement;
     const introCard = hero.querySelector('.destination-intro-card') as HTMLElement;
     const artworkCard = hero.querySelector('.destination-artwork-card') as HTMLElement;
@@ -44,6 +45,8 @@ describe('ConfigNavListComponent', () => {
     expect(hero.firstElementChild).toBe(introCard);
     expect(introCard.nextElementSibling).toBe(artworkCard);
     expect(artworkCard.getAttribute('aria-hidden')).toBe('true');
+    expect(artworkCard.classList).toContain('mat-mdc-card-filled');
+    expect(artworkCard.classList).not.toContain('mat-mdc-card-outlined');
     expect(artworkCard.querySelector('.destination-brand-logo')?.getAttribute('src'))
       .toBe('public/logo/veidemann_logo_inline_black.png');
     expect(artworkCard.querySelector('source')?.getAttribute('srcset'))
@@ -52,6 +55,16 @@ describe('ConfigNavListComponent', () => {
     expect(links.length).toBe(1);
     expect(links[0].getAttribute('href')).toBe('/config/seed');
     expect(links[0].textContent).toContain('Seed');
+    const avatar = links[0].querySelector('div[mat-card-avatar]') as HTMLElement;
+    expect(avatar).not.toBeNull();
+    expect(avatar.querySelector('mat-icon').textContent.trim()).toBe('link');
+    expect(links[0].querySelector('mat-icon[mat-card-avatar]')).toBeNull();
+    expect(getComputedStyle(page).marginTop).toBe('8px');
+    expect(getComputedStyle(page).marginRight).toBe('0px');
+    expect(getComputedStyle(page).padding).toBe('0px');
+    expect(getComputedStyle(hero).paddingInline).toBe('8px');
+    expect(getComputedStyle(hero).gap).toBe('8px');
+    expect(getComputedStyle(introCard).minHeight).toBe('clamp(360px, 42vh, 400px)');
   });
 
   it('groups every configuration destination by purpose', () => {

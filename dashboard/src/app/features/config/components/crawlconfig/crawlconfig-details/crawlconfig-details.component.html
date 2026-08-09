@@ -1,20 +1,24 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
     <mat-card-header class="card-header-with-helpers">
+      <div mat-card-avatar class="config-kind-avatar">
+        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+      </div>
       <mat-card-title>
-        <span i18n="@@crawlconfigDetailsCardTitle">Crawlconfig</span>
-      </mat-card-title>
-      <mat-card-subtitle>
-        @if (showSave) {
-          <span
-          i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+        @if (configObject.meta.name) {
+          {{configObject.meta.name}}
+        } @else {
+          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
-      </mat-card-subtitle>
+      </mat-card-title>
+      @if (configObject.meta.description) {
+        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
+      }
       <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content class="config-details-grid">
       <div class="layout-column flex-fill">
-        <app-meta formControlName="meta"></app-meta>
+        <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
             <mat-label i18n="@@configIdLabel">
@@ -114,12 +118,9 @@
         </mat-form-field>
 
         <ng-container formGroupName="extra">
-          <mat-checkbox formControlName="createScreenshot"
-            labelPosition="after"
-            i18n="@@crawlconfigFormCreateScreenshotLabel"
-            color="accent">
-            Create screenshot
-          </mat-checkbox>
+          <app-boolean-state-chip formControlName="createScreenshot" label="Create screenshots"
+            i18n-label="@@crawlconfigFormCreateScreenshotLabel" selectedIcon="photo_camera" unselectedIcon="no_photography">
+          </app-boolean-state-chip>
         </ng-container>
       </div>
     </mat-card-content>
@@ -148,13 +149,6 @@
         REVERT
       </button>
         <span class="flex-fill"></span>
-        @if (!showSave && canDelete) {
-          <button mat-button
-            (click)="onDelete()"
-            i18n="@@commonButtonDelete">
-        DELETE
-      </button>
-        }
       </mat-card-actions>
     }
   </mat-card>

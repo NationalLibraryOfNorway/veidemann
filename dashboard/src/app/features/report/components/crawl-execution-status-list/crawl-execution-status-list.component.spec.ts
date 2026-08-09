@@ -87,6 +87,12 @@ describe('CrawlExecutionStatusListComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('renders the table flush with its scroll container', () => {
+    const scroll = fixture.nativeElement.querySelector('.scroll') as HTMLElement;
+
+    expect(getComputedStyle(scroll).padding).toBe('0px');
+  });
+
   it('renders the seed as plain row content and keeps row navigation', async () => {
     const row = new CrawlExecutionStatus({
       id: 'crawl-execution-1',

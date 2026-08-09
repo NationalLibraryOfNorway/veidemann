@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
-import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
@@ -18,7 +18,7 @@ import {StartTimeDateRangeQueryComponent} from '../start-time-date-range-query.c
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
-    MatCheckboxModule,
+    MatChipsModule,
     MatDatepickerModule,
     MatFormFieldModule,
     MatInputModule,

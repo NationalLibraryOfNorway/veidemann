@@ -11,6 +11,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {AuthService} from '../../../../core';
 import {VALID_COLLECTION_NAME} from '../../../../shared/validation/patterns';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
+import {Kind} from '../../../../shared/models';
 
 describe('CollectionMetaComponent', () => {
   let component: CollectionMetaComponent;
@@ -46,6 +47,7 @@ describe('CollectionMetaComponent', () => {
     fixture = TestBed.createComponent(CollectionMetaComponent);
     loader = TestbedHarnessEnvironment.loader(fixture);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('kind', Kind.COLLECTION);
     await fixture.whenStable();
 
     nameFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness

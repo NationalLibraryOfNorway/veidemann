@@ -4,15 +4,14 @@
           aria-label="Open navigation" i18n-aria-label="@@primaryNavigationOpenLabel">
     <mat-icon>{{compactDrawerOpen() ? 'menu_open' : 'menu'}}</mat-icon>
   </button>
-  <a class="brand-link" mat-icon-button routerLink="/" routerLinkActive="active-toolbar-link"
+  <a class="brand-link" routerLink="/" routerLinkActive="active-toolbar-link"
      [routerLinkActiveOptions]="{exact: true}" ariaCurrentWhenActive="page"
      aria-label="Veidemann home" i18n-aria-label="@@mainToolbarHomeLinkLabel">
     <picture>
-      <source srcset="public/logo/veidemann_grouse_white.png" media="(prefers-color-scheme: dark)">
-      <img class="grouse-icon" alt="" src="public/logo/veidemann_grouse_black.png">
+      <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
+      <img class="toolbar-brand-logo" alt="" src="public/logo/veidemann_logo_inline_black.png">
     </picture>
   </a>
-  <span class="toolbar-title">Veidemann</span>
 
   <span class="toolbar-spacer"></span>
 
@@ -23,17 +22,6 @@
 </mat-toolbar>
 }
 
-<mat-menu #helpMenu="matMenu">
-  <a mat-menu-item target="_blank" [routerLink]="['/docs']">
-    <mat-icon>menu_book</mat-icon>
-    <span i18n="@@mainToolbarDocsMenuItem">Docs</span>
-  </a>
-  <button mat-menu-item (click)="onAbout()">
-    <mat-icon>info</mat-icon>
-    <span i18n="@@mainToolbarAboutMenuItem">About</span>
-  </button>
-</mat-menu>
-
 <mat-menu #toolbarMenu="matMenu">
   @if (can('read', 'report')) {
     <button mat-menu-item (click)="onShowJobSchedule()">
@@ -41,14 +29,6 @@
       <span i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
     </button>
   }
-  <a mat-menu-item target="_blank" [routerLink]="['/docs']">
-    <mat-icon>menu_book</mat-icon>
-    <span i18n="@@mainToolbarDocsMenuItem">Docs</span>
-  </a>
-  <button mat-menu-item (click)="onAbout()">
-    <mat-icon>info</mat-icon>
-    <span i18n="@@mainToolbarAboutMenuItem">About</span>
-  </button>
   @if (!isLoggedIn) {
     <button mat-menu-item (click)="onLogin()">
       <mat-icon>account_box</mat-icon>
@@ -99,11 +79,6 @@
         <mat-icon>calendar_month</mat-icon>
       </button>
     }
-    <button class="rail-action" mat-icon-button [matMenuTriggerFor]="helpMenu"
-            matTooltip="Help" i18n-matTooltip="@@mainToolbarHelpButtonLabel"
-            aria-label="Help" i18n-aria-label="@@mainToolbarHelpButtonLabel">
-      <mat-icon>help</mat-icon>
-    </button>
     @if (!isLoggedIn) {
       <button class="rail-action" mat-icon-button (click)="onLogin()"
               matTooltip="LOGIN" i18n-matTooltip="@@mainToolbarLoginButton"

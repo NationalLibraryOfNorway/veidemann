@@ -88,6 +88,8 @@ export class MoveSeedDialogComponent {
       politenessId: null,
       disabled: null,
       browserScriptType: null,
+      robotsPolicy: null,
+      role: null,
       crawlJobIdList: [],
       scriptIdList: [],
       term: term || null,

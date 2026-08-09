@@ -1,53 +1,44 @@
 @let crawlState = statePresentation(crawlExecutionStatus.state);
-<mat-card appearance="outlined" class="context-card">
+<mat-card appearance="filled" class="context-card">
   <mat-card-header>
     <mat-icon mat-card-avatar aria-hidden="true">hdr_weak</mat-icon>
     <mat-card-title i18n="@@configLastCrawlExecutionTitle">Last crawl execution</mat-card-title>
     <mat-card-subtitle>
-      <span class="state-badge" [class]="'state-badge state-' + crawlState.tone">
-        <mat-icon aria-hidden="true">{{crawlState.icon}}</mat-icon>
-        <span>{{crawlState.label}}</span>
-      </span>
+      <mat-chip-set aria-label="Execution state" i18n-aria-label="@@lastCrawlExecutionStateLabel">
+        <mat-chip [class]="'state-' + crawlState.tone">
+          <mat-icon matChipAvatar aria-hidden="true">{{crawlState.icon}}</mat-icon>
+          <span>{{crawlState.label}}</span>
+        </mat-chip>
+      </mat-chip-set>
     </mat-card-subtitle>
   </mat-card-header>
 
   <mat-card-content>
-    <dl class="summary-grid">
-      <dt i18n="@@crawlExecutionIdLabel">Execution ID</dt>
-      <dd>
-        <a matButton class="monospace"
-          [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]">
-          {{crawlExecutionStatus.id}}
+    <mat-chip-set aria-label="Last crawl execution navigation"
+      i18n-aria-label="@@lastCrawlExecutionNavigationLabel">
+      @if (canReadCrawlExecution) {
+        <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]"
+          matTooltip="Open crawl execution {{crawlExecutionStatus.id}}"
+          aria-label="Open crawl execution {{crawlExecutionStatus.id}}">
+          <mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
         </a>
-      </dd>
-
-      <dt i18n="@@crawlExecutionCrawlJobLabel">Crawl job</dt>
-      <dd>
-        <a matButton class="monospace"
-          [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]">
-          {{crawlExecutionStatus.jobId}}
-        </a>
-      </dd>
-
-      @if (crawlExecutionStatus.jobExecutionId) {
-        <dt i18n="@@crawlExecutionParentJobExecutionLabel">Job execution</dt>
-        <dd>
-          <a matButton class="monospace"
-            [routerLink]="['/report', 'jobexecution', crawlExecutionStatus.jobExecutionId]">
-            {{crawlExecutionStatus.jobExecutionId}}
-          </a>
-        </dd>
       }
-
-      <dt i18n="@@executionCreatedLabel">Created</dt>
-      <dd>
-        @if (crawlExecutionStatus.createdTime) {
-          {{crawlExecutionStatus.createdTime | date:'medium'}}
-        } @else {
-          <span i18n="@@commonNotAvailable">Not available</span>
-        }
-      </dd>
-
+      @if (canReadCrawlJob) {
+        <a mat-chip [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]"
+          matTooltip="Open crawl job {{crawlExecutionStatus.jobId}}"
+          aria-label="Open crawl job {{crawlExecutionStatus.jobId}}">
+          <mat-icon matChipAvatar>work</mat-icon><span i18n="@@reportDetailCrawlJobAction">Crawl job</span>
+        </a>
+      }
+      @if (crawlExecutionStatus.jobExecutionId && canReadJobExecution) {
+        <a mat-chip [routerLink]="['/report', 'jobexecution', crawlExecutionStatus.jobExecutionId]"
+          matTooltip="Open job execution {{crawlExecutionStatus.jobExecutionId}}"
+          aria-label="Open job execution {{crawlExecutionStatus.jobExecutionId}}">
+          <mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+        </a>
+      }
+    </mat-chip-set>
+    <dl class="summary-grid">
       <dt i18n="@@executionStartedLabel">Started</dt>
       <dd>
         @if (crawlExecutionStatus.startTime) {
@@ -66,17 +57,13 @@
         }
       </dd>
 
-      <dt i18n="@@executionLastChangedLabel">Last changed</dt>
-      <dd>
-        @if (crawlExecutionStatus.lastChangeTime) {
-          {{crawlExecutionStatus.lastChangeTime | date:'medium'}}
-        } @else {
-          <span i18n="@@commonNotAvailable">Not available</span>
-        }
-      </dd>
     </dl>
 
     <div class="metric-grid">
+      <div class="metric">
+        <span i18n="@@executionDurationMetric">Duration</span>
+        <strong>{{crawlExecutionStatus.startTime | durationFormat:crawlExecutionStatus.endTime}}</strong>
+      </div>
       <div class="metric">
         <span i18n="@@executionUrisCrawledMetric">URIs crawled</span>
         <strong>{{crawlExecutionStatus.urisCrawled | number:'1.0-0'}}</strong>
@@ -137,10 +124,4 @@
     }
   </mat-card-content>
 
-  <mat-card-actions align="end">
-    <a matButton [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]">
-      <mat-icon aria-hidden="true">arrow_forward</mat-icon>
-      <span i18n="@@configContextViewDetails">View details</span>
-    </a>
-  </mat-card-actions>
 </mat-card>

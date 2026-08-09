@@ -8,12 +8,12 @@
       <mat-label i18n-placeholder="@@roleMappingDetailsTypeDropdownLabel">
         Type
       </mat-label>
-      <mat-select [(value)]="selectedType">
+      <mat-select formControlName="identityType">
         <mat-option value="email" i18n="@@roleMappingDetailsTypeOptionEmail">Email</mat-option>
         <mat-option value="group" i18n="@@roleMappingDetailsTypeOptionGroup">Group</mat-option>
       </mat-select>
     </mat-form-field>
-    @if (selectedType === 'email') {
+    @if (identityType.value === 'email') {
       <mat-form-field class="flex-fill">
         <mat-label i18n="@@roleMappingDetailsEmailInputLabel">
         Email
@@ -21,7 +21,7 @@
         <input matInput formControlName="email">
       </mat-form-field>
     }
-    @if (selectedType === 'group') {
+    @if (identityType.value === 'group') {
       <mat-form-field class="flex-fill">
         <mat-label i18n="@@roleMappingDetailsGroupInputLabel">
         Group

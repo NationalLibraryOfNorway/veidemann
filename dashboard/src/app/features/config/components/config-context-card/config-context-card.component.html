@@ -1,9 +1,9 @@
-<mat-card appearance="outlined" class="context-card">
+<mat-card appearance="filled" class="context-card" [class.inactive]="inactive">
   <mat-card-header class="card-header-with-helpers">
+    <div mat-card-avatar class="config-kind-avatar">
+      <mat-icon aria-hidden="true">{{configKindIcon(configRef.kind)}}</mat-icon>
+    </div>
     <mat-card-title>{{title}}</mat-card-title>
-    @if (subtitle) {
-      <mat-card-subtitle>{{subtitle}}</mat-card-subtitle>
-    }
     <ng-content select="[cardHeaderHelpers]"></ng-content>
   </mat-card-header>
 
@@ -14,136 +14,185 @@
         <span class="monospace">{{configRef.id}}</span>
       </p>
     } @else {
-      <dl class="summary-grid">
-        <dt i18n="@@configContextId">ID</dt>
-        <dd>
-          <a matButton class="monospace" [routerLink]="routeFor(configRef)">{{configObject.id}}</a>
-        </dd>
-
+      <div class="summary-chips">
         @switch (configObject.kind) {
           @case (Kind.SEED) {
-            <dt i18n="@@configContextStatus">Status</dt>
-            <dd>{{configObject.seed.disabled ? 'Deactivated' : 'Active'}}</dd>
-            <dt i18n="@@configContextEntity">Entity</dt>
-            <dd>
-              <a matButton class="monospace" [routerLink]="routeFor(configObject.seed.entityRef)">
-                {{configObject.seed.entityRef.id}}
-              </a>
-            </dd>
-            <dt i18n="@@configContextCrawljobs">Crawljobs</dt>
-            <dd>{{configObject.seed.jobRefList.length}}</dd>
+            <mat-chip-set>
+              <mat-chip [class.state-active]="!configObject.seed.disabled" [class.state-inactive]="configObject.seed.disabled"
+                matTooltip="Seed status: {{activeLabel(configObject.seed.disabled)}}"
+                aria-label="Seed status: {{activeLabel(configObject.seed.disabled)}}">
+                <mat-icon matChipAvatar>{{configObject.seed.disabled ? 'pause_circle' : 'check_circle'}}</mat-icon>
+                <span>{{activeLabel(configObject.seed.disabled)}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.CRAWLJOB) {
-            <dt i18n="@@configContextStatus">Status</dt>
-            <dd>{{configObject.crawlJob.disabled ? 'Deactivated' : 'Active'}}</dd>
-            <dt i18n="@@configContextMaxDuration">Maximum duration</dt>
-            <dd>{{configObject.crawlJob.limits.maxDurationS}} s</dd>
-            <dt i18n="@@configContextMaxBytes">Maximum size</dt>
-            <dd>{{configObject.crawlJob.limits.maxBytes}} bytes</dd>
-            @if (configObject.crawlJob.scheduleRef.id) {
-              <dt i18n="@@configContextSchedule">Schedule</dt>
-              <dd>
-                <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlJob.scheduleRef)">
-                  {{configObject.crawlJob.scheduleRef.id}}
-                </a>
-              </dd>
-            }
-            <dt i18n="@@configContextCrawlConfig">CrawlConfig</dt>
-            <dd>
-              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlJob.crawlConfigRef)">
-                {{configObject.crawlJob.crawlConfigRef.id}}
-              </a>
-            </dd>
-            @if (configObject.crawlJob.scopeScriptRef.id) {
-              <dt i18n="@@configContextScopeScript">Scope script</dt>
-              <dd>
-                <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlJob.scopeScriptRef)">
-                  {{configObject.crawlJob.scopeScriptRef.id}}
-                </a>
-              </dd>
-            }
+            <mat-chip-set>
+              <mat-chip [class.state-active]="!configObject.crawlJob.disabled" [class.state-inactive]="configObject.crawlJob.disabled"
+                matTooltip="Crawljob status: {{activeLabel(configObject.crawlJob.disabled)}}"
+                aria-label="Crawljob status: {{activeLabel(configObject.crawlJob.disabled)}}">
+                <mat-icon matChipAvatar>{{configObject.crawlJob.disabled ? 'pause_circle' : 'check_circle'}}</mat-icon>
+                <span>{{activeLabel(configObject.crawlJob.disabled)}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Maximum crawl duration"
+                aria-label="Maximum crawl duration: {{duration(configObject.crawlJob.limits.maxDurationS, 's')}}">
+                <mat-icon matChipAvatar>timer</mat-icon>
+                <span>{{duration(configObject.crawlJob.limits.maxDurationS, 's')}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Maximum crawl size"
+                aria-label="Maximum crawl size: {{configObject.crawlJob.limits.maxBytes | filesize}}">
+                <mat-icon matChipAvatar>data_usage</mat-icon>
+                <span>{{configObject.crawlJob.limits.maxBytes | filesize}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.CRAWLSCHEDULECONFIG) {
-            <dt i18n="@@configContextCron">CRON expression</dt>
-            <dd class="monospace">{{configObject.crawlScheduleConfig.cronExpression}}</dd>
-            <dt i18n="@@configContextValidFrom">Valid from</dt>
-            <dd>{{configObject.crawlScheduleConfig.validFrom || '—'}}</dd>
-            <dt i18n="@@configContextValidTo">Valid to</dt>
-            <dd>{{configObject.crawlScheduleConfig.validTo || '—'}}</dd>
+            <mat-chip-set>
+              <mat-chip matTooltip="CRON expression" aria-label="CRON expression: {{configObject.crawlScheduleConfig.cronExpression}}">
+                <mat-icon matChipAvatar>schedule</mat-icon><span class="monospace">{{configObject.crawlScheduleConfig.cronExpression}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Valid from" aria-label="Valid from: {{configObject.crawlScheduleConfig.validFrom || 'Not set'}}">
+                <mat-icon matChipAvatar>event_available</mat-icon><span>{{configObject.crawlScheduleConfig.validFrom || '—'}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Valid to" aria-label="Valid to: {{configObject.crawlScheduleConfig.validTo || 'Not set'}}">
+                <mat-icon matChipAvatar>event_busy</mat-icon><span>{{configObject.crawlScheduleConfig.validTo || '—'}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.CRAWLCONFIG) {
-            <dt i18n="@@configContextCollection">Collection</dt>
-            <dd>
-              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlConfig.collectionRef)">
-                {{configObject.crawlConfig.collectionRef.id}}
-              </a>
-            </dd>
-            <dt i18n="@@configContextBrowserConfig">BrowserConfig</dt>
-            <dd>
-              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlConfig.browserConfigRef)">
-                {{configObject.crawlConfig.browserConfigRef.id}}
-              </a>
-            </dd>
-            <dt i18n="@@configContextPoliteness">Politeness</dt>
-            <dd>
-              <a matButton class="monospace" [routerLink]="routeFor(configObject.crawlConfig.politenessRef)">
-                {{configObject.crawlConfig.politenessRef.id}}
-              </a>
-            </dd>
-            <dt i18n="@@configContextDnsTtl">Minimum DNS TTL</dt>
-            <dd>{{configObject.crawlConfig.minimumDnsTtlS}} s</dd>
-            <dt i18n="@@configContextPriority">Priority weight</dt>
-            <dd>{{configObject.crawlConfig.priorityWeight}}</dd>
-            <dt i18n="@@configContextScreenshots">Screenshots</dt>
-            <dd>{{configObject.crawlConfig.extra.createScreenshot ? 'Enabled' : 'Disabled'}}</dd>
+            <mat-chip-set>
+              <mat-chip matTooltip="Minimum DNS TTL" aria-label="Minimum DNS TTL: {{duration(configObject.crawlConfig.minimumDnsTtlS, 's')}}">
+                <mat-icon matChipAvatar>dns</mat-icon><span>{{duration(configObject.crawlConfig.minimumDnsTtlS, 's')}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Priority weight" aria-label="Priority weight: {{configObject.crawlConfig.priorityWeight}}">
+                <mat-icon matChipAvatar>priority_high</mat-icon><span>{{configObject.crawlConfig.priorityWeight}}</span>
+              </mat-chip>
+              <mat-chip [class.state-active]="configObject.crawlConfig.extra.createScreenshot"
+                matTooltip="Screenshots: {{enabledLabel(configObject.crawlConfig.extra.createScreenshot)}}"
+                aria-label="Screenshots: {{enabledLabel(configObject.crawlConfig.extra.createScreenshot)}}">
+                <mat-icon matChipAvatar>{{configObject.crawlConfig.extra.createScreenshot ? 'photo_camera' : 'no_photography'}}</mat-icon>
+                <span>{{enabledLabel(configObject.crawlConfig.extra.createScreenshot)}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.BROWSERCONFIG) {
-            <dt i18n="@@configContextUserAgent">User agent</dt>
-            <dd>{{configObject.browserConfig.userAgent}}</dd>
-            <dt i18n="@@configContextWindow">Window</dt>
-            <dd>{{configObject.browserConfig.windowWidth}} × {{configObject.browserConfig.windowHeight}}</dd>
-            <dt i18n="@@configContextPageLoadTimeout">Page-load timeout</dt>
-            <dd>{{configObject.browserConfig.pageLoadTimeoutMs}} ms</dd>
-            <dt i18n="@@configContextInactivity">Maximum inactivity</dt>
-            <dd>{{configObject.browserConfig.maxInactivityTimeMs}} ms</dd>
-            <dt i18n="@@configContextScripts">Scripts</dt>
-            <dd>{{configObject.browserConfig.scriptRefList.length}}</dd>
+            <mat-chip-set>
+              <mat-chip matTooltip="User agent" i18n-matTooltip="@@configContextUserAgent"
+                aria-label="User agent: {{configObject.browserConfig.userAgent}}">
+                <mat-icon matChipAvatar>travel_explore</mat-icon><span>{{configObject.browserConfig.userAgent}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Viewport" i18n-matTooltip="@@configContextWindow"
+                aria-label="Viewport: {{configObject.browserConfig.windowWidth}} by {{configObject.browserConfig.windowHeight}}">
+                <mat-icon matChipAvatar>aspect_ratio</mat-icon>
+                <span>{{configObject.browserConfig.windowWidth}} × {{configObject.browserConfig.windowHeight}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Page-load timeout" i18n-matTooltip="@@configContextPageLoadTimeout"
+                aria-label="Page-load timeout: {{duration(configObject.browserConfig.pageLoadTimeoutMs, 'ms')}}">
+                <mat-icon matChipAvatar>timer</mat-icon><span>{{duration(configObject.browserConfig.pageLoadTimeoutMs, 'ms')}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Maximum inactivity" i18n-matTooltip="@@configContextInactivity"
+                aria-label="Maximum inactivity: {{duration(configObject.browserConfig.maxInactivityTimeMs, 'ms')}}">
+                <mat-icon matChipAvatar>hourglass_empty</mat-icon><span>{{duration(configObject.browserConfig.maxInactivityTimeMs, 'ms')}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.BROWSERSCRIPT) {
-            <dt i18n="@@configContextScriptType">Script type</dt>
-            <dd>{{BrowserScriptType[configObject.browserScript.browserScriptType]}}</dd>
-            <dt i18n="@@configContextUrlRegexps">URL expressions</dt>
-            <dd>{{configObject.browserScript.urlRegexpList.length}}</dd>
+            <mat-chip-set>
+              <mat-chip matTooltip="Script type" i18n-matTooltip="@@configContextScriptType"
+                aria-label="Script type: {{BrowserScriptType[configObject.browserScript.browserScriptType]}}">
+                <mat-icon matChipAvatar>code</mat-icon><span>{{BrowserScriptType[configObject.browserScript.browserScriptType]}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="URL expressions" i18n-matTooltip="@@configContextUrlRegexps"
+                aria-label="URL expressions: {{configObject.browserScript.urlRegexpList.length}}">
+                <mat-icon matChipAvatar>rule</mat-icon><span>{{configObject.browserScript.urlRegexpList.length}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.POLITENESSCONFIG) {
-            <dt i18n="@@configContextRobotsPolicy">Robots policy</dt>
-            <dd>{{RobotsPolicy[configObject.politenessConfig.robotsPolicy]}}</dd>
-            <dt i18n="@@configContextRobotsValidity">Minimum robots validity</dt>
-            <dd>{{configObject.politenessConfig.minimumRobotsValidityDurationS}} s</dd>
-            <dt i18n="@@configContextUseHostname">Use hostname</dt>
-            <dd>{{configObject.politenessConfig.useHostname ? 'Yes' : 'No'}}</dd>
+            <mat-chip-set>
+              <mat-chip matTooltip="Robots policy" i18n-matTooltip="@@configContextRobotsPolicy"
+                aria-label="Robots policy: {{RobotsPolicy[configObject.politenessConfig.robotsPolicy]}}">
+                <mat-icon matChipAvatar>smart_toy</mat-icon><span>{{RobotsPolicy[configObject.politenessConfig.robotsPolicy]}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Minimum robots validity" i18n-matTooltip="@@configContextRobotsValidity"
+                aria-label="Minimum robots validity: {{duration(configObject.politenessConfig.minimumRobotsValidityDurationS, 's')}}">
+                <mat-icon matChipAvatar>verified</mat-icon><span>{{duration(configObject.politenessConfig.minimumRobotsValidityDurationS, 's')}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="Hostname state" i18n-matTooltip="@@configContextUseHostname"
+                aria-label="Use hostname: {{yesNoLabel(configObject.politenessConfig.useHostname)}}">
+                <mat-icon matChipAvatar>{{configObject.politenessConfig.useHostname ? 'dns' : 'public'}}</mat-icon>
+                <span>{{yesNoLabel(configObject.politenessConfig.useHostname)}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
           @case (Kind.COLLECTION) {
-            <dt i18n="@@configContextDeduplication">Deduplication</dt>
-            <dd>{{RotationPolicy[configObject.collection.collectionDedupPolicy]}}</dd>
-            <dt i18n="@@configContextFileRotation">File rotation</dt>
-            <dd>{{RotationPolicy[configObject.collection.fileRotationPolicy]}}</dd>
-            <dt i18n="@@configContextFileSize">File size</dt>
-            <dd>{{configObject.collection.fileSize}} bytes</dd>
-            <dt i18n="@@configContextCompression">Compression</dt>
-            <dd>{{configObject.collection.compress ? 'Enabled' : 'Disabled'}}</dd>
+            <mat-chip-set>
+              <mat-chip matTooltip="Deduplication" i18n-matTooltip="@@configContextDeduplication"
+                aria-label="Deduplication: {{RotationPolicy[configObject.collection.collectionDedupPolicy]}}">
+                <mat-icon matChipAvatar>content_copy</mat-icon><span>{{RotationPolicy[configObject.collection.collectionDedupPolicy]}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="File rotation" i18n-matTooltip="@@configContextFileRotation"
+                aria-label="File rotation: {{RotationPolicy[configObject.collection.fileRotationPolicy]}}">
+                <mat-icon matChipAvatar>autorenew</mat-icon><span>{{RotationPolicy[configObject.collection.fileRotationPolicy]}}</span>
+              </mat-chip>
+              <mat-chip matTooltip="File size" i18n-matTooltip="@@configContextFileSize"
+                aria-label="File size: {{configObject.collection.fileSize | filesize}}">
+                <mat-icon matChipAvatar>data_usage</mat-icon><span>{{configObject.collection.fileSize | filesize}}</span>
+              </mat-chip>
+              <mat-chip [class.compression-enabled]="configObject.collection.compress"
+                matTooltip="Compression" i18n-matTooltip="@@configContextCompression"
+                aria-label="Compression: {{enabledLabel(configObject.collection.compress)}}">
+                <mat-icon matChipAvatar>{{configObject.collection.compress ? 'compress' : 'unfold_more'}}</mat-icon>
+                <span>{{enabledLabel(configObject.collection.compress)}}</span>
+              </mat-chip>
+            </mat-chip-set>
           }
         }
-      </dl>
+      </div>
+
+      @if (scriptAnnotationContext && canReadAnnotations) {
+        <section class="effective-annotations">
+          <button matButton type="button" class="annotation-toggle"
+            (click)="annotationsExpanded.set(!annotationsExpanded())"
+            [attr.aria-expanded]="annotationsExpanded()">
+            <mat-icon aria-hidden="true">{{annotationsExpanded() ? 'expand_less' : 'expand_more'}}</mat-icon>
+            <span i18n="@@effectiveScriptAnnotationsLabel">Effective script annotations</span>
+          </button>
+          @if (annotationsExpanded()) {
+            @if (scriptAnnotationContext.unavailable) {
+              <p class="annotation-unavailable" role="status" i18n="@@effectiveScriptAnnotationsUnavailable">
+                Effective annotations are unavailable for this crawljob.
+              </p>
+            } @else if (scriptAnnotationContext.annotations.length) {
+              <mat-chip-set class="annotation-chips" aria-label="Effective script annotation values"
+                i18n-aria-label="@@effectiveScriptAnnotationValuesLabel">
+                @for (annotation of scriptAnnotationContext.annotations; track annotation.key) {
+                  <mat-chip>
+                    <app-label-display [key]="annotation.key" [value]="annotation.value || '—'"></app-label-display>
+                  </mat-chip>
+                }
+              </mat-chip-set>
+            } @else {
+              <p class="annotation-empty" role="status" i18n="@@effectiveScriptAnnotationsEmpty">
+                No script annotations are active.
+              </p>
+            }
+          }
+        </section>
+      }
 
       @if (configObject.meta.labelList.length) {
-        <mat-chip-set aria-label="Configuration labels" i18n-aria-label="@@configContextLabels">
+        <h3 class="label-heading" i18n="@@configContextLabelsHeading">Labels</h3>
+        <mat-chip-set class="label-chips" aria-label="Configuration labels" i18n-aria-label="@@configContextLabels">
           @for (label of configObject.meta.labelList; track label.key + ':' + label.value) {
-            <mat-chip><app-label-display [key]="label.key" [value]="label.value"></app-label-display></mat-chip>
+            <mat-chip draggable="true" (dragstart)="onLabelDragStart($event, label.key, label.value)"
+              matTooltip="Drag this label to the configuration label field"
+              i18n-matTooltip="@@configContextDragLabelTooltip">
+              <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+            </mat-chip>
           }
         </mat-chip-set>
       }
-
     }
   </mat-card-content>
 

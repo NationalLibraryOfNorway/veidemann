@@ -35,7 +35,6 @@ export class RoleMappingDialogComponent extends RoleMappingDetailsComponent impl
 
     super();
 
-    this.createForm();
     this.configObject = this.data.configObject;
     this.roles = this.data.options.roles;
   }

@@ -1,0 +1,11 @@
+<mat-chip-listbox [attr.aria-label]="ariaLabel">
+  <mat-chip-option [selected]="value" [disabled]="disabled"
+    [class.state-selected]="value" [aria-label]="ariaLabel"
+    [class.state-positive]="tone === 'positive'"
+    [class.state-negative]="tone === 'negative'"
+    [matTooltip]="ariaLabel"
+    (selectionChange)="onSelectionChange($event)">
+    <mat-icon matChipAvatar>{{value ? selectedIcon : unselectedIcon}}</mat-icon>
+    <span>{{value ? selectedLabel : unselectedLabel}}</span>
+  </mat-chip-option>
+</mat-chip-listbox>

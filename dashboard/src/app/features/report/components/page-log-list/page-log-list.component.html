@@ -8,8 +8,8 @@
       <ng-container matColumnDef="uri">
         <th i18n="@@PageLogReportListWarcIdNameHeaderCell" mat-header-cell *matHeaderCellDef mat-sort-header>URI</th>
         <td mat-cell *matCellDef="let row">
-          <a class="primary-detail-link" [href]="'/report/pagelog/' + row.id"
-            (click)="onPrimaryLink(row, $event)">{{row.uri}}</a>
+          <a class="primary-detail-link" [href]="row.uri" target="_blank" rel="noopener noreferrer"
+            (click)="$event.stopPropagation()">{{row.uri}}</a>
         </td>
       </ng-container>
       <ng-container matColumnDef="nrOfResources">
@@ -19,17 +19,6 @@
       <ng-container matColumnDef="nrOfOutlinks">
         <th i18n="@@PageLogReportListNrOfOutlinksNameHeaderCell" mat-header-cell *matHeaderCellDef mat-sort-header># Outlinks</th>
         <td mat-cell *matCellDef="let row">{{row.outlink?.length}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="action">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell class="action-cell" *matCellDef="let row" (click)="$event.stopPropagation()">
-          <div class="action">
-            <a mat-icon-button [href]="row.uri" target="_blank" rel="noopener noreferrer"
-              aria-label="Open page URI in a new tab" matTooltip="Open page URI"
-              (click)="$event.stopPropagation()"><mat-icon>open_in_new</mat-icon></a>
-          </div>
-        </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>

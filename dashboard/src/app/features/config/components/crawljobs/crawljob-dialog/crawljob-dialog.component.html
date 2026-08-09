@@ -4,7 +4,7 @@
   </h2>
 
   <mat-dialog-content>
-    <app-meta formControlName="meta"></app-meta>
+    <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
     <ng-container formGroupName="limits">
       <mat-label i18n="@@crawljobFormMaxDurationLabel">Max duration</mat-label>
       <app-duration-picker formControlName="maxDurationS"
@@ -76,11 +76,12 @@
         <input type="hidden" formControlName="kind">
       </ng-container>
     </div>
-    <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
-      formControlName="disabled"
-      color="warn">
-      Deactivated
-    </mat-slide-toggle>
+    <app-boolean-state-chip formControlName="disabled" label="Crawljob status"
+      i18n-label="@@crawlJobStatusLabel" selectedLabel="Deactivated" unselectedLabel="Active"
+      i18n-selectedLabel="@@commonDeactivated" i18n-unselectedLabel="@@commonActive"
+      selectedIcon="pause_circle" unselectedIcon="check_circle"
+      selectedTone="negative" unselectedTone="positive">
+    </app-boolean-state-chip>
   </mat-dialog-content>
 </form>
 

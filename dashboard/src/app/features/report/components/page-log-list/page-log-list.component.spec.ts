@@ -32,7 +32,7 @@ describe('PageLogListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders only the external Page URI action without an overflow menu', async () => {
+  it('links the displayed URI externally while leaving the row as the detail target', async () => {
     const row = new PageLog({warcId: 'warc-1', uri: 'https://example.org/page'});
     const dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -44,13 +44,11 @@ describe('PageLogListComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const actionCell = fixture.nativeElement.querySelector('.action-cell') as HTMLElement;
-    const links = actionCell.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>;
-    expect(component.displayedColumns).toEqual(['uri', 'nrOfResources', 'nrOfOutlinks', 'action']);
+    const links = fixture.nativeElement.querySelectorAll('td a') as NodeListOf<HTMLAnchorElement>;
+    expect(component.displayedColumns).toEqual(['uri', 'nrOfResources', 'nrOfOutlinks']);
     expect(links.length).toBe(1);
     expect(links[0].href).toBe('https://example.org/page');
     expect(links[0].target).toBe('_blank');
-    expect(actionCell.querySelector('[aria-label="More actions"]')).toBeNull();
-    expect(actionCell.querySelector('mat-menu')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.action-cell')).toBeNull();
   });
 });

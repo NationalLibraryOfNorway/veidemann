@@ -10,7 +10,7 @@ import {CrawlExecutionStatusComponent} from './crawl-execution-status.component'
 @Component({
   template: `
     <app-crawl-execution-status [crawlExecutionStatus]="status">
-      <span cardHeaderHelpers class="projected-helper">Helper</span>
+      <span detailHeaderHelpers class="projected-helper">Helper</span>
       <span detailActions class="projected-action">Action</span>
     </app-crawl-execution-status>
   `,
@@ -52,7 +52,7 @@ describe('CrawlExecutionStatusComponent', () => {
     fixture.detectChanges();
   }
 
-  it('uses semantic descriptions and shows identifiers, unavailable times, and all zero metrics', async () => {
+  it('uses the seed and job names as heading and omits execution relationship identifiers', async () => {
     render(new CrawlExecutionStatus({
       id: 'crawl-execution-id-that-can-wrap',
       seedId: 'seed-id-that-can-wrap',
@@ -65,13 +65,44 @@ describe('CrawlExecutionStatusComponent', () => {
 
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     expect(fixture.nativeElement.querySelector('dl.description-list')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('crawl-execution-id-that-can-wrap');
-    expect(fixture.nativeElement.textContent).toContain('parent-execution-id-that-can-wrap');
-    expect(fixture.nativeElement.textContent).toContain('Example seed');
-    expect(fixture.nativeElement.textContent).toContain('Example job');
-    expect(fixture.nativeElement.querySelectorAll('.metric-tile').length).toBe(7);
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Example seed');
+    expect(fixture.nativeElement.querySelector('.detail-subtitle').textContent).toBe('Example job');
+    expect(fixture.nativeElement.textContent).not.toContain('crawl-execution-id-that-can-wrap');
+    expect(fixture.nativeElement.textContent).not.toContain('parent-execution-id-that-can-wrap');
+    expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(5);
     expect(fixture.nativeElement.textContent.match(/Not available/g)?.length).toBe(4);
-    expect(fixture.nativeElement.querySelector('.error-card')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
+  });
+
+  it('pairs states and dates and orders optional crawl statistics after duration', () => {
+    render(new CrawlExecutionStatus({
+      state: CrawlExecutionState.FETCHING,
+      desiredState: CrawlExecutionState.ABORTED_MANUAL,
+      documentsDenied: 1,
+      documentsFailed: 2,
+      documentsRetried: 3,
+    }));
+
+    const rows = [...fixture.nativeElement.querySelectorAll('.overview-card .description-row')]
+      .map((row: HTMLElement) => [...row.querySelectorAll('dt')]
+        .map(term => term.textContent.trim()));
+    expect(rows).toEqual([
+      ['State', 'Desired state'],
+      ['Created', 'Last changed'],
+      ['Started', 'Ended'],
+    ]);
+    const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric-card > span')]
+      .map((label: HTMLElement) => label.textContent.trim());
+    expect(metricLabels).toEqual([
+      'Documents crawled',
+      'Bytes crawled',
+      'Duration',
+      'Documents denied',
+      'Documents failed',
+      'Documents retried',
+      'Documents out of scope',
+      'URIs crawled',
+    ]);
   });
 
   it.each([
@@ -96,7 +127,7 @@ describe('CrawlExecutionStatusComponent', () => {
 
   it('renders message-only errors and allows long details to retain wrapping whitespace', () => {
     render(new CrawlExecutionStatus({error: new ApiError()}));
-    expect(fixture.nativeElement.querySelector('.error-card')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
 
     render(new CrawlExecutionStatus({
       error: new ApiError({detail: 'first line\nsecond line'}),
@@ -105,13 +136,32 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(detail.textContent).toContain('first line\nsecond line');
   });
 
-  it('projects helpers into the overview header and destructive actions below the card', () => {
+  it('projects helpers into the page header and actions into the overview card actions', () => {
     const hostFixture = TestBed.createComponent(CrawlExecutionStatusHostComponent);
     hostFixture.detectChanges();
 
-    const header = hostFixture.nativeElement.querySelector('.overview-card mat-card-header') as HTMLElement;
+    const header = hostFixture.nativeElement.querySelector('.detail-header') as HTMLElement;
+    const cardActions = hostFixture.nativeElement.querySelector('.overview-card mat-card-actions') as HTMLElement;
     expect(header.querySelector('.projected-helper')).not.toBeNull();
     expect(header.querySelector('.projected-action')).toBeNull();
-    expect(hostFixture.nativeElement.querySelector('.detail-actions .projected-action')).not.toBeNull();
+    expect(cardActions.querySelector('.projected-action')).not.toBeNull();
+  });
+
+  it('places crawl statistics in the primary pane and textual state in a filled supporting card', () => {
+    render(new CrawlExecutionStatus());
+    const grid = fixture.nativeElement.querySelector('.detail-grid') as HTMLElement;
+    const primary = grid.querySelector(':scope > .primary-pane') as HTMLElement;
+    const statistics = primary.querySelector('.statistics-section') as HTMLElement;
+    const aside = grid.querySelector(':scope > .overview-aside') as HTMLElement;
+    const overviewCard = aside.querySelector(':scope > mat-card.overview-card') as HTMLElement;
+
+    expect(statistics.querySelector('h2')?.textContent).toBe('Crawl statistics');
+    expect(aside.tagName).toBe('ASIDE');
+    expect(overviewCard.getAttribute('appearance')).toBe('filled');
+    expect(overviewCard.querySelector('dl.description-list')).not.toBeNull();
+    expect(overviewCard.querySelector('mat-card-actions.detail-actions')).not.toBeNull();
+    const metrics = statistics.querySelector('.metric-grid') as HTMLElement;
+    expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(5);
+    expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(5);
   });
 });

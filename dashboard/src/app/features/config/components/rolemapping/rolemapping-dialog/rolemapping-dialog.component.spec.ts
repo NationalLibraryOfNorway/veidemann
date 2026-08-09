@@ -2,7 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {RoleMappingDialogComponent} from './rolemapping-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ConfigObject, Kind} from '../../../../../shared/models';
+import {ConfigObject, Kind, Role} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 
@@ -36,5 +36,19 @@ describe('RoleMappingDialogComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('uses the reactive identity selector and serializes only its active identity', () => {
+    expect(component.identityType.value).toBe('email');
+    component.email.setValue('user@example.test');
+    component.roleList.setValue([Role.READONLY]);
+
+    component.identityType.setValue('group');
+    component.group.setValue('reviewers');
+    const result = component.onDialogClose();
+
+    expect(result.roleMapping.group).toBe('reviewers');
+    expect(result.roleMapping.email).toBe('');
+    expect(result.roleMapping.roleList).toEqual([Role.READONLY]);
   });
 });

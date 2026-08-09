@@ -1,8 +1,8 @@
-import {ChangeDetectionStrategy, Component, computed, ErrorHandler, OnDestroy, signal, inject} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, OnDestroy, Signal, signal, inject} from '@angular/core';
 import {ActivatedRoute, NavigationStart, Router} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
-import {combineLatest, forkJoin, merge, Observable, of, Subject} from 'rxjs';
+import {combineLatest, EMPTY, forkJoin, merge, Observable, of, Subject} from 'rxjs';
 import {catchError, filter, map, shareReplay, switchMap, take, takeUntil, tap} from 'rxjs/operators';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
@@ -12,6 +12,7 @@ import {
   ConfigObject,
   ConfigRef,
   Kind,
+  ListDataSource,
   RobotsPolicy,
   Role,
   RotationPolicy,
@@ -23,6 +24,7 @@ import {
   BrowserConfigDetailsComponent,
   BrowserScriptDetailsComponent,
   CollectionDetailsComponent,
+  ConfigLabelLinksComponent,
   ConfigContextCardComponent,
   CrawlConfigDetailsComponent,
   CrawlExecutionStatusComponent,
@@ -36,7 +38,6 @@ import {
   RoleMappingDetailsComponent,
   ScheduleDetailsComponent,
   ScriptAnnotationContext,
-  ScriptAnnotationsCardComponent,
   SeedDetailsComponent
 } from '../../components';
 import {OptionsResolver, OptionsService} from '../../services';
@@ -48,6 +49,11 @@ import {AsyncPipe, Location} from '@angular/common';
 import {ConfigShortcutHelpersComponent} from '../../components/shortcut/shortcut.component';
 import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
 import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
+import {ConfigQuery} from '../../../../shared/func';
+import {AbilityServiceSignal} from '@casl/angular';
+import {MongoAbility} from '@casl/ability';
+import {AppConfig} from '../../../../app.config';
+import {ResolvedLabelLink, resolveLabelLink} from '../../func';
 
 
 export interface ConfigOptions {
@@ -82,6 +88,7 @@ export interface RelatedConfigContext {
     BrowserScriptDetailsComponent,
     BrowserConfigDetailsComponent,
     CollectionDetailsComponent,
+    ConfigLabelLinksComponent,
     ConfigContextCardComponent,
     CrawlConfigDetailsComponent,
     CrawlExecutionStatusComponent,
@@ -96,12 +103,11 @@ export interface RelatedConfigContext {
     SeedDetailsComponent,
     ConfigShortcutHelpersComponent,
     RoleMappingDetailsComponent,
-    ScriptAnnotationsCardComponent,
   ],
   standalone: true
 })
 export class ConfigurationComponent implements OnDestroy {
-  private authService = inject(AuthService);
+  protected authService = inject(AuthService);
   private dataService = inject(ConfigService);
   private snackBarService = inject(SnackBarService);
   private errorHandler = inject(ErrorHandler);
@@ -113,14 +119,22 @@ export class ConfigurationComponent implements OnDestroy {
   private controllerApiService = inject(ControllerApiService);
   private routerExtraService = inject(RouterExtraService);
   private location = inject(Location);
+  private destroyRef = inject(DestroyRef);
+  private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
+  private appConfig = inject(AppConfig);
 
   readonly Kind = Kind;
+  readonly canReadAnnotations = this.authService.canRead('annotation');
+  readonly canReadSeeds = computed(() => this.abilityService.can('read', Kind[Kind.SEED]));
 
   private ngUnsubscribe = new Subject<void>();
 
   private configObject: Subject<ConfigObject>;
   configObject$: Observable<ConfigObject>;
+  readonly entitySeedDisabled = signal<boolean | null>(null);
+  entitySeedDataSource: ListDataSource<ConfigObject, ConfigQuery>;
   relatedConfigs$: Observable<RelatedConfigContext[]>;
+  readonly relatedConfigContexts: Signal<RelatedConfigContext[]>;
   scriptAnnotationContexts$: Observable<ScriptAnnotationContext[]>;
   annotationSuggestions$: Observable<string[]>;
 
@@ -156,6 +170,18 @@ export class ConfigurationComponent implements OnDestroy {
     this.configObject$ = merge(this.configObject.asObservable(), configObject$).pipe(
       shareReplay({bufferSize: 1, refCount: true}),
     );
+    const entitySeedQuery$ = combineLatest([
+      toObservable(configRef),
+      toObservable(this.entitySeedDisabled),
+      toObservable(this.canReadSeeds),
+    ]).pipe(
+      map(([ref, disabled, canReadSeeds]) => this.entitySeedQuery(ref, disabled, canReadSeeds)),
+    );
+    this.entitySeedDataSource = ListDataSource.fromQuery({
+      query$: entitySeedQuery$,
+      load: (query, range) => query.kind === Kind.SEED ? this.dataService.search(query, range) : EMPTY,
+      destroyRef: this.destroyRef,
+    });
     this.relatedConfigs$ = combineLatest([this.configObject$, this.options$]).pipe(
       switchMap(([configObject, options]) => {
         const refs = relatedConfigRefs(configObject, options?.browserScripts)
@@ -169,6 +195,7 @@ export class ConfigurationComponent implements OnDestroy {
         )));
       }),
     );
+    this.relatedConfigContexts = toSignal(this.relatedConfigs$, {initialValue: []});
 
     this.scriptAnnotationContexts$ = combineLatest([this.configObject$, this.options$]).pipe(
       switchMap(([configObject, options]) => this.loadScriptAnnotationContexts(configObject, options)),
@@ -183,6 +210,73 @@ export class ConfigurationComponent implements OnDestroy {
 
   get loading$(): Observable<boolean> {
     return this.dataService.loading$;
+  }
+
+  annotationContextFor(
+    ref: ConfigRef,
+    contexts: readonly ScriptAnnotationContext[],
+  ): ScriptAnnotationContext | null {
+    return ref.kind === Kind.CRAWLJOB
+      ? contexts.find(context => context.jobRef.id === ref.id) ?? null
+      : null;
+  }
+
+  labelLinksFor(configObject: ConfigObject): ResolvedLabelLink[] {
+    const seen = new Set<string>();
+    return (configObject?.meta?.labelList ?? [])
+      .map(label => resolveLabelLink(this.appConfig.labelLinks, label))
+      .filter((link): link is ResolvedLabelLink => {
+        if (!link) {
+          return false;
+        }
+        const key = `${link.text}:${link.href}`;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+  }
+
+  onEntitySeedStatusChange(disabled: boolean | null): void {
+    this.entitySeedDisabled.set(disabled);
+  }
+
+  onOpenEntitySeed(seed: ConfigObject): void {
+    this.router.navigate(['/config', 'seed', seed.id])
+      .catch(error => this.errorHandler.handleError(error));
+  }
+
+  onEditEntitySeed(seed: ConfigObject): void {
+    this.onCreateConfigWithDialog(seed, false);
+  }
+
+  private entitySeedQuery(
+    configRef: ConfigRef,
+    disabled: boolean | null,
+    canReadSeeds: boolean,
+  ): ConfigQuery {
+    const isReadableEntity = configRef?.kind === Kind.CRAWLENTITY
+      && !!configRef.id
+      && canReadSeeds;
+    return {
+      kind: isReadableEntity ? Kind.SEED : Kind.UNDEFINED,
+      entityId: isReadableEntity ? configRef.id : null,
+      scheduleId: null,
+      crawlConfigId: null,
+      collectionId: null,
+      browserConfigId: null,
+      politenessId: null,
+      disabled,
+      browserScriptType: null,
+      robotsPolicy: null,
+      role: null,
+      crawlJobIdList: [],
+      scriptIdList: [],
+      term: null,
+      active: '',
+      direction: '',
+    };
   }
 
   private loadScriptAnnotationContexts(
@@ -262,7 +356,7 @@ export class ConfigurationComponent implements OnDestroy {
     this.onCreateConfigWithDialog(configObject);
   }
 
-  onCreateConfigWithDialog(configObject: ConfigObject) {
+  onCreateConfigWithDialog(configObject: ConfigObject, updateCurrentConfig = true) {
     if (!configObject) {
       return;
     }
@@ -274,13 +368,13 @@ export class ConfigurationComponent implements OnDestroy {
       next: kindOptions => {
         const options = {...this.options, ...kindOptions};
         this.optionsService.next(kindOptions);
-        this.openConfigDialog(configObject, options);
+        this.openConfigDialog(configObject, options, updateCurrentConfig);
       },
       error: error => this.errorHandler.handleError(error),
     });
   }
 
-  private openConfigDialog(configObject: ConfigObject, options: ConfigOptions) {
+  private openConfigDialog(configObject: ConfigObject, options: ConfigOptions, updateCurrentConfig: boolean) {
     const data: ConfigDialogData = {configObject, options};
     const componentType = dialogByKind(configObject.kind);
     const dialogRef = this.dialog.open(componentType, {data});
@@ -303,11 +397,24 @@ export class ConfigurationComponent implements OnDestroy {
       takeUntil(this.ngUnsubscribe),
     ).subscribe((config: ConfigObject) => {
       if (config.id) {
-        this.onUpdateConfig(config);
+        if (updateCurrentConfig) {
+          this.onUpdateConfig(config);
+        } else {
+          this.onUpdateEntitySeed(config);
+        }
       } else {
         this.onSaveConfig(config);
       }
     });
+  }
+
+  private onUpdateEntitySeed(seed: ConfigObject): void {
+    this.dataService.update(seed)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe(() => {
+        this.entitySeedDataSource.refreshLoaded();
+        this.snackBarService.openSnackBar($localize`:@snackBarMessage.updated:Updated`);
+      });
   }
 
   onClone(configObject: ConfigObject) {
@@ -337,7 +444,7 @@ export class ConfigurationComponent implements OnDestroy {
 
   onDeleteConfig(configObject: ConfigObject) {
     const dialogRef = this.dialog.open(DeleteDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {configObject},
     });
@@ -385,15 +492,23 @@ export class ConfigurationComponent implements OnDestroy {
   }
 
   onRunCrawl(configObject: ConfigObject) {
+    this.openRunCrawlDialog(configObject);
+  }
+
+  onRunSeedInCrawlJob(seed: ConfigObject, crawlJob: ConfigObject) {
+    this.openRunCrawlDialog(seed, crawlJob.id);
+  }
+
+  private openRunCrawlDialog(configObject: ConfigObject, jobRefId?: string) {
     const crawlJobs = this.options.crawlJobs;
     const dialogRef = this.dialog.open(RunCrawlDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
-      data: {configObject, jobRefId: null, crawlJobs}
+      data: {configObject, jobRefId, crawlJobs}
     });
     dialogRef.afterClosed()
       .subscribe(result => {
-        if (result.runCrawlRequest) {
+        if (result?.runCrawlRequest) {
           this.controllerApiService.runCrawl(result.runCrawlRequest)
             .subscribe(runCrawlReply => {
               if (configObject.kind === Kind.SEED) {

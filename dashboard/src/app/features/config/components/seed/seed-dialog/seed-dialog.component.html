@@ -4,7 +4,7 @@
   </h2>
 
   <mat-dialog-content>
-    <app-seed-meta formControlName="meta"
+    <app-seed-meta [kind]="configObject.kind" formControlName="meta"
       [entityRef]="entityRef.value"
       [showOpenUrl]="!showSave"
     (move)="move.emit($event)"></app-seed-meta>
@@ -21,11 +21,12 @@
         </mat-select>
       </mat-form-field>
     </div>
-    <mat-slide-toggle i18n="@@disableCrawljobToggleSwitch"
-      formControlName="disabled"
-      color="warn">
-      Deactivated
-    </mat-slide-toggle>
+    <app-boolean-state-chip formControlName="disabled" label="Seed status"
+      i18n-label="@@seedStatusLabel" selectedLabel="Deactivated" unselectedLabel="Active"
+      i18n-selectedLabel="@@commonDeactivated" i18n-unselectedLabel="@@commonActive"
+      selectedIcon="pause_circle" unselectedIcon="check_circle"
+      selectedTone="negative" unselectedTone="positive">
+    </app-boolean-state-chip>
   </mat-dialog-content>
 </form>
 

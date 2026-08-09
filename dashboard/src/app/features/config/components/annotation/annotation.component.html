@@ -31,24 +31,34 @@
         </mat-form-field>
         @if (!disabled && suggestions.length) {
           <div class="annotation-suggestions">
-            <span class="annotation-suggestions__label" i18n="@@annotationSuggestionsLabel">
-              Suggested annotation keys
-            </span>
-            <mat-chip-set
+            <mat-chip-set>
+              <mat-chip #suggestionTrigger #suggestionMenuTrigger="matMenuTrigger"
+                class="annotation-suggestions__trigger"
+                role="button"
+                tabindex="0"
+                [matMenuTriggerFor]="suggestionMenu"
+                [matMenuTriggerRestoreFocus]="false"
+                aria-label="Show suggested annotation keys"
+                i18n-aria-label="@@annotationSuggestionsTriggerAriaLabel"
+                (keydown)="onSuggestionTriggerKeydown($event, suggestionMenuTrigger)"
+                (menuOpened)="onSuggestionMenuOpened()"
+                (menuClosed)="onSuggestionMenuClosed()">
+                <mat-icon matChipAvatar aria-hidden="true">tips_and_updates</mat-icon>
+                <span i18n="@@annotationSuggestionsTriggerLabel">
+                  Suggested keys ({{suggestions.length}})
+                </span>
+                <mat-icon matChipTrailingIcon aria-hidden="true">arrow_drop_down</mat-icon>
+              </mat-chip>
+            </mat-chip-set>
+            <mat-menu #suggestionMenu="matMenu"
               aria-label="Suggested annotation keys"
               i18n-aria-label="@@annotationSuggestionsAriaLabel">
               @for (suggestion of suggestions; track suggestion) {
-                <mat-chip
-                  role="button"
-                  tabindex="0"
-                  (click)="onUseSuggestion(suggestion)"
-                  (keydown.enter)="onUseSuggestion(suggestion)"
-                  (keydown.space)="onUseSuggestion(suggestion); $event.preventDefault()">
-                  <mat-icon matChipAvatar aria-hidden="true">add</mat-icon>
+                <button mat-menu-item type="button" (click)="onUseSuggestion(suggestion)">
                   {{suggestion}}
-                </mat-chip>
+                </button>
               }
-            </mat-chip-set>
+            </mat-menu>
           </div>
         }
       </form>

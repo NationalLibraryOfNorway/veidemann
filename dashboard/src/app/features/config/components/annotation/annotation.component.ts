@@ -18,6 +18,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIcon} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatDialog} from '@angular/material/dialog';
+import {MatMenuModule, MatMenuTrigger} from '@angular/material/menu';
 import {
   AnnotationEditDialogComponent,
   AnnotationEditDialogData,
@@ -41,6 +42,7 @@ interface AnnotationGroup {
     MatFormFieldModule,
     MatIcon,
     MatInputModule,
+    MatMenuModule,
     ReactiveFormsModule,
   ],
   standalone: true
@@ -74,6 +76,9 @@ export class AnnotationComponent implements ControlValueAccessor {
   groups$: Observable<AnnotationGroup[]> = this.groupsSubject.asObservable();
 
   @ViewChild('chipInput') chipInputControl: ElementRef;
+  @ViewChild('suggestionTrigger', {read: ElementRef}) suggestionTriggerControl?: ElementRef<HTMLElement>;
+
+  private suggestionSelected = false;
 
   constructor() {
     this.can = this.abilityService.can;
@@ -153,10 +158,30 @@ export class AnnotationComponent implements ControlValueAccessor {
       return;
     }
 
+    this.suggestionSelected = true;
     const value = `${key}:`;
     this.control.setValue(value);
     this.chipInputControl.nativeElement.focus();
     this.chipInputControl.nativeElement.setSelectionRange(value.length, value.length);
+  }
+
+  onSuggestionMenuOpened(): void {
+    this.suggestionSelected = false;
+  }
+
+  onSuggestionTriggerKeydown(event: KeyboardEvent, menuTrigger: MatMenuTrigger): void {
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'ArrowDown') {
+      return;
+    }
+
+    event.preventDefault();
+    menuTrigger.openMenu();
+  }
+
+  onSuggestionMenuClosed(): void {
+    if (!this.suggestionSelected) {
+      this.suggestionTriggerControl?.nativeElement.focus();
+    }
   }
 
   protected save(value: string): void {

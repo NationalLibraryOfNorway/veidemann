@@ -10,7 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Label } from '../../../../shared/models';
+import { Kind, Label } from '../../../../shared/models';
 import { LabelDisplayComponent } from '../../../../shared/components';
 import { LabelComponent } from '../label/label.component';
 
@@ -40,6 +40,8 @@ import { LabelComponent } from '../label/label.component';
 })
 export class SelectorComponent extends LabelComponent implements OnInit {
 
+  @Input()
+  override kind = Kind.UNDEFINED;
 
   @Input()
   override placeholderText = 'New selector...';

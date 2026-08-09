@@ -31,8 +31,8 @@ describe('CrawlLogListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders only the external requested URI action without an overflow menu', async () => {
-    const row = new CrawlLog({warcId: 'warc-1', requestedUri: 'https://example.org/request'});
+  it('renders the requested URI as an external link without a separate action column', async () => {
+    const row = new CrawlLog({warcId: 'warc-1', method: 'GET', requestedUri: 'https://example.org/request'});
     const dataSource = ListDataSource.fromQuery({
       query$: of('query'),
       load: () => of(row),
@@ -43,15 +43,15 @@ describe('CrawlLogListComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const actionCell = fixture.nativeElement.querySelector('td.mat-column-action') as HTMLElement;
-    const links = actionCell.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>;
+    const links = fixture.nativeElement.querySelectorAll('td.mat-column-requestedUri a') as NodeListOf<HTMLAnchorElement>;
     expect(component.displayedColumns).toEqual([
-      'requestedUri', 'timestamp', 'statusCode', 'discoveryPath', 'contentType', 'action',
+      'method', 'requestedUri', 'statusCode', 'contentType', 'discoveryPath', 'timestamp',
     ]);
+    expect(fixture.nativeElement.querySelector('td.mat-column-method')?.textContent).toContain('GET');
     expect(links.length).toBe(1);
     expect(links[0].href).toBe('https://example.org/request');
     expect(links[0].target).toBe('_blank');
-    expect(actionCell.querySelector('[aria-label="More actions"]')).toBeNull();
-    expect(actionCell.querySelector('mat-menu')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.mat-column-action')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Open requested URI in a new tab"]')).toBeNull();
   });
 });

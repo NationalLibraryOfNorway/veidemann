@@ -4,7 +4,7 @@
 
 <mat-dialog-content>
   <form [formGroup]="form">
-    <app-meta formControlName="meta"></app-meta>
+    <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
   </form>
 </mat-dialog-content>
 

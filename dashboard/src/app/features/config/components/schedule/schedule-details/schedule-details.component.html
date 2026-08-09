@@ -1,21 +1,24 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
     <mat-card-header class="card-header-with-helpers">
+      <div mat-card-avatar class="config-kind-avatar">
+        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+      </div>
       <mat-card-title>
-        @if (configObject) {
-          <span i18n="@@scheduleDetailsCardTitle">Schedule</span>
-        }
-      </mat-card-title>
-      <mat-card-subtitle>
-        @if (!configObject.id) {
+        @if (configObject.meta.name) {
+          {{configObject.meta.name}}
+        } @else {
           <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
-      </mat-card-subtitle>
+      </mat-card-title>
+      @if (configObject.meta.description) {
+        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
+      }
       <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content class="config-details-grid">
       <div class="layout-column flex-fill">
-        <app-meta formControlName="meta"></app-meta>
+        <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
             <mat-label i18n="@@configIdLabel">Id</mat-label>
@@ -81,32 +84,20 @@
 
         <section class="schedule-section">
           <h3 class="schedule-section-title" i18n="@@scheduleDetailsValidFromToHeader">Time limit</h3>
-          <div class="layout-row layout-wrap gap-24">
-            <mat-form-field data-testid="validFrom">
-              <mat-label i18n="@@scheduleDetailsValidFromInputLabel">
-                Valid from
-              </mat-label>
-              <input matInput [matDatepicker]="validFromDatepicker" formControlName="validFrom"
-                data-testid="validFromInput">
-              <mat-datepicker-toggle matSuffix [for]="validFromDatepicker"
-              data-testid="validFromToggle"></mat-datepicker-toggle>
-              <mat-datepicker #validFromDatepicker></mat-datepicker>
-              @if (!validFrom.valid) {
-                <mat-error>{{validFrom.errors | json}}</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field data-testid="validTo">
-              <mat-label i18n="@@scheduleDetailsValidToInputLabel">
-                Valid to
-              </mat-label>
-              <input matInput [matDatepicker]="validToDatepicker" formControlName="validTo"
-                data-testid="validToInput">
-              <mat-datepicker-toggle matSuffix [for]="validToDatepicker"
-              data-testid="validToToggle"></mat-datepicker-toggle>
-              <mat-datepicker #validToDatepicker></mat-datepicker>
-            </mat-form-field>
-          </div>
+          <mat-form-field data-testid="validityRange">
+            <mat-label i18n="@@scheduleMassUpdateValidityRangeLabel">Validity period</mat-label>
+            <mat-date-range-input [rangePicker]="validityRangePicker">
+              <input matStartDate formControlName="validFrom" placeholder="Valid from"
+                i18n-placeholder="@@scheduleMassUpdateValidFromPlaceholder" data-testid="validFromInput">
+              <input matEndDate formControlName="validTo" placeholder="Valid to"
+                i18n-placeholder="@@scheduleMassUpdateValidToPlaceholder" data-testid="validToInput">
+            </mat-date-range-input>
+            <mat-datepicker-toggle matIconSuffix [for]="validityRangePicker" data-testid="validityRangeToggle"></mat-datepicker-toggle>
+            <mat-date-range-picker #validityRangePicker></mat-date-range-picker>
+            @if (validFrom.hasError('matStartDateInvalid') || validTo.hasError('matEndDateInvalid')) {
+              <mat-error i18n="@@scheduleMassUpdateValidityRangeError">Valid from must be on or before Valid to.</mat-error>
+            }
+          </mat-form-field>
         </section>
       </div>
     </mat-card-content>
@@ -136,13 +127,6 @@
         REVERT
       </button>
         <span class="flex-fill"></span>
-        @if (!showSave && canDelete) {
-          <button mat-button
-            (click)="onDelete()"
-            i18n="@@commonButtonDelete">
-        DELETE
-      </button>
-        }
       </mat-card-actions>
     }
   </mat-card>

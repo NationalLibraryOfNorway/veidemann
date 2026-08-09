@@ -1,0 +1,21 @@
+.state-cell {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.desired-state-badge {
+  display: inline-flex;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  font: var(--mat-sys-label-medium);
+  white-space: nowrap;
+  align-items: center;
+  gap: 4px;
+}

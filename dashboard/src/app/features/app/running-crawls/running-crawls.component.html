@@ -19,7 +19,8 @@
       @if (rows.length > 0) {
         <app-job-execution-status-list
           [dataSource]="dataSource"
-          [displayedColumns]="['jobId', 'state', 'documentsCrawled', 'startTime', 'endTime', 'duration']"
+          [displayedColumns]="['jobId', 'state', 'queueSize', 'documentsCrawled', 'bytesCrawled',
+                               'startTime', 'endTime', 'duration']"
           [embedded]="true"
           [sortActive]="sortActive"
           [sortDirection]="sortDirection"

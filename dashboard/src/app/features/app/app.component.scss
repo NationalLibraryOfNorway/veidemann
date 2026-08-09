@@ -83,8 +83,15 @@
 }
 
 .brand-link {
+  display: flex;
+  align-items: center;
   flex: 0 0 auto;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 4px 8px;
+  border-radius: var(--mat-sys-corner-full);
   color: inherit;
+  text-decoration: none;
 }
 
 .brand-link picture,
@@ -93,23 +100,28 @@
   display: block;
 }
 
+.toolbar-brand-logo {
+  display: block;
+  width: auto;
+  max-width: min(48vw, 190px);
+  height: 32px;
+  object-fit: contain;
+}
+
 .grouse-icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
 }
 
-.toolbar-title {
-  min-width: 0;
-  overflow: hidden;
-  font: var(--mat-sys-title-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .active-toolbar-link {
   background-color: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
+}
+
+.brand-link.active-toolbar-link {
+  background-color: transparent;
+  color: inherit;
 }
 
 .toolbar-spacer {

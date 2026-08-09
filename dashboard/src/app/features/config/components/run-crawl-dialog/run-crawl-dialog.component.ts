@@ -12,6 +12,7 @@ export interface RunCrawlDialogData {
   configObject: ConfigObject;
   crawlJobs: ConfigObject[];
   numberOfSeeds?: number;
+  jobRefId?: string;
 }
 
 @Component({
@@ -47,6 +48,7 @@ export class RunCrawlDialogComponent {
     this.runCrawlReply = data.runCrawlReply;
     this.configObject = data.configObject;
     this.crawlJobs = data.crawlJobs;
+    this.jobRefId = data.jobRefId;
     if (this.configObject.kind === Kind.SEED) {
       this.numberOfSeeds = data.numberOfSeeds ? data.numberOfSeeds : 1;
     }

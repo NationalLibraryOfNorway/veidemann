@@ -9,7 +9,6 @@ import {Parcel, SeedMetaComponent} from '../..';
 import {configRefIdRequired} from '../../../../../shared/validation/configref';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
-import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatButtonModule} from '@angular/material/button';
@@ -23,6 +22,8 @@ import {
   MoveSeedDialogData,
   MoveSeedDialogResult,
 } from '../move-seed-dialog/move-seed-dialog.component';
+import {configKindIcon} from '../../../func/config-kind-icon';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-seed-details',
@@ -36,7 +37,7 @@ import {
     MatIcon,
     MatInput,
     MatSelectModule,
-    MatSlideToggleModule,
+    BooleanStateChipComponent,
     MatTooltip,
     ReactiveFormsModule,
     SeedMetaComponent,
@@ -44,6 +45,7 @@ import {
   standalone: true
 })
 export class SeedDetailsComponent implements OnChanges, OnDestroy {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
   private dialog = inject(MatDialog);
@@ -71,9 +73,6 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
   move = new EventEmitter<Parcel>();
 
   // noinspection ReservedWordAsName
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   @Output()
   runCrawl = new EventEmitter<ConfigObject>();
 
@@ -104,10 +103,6 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
 
   get canRevert(): boolean {
     return this.form.dirty;
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get canEdit(): boolean {
@@ -160,10 +155,6 @@ export class SeedDetailsComponent implements OnChanges, OnDestroy {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

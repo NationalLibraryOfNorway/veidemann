@@ -1,21 +1,25 @@
 <mat-card appearance="outlined">
   <mat-card-header class="card-header-with-helpers">
+    <div mat-card-avatar class="config-kind-avatar">
+      <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+    </div>
     <mat-card-title>
-      <span i18n="@@politenessconfigDetailsCardTitle">Politenessconfig</span>
-    </mat-card-title>
-    <mat-card-subtitle>
-      @if (!configObject?.id) {
-        <span
-        i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
+      @if (configObject.meta.name) {
+        {{configObject.meta.name}}
+      } @else {
+        <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
       }
-    </mat-card-subtitle>
+    </mat-card-title>
+    @if (configObject.meta.description) {
+      <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
+    }
     <ng-content select="[cardHeaderHelpers]"></ng-content>
   </mat-card-header>
 
   <form [formGroup]="form">
     <mat-card-content class="config-details-grid">
       <div class="layout-column flex-fill">
-        <app-meta formControlName="meta"></app-meta>
+        <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
             <mat-label i18n="configIdLabel">
@@ -68,12 +72,12 @@
         </mat-error>
         }
 
-        <mat-checkbox formControlName="useHostname"
-          labelPosition="after"
-          i18n="@@politenessconfigFormUseHostnameLabel"
-          color="accent">
-          Use hostname
-        </mat-checkbox>
+        <app-boolean-state-chip formControlName="useHostname" label="Use hostname"
+          i18n-label="@@politenessconfigFormUseHostnameLabel"
+          selectedLabel="Use hostname" i18n-selectedLabel="@@politenessconfigFormUseHostnameSelectedLabel"
+          unselectedLabel="Use IP-address" i18n-unselectedLabel="@@politenessconfigFormUseIpAddressLabel"
+          selectedIcon="dns" unselectedIcon="public">
+        </app-boolean-state-chip>
       </div>
     </mat-card-content>
   </form>
@@ -104,13 +108,6 @@
       REVERT
     </button>
       <span class="flex-fill"></span>
-      @if (!showSave && canDelete) {
-        <button mat-button
-          (click)="onDelete()"
-          i18n="@@commonButtonDelete">
-      DELETE
-    </button>
-      }
     </mat-card-actions>
   }
 </mat-card>

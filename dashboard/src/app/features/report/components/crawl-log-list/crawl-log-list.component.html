@@ -6,21 +6,21 @@
       [matSortDirection]="sortDirection"
       (matSortChange)="onSortChange($event)">
 
+      <ng-container matColumnDef="method">
+        <th i18n="@@crawlLogReportListMethodHeaderCell"
+          mat-header-cell *matHeaderCellDef mat-sort-header>Method
+        </th>
+        <td mat-cell *matCellDef="let row">{{row.method || '—'}}</td>
+      </ng-container>
+
       <ng-container matColumnDef="requestedUri">
         <th i18n="@@crawlLogReportListRequestedUriHeaderCell"
           mat-header-cell *matHeaderCellDef mat-sort-header>Requested URI
         </th>
         <td mat-cell *matCellDef="let row">
-          <a class="primary-detail-link" [href]="'/report/crawllog/' + row.id"
-            matTooltip="{{row.requestedUri}}" (click)="onPrimaryLink(row, $event)">{{row.requestedUri}}</a>
+          <a class="primary-detail-link" [href]="row.requestedUri" target="_blank" rel="noopener noreferrer"
+            matTooltip="{{row.requestedUri}}" (click)="$event.stopPropagation()">{{row.requestedUri}}</a>
         </td>
-      </ng-container>
-
-      <ng-container matColumnDef="timestamp">
-        <th i18n="@@crawlLogReportListTimestampHeaderCell"
-          mat-header-cell *matHeaderCellDef mat-sort-header>Timestamp
-        </th>
-        <td mat-cell *matCellDef="let row">{{row.timeStamp | date:'short'}}</td>
       </ng-container>
 
       <ng-container matColumnDef="statusCode">
@@ -39,20 +39,16 @@
 
       <ng-container matColumnDef="contentType">
         <th i18n="@@crawlLogReportListContentTypeHeaderCell"
-          mat-header-cell *matHeaderCellDef mat-sort-header>Content type
+          mat-header-cell *matHeaderCellDef mat-sort-header>MIME type
         </th>
         <td mat-cell *matCellDef="let row">{{row.contentType}}</td>
       </ng-container>
 
-      <ng-container matColumnDef="action">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
-          <div class="action">
-            <a mat-icon-button [href]="row.requestedUri" target="_blank" rel="noopener noreferrer"
-              aria-label="Open requested URI in a new tab" matTooltip="Open requested URI"
-              (click)="$event.stopPropagation()"><mat-icon>open_in_new</mat-icon></a>
-          </div>
-        </td>
+      <ng-container matColumnDef="timestamp">
+        <th i18n="@@crawlLogReportListTimestampHeaderCell"
+          mat-header-cell *matHeaderCellDef mat-sort-header>Timestamp
+        </th>
+        <td mat-cell *matCellDef="let row">{{row.timeStamp | date:'short'}}</td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>

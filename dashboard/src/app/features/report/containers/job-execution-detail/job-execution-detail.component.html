@@ -2,10 +2,10 @@
   <div class="detail-page">
     <div class="detail-content">
       <app-job-execution-status [jobExecutionStatus]="jobExecutionStatus">
-        <app-job-execution-shortcut-helpers cardHeaderHelpers
+        <app-job-execution-shortcut-helpers detailHeaderHelpers
           [jobExecutionStatus]="jobExecutionStatus">
         </app-job-execution-shortcut-helpers>
-        <app-execution-abort-action detailActions subject="jobexecution"
+        <app-execution-abort-action detailActions subject="jobexecution" [inline]="true"
           [abortable]="jobExecutionStatus.state === JobExecutionState.RUNNING"
           (abort)="onAbortJobExecution(jobExecutionStatus)">
         </app-execution-abort-action>

@@ -223,11 +223,6 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     return this.selection.selected.some(selected => selected.id === item.id);
   }
 
-  isDisabled(item: T): boolean {
-    void item;
-    return false;
-  }
-
   private createObserver(): void {
     this.observer?.disconnect();
     if (!this.sentinel || typeof IntersectionObserver === 'undefined') {

@@ -18,9 +18,17 @@
 }
 
 .search-form.mat-mdc-form-field {
-  flex-basis: 220px;
-  min-width: 180px;
-  max-width: 320px;
+  flex-basis: 280px;
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.search-helper-actions {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .seed-chip-filter {
@@ -49,22 +57,6 @@
   font: var(--mat-sys-label-medium);
 }
 
-.label-search-suggestions {
-  display: grid;
-  flex: 0 0 100%;
-  gap: 8px;
-  min-width: 0;
-}
-
-.label-search-suggestions__label {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-medium);
-}
-
-.label-search-suggestions mat-chip {
-  cursor: pointer;
-}
-
 .search-form .mat-mdc-button {
   font-size: inherit;
   height: inherit;
@@ -72,8 +64,7 @@
 
 @media (max-width: 599px) {
   .search-form.mat-mdc-form-field,
-  .query-fields > .mat-mdc-form-field,
-  .label-search-suggestions {
+  .query-fields > .mat-mdc-form-field {
     flex-basis: 100%;
     width: 100%;
     max-width: none;

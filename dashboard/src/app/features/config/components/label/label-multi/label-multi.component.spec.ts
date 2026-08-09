@@ -1,27 +1,31 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {LabelMultiComponent} from './label-multi.component';
-import {ConfigObject, Label} from '../../../../../shared/models/config';
+import {ConfigObject, Kind, Label} from '../../../../../shared/models/config';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {MatDialog} from '@angular/material/dialog';
-import {of} from 'rxjs';
+import {firstValueFrom, of} from 'rxjs';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MatChipListboxHarness} from '@angular/material/chips/testing';
+import {LabelService} from '../../../services/label.service';
 
 describe('LabelMultiComponent', () => {
   let component: LabelMultiComponent;
   let fixture: ComponentFixture<LabelMultiComponent>;
   let loader: HarnessLoader;
   let dialog: {open: ReturnType<typeof vi.fn>};
+  let getLabelKeys: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     dialog = {open: vi.fn(() => ({afterClosed: () => of('🐶')}))};
+    getLabelKeys = vi.fn(() => of(['owner']));
     TestBed.configureTestingModule({
       imports: [LabelMultiComponent],
       providers: [
         ...provideCoreTesting,
         {provide: MatDialog, useValue: dialog},
+        {provide: LabelService, useValue: {getLabelKeys}},
       ]
     })
       .compileComponents();
@@ -30,7 +34,7 @@ describe('LabelMultiComponent', () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(LabelMultiComponent);
     component = fixture.componentInstance;
-    component.configObject = new ConfigObject();
+    component.configObject = new ConfigObject({kind: Kind.CRAWLENTITY});
     component.configObject.meta.labelList = [
       new Label({key: 'type', value: 'default'}),
       new Label({key: 'category', value: 'news'}),
@@ -41,6 +45,12 @@ describe('LabelMultiComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('derives the label-key request kind from the bulk-edit configuration', async () => {
+    await firstValueFrom(component.filteredKey$);
+
+    expect(getLabelKeys).toHaveBeenCalledWith(Kind.CRAWLENTITY);
   });
 
   it('offers the picker only in add mode and emits a selected emoji once', async () => {

@@ -49,7 +49,6 @@ describe('BrowserScriptEditorDialogComponent', () => {
 
   it('initializes an editable full-screen Monaco draft', () => {
     const component = createComponent();
-    const text = (fixture.nativeElement as HTMLElement).textContent;
 
     expect(component.scriptControl.value).toBe(data.script);
     expect(component.editorOptions).toEqual(expect.objectContaining({
@@ -60,7 +59,7 @@ describe('BrowserScriptEditorDialogComponent', () => {
     }));
     expect(component.canApply).toBe(false);
     expect(component.canRevert).toBe(false);
-    expect(text).toContain('Edit script: Example BrowserScript');
+    expect(fixture.nativeElement.querySelector('[mat-dialog-title]')).toBeNull();
   });
 
   it('applies a changed Monaco value without relying on the dirty flag', () => {
@@ -117,7 +116,7 @@ describe('BrowserScriptEditorDialogComponent', () => {
 
     expect(component.editorOptions.readOnly).toBe(true);
     expect(component.canApply).toBe(false);
-    expect(text).toContain('View script: Example BrowserScript');
+    expect(fixture.nativeElement.querySelector('[mat-dialog-title]')).toBeNull();
     expect(text).toContain('CLOSE');
     expect(text).not.toContain('APPLY');
     expect(text).not.toContain('REVERT');

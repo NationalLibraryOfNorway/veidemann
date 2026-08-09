@@ -13,7 +13,7 @@ import {
   Validators
 } from '@angular/forms';
 import {Subject} from 'rxjs';
-import {Meta} from '../../../../shared/models';
+import {Kind, Meta} from '../../../../shared/models';
 import {takeUntil} from 'rxjs/operators';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {LabelComponent} from '../label/label.component';
@@ -54,6 +54,7 @@ export class MetaComponent implements AfterViewInit, OnInit, OnDestroy, ControlV
   ngUnsubscribe: Subject<void> = new Subject<void>();
 
   @Input() annotationSuggestions: string[] = [];
+  @Input({required: true}) kind: Kind;
 
   get name(): AbstractControl {
     return this.form.get('name');

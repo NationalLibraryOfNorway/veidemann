@@ -1,7 +1,22 @@
-fieldset {
-  border-width: 0px;
+.ip-range-group {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-medium);
 }
 
-.ip-range-add-button {
+.ip-range-group legend {
+  padding: 0 8px;
+}
+
+.ip-range-add {
   margin-top: 1rem;
+}
+
+.ip-range-add mat-chip[role='button'] {
+  cursor: pointer;
+}
+
+.ip-range-add mat-chip[role='button'] * {
+  cursor: inherit;
 }

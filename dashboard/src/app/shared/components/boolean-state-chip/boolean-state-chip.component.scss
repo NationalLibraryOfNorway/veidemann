@@ -1,0 +1,9 @@
+.state-positive {
+  --mdc-chip-elevated-container-color: var(--mat-sys-primary-container);
+  --mdc-chip-label-text-color: var(--mat-sys-on-primary-container);
+}
+
+.state-negative {
+  --mdc-chip-elevated-container-color: var(--mat-sys-error-container);
+  --mdc-chip-label-text-color: var(--mat-sys-on-error-container);
+}

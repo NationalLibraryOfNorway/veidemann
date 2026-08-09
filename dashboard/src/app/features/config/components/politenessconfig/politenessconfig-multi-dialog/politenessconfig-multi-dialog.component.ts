@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
 import { AbstractControl,ReactiveFormsModule,Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckbox } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,6 +12,7 @@ import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/pattern
 import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-politenessconfig-multi-dialog',
@@ -22,7 +22,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
     DurationPickerComponent,
     LabelMultiComponent,
     MatButtonModule,
-    MatCheckbox,
+    BooleanStateChipComponent,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,

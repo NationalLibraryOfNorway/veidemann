@@ -1,117 +1,34 @@
 @if (jobExecutionStatus) {
   @let jobState = statePresentation(jobExecutionStatus.state);
+  @let job = job$ | async;
   <section class="detail-grid" aria-label="Job execution details"
            i18n-aria-label="@@jobExecutionDetailGridLabel">
-    <mat-card class="overview-card" appearance="outlined">
-      <mat-card-header class="card-header-with-helpers">
-        <mat-icon mat-card-avatar>hdr_strong</mat-icon>
-        <mat-card-title i18n="@@jobExecutionOverviewTitle">Job execution overview</mat-card-title>
-        <ng-content select="[cardHeaderHelpers]"></ng-content>
-      </mat-card-header>
-      <mat-card-content>
-        <dl class="description-list">
-          <div>
-            <dt i18n="@@jobExecutionCrawlJobLabel">Crawl job</dt>
-            <dd>
-              <span class="relationship-name">
-                {{(jobExecutionStatus.jobId | getJobNamePipe | async) || jobExecutionStatus.jobId}}
-              </span>
-              <span class="identifier">{{jobExecutionStatus.jobId}}</span>
-            </dd>
-          </div>
-          <div>
-            <dt i18n="@@jobExecutionIdLabel">Execution ID</dt>
-            <dd class="identifier">{{jobExecutionStatus.id}}</dd>
-          </div>
-          <div>
-            <dt i18n="@@executionStateLabel">State</dt>
-            <dd>
-              <span class="state-badge" [class]="'state-badge state-' + jobState.tone">
-                <mat-icon>{{jobState.icon}}</mat-icon>
-                <span>{{jobState.label}}</span>
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt i18n="@@jobExecutionQueueLabel">Queue</dt>
-            <dd class="numeric-value">
-              {{((jobExecutionStatus | getUrlQueueForJobExecution | async) ?? 0) | number:'1.0-0'}}
-            </dd>
-          </div>
-          <div>
-            <dt i18n="@@executionStartedLabel">Started</dt>
-            <dd>
-              @if (jobExecutionStatus.startTime) {
-                {{jobExecutionStatus.startTime | date:'medium'}}
-              } @else {
-                <span i18n="@@commonNotAvailable">Not available</span>
-              }
-            </dd>
-          </div>
-          <div>
-            <dt i18n="@@executionEndedLabel">Ended</dt>
-            <dd>
-              @if (jobExecutionStatus.endTime) {
-                {{jobExecutionStatus.endTime | date:'medium'}}
-              } @else {
-                <span i18n="@@commonNotAvailable">Not available</span>
-              }
-            </dd>
-          </div>
-        </dl>
-      </mat-card-content>
-    </mat-card>
+    <div class="primary-pane">
+      <header class="detail-header">
+        <div class="detail-heading">
+          <h1>{{job?.meta?.name || jobExecutionStatus.jobId}}</h1>
+        </div>
+        <div class="detail-header-helpers">
+          <ng-content select="[detailHeaderHelpers]"></ng-content>
+        </div>
+      </header>
 
-    <div class="detail-actions">
-      <ng-content select="[detailActions]"></ng-content>
-    </div>
+      <section class="detail-section statistics-section" aria-labelledby="job-execution-statistics-title">
+        <h2 id="job-execution-statistics-title" i18n="@@executionCrawlStatisticsTitle">Crawl statistics</h2>
+        <app-job-execution-statistics
+          [jobExecutionStatus]="jobExecutionStatus"
+          [crawlJob]="job">
+        </app-job-execution-statistics>
+      </section>
 
-    <mat-card class="statistics-card" appearance="outlined">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>monitoring</mat-icon>
-        <mat-card-title i18n="@@executionCrawlStatisticsTitle">Crawl statistics</mat-card-title>
-      </mat-card-header>
-      <mat-card-content class="metric-grid">
-        <div class="metric-tile">
-          <span i18n="@@executionUrisCrawledMetric">URIs crawled</span>
-          <strong>{{jobExecutionStatus.urisCrawled | number:'1.0-0'}}</strong>
-        </div>
-        <div class="metric-tile">
-          <span i18n="@@executionBytesCrawledMetric">Bytes crawled</span>
-          <strong>{{jobExecutionStatus.bytesCrawled | filesize}}</strong>
-        </div>
-        <div class="metric-tile">
-          <span i18n="@@executionDocumentsCrawledMetric">Documents crawled</span>
-          <strong>{{jobExecutionStatus.documentsCrawled | number:'1.0-0'}}</strong>
-        </div>
-        <div class="metric-tile">
-          <span i18n="@@executionDocumentsDeniedMetric">Documents denied</span>
-          <strong>{{jobExecutionStatus.documentsDenied | number:'1.0-0'}}</strong>
-        </div>
-        <div class="metric-tile">
-          <span i18n="@@executionDocumentsFailedMetric">Documents failed</span>
-          <strong>{{jobExecutionStatus.documentsFailed | number:'1.0-0'}}</strong>
-        </div>
-        <div class="metric-tile">
-          <span i18n="@@executionDocumentsOutOfScopeMetric">Documents out of scope</span>
-          <strong>{{jobExecutionStatus.documentsOutOfScope | number:'1.0-0'}}</strong>
-        </div>
-        <div class="metric-tile">
-          <span i18n="@@executionDocumentsRetriedMetric">Documents retried</span>
-          <strong>{{jobExecutionStatus.documentsRetried | number:'1.0-0'}}</strong>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="crawl-executions-card" appearance="outlined">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>hdr_weak</mat-icon>
-        <mat-card-title i18n="@@jobExecutionCrawlExecutionsTitle">Crawl executions</mat-card-title>
-        <mat-card-subtitle i18n="@@jobExecutionCrawlExecutionsSubtitle">
+      <section class="detail-section crawl-executions-section"
+               aria-labelledby="job-execution-crawl-executions-title">
+        <h2 id="job-execution-crawl-executions-title" i18n="@@jobExecutionCrawlExecutionsTitle">
+          Crawl executions
+        </h2>
+        <p class="section-supporting-text" i18n="@@jobExecutionCrawlExecutionsSubtitle">
           Select a state to open the filtered report
-        </mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
+        </p>
         @if (executionStateCounts.length) {
           <nav class="state-count-list" aria-label="Crawl executions by state"
                i18n-aria-label="@@jobExecutionCrawlExecutionsNavigationLabel">
@@ -132,16 +49,14 @@
         } @else {
           <p class="empty-message" i18n="@@jobExecutionNoCrawlExecutions">No crawl executions</p>
         }
-      </mat-card-content>
-    </mat-card>
+      </section>
 
-    @if (hasError()) {
-      <mat-card class="error-card" appearance="outlined">
-        <mat-card-header>
-          <mat-icon mat-card-avatar>error</mat-icon>
-          <mat-card-title i18n="@@executionErrorTitle">Error</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
+      @if (hasError()) {
+        <section class="error-callout" aria-labelledby="job-execution-error-title">
+          <header class="error-callout-header">
+            <mat-icon aria-hidden="true">error</mat-icon>
+            <h2 id="job-execution-error-title" i18n="@@executionErrorTitle">Error</h2>
+          </header>
           <dl class="description-list error-description">
             @if (jobExecutionStatus.error.code !== 0) {
               <div>
@@ -163,8 +78,66 @@
               </div>
             }
           </dl>
+        </section>
+      }
+    </div>
+
+    <aside class="overview-aside" aria-label="Job execution overview"
+           i18n-aria-label="@@jobExecutionOverviewTitle">
+      <mat-card class="overview-card" appearance="filled">
+        <mat-card-content>
+          <dl class="description-list">
+            <div class="description-row">
+              <div>
+                <dt i18n="@@executionStateLabel">State</dt>
+                <dd>
+                  <span class="state-badge" [class]="'state-badge state-' + jobState.tone">
+                    <mat-icon>{{jobState.icon}}</mat-icon>
+                    <span>{{jobState.label}}</span>
+                  </span>
+                </dd>
+              </div>
+              @if (jobExecutionStatus.desiredState) {
+                @let desiredState = statePresentation(jobExecutionStatus.desiredState);
+                <div>
+                  <dt i18n="@@executionDesiredStateLabel">Desired state</dt>
+                  <dd>
+                    <span class="state-badge" [class]="'state-badge state-' + desiredState.tone">
+                      <mat-icon>{{desiredState.icon}}</mat-icon>
+                      <span>{{desiredState.label}}</span>
+                    </span>
+                  </dd>
+                </div>
+              }
+            </div>
+            <div class="description-row">
+              <div>
+                <dt i18n="@@executionStartedLabel">Started</dt>
+                <dd>
+                  @if (jobExecutionStatus.startTime) {
+                    {{jobExecutionStatus.startTime | date:'medium'}}
+                  } @else {
+                    <span i18n="@@commonNotAvailable">Not available</span>
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt i18n="@@executionEndedLabel">Ended</dt>
+                <dd>
+                  @if (jobExecutionStatus.endTime) {
+                    {{jobExecutionStatus.endTime | date:'medium'}}
+                  } @else {
+                    <span i18n="@@commonNotAvailable">Not available</span>
+                  }
+                </dd>
+              </div>
+            </div>
+          </dl>
         </mat-card-content>
+        <mat-card-actions class="detail-actions">
+          <ng-content select="[detailActions]"></ng-content>
+        </mat-card-actions>
       </mat-card>
-    }
+    </aside>
   </section>
 }

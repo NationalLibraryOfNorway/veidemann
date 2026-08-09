@@ -6,21 +6,23 @@
 
 .dashboard-page {
   box-sizing: border-box;
-  width: min(100%, 1200px);
-  margin: 0 auto;
-  padding: 24px;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 0;
 }
 
-.dashboard-grid {
+.dashboard-hero-card-header {
   display: grid;
+  box-sizing: border-box;
   grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  gap: 8px;
   min-width: 0;
+  padding-inline: 8px;
 }
 
 .dashboard-hero-card {
   min-width: 0;
-  min-height: 320px;
+  min-height: clamp(360px, 42vh, 400px);
   overflow: hidden;
   border-radius: 24px;
 }
@@ -54,7 +56,35 @@ app-crawlerstatus {
   padding-top: 32px;
 }
 
-.dashboard-artwork-card.mat-mdc-card.mat-mdc-card-outlined {
+.dashboard-login-actions {
+  padding-top: 32px;
+}
+
+.dashboard-login-button {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--mat-sys-corner-full);
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-sys-on-primary-container);
+  background: var(--mat-sys-primary-container);
+  cursor: pointer;
+  font: var(--mat-sys-label-large);
+}
+
+.dashboard-login-button:hover {
+  border-color: currentColor;
+}
+
+.dashboard-login-button:focus-visible {
+  outline: 3px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.dashboard-artwork-card.mat-mdc-card.mat-mdc-card-filled {
   display: grid;
   place-items: center;
 }
@@ -71,16 +101,19 @@ app-crawlerstatus {
 }
 
 .dashboard-running-crawls {
+  display: block;
   min-width: 0;
-  grid-column: 1 / -1;
+  margin-top: 24px;
+}
+
+@media (max-width: 839px) {
+  .dashboard-artwork-card.mat-mdc-card.mat-mdc-card-filled {
+    display: none;
+  }
 }
 
 @media (min-width: 840px) {
-  .dashboard-page {
-    padding: 32px;
-  }
-
-  .dashboard-grid {
+  .dashboard-hero-card-header {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -95,20 +128,11 @@ app-crawlerstatus {
   }
 
   .dashboard-running-crawls {
-    grid-row: 2;
-    margin-inline: 64px;
+    margin: 24px 0 0;
   }
 }
 
 @media (max-width: 599px) {
-  .dashboard-page {
-    padding: 16px;
-  }
-
-  .dashboard-grid {
-    gap: 16px;
-  }
-
   .dashboard-hero-card {
     min-height: 0;
   }
@@ -127,7 +151,15 @@ app-crawlerstatus {
     padding-top: 24px;
   }
 
+  .dashboard-login-actions {
+    padding-top: 24px;
+  }
+
   .dashboard-artwork-card {
     min-height: 200px;
+  }
+
+  .dashboard-running-crawls {
+    margin-top: 16px;
   }
 }

@@ -5,7 +5,12 @@ export const EMOJI_LABEL_KEY = 'emoji';
 
 export function isSingleEmoji(value: string): boolean {
   const matches = value?.match(emojiRegex());
-  return matches?.length === 1 && matches[0] === value;
+  return matches?.length === 1 &&
+    stripPresentationSelectors(matches[0]) === stripPresentationSelectors(value);
+}
+
+function stripPresentationSelectors(value: string): string {
+  return value.replace(/[\uFE0E\uFE0F]/g, '');
 }
 
 export function isEmojiLabel(key: string, value: string): boolean {

@@ -2,10 +2,8 @@ import { ChangeDetectionStrategy,Component,OnInit,inject } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatCheckbox } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -14,6 +12,8 @@ import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { CollectionMetaComponent } from '../../collection-meta/collection-meta.component';
 import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {SubcollectionChipsComponent} from '../subcollection-chips/subcollection-chips.component';
 
 @Component({
   selector: 'app-collection-dialog',
@@ -22,12 +22,12 @@ import { FilesizeInputComponent } from '../../filesize-input/filesize-input.comp
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FilesizeInputComponent,
+    BooleanStateChipComponent,
+    SubcollectionChipsComponent,
     MatButtonModule,
     MatCardModule,
-    MatCheckbox,
     MatDialogModule,
     MatFormFieldModule,
-    MatIcon,
     MatInputModule,
     MatSelectModule,
     MatTooltip,

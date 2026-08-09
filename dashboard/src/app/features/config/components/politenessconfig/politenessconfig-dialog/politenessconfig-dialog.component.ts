@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckbox } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +10,7 @@ import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { MetaComponent } from '../../meta/meta.component';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-politenessconfig-dialog',
@@ -18,8 +18,8 @@ import { MetaComponent } from '../../meta/meta.component';
   styleUrls: ['./politenessconfig-dialog.component.css'],
   imports: [
     DurationPickerComponent,
+    BooleanStateChipComponent,
     MatButtonModule,
-    MatCheckbox,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,

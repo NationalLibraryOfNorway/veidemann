@@ -89,7 +89,8 @@ describe('SeedMetaComponent', () => {
     let nameFormField: MatFormFieldHarness;
     let nameInput: MatInputHarness;
     const configApiServiceSpy = {
-        list: vi.fn().mockName("ConfigApiService.list")
+        list: vi.fn().mockName("ConfigApiService.list"),
+        getLabelKeys: vi.fn(() => of([])).mockName("ConfigApiService.getLabelKeys")
     };
 
     beforeEach(() => {
@@ -113,6 +114,7 @@ describe('SeedMetaComponent', () => {
         fixture = TestBed.createComponent(SeedMetaComponent);
         loader = TestbedHarnessEnvironment.loader(fixture);
         component = fixture.componentInstance;
+        fixture.componentRef.setInput('kind', Kind.SEED);
         await fixture.whenStable();
 
         nameFormField = await loader.getHarness<MatFormFieldHarness>(MatFormFieldHarness

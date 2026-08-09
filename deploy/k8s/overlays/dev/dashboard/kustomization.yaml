@@ -3,3 +3,8 @@ kind: Kustomization
 resources:
   - ../../../base/dashboard
 
+configMapGenerator:
+  - name: dashboard
+    behavior: replace
+    files:
+      - config.json

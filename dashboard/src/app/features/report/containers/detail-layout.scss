@@ -14,8 +14,16 @@
   padding: 16px;
 }
 
+.detail-content-flush {
+  padding: 0;
+}
+
 @media (min-width: 840px) {
   .detail-content {
     padding: 32px;
+  }
+
+  .detail-content-flush {
+    padding: 0;
   }
 }

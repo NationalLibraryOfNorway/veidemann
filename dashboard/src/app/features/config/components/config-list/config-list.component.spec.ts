@@ -64,8 +64,8 @@ describe('ConfigListComponent', () => {
     expect(selections.at(-1)).toEqual([]);
   });
 
-  it('renders a loaded-row master checkbox only for multi-select lists', async () => {
-    const row = new ConfigObject({id: 'one', meta: new Meta({name: 'One'})});
+  it('shows a kind icon in normal mode and reveals the master checkbox after selection starts', async () => {
+    const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
       load: () => of(row),
@@ -73,17 +73,27 @@ describe('ConfigListComponent', () => {
     });
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+    const entry = fixture.nativeElement.querySelector('.selection-entry-control') as HTMLButtonElement;
+    expect(entry.textContent.trim()).toBe('link');
+    expect(entry.getAttribute('aria-label')).toBe('Select One');
+
+    entry.click();
+    fixture.detectChanges();
+
     const header = fixture.nativeElement.querySelector('.list-header-row') as HTMLElement;
     const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
     expect(header.querySelector('.master-selection-control')).not.toBeNull();
     expect(header.querySelector('.master-selection-control').classList).toContain('mat-mdc-list-item-icon');
     expect(await master.getAriaLabel()).toBe('Select all loaded configurations');
-    expect(await master.isChecked()).toBe(false);
+    expect(await master.isChecked()).toBe(true);
     expect(await master.isIndeterminate()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.selection-entry-control')).toBeNull();
 
     fixture.componentRef.setInput('multiSelect', false);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.list-header')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.config-kind-icon').textContent.trim()).toBe('link');
   });
 
   it('uses checked and indeterminate master states and renders actions beside it', async () => {
@@ -94,49 +104,68 @@ describe('ConfigListComponent', () => {
       load: () => of(first, second),
       destroyRef: fixture.componentRef.injector.get(DestroyRef),
     });
-    fixture.detectChanges();
-    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
-
+    component.length = 2;
     component.onCheckboxToggle(first);
     fixture.detectChanges();
+    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
     expect(await master.isChecked()).toBe(false);
     expect(await master.isIndeterminate()).toBe(true);
     const header = fixture.nativeElement.querySelector('.list-header-row') as HTMLElement;
     const masterElement = header.querySelector('.master-selection-control') as HTMLElement;
     const actions = header.querySelector('.selection-actions') as HTMLElement;
+    const summary = header.querySelector('.selection-summary') as HTMLElement;
     expect(masterElement.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(actions.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(actions.classList).toContain('mat-mdc-list-item-title');
+    expect(summary.classList).toContain('mat-mdc-list-item-meta');
+    expect(summary.textContent.replace(/\s+/g, ' ').trim()).toBe('1 configurations of 2 selected.');
+    expect(getComputedStyle(summary).justifyContent).toBe('flex-start');
+    expect(getComputedStyle(summary).textAlign).toBe('start');
+    expect(header.querySelector('.result-count')).toBeNull();
 
     await master.check();
     expect(component.selection.selected).toEqual([first, second]);
     expect(await master.isChecked()).toBe(true);
     expect(await master.isIndeterminate()).toBe(false);
+    expect(summary.textContent.replace(/\s+/g, ' ').trim()).toBe('All 2 configurations of 2 selected.');
 
     await master.uncheck();
     expect(component.selection.selected).toEqual([]);
     expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
   });
 
-  it('renders the locale-formatted result count as trailing list metadata', () => {
-    const first = new ConfigObject({id: 'one'});
-    const second = new ConfigObject({id: 'two'});
+  it('renders a left-aligned, type-specific result count with row subtitle typography', () => {
+    const first = new ConfigObject({
+      id: 'one',
+      kind: Kind.SEED,
+      meta: new Meta({name: 'One', description: 'First seed'}),
+    });
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
       load: () => of(first, second),
       destroyRef: fixture.componentRef.injector.get(DestroyRef),
     });
+    component.configKind = Kind.SEED;
     component.length = 3842;
     fixture.detectChanges();
 
     const count = fixture.nativeElement.querySelector('.result-count') as HTMLElement;
-    expect(count.classList).toContain('mat-mdc-list-item-meta');
-    expect(count.textContent.replace(/\s+/g, ' ').trim()).toBe('Showing 2 of 3,842 items');
+    const subtitle = fixture.nativeElement.querySelector('.item-row .mat-mdc-list-item-line') as HTMLElement;
+    expect(count.classList).toContain('mat-mdc-list-item-title');
+    expect(count.classList).not.toContain('mat-mdc-list-item-meta');
+    expect(count.textContent.replace(/\s+/g, ' ').trim()).toBe('2 of 3,842 seeds');
+    expect(getComputedStyle(count).textAlign).toBe('start');
+    expect(getComputedStyle(count).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(getComputedStyle(count).fontSize).toBe(getComputedStyle(subtitle).fontSize);
+    expect(getComputedStyle(count).lineHeight).toBe(getComputedStyle(subtitle).lineHeight);
   });
 
   it('automatically selects appended rows while loaded-row selection is active', async () => {
     const rows = new Subject<ConfigObject>();
     const first = new ConfigObject({id: 'one', kind: component.Kind.SEED, meta: new Meta({name: 'One'})});
     const second = new ConfigObject({id: 'two', kind: component.Kind.SEED, meta: new Meta({name: 'Two'})});
+    const third = new ConfigObject({id: 'three', kind: component.Kind.SEED, meta: new Meta({name: 'Three'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
       load: () => rows,
@@ -145,15 +174,18 @@ describe('ConfigListComponent', () => {
     const selections: ConfigObject[][] = [];
     component.selectedChange.subscribe(value => selections.push([...value]));
     rows.next(first);
+    rows.next(second);
+    fixture.detectChanges();
+    component.onCheckboxToggle(first);
     fixture.detectChanges();
     const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
 
     await master.check();
-    rows.next(second);
+    rows.next(third);
     fixture.detectChanges();
 
-    expect(component.selection.selected).toEqual([first, second]);
-    expect(selections.at(-1)).toEqual([first, second]);
+    expect(component.selection.selected).toEqual([first, second, third]);
+    expect(selections.at(-1)).toEqual([first, second, third]);
     expect(await master.isChecked()).toBe(true);
   });
 
@@ -173,13 +205,13 @@ describe('ConfigListComponent', () => {
     component.selectAll.subscribe(() => selectAllCount++);
     rows.next(first);
     fixture.detectChanges();
-    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
-    await master.check();
+    component.onCheckboxToggle(first);
     fixture.detectChanges();
+    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
 
     let chip = fixture.nativeElement.querySelector('.database-selection-chip') as HTMLElement;
     expect(fixture.nativeElement.querySelector('.selection-summary').textContent.replace(/\s+/g, ' ').trim())
-      .toContain('All 1 seeds on this page are selected.');
+      .toContain('All 1 seeds of 3 selected.');
     expect(chip.textContent.trim()).toBe('Select all 3 seeds in the database.');
     chip.click();
     fixture.detectChanges();
@@ -204,7 +236,8 @@ describe('ConfigListComponent', () => {
     expect(component.allSelected()).toBe(false);
     expect(component.selection.selected).toEqual([]);
 
-    await master.check();
+    component.onCheckboxToggle(first);
+    component.onMasterCheckboxToggle(true);
     fixture.detectChanges();
     chip = fixture.nativeElement.querySelector('.database-selection-chip') as HTMLElement;
     chip.click();
@@ -219,7 +252,30 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('.selection-summary')).toBeNull();
   });
 
-  it('does not offer database selection when all matching rows are loaded', async () => {
+  it('uses type-specific selection summaries while the total is unavailable', async () => {
+    const first = new ConfigObject({id: 'one', kind: Kind.SEED});
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(first, second),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    component.configKind = Kind.SEED;
+    component.onCheckboxToggle(first);
+    fixture.detectChanges();
+
+    const summary = fixture.nativeElement.querySelector('.selection-summary') as HTMLElement;
+    const subtitle = fixture.nativeElement.querySelector('.item-row .mat-mdc-list-item-line') as HTMLElement;
+    expect(summary.textContent.replace(/\s+/g, ' ').trim()).toBe('1 seeds selected.');
+    expect(getComputedStyle(summary).fontSize).toBe(getComputedStyle(subtitle).fontSize);
+    expect(getComputedStyle(summary).lineHeight).toBe(getComputedStyle(subtitle).lineHeight);
+
+    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
+    await master.check();
+    expect(summary.textContent.replace(/\s+/g, ' ').trim()).toBe('All 2 seeds selected.');
+  });
+
+  it('does not offer database selection when all matching rows are loaded', () => {
     const row = new ConfigObject({id: 'one', meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -228,11 +284,8 @@ describe('ConfigListComponent', () => {
     });
     component.length = 1;
     fixture.detectChanges();
-    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
-
-    await master.check();
+    component.onCheckboxToggle(row);
     fixture.detectChanges();
-
     expect(component.allSelected()).toBe(false);
     expect(fixture.nativeElement.querySelector('.database-selection-chip')).toBeNull();
   });
@@ -247,10 +300,48 @@ describe('ConfigListComponent', () => {
     [Kind.BROWSERSCRIPT, 'browser scripts'],
     [Kind.POLITENESSCONFIG, 'politeness configurations'],
     [Kind.CRAWLHOSTGROUPCONFIG, 'crawl host groups'],
+    [Kind.ROLEMAPPING, 'role mappings'],
   ])('uses the route-specific plural label for kind %s', (kind, label) => {
-    component.selectedRows.set([new ConfigObject({id: 'selected', kind})]);
+    component.configKind = kind;
 
     expect(component.configTypePluralLabel()).toBe(label);
+  });
+
+  it('prefers the supplied route kind over the selected row kind and falls back to the row kind', () => {
+    component.selectedRows.set([new ConfigObject({id: 'selected', kind: Kind.CRAWLJOB})]);
+    expect(component.configTypePluralLabel()).toBe('crawl jobs');
+
+    component.configKind = Kind.SEED;
+    expect(component.configTypePluralLabel()).toBe('seeds');
+  });
+
+  it.each([
+    [Kind.CRAWLENTITY, 'business'],
+    [Kind.SEED, 'link'],
+    [Kind.CRAWLJOB, 'work'],
+    [Kind.CRAWLSCHEDULECONFIG, 'schedule'],
+    [Kind.CRAWLCONFIG, 'settings_system_daydream'],
+    [Kind.COLLECTION, 'collections_bookmark'],
+    [Kind.BROWSERCONFIG, 'web'],
+    [Kind.BROWSERSCRIPT, 'web_asset'],
+    [Kind.POLITENESSCONFIG, 'sentiment_very_satisfied'],
+    [Kind.CRAWLHOSTGROUPCONFIG, 'group_work'],
+    [Kind.ROLEMAPPING, 'people'],
+  ])('uses the configuration navigation icon for kind %s', (kind, icon) => {
+    expect(component.configKindIcon(new ConfigObject({kind}))).toBe(icon);
+  });
+
+  it('only treats disabled Seeds and Crawl Jobs as deactivated configurations', () => {
+    const seed = new ConfigObject({kind: Kind.SEED});
+    seed.seed = {disabled: true} as ConfigObject['seed'];
+    const crawlJob = new ConfigObject({kind: Kind.CRAWLJOB});
+    crawlJob.crawlJob = {disabled: true} as ConfigObject['crawlJob'];
+    const collection = new ConfigObject({kind: Kind.COLLECTION});
+    collection.crawlJob = {disabled: true} as ConfigObject['crawlJob'];
+
+    expect(component.isDeactivated(seed)).toBe(true);
+    expect(component.isDeactivated(crawlJob)).toBe(true);
+    expect(component.isDeactivated(collection)).toBe(false);
   });
 
   it('applies the selected state to the entire list item', () => {
@@ -266,6 +357,23 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.item-row').classList).toContain('row-checked');
+  });
+
+  it('aligns title and supporting text against the leading control', () => {
+    const row = new ConfigObject({
+      id: 'aligned',
+      meta: new Meta({name: 'Aligned', description: 'Supporting text'}),
+    });
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(row),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.querySelectorAll('.item-row .row-text') as NodeListOf<HTMLElement>;
+    expect(text).toHaveLength(2);
+    expect(Array.from(text).every(element => getComputedStyle(element).top === '-4px')).toBe(true);
   });
 
   it('renders labels in an accessible trailing column before row actions', () => {
@@ -373,7 +481,7 @@ describe('ConfigListComponent', () => {
     expect(selections).toEqual([]);
   });
 
-  it('adds a configured external chip without changing label search behavior', () => {
+  it('does not add configured external-link chips to list rows', () => {
     appConfig.labelLinks = {
       organisasjonsnummer: {
         text: 'Brønnøysundregistrene',
@@ -395,31 +503,23 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
 
     const searchChip = fixture.nativeElement.querySelector('mat-chip') as HTMLElement;
-    const external = fixture.nativeElement.querySelector('.external-label-link') as HTMLAnchorElement;
-    expect(external.textContent.trim()).toBe('Brønnøysundregistrene');
-    expect(external.getAttribute('href'))
-      .toBe('https://virksomhet.brreg.no/nb/oppslag/enheter/976%20029%2F100');
-    expect(external.getAttribute('target')).toBe('_blank');
-    expect(external.getAttribute('rel')).toBe('noopener noreferrer');
-
-    external.click();
-    expect(selectedLabels).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.external-label-link')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.label-region mat-chip')).toHaveLength(1);
     searchChip.click();
     expect(selectedLabels).toEqual([label]);
   });
 
-  it.each([
-    {text: '', urlTemplate: 'https://example.com/{value}'},
-    {text: 'Registry', urlTemplate: 'https://example.com/static'},
-    {text: 'Registry', urlTemplate: 'javascript:{value}'},
-  ])('ignores invalid external label configuration %#', link => {
-    appConfig.labelLinks = {owner: link};
+  it('makes names and labels passive and hides nested actions in selection mode', () => {
+    appConfig.labelLinks = {
+      owner: {
+        text: 'Owner registry',
+        urlTemplate: 'https://example.com/{value}',
+      },
+    };
     const row = new ConfigObject({
       id: 'labeled',
-      meta: new Meta({
-        name: 'Labeled configuration',
-        labelList: [new Label({key: 'owner', value: 'archive'})],
-      }),
+      kind: Kind.SEED,
+      meta: new Meta({name: 'Labeled', labelList: [new Label({key: 'owner', value: 'archive'})]}),
     });
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -428,17 +528,61 @@ describe('ConfigListComponent', () => {
     });
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('.primary-detail-link')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.external-label-link')).toBeNull();
-    expect(fixture.nativeElement.querySelectorAll('mat-chip')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('.action-region')).not.toBeNull();
+
+    (fixture.nativeElement.querySelector('.selection-entry-control') as HTMLElement).click();
+    fixture.detectChanges();
+
+    const chip = fixture.nativeElement.querySelector('.label-region mat-chip') as HTMLElement;
+    expect(fixture.nativeElement.querySelector('.primary-detail-link')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.external-label-link')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.action-region')).toBeNull();
+    expect(chip.getAttribute('role')).not.toBe('button');
+    expect(chip.hasAttribute('tabindex')).toBe(false);
   });
 
-  it('preserves row navigation, disabled styling, and bulk selection behavior', () => {
+  it('toggles rows by pointer and keyboard in selection mode and Escape clears selection', () => {
+    const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({name: 'Two'})});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(first, second),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    const navigated: ConfigObject[] = [];
+    component.rowClick.subscribe(value => navigated.push(value));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.selection-entry-control') as HTMLElement).click();
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
+    rows[1].click();
+    expect(component.selection.selected).toEqual([first, second]);
+    expect(navigated).toEqual([]);
+
+    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: ' ', bubbles: true, cancelable: true}));
+    expect(component.selection.selected).toEqual([first]);
+    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    expect(component.selection.selected).toEqual([first, second]);
+
+    const escape = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true});
+    rows[0].dispatchEvent(escape);
+    fixture.detectChanges();
+    expect(escape.defaultPrevented).toBe(true);
+    expect(component.selection.selected).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.selection-entry-control')).not.toBeNull();
+  });
+
+  it('preserves row navigation, deactivated styling, and bulk selection behavior', () => {
     const enabled = new ConfigObject({
       id: 'enabled',
       meta: new Meta({name: 'Enabled'}),
     });
     const disabled = new ConfigObject({
       id: 'disabled',
+      kind: Kind.CRAWLJOB,
       meta: new Meta({name: 'Disabled'}),
     });
     disabled.crawlJob = {disabled: true} as ConfigObject['crawlJob'];
@@ -456,23 +600,52 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
-    expect(rows[0].classList).not.toContain('row-disabled');
-    expect(rows[1].classList).toContain('row-disabled');
+    expect(rows[0].classList).not.toContain('row-deactivated');
+    expect(rows[1].classList).toContain('row-deactivated');
+    expect(rows[0].hasAttribute('aria-description')).toBe(false);
+    expect(rows[1].getAttribute('aria-description')).toBe('Deactivated');
+    expect(rows[1].querySelector('.deactivated-status')).toBeNull();
+    expect(rows[1].querySelector('.action-region')).not.toBeNull();
 
     rows[0].click();
     rows[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
     (rows[0].querySelector('.primary-detail-link') as HTMLElement).click();
-    expect(rowClicks).toEqual([enabled, enabled, enabled]);
+    rows[1].click();
+    expect(rowClicks).toEqual([enabled, enabled, enabled, disabled]);
 
     component.onMasterCheckboxToggle(true);
+    fixture.detectChanges();
     expect(selections.at(-1)).toEqual([enabled, disabled]);
     expect(component.isAllLoadedSelected()).toBe(true);
+    expect(rows[1].classList).toContain('row-checked');
+    expect(rows[1].getAttribute('aria-description')).toBe('Deactivated');
     component.onSelectAll();
     expect(selectAllCount).toBe(1);
     expect(component.allSelected()).toBe(true);
     component.onDeselectAll();
     expect(component.selection.selected).toEqual([]);
     expect(component.allSelected()).toBe(false);
+  });
+
+  it('keeps Collections non-selectable with a decorative kind icon', () => {
+    const collection = new ConfigObject({
+      id: 'collection',
+      kind: Kind.COLLECTION,
+      meta: new Meta({name: 'Collection'}),
+    });
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(collection),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.componentRef.setInput('multiSelect', false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.selection-entry-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.config-kind-icon').textContent.trim())
+      .toBe('collections_bookmark');
+    expect(fixture.nativeElement.querySelector('.primary-detail-link')).not.toBeNull();
   });
 
   it('retries failed loads and requests another page when the sentinel intersects', () => {

@@ -23,7 +23,6 @@ import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 
 import {AuthService, SnackBarService} from '../../core';
-import {AboutDialogComponent} from './about-dialog/about-dialog.component';
 import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
 import {MatToolbar} from '@angular/material/toolbar';
 import {MatMenuModule} from '@angular/material/menu';
@@ -221,10 +220,6 @@ export class AppComponent implements OnInit {
     this.authService.logout();
     this.router.navigate(['/'], { relativeTo: this.route.root })
       .then(() => this.snackBarService.openSnackBar($localize`:@snackBarMessage.loggedOut:You are now logged out`));
-  }
-
-  onAbout() {
-    this.dialog.open(AboutDialogComponent);
   }
 
   onShowJobSchedule() {

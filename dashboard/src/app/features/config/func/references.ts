@@ -1,4 +1,4 @@
-import {ConfigObject, ConfigRef, Kind} from '../../../shared/models';
+import {BrowserScriptType, ConfigObject, ConfigRef, Kind} from '../../../shared/models';
 
 /** Returns the direct configuration references stored by a configuration object. */
 export function directConfigRefs(configObject: ConfigObject): ConfigRef[] {
@@ -40,7 +40,9 @@ export function relatedConfigRefs(
 
   if (configObject?.kind === Kind.BROWSERCONFIG && selectors.length) {
     refs.push(...browserScripts
-      .filter(script => script?.kind === Kind.BROWSERSCRIPT && matchesSelectors(script, selectors))
+      .filter(script => script?.kind === Kind.BROWSERSCRIPT
+        && script.browserScript?.browserScriptType !== BrowserScriptType.SCOPE_CHECK
+        && matchesSelectors(script, selectors))
       .map(ConfigObject.toConfigRef));
   }
 

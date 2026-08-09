@@ -1,12 +1,4 @@
 <form class="dialog-layout" (ngSubmit)="onApply()">
-  <h2 mat-dialog-title>
-    @if (data.readOnly) {
-      <span i18n="@@browserscriptViewScriptDialogTitle">View script: {{data.name}}</span>
-    } @else {
-      <span i18n="@@browserscriptEditScriptDialogTitle">Edit script: {{data.name}}</span>
-    }
-  </h2>
-
   <mat-dialog-content>
     <ngx-monaco-editor class="fullscreen-editor"
       [formControl]="scriptControl"

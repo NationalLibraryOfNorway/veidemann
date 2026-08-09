@@ -3,7 +3,7 @@
 </h2>
 <mat-dialog-content>
   <form [formGroup]="form" class="layout-column">
-    <app-meta formControlName="meta"></app-meta>
+    <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
 
     <mat-form-field>
       <mat-label i18n="@@browserScriptFormBrowserScriptTypeDropdownLabel">

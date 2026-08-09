@@ -4,7 +4,7 @@
 
 <mat-dialog-content>
   <form [formGroup]="form">
-    <app-meta formControlName="meta"></app-meta>
+    <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
     <div class="layout-column gap-16">
       <mat-form-field>
         <mat-label i18n="@@politenessconfigFormRobotPolicyDropdownLabel">
@@ -40,12 +40,9 @@
       </mat-error>
       }
 
-      <mat-checkbox formControlName="useHostname"
-        labelPosition="after"
-        i18n="@@politenessconfigFormUseHostnameLabel"
-        color="accent">
-        Use hostname
-      </mat-checkbox>
+      <app-boolean-state-chip formControlName="useHostname" label="Use hostname"
+        i18n-label="@@politenessconfigFormUseHostnameLabel" selectedIcon="dns" unselectedIcon="public">
+      </app-boolean-state-chip>
     </div>
   </form>
 </mat-dialog-content>

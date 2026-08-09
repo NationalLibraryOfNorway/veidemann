@@ -7,12 +7,13 @@ import {MatCardModule} from '@angular/material/card';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
-import {MatCheckbox} from '@angular/material/checkbox';
 import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 @Component({
   selector: 'app-crawlconfig-details',
@@ -21,6 +22,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CopyIdDirective,
+    BooleanStateChipComponent,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -30,11 +32,11 @@ import {CopyIdDirective} from '../../../../../shared/directives';
     MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
-    MatCheckbox,
   ],
   standalone: true
 })
 export class CrawlConfigDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -59,9 +61,6 @@ export class CrawlConfigDetailsComponent implements OnChanges {
   update = new EventEmitter<ConfigObject>();
 
   // noinspection ReservedWordAsName
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
 
   constructor() {
@@ -78,10 +77,6 @@ export class CrawlConfigDetailsComponent implements OnChanges {
 
   get canUpdate(): boolean {
     return this.form.valid && this.form.dirty;
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get showSave(): boolean {
@@ -138,10 +133,6 @@ export class CrawlConfigDetailsComponent implements OnChanges {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

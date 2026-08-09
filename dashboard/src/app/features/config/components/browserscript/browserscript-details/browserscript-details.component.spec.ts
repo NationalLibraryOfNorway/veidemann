@@ -115,6 +115,7 @@ describe('BrowserScriptDetailsComponent', () => {
     const scriptColumn = fixture.nativeElement.querySelector('.script-column') as HTMLElement;
     const urlRegexp = fixture.nativeElement.querySelector('.url-regexp-field') as HTMLElement;
     const editorSection = fixture.nativeElement.querySelector('.editor-section') as HTMLElement;
+    const editorField = editorSection.querySelector('.editor-field') as HTMLElement;
 
     expect(urlRegexp.parentElement).toBe(scriptColumn);
     expect(editorSection.parentElement).toBe(scriptColumn);
@@ -122,8 +123,26 @@ describe('BrowserScriptDetailsComponent', () => {
       .toBeGreaterThan(Array.from(scriptColumn.children).indexOf(urlRegexp));
     const editor = editorSection.querySelector('ngx-monaco-editor.editor-resizable') as HTMLElement;
     expect(editor).not.toBeNull();
+    expect(editor.parentElement).toBe(editorField);
+    expect(getComputedStyle(editorField).borderBlockEndStyle).toBe('solid');
+    expect(getComputedStyle(editorField).borderTopLeftRadius).not.toBe('0px');
     expect(getComputedStyle(editor).resize).toBe('vertical');
     expect(component.editorOptions.automaticLayout).toBe(true);
+  });
+
+  it('places the full-screen edit chip in a separate action row without a Script header', () => {
+    const actionRow = fixture.nativeElement.querySelector('.editor-action-row') as HTMLElement;
+    const editChip = actionRow.querySelector('mat-chip[role="button"]') as HTMLElement;
+
+    expect(fixture.nativeElement.querySelector('.editor-field-label')).toBeNull();
+    expect(editChip.textContent).toContain('Edit script');
+
+    editChip.click();
+    const spaceEvent = new KeyboardEvent('keydown', {key: ' ', bubbles: true, cancelable: true});
+    editChip.dispatchEvent(spaceEvent);
+
+    expect(dialog.open).toHaveBeenCalledTimes(2);
+    expect(spaceEvent.defaultPrevented).toBe(true);
   });
 
   it('opens the current script in a full-screen editor dialog', () => {
@@ -138,6 +157,7 @@ describe('BrowserScriptDetailsComponent', () => {
           readOnly: false,
           theme: 'vs',
         },
+        ariaLabel: 'Script editor',
       })
     );
   });

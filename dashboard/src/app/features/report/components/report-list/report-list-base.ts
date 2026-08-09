@@ -39,6 +39,20 @@ export abstract class ReportListBaseComponent<T extends ListItem> implements OnD
   @Input() sortActive = '';
   @Input() displayedColumns: string[] = [];
 
+  private _loadMoreDisabled = false;
+
+  @Input()
+  set loadMoreDisabled(value: boolean) {
+    if (this._loadMoreDisabled !== value) {
+      this._loadMoreDisabled = value;
+      this.refreshObserver();
+    }
+  }
+
+  get loadMoreDisabled(): boolean {
+    return this._loadMoreDisabled;
+  }
+
   private _dataSource: ListDataSource<T, unknown>;
   private dataSourceSubscription = Subscription.EMPTY;
   private observer: IntersectionObserver | null = null;
@@ -113,7 +127,7 @@ export abstract class ReportListBaseComponent<T extends ListItem> implements OnD
       return;
     }
     this.observer = new IntersectionObserver(entries => {
-      if (entries.some(entry => entry.isIntersecting)) {
+      if (!this.loadMoreDisabled && entries.some(entry => entry.isIntersecting)) {
         this.dataSource?.loadMore();
       }
     }, {rootMargin: '400px 0px'});

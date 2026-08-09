@@ -10,15 +10,18 @@ import {
   PageLogQuery
 } from '../services';
 
-interface RouteListQuery {
+interface RouteSortQuery {
   active: string;
   direction: SortDirection;
+}
+
+interface RouteListQuery extends RouteSortQuery {
   watch: boolean;
 }
 
 export function pageLogQueryFromParamMap(params: ParamMap): PageLogQuery {
   return {
-    ...listQueryFromParamMap(params),
+    ...sortQueryFromParamMap(params),
     uri: params.get('uri'),
     executionId: params.get('execution_id'),
     jobExecutionId: params.get('job_execution_id'),
@@ -27,7 +30,7 @@ export function pageLogQueryFromParamMap(params: ParamMap): PageLogQuery {
 
 export function crawlLogQueryFromParamMap(params: ParamMap): CrawlLogQuery {
   return {
-    ...listQueryFromParamMap(params),
+    ...sortQueryFromParamMap(params),
     executionId: params.get('execution_id'),
     jobExecutionId: params.get('job_execution_id'),
   };
@@ -57,14 +60,14 @@ export function crawlExecutionQueryFromParamMap(params: ParamMap): CrawlExecutio
 }
 
 export function equalPageLogQuery(previous: PageLogQuery, current: PageLogQuery): boolean {
-  return equalListQuery(previous, current)
+  return equalSortQuery(previous, current)
     && previous.uri === current.uri
     && previous.executionId === current.executionId
     && previous.jobExecutionId === current.jobExecutionId;
 }
 
 export function equalCrawlLogQuery(previous: CrawlLogQuery, current: CrawlLogQuery): boolean {
-  return equalListQuery(previous, current)
+  return equalSortQuery(previous, current)
     && previous.executionId === current.executionId
     && previous.jobExecutionId === current.jobExecutionId;
 }
@@ -95,20 +98,30 @@ export function equalCrawlExecutionQuery(
 }
 
 function listQueryFromParamMap(params: ParamMap): RouteListQuery {
+  return {
+    ...sortQueryFromParamMap(params),
+    watch: params.get('watch') === 'true',
+  };
+}
+
+function sortQueryFromParamMap(params: ParamMap): RouteSortQuery {
   const [active = '', parsedDirection = ''] = params.get('sort')?.split(':') ?? [];
   const direction = parsedDirection ? parsedDirection as SortDirection : '';
 
   return {
     active: direction ? active : '',
     direction,
-    watch: params.get('watch') === 'true',
   };
 }
 
 function equalListQuery(previous: RouteListQuery, current: RouteListQuery): boolean {
-  return previous.active === current.active
-    && previous.direction === current.direction
+  return equalSortQuery(previous, current)
     && previous.watch === current.watch;
+}
+
+function equalSortQuery(previous: RouteSortQuery, current: RouteSortQuery): boolean {
+  return previous.active === current.active
+    && previous.direction === current.direction;
 }
 
 function equalArrayValues<T>(previous: readonly T[], current: readonly T[]): boolean {

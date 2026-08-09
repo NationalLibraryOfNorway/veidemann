@@ -6,7 +6,8 @@ import {MongoAbility} from '@casl/ability';
 import {AsyncPipe, NgClass} from '@angular/common';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatIcon} from '@angular/material/icon';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatButtonModule} from '@angular/material/button';
+import {MatMenuModule} from '@angular/material/menu';
 import {
   BrowserConfigNamePipe,
   BrowserScriptNamePipe,
@@ -18,9 +19,6 @@ import {
   PolitenessConfigNamePipe
 } from '../../pipe';
 import {JobNamePipe} from '../../../report/pipe';
-import {CopyIdDirective} from '../../../../shared/directives';
-
-type ShortcutAction = 'clone' | 'createSeed' | 'openScriptEditor' | 'runCrawl';
 
 @Component({
   selector: 'app-config-shortcut-helpers',
@@ -31,15 +29,15 @@ type ShortcutAction = 'clone' | 'createSeed' | 'openScriptEditor' | 'runCrawl';
     BrowserConfigNamePipe,
     BrowserScriptNamePipe,
     CollectionNamePipe,
-    CopyIdDirective,
     CrawlConfigNamePipe,
     CrawlJobDisabledStatusPipe,
     CrawlScheduleNamePipe,
     EntityNamePipe,
     JobNamePipe,
+    MatButtonModule,
     MatChipsModule,
     MatIcon,
-    MatTooltipModule,
+    MatMenuModule,
     NgClass,
     PolitenessConfigNamePipe,
     RouterLink,
@@ -55,12 +53,11 @@ export class ConfigShortcutHelpersComponent {
   @Input()
   configObject: ConfigObject;
 
-  @Input() showMainId = true;
-
   @Input() showReferenceKindLabels = false;
-
-  @Input()
-  showScriptEditorAction = false;
+  @Input() showClone = true;
+  @Input() showDelete = true;
+  @Input() showCreateSeed = true;
+  @Input() seedContext: ConfigObject | null = null;
 
   @Output()
   createSeed = new EventEmitter<ConfigObject>();
@@ -69,25 +66,49 @@ export class ConfigShortcutHelpersComponent {
   runCrawl = new EventEmitter<ConfigObject>();
 
   @Output()
+  runSeedInCrawlJob = new EventEmitter<{seed: ConfigObject; crawlJob: ConfigObject}>();
+
+  @Output()
   clone = new EventEmitter<ConfigObject>();
 
   @Output()
-  openScriptEditor = new EventEmitter<void>();
+  delete = new EventEmitter<ConfigObject>();
 
   constructor() {
     this.can = this.abilityService.can;
   }
 
   get hasActions(): boolean {
-    return this.showScriptEditorAction
-      || this.can('create', Kind[this.configObject.kind])
-      || (this.configObject.kind === Kind.CRAWLENTITY && this.can('create', Kind[Kind.SEED]))
-      || (this.configObject.kind === Kind.SEED && this.can('runCrawl', Kind[Kind.SEED]))
-      || (this.configObject.kind === Kind.CRAWLJOB && this.can('runCrawl', Kind[Kind.CRAWLJOB]));
+    return this.canCreateSeed
+      || this.canRunCrawl
+      || (this.showClone && this.can('create', Kind[this.configObject.kind]))
+      || (this.showDelete && !!this.configObject.id && this.can('delete', Kind[this.configObject.kind]));
+  }
+
+  get canCreateSeed(): boolean {
+    return this.showCreateSeed
+      && this.configObject.kind === Kind.CRAWLENTITY
+      && this.can('create', Kind[Kind.SEED]);
+  }
+
+  get canRunCrawl(): boolean {
+    if (this.configObject.kind === Kind.SEED) {
+      return this.can('runCrawl', Kind[Kind.SEED]);
+    }
+    if (this.configObject.kind === Kind.CRAWLJOB) {
+      return this.seedContext?.kind === Kind.SEED
+        ? this.can('runCrawl', Kind[Kind.SEED])
+        : this.can('runCrawl', Kind[Kind.CRAWLJOB]);
+    }
+    return false;
   }
 
   onClone() {
     this.clone.emit(this.configObject);
+  }
+
+  onDelete() {
+    this.delete.emit(this.configObject);
   }
 
   onCreateSeed() {
@@ -95,33 +116,17 @@ export class ConfigShortcutHelpersComponent {
   }
 
   onRunCrawl() {
+    if (this.configObject.kind === Kind.CRAWLJOB && this.seedContext?.kind === Kind.SEED) {
+      this.runSeedInCrawlJob.emit({seed: this.seedContext, crawlJob: this.configObject});
+      return;
+    }
     this.runCrawl.emit(this.configObject);
   }
 
-  onOpenScriptEditor() {
-    this.openScriptEditor.emit();
-  }
-
-  onActionKeydown(event: KeyboardEvent, action: ShortcutAction): void {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    switch (action) {
-      case 'clone':
-        this.onClone();
-        break;
-      case 'createSeed':
-        this.onCreateSeed();
-        break;
-      case 'runCrawl':
-        this.onRunCrawl();
-        break;
-      case 'openScriptEditor':
-        this.onOpenScriptEditor();
-        break;
-    }
+  get crawlJobActionLabel(): string {
+    return this.seedContext?.kind === Kind.SEED
+      ? $localize`:@@configDetailRunSeedWithCrawljobAction:Crawl seed with this crawljob`
+      : $localize`:@@configDetailRunCrawljobAction:Run crawljob`;
   }
 
   getJobRefListQueryParams(configObject: ConfigObject): Params {

@@ -58,7 +58,6 @@ export class PageLogComponent {
       query$,
       load: (query, range) => this.pageLogService.search(query, range),
       destroyRef,
-      capacity: query => query.watch ? 100 : 0,
     });
     effect(() => this.applySort(this.query().active, this.query().direction));
     this.loading$ = combineLatest([this.dataSource.loading$, this.pageLogService.loading$]).pipe(
@@ -93,7 +92,6 @@ export class PageLogComponent {
         uri: query.uri || null,
         job_execution_id: query.jobExecutionId || null,
         execution_id: query.executionId || null,
-        watch: query.watch || null
       },
     }).catch(error => this.errorHandler.handleError(error));
   }

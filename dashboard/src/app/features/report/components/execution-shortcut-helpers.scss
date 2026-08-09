@@ -4,3 +4,17 @@
   min-width: 0;
   width: 100%;
 }
+
+a[mat-chip],
+mat-chip[role='button'] {
+  cursor: pointer;
+}
+
+a[mat-chip] *,
+mat-chip[role='button'] * {
+  cursor: inherit;
+}
+
+a[mat-chip] {
+  text-decoration: none;
+}

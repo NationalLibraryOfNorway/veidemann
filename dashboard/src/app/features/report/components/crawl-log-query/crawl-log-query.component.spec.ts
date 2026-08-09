@@ -20,10 +20,16 @@ describe('CrawlLogQueryComponent', () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(CrawlLogQueryComponent);
     component = fixture.componentInstance;
+    fixture.detectChanges();
     await fixture.whenStable();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('does not offer a watch filter', () => {
+    expect(fixture.nativeElement.textContent).not.toContain('Watch');
+    expect(component.form.contains('watch')).toBe(false);
   });
 });

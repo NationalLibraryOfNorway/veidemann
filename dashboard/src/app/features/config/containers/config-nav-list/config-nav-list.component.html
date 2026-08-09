@@ -1,5 +1,5 @@
 <section class="destination-page">
-  <div class="destination-hero">
+  <div class="destination-hero destination-hero-card-header">
     <mat-card class="destination-hero-card destination-intro-card" appearance="outlined">
       <mat-card-content class="destination-intro-content">
         <div class="destination-intro-copy">
@@ -11,7 +11,7 @@
       </mat-card-content>
     </mat-card>
 
-    <mat-card class="destination-hero-card destination-artwork-card" appearance="outlined"
+    <mat-card class="destination-hero-card destination-artwork-card" appearance="filled"
               aria-hidden="true">
       <picture class="destination-brand-picture">
         <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
@@ -31,7 +31,9 @@
                 <a class="destination-link" [routerLink]="['/config', ConfigPath[destination.kind]]">
                   <mat-card class="destination-card" appearance="outlined">
                     <mat-card-header>
-                      <mat-icon mat-card-avatar>{{destination.icon}}</mat-icon>
+                      <div mat-card-avatar class="config-kind-avatar">
+                        <mat-icon aria-hidden="true">{{configKindIcon(destination.kind)}}</mat-icon>
+                      </div>
                       <mat-card-title>{{destination.label}}</mat-card-title>
                     </mat-card-header>
                   </mat-card>

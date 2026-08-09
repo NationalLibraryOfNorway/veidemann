@@ -3,12 +3,13 @@ import {BehaviorSubject, EMPTY, Observable, Subject, timer} from 'rxjs';
 import {catchError, startWith, switchMap, take} from 'rxjs/operators';
 import {MatCardModule} from '@angular/material/card';
 import {MatDialog} from '@angular/material/dialog';
+import {MatIcon} from '@angular/material/icon';
 import {Sort, SortDirection} from '@angular/material/sort';
 import {Router} from '@angular/router';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
-import {ControllerApiService} from '../../../core';
+import {AuthService, ControllerApiService} from '../../../core';
 import {CrawlerStatus} from '../../../shared/models/controller/controller.model';
 import {CrawlerStatusDialogComponent} from '../crawlerstatus-dialog/crawlerstatus-dialog.component';
 import {AsyncPipe} from '@angular/common';
@@ -25,12 +26,14 @@ import {RunningCrawlsComponent} from '../running-crawls/running-crawls.component
     AsyncPipe,
     CrawlerStatusComponent,
     MatCardModule,
+    MatIcon,
     RunningCrawlsComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class DashboardComponent implements OnInit {
+  private authService = inject(AuthService);
   private errorHandler = inject(ErrorHandler);
   private controllerApiService = inject(ControllerApiService);
   private dialog = inject(MatDialog);
@@ -84,6 +87,14 @@ export class DashboardComponent implements OnInit {
     return this.latestJobsQuery.value.stateList;
   }
 
+  get isLoggedIn(): boolean {
+    return this.authService.isLoggedIn;
+  }
+
+  onLogin(): void {
+    this.authService.login('/');
+  }
+
   get sortActive(): string {
     return this.latestJobsQuery.value.active;
   }
@@ -105,14 +116,13 @@ export class DashboardComponent implements OnInit {
   }
 
   onJobExecutionClick(row: JobExecutionStatus): void {
-    this.router.navigate(['/report', 'crawlexecution'], {
-      queryParams: {job_execution_id: row.id},
-    }).catch(error => this.errorHandler.handleError(error));
+    this.router.navigate(['/report', 'jobexecution', row.id])
+      .catch(error => this.errorHandler.handleError(error));
   }
 
   onChangeRunStatus(shouldPause: boolean) {
     this.dialog.open(CrawlerStatusDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {shouldPause}
     }).afterClosed().subscribe(changeStatus => {

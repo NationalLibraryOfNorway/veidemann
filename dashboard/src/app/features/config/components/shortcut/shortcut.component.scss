@@ -9,6 +9,31 @@
   min-width: 0;
 }
 
+.shortcut-groups:not(:has(mat-chip, a[mat-chip])) {
+  display: none;
+}
+
+.shortcut-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filter-shortcuts {
+  order: 1;
+}
+
+.reference-shortcuts {
+  order: 3;
+}
+
+.config-actions-menu-trigger {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
 .disabledJob {
   color: var(--mat-sys-error);
 }

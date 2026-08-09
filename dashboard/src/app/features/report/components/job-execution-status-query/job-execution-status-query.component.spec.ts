@@ -3,8 +3,8 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
 import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
+import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatDateRangeInputHarness} from '@angular/material/datepicker/testing';
-import {MatSelectHarness} from '@angular/material/select/testing';
 import type {Locale} from 'date-fns';
 import {enUS, nb} from 'date-fns/locale';
 
@@ -49,9 +49,30 @@ for (const {name, locale} of [
     });
 
     it('selects the numeric state supplied by the route query', async () => {
-      const stateSelect = await loader.getHarness(MatSelectHarness);
+      const listbox = await loader.getHarness(MatChipListboxHarness.with({
+        selector: '[formControlName="stateList"]',
+      }));
+      const chips = await listbox.getChips();
+      const labels = await Promise.all(chips.map(chip => chip.getText()));
+      const selected = await Promise.all(chips.map(chip => chip.isSelected()));
 
-      expect(await stateSelect.getValueText()).toBe('RUNNING');
+      expect(await listbox.isMultiple()).toBe(true);
+      expect(labels.filter((_, index) => selected[index])).toEqual(['RUNNING']);
+    });
+
+    it('uses a chip for the watch filter', () => {
+      const chip = fixture.nativeElement.querySelector(
+        'mat-chip-listbox[formcontrolname="watch"] mat-chip-option'
+      ) as HTMLElement;
+
+      expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
+      expect(chip.textContent.trim()).toBe('Watch');
+    });
+
+    it('places the state filters after the other controls', () => {
+      const form = fixture.nativeElement.querySelector('.report-filter-form') as HTMLFormElement;
+
+      expect(form.lastElementChild?.classList).toContain('report-status-filter');
     });
 
     it('renders an inclusive date range with one From and one To input', async () => {
@@ -62,7 +83,7 @@ for (const {name, locale} of [
       expect(await range.getLabel()).toBe('Job start date');
       expect(await startInput.getPlaceholder()).toBe('From');
       expect(await endInput.getPlaceholder()).toBe('To');
-      expect(fixture.nativeElement.querySelectorAll('mat-form-field')).toHaveLength(3);
+      expect(fixture.nativeElement.querySelectorAll('mat-form-field')).toHaveLength(2);
       expect(fixture.nativeElement.querySelector('mat-timepicker')).toBeNull();
       expect(fixture.nativeElement.querySelector('mat-timepicker-toggle')).toBeNull();
       expect(fixture.nativeElement.textContent).toContain('Both dates are inclusive');

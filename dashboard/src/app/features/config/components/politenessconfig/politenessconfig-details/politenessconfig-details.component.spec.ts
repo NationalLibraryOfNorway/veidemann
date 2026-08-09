@@ -12,7 +12,7 @@ import {
 } from '../../../../../shared/models';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
-import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatChipOptionHarness} from '@angular/material/chips/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
@@ -52,10 +52,9 @@ describe('PolitenessConfigDetailsComponent', () => {
   let saveButton: MatButtonHarness;
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
 
   let policySelect: MatSelectHarness;
-  let useHostnameCheckbox: MatCheckboxHarness;
+  let useHostnameChip: MatChipOptionHarness;
 
 
   beforeEach(() => {
@@ -82,7 +81,7 @@ describe('PolitenessConfigDetailsComponent', () => {
     await fixture.whenStable();
 
     policySelect = await loader.getHarness<MatSelectHarness>(MatSelectHarness);
-    useHostnameCheckbox = await loader.getHarness<MatCheckboxHarness>(MatCheckboxHarness);
+    useHostnameChip = await loader.getHarness(MatChipOptionHarness.with({selector: 'app-boolean-state-chip mat-chip-option'}));
   });
 
   it('should create', () => {
@@ -91,6 +90,14 @@ describe('PolitenessConfigDetailsComponent', () => {
 
   it('offers a copy button for the saved ID field', () => {
     expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
+  });
+
+  it('labels the hostname selection states explicitly', async () => {
+    expect(await useHostnameChip.getText()).toContain('Use hostname');
+
+    await useHostnameChip.toggle();
+
+    expect(await useHostnameChip.getText()).toContain('Use IP-address');
   });
 
   describe('Creating a new politenessConfig', () => {
@@ -113,7 +120,7 @@ describe('PolitenessConfigDetailsComponent', () => {
     });
 
     it('clicking the save button emits a save event', async () => {
-      await useHostnameCheckbox.uncheck();
+      await useHostnameChip.toggle();
       expect(await saveButton.isDisabled()).toBeFalsy();
       expect(component.canSave).toBeTruthy();
 
@@ -131,14 +138,13 @@ describe('PolitenessConfigDetailsComponent', () => {
     beforeEach(async () => {
       await fixture.whenStable();
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
       revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
     });
 
     it('update button should be active if form is updated and valid', async () => {
       expect(await updateButton.isDisabled()).toBeTruthy();
       expect(component.canUpdate).toBeFalsy();
-      await useHostnameCheckbox.uncheck();
+      await useHostnameChip.toggle();
       await fixture.whenStable();
       expect(await updateButton.isDisabled()).toBeFalsy();
       expect(component.canUpdate).toBeTruthy();
@@ -198,30 +204,21 @@ describe('PolitenessConfigDetailsComponent', () => {
         expect(await revertButton.isDisabled()).toBeTruthy();
         expect(component.canRevert).toBeFalsy();
 
-        await useHostnameCheckbox.uncheck();
+        await useHostnameChip.toggle();
         await fixture.whenStable();
         expect(await revertButton.isDisabled()).toBeFalsy();
         expect(component.canRevert).toBeTruthy();
 
         await revertButton.click();
         await fixture.whenStable();
-        expect(await useHostnameCheckbox.isChecked()).toBeTruthy();
+        expect(await useHostnameChip.isSelected()).toBeTruthy();
         expect(component.canUpdate).toBeFalsy();
         expect(await revertButton.isDisabled()).toBeTruthy();
       });
 
     /**  Testing delete button */
-    it('Clicking delete button emits a delete event', async () => {
-      let del: ConfigObject | undefined;
-      component.delete.subscribe((config: ConfigObject) => {
-        del = config;
-      });
-
-      expect(await deleteButton.isDisabled()).toBeFalsy();
-      expect(component.canDelete).toBeTruthy();
-      await deleteButton.click();
-
-      expect(del.politenessConfig).toBe(component.configObject.politenessConfig);
+    it('does not render delete in the card actions', async () => {
+      expect(await loader.getHarnessOrNull(MatButtonHarness.with({text: 'DELETE'}))).toBeNull();
     });
   });
 });

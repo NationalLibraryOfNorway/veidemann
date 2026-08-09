@@ -43,8 +43,7 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
   let saveButton: MatButtonHarness;
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
-  let addIpRangeButton: MatButtonHarness;
+  let addIpRangeButton: HTMLElement;
   let removeIpRangeButton: MatButtonHarness;
 
   let ipRangeListElement: DebugElement;
@@ -111,10 +110,8 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
   describe('Updating a crawlHostGroupConfig', () => {
     beforeEach(async () => {
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'UPDATE' }));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'DELETE' }));
       revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({ text: 'REVERT' }));
-      addIpRangeButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness
-        .with({ selector: '[data-testid="addIpRangeButton"]' }));
+      addIpRangeButton = fixture.nativeElement.querySelector('[data-testid="addIpRangeButton"]');
       ipRangeListElement = fixture.debugElement.query(By.css('[data-testid="ipRangeList"]'));
     });
 
@@ -165,6 +162,8 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
 
       expect(await ipRangeFromInput.getValue()).toEqual('');
       expect(await ipRangeToInput.getValue()).toEqual('');
+      expect(fixture.nativeElement.querySelector('[data-testid="ipRangeInvalidError"]')).toBeNull();
+      expect(fixture.nativeElement.querySelectorAll('mat-error')).toHaveLength(0);
     });
 
     it('clicking remove button removes range from list', async () => {
@@ -174,6 +173,9 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
       expect(ipRangeListElement).toBeDefined();
       removeIpRangeButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness
         .with({ selector: '[data-testid="removeIpRangeButton"]' }));
+      expect(await removeIpRangeButton.getText()).toBe('remove_circle');
+      expect(fixture.nativeElement.querySelector('[data-testid="removeIpRangeButton"]')
+        .getAttribute('aria-label')).toBe('Remove IP range 1');
       await removeIpRangeButton.click();
       await fixture.whenStable();
       expect(ipRangeListElement).toBeNull();
@@ -239,18 +241,8 @@ describe('CrawlHostGroupConfigDetailsComponent', () => {
         expect(await revertButton.isDisabled()).toBeTruthy();
       });
 
-    /**  Testing delete button */
-    it('Clicking delete button emits a delete event', async () => {
-      let del: ConfigObject | undefined;
-      component.delete.subscribe((config: ConfigObject) => {
-        del = config;
-      });
-
-      expect(await deleteButton.isDisabled()).toBeFalsy();
-      expect(component.canDelete).toBeTruthy();
-      await deleteButton.click();
-
-      expect(del.crawlHostGroupConfig).toBe(component.configObject.crawlHostGroupConfig);
+    it('does not render delete in the card actions', async () => {
+      expect(await loader.getHarnessOrNull(MatButtonHarness.with({text: 'DELETE'}))).toBeNull();
     });
   });
 });

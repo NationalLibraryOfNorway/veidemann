@@ -1,4 +1,4 @@
-import {BrowserScriptType, Kind} from '../models/config';
+import {BrowserScriptType, Kind, Role, RobotsPolicy} from '../models/config';
 import {SortDirection} from '@angular/material/sort';
 
 export interface Sort {
@@ -28,6 +28,8 @@ export interface ConfigQuery extends Sort {
   politenessId: string;
   disabled: boolean | null;
   browserScriptType: BrowserScriptType | null;
+  robotsPolicy: RobotsPolicy | null;
+  role: Role | null;
   crawlJobIdList: string[];
   scriptIdList: string[];
   term: string;

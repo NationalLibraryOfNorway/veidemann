@@ -19,7 +19,26 @@
         <th i18n="@@crawlJobExecutionReportListStateHeaderCell"
           mat-header-cell *matHeaderCellDef mat-sort-header>State
         </th>
-        <td mat-cell *matCellDef="let row">{{JobExecutionState[row.state]}}</td>
+        <td mat-cell *matCellDef="let row">
+          <span class="state-cell">
+            <span>{{JobExecutionState[row.state]}}</span>
+            @if (showDesiredStateBadge(row)) {
+              <span class="desired-state-badge"
+                    [attr.aria-label]="desiredStateAriaLabel(row.desiredState)">
+                {{JobExecutionState[row.desiredState]}}
+              </span>
+            }
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="queueSize">
+        <th i18n="@@crawlJobExecutionReportListQueueSizeHeaderCell"
+          mat-header-cell *matHeaderCellDef>Queue size
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{((row | getUrlQueueForJobExecution | async) ?? 0) | number:'1.0-0'}}
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="documentsCrawled">
@@ -27,6 +46,13 @@
           mat-header-cell *matHeaderCellDef mat-sort-header>Documents crawled
         </th>
         <td mat-cell *matCellDef="let row">{{row.documentsCrawled | number:'1.0-0'}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="bytesCrawled">
+        <th i18n="@@crawlJobExecutionReportListBytesCrawledHeaderCell"
+          mat-header-cell *matHeaderCellDef mat-sort-header>Bytes crawled
+        </th>
+        <td mat-cell *matCellDef="let row">{{row.bytesCrawled | filesize}}</td>
       </ng-container>
 
       <ng-container matColumnDef="desiredState">

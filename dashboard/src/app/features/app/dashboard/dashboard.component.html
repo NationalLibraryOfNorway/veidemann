@@ -1,45 +1,62 @@
-@if (can('read', 'home')) {
+@if (can('read', 'home') || !isLoggedIn) {
   <section class="dashboard-page">
-    <div class="dashboard-grid">
-      <mat-card class="dashboard-hero-card dashboard-intro-card" appearance="outlined">
-        <mat-card-content class="dashboard-intro-content">
-          <div class="dashboard-intro-copy">
-            <h1 i18n="@@dashboardPageTitle">Dashboard</h1>
-            <p i18n="@@dashboardPageSubtitle">
-              Monitor crawler activity and follow running jobs in one place.
-            </p>
-          </div>
+    <div class="dashboard-hero-card-header">
+      @if (can('read', 'home')) {
+        <mat-card class="dashboard-hero-card dashboard-intro-card" appearance="outlined">
+          <mat-card-content class="dashboard-intro-content">
+            <div class="dashboard-intro-copy">
+              <h1 i18n="@@dashboardPageTitle">Dashboard</h1>
+              <p i18n="@@dashboardPageSubtitle">
+                Monitor crawler activity and follow running jobs in one place.
+              </p>
+            </div>
 
-          @if (can('read', 'crawlerStatus')) {
-            <app-crawlerstatus
-              [crawlerStatus]="crawlerStatus$ | async"
-              (changeRunStatus)="onChangeRunStatus($event)">
-            </app-crawlerstatus>
-          }
-        </mat-card-content>
-      </mat-card>
+            @if (can('read', 'crawlerStatus')) {
+              <app-crawlerstatus
+                [crawlerStatus]="crawlerStatus$ | async"
+                (changeRunStatus)="onChangeRunStatus($event)">
+              </app-crawlerstatus>
+            }
+          </mat-card-content>
+        </mat-card>
+      } @else {
+        <mat-card class="dashboard-hero-card dashboard-intro-card dashboard-welcome-card" appearance="outlined">
+          <mat-card-content class="dashboard-intro-content">
+            <div class="dashboard-intro-copy">
+              <h1 i18n="@@dashboardWelcomeTitle">Logged out</h1>
+              <p i18n="@@dashboardWelcomeSubtitle">Sign in to access Veidemann.</p>
+            </div>
+            <div class="dashboard-login-actions">
+              <button class="dashboard-login-button" type="button" (click)="onLogin()">
+                <mat-icon>account_box</mat-icon>
+                <span i18n="@@mainToolbarLoginButton">LOGIN</span>
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
 
-      <mat-card class="dashboard-hero-card dashboard-artwork-card" appearance="outlined"
+      <mat-card class="dashboard-hero-card dashboard-artwork-card" appearance="filled"
                 aria-hidden="true">
         <picture class="dashboard-brand-picture">
           <source srcset="public/logo/veidemann_horizontal_white.png" media="(prefers-color-scheme: dark)">
           <img class="dashboard-brand-logo" src="public/logo/veidemann_logo_inline_black.png" alt="">
         </picture>
       </mat-card>
-
-      @if (can('read', 'jobexecution')) {
-        @if (latestJobsDataSource; as dataSource) {
-          <app-running-crawls class="dashboard-running-crawls"
-            [dataSource]="dataSource"
-            [selectedStates]="selectedStates"
-            [sortActive]="sortActive"
-            [sortDirection]="sortDirection"
-            (selectedStatesChange)="onSelectedStatesChange($event)"
-            (rowClick)="onJobExecutionClick($event)"
-            (sort)="onLatestJobsSort($event)">
-          </app-running-crawls>
-        }
-      }
     </div>
+
+    @if (can('read', 'home') && can('read', 'jobexecution')) {
+      @if (latestJobsDataSource; as dataSource) {
+        <app-running-crawls class="dashboard-running-crawls"
+          [dataSource]="dataSource"
+          [selectedStates]="selectedStates"
+          [sortActive]="sortActive"
+          [sortDirection]="sortDirection"
+          (selectedStatesChange)="onSelectedStatesChange($event)"
+          (rowClick)="onJobExecutionClick($event)"
+          (sort)="onLatestJobsSort($event)">
+        </app-running-crawls>
+      }
+    }
   </section>
 }

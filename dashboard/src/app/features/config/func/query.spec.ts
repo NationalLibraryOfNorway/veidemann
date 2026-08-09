@@ -1,6 +1,12 @@
 import {convertToParamMap} from '@angular/router';
-import {BrowserScriptType, Kind} from '../../../shared/models';
-import {configQueryFromParamMap, equalConfigCountQuery, equalConfigQuery} from './query';
+import {BrowserScriptType, Kind, Role, robotsPolicies, RobotsPolicy} from '../../../shared/models';
+import {
+  configQueryFromParamMap,
+  equalConfigCountQuery,
+  equalConfigQuery,
+  parseConfigSearchTerm,
+  serializeConfigSearchTerm
+} from './query';
 
 describe('configuration query route parsing', () => {
   it('parses defaults and repeated parameters atomically', () => {
@@ -73,5 +79,54 @@ describe('configuration query route parsing', () => {
 
     expect(equalConfigQuery(unfiltered, filtered)).toBe(false);
     expect(equalConfigCountQuery(unfiltered, filtered)).toBe(false);
+  });
+
+  it.each(robotsPolicies)('parses robots_policy value %s', policy => {
+    expect(configQueryFromParamMap(Kind.POLITENESSCONFIG, convertToParamMap({
+      robots_policy: policy.toString(),
+    })).robotsPolicy).toBe(policy);
+  });
+
+  it('rejects invalid robots_policy values and treats policy changes as result and count changes', () => {
+    for (const value of ['', 'invalid', '-1', '7', '1.5']) {
+      expect(configQueryFromParamMap(Kind.POLITENESSCONFIG, convertToParamMap({
+        robots_policy: value,
+      })).robotsPolicy).toBeNull();
+    }
+    const unfiltered = configQueryFromParamMap(Kind.POLITENESSCONFIG, convertToParamMap({}));
+    const filtered = {...unfiltered, robotsPolicy: RobotsPolicy.IGNORE_ROBOTS};
+    expect(equalConfigQuery(unfiltered, filtered)).toBe(false);
+    expect(equalConfigCountQuery(unfiltered, filtered)).toBe(false);
+  });
+
+  it('parses valid role filters and rejects invalid role values', () => {
+    expect(configQueryFromParamMap(Kind.ROLEMAPPING, convertToParamMap({
+      role: Role.CURATOR.toString(),
+    })).role).toBe(Role.CURATOR);
+
+    for (const value of ['', 'invalid', '-1', '8', '1.5']) {
+      expect(configQueryFromParamMap(Kind.ROLEMAPPING, convertToParamMap({role: value})).role).toBeNull();
+    }
+  });
+
+  it('parses and serializes label searches without losing selector colons', () => {
+    const parsed = parseConfigSearchTerm('example label:owner:archive:2026');
+
+    expect(parsed).toEqual({
+      name: 'example',
+      label: {
+        selector: 'owner:archive:2026',
+        key: 'owner',
+        value: 'archive:2026',
+        structured: true,
+      },
+    });
+    expect(serializeConfigSearchTerm(parsed.name, parsed.label)).toBe('example label:owner:archive:2026');
+  });
+
+  it('keeps ordinary and incomplete label expressions as editable text', () => {
+    expect(parseConfigSearchTerm('ordinary')).toEqual({name: 'ordinary', label: null});
+    expect(parseConfigSearchTerm('label:')).toEqual({name: 'label:', label: null});
+    expect(serializeConfigSearchTerm(' ordinary ', null)).toBe(' ordinary ');
   });
 });

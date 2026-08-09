@@ -27,6 +27,7 @@ import {
   BrowserScriptEditorDialogResult
 } from '../browserscript-editor-dialog/browserscript-editor-dialog.component';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,6 +51,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   standalone: true
 })
 export class BrowserScriptDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -74,9 +76,6 @@ export class BrowserScriptDetailsComponent implements OnChanges {
 
   @Output()
   update = new EventEmitter<ConfigObject>();
-
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
 
   private selectedRegexpIndex = -1;
 
@@ -114,10 +113,6 @@ export class BrowserScriptDetailsComponent implements OnChanges {
 
   get canEdit(): boolean {
     return this.authService.canUpdate(this.configObject.kind);
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get canSave(): boolean {
@@ -162,6 +157,15 @@ export class BrowserScriptDetailsComponent implements OnChanges {
     this.editorInitialized.set(true);
   }
 
+  onEditorActionKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this.onOpenFullscreenEditor();
+  }
+
   onOpenFullscreenEditor(): void {
     const data: BrowserScriptEditorDialogData = {
       name: this.name,
@@ -178,6 +182,7 @@ export class BrowserScriptDetailsComponent implements OnChanges {
         height: 'calc(100vh - 16px)',
         maxWidth: 'calc(100vw - 16px)',
         maxHeight: 'calc(100vh - 16px)',
+        ariaLabel: $localize`:@@browserscriptEditorDialogLabel:Script editor`,
         autoFocus: false,
         restoreFocus: true,
       }
@@ -199,10 +204,6 @@ export class BrowserScriptDetailsComponent implements OnChanges {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

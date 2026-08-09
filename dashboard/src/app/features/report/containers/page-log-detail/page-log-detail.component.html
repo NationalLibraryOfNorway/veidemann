@@ -1,8 +1,8 @@
 @if (item$ | async; as pageLog) {
   <div class="detail-page">
-    <div class="detail-content">
+    <div class="detail-content detail-content-flush">
       <app-page-log-status [pageLog]="pageLog">
-        <app-page-log-shortcuts cardHeaderHelpers [pageLog]="pageLog"></app-page-log-shortcuts>
+        <app-page-log-shortcuts detailHeaderHelpers [pageLog]="pageLog"></app-page-log-shortcuts>
       </app-page-log-status>
     </div>
   </div>

@@ -15,8 +15,11 @@ describe('LabelDisplayComponent', () => {
     expect(isSingleEmoji('🇳🇴')).toBe(true);
     expect(isSingleEmoji('👍🏽')).toBe(true);
     expect(isSingleEmoji('👨‍👩‍👧‍👦')).toBe(true);
+    expect(isSingleEmoji('🐦️')).toBe(true);
+    expect(isSingleEmoji('😐️')).toBe(true);
     expect(isSingleEmoji('not-an-emoji')).toBe(false);
     expect(isSingleEmoji('😀🐶')).toBe(false);
+    expect(isSingleEmoji('🐦️🐶️')).toBe(false);
   });
 
   it('requires the exact lowercase emoji key', () => {
@@ -37,6 +40,15 @@ describe('LabelDisplayComponent', () => {
     expect(glyph.getAttribute('aria-hidden')).toBe('true');
     expect(parseFloat(getComputedStyle(glyph).lineHeight)).toBeGreaterThan(1);
     expect(accessible.textContent).toBe('emoji:🐶');
+  });
+
+  it('renders picker emoji with a trailing presentation selector as a glyph', () => {
+    fixture.componentRef.setInput('key', 'emoji');
+    fixture.componentRef.setInput('value', '🐦️');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.label-display__emoji')?.textContent).toBe('🐦️');
+    expect(fixture.nativeElement.querySelector('.label-display__accessible')?.textContent).toBe('emoji:🐦️');
   });
 
   it('renders normal and invalid emoji labels literally', () => {

@@ -91,6 +91,15 @@ const exampleBrowserscripts = [
       browserScriptType: BrowserScriptType.ON_LOAD,
       urlRegexpList: []
     })
+  }),
+  new ConfigObject({
+    id: 'scope_script_configObject_id',
+    apiVersion: 'v1',
+    kind: Kind.BROWSERSCRIPT,
+    meta: new Meta({name: 'Scope script'}),
+    browserScript: new BrowserScript({
+      browserScriptType: BrowserScriptType.SCOPE_CHECK,
+    })
   })
 ];
 
@@ -103,7 +112,6 @@ describe('BrowserConfigDetailsComponent', () => {
   let saveButton: MatButtonHarness;
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
-  let deleteButton: MatButtonHarness;
 
   let userAgentFormField: MatFormFieldHarness;
   let userAgentInput: MatInputHarness;
@@ -220,7 +228,6 @@ describe('BrowserConfigDetailsComponent', () => {
     beforeEach(async () => {
       await fixture.whenStable();
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
-      deleteButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'DELETE'}));
       revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
     });
 
@@ -313,10 +320,14 @@ describe('BrowserConfigDetailsComponent', () => {
       expect(await windowHeightFormField.getTextErrors()).toEqual([]);
     });
 
-    it('BrowserScript dropdown should contain all options', async () => {
+    it('excludes scope scripts from the BrowserScript options', async () => {
       await browserScriptSelect.open();
       const options = await browserScriptSelect.getOptions();
       expect(options.length).toEqual(2);
+      await expect(Promise.all(options.map(option => option.getText()))).resolves.toEqual([
+        'Example browserscript',
+        'Example browserscript 2',
+      ]);
     });
 
     it('updates form value when browerscript is selected from dropdown', async () => {
@@ -350,17 +361,8 @@ describe('BrowserConfigDetailsComponent', () => {
       expect(component.canUpdate).toBeFalsy();
     });
 
-    it('Clicking delete button emits a delete event', async () => {
-      let del: ConfigObject | undefined;
-      component.delete.subscribe((config: ConfigObject) => {
-        del = config;
-      });
-
-      expect(await deleteButton.isDisabled()).toBeFalsy();
-      expect(component.canDelete).toBeTruthy();
-      await deleteButton.click();
-
-      expect(del.browserConfig).toBe(component.configObject.browserConfig);
+    it('does not render delete in the card actions', async () => {
+      expect(await loader.getHarnessOrNull(MatButtonHarness.with({text: 'DELETE'}))).toBeNull();
     });
   });
 });

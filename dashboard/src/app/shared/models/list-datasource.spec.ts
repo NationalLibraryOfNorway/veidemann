@@ -137,6 +137,28 @@ describe('ListDataSource', () => {
     destroyRef.destroy();
   });
 
+  it('filters and sorts the derived view without changing accumulated pagination state', () => {
+    const query = new BehaviorSubject('query');
+    const rows = new Subject<TestItem>();
+    const destroyRef = new TestDestroyRef();
+    const dataSource = ListDataSource.fromQuery({query$: query, load: () => rows, destroyRef});
+
+    rows.next({id: 'one', value: 'text/html; charset=utf-8'});
+    rows.next({id: 'two', value: 'image/png'});
+    rows.next({id: 'three', value: 'text/plain'});
+    rows.complete();
+    dataSource.setComparator((left, right) => right.value.localeCompare(left.value));
+    dataSource.setPredicate(item => item.value.startsWith('text/'));
+
+    expect(dataSource.loadedSnapshot.map(item => item.id)).toEqual(['one', 'two', 'three']);
+    expect(dataSource.length).toBe(3);
+    expect(dataSource.snapshot.map(item => item.id)).toEqual(['three', 'one']);
+
+    dataSource.setPredicate(null);
+    expect(dataSource.snapshot.map(item => item.id)).toEqual(['three', 'one', 'two']);
+    destroyRef.destroy();
+  });
+
   it('cancels an obsolete load without clearing the active loading state', () => {
     const query = new Subject<string>();
     const streams = new Map<string, Subject<TestItem>>();

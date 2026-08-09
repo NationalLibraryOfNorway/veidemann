@@ -5,7 +5,6 @@ import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns'
 import {ConfigObject, ConfigRef, CrawlJob, Kind, Meta} from '../../../../../shared/models';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 import {MatCardModule} from '@angular/material/card';
-import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MetaComponent} from '../../meta/meta.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
@@ -16,6 +15,8 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {configKindIcon} from '../../../func/config-kind-icon';
+import {BooleanStateChipComponent} from '../../../../../shared/components';
 
 
 @Component({
@@ -32,7 +33,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
     MatInputModule,
     MatIcon,
     MatSelectModule,
-    MatSlideToggleModule,
+    BooleanStateChipComponent,
     MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
@@ -40,6 +41,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   standalone: true
 })
 export class CrawlJobDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(FormBuilder);
   protected authService = inject(AuthService);
 
@@ -68,9 +70,6 @@ export class CrawlJobDetailsComponent implements OnChanges {
   update = new EventEmitter<ConfigObject>();
 
   // noinspection ReservedWordAsName
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form;
 
   constructor() {
@@ -79,10 +78,6 @@ export class CrawlJobDetailsComponent implements OnChanges {
 
   get canEdit(): boolean {
     return this.authService.canUpdate(this.configObject.kind);
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get showSave(): boolean {
@@ -148,10 +143,6 @@ export class CrawlJobDetailsComponent implements OnChanges {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

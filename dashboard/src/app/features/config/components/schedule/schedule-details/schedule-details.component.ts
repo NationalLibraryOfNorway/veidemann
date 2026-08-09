@@ -19,11 +19,11 @@ import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
 import {MatDatepickerModule} from '@angular/material/datepicker';
-import {JsonPipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -33,7 +33,6 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CopyIdDirective,
-    JsonPipe,
     MatButtonModule,
     MatCardModule,
     MatDatepickerModule,
@@ -47,6 +46,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   standalone: true
 })
 export class ScheduleDetailsComponent implements OnChanges {
+  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -59,9 +59,6 @@ export class ScheduleDetailsComponent implements OnChanges {
   @Output()
   update = new EventEmitter<ConfigObject>();
 
-  @Output()
-  delete = new EventEmitter<ConfigObject>();
-
   form: UntypedFormGroup;
 
   constructor() {
@@ -71,10 +68,6 @@ export class ScheduleDetailsComponent implements OnChanges {
   protected static setCronExpression(cronExpression): string {
     const {minute, hour, dom, month, dow} = cronExpression;
     return minute + ' ' + hour + ' ' + dom + ' ' + month + ' ' + dow;
-  }
-
-  get canDelete(): boolean {
-    return this.authService.canDelete(this.configObject.kind);
   }
 
   get canEdit(): boolean {
@@ -125,10 +118,6 @@ export class ScheduleDetailsComponent implements OnChanges {
 
   onUpdate(): void {
     this.update.emit(this.prepareSave());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.configObject);
   }
 
   onRevert() {

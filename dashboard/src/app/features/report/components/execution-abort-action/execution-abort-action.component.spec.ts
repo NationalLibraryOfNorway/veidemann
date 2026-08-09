@@ -46,4 +46,14 @@ describe('ExecutionAbortActionComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.destructive-actions')).toBeNull();
   });
+
+  it('renders only the button in inline mode', () => {
+    fixture.componentRef.setInput('abortable', true);
+    fixture.componentRef.setInput('inline', true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.abort-action')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.destructive-actions')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Crawl actions');
+  });
 });

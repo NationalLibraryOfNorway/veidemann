@@ -4,12 +4,15 @@ import {provideRouter} from '@angular/router';
 
 import {provideMaterialAnimationsDisabled} from '../../../../core/core.testing.module';
 import {
+  Annotation,
   BrowserScript,
   ConfigObject,
   ConfigRef,
+  CrawlJob,
   CrawlConfig,
   CrawlScheduleConfig,
   Kind,
+  Label,
   Meta,
 } from '../../../../shared/models';
 import {ConfigContextCardComponent} from './config-context-card.component';
@@ -60,13 +63,15 @@ describe('ConfigContextCardComponent', () => {
     await fixture.whenStable();
 
     expect(fixture.nativeElement.querySelector('mat-card-title').textContent.trim()).toBe('Weekdays');
-    expect(fixture.nativeElement.querySelector('mat-card-subtitle').textContent.trim())
-      .toBe('Weekday morning schedule');
-    expect(fixture.nativeElement.querySelector('[mat-card-avatar]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-card-subtitle')).toBeNull();
+    const avatar = fixture.nativeElement.querySelector('div[mat-card-avatar]') as HTMLElement;
+    expect(avatar).not.toBeNull();
+    expect(avatar.querySelector('mat-icon').textContent.trim()).toBe('schedule');
+    expect(avatar.querySelector('mat-icon').getAttribute('aria-hidden')).toBe('true');
     expect(fixture.nativeElement.querySelector('mat-card-content').textContent)
       .not.toContain('Weekday morning schedule');
     expect(fixture.nativeElement.textContent).toContain('0 8 * * 1-5');
-    expect(fixture.nativeElement.querySelector('mat-card').getAttribute('appearance')).toBe('outlined');
+    expect(fixture.nativeElement.querySelector('mat-card').getAttribute('appearance')).toBe('filled');
     expect(fixture.nativeElement.querySelector('a').getAttribute('href')).toContain('/config/schedule/schedule-1');
   });
 
@@ -75,11 +80,15 @@ describe('ConfigContextCardComponent', () => {
     fixture.componentRef.setInput('unavailable', true);
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('mat-card-title').textContent.trim()).toBe('missing-id');
+    expect(fixture.nativeElement.querySelector('mat-card-subtitle')).toBeNull();
+    expect(fixture.nativeElement.querySelector('div[mat-card-avatar] mat-icon').textContent.trim())
+      .toBe('settings_system_daydream');
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('missing-id');
     expect(fixture.nativeElement.querySelector('a')).toBeNull();
   });
 
-  it('links configuration IDs to their detail pages', async () => {
+  it('leaves related configuration references to the shortcut chips', async () => {
     const configRef = new ConfigRef({kind: Kind.CRAWLCONFIG, id: 'crawl-config-1'});
     fixture.componentRef.setInput('configRef', configRef);
     fixture.componentRef.setInput('configObject', new ConfigObject({
@@ -94,15 +103,14 @@ describe('ConfigContextCardComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const hrefs = Array.from(
-      fixture.nativeElement.querySelectorAll('.summary-grid a.mat-mdc-button') as NodeListOf<HTMLAnchorElement>
-    ).map(link => link.getAttribute('href'));
-    expect(hrefs).toEqual([
-      '/config/crawlconfig/crawl-config-1',
-      '/config/collection/collection-1',
-      '/config/browserconfig/browser-config-1',
-      '/config/politenessconfig/politeness-1',
-    ]);
+    expect(fixture.nativeElement.querySelector('.summary-chips').textContent)
+      .not.toContain('collection-1');
+    expect(fixture.nativeElement.querySelector('.summary-chips').textContent)
+      .not.toContain('browser-config-1');
+    expect(fixture.nativeElement.querySelector('.summary-chips').textContent)
+      .not.toContain('politeness-1');
+    expect(fixture.nativeElement.querySelector('mat-card-actions a').getAttribute('href'))
+      .toBe('/config/crawlconfig/crawl-config-1');
   });
 
   it('does not expose browser script source in the context card', () => {
@@ -119,14 +127,119 @@ describe('ConfigContextCardComponent', () => {
     expect(fixture.nativeElement.querySelector('details')).toBeNull();
   });
 
-  it('projects helper content into the card header after its subtitle', () => {
+  it('projects helper content into the card header after its title', () => {
     const hostFixture = TestBed.createComponent(ConfigContextCardHostComponent);
     hostFixture.detectChanges();
 
     const header = hostFixture.nativeElement.querySelector('mat-card-header') as HTMLElement;
-    const subtitle = header.querySelector('mat-card-subtitle');
+    const title = header.querySelector('mat-card-title');
     const helper = header.querySelector('.projected-helper');
     expect(helper).not.toBeNull();
-    expect(subtitle.compareDocumentPosition(helper) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(title.compareDocumentPosition(helper) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('dims a deactivated crawljob and presents its state without a prefix', () => {
+    const jobRef = new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'});
+    fixture.componentRef.setInput('configRef', jobRef);
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: jobRef.id,
+      kind: jobRef.kind,
+      meta: new Meta({name: 'Daily crawl'}),
+      crawlJob: new CrawlJob({disabled: true}),
+    }));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('mat-card') as HTMLElement;
+    const state = Array.from<HTMLElement>(card.querySelectorAll('mat-chip'))
+      .find(chip => chip.getAttribute('aria-label') === 'Crawljob status: Deactivated');
+    expect(card.classList).toContain('inactive');
+    expect(state.textContent.trim()).toContain('Deactivated');
+    expect(state.textContent).not.toContain('Crawljob status:');
+  });
+
+  it('renders expandable effective annotations immediately before labels', () => {
+    const jobRef = new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'});
+    fixture.componentRef.setInput('configRef', jobRef);
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: jobRef.id,
+      kind: jobRef.kind,
+      meta: new Meta({labelList: [new Label({key: 'owner', value: 'archive'})]}),
+      crawlJob: new CrawlJob(),
+    }));
+    fixture.componentRef.setInput('scriptAnnotationContext', {
+      jobRef,
+      jobName: 'Daily crawl',
+      annotations: [new Annotation({key: 'scope', value: 'news'})],
+      unavailable: false,
+    });
+    fixture.componentRef.setInput('canReadAnnotations', true);
+    fixture.detectChanges();
+
+    const annotationSection = fixture.nativeElement.querySelector('.effective-annotations') as HTMLElement;
+    const labelHeading = fixture.nativeElement.querySelector('.label-heading') as HTMLElement;
+    const toggle = annotationSection.querySelector('.annotation-toggle') as HTMLButtonElement;
+    expect(annotationSection.compareDocumentPosition(labelHeading) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(annotationSection.textContent).toContain('scope');
+    expect(annotationSection.textContent).toContain('news');
+  });
+
+  it('renders effective annotation empty and unavailable states', () => {
+    const jobRef = new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'});
+    fixture.componentRef.setInput('configRef', jobRef);
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: jobRef.id,
+      kind: jobRef.kind,
+      crawlJob: new CrawlJob(),
+    }));
+    fixture.componentRef.setInput('canReadAnnotations', true);
+    fixture.componentRef.setInput('scriptAnnotationContext', {
+      jobRef,
+      jobName: 'Daily crawl',
+      annotations: [],
+      unavailable: false,
+    });
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.annotation-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.annotation-empty').textContent)
+      .toContain('No script annotations are active.');
+
+    fixture.componentRef.setInput('scriptAnnotationContext', {
+      jobRef,
+      jobName: 'Daily crawl',
+      annotations: [],
+      unavailable: true,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.annotation-unavailable').textContent)
+      .toContain('Effective annotations are unavailable for this crawljob.');
+  });
+
+  it('hides effective annotations without annotation read permission', () => {
+    const jobRef = new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'});
+    fixture.componentRef.setInput('configRef', jobRef);
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: jobRef.id,
+      kind: jobRef.kind,
+      crawlJob: new CrawlJob(),
+    }));
+    fixture.componentRef.setInput('scriptAnnotationContext', {
+      jobRef,
+      jobName: 'Daily crawl',
+      annotations: [new Annotation({key: 'scope', value: 'news'})],
+      unavailable: false,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.effective-annotations')).toBeNull();
   });
 });

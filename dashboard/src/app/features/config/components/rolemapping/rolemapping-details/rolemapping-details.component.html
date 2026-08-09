@@ -1,17 +1,19 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
     <mat-card-header class="card-header-with-helpers">
+      <div mat-card-avatar class="config-kind-avatar">
+        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+      </div>
       <mat-card-title>
-        @if (configObject) {
-          <span i18n="@@roleMappingDetailsCardTitle">Rolemapping</span>
+        @if (configObject.meta.name) {
+          {{configObject.meta.name}}
+        } @else {
+          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
       </mat-card-title>
-      <mat-card-subtitle>
-        @if (!configObject.id) {
-          <span
-          i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-        }
-      </mat-card-subtitle>
+      @if (configObject.meta.description) {
+        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
+      }
       <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
     <mat-card-content>
@@ -20,12 +22,12 @@
           <mat-label i18n-placeholder="@@roleMappingDetailsTypeDropdownLabel">
             Type
           </mat-label>
-          <mat-select [(value)]="selectedType">
+          <mat-select formControlName="identityType">
             <mat-option value="email" i18n="@@roleMappingDetailsTypeOptionEmail">Email</mat-option>
             <mat-option value="group" i18n="@@roleMappingDetailsTypeOptionGroup">Group</mat-option>
           </mat-select>
         </mat-form-field>
-        @if (selectedType === 'email') {
+        @if (identityType.value === 'email') {
           <mat-form-field class="flex-fill">
             <mat-label i18n="@@roleMappingDetailsEmailInputLabel">
             Email
@@ -33,7 +35,7 @@
             <input matInput formControlName="email">
           </mat-form-field>
         }
-        @if (selectedType === 'group') {
+        @if (identityType.value === 'group') {
           <mat-form-field class="flex-fill">
             <mat-label i18n="@@roleMappingDetailsGroupInputLabel">
             Group
@@ -83,13 +85,6 @@
         REVERT
       </button>
       <span class="flex-fill"></span>
-      @if (!showSave) {
-        <button mat-button
-          (click)="onDelete()"
-          i18n="@@commonButtonDelete">
-        DELETE
-      </button>
-      }
     </mat-card-actions>
   </mat-card>
 </form>

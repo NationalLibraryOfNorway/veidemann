@@ -111,4 +111,30 @@ describe('ReportListBaseComponent', () => {
     component.ngOnDestroy();
     expect(disconnect).toHaveBeenCalled();
   });
+
+  it('does not load more while client-side filters are active', () => {
+    let intersectionCallback!: IntersectionObserverCallback;
+    class TestIntersectionObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        intersectionCallback = callback;
+      }
+
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+      takeRecords = vi.fn(() => []);
+      root = null;
+      rootMargin = '';
+      thresholds = [];
+    }
+    vi.stubGlobal('IntersectionObserver', TestIntersectionObserver);
+
+    component.loadMoreDisabled = true;
+    component.loadMoreSentinel = new ElementRef(document.createElement('div'));
+    intersectionCallback([
+      {isIntersecting: true} as IntersectionObserverEntry,
+    ], {} as IntersectionObserver);
+
+    expect(loadMore).not.toHaveBeenCalled();
+  });
 });

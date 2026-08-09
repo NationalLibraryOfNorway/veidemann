@@ -5,19 +5,21 @@ import {MatIcon} from '@angular/material/icon';
 
 import {CrawlExecutionStatus, ExtraStatusCodes} from '../../../../shared/models/report';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe';
 import {crawlExecutionStatePresentation} from '../../func';
 import {JobNamePipe, SeedNamePipe} from '../../pipe';
 
 @Component({
   selector: 'app-crawl-execution-status',
   templateUrl: './crawl-execution-status.component.html',
-  styleUrls: ['./crawl-execution-status.component.scss'],
+  styleUrls: ['../detail-status-layout.scss', './crawl-execution-status.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     AsyncPipe,
     DatePipe,
     DecimalPipe,
+    DurationFormatPipe,
     FileSizePipe,
     JobNamePipe,
     MatCardModule,

@@ -18,6 +18,8 @@ describe('ActiveFilterChipsComponent', () => {
     politenessId: 'politeness-1',
     disabled: false,
     browserScriptType: BrowserScriptType.ON_LOAD,
+    robotsPolicy: null,
+    role: null,
     crawlJobIdList: ['job-1', 'job-missing'],
     scriptIdList: ['script-1'],
     term: 'search text',
@@ -78,5 +80,50 @@ describe('ActiveFilterChipsComponent', () => {
     removeButtons[1].click();
 
     expect(removed).toEqual(expect.objectContaining({key: 'scriptIdList', value: 'script-1'}));
+  });
+
+  it('renders ordinary and key-only applied label filters', async () => {
+    fixture.componentRef.setInput('query', {...query, term: 'example label:owner:archive'});
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let labelChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('owner:archive')) as HTMLElement;
+    expect(labelChip).toBeTruthy();
+
+    fixture.componentRef.setInput('query', {...query, term: 'label:owner'});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    labelChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.replace('cancel', '').trim() === 'owner') as HTMLElement;
+    expect(labelChip).toBeTruthy();
+  });
+
+  it('renders an emoji label visually with accessible text', async () => {
+    fixture.componentRef.setInput('query', {...query, term: 'label:emoji:🐶'});
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const labelChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => !!chip.querySelector('app-label-display')) as HTMLElement;
+    expect(labelChip.querySelector('.label-display__emoji')?.textContent).toBe('🐶');
+    expect(labelChip.querySelector('.label-display__accessible')?.textContent).toBe('emoji:🐶');
+  });
+
+  it('emits the applied label selector when its chip is removed', async () => {
+    let removed: ActiveConfigFilterChip | undefined;
+    fixture.componentInstance.removeFilter.subscribe(chip => removed = chip);
+    fixture.componentRef.setInput('query', {...query, term: 'label:owner:archive'});
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const remove = [...fixture.nativeElement.querySelectorAll('button[matChipRemove]')]
+      .find((button: HTMLButtonElement) => button.getAttribute('aria-label') === 'Remove owner:archive label filter');
+    (remove as HTMLButtonElement).click();
+
+    expect(removed).toEqual(expect.objectContaining({
+      key: 'labelSelector',
+      value: 'owner:archive',
+    }));
   });
 });

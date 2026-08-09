@@ -6,11 +6,11 @@ import { MongoAbility } from '@casl/ability';
 import { AbilityServiceSignal } from '@casl/angular';
 import { NavigationListComponent } from '../../../../shared/components';
 import { Kind } from '../../../../shared/models';
-import { ConfigPath } from '../../func';
+import {ConfigPath} from '../../func';
+import {configKindIcon} from '../../func/config-kind-icon';
 
 interface ConfigDestination {
   readonly kind: Kind;
-  readonly icon: string;
   readonly label: string;
 }
 
@@ -36,51 +36,45 @@ export class ConfigNavListComponent extends NavigationListComponent {
 
   readonly ConfigPath = ConfigPath;
   readonly Kind = Kind;
+  readonly configKindIcon = configKindIcon;
   readonly destinationGroups: readonly ConfigDestinationGroup[] = [
     {
       label: $localize`:@@configurationGroupCrawlTargets:Crawl targets`,
       destinations: [
-        {kind: Kind.CRAWLENTITY, icon: 'business', label: $localize`:@@configurationSidebarMenuEntity:Entity`},
-        {kind: Kind.SEED, icon: 'link', label: $localize`:@@configurationSidebarMenuSeed:Seed`},
+        {kind: Kind.CRAWLENTITY, label: $localize`:@@configurationSidebarMenuEntity:Entity`},
+        {kind: Kind.SEED, label: $localize`:@@configurationSidebarMenuSeed:Seed`},
       ],
     },
     {
       label: $localize`:@@configurationGroupCrawlSetup:Crawl setup`,
       destinations: [
-        {kind: Kind.CRAWLJOB, icon: 'work', label: $localize`:@@configurationSidebarMenuCrawljobs:Crawl jobs`},
+        {kind: Kind.CRAWLJOB, label: $localize`:@@configurationSidebarMenuCrawljobs:Crawl jobs`},
         {
           kind: Kind.CRAWLSCHEDULECONFIG,
-          icon: 'schedule',
           label: $localize`:@@configurationSidebarMenuSchedule:Schedule`,
         },
         {
           kind: Kind.CRAWLCONFIG,
-          icon: 'settings_system_daydream',
           label: $localize`:@@configurationSidebarMenuCrawlconfig:Crawl config`,
         },
         {
           kind: Kind.COLLECTION,
-          icon: 'collections_bookmark',
           label: $localize`:@@configurationSidebarMenuCollection:Collection`,
         },
         {
           kind: Kind.BROWSERCONFIG,
-          icon: 'web',
           label: $localize`:@@configurationSidebarMenuBrowserconfig:Browser config`,
         },
         {
           kind: Kind.BROWSERSCRIPT,
-          icon: 'web_asset',
           label: $localize`:@@configurationSidebarMenuBrowserscript:Browser script`,
         },
         {
           kind: Kind.POLITENESSCONFIG,
-          icon: 'sentiment_very_satisfied',
           label: $localize`:@@configurationSidebarMenuPolitenessconfig:Politeness`,
         },
         {
           kind: Kind.CRAWLHOSTGROUPCONFIG,
-          icon: 'group_work',
           label: $localize`:@@configurationSidebarMenuCrawlhostgroupconfig:Crawl host group`,
         },
       ],
@@ -90,7 +84,6 @@ export class ConfigNavListComponent extends NavigationListComponent {
       destinations: [
         {
           kind: Kind.ROLEMAPPING,
-          icon: 'people',
           label: $localize`:@@configurationSidebarMenuRolemapping:Users`,
         },
       ],

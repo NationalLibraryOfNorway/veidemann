@@ -23,7 +23,7 @@
               cdkTextareaAutosize></textarea>
   </mat-form-field>
 
-  <app-labels [removable]="editable" formControlName="labelList"></app-labels>
+  <app-labels [kind]="kind" [removable]="editable" formControlName="labelList"></app-labels>
   <app-annotation
     [removable]="editable"
     [suggestions]="annotationSuggestions"

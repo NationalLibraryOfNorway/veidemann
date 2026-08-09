@@ -1,22 +1,26 @@
 <form [formGroup]="form">
   <mat-card appearance="outlined">
     <mat-card-header class="card-header-with-helpers">
+      <div mat-card-avatar class="config-kind-avatar">
+        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
+      </div>
       <mat-card-title>
-        <span i18n="@@browserscriptDetailsCardTitle">Browserscript</span>
-      </mat-card-title>
-      <mat-card-subtitle>
-        @if (showSave) {
-          <span
-          i18n="@@commonConfigDetailsCardSubtitle"> New (unsaved)</span>
+        @if (configObject.meta.name) {
+          {{configObject.meta.name}}
+        } @else {
+          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
         }
-      </mat-card-subtitle>
+      </mat-card-title>
+      @if (configObject.meta.description) {
+        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
+      }
       <ng-content select="[cardHeaderHelpers]"></ng-content>
     </mat-card-header>
 
 
     <mat-card-content class="details-grid">
       <div class="layout-column flex-fill">
-        <app-meta formControlName="meta"></app-meta>
+        <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
           <mat-form-field>
             <mat-label i18n="configIdLabel">
@@ -96,14 +100,21 @@
           </form>
         }
         <div class="editor-section layout-column">
-          <div class="editor-header">
-            <span i18n="@@browserscriptFormScriptLabel">Script</span>
+          <mat-chip-set class="editor-action-row" aria-label="Script actions"
+            i18n-aria-label="@@browserscriptScriptActionsLabel">
+            <mat-chip role="button" tabindex="0" (click)="onOpenFullscreenEditor()"
+              (keydown)="onEditorActionKeydown($event)">
+              <mat-icon matChipAvatar>open_in_full</mat-icon>
+              <span i18n="@@browserscriptOpenScriptFullscreenAction">Edit script</span>
+            </mat-chip>
+          </mat-chip-set>
+          <div class="editor-field">
+            <ngx-monaco-editor class="editor editor-resizable"
+              formControlName="script"
+              [options]="editorOptions"
+              (onInit)="initEditor()">
+            </ngx-monaco-editor>
           </div>
-          <ngx-monaco-editor class="editor editor-resizable"
-            formControlName="script"
-            [options]="editorOptions"
-            (onInit)="initEditor()">
-          </ngx-monaco-editor>
           @if (!script.valid) {
             <mat-error>{{script?.errors['monaco']?.value}}</mat-error>
           }
@@ -137,13 +148,6 @@
         REVERT
       </button>
         <span class="flex-fill"></span>
-        @if (!showSave && canDelete) {
-          <button mat-button
-            (click)="onDelete()"
-            i18n="@@commonButtonDelete">
-        DELETE
-      </button>
-        }
       </mat-card-actions>
     }
   </mat-card>

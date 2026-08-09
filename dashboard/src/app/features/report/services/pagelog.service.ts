@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {Observable} from 'rxjs';
 import {create} from '@bufbuild/protobuf';
-import { Detail, Sort, Watch } from '../../../shared/func';
+import { Detail, Sort } from '../../../shared/func';
 import { LoadingService } from '../../../shared/services';
 import { ConfigObject, ListRange, PageLog } from '../../../shared/models';
 import { LogApiService } from '../../../core';
@@ -9,7 +9,7 @@ import { FieldMaskSchema } from '../../../../api/commons/v1/resources_pb';
 import { PageLogListRequest, PageLogListRequestSchema } from '../../../../api/log/v1/log_pb';
 
 
-export interface PageLogQuery extends Sort, Watch {
+export interface PageLogQuery extends Sort {
   uri: string;
   executionId: string;
   jobExecutionId: string;
@@ -63,10 +63,6 @@ export class PageLogService extends LoadingService {
     if (fieldMask.paths.length > 0) {
       listRequest.queryTemplate = PageLog.toProto(queryTemplate);
       listRequest.queryMask = fieldMask;
-    }
-
-    if (query.watch) {
-      listRequest.watch = query.watch;
     }
 
     return listRequest;

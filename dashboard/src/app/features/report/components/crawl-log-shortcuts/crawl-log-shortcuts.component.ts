@@ -26,7 +26,6 @@ export class CrawlLogShortcutsComponent {
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
-
   @Input() crawlLog: CrawlLog;
 
   constructor() {

@@ -11,7 +11,7 @@ export * from './rolemapping';
 export * from './schedule';
 export * from './config-query/config-query.component';
 export * from './config-context-card/config-context-card.component';
-export * from './script-annotations-card/script-annotations-card.component';
+export * from './config-label-links/config-label-links.component';
 export * from './active-filter-chips/active-filter-chips.component';
 export * from './meta/meta.component';
 export * from './label/label.component';

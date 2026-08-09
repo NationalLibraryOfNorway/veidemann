@@ -1,79 +1,174 @@
 @if (pageLog) {
-  <mat-card appearance="outlined">
-    <mat-card-header class="card-header-with-helpers">
-      <mat-icon mat-card-avatar>art_track</mat-icon>
-      <mat-card-title>Page log</mat-card-title>
-      <mat-card-subtitle>{{pageLog.uri}}</mat-card-subtitle>
-      <ng-content select="[cardHeaderHelpers]"></ng-content>
-    </mat-card-header>
-    <mat-card-content>
-      <mat-tab-group>
-        <mat-tab [label]="'Resources (' + pageLog.resource.length + ')'">
+  <section class="page-log-detail" aria-label="Page log details" i18n-aria-label="@@pageLogDetailsLabel">
+    <header class="detail-header">
+      <div class="detail-heading">
+        <h1 class="page-log-uri-title">{{pageLog.uri}}</h1>
+        @if (pageLog.collectionFinalName) {
+          <p class="detail-subtitle">{{pageLog.collectionFinalName}}</p>
+        }
+      </div>
+      <div class="detail-header-helpers">
+        <ng-content select="[detailHeaderHelpers]"></ng-content>
+      </div>
+    </header>
+    <mat-tab-group class="detail-tabs">
+        <mat-tab [label]="resourceTabLabel(pageLog.resource.length)">
           <div class="tab-content">
-            <mat-form-field appearance="outline" class="search-field">
-              <mat-label>Search resources</mat-label>
-              <mat-icon matPrefix>search</mat-icon>
-              <input matInput #resourceSearch (input)="applyResourceFilter(resourceSearch.value)">
-            </mat-form-field>
-            <mat-list aria-label="Page resources">
-              @for (resource of filteredResources; track resource.warcId || resource.uri; let i = $index) {
-                <mat-list-item [class.error-item]="hasError(resource)">
-                  @if (hasError(resource)) { <mat-icon matListItemIcon>error</mat-icon> }
-                  <span matListItemTitle>{{resource.uri || 'Missing URI'}}</span>
-                  <span matListItemLine>
-                    {{resource.statusCode || '—'}} · {{resource.mimeType || resource.resourceType || 'Unknown type'}} ·
-                    {{resource.discoveryPath || 'Unknown discovery path'}}
-                  </span>
-                  @if (hasError(resource)) {
-                    <span matListItemLine>{{resource.error.msg || resource.error.detail || ('Error ' + resource.error.code)}}</span>
-                  }
-                  <span matListItemMeta class="resource-actions">
-                    <button mat-icon-button aria-label="Show resource metadata" matTooltip="Resource metadata"
-                      (click)="showMetadata(resource)"><mat-icon>info</mat-icon></button>
-                    @if (resource.uri) {
-                      <a mat-icon-button [href]="resource.uri" target="_blank" rel="noopener noreferrer"
-                        aria-label="Open resource URI in a new tab" matTooltip="Open resource URI">
-                        <mat-icon>open_in_new</mat-icon>
-                      </a>
+            <div class="resource-filter-toolbar">
+              <mat-form-field appearance="outline" class="search-field">
+                <mat-label i18n="@@searchResourcesLabel">Search resources</mat-label>
+                <mat-icon matPrefix>search</mat-icon>
+                <input matInput #resourceSearchInput [value]="resourceSearch()"
+                  (input)="applyResourceFilter(resourceSearchInput.value)">
+              </mat-form-field>
+              @if (resourceMimeTypes().length) {
+                <fieldset class="facet-filter mime-type-filter">
+                  <legend i18n="@@resourceMimeTypeFilterLegend">MIME type</legend>
+                  <mat-chip-listbox multiple
+                    aria-label="Filter resources by MIME type"
+                    i18n-aria-label="@@resourceMimeTypeFilterLabel"
+                    [value]="selectedResourceMimeTypes()"
+                    (change)="applyResourceMimeTypeFilter($event.value)">
+                    @for (mimeType of resourceMimeTypes(); track mimeType) {
+                      <mat-chip-option [value]="mimeType">{{mimeType}}</mat-chip-option>
                     }
-                  </span>
-                </mat-list-item>
-              } @empty {
-                <mat-list-item><span matListItemTitle>No matching resources</span></mat-list-item>
+                  </mat-chip-listbox>
+                </fieldset>
               }
-            </mat-list>
+              @if (resourceTypes().length) {
+                <fieldset class="facet-filter resource-type-filter">
+                  <legend i18n="@@resourceTypeFilterLegend">Resource type</legend>
+                  <mat-chip-listbox multiple
+                    aria-label="Filter resources by resource type"
+                    i18n-aria-label="@@resourceTypeFilterLabel"
+                    [value]="selectedResourceTypes()"
+                    (change)="applyResourceTypeFilter($event.value)">
+                    @for (resourceType of resourceTypes(); track resourceType) {
+                      <mat-chip-option [value]="resourceType">{{resourceType}}</mat-chip-option>
+                    }
+                  </mat-chip-listbox>
+                </fieldset>
+              }
+              <app-http-status-filter
+                [value]="selectedResourceStatusFamilies()"
+                [families]="resourceStatusFamilies()"
+                [exactValue]="selectedResourceStatusCodes()"
+                [statusCodes]="resourceStatusCodes()"
+                (valueChange)="applyResourceStatusFilter($event)"
+                (exactValueChange)="applyResourceExactStatusFilter($event)">
+              </app-http-status-filter>
+            </div>
+            <div class="table-scroll resource-table-container">
+              <table mat-table class="resource-table" [dataSource]="resources" matSort #resourceSort="matSort"
+                aria-label="Page resources" i18n-aria-label="@@pageResourcesTableLabel">
+                <ng-container matColumnDef="method">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceMethodHeader">Method</th>
+                  <td mat-cell *matCellDef="let resource">{{resource.method || '—'}}</td>
+                </ng-container>
+                <ng-container matColumnDef="uri">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceUriHeader">URI</th>
+                  <td mat-cell *matCellDef="let resource">
+                    <span class="uri-value" [matTooltip]="resource.uri || ''">{{resource.uri || '—'}}</span>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="statusCode">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceStatusHeader">Status code</th>
+                  <td mat-cell *matCellDef="let resource">{{resource.statusCode || '—'}}</td>
+                </ng-container>
+                <ng-container matColumnDef="mimeType">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceMimeTypeHeader">MIME type</th>
+                  <td mat-cell *matCellDef="let resource">{{resource.mimeType || '—'}}</td>
+                </ng-container>
+                <ng-container matColumnDef="resourceType">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceTypeHeader">Resource type</th>
+                  <td mat-cell *matCellDef="let resource">{{resource.resourceType || '—'}}</td>
+                </ng-container>
+                <ng-container matColumnDef="discoveryPath">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceDiscoveryPathHeader">Discovery path</th>
+                  <td mat-cell *matCellDef="let resource">{{resource.discoveryPath || '—'}}</td>
+                </ng-container>
+                <ng-container matColumnDef="error">
+                  <th mat-header-cell *matHeaderCellDef i18n="@@resourceErrorHeader">Error</th>
+                  <td mat-cell *matCellDef="let resource" [class.error-item]="hasError(resource)">
+                    <span class="error-value">
+                      {{hasError(resource) ? (resource.error.msg || resource.error.detail || ('Error ' + resource.error.code)) : '—'}}
+                    </span>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="metadata">
+                  <th mat-header-cell *matHeaderCellDef i18n="@@resourceMetadataHeader">Metadata</th>
+                  <td mat-cell *matCellDef="let resource">
+                    <button mat-icon-button aria-label="Show resource metadata"
+                      i18n-aria-label="@@showResourceMetadataLabel" matTooltip="Resource metadata"
+                      i18n-matTooltip="@@resourceMetadataTooltip" (click)="showMetadata(resource)">
+                      <mat-icon>info</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="resourceColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: resourceColumns"></tr>
+                <tr class="mat-row" *matNoDataRow>
+                  <td class="mat-cell" [attr.colspan]="resourceColumns.length" i18n="@@noMatchingResources">
+                    No matching resources
+                  </td>
+                </tr>
+              </table>
+            </div>
           </div>
         </mat-tab>
 
-        <mat-tab [label]="'Outlinks (' + pageLog.outlink.length + ')'">
+        <mat-tab [label]="outlinkTabLabel(pageLog.outlink.length)">
           <div class="tab-content">
             <mat-form-field appearance="outline" class="search-field">
-              <mat-label>Search outlinks</mat-label>
+              <mat-label i18n="@@searchOutlinksLabel">Search outlinks</mat-label>
               <mat-icon matPrefix>search</mat-icon>
-              <input matInput #outlinkSearch (input)="applyOutlinkFilter(outlinkSearch.value)">
+              <input matInput #outlinkSearchInput [value]="outlinkSearch()"
+                (input)="applyOutlinkFilter(outlinkSearchInput.value)">
             </mat-form-field>
-            <mat-nav-list aria-label="Page outlinks">
-              @for (outlink of filteredOutlinks; track $index) {
-                @if (outlink.href) {
-                  <a mat-list-item [href]="outlink.href" target="_blank" rel="noopener noreferrer">
-                    <span matListItemTitle>{{outlink.raw}}</span>
-                    <span matListItemLine>{{outlink.host}} · {{outlink.path}}</span>
-                    <span matListItemMeta><mat-icon>open_in_new</mat-icon></span>
-                  </a>
-                } @else {
-                  <mat-list-item class="error-item">
-                    <mat-icon matListItemIcon>link_off</mat-icon>
-                    <span matListItemTitle>{{outlink.raw || 'Empty outlink'}}</span>
-                    <span matListItemLine>Malformed outlink</span>
-                  </mat-list-item>
-                }
-              } @empty {
-                <mat-list-item><span matListItemTitle>No matching outlinks</span></mat-list-item>
-              }
-            </mat-nav-list>
+            @if (outlinkDomains().length) {
+              <fieldset class="outlink-domain-filter">
+                <legend i18n="@@outlinkDomainFilterLegend">Domain</legend>
+                <div class="outlink-domain-scroll">
+                  <mat-chip-listbox multiple
+                    aria-label="Filter outlinks by domain"
+                    i18n-aria-label="@@outlinkDomainFilterLabel"
+                    [value]="selectedOutlinkDomains()"
+                    (change)="applyOutlinkDomainFilter($event.value)">
+                    @for (domain of outlinkDomains(); track domain) {
+                      <mat-chip-option [value]="domain">{{domain}}</mat-chip-option>
+                    }
+                  </mat-chip-listbox>
+                </div>
+              </fieldset>
+            }
+            <div class="table-scroll">
+              <table mat-table [dataSource]="outlinks" matSort #outlinkSort="matSort"
+                aria-label="Page outlinks" i18n-aria-label="@@pageOutlinksTableLabel">
+                <ng-container matColumnDef="uri">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@outlinkUriHeader">URI</th>
+                  <td mat-cell *matCellDef="let outlink" [class.error-item]="!outlink.href">
+                    @if (outlink.href) {
+                      <a [href]="outlink.href" target="_blank" rel="noopener noreferrer">{{outlink.raw}}</a>
+                    } @else {
+                      <mat-icon aria-hidden="true">link_off</mat-icon>
+                      @if (outlink.raw) {
+                        <span>{{outlink.raw}}</span>
+                      } @else {
+                        <span i18n="@@emptyOutlinkLabel">Empty outlink</span>
+                      }
+                      <span class="visually-hidden" i18n="@@malformedOutlinkLabel">Malformed outlink</span>
+                    }
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="outlinkColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: outlinkColumns"></tr>
+                <tr class="mat-row" *matNoDataRow>
+                  <td class="mat-cell" i18n="@@noMatchingOutlinks">No matching outlinks</td>
+                </tr>
+              </table>
+            </div>
           </div>
         </mat-tab>
-      </mat-tab-group>
-    </mat-card-content>
-  </mat-card>
+    </mat-tab-group>
+  </section>
 }

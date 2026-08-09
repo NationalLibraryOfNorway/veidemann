@@ -21,6 +21,7 @@ import {
   Kind,
   Label,
   RoleMapping,
+  PolitenessConfig,
   Seed
 } from '../models';
 import {LoadingService} from '.';
@@ -194,6 +195,13 @@ export class ConfigService
           queryTemplate.browserScript.browserScriptType = query.browserScriptType;
         }
         break;
+      case Kind.POLITENESSCONFIG:
+        queryTemplate.politenessConfig = new PolitenessConfig();
+        if (query.robotsPolicy !== null) {
+          fieldMask.paths.push('politenessConfig.robotsPolicy');
+          queryTemplate.politenessConfig.robotsPolicy = query.robotsPolicy;
+        }
+        break;
       case Kind.SEED:
         queryTemplate.seed = new Seed();
 
@@ -211,24 +219,30 @@ export class ConfigService
         }
         break;
       case Kind.ROLEMAPPING:
-        if (query.term !== null) {
+        if (query.term !== null || (query.role !== null && query.role !== undefined)) {
           queryTemplate.roleMapping = new RoleMapping();
+          if (query.role !== null && query.role !== undefined) {
+            queryTemplate.roleMapping.roleList = [query.role];
+            fieldMask.paths.push('roleMapping.role');
+          }
           const name = query.term;
 
           // Search keywords
           // default (no keywords): roleMapping email
           // "group:" roleMapping group
           // "email:" roleMapping email
-          if (name.startsWith('group:')) {
-            queryTemplate.roleMapping.group = name.substring(name.indexOf(':') + 1);
-            fieldMask.paths.push('roleMapping.group');
-          } else {
-            let email = name;
-            if (name.startsWith('email:')) {
-              email = name.substring(name.indexOf(':') + 1);
+          if (name !== null) {
+            if (name.startsWith('group:')) {
+              queryTemplate.roleMapping.group = name.substring(name.indexOf(':') + 1);
+              fieldMask.paths.push('roleMapping.group');
+            } else {
+              let email = name;
+              if (name.startsWith('email:')) {
+                email = name.substring(name.indexOf(':') + 1);
+              }
+              queryTemplate.roleMapping.email = email;
+              fieldMask.paths.push('roleMapping.email');
             }
-            queryTemplate.roleMapping.email = email;
-            fieldMask.paths.push('roleMapping.email');
           }
         }
         break;
@@ -245,10 +259,14 @@ export class ConfigService
     }
 
     if (query.term !== null && query.kind !== Kind.ROLEMAPPING) {
-      const parts = query.term.split('label:');
-
-      const label = (parts[1] || '').trim();
-      const name = parts[0].trim();
+      const labelMarker = 'label:';
+      const labelMarkerIndex = query.term.indexOf(labelMarker);
+      const label = labelMarkerIndex < 0
+        ? ''
+        : query.term.slice(labelMarkerIndex + labelMarker.length).trim();
+      const name = (labelMarkerIndex < 0
+        ? query.term
+        : query.term.slice(0, labelMarkerIndex)).trim();
 
       if (label) {
         listRequest.labelSelector = [label];

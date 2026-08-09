@@ -5,6 +5,7 @@ import {LabelComponent} from '../label/label.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {ActivatedRoute} from '@angular/router';
 import {of} from 'rxjs';
+import {Kind} from '../../../../shared/models';
 
 describe('MetaComponent', () => {
   let component: MetaComponent;
@@ -26,6 +27,7 @@ describe('MetaComponent', () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(MetaComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('kind', Kind.CRAWLENTITY);
     await fixture.whenStable();
   });
 

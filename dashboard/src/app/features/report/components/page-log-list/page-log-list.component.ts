@@ -14,6 +14,6 @@ import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/repor
 })
 export class PageLogListComponent extends ReportListBaseComponent<PageLog> {
 
-  override displayedColumns: string[] = ['uri', 'nrOfResources', 'nrOfOutlinks', 'action'];
+  override displayedColumns: string[] = ['uri', 'nrOfResources', 'nrOfOutlinks'];
 
 }

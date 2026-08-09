@@ -1,6 +1,16 @@
-mat-card {
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
+.page-log-detail,
+.detail-tabs {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.detail-header {
+  padding: 16px 16px 0;
+}
+
+.page-log-uri-title {
+  overflow-wrap: anywhere;
 }
 
 .tab-content {
@@ -8,14 +18,159 @@ mat-card {
 }
 
 .search-field {
-  width: min(100%, 36rem);
+  width: min(calc(100% - 32px), 36rem);
+  margin-inline: 16px;
 }
 
-.resource-actions {
-  display: flex;
-  align-items: center;
+.resource-filter-toolbar {
+  display: grid;
+  min-width: 0;
+  margin: 0 16px 20px;
+  gap: 16px;
+}
+
+.resource-filter-toolbar .search-field {
+  width: min(100%, 36rem);
+  margin: 0;
+}
+
+.facet-filter {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.facet-filter legend {
+  margin-bottom: 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.outlink-domain-filter {
+  min-width: 0;
+  margin: 0 16px 16px;
+  padding: 0;
+  border: 0;
+}
+
+.outlink-domain-filter legend {
+  margin-bottom: 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.outlink-domain-scroll {
+  max-width: 100%;
+  max-height: 10rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-block: contain;
+}
+
+.outlink-domain-scroll mat-chip-listbox {
+  width: 100%;
+}
+
+table {
+  width: 100%;
+  background: transparent;
+}
+
+.resource-table-container {
+  container: resource-table / inline-size;
+}
+
+.resource-table {
+  table-layout: fixed;
+}
+
+.resource-table td,
+.resource-table th {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.resource-table .mat-column-uri {
+  width: auto;
+}
+
+.resource-table .mat-column-method {
+  width: 6rem;
+}
+
+.resource-table .mat-column-statusCode {
+  width: 5.5rem;
+}
+
+.resource-table .mat-column-metadata {
+  width: 4.5rem;
+  padding-right: 8px;
+  padding-left: 8px;
+  text-align: center;
+}
+
+.resource-table .mat-column-mimeType,
+.resource-table .mat-column-resourceType,
+.resource-table .mat-column-discoveryPath,
+.resource-table .mat-column-error {
+  display: none;
+}
+
+.uri-value,
+.error-value {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container resource-table (min-width: 40rem) {
+  .resource-table .mat-column-mimeType {
+    display: table-cell;
+    width: 10rem;
+  }
+}
+
+@container resource-table (min-width: 52rem) {
+  .resource-table .mat-column-resourceType {
+    display: table-cell;
+    width: 9rem;
+  }
+}
+
+@container resource-table (min-width: 64rem) {
+  .resource-table .mat-column-discoveryPath {
+    display: table-cell;
+    width: 10rem;
+  }
+}
+
+@container resource-table (min-width: 76rem) {
+  .resource-table .mat-column-error {
+    display: table-cell;
+    width: 13rem;
+  }
+}
+
+.table-scroll a {
+  overflow-wrap: anywhere;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 
 .error-item {
   color: var(--mat-sys-error);
+}
+
+@media (min-width: 840px) {
+  .detail-header {
+    padding: 32px 32px 0;
+  }
 }

@@ -58,7 +58,7 @@ export class JobExecutionDetailComponent extends DetailDirective<JobExecutionSta
 
   onAbortJobExecution(jobExecutionStatus: JobExecutionStatus) {
     const dialogRef = this.dialog.open(AbortCrawlDialogComponent, {
-      disableClose: true,
+      disableClose: false,
       autoFocus: true,
       data: {jobExecutionStatus}
     });

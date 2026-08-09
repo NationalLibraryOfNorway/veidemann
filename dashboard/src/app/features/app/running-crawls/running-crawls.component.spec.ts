@@ -3,6 +3,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatChipSelectionChange} from '@angular/material/chips';
 import {of} from 'rxjs';
 
+import {ControllerApiService, ReportApiService} from '../../../core';
 import {provideMaterialAnimationsDisabled} from '../../../core/core.testing.module';
 import {
   ConfigObject,
@@ -38,6 +39,14 @@ describe('RunningCrawlsComponent', () => {
             getJob: (id: string) => of(new ConfigObject({id, meta: new Meta({name: 'Daily crawl'})})),
           },
         },
+        {
+          provide: ControllerApiService,
+          useValue: {queueCountForCrawlExecution: () => of({count: 0})},
+        },
+        {
+          provide: ReportApiService,
+          useValue: {listCrawlExecutions: () => of()},
+        },
       ],
     }).compileComponents();
 
@@ -61,9 +70,25 @@ describe('RunningCrawlsComponent', () => {
     expect(fixture.nativeElement.querySelector('h2').textContent).toBe('Latest crawl jobs');
     expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();
     expect(fixture.nativeElement.querySelector('.container').classList).toContain('embedded');
+    const section = fixture.nativeElement.querySelector('.latest-crawl-jobs') as HTMLElement;
+    const header = section.querySelector('.latest-crawl-jobs-header') as HTMLElement;
+    const list = section.querySelector('app-job-execution-status-list') as HTMLElement;
+    expect(getComputedStyle(section).width).toBe('100%');
+    expect(getComputedStyle(header).paddingInline).toBe('16px');
+    expect(getComputedStyle(list).width).toBe('100%');
+    expect(getComputedStyle(list).borderStyle).toBe('none');
     const headers = [...fixture.nativeElement.querySelectorAll('th')]
       .map((header: HTMLElement) => header.textContent.trim());
-    expect(headers).toEqual(['Job', 'State', 'Documents crawled', 'Start', 'End', 'Duration']);
+    expect(headers).toEqual([
+      'Job',
+      'State',
+      'Queue size',
+      'Documents crawled',
+      'Bytes crawled',
+      'Start',
+      'End',
+      'Duration',
+    ]);
   });
 
   it('hides the table when no crawl jobs match', () => {
@@ -81,6 +106,8 @@ describe('RunningCrawlsComponent', () => {
       startTime: '2026-08-04T08:00:00.000Z',
       endTime: '2026-08-04T09:02:00.000Z',
       documentsCrawled: 1234,
+      bytesCrawled: 1500,
+      desiredState: JobExecutionState.ABORTED_MANUAL,
     });
     render([row]);
     await fixture.whenStable();
@@ -91,7 +118,12 @@ describe('RunningCrawlsComponent', () => {
     const itemRow = fixture.nativeElement.querySelector('.item-row') as HTMLElement;
     expect(itemRow.textContent).toContain('Daily crawl');
     expect(itemRow.textContent).toContain('FINISHED');
+    const desiredStateBadge = itemRow.querySelector('.desired-state-badge') as HTMLElement;
+    expect(desiredStateBadge.textContent.trim()).toBe('ABORTED_MANUAL');
+    expect(desiredStateBadge.getAttribute('aria-label')).toBe('Desired state: ABORTED_MANUAL');
+    expect(itemRow.querySelector('.mat-column-queueSize')?.textContent.trim()).toBe('0');
     expect(itemRow.textContent).toContain('1,234');
+    expect(itemRow.querySelector('.mat-column-bytesCrawled')?.textContent.trim()).toBe('1.5 kB');
     expect(itemRow.textContent).toContain('1hours:2min');
 
     itemRow.click();

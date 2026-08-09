@@ -1,17 +1,21 @@
 import {AsyncPipe, DatePipe, DecimalPipe} from '@angular/common';
-import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject, Input} from '@angular/core';
 import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {RouterLink} from '@angular/router';
+import {Observable, of} from 'rxjs';
 
 import {
   CrawlExecutionState,
   ExtraStatusCodes,
   JobExecutionStatus
 } from '../../../../shared/models/report';
-import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {ConfigObject} from '../../../../shared/models/config';
 import {crawlExecutionStatePresentation, jobExecutionStatePresentation} from '../../func';
-import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
+import {JobExecutionService} from '../../services';
+import {
+  JobExecutionStatisticsComponent
+} from '../job-execution-statistics/job-execution-statistics.component';
 
 interface CrawlExecutionStateCount {
   count: number;
@@ -21,15 +25,13 @@ interface CrawlExecutionStateCount {
 @Component({
   selector: 'app-job-execution-status',
   templateUrl: './job-execution-status.component.html',
-  styleUrls: ['./job-execution-status.component.css'],
+  styleUrls: ['../detail-status-layout.scss', './job-execution-status.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
     DatePipe,
     DecimalPipe,
-    FileSizePipe,
-    JobexecutionTotalQueuePipe,
-    JobNamePipe,
+    JobExecutionStatisticsComponent,
     MatCardModule,
     MatIcon,
     RouterLink,
@@ -37,12 +39,26 @@ interface CrawlExecutionStateCount {
   standalone: true,
 })
 export class JobExecutionStatusComponent {
+  private readonly jobExecutionService = inject(JobExecutionService);
+
   readonly ExtraStatusCodes = ExtraStatusCodes;
   readonly crawlStatePresentation = crawlExecutionStatePresentation;
   readonly statePresentation = jobExecutionStatePresentation;
 
+  private status: JobExecutionStatus;
+  job$: Observable<ConfigObject | null> = of(null);
+
   @Input({required: true})
-  jobExecutionStatus: JobExecutionStatus;
+  set jobExecutionStatus(value: JobExecutionStatus) {
+    if (value?.jobId !== this.status?.jobId) {
+      this.job$ = value?.jobId ? this.jobExecutionService.getJob(value.jobId) : of(null);
+    }
+    this.status = value;
+  }
+
+  get jobExecutionStatus(): JobExecutionStatus {
+    return this.status;
+  }
 
   get executionStateCounts(): readonly CrawlExecutionStateCount[] {
     return [...this.jobExecutionStatus.executionsStateMap.entries()]

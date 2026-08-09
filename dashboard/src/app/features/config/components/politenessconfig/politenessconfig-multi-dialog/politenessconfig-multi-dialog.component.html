@@ -69,17 +69,9 @@
         (click)="useHostname.disabled ? useHostname.enable() : null"
         (keydown.enter)="useHostname.disabled ? useHostname.enable() : null"
         (keydown.space)="useHostname.disabled ? useHostname.enable() : null">
-        <mat-checkbox formControlName="useHostname"
-          labelPosition="after"
-          i18n="@@politenesslconfigFormUseHostnameLabel"
-          i18n-matTooltip="@@politenessconfigFormDisabledUseHostnameExplanation"
-          color="accent"
-                      [matTooltip]="useHostname.disabled ?
-                        'Setting is not equal for all selected configurations.'
-                         +'Click here and set desired state to override all, '
-                         + 'or leave untouched to keep the configurations original value.' : null">
-          Use hostname
-        </mat-checkbox>
+        <app-boolean-state-chip formControlName="useHostname" label="Use hostname"
+          i18n-label="@@politenesslconfigFormUseHostnameLabel">
+        </app-boolean-state-chip>
       </div>
     </div>
     </div>
