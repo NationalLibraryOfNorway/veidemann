@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
-import {ConfigObject, Kind, Label} from '../../../../shared/models/config';
+import {ConfigObject, Kind, Label, Role} from '../../../../shared/models/config';
 import {CONFIG_LIST_IMPORTS, ConfigListBaseComponent} from './config-list-base';
 import {isEmojiLabel, LabelDisplayComponent} from '../../../../shared/components';
 import {configKindIcon} from '../../func/config-kind-icon';
@@ -47,9 +47,23 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
 
   selectionAriaLabel(config: ConfigObject): string {
     if (this.isChecked(config)) {
-      return $localize`:@@configurationListDeselectConfigurationAriaLabel:Deselect ${config.meta.name}:CONFIGURATION_NAME:`;
+      return $localize`:@@configurationListDeselectConfigurationAriaLabel:Deselect ${this.configTitle(config)}:CONFIGURATION_NAME:`;
     }
-    return $localize`:@@configurationListSelectConfigurationAriaLabel:Select ${config.meta.name}:CONFIGURATION_NAME:`;
+    return $localize`:@@configurationListSelectConfigurationAriaLabel:Select ${this.configTitle(config)}:CONFIGURATION_NAME:`;
+  }
+
+  configTitle(config: ConfigObject): string {
+    if (config.kind === this.Kind.ROLEMAPPING) {
+      return config.roleMapping?.email || config.roleMapping?.group || config.meta.name;
+    }
+    return config.meta.name;
+  }
+
+  configSubtitle(config: ConfigObject): string {
+    if (config.kind === this.Kind.ROLEMAPPING) {
+      return config.roleMapping?.roleList.map(role => Role[role]).join(', ') || '';
+    }
+    return config.meta.description;
   }
 
   onSelectionStart(config: ConfigObject, event: Event): void {

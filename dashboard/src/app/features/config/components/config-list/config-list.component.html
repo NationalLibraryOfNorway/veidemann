@@ -110,13 +110,13 @@
             </mat-icon>
           }
           @if (isSelectionMode()) {
-            <span matListItemTitle class="row-text">{{ row.meta.name }}</span>
+            <span matListItemTitle class="row-text">{{ configTitle(row) }}</span>
           } @else {
             <a matListItemTitle class="primary-detail-link row-text" [href]="detailHref(row)"
-              (click)="onPrimaryLink(row, $event)">{{ row.meta.name }}</a>
+              (click)="onPrimaryLink(row, $event)">{{ configTitle(row) }}</a>
           }
           @if (!titleOnly) {
-            <span matListItemLine class="row-text">{{ row.meta.description }}</span>
+            <span matListItemLine class="row-text">{{ configSubtitle(row) }}</span>
           }
           @if (!titleOnly && row.meta.labelList.length) {
             <span matListItemMeta class="label-region">

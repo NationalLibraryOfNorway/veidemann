@@ -6,7 +6,7 @@ import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ConfigListComponent} from './config-list.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {ConfigObject, Kind, Label, ListDataSource, Meta} from '../../../../shared/models';
+import {ConfigObject, Kind, Label, ListDataSource, Meta, Role, RoleMapping} from '../../../../shared/models';
 import {AppConfig} from '../../../../app.config';
 
 describe('ConfigListComponent', () => {
@@ -40,6 +40,52 @@ describe('ConfigListComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('renders role mapping identities as titles and roles as subtitles', () => {
+    const emailMapping = new ConfigObject({
+      id: 'email-mapping',
+      kind: Kind.ROLEMAPPING,
+      meta: new Meta({name: 'roleMapping'}),
+      roleMapping: new RoleMapping({
+        email: 'curator@example.test',
+        roleList: [Role.CURATOR, Role.READONLY],
+      }),
+    });
+    const groupMapping = new ConfigObject({
+      id: 'group-mapping',
+      kind: Kind.ROLEMAPPING,
+      meta: new Meta({name: 'roleMapping'}),
+      roleMapping: new RoleMapping({
+        group: 'operators',
+        roleList: [Role.OPERATOR, Role.SYSTEM],
+      }),
+    });
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(emailMapping, groupMapping),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.detectChanges();
+
+    const titles = fixture.nativeElement.querySelectorAll('.item-row [matlistitemtitle]') as NodeListOf<HTMLElement>;
+    const subtitles = fixture.nativeElement.querySelectorAll('.item-row [matlistitemline]') as NodeListOf<HTMLElement>;
+    const selectionButtons = fixture.nativeElement.querySelectorAll('.selection-entry-control') as NodeListOf<HTMLButtonElement>;
+    expect(Array.from(titles, title => title.textContent.trim()))
+      .toEqual(['curator@example.test', 'operators']);
+    expect(Array.from(subtitles, subtitle => subtitle.textContent.trim()))
+      .toEqual(['CURATOR, READONLY', 'OPERATOR, SYSTEM']);
+    expect(Array.from(selectionButtons, button => button.getAttribute('aria-label')))
+      .toEqual(['Select curator@example.test', 'Select operators']);
+
+    component.onCheckboxToggle(emailMapping);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.item-row [matlistitemtitle]').textContent.trim())
+      .toBe('curator@example.test');
+    expect(component.configTitle(new ConfigObject({
+      kind: Kind.ROLEMAPPING,
+      meta: new Meta({name: 'roleMapping fallback'}),
+    }))).toBe('roleMapping fallback');
   });
 
   it('clears list and container selection when a new query resets the data source', () => {
