@@ -169,15 +169,15 @@ func (sess *Session) onPageEventFrameStartedLoading(ctx context.Context, ev *pag
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	previousCount, currentCount := sess.noteFrameLoadStart(string(ev.FrameID))
-	counted := previousCount == 0 && currentCount > 0
+	alreadyLoading, tracked := sess.noteFrameLoadStart(string(ev.FrameID))
+	counted := tracked && !alreadyLoading
 	sess.loggerOrDefault().Debug("Tracked frame started loading",
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
-		"previousCount", previousCount,
-		"counted", counted,
-		"currentCount", currentCount)
+		"tracked", tracked,
+		"alreadyLoading", alreadyLoading,
+		"counted", counted)
 	if counted {
 		sess.Requests.NotifyLoadStart()
 	}
@@ -187,8 +187,8 @@ func (sess *Session) onPageEventFrameStoppedLoading(ctx context.Context, ev *pag
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	previousCount, currentCount, tracked := sess.noteFrameLoadFinished(string(ev.FrameID))
-	counted := tracked && currentCount == 0
+	tracked := sess.noteFrameLoadFinished(string(ev.FrameID))
+	counted := tracked
 	message := "Tracked frame stopped loading"
 	if !tracked {
 		message = "Tracked frame stopped loading without prior start"
@@ -198,9 +198,7 @@ func (sess *Session) onPageEventFrameStoppedLoading(ctx context.Context, ev *pag
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
 		"tracked", tracked,
-		"previousCount", previousCount,
-		"counted", counted,
-		"currentCount", currentCount)
+		"counted", counted)
 	if counted {
 		sess.Requests.NotifyLoadFinished()
 	}
@@ -213,14 +211,13 @@ func (sess *Session) onPageEventFrameDetached(ctx context.Context, ev *page.Even
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	previousCount, tracked := sess.noteFrameLoadDetached(string(ev.FrameID))
+	tracked := sess.noteFrameLoadDetached(string(ev.FrameID))
 	log.Debug("Tracked frame detached",
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
 		"reason", string(ev.Reason),
-		"tracked", tracked,
-		"previousCount", previousCount)
+		"tracked", tracked)
 	if tracked {
 		sess.Requests.NotifyLoadFinished()
 	}
@@ -233,13 +230,12 @@ func (sess *Session) onPageEventFrameSubtreeWillBeDetached(ctx context.Context, 
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	previousCount, tracked := sess.noteFrameLoadDetached(string(ev.FrameID))
+	tracked := sess.noteFrameLoadDetached(string(ev.FrameID))
 	log.Debug("Tracked frame subtree will be detached",
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
-		"tracked", tracked,
-		"previousCount", previousCount)
+		"tracked", tracked)
 	if tracked {
 		sess.Requests.NotifyLoadFinished()
 	}

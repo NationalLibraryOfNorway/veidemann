@@ -1,6 +1,8 @@
 package session
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -94,3 +96,55 @@ func TestNetworkSettleIdleTime(t *testing.T) {
 		})
 	}
 }
+
+func TestWaitForCompletionIfActive(t *testing.T) {
+	t.Run("active context waits", func(t *testing.T) {
+		wantErr := errors.New("wait failed")
+		called := false
+		err := waitForCompletionIfActive(t.Context(), func() error {
+			called = true
+			return wantErr
+		})
+		if !called {
+			t.Fatal("completion wait was not called")
+		}
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("completion wait error = %v, want %v", err, wantErr)
+		}
+	})
+
+	t.Run("expired context skips wait", func(t *testing.T) {
+		loadCtx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		called := false
+		err := waitForCompletionIfActive(loadCtx, func() error {
+			called = true
+			return errors.New("must not be returned")
+		})
+		if called {
+			t.Fatal("completion wait was called with expired context")
+		}
+		if err != nil {
+			t.Fatalf("completion wait error = %v, want nil", err)
+		}
+	})
+}
+
+func TestScreenshotParentContext(t *testing.T) {
+	browserCtx := context.WithValue(t.Context(), contextKey("context"), "browser")
+	loadCtx, cancelLoad := context.WithCancel(context.WithValue(browserCtx, contextKey("context"), "load"))
+	cancelLoad()
+
+	if got := screenshotParentContext(browserCtx, loadCtx, nil); got != loadCtx {
+		t.Fatal("successful fetch did not retain the load context for screenshot capture")
+	}
+	if got := screenshotParentContext(browserCtx, loadCtx, errors.New("fetch failed")); got != browserCtx {
+		t.Fatal("failed fetch did not use the live browser context for recovery screenshot capture")
+	}
+	if err := screenshotParentContext(browserCtx, loadCtx, errors.New("fetch failed")).Err(); err != nil {
+		t.Fatalf("recovery screenshot context is already expired: %v", err)
+	}
+}
+
+type contextKey string

@@ -27,6 +27,7 @@ import (
 	"math"
 	"net/url"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -125,7 +126,7 @@ type Session struct {
 	scripts          *sessionScripts
 
 	initializedTargets map[target.ID]struct{}
-	loadingFrames      map[string]int
+	loadingFrames      map[string]struct{}
 
 	initializedTargetsMu sync.Mutex
 	loadingFramesMu      sync.Mutex
@@ -510,7 +511,11 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	sess.runOnLoadBehavior(loadCtx)
 
 	// Wait for the browser to go idle and for tracked requests to receive crawl logs.
-	err = sess.waitForSettledNetworkAndRequests(loadCtx, maxIdleTime)
+	// A frame timeout consumes the load context deadline, so there is no useful
+	// completion work left to do in that case.
+	err = waitForCompletionIfActive(loadCtx, func() error {
+		return sess.waitForSettledNetworkAndRequests(loadCtx, maxIdleTime)
+	})
 	if err != nil {
 		log.Warn("Timed out while waiting for outstanding requests", "error", err)
 		waitErr := classifyCompletionWaitError(sess.RequestedUrl.Uri, err)
@@ -535,7 +540,10 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	rootSnapshot := sess.Requests.RootRequestSnapshot()
 
 	if sess.CrawlConfig.GetExtra().CreateScreenshot {
-		screenshotCtx, cancelScreenshot := context.WithTimeout(loadCtx, maxIdleTime)
+		screenshotCtx, cancelScreenshot := context.WithTimeout(
+			screenshotParentContext(cdpCtx, loadCtx, fetchErr),
+			maxIdleTime,
+		)
 		sess.saveScreenshot(screenshotCtx, rootSnapshot)
 		cancelScreenshot()
 	}
@@ -862,65 +870,61 @@ func (sess *Session) waitForSettledNetworkAndRequests(ctx context.Context, maxId
 	}
 }
 
-func (sess *Session) noteFrameLoadStart(frameID string) (previousCount, currentCount int) {
+func (sess *Session) noteFrameLoadStart(frameID string) (alreadyLoading, tracked bool) {
 	if frameID == "" {
-		return 0, 0
+		return false, false
 	}
 
 	sess.loadingFramesMu.Lock()
 	defer sess.loadingFramesMu.Unlock()
 
 	if sess.loadingFrames == nil {
-		sess.loadingFrames = make(map[string]int)
+		sess.loadingFrames = make(map[string]struct{})
 	}
 
-	previousCount = sess.loadingFrames[frameID]
-	currentCount = previousCount + 1
-	sess.loadingFrames[frameID] = currentCount
-	return previousCount, currentCount
+	if _, alreadyLoading = sess.loadingFrames[frameID]; alreadyLoading {
+		return true, true
+	}
+
+	sess.loadingFrames[frameID] = struct{}{}
+	return false, true
 }
 
-func (sess *Session) noteFrameLoadFinished(frameID string) (previousCount, currentCount int, tracked bool) {
+func (sess *Session) noteFrameLoadFinished(frameID string) (tracked bool) {
 	if frameID == "" {
-		return 0, 0, false
+		return false
 	}
 
 	sess.loadingFramesMu.Lock()
 	defer sess.loadingFramesMu.Unlock()
 
-	previousCount, tracked = sess.loadingFrames[frameID]
+	_, tracked = sess.loadingFrames[frameID]
 	if !tracked {
-		return 0, 0, false
-	}
-
-	currentCount = previousCount - 1
-	if currentCount <= 0 {
-		delete(sess.loadingFrames, frameID)
-		return previousCount, 0, true
-	}
-
-	sess.loadingFrames[frameID] = currentCount
-	return previousCount, currentCount, true
-}
-
-func (sess *Session) noteFrameLoadDetached(frameID string) (previousCount int, tracked bool) {
-	if frameID == "" {
-		return 0, false
-	}
-
-	sess.loadingFramesMu.Lock()
-	defer sess.loadingFramesMu.Unlock()
-
-	previousCount, tracked = sess.loadingFrames[frameID]
-	if !tracked {
-		return 0, false
+		return false
 	}
 
 	delete(sess.loadingFrames, frameID)
-	return previousCount, true
+	return true
 }
 
-func (sess *Session) loadingFrameSnapshot() map[string]int {
+func (sess *Session) noteFrameLoadDetached(frameID string) (tracked bool) {
+	if frameID == "" {
+		return false
+	}
+
+	sess.loadingFramesMu.Lock()
+	defer sess.loadingFramesMu.Unlock()
+
+	_, tracked = sess.loadingFrames[frameID]
+	if !tracked {
+		return false
+	}
+
+	delete(sess.loadingFrames, frameID)
+	return true
+}
+
+func (sess *Session) loadingFrameSnapshot() []string {
 	sess.loadingFramesMu.Lock()
 	defer sess.loadingFramesMu.Unlock()
 
@@ -928,9 +932,23 @@ func (sess *Session) loadingFrameSnapshot() map[string]int {
 		return nil
 	}
 
-	snapshot := make(map[string]int, len(sess.loadingFrames))
-	maps.Copy(snapshot, sess.loadingFrames)
+	snapshot := slices.Collect(maps.Keys(sess.loadingFrames))
+	slices.Sort(snapshot)
 	return snapshot
+}
+
+func waitForCompletionIfActive(loadCtx context.Context, wait func() error) error {
+	if loadCtx == nil || loadCtx.Err() != nil {
+		return nil
+	}
+	return wait()
+}
+
+func screenshotParentContext(cdpCtx, loadCtx context.Context, fetchErr error) context.Context {
+	if fetchErr != nil {
+		return cdpCtx
+	}
+	return loadCtx
 }
 
 func recoverFetchError(r any) bcerrors.FetchError {
