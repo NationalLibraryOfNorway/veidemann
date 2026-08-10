@@ -104,7 +104,11 @@ export class CrawlExecutionComponent {
       has_error: query.hasError || null,
       watch: query.watch || null
     };
-    this.router.navigate([], {relativeTo: this.route, queryParams})
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+    })
       .catch(error => this.errorHandler.handleError(error));
   }
 
