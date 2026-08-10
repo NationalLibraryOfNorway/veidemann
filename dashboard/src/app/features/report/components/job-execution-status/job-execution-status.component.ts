@@ -1,6 +1,5 @@
-import {AsyncPipe, DatePipe, DecimalPipe} from '@angular/common';
+import {AsyncPipe, DecimalPipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, inject, Input} from '@angular/core';
-import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {RouterLink} from '@angular/router';
 import {Observable, of} from 'rxjs';
@@ -8,6 +7,7 @@ import {Observable, of} from 'rxjs';
 import {
   CrawlExecutionState,
   ExtraStatusCodes,
+  JobExecutionState,
   JobExecutionStatus
 } from '../../../../shared/models/report';
 import {ConfigObject} from '../../../../shared/models/config';
@@ -16,6 +16,10 @@ import {JobExecutionService} from '../../services';
 import {
   JobExecutionStatisticsComponent
 } from '../job-execution-statistics/job-execution-statistics.component';
+import {
+  ExecutionMetadataComponent,
+  ExecutionTerminalEvent,
+} from '../execution-metadata/execution-metadata.component';
 
 interface CrawlExecutionStateCount {
   count: number;
@@ -29,10 +33,9 @@ interface CrawlExecutionStateCount {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
-    DatePipe,
     DecimalPipe,
+    ExecutionMetadataComponent,
     JobExecutionStatisticsComponent,
-    MatCardModule,
     MatIcon,
     RouterLink,
   ],
@@ -73,6 +76,21 @@ export class JobExecutionStatusComponent {
   hasError(): boolean {
     const error = this.jobExecutionStatus.error;
     return !!error && (error.code !== 0 || !!error.msg?.trim() || !!error.detail?.trim());
+  }
+
+  terminalEvent(state: JobExecutionState): ExecutionTerminalEvent {
+    switch (state) {
+      case JobExecutionState.FINISHED:
+        return 'finished';
+      case JobExecutionState.FAILED:
+        return 'failed';
+      case JobExecutionState.DIED:
+        return 'died';
+      case JobExecutionState.ABORTED_MANUAL:
+        return 'aborted';
+      default:
+        return null;
+    }
   }
 
   private toCrawlExecutionState(key: string): CrawlExecutionState | null {

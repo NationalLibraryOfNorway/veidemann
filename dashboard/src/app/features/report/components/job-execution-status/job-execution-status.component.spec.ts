@@ -70,7 +70,7 @@ describe('JobExecutionStatusComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
-    expect(fixture.nativeElement.querySelector('dl.description-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.overview-aside')).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('execution-id-that-can-wrap');
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('News crawl');
     expect(fixture.nativeElement.querySelector('.queue-badge')).toBeNull();
@@ -81,7 +81,7 @@ describe('JobExecutionStatusComponent', () => {
     expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
   });
 
-  it('pairs state and desired state and orders optional crawl statistics after duration', () => {
+  it('places state metadata in the header and orders optional crawl statistics after duration', () => {
     render(new JobExecutionStatus({
       state: JobExecutionState.RUNNING,
       desiredState: JobExecutionState.ABORTED_MANUAL,
@@ -90,13 +90,12 @@ describe('JobExecutionStatusComponent', () => {
       documentsRetried: 3,
     }));
 
-    const rows = [...fixture.nativeElement.querySelectorAll('.overview-card .description-row')]
-      .map((row: HTMLElement) => [...row.querySelectorAll('dt')]
-        .map(term => term.textContent.trim()));
-    expect(rows).toEqual([
-      ['State', 'Desired state'],
-      ['Started', 'Ended'],
-    ]);
+    const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
+    const badges = [...metadata.querySelectorAll('.state-badge')]
+      .map((badge: HTMLElement) => badge.querySelector(':scope > span')?.textContent.trim());
+    expect(badges).toEqual(['Running', 'Aborted']);
+    expect(metadata.textContent).toContain('Desired state:');
+    expect(metadata.textContent).not.toContain('Not available');
     const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric-card > span')]
       .map((label: HTMLElement) => label.textContent.trim());
     expect(metricLabels).toEqual([
@@ -198,44 +197,57 @@ describe('JobExecutionStatusComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('A long\nwrapped detail');
   });
 
-  it('projects helpers into the page header and actions into the overview card actions', () => {
+  it('projects helpers and actions into their page-header rows', () => {
     const hostFixture = TestBed.createComponent(JobExecutionStatusHostComponent);
     hostFixture.detectChanges();
 
     const header = hostFixture.nativeElement.querySelector('.detail-header') as HTMLElement;
-    const actions = hostFixture.nativeElement.querySelector('.overview-card mat-card-actions') as HTMLElement;
+    const actions = header.querySelector('.detail-header-actions') as HTMLElement;
     expect(header.querySelector('.projected-helper')).not.toBeNull();
-    expect(header.querySelector('.projected-action')).toBeNull();
     expect(actions.querySelector('.projected-action')).not.toBeNull();
+    expect(header.querySelector('.detail-header-helpers .projected-action')).toBeNull();
   });
 
   it('shows desired state only when it is defined', () => {
     render(new JobExecutionStatus({desiredState: JobExecutionState.UNDEFINED}));
-    expect(fixture.nativeElement.querySelector('.overview-card').textContent).not.toContain('Desired state');
+    expect(fixture.nativeElement.querySelector('app-execution-metadata').textContent)
+      .not.toContain('Desired state');
 
     render(new JobExecutionStatus({desiredState: JobExecutionState.ABORTED_MANUAL}));
-    const overview = fixture.nativeElement.querySelector('.overview-card') as HTMLElement;
-    expect(overview.textContent).toContain('Desired state');
-    expect(overview.textContent).toContain('Aborted');
+    const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
+    expect(metadata.textContent).toContain('Desired state');
+    expect(metadata.textContent).toContain('Aborted');
   });
 
-  it('places crawl statistics in the primary pane and textual state in a filled supporting card', () => {
+  it('uses one full-width content pane for the header and crawl statistics', () => {
     render(new JobExecutionStatus());
     const grid = fixture.nativeElement.querySelector('.detail-grid') as HTMLElement;
     const primary = grid.querySelector(':scope > .primary-pane') as HTMLElement;
     const statistics = primary.querySelector('.statistics-section') as HTMLElement;
-    const aside = grid.querySelector(':scope > .overview-aside') as HTMLElement;
-    const overviewCard = aside.querySelector(':scope > mat-card.overview-card') as HTMLElement;
     const metrics = statistics.querySelector('.metric-grid') as HTMLElement;
     expect(primary).not.toBeNull();
-    expect(aside.tagName).toBe('ASIDE');
+    expect(grid.querySelector(':scope > .overview-aside')).toBeNull();
     expect(statistics.querySelector('h2')?.textContent).toBe('Crawl statistics');
-    expect(overviewCard.getAttribute('appearance')).toBe('filled');
-    expect(overviewCard.querySelector('dl.description-list')).not.toBeNull();
-    expect(overviewCard.querySelector('mat-card-actions.detail-actions')).not.toBeNull();
+    expect(primary.querySelector('.detail-header app-execution-metadata')).not.toBeNull();
     expect(statistics).not.toBeNull();
     expect(primary.querySelector('.crawl-executions-section')).not.toBeNull();
     expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(6);
     expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(6);
+  });
+
+  it.each([
+    [JobExecutionState.FINISHED, 'Ended'],
+    [JobExecutionState.FAILED, 'Failed'],
+    [JobExecutionState.DIED, 'Died'],
+    [JobExecutionState.ABORTED_MANUAL, 'Aborted'],
+  ])('uses terminal metadata for state %s', (state, expectedText) => {
+    render(new JobExecutionStatus({
+      state,
+      endTime: '2026-08-10T13:57:00.000Z',
+    }));
+
+    const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
+    expect(metadata.textContent).toContain(expectedText);
+    expect(metadata.textContent).not.toContain('Not available');
   });
 });

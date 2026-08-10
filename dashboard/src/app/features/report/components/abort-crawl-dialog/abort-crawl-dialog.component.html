@@ -1,21 +1,14 @@
-<h1 mat-dialog-title>Abort JobExecution</h1>
+<h1 mat-dialog-title i18n="@@abortCrawlDialogTitle">Abort crawl?</h1>
 <div mat-dialog-content>
-  @if (jobExecutionStatus) {
-    <span>Are you sure you want to abort the job:</span>
-    <div>
-      <p>{{jobExecutionStatus.jobId | getJobNamePipe | async}}</p>
-      <p>started: {{jobExecutionStatus.startTime | date: 'medium'}}</p>
-    </div>
-  }
-  @if (crawlExecutionStatus) {
-    <span>Are you sure you want to abort the crawl of: {{crawlExecutionStatus.seedId | getSeedNamePipe | async}}?</span>
-  }
+  <p i18n="@@abortCrawlDialogDescription">
+    The crawl will stop processing new URLs. Already crawled documents will be retained.
+  </p>
 </div>
-<div mat-dialog-actions>
-  <button mat-raised-button color="warn"
-    (click)="onAbortCrawl()">ABORT
+<div mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="false" i18n="@@commonCancel">
+    Cancel
   </button>
-  <button mat-button
-    [mat-dialog-close]="false">CANCEL
+  <button class="confirm-abort" mat-flat-button type="button" (click)="onAbortCrawl()">
+    <span i18n="@@reportDetailAbortCrawlAction">Abort crawl</span>
   </button>
 </div>

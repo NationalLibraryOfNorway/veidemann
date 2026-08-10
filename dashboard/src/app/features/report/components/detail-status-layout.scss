@@ -15,6 +15,23 @@
   min-width: 0;
 }
 
+.detail-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.detail-header-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .detail-heading h1 {
   margin: 0;
   font: var(--mat-sys-headline-large);
@@ -88,6 +105,10 @@
   .detail-heading h1 {
     font: var(--mat-sys-headline-medium);
     letter-spacing: var(--mat-sys-headline-medium-tracking);
+  }
+
+  .detail-header-actions {
+    width: 100%;
   }
 
   .error-callout {

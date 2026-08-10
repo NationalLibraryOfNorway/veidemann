@@ -180,6 +180,18 @@
         <target>Active filters</target>
       </segment>
     </unit>
+    <unit id="abortCrawlDialogDescription">
+      <segment state="final">
+        <source> The crawl will stop processing new URLs. Already crawled documents will be retained. </source>
+        <target> Crawlen slutter å behandle nye URL-er. Dokumenter som allerede er crawlet, beholdes. </target>
+      </segment>
+    </unit>
+    <unit id="abortCrawlDialogTitle">
+      <segment state="final">
+        <source>Abort crawl?</source>
+        <target>Avbryt crawl?</target>
+      </segment>
+    </unit>
     <unit id="activeConfigRemoveFilterLabel">
       <segment state="final">
         <source>Remove <ph id="0" equiv="PH" disp="chip.label"/> filter</source>
@@ -634,6 +646,12 @@
       <segment state="final">
         <source>Not available</source>
         <target>Ikke tilgjengelig</target>
+      </segment>
+    </unit>
+    <unit id="commonCancel">
+      <segment state="final">
+        <source> Cancel </source>
+        <target> Avbryt </target>
       </segment>
     </unit>
     <unit id="commonYes">
@@ -1752,6 +1770,24 @@
         <target>Opprettet</target>
       </segment>
     </unit>
+    <unit id="executionAbortedMetadata">
+      <segment state="final">
+        <source> Aborted at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+        <target> Avbrutt <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
+      </segment>
+    </unit>
+    <unit id="executionDesiredStateInlineLabel">
+      <segment state="final">
+        <source>Desired state:</source>
+        <target>Ønsket tilstand:</target>
+      </segment>
+    </unit>
+    <unit id="executionDiedMetadata">
+      <segment state="final">
+        <source> Died at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+        <target> Stanset <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
+      </segment>
+    </unit>
     <unit id="executionDocumentsCrawledMetric">
       <segment state="final">
         <source>Documents crawled</source>
@@ -1792,6 +1828,18 @@
       <segment state="final">
         <source>Ended</source>
         <target>Avsluttet</target>
+      </segment>
+    </unit>
+    <unit id="executionEndedMetadata">
+      <segment state="final">
+        <source> Ended at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+        <target> Avsluttet <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
+      </segment>
+    </unit>
+    <unit id="executionFailedMetadata">
+      <segment state="final">
+        <source> Failed at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+        <target> Mislyktes <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
       </segment>
     </unit>
     <unit id="reportDetailJobExecutionAction">
@@ -1840,6 +1888,12 @@
       <segment state="final">
         <source>Started</source>
         <target>Startet</target>
+      </segment>
+    </unit>
+    <unit id="executionStartedMetadata">
+      <segment state="final">
+        <source> Started <ph id="0" equiv="INTERPOLATION" disp="{{startTime | date:&apos;mediumDate&apos;}}"/> at <ph id="1" equiv="INTERPOLATION_1" disp="{{startTime | date:&apos;shortTime&apos;}}"/> </source>
+        <target> Startet <ph id="0" equiv="INTERPOLATION" disp="{{startTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{startTime | date:&apos;shortTime&apos;}}"/> </target>
       </segment>
     </unit>
     <unit id="executionStateAborted">

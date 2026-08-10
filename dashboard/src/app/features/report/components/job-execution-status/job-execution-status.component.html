@@ -5,9 +5,22 @@
            i18n-aria-label="@@jobExecutionDetailGridLabel">
     <div class="primary-pane">
       <header class="detail-header">
-        <div class="detail-heading">
-          <h1>{{job?.meta?.name || jobExecutionStatus.jobId}}</h1>
+        <div class="detail-title-row">
+          <div class="detail-heading">
+            <h1>{{job?.meta?.name || jobExecutionStatus.jobId}}</h1>
+          </div>
+          <div class="detail-header-actions">
+            <ng-content select="[detailActions]"></ng-content>
+          </div>
         </div>
+        <app-execution-metadata
+          [state]="jobState"
+          [desiredState]="jobExecutionStatus.desiredState
+            ? statePresentation(jobExecutionStatus.desiredState) : null"
+          [startTime]="jobExecutionStatus.startTime"
+          [endTime]="jobExecutionStatus.endTime"
+          [terminalEvent]="terminalEvent(jobExecutionStatus.state)">
+        </app-execution-metadata>
         <div class="detail-header-helpers">
           <ng-content select="[detailHeaderHelpers]"></ng-content>
         </div>
@@ -82,63 +95,5 @@
         </section>
       }
     </div>
-
-    <aside class="overview-aside" aria-label="Job execution overview"
-           i18n-aria-label="@@jobExecutionOverviewTitle">
-      <mat-card class="overview-card" appearance="filled">
-        <mat-card-content>
-          <dl class="description-list">
-            <div class="description-row">
-              <div>
-                <dt i18n="@@executionStateLabel">State</dt>
-                <dd>
-                  <span class="state-badge" [class]="'state-badge state-' + jobState.tone">
-                    <mat-icon>{{jobState.icon}}</mat-icon>
-                    <span>{{jobState.label}}</span>
-                  </span>
-                </dd>
-              </div>
-              @if (jobExecutionStatus.desiredState) {
-                @let desiredState = statePresentation(jobExecutionStatus.desiredState);
-                <div>
-                  <dt i18n="@@executionDesiredStateLabel">Desired state</dt>
-                  <dd>
-                    <span class="state-badge" [class]="'state-badge state-' + desiredState.tone">
-                      <mat-icon>{{desiredState.icon}}</mat-icon>
-                      <span>{{desiredState.label}}</span>
-                    </span>
-                  </dd>
-                </div>
-              }
-            </div>
-            <div class="description-row">
-              <div>
-                <dt i18n="@@executionStartedLabel">Started</dt>
-                <dd>
-                  @if (jobExecutionStatus.startTime) {
-                    {{jobExecutionStatus.startTime | date:'medium'}}
-                  } @else {
-                    <span i18n="@@commonNotAvailable">Not available</span>
-                  }
-                </dd>
-              </div>
-              <div>
-                <dt i18n="@@executionEndedLabel">Ended</dt>
-                <dd>
-                  @if (jobExecutionStatus.endTime) {
-                    {{jobExecutionStatus.endTime | date:'medium'}}
-                  } @else {
-                    <span i18n="@@commonNotAvailable">Not available</span>
-                  }
-                </dd>
-              </div>
-            </div>
-          </dl>
-        </mat-card-content>
-        <mat-card-actions class="detail-actions">
-          <ng-content select="[detailActions]"></ng-content>
-        </mat-card-actions>
-      </mat-card>
-    </aside>
   </section>
 }

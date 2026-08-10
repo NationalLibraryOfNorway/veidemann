@@ -14,12 +14,7 @@
   gap: 32px;
 }
 
-.overview-aside,
 .detail-section {
-  min-width: 0;
-}
-
-.overview-card {
   min-width: 0;
 }
 
@@ -34,16 +29,6 @@
 }
 
 .description-list > div {
-  min-width: 0;
-}
-
-.description-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
-}
-
-.description-row > div {
   min-width: 0;
 }
 
@@ -70,57 +55,6 @@ dd {
 .identifier {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-body-small);
-}
-
-.state-badge {
-  display: inline-flex;
-  width: fit-content;
-  max-width: 100%;
-  min-height: 32px;
-  box-sizing: border-box;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font: var(--mat-sys-label-large);
-  align-items: center;
-  gap: 6px;
-}
-
-.state-badge mat-icon {
-  width: 18px;
-  height: 18px;
-  font-size: 18px;
-}
-
-.state-active {
-  color: var(--mat-sys-on-primary-container);
-  background: var(--mat-sys-primary-container);
-}
-
-.state-waiting {
-  color: var(--mat-sys-on-tertiary-container);
-  background: var(--mat-sys-tertiary-container);
-}
-
-.state-finished {
-  color: var(--mat-sys-on-secondary-container);
-  background: var(--mat-sys-secondary-container);
-}
-
-.state-error {
-  color: var(--mat-sys-on-error-container);
-  background: var(--mat-sys-error-container);
-}
-
-.state-neutral {
-  color: var(--mat-sys-on-surface-variant);
-  background: var(--mat-sys-surface-container-highest);
-}
-
-.detail-actions {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 12px;
 }
 
 .state-count-list {
@@ -188,23 +122,8 @@ dd {
   overflow-wrap: anywhere;
 }
 
-@media (min-width: 1200px) {
-  .detail-grid {
-    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-  }
-
-  .overview-aside {
-    position: sticky;
-    top: 0;
-  }
-}
-
 @media (max-width: 599px) {
   .detail-grid {
     gap: 16px;
-  }
-
-  .description-row {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

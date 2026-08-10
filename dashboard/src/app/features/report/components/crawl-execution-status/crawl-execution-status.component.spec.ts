@@ -64,17 +64,17 @@ describe('CrawlExecutionStatusComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
-    expect(fixture.nativeElement.querySelector('dl.description-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.overview-aside')).toBeNull();
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Example seed');
     expect(fixture.nativeElement.querySelector('.detail-subtitle').textContent).toBe('Example job');
     expect(fixture.nativeElement.textContent).not.toContain('crawl-execution-id-that-can-wrap');
     expect(fixture.nativeElement.textContent).not.toContain('parent-execution-id-that-can-wrap');
     expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(6);
-    expect(fixture.nativeElement.textContent.match(/Not available/g)?.length).toBe(5);
+    expect(fixture.nativeElement.textContent.match(/Not available/g)?.length).toBe(1);
     expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
   });
 
-  it('pairs states and dates and orders optional crawl statistics after duration', () => {
+  it('places state metadata in the header and orders optional crawl statistics after duration', () => {
     render(new CrawlExecutionStatus({
       state: CrawlExecutionState.FETCHING,
       desiredState: CrawlExecutionState.ABORTED_MANUAL,
@@ -83,14 +83,14 @@ describe('CrawlExecutionStatusComponent', () => {
       documentsRetried: 3,
     }));
 
-    const rows = [...fixture.nativeElement.querySelectorAll('.overview-card .description-row')]
-      .map((row: HTMLElement) => [...row.querySelectorAll('dt')]
-        .map(term => term.textContent.trim()));
-    expect(rows).toEqual([
-      ['State', 'Desired state'],
-      ['Created', 'Last changed'],
-      ['Started', 'Ended'],
-    ]);
+    const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
+    const badges = [...metadata.querySelectorAll('.state-badge')]
+      .map((badge: HTMLElement) => badge.querySelector(':scope > span')?.textContent.trim());
+    expect(badges).toEqual(['Fetching', 'Aborted']);
+    expect(metadata.textContent).toContain('Desired state:');
+    expect(metadata.textContent).not.toContain('Created');
+    expect(metadata.textContent).not.toContain('Last changed');
+    expect(metadata.textContent).not.toContain('Not available');
     const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric-card > span')]
       .map((label: HTMLElement) => label.textContent.trim());
     expect(metricLabels).toEqual([
@@ -137,33 +137,47 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(detail.textContent).toContain('first line\nsecond line');
   });
 
-  it('projects helpers into the page header and actions into the overview card actions', () => {
+  it('projects helpers and actions into their page-header rows', () => {
     const hostFixture = TestBed.createComponent(CrawlExecutionStatusHostComponent);
     hostFixture.detectChanges();
 
     const header = hostFixture.nativeElement.querySelector('.detail-header') as HTMLElement;
-    const cardActions = hostFixture.nativeElement.querySelector('.overview-card mat-card-actions') as HTMLElement;
+    const actions = header.querySelector('.detail-header-actions') as HTMLElement;
     expect(header.querySelector('.projected-helper')).not.toBeNull();
-    expect(header.querySelector('.projected-action')).toBeNull();
-    expect(cardActions.querySelector('.projected-action')).not.toBeNull();
+    expect(actions.querySelector('.projected-action')).not.toBeNull();
+    expect(header.querySelector('.detail-header-helpers .projected-action')).toBeNull();
   });
 
-  it('places crawl statistics in the primary pane and textual state in a filled supporting card', () => {
+  it('uses one full-width content pane for the header and crawl statistics', () => {
     render(new CrawlExecutionStatus());
     const grid = fixture.nativeElement.querySelector('.detail-grid') as HTMLElement;
     const primary = grid.querySelector(':scope > .primary-pane') as HTMLElement;
     const statistics = primary.querySelector('.statistics-section') as HTMLElement;
-    const aside = grid.querySelector(':scope > .overview-aside') as HTMLElement;
-    const overviewCard = aside.querySelector(':scope > mat-card.overview-card') as HTMLElement;
 
     expect(statistics.querySelector('h2')?.textContent).toBe('Crawl statistics');
-    expect(aside.tagName).toBe('ASIDE');
-    expect(overviewCard.getAttribute('appearance')).toBe('filled');
-    expect(overviewCard.querySelector('dl.description-list')).not.toBeNull();
-    expect(overviewCard.querySelector('mat-card-actions.detail-actions')).not.toBeNull();
+    expect(grid.querySelector(':scope > .overview-aside')).toBeNull();
+    expect(primary.querySelector('.detail-header app-execution-metadata')).not.toBeNull();
     const metrics = statistics.querySelector('.metric-grid') as HTMLElement;
     expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(6);
     expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(6);
+  });
+
+  it.each([
+    [CrawlExecutionState.FINISHED, 'Ended'],
+    [CrawlExecutionState.FAILED, 'Failed'],
+    [CrawlExecutionState.DIED, 'Died'],
+    [CrawlExecutionState.ABORTED_TIMEOUT, 'Aborted'],
+    [CrawlExecutionState.ABORTED_SIZE, 'Aborted'],
+    [CrawlExecutionState.ABORTED_MANUAL, 'Aborted'],
+  ])('uses terminal metadata for state %s', (state, expectedText) => {
+    render(new CrawlExecutionStatus({
+      state,
+      endTime: '2026-08-10T13:57:00.000Z',
+    }));
+
+    const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
+    expect(metadata.textContent).toContain(expectedText);
+    expect(metadata.textContent).not.toContain('Not available');
   });
 
   it('renders a queue count and distinguishes an unavailable count from zero', () => {

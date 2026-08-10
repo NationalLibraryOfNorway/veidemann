@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.execution-metadata,
+.desired-state {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.execution-metadata {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.lifecycle-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.time-arrow {
+  padding: 0 4px;
+}
+
+.metadata-divider {
+  color: var(--mat-sys-outline);
+}
+
+.desired-state {
+  gap: 6px;
+}
+
+.state-badge {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: var(--mat-sys-label-large);
+  align-items: center;
+  gap: 6px;
+}
+
+.state-badge mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.state-active {
+  color: var(--mat-sys-on-primary-container);
+  background: var(--mat-sys-primary-container);
+}
+
+.state-waiting {
+  color: var(--mat-sys-on-tertiary-container);
+  background: var(--mat-sys-tertiary-container);
+}
+
+.state-finished {
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+}
+
+.state-error {
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+}
+
+.state-neutral {
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container-highest);
+}

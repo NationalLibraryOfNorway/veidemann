@@ -1,0 +1,69 @@
+<div class="execution-metadata">
+  <span class="state-badge" [class]="'state-badge state-' + state.tone">
+    <mat-icon aria-hidden="true">{{state.icon}}</mat-icon>
+    <span>{{state.label}}</span>
+  </span>
+
+  @if (terminalEvent === 'finished') {
+    @if (startTime && endTime) {
+      <span class="lifecycle-time">
+        @if (sameCalendarDay()) {
+          {{startTime | date:'mediumDate'}}, {{startTime | date:'shortTime'}}
+          <span class="time-arrow">→</span>
+          {{endTime | date:'shortTime'}}
+        } @else {
+          {{startTime | date:'mediumDate'}}, {{startTime | date:'shortTime'}}
+          <span class="time-arrow">→</span>
+          {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
+        }
+      </span>
+    } @else if (startTime) {
+      <span class="lifecycle-time" i18n="@@executionStartedMetadata">
+        Started {{startTime | date:'mediumDate'}} at {{startTime | date:'shortTime'}}
+      </span>
+    } @else if (endTime) {
+      <span class="lifecycle-time" i18n="@@executionEndedMetadata">
+        Ended at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
+      </span>
+    }
+  } @else {
+    @if (startTime) {
+      <span class="lifecycle-time" i18n="@@executionStartedMetadata">
+        Started {{startTime | date:'mediumDate'}} at {{startTime | date:'shortTime'}}
+      </span>
+    }
+    @if (endTime && terminalEvent) {
+      @if (startTime) {
+        <span class="metadata-divider" aria-hidden="true">·</span>
+      }
+      @switch (terminalEvent) {
+        @case ('failed') {
+          <span class="lifecycle-time" i18n="@@executionFailedMetadata">
+            Failed at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
+          </span>
+        }
+        @case ('died') {
+          <span class="lifecycle-time" i18n="@@executionDiedMetadata">
+            Died at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
+          </span>
+        }
+        @case ('aborted') {
+          <span class="lifecycle-time" i18n="@@executionAbortedMetadata">
+            Aborted at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
+          </span>
+        }
+      }
+    }
+  }
+
+  @if (desiredState) {
+    <span class="metadata-divider" aria-hidden="true">·</span>
+    <span class="desired-state">
+      <span i18n="@@executionDesiredStateInlineLabel">Desired state:</span>
+      <span class="state-badge" [class]="'state-badge state-' + desiredState.tone">
+        <mat-icon aria-hidden="true">{{desiredState.icon}}</mat-icon>
+        <span>{{desiredState.label}}</span>
+      </span>
+    </span>
+  }
+</div>

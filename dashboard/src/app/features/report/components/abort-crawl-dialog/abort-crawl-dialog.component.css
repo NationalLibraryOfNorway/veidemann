@@ -1,0 +1,9 @@
+mat-dialog-content p {
+  max-width: 440px;
+  margin: 0;
+}
+
+.confirm-abort {
+  color: var(--mat-sys-on-error);
+  background: var(--mat-sys-error);
+}

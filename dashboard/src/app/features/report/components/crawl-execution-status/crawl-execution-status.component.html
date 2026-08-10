@@ -6,10 +6,23 @@
            i18n-aria-label="@@crawlExecutionDetailGridLabel">
     <div class="primary-pane">
       <header class="detail-header">
-        <div class="detail-heading">
-          <h1>{{seedName || crawlExecutionStatus.seedId}}</h1>
-          <p class="detail-subtitle">{{jobName || crawlExecutionStatus.jobId}}</p>
+        <div class="detail-title-row">
+          <div class="detail-heading">
+            <h1>{{seedName || crawlExecutionStatus.seedId}}</h1>
+            <p class="detail-subtitle">{{jobName || crawlExecutionStatus.jobId}}</p>
+          </div>
+          <div class="detail-header-actions">
+            <ng-content select="[detailActions]"></ng-content>
+          </div>
         </div>
+        <app-execution-metadata
+          [state]="crawlState"
+          [desiredState]="crawlExecutionStatus.desiredState
+            ? statePresentation(crawlExecutionStatus.desiredState) : null"
+          [startTime]="crawlExecutionStatus.startTime"
+          [endTime]="crawlExecutionStatus.endTime"
+          [terminalEvent]="terminalEvent(crawlExecutionStatus.state)">
+        </app-execution-metadata>
         <div class="detail-header-helpers">
           <ng-content select="[detailHeaderHelpers]"></ng-content>
         </div>
@@ -99,85 +112,5 @@
         </section>
       }
     </div>
-
-    <aside class="overview-aside" aria-label="Crawl execution overview"
-           i18n-aria-label="@@crawlExecutionOverviewTitle">
-      <mat-card class="overview-card" appearance="filled">
-        <mat-card-content>
-          <dl class="description-list">
-            <div class="description-row">
-              <div>
-                <dt i18n="@@executionStateLabel">State</dt>
-                <dd>
-                  <span class="state-badge" [class]="'state-badge state-' + crawlState.tone">
-                    <mat-icon>{{crawlState.icon}}</mat-icon>
-                    <span>{{crawlState.label}}</span>
-                  </span>
-                </dd>
-              </div>
-              @if (crawlExecutionStatus.desiredState) {
-                @let desiredState = statePresentation(crawlExecutionStatus.desiredState);
-                <div>
-                  <dt i18n="@@executionDesiredStateLabel">Desired state</dt>
-                  <dd>
-                    <span class="state-badge" [class]="'state-badge state-' + desiredState.tone">
-                      <mat-icon>{{desiredState.icon}}</mat-icon>
-                      <span>{{desiredState.label}}</span>
-                    </span>
-                  </dd>
-                </div>
-              }
-            </div>
-            <div class="description-row">
-              <div>
-                <dt i18n="@@executionCreatedLabel">Created</dt>
-                <dd>
-                  @if (crawlExecutionStatus.createdTime) {
-                    {{crawlExecutionStatus.createdTime | date:'medium'}}
-                  } @else {
-                    <span i18n="@@commonNotAvailable">Not available</span>
-                  }
-                </dd>
-              </div>
-              <div>
-                <dt i18n="@@executionLastChangedLabel">Last changed</dt>
-                <dd>
-                  @if (crawlExecutionStatus.lastChangeTime) {
-                    {{crawlExecutionStatus.lastChangeTime | date:'medium'}}
-                  } @else {
-                    <span i18n="@@commonNotAvailable">Not available</span>
-                  }
-                </dd>
-              </div>
-            </div>
-            <div class="description-row">
-              <div>
-                <dt i18n="@@executionStartedLabel">Started</dt>
-                <dd>
-                  @if (crawlExecutionStatus.startTime) {
-                    {{crawlExecutionStatus.startTime | date:'medium'}}
-                  } @else {
-                    <span i18n="@@commonNotAvailable">Not available</span>
-                  }
-                </dd>
-              </div>
-              <div>
-                <dt i18n="@@executionEndedLabel">Ended</dt>
-                <dd>
-                  @if (crawlExecutionStatus.endTime) {
-                    {{crawlExecutionStatus.endTime | date:'medium'}}
-                  } @else {
-                    <span i18n="@@commonNotAvailable">Not available</span>
-                  }
-                </dd>
-              </div>
-            </div>
-          </dl>
-        </mat-card-content>
-        <mat-card-actions class="detail-actions">
-          <ng-content select="[detailActions]"></ng-content>
-        </mat-card-actions>
-      </mat-card>
-    </aside>
   </section>
 }

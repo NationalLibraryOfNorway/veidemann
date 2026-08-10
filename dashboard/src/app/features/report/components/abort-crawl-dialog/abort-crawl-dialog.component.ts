@@ -1,54 +1,33 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {ExecutionId} from '../../../../shared/models/controller/controller.model';
 import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/models/report';
-import {Kind} from '../../../../shared/models/config';
-import {JobNamePipe, SeedNamePipe} from '../../pipe';
-import {AsyncPipe, DatePipe} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
+
+interface AbortCrawlDialogData {
+  crawlExecutionStatus?: CrawlExecutionStatus;
+  jobExecutionStatus?: JobExecutionStatus;
+}
 
 @Component({
   selector: 'app-abort-crawl-dialog',
   templateUrl: './abort-crawl-dialog.component.html',
   styleUrls: ['./abort-crawl-dialog.component.css'],
   imports: [
-    AsyncPipe,
-    DatePipe,
-    JobNamePipe,
     MatButtonModule,
     MatDialogModule,
-    SeedNamePipe
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true
 })
 export class AbortCrawlDialogComponent {
-  data = inject(MAT_DIALOG_DATA);
+  data = inject<AbortCrawlDialogData>(MAT_DIALOG_DATA);
   private dialogRef = inject<MatDialogRef<AbortCrawlDialogComponent>>(MatDialogRef);
 
-  readonly Kind = Kind;
-
-  executionId: ExecutionId;
-  jobExecutionStatus: JobExecutionStatus;
-  crawlExecutionStatus: CrawlExecutionStatus;
-
-  constructor() {
-    const data = this.data;
-
-    this.jobExecutionStatus = data.jobExecutionStatus;
-    this.crawlExecutionStatus = data.crawlExecutionStatus;
-  }
-
   onAbortCrawl() {
-    const executionId = new ExecutionId();
-    if (this.jobExecutionStatus) {
-      executionId.id = this.jobExecutionStatus.id;
-      this.dialogRef.close(executionId);
-    }
-    if (this.crawlExecutionStatus) {
-      executionId.id = this.crawlExecutionStatus.id;
-      this.dialogRef.close(executionId);
+    const id = this.data.jobExecutionStatus?.id || this.data.crawlExecutionStatus?.id;
+    if (id) {
+      this.dialogRef.close(new ExecutionId({id}));
     }
   }
-
 }

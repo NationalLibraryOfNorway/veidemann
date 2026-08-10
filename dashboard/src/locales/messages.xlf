@@ -158,6 +158,16 @@
         <source>Active filters</source>
       </segment>
     </unit>
+    <unit id="abortCrawlDialogDescription">
+      <segment>
+        <source> The crawl will stop processing new URLs. Already crawled documents will be retained. </source>
+      </segment>
+    </unit>
+    <unit id="abortCrawlDialogTitle">
+      <segment>
+        <source>Abort crawl?</source>
+      </segment>
+    </unit>
     <unit id="activeConfigRemoveFilterLabel">
       <segment>
         <source>Remove <ph id="0" equiv="PH" disp="chip.label"/> filter</source>
@@ -546,6 +556,11 @@
     <unit id="commonNotAvailable">
       <segment>
         <source>Not available</source>
+      </segment>
+    </unit>
+    <unit id="commonCancel">
+      <segment>
+        <source> Cancel </source>
       </segment>
     </unit>
     <unit id="commonYes">
@@ -1483,6 +1498,21 @@
         <source>Created</source>
       </segment>
     </unit>
+    <unit id="executionAbortedMetadata">
+      <segment>
+        <source> Aborted at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+      </segment>
+    </unit>
+    <unit id="executionDesiredStateInlineLabel">
+      <segment>
+        <source>Desired state:</source>
+      </segment>
+    </unit>
+    <unit id="executionDiedMetadata">
+      <segment>
+        <source> Died at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+      </segment>
+    </unit>
     <unit id="executionDocumentsCrawledMetric">
       <segment>
         <source>Documents crawled</source>
@@ -1516,6 +1546,16 @@
     <unit id="executionEndedLabel">
       <segment>
         <source>Ended</source>
+      </segment>
+    </unit>
+    <unit id="executionEndedMetadata">
+      <segment>
+        <source> Ended at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
+      </segment>
+    </unit>
+    <unit id="executionFailedMetadata">
+      <segment>
+        <source> Failed at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
       </segment>
     </unit>
     <unit id="reportDetailJobExecutionAction">
@@ -1556,6 +1596,11 @@
     <unit id="executionStartedLabel">
       <segment>
         <source>Started</source>
+      </segment>
+    </unit>
+    <unit id="executionStartedMetadata">
+      <segment>
+        <source> Started <ph id="0" equiv="INTERPOLATION" disp="{{startTime | date:&apos;mediumDate&apos;}}"/> at <ph id="1" equiv="INTERPOLATION_1" disp="{{startTime | date:&apos;shortTime&apos;}}"/> </source>
       </segment>
     </unit>
     <unit id="executionStateAborted">
