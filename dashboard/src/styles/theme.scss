@@ -29,9 +29,5 @@ $active-tertiary-palette: theme-colors.$tertiary-palette;
       ),
       density: 0,
     ));
-
-    @include mat.card-overrides((
-      filled-container-color: var(--mat-sys-surface-container-low),
-    ));
   }
 }
