@@ -34,6 +34,9 @@ export class CrawlExecutionStatusComponent {
   @Input({required: true})
   crawlExecutionStatus: CrawlExecutionStatus;
 
+  @Input()
+  queueSize: number | null = null;
+
   hasError(): boolean {
     const error = this.crawlExecutionStatus.error;
     return !!error && (error.code !== 0 || !!error.msg?.trim() || !!error.detail?.trim());

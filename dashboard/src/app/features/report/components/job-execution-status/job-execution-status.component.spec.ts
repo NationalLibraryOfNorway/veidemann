@@ -3,7 +3,6 @@ import {Component} from '@angular/core';
 import {provideRouter} from '@angular/router';
 import {of} from 'rxjs';
 
-import {ControllerApiService, ReportApiService} from '../../../../core';
 import {
   ApiError,
   ConfigObject,
@@ -49,22 +48,15 @@ describe('JobExecutionStatusComponent', () => {
             getJob: () => of(job),
           },
         },
-        {
-          provide: ControllerApiService,
-          useValue: {queueCountForCrawlExecution: () => of({count: 0})},
-        },
-        {
-          provide: ReportApiService,
-          useValue: {listCrawlExecutions: () => of()},
-        },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(JobExecutionStatusComponent);
   });
 
-  function render(status: JobExecutionStatus): void {
+  function render(status: JobExecutionStatus, queueSize: number | null = 0): void {
     fixture.componentRef.setInput('jobExecutionStatus', status);
+    fixture.componentRef.setInput('queueSize', queueSize);
     fixture.detectChanges();
   }
 
@@ -84,7 +76,7 @@ describe('JobExecutionStatusComponent', () => {
     expect(fixture.nativeElement.querySelector('.queue-badge')).toBeNull();
     const firstMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
     expect(firstMetric.querySelector('span')?.textContent).toBe('Queue size');
-    expect(firstMetric.querySelector('strong')?.textContent).toBe('0');
+    expect(firstMetric.querySelector('strong')?.textContent.trim()).toBe('0');
     expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(6);
     expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
   });
@@ -169,6 +161,13 @@ describe('JobExecutionStatusComponent', () => {
     expect(links[0].getAttribute('href')).toContain('job_id=job-1');
     expect(links[0].getAttribute('href')).toContain('job_execution_id=job-execution-1');
     expect(links[0].getAttribute('href')).toContain(`state=${CrawlExecutionState.FETCHING}`);
+  });
+
+  it('renders an unavailable queue count distinctly from zero', () => {
+    render(new JobExecutionStatus(), null);
+
+    const queueMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
+    expect(queueMetric.querySelector('strong')?.textContent.trim()).toBe('Not available');
   });
 
   it.each([

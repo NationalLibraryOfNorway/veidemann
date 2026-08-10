@@ -4,7 +4,7 @@ import {
   crawlExecutionStates,
   CrawlExecutionStatus
 } from '../../../../shared/models';
-import {ExecutionQueueCountPipe, JobNamePipe, SeedNamePipe} from '../../pipe';
+import {JobNamePipe, SeedNamePipe} from '../../pipe';
 import {DatePipe} from '@angular/common';
 import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/report-list-base';
 
@@ -16,7 +16,6 @@ import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/repor
   standalone: true,
   imports: [
     DatePipe,
-    ExecutionQueueCountPipe,
     JobNamePipe,
     SeedNamePipe,
     ...REPORT_LIST_IMPORTS,
@@ -31,6 +30,6 @@ export class CrawlExecutionStatusListComponent extends ReportListBaseComponent<C
 
   @Input() hasOverflowActions: (row: CrawlExecutionStatus) => boolean = () => true;
 
-  override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'queueCount', 'startTime', 'endTime', 'action'];
+  override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'startTime', 'endTime', 'action'];
 
 }

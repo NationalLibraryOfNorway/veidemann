@@ -60,6 +60,9 @@ export class JobExecutionStatusComponent {
     return this.status;
   }
 
+  @Input()
+  queueSize: number | null = null;
+
   get executionStateCounts(): readonly CrawlExecutionStateCount[] {
     return [...this.jobExecutionStatus.executionsStateMap.entries()]
       .map(([key, count]) => ({count, state: this.toCrawlExecutionState(key)}))

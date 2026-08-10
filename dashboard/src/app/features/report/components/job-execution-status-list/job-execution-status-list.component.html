@@ -32,15 +32,6 @@
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="queueSize">
-        <th i18n="@@crawlJobExecutionReportListQueueSizeHeaderCell"
-          mat-header-cell *matHeaderCellDef>Queue size
-        </th>
-        <td mat-cell *matCellDef="let row">
-          {{((row | getUrlQueueForJobExecution | async) ?? 0) | number:'1.0-0'}}
-        </td>
-      </ng-container>
-
       <ng-container matColumnDef="documentsCrawled">
         <th i18n="@@crawlJobExecutionReportListDocumentsCrawledHeaderCell"
           mat-header-cell *matHeaderCellDef mat-sort-header>Documents crawled

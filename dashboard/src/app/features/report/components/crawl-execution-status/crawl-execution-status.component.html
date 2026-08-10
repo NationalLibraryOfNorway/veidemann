@@ -19,6 +19,16 @@
         <h2 id="crawl-execution-statistics-title" i18n="@@executionCrawlStatisticsTitle">Crawl statistics</h2>
         <div class="metric-grid">
           <mat-card class="metric-card" appearance="filled">
+            <span i18n="@@crawlExecutionQueueSizeMetric">Queue size</span>
+            <strong>
+              @if (queueSize !== null) {
+                {{queueSize | number:'1.0-0'}}
+              } @else {
+                <span i18n="@@commonNotAvailable">Not available</span>
+              }
+            </strong>
+          </mat-card>
+          <mat-card class="metric-card" appearance="filled">
             <span i18n="@@executionDocumentsCrawledMetric">Documents crawled</span>
             <strong>{{crawlExecutionStatus.documentsCrawled | number:'1.0-0'}}</strong>
           </mat-card>

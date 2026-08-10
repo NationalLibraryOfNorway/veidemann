@@ -1,7 +1,10 @@
+@let queueSize = queueSize$ | async;
 @if (item$ | async; as jobExecutionStatus) {
   <div class="detail-page">
     <div class="detail-content">
-      <app-job-execution-status [jobExecutionStatus]="jobExecutionStatus">
+      <app-job-execution-status
+        [jobExecutionStatus]="jobExecutionStatus"
+        [queueSize]="queueSize">
         <app-job-execution-shortcut-helpers detailHeaderHelpers
           [jobExecutionStatus]="jobExecutionStatus">
         </app-job-execution-shortcut-helpers>

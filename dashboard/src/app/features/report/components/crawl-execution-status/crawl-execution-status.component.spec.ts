@@ -69,8 +69,8 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(fixture.nativeElement.querySelector('.detail-subtitle').textContent).toBe('Example job');
     expect(fixture.nativeElement.textContent).not.toContain('crawl-execution-id-that-can-wrap');
     expect(fixture.nativeElement.textContent).not.toContain('parent-execution-id-that-can-wrap');
-    expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(5);
-    expect(fixture.nativeElement.textContent.match(/Not available/g)?.length).toBe(4);
+    expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(6);
+    expect(fixture.nativeElement.textContent.match(/Not available/g)?.length).toBe(5);
     expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
   });
 
@@ -94,6 +94,7 @@ describe('CrawlExecutionStatusComponent', () => {
     const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric-card > span')]
       .map((label: HTMLElement) => label.textContent.trim());
     expect(metricLabels).toEqual([
+      'Queue size',
       'Documents crawled',
       'Bytes crawled',
       'Duration',
@@ -161,7 +162,19 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(overviewCard.querySelector('dl.description-list')).not.toBeNull();
     expect(overviewCard.querySelector('mat-card-actions.detail-actions')).not.toBeNull();
     const metrics = statistics.querySelector('.metric-grid') as HTMLElement;
-    expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(5);
-    expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(5);
+    expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(6);
+    expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(6);
+  });
+
+  it('renders a queue count and distinguishes an unavailable count from zero', () => {
+    fixture.componentRef.setInput('queueSize', 17);
+    render(new CrawlExecutionStatus());
+    let queueMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
+    expect(queueMetric.querySelector('strong')?.textContent.trim()).toBe('17');
+
+    fixture.componentRef.setInput('queueSize', null);
+    fixture.detectChanges();
+    queueMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
+    expect(queueMetric.querySelector('strong')?.textContent.trim()).toBe('Not available');
   });
 });

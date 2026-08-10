@@ -3,7 +3,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatChipSelectionChange} from '@angular/material/chips';
 import {of} from 'rxjs';
 
-import {ControllerApiService, ReportApiService} from '../../../core';
 import {provideMaterialAnimationsDisabled} from '../../../core/core.testing.module';
 import {
   ConfigObject,
@@ -38,14 +37,6 @@ describe('RunningCrawlsComponent', () => {
           useValue: {
             getJob: (id: string) => of(new ConfigObject({id, meta: new Meta({name: 'Daily crawl'})})),
           },
-        },
-        {
-          provide: ControllerApiService,
-          useValue: {queueCountForCrawlExecution: () => of({count: 0})},
-        },
-        {
-          provide: ReportApiService,
-          useValue: {listCrawlExecutions: () => of()},
         },
       ],
     }).compileComponents();
@@ -82,7 +73,6 @@ describe('RunningCrawlsComponent', () => {
     expect(headers).toEqual([
       'Job',
       'State',
-      'Queue size',
       'Documents crawled',
       'Bytes crawled',
       'Start',
@@ -121,7 +111,7 @@ describe('RunningCrawlsComponent', () => {
     const desiredStateBadge = itemRow.querySelector('.desired-state-badge') as HTMLElement;
     expect(desiredStateBadge.textContent.trim()).toBe('ABORTED_MANUAL');
     expect(desiredStateBadge.getAttribute('aria-label')).toBe('Desired state: ABORTED_MANUAL');
-    expect(itemRow.querySelector('.mat-column-queueSize')?.textContent.trim()).toBe('0');
+    expect(itemRow.querySelector('.mat-column-queueSize')).toBeNull();
     expect(itemRow.textContent).toContain('1,234');
     expect(itemRow.querySelector('.mat-column-bytesCrawled')?.textContent.trim()).toBe('1.5 kB');
     expect(itemRow.textContent).toContain('1hours:2min');

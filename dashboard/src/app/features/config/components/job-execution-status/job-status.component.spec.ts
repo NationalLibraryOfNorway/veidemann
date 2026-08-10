@@ -1,8 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideRouter} from '@angular/router';
-import {EMPTY} from 'rxjs';
-
-import {ControllerApiService, ReportApiService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {
   ConfigObject,
@@ -22,14 +19,6 @@ describe('JobStatusComponent', () => {
       providers: [
         ...provideCoreTesting,
         provideRouter([]),
-        {
-          provide: ReportApiService,
-          useValue: {listCrawlExecutions: () => EMPTY},
-        },
-        {
-          provide: ControllerApiService,
-          useValue: {queueCountForCrawlExecution: vi.fn()},
-        },
       ]
     }).compileComponents();
 
@@ -89,7 +78,6 @@ describe('JobStatusComponent', () => {
         value: card.querySelector('strong')?.textContent.trim(),
       }));
     expect(metrics).toEqual([
-      {label: 'Queue size', value: '0'},
       {label: 'Documents crawled', value: '12'},
       {label: 'Bytes crawled', value: '2.5 kB'},
       {label: 'Remaining bytes', value: '2.5 kB'},

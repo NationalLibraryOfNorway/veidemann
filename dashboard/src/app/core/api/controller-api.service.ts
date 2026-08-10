@@ -6,7 +6,7 @@ import {EMPTY, from, Observable} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 
 import {Controller} from '../../../api/controller/v1/controller_pb';
-import {CrawlExecutionIdSchema} from '../../../api/frontier/v1/frontier_pb';
+import {CrawlExecutionIdSchema, CrawlExecutionIdsSchema} from '../../../api/frontier/v1/frontier_pb';
 import {AuthService} from '../auth';
 import {Role} from '../../shared/models/config';
 import {
@@ -111,6 +111,17 @@ export class ControllerApiService {
   queueCountForCrawlExecution(request: ExecutionId): Observable<CountResponse> {
     const crawlExecutionId = create(CrawlExecutionIdSchema, {id: request.id});
     return from(this.getClient().queueCountForCrawlExecution(crawlExecutionId, this.callOptions)).pipe(
+      map(CountResponse.fromProto),
+      catchError(error => {
+        this.errorHandler.handleError(error);
+        return EMPTY;
+      }),
+    );
+  }
+
+  queueCountForCrawlExecutions(executionIds: readonly string[]): Observable<CountResponse> {
+    const request = create(CrawlExecutionIdsSchema, {id: [...executionIds]});
+    return from(this.getClient().queueCountForCrawlExecutions(request, this.callOptions)).pipe(
       map(CountResponse.fromProto),
       catchError(error => {
         this.errorHandler.handleError(error);

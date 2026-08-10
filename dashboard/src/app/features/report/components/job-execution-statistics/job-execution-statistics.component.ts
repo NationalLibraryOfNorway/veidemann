@@ -1,11 +1,10 @@
-import {AsyncPipe, DecimalPipe} from '@angular/common';
+import {DecimalPipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatCardModule} from '@angular/material/card';
 
 import {ConfigObject, JobExecutionStatus} from '../../../../shared/models';
 import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
-import {JobexecutionTotalQueuePipe} from '../../pipe';
 
 @Component({
   selector: 'app-job-execution-statistics',
@@ -13,11 +12,9 @@ import {JobexecutionTotalQueuePipe} from '../../pipe';
   styleUrls: ['./job-execution-statistics.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe,
     DecimalPipe,
     DurationFormatPipe,
     FileSizePipe,
-    JobexecutionTotalQueuePipe,
     MatCardModule,
   ],
   standalone: true,
@@ -30,6 +27,9 @@ export class JobExecutionStatisticsComponent {
 
   @Input({required: true})
   crawlJob: ConfigObject | null = null;
+
+  @Input()
+  queueSize: number | null | undefined = undefined;
 
   remainingBytes(): number | null {
     const limit = this.crawlJob?.crawlJob?.limits?.maxBytes;

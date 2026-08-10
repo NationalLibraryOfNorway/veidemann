@@ -56,16 +56,19 @@ export class ReportApiService {
   }
 
   listCrawlExecutions(listRequest: CrawlExecutionsListRequest): Observable<CrawlExecutionStatus> {
-    return fromServerStream(signal => this.getClient().listExecutions(listRequest, {
-      ...this.callOptions,
-      signal,
-    })).pipe(
-      map(CrawlExecutionStatus.fromProto),
+    return this.listCrawlExecutionsUnchecked(listRequest).pipe(
       catchError(error => {
         this.errorHandler.handleError(error);
         return EMPTY;
       }),
     );
+  }
+
+  listCrawlExecutionsUnchecked(listRequest: CrawlExecutionsListRequest): Observable<CrawlExecutionStatus> {
+    return fromServerStream(signal => this.getClient().listExecutions(listRequest, {
+      ...this.callOptions,
+      signal,
+    })).pipe(map(CrawlExecutionStatus.fromProto));
   }
 
   getLastJobStatus(jobId: string): Observable<JobExecutionStatus> {

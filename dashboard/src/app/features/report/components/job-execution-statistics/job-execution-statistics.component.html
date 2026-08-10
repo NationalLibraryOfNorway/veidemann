@@ -1,9 +1,16 @@
-@let queueSize = ((jobExecutionStatus | getUrlQueueForJobExecution | async) ?? 0);
 <div class="metric-grid">
-  <mat-card class="metric-card" appearance="filled">
-    <span i18n="@@jobExecutionQueueSizeMetric">Queue size</span>
-    <strong>{{queueSize | number:'1.0-0'}}</strong>
-  </mat-card>
+  @if (queueSize !== undefined) {
+    <mat-card class="metric-card" appearance="filled">
+      <span i18n="@@jobExecutionQueueSizeMetric">Queue size</span>
+      <strong>
+        @if (queueSize !== null) {
+          {{queueSize | number:'1.0-0'}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
+        }
+      </strong>
+    </mat-card>
+  }
   <mat-card class="metric-card" appearance="filled">
     <span i18n="@@executionDocumentsCrawledMetric">Documents crawled</span>
     <strong>{{jobExecutionStatus.documentsCrawled | number:'1.0-0'}}</strong>

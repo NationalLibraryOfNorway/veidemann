@@ -3,7 +3,6 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {of} from 'rxjs';
 
 import {JobExecutionStatusListComponent} from './job-execution-status-list.component';
-import {ControllerApiService, ReportApiService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {
   ConfigObject,
@@ -28,14 +27,6 @@ describe('JobExecutionStatusListComponent', () => {
           useValue: {
             getJob: () => of(new ConfigObject({meta: new Meta({name: 'Daily crawl'})})),
           },
-        },
-        {
-          provide: ControllerApiService,
-          useValue: {queueCountForCrawlExecution: () => of({count: 0})},
-        },
-        {
-          provide: ReportApiService,
-          useValue: {listCrawlExecutions: () => of()},
         },
       ]
     })

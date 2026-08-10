@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {combineLatest, merge, Observable} from 'rxjs';
-import {filter, map, mergeMap, switchMap, takeWhile} from 'rxjs/operators';
+import {defaultIfEmpty, filter, map, mergeMap, shareReplay, switchMap, takeWhile} from 'rxjs/operators';
 import {ControllerApiService, SnackBarService} from '../../../../core';
-import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models';
+import {CrawlExecutionState, CrawlExecutionStatus, ExecutionId} from '../../../../shared/models';
 import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
 import {DetailDirective} from '../../directives';
 import {CrawlExecutionService} from '../../services';
@@ -32,6 +32,7 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
   protected controllerApiService = inject(ControllerApiService);
   protected dialog = inject(MatDialog);
   protected snackBarService = inject(SnackBarService);
+  queueSize$: Observable<number | null>;
 
 
   override ngOnInit() {
@@ -52,7 +53,18 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
       )),
     );
 
-    this.item$ = merge(item$, watchedItem$);
+    this.item$ = merge(item$, watchedItem$).pipe(
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
+    this.queueSize$ = this.item$.pipe(
+      switchMap(item => this.controllerApiService
+        .queueCountForCrawlExecution(new ExecutionId({id: item.id}))
+        .pipe(
+          map(response => response.count),
+          defaultIfEmpty(null),
+        )),
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
   }
 
   canAbort(crawlExecutionStatus: CrawlExecutionStatus): boolean {

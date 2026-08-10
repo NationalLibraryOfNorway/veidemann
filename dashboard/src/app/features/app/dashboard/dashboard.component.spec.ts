@@ -5,7 +5,7 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {MatDialog} from '@angular/material/dialog';
 import {EMPTY, Observable, of, Subject} from 'rxjs';
 
-import {AuthService, ControllerApiService, ReportApiService} from '../../../core';
+import {AuthService, ControllerApiService} from '../../../core';
 import {provideMaterialAnimationsDisabled} from '../../../core/core.testing.module';
 import {CrawlerStatus} from '../../../shared/models/controller';
 import {ConfigObject, JobExecutionState, JobExecutionStatus, ListRange, Meta} from '../../../shared/models';
@@ -60,13 +60,8 @@ describe('DashboardComponent', () => {
           useValue: {
             getCrawlerStatus,
             pauseCrawler,
-            queueCountForCrawlExecution: () => of({count: 0}),
             unpauseCrawler,
           },
-        },
-        {
-          provide: ReportApiService,
-          useValue: {listCrawlExecutions: () => of()},
         },
         {
           provide: MatDialog,

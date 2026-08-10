@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 
 import {DatePipe, DecimalPipe} from '@angular/common';
-import {JobexecutionTotalQueuePipe, JobNamePipe} from '../../pipe';
+import {JobNamePipe} from '../../pipe';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates, isValidDate} from '../../../../shared/func';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
@@ -17,7 +17,6 @@ import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/repor
     DatePipe,
     DecimalPipe,
     FileSizePipe,
-    JobexecutionTotalQueuePipe,
     JobNamePipe,
     ...REPORT_LIST_IMPORTS,
   ],
