@@ -30,6 +30,8 @@ public class Settings extends CommonSettings {
 
     private int apiPort;
 
+    private int maxConcurrentRequests = 100;
+
     private String workDir;
 
     private String robotsEvaluatorHost;
@@ -80,6 +82,14 @@ public class Settings extends CommonSettings {
 
     public void setApiPort(int apiPort) {
         this.apiPort = apiPort;
+    }
+
+    public int getMaxConcurrentRequests() {
+        return maxConcurrentRequests;
+    }
+
+    public void setMaxConcurrentRequests(int maxConcurrentRequests) {
+        this.maxConcurrentRequests = maxConcurrentRequests;
     }
 
     public String getWorkDir() {

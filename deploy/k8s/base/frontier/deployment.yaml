@@ -63,6 +63,8 @@ spec:
               value: "6379"
             - name: API_PORT
               value: "7700"
+            - name: MAX_CONCURRENT_REQUESTS
+              value: "100"
             - name: ROBOTS_EVALUATOR_HOST
               value: "robots"
             - name: ROBOTS_EVALUATOR_PORT

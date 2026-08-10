@@ -3,12 +3,16 @@ package no.nb.nna.veidemann.frontier.api;
 import io.grpc.*;
 
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SimpleConcurrencyLimitInterceptor implements ServerInterceptor {
 
     private final Semaphore permits;
 
     public SimpleConcurrencyLimitInterceptor(int maxConcurrentRequests) {
+        if (maxConcurrentRequests <= 0) {
+            throw new IllegalArgumentException("maxConcurrentRequests must be greater than zero");
+        }
         this.permits = new Semaphore(maxConcurrentRequests);
     }
 
@@ -27,18 +31,31 @@ public class SimpleConcurrencyLimitInterceptor implements ServerInterceptor {
             return new ServerCall.Listener<ReqT>() { }; // no-op listener
         }
 
-        ServerCall.Listener<ReqT> delegate = next.startCall(
-            new ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {
-                @Override
-                public void close(Status status, Metadata trailers) {
-                    try {
-                        super.close(status, trailers);
-                    } finally {
-                        permits.release();
+        AtomicBoolean released = new AtomicBoolean();
+        Runnable releasePermit = () -> {
+            if (released.compareAndSet(false, true)) {
+                permits.release();
+            }
+        };
+
+        ServerCall.Listener<ReqT> delegate;
+        try {
+            delegate = next.startCall(
+                new ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {
+                    @Override
+                    public void close(Status status, Metadata trailers) {
+                        try {
+                            super.close(status, trailers);
+                        } finally {
+                            releasePermit.run();
+                        }
                     }
-                }
-            },
-            headers);
+                },
+                headers);
+        } catch (RuntimeException | Error e) {
+            releasePermit.run();
+            throw e;
+        }
 
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(delegate) {
             @Override
@@ -46,7 +63,7 @@ public class SimpleConcurrencyLimitInterceptor implements ServerInterceptor {
                 try {
                     super.onCancel();
                 } finally {
-                    permits.release();
+                    releasePermit.run();
                 }
             }
         };

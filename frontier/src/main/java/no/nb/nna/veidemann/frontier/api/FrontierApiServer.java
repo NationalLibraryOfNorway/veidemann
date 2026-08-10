@@ -64,7 +64,7 @@ public class FrontierApiServer implements AutoCloseable {
         frontierService = new FrontierGrpcService(frontier);
 
         SimpleConcurrencyLimitInterceptor limitInterceptor = new SimpleConcurrencyLimitInterceptor(
-                /* pick a number */ 100);
+                frontier.getSettings().getMaxConcurrentRequests());
 
         server = serverBuilder
                 .addService(ServerInterceptors.intercept(

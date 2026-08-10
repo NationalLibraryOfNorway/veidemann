@@ -3,6 +3,7 @@ package no.nb.nna.veidemann.frontier.db;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -91,6 +92,7 @@ public class CrawlQueueManager implements AutoCloseable {
     final ChgBusyTimeoutScript chgBusyTimeoutScript;
     final JobExecutionGetScript jobExecutionGetScript;
     final JobExecutionUpdateScript jobExecutionUpdateScript;
+    final CrawlExecutionQueueCounter crawlExecutionQueueCounter;
 
     private final Frontier frontier;
     private final CrawlQueueWorker crawlQueueWorker;
@@ -117,6 +119,7 @@ public class CrawlQueueManager implements AutoCloseable {
         chgBusyTimeoutScript = new ChgBusyTimeoutScript();
         jobExecutionGetScript = new JobExecutionGetScript();
         jobExecutionUpdateScript = new JobExecutionUpdateScript();
+        crawlExecutionQueueCounter = new CrawlExecutionQueueCounter(jedisSupplier);
 
         this.crawlQueueWorker = new CrawlQueueWorker(frontier, jedisSupplier);
 
@@ -453,6 +456,10 @@ public class CrawlQueueManager implements AutoCloseable {
             }
             return parsed;
         }
+    }
+
+    public long countByCrawlExecutions(List<String> executionIds) {
+        return crawlExecutionQueueCounter.count(executionIds);
     }
 
     public long countByCrawlHostGroup(CrawlHostGroup chg) {
