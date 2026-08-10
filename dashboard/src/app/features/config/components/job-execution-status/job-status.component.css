@@ -4,6 +4,11 @@ mat-expansion-panel {
   min-width: 0;
 }
 
+.filled-expansion-panel {
+  --mat-expansion-container-background-color: var(--mat-sys-surface-container-highest);
+  --mat-expansion-container-elevation-shadow: none;
+}
+
 mat-panel-title,
 mat-panel-description {
   min-width: 0;

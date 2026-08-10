@@ -34,6 +34,7 @@ describe('CrawlExecutionStatusComponent', () => {
       documentsCrawled: 40,
       bytesCrawled: 1024,
     });
+    component.crawlJobName = 'Daily crawl';
     fixture.detectChanges();
     await fixture.whenStable();
   });
@@ -42,14 +43,18 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders the latest crawl execution as a related information card', () => {
-    const card = fixture.nativeElement.querySelector('mat-card');
-    expect(card.getAttribute('appearance')).toBe('filled');
-    expect(card.textContent).toContain('Last crawl execution');
-    expect(card.textContent).toContain('Finished');
-    expect(card.textContent).toContain('42');
-    expect(card.textContent).toContain('1.02 kB');
-    expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeNull();
+  it('renders the latest crawl execution in an initially expanded filled panel', () => {
+    const panel = fixture.nativeElement.querySelector('mat-expansion-panel') as HTMLElement;
+    const title = panel.querySelector('mat-panel-title') as HTMLElement;
+    const description = panel.querySelector('mat-panel-description') as HTMLElement;
+    expect(panel.classList.contains('mat-expanded')).toBe(true);
+    expect(panel.classList.contains('filled-expansion-panel')).toBe(true);
+    expect(panel.classList.contains('mat-elevation-z0')).toBe(true);
+    expect(title.textContent.trim()).toBe('Daily crawl');
+    expect(description.textContent.trim()).toBe('Finished');
+    expect(panel.textContent).toContain('42');
+    expect(panel.textContent).toContain('1.02 kB');
+    expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();
 
     const hrefs = Array.from(
       fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>
@@ -57,13 +62,22 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(hrefs).toContain('/report/crawlexecution/crawl-execution-1');
     expect(hrefs).toContain('/config/crawljobs/crawl-job-1');
     expect(hrefs).toContain('/report/jobexecution/job-execution-1');
-    expect(card.textContent).not.toContain('crawl-execution-1');
-    expect(card.textContent).not.toContain('crawl-job-1');
-    expect(card.textContent).not.toContain('job-execution-1');
-    expect(card.textContent).toContain('Started');
-    expect(card.textContent).toContain('Ended');
-    expect(card.textContent).toContain('Duration');
-    expect(card.textContent).toContain('10 min');
+    expect(panel.textContent).not.toContain('crawl-execution-1');
+    expect(panel.textContent).not.toContain('crawl-job-1');
+    expect(panel.textContent).not.toContain('job-execution-1');
+    expect(panel.textContent).toContain('Started');
+    expect(panel.textContent).toContain('Ended');
+    expect(panel.textContent).toContain('Duration');
+    expect(panel.textContent).toContain('10 min');
+  });
+
+  it('falls back without exposing the crawl job id when the job name is unavailable', () => {
+    fixture.componentRef.setInput('crawlJobName', '');
+    fixture.detectChanges();
+
+    const title = fixture.nativeElement.querySelector('mat-panel-title') as HTMLElement;
+    expect(title.textContent.trim()).toBe('Not available');
+    expect(title.textContent).not.toContain('crawl-job-1');
   });
 
   it('does not expose unauthorized navigation or raw identifiers', () => {

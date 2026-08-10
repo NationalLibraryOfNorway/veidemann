@@ -1,7 +1,6 @@
 import {DatePipe, DecimalPipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
+import {MatExpansionModule} from '@angular/material/expansion';
 import {MatIcon} from '@angular/material/icon';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatTooltip} from '@angular/material/tooltip';
@@ -22,8 +21,7 @@ import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe'
     DecimalPipe,
     DurationFormatPipe,
     FileSizePipe,
-    MatButtonModule,
-    MatCardModule,
+    MatExpansionModule,
     MatIcon,
     MatChipsModule,
     MatTooltip,
@@ -36,6 +34,7 @@ export class CrawlExecutionStatusComponent {
 
   @Input({required: true})
   crawlExecutionStatus: CrawlExecutionStatus;
+  @Input() crawlJobName = '';
   @Input() canReadCrawlExecution = true;
   @Input() canReadCrawlJob = true;
   @Input() canReadJobExecution = true;

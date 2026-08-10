@@ -50,23 +50,25 @@ describe('JobStatusComponent', () => {
     fixture.detectChanges();
   }
 
-  it('shows state and start date in an initially collapsed panel header', () => {
+  it('shows the start date and state in an initially expanded filled panel header', () => {
     render();
 
     const panel = fixture.nativeElement.querySelector('mat-expansion-panel') as HTMLElement;
     const title = panel.querySelector('mat-panel-title') as HTMLElement;
     const description = panel.querySelector('mat-panel-description') as HTMLElement;
-    expect(panel.classList.contains('mat-expanded')).toBe(false);
-    expect(title.textContent.trim()).toBe('Finished');
-    expect(description.textContent).toContain('Aug 9, 2026');
-    expect(fixture.nativeElement.querySelector('table')).toBeNull();
+    expect(panel.classList.contains('mat-expanded')).toBe(true);
+    expect(panel.classList.contains('filled-expansion-panel')).toBe(true);
+    expect(panel.classList.contains('mat-elevation-z0')).toBe(true);
+    expect(title.textContent).toContain('Aug 9, 2026');
+    expect(description.textContent.trim()).toBe('Finished');
+    expect(fixture.nativeElement.querySelector('.metric-card')).not.toBeNull();
   });
 
   it('falls back when the execution has no start date', () => {
     render(new JobExecutionStatus({state: JobExecutionState.CREATED}));
 
-    const description = fixture.nativeElement.querySelector('mat-panel-description') as HTMLElement;
-    expect(description.textContent.trim()).toBe('Not available');
+    const title = fixture.nativeElement.querySelector('mat-panel-title') as HTMLElement;
+    expect(title.textContent.trim()).toBe('Not available');
   });
 
   it('reuses the complete crawl-statistics card set from the execution detail', () => {

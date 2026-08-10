@@ -5,6 +5,9 @@
       @let latestJobExecution = configObject.kind === Kind.CRAWLJOB
         ? (configObject | getJobStatus | async)
         : null;
+      @let latestCrawlExecution = configObject.kind === Kind.SEED
+        ? (configObject | getCrawlExecutionStatus | async)
+        : null;
       <div class="detail-page">
         <div class="content-padding detail-pane-layout">
           <main class="primary-pane">
@@ -161,7 +164,7 @@
           </main>
           @let supportingLabelLinks = configObject.kind === Kind.CRAWLENTITY ? [] : labelLinks;
           @let relatedConfigs = relatedConfigContexts();
-              @if (supportingLabelLinks.length || latestJobExecution || relatedConfigs.length) {
+              @if (supportingLabelLinks.length || latestJobExecution || latestCrawlExecution || relatedConfigs.length) {
                 <aside class="supporting-pane">
                   <app-config-label-links [links]="supportingLabelLinks"></app-config-label-links>
                   @if (latestJobExecution) {
@@ -174,6 +177,20 @@
                         [crawlJob]="configObject"
                         [canReadJobExecution]="authService.canRead('jobexecution')">
                       </app-config-job-execution-status>
+                    </section>
+                  }
+                  @if (latestCrawlExecution) {
+                    <section class="context-section" aria-labelledby="latest-crawl-execution-title">
+                      <h2 id="latest-crawl-execution-title" i18n="@@configLatestCrawlExecutionTitle">
+                        Latest crawl execution
+                      </h2>
+                      <app-config-crawl-execution-status
+                        [crawlExecutionStatus]="latestCrawlExecution"
+                        [crawlJobName]="crawlJobNameFor(latestCrawlExecution.jobId, options.crawlJobs)"
+                        [canReadCrawlExecution]="authService.canRead('crawlexecution')"
+                        [canReadCrawlJob]="authService.canRead(Kind.CRAWLJOB)"
+                        [canReadJobExecution]="authService.canRead('jobexecution')">
+                      </app-config-crawl-execution-status>
                     </section>
                   }
                   @if (relatedConfigs.length) {
@@ -200,16 +217,6 @@
                               </app-config-shortcut-helpers>
                             }
                           </app-config-context-card>
-                          @if (configObject.kind === Kind.SEED && related.ref.kind === Kind.CRAWLENTITY) {
-                            @if ((configObject | getCrawlExecutionStatus | async); as crawlExecutionStatus) {
-                              <app-config-crawl-execution-status
-                                [crawlExecutionStatus]="crawlExecutionStatus"
-                                [canReadCrawlExecution]="authService.canRead('crawlexecution')"
-                                [canReadCrawlJob]="authService.canRead(Kind.CRAWLJOB)"
-                                [canReadJobExecution]="authService.canRead('jobexecution')">
-                              </app-config-crawl-execution-status>
-                            }
-                          }
                         }
                       </div>
                       </section>

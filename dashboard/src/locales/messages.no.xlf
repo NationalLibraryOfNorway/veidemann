@@ -864,9 +864,9 @@
         <target>Viewport</target>
       </segment>
     </unit>
-    <unit id="configLastCrawlExecutionTitle">
+    <unit id="configLatestCrawlExecutionTitle">
       <segment state="final">
-        <source>Last crawl execution</source>
+        <source>Latest crawl execution</source>
         <target>Siste crawl-kjøring</target>
       </segment>
     </unit>
@@ -2718,16 +2718,10 @@
         <target>Remove labels from the selected configs</target>
       </segment>
     </unit>
-    <unit id="lastCrawlExecutionNavigationLabel">
-      <segment state="initial">
-        <source>Last crawl execution navigation</source>
-        <target>Last crawl execution navigation</target>
-      </segment>
-    </unit>
-    <unit id="lastCrawlExecutionStateLabel">
-      <segment state="initial">
-        <source>Execution state</source>
-        <target>Execution state</target>
+    <unit id="latestCrawlExecutionNavigationLabel">
+      <segment state="final">
+        <source>Latest crawl execution navigation</source>
+        <target>Navigasjon for siste crawl-kjøring</target>
       </segment>
     </unit>
     <unit id="latestCrawlJobsEmpty">

@@ -1,21 +1,19 @@
 @let crawlState = statePresentation(crawlExecutionStatus.state);
-<mat-card appearance="filled" class="context-card">
-  <mat-card-header>
-    <mat-icon mat-card-avatar aria-hidden="true">hdr_weak</mat-icon>
-    <mat-card-title i18n="@@configLastCrawlExecutionTitle">Last crawl execution</mat-card-title>
-    <mat-card-subtitle>
-      <mat-chip-set aria-label="Execution state" i18n-aria-label="@@lastCrawlExecutionStateLabel">
-        <mat-chip [class]="'state-' + crawlState.tone">
-          <mat-icon matChipAvatar aria-hidden="true">{{crawlState.icon}}</mat-icon>
-          <span>{{crawlState.label}}</span>
-        </mat-chip>
-      </mat-chip-set>
-    </mat-card-subtitle>
-  </mat-card-header>
+<mat-expansion-panel expanded class="filled-expansion-panel mat-elevation-z0">
+  <mat-expansion-panel-header>
+    <mat-panel-title>
+      @if (crawlJobName.trim()) {
+        {{crawlJobName}}
+      } @else {
+        <span i18n="@@commonNotAvailable">Not available</span>
+      }
+    </mat-panel-title>
+    <mat-panel-description>{{crawlState.label}}</mat-panel-description>
+  </mat-expansion-panel-header>
 
-  <mat-card-content>
-    <mat-chip-set aria-label="Last crawl execution navigation"
-      i18n-aria-label="@@lastCrawlExecutionNavigationLabel">
+  <div>
+    <mat-chip-set aria-label="Latest crawl execution navigation"
+      i18n-aria-label="@@latestCrawlExecutionNavigationLabel">
       @if (canReadCrawlExecution) {
         <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]"
           matTooltip="Open crawl execution {{crawlExecutionStatus.id}}"
@@ -122,6 +120,5 @@
         </dl>
       </section>
     }
-  </mat-card-content>
-
-</mat-card>
+  </div>
+</mat-expansion-panel>

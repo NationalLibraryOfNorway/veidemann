@@ -738,9 +738,9 @@
         <source>Viewport</source>
       </segment>
     </unit>
-    <unit id="configLastCrawlExecutionTitle">
+    <unit id="configLatestCrawlExecutionTitle">
       <segment>
-        <source>Last crawl execution</source>
+        <source>Latest crawl execution</source>
       </segment>
     </unit>
     <unit id="configDetailCloneAction">
@@ -2303,14 +2303,9 @@
         <source>Remove labels from the selected configs</source>
       </segment>
     </unit>
-    <unit id="lastCrawlExecutionNavigationLabel">
+    <unit id="latestCrawlExecutionNavigationLabel">
       <segment>
-        <source>Last crawl execution navigation</source>
-      </segment>
-    </unit>
-    <unit id="lastCrawlExecutionStateLabel">
-      <segment>
-        <source>Execution state</source>
+        <source>Latest crawl execution navigation</source>
       </segment>
     </unit>
     <unit id="latestCrawlJobsEmpty">

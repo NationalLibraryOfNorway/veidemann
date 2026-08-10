@@ -212,6 +212,10 @@ export class ConfigurationComponent implements OnDestroy {
     return this.dataService.loading$;
   }
 
+  crawlJobNameFor(jobId: string, crawlJobs: ConfigObject[] = []): string {
+    return crawlJobs.find(crawlJob => crawlJob.id === jobId)?.meta.name?.trim() ?? '';
+  }
+
   annotationContextFor(
     ref: ConfigRef,
     contexts: readonly ScriptAnnotationContext[],

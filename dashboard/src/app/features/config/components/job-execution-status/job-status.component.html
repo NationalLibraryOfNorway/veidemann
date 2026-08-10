@@ -1,15 +1,15 @@
 @if (jobExecutionStatus) {
   @let state = statePresentation(jobExecutionStatus.state);
-  <mat-expansion-panel>
+  <mat-expansion-panel expanded class="filled-expansion-panel mat-elevation-z0">
     <mat-expansion-panel-header>
-      <mat-panel-title>{{state.label}}</mat-panel-title>
-      <mat-panel-description>
+      <mat-panel-title>
         @if (jobExecutionStatus.startTime) {
           {{jobExecutionStatus.startTime | date:'medium'}}
         } @else {
           <span i18n="@@commonNotAvailable">Not available</span>
         }
-      </mat-panel-description>
+      </mat-panel-title>
+      <mat-panel-description>{{state.label}}</mat-panel-description>
     </mat-expansion-panel-header>
 
     <app-job-execution-statistics

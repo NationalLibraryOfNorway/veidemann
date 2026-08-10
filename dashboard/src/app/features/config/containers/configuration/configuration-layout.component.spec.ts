@@ -16,34 +16,62 @@ import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {
   ConfigObject,
   ConfigRef,
+  CrawlExecutionState,
+  CrawlExecutionStatus,
   CrawlJob,
   JobExecutionState,
   JobExecutionStatus,
   Kind,
+  Meta,
+  Seed,
 } from '../../../../shared/models';
 import {ConfigService} from '../../../../shared/services';
-import {JobStatusComponent} from '../../components';
+import {CrawlExecutionStatusComponent, JobStatusComponent} from '../../components';
 import {CrawlExecutionStatusPipe, JobExecutionStatusPipe} from '../../pipe';
 import {OptionsResolver, OptionsService} from '../../services';
 import {RouterExtraService} from '../../services/router-extra.service';
 import {ConfigurationComponent} from './configuration.component';
 
 describe('ConfigurationComponent crawl-job layout', () => {
-  async function createFixture(withRelatedConfiguration: boolean): Promise<ComponentFixture<ConfigurationComponent>> {
-    const job = new ConfigObject({
-      id: 'job-1',
-      kind: Kind.CRAWLJOB,
-      crawlJob: new CrawlJob({
-        crawlConfigRef: withRelatedConfiguration
-          ? new ConfigRef({kind: Kind.CRAWLCONFIG, id: 'crawl-config-1'})
-          : null,
-      }),
-    });
+  async function createFixture(
+    kind: Kind.CRAWLJOB | Kind.SEED,
+    withRelatedConfiguration: boolean,
+  ): Promise<ComponentFixture<ConfigurationComponent>> {
+    const configObject = kind === Kind.CRAWLJOB
+      ? new ConfigObject({
+        id: 'job-1',
+        kind,
+        crawlJob: new CrawlJob({
+          crawlConfigRef: withRelatedConfiguration
+            ? new ConfigRef({kind: Kind.CRAWLCONFIG, id: 'crawl-config-1'})
+            : null,
+        }),
+      })
+      : new ConfigObject({
+        id: 'seed-1',
+        kind,
+        seed: new Seed({
+          entityRef: withRelatedConfiguration
+            ? new ConfigRef({kind: Kind.CRAWLENTITY, id: 'entity-1'})
+            : null,
+        }),
+      });
     const latestExecution = new JobExecutionStatus({
       id: 'execution-1',
-      jobId: job.id,
+      jobId: configObject.id,
       state: JobExecutionState.FINISHED,
       startTime: '2026-08-09T10:00:00.000Z',
+    });
+    const latestCrawlExecution = new CrawlExecutionStatus({
+      id: 'crawl-execution-1',
+      jobId: 'crawl-job-1',
+      state: CrawlExecutionState.FINISHED,
+      startTime: '2026-08-09T10:00:00.000Z',
+    });
+    const crawlJob = new ConfigObject({
+      id: latestCrawlExecution.jobId,
+      kind: Kind.CRAWLJOB,
+      meta: new Meta({name: 'Daily crawl'}),
     });
     const canRead = vi.fn(() => true);
 
@@ -54,15 +82,15 @@ describe('ConfigurationComponent crawl-job layout', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            paramMap: of(convertToParamMap({id: job.id})),
-            parent: {paramMap: of(convertToParamMap({kind: 'crawljobs'}))},
+            paramMap: of(convertToParamMap({id: configObject.id})),
+            parent: {paramMap: of(convertToParamMap({kind: kind === Kind.CRAWLJOB ? 'crawljobs' : 'seed'}))},
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: (ref: ConfigRef) => of(ref.kind === Kind.CRAWLJOB
-              ? job
+            get: (ref: ConfigRef) => of(ref.id === configObject.id
+              ? configObject
               : new ConfigObject({id: ref.id, kind: ref.kind})),
             getScriptAnnotations: () => of([]),
             search: () => EMPTY,
@@ -76,6 +104,7 @@ describe('ConfigurationComponent crawl-job layout', () => {
               browserScripts: [],
               crawlConfigs: [],
               crawlScheduleConfigs: [],
+              crawlJobs: [crawlJob],
               scopeScripts: [],
             }),
           },
@@ -91,7 +120,13 @@ describe('ConfigurationComponent crawl-job layout', () => {
           },
         },
         {provide: AbilityServiceSignal, useValue: {can: signal(false)}},
-        {provide: ReportApiService, useValue: {getLastJobStatus: () => of(latestExecution)}},
+        {
+          provide: ReportApiService,
+          useValue: {
+            getLastJobStatus: () => of(latestExecution),
+            getLastSeedStatus: () => of(latestCrawlExecution),
+          },
+        },
         {provide: ControllerApiService, useValue: {}},
         {provide: SnackBarService, useValue: {}},
         {provide: RouterExtraService, useValue: {getCurrentUrl: () => '', getPreviousUrl: () => ''}},
@@ -104,6 +139,7 @@ describe('ConfigurationComponent crawl-job layout', () => {
         set: {
           imports: [
             AsyncPipe,
+            CrawlExecutionStatusComponent,
             CrawlExecutionStatusPipe,
             JobExecutionStatusPipe,
             JobStatusComponent,
@@ -121,7 +157,7 @@ describe('ConfigurationComponent crawl-job layout', () => {
   }
 
   it('places the latest execution in the aside before related configurations', async () => {
-    const fixture = await createFixture(true);
+    const fixture = await createFixture(Kind.CRAWLJOB, true);
     const primary = fixture.nativeElement.querySelector('.primary-pane') as HTMLElement;
     const aside = fixture.nativeElement.querySelector('.supporting-pane') as HTMLElement;
     const sectionTitles = [...aside.querySelectorAll(':scope > section.context-section > h2')]
@@ -133,11 +169,33 @@ describe('ConfigurationComponent crawl-job layout', () => {
   });
 
   it('keeps the aside when the latest execution is its only supporting content', async () => {
-    const fixture = await createFixture(false);
+    const fixture = await createFixture(Kind.CRAWLJOB, false);
     const aside = fixture.nativeElement.querySelector('.supporting-pane') as HTMLElement;
 
     expect(aside).not.toBeNull();
     expect(aside.textContent).toContain('Latest job execution');
+    expect(aside.textContent).not.toContain('Related configurations');
+  });
+
+  it('places the latest seed crawl execution before related configurations', async () => {
+    const fixture = await createFixture(Kind.SEED, true);
+    const aside = fixture.nativeElement.querySelector('.supporting-pane') as HTMLElement;
+    const sectionTitles = [...aside.querySelectorAll(':scope > section.context-section > h2')]
+      .map((heading: HTMLElement) => heading.textContent.trim());
+    const panel = aside.querySelector('app-config-crawl-execution-status mat-expansion-panel') as HTMLElement;
+
+    expect(sectionTitles).toEqual(['Latest crawl execution', 'Related configurations']);
+    expect(panel.classList.contains('mat-expanded')).toBe(true);
+    expect(panel.querySelector('mat-panel-title').textContent.trim()).toBe('Daily crawl');
+    expect(panel.querySelector('mat-panel-description').textContent.trim()).toBe('Finished');
+  });
+
+  it('keeps the seed aside when the latest crawl execution is its only supporting content', async () => {
+    const fixture = await createFixture(Kind.SEED, false);
+    const aside = fixture.nativeElement.querySelector('.supporting-pane') as HTMLElement;
+
+    expect(aside).not.toBeNull();
+    expect(aside.textContent).toContain('Latest crawl execution');
     expect(aside.textContent).not.toContain('Related configurations');
   });
 });
