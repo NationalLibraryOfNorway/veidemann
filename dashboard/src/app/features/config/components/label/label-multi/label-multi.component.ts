@@ -120,7 +120,7 @@ export class LabelMultiComponent implements OnInit {
       event.input.value = '';
     }
 
-    let key = '';
+    let key: string;
     let value = event.value.trim();
 
     if (value === '') {

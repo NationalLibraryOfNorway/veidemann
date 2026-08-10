@@ -54,7 +54,7 @@ export class SelectorComponent extends LabelComponent implements OnInit {
   }
 
   protected override save(value: string): void {
-    let key = '';
+    let key: string;
     value = value.trim();
 
     if (value === '') {

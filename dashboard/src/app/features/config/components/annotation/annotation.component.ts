@@ -185,7 +185,7 @@ export class AnnotationComponent implements ControlValueAccessor {
   }
 
   protected save(value: string): void {
-    let key = '';
+    let key: string;
     value = value.trim();
 
     if (value === '') {

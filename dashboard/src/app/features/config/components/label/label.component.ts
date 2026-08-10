@@ -238,7 +238,7 @@ export class LabelComponent implements ControlValueAccessor, OnInit {
   }
 
   protected save(value: string): void {
-    let key = '';
+    let key: string;
     value = value.trim();
 
     if (value === '') {
