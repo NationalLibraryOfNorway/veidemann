@@ -14,6 +14,7 @@ import no.nb.nna.veidemann.api.config.v1.ListRequest;
 import no.nb.nna.veidemann.api.controller.v1.CrawlerStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
+import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus.State;
@@ -269,6 +270,19 @@ public class JobExecutionUtil {
 
         if (frontierClient != null) {
             frontierClient.queueCountForCrawlExecution(crawlExecutionId, callback, exe);
+        } else {
+            LOG.warn("No frontier defined for seed type {}", type);
+            callback.onFailure(new IllegalArgumentException("No frontier defined for seed type " + type));
+        }
+    }
+
+    public static void queueCountForCrawlExecutions(CrawlExecutionIds crawlExecutionIds,
+            FutureCallback<CountResponse> callback) {
+        String type = "url";
+        FrontierClient frontierClient = frontierClients.get(type);
+
+        if (frontierClient != null) {
+            frontierClient.queueCountForCrawlExecutions(crawlExecutionIds, callback, exe);
         } else {
             LOG.warn("No frontier defined for seed type {}", type);
             callback.onFailure(new IllegalArgumentException("No frontier defined for seed type " + type));

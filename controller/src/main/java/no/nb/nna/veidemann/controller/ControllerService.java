@@ -18,6 +18,7 @@ package no.nb.nna.veidemann.controller;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.protobuf.Empty;
 import io.grpc.Status;
+import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
@@ -35,6 +36,7 @@ import no.nb.nna.veidemann.api.controller.v1.RunCrawlRequest;
 import no.nb.nna.veidemann.api.controller.v1.RunStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
+import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
@@ -248,8 +250,7 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
                 @Override
                 public void onFailure(Throwable t) {
                     LOG.error(t.getMessage(), t);
-                    Status status = Status.UNKNOWN.withDescription(t.toString());
-                    responseObserver.onError(status.asException());
+                    forwardRpcFailure(t, responseObserver);
                 }
             });
         } catch (Exception e) {
@@ -271,8 +272,24 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
             @Override
             public void onFailure(Throwable t) {
                 LOG.error(t.getMessage(), t);
-                Status status = Status.UNKNOWN.withDescription(t.toString());
-                responseObserver.onError(status.asException());
+                forwardRpcFailure(t, responseObserver);
+            }
+        });
+    }
+
+    @Override
+    public void queueCountForCrawlExecutions(CrawlExecutionIds request, StreamObserver<CountResponse> responseObserver) {
+        JobExecutionUtil.queueCountForCrawlExecutions(request, new FutureCallback<CountResponse>() {
+            @Override
+            public void onSuccess(@Nullable CountResponse result) {
+                responseObserver.onNext(result);
+                responseObserver.onCompleted();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                LOG.error(t.getMessage(), t);
+                forwardRpcFailure(t, responseObserver);
             }
         });
     }
@@ -289,9 +306,17 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
             @Override
             public void onFailure(Throwable t) {
                 LOG.error(t.getMessage(), t);
-                Status status = Status.UNKNOWN.withDescription(t.toString());
-                responseObserver.onError(status.asException());
+                forwardRpcFailure(t, responseObserver);
             }
         });
+    }
+
+    private static void forwardRpcFailure(Throwable t, StreamObserver<?> responseObserver) {
+        Status status = Status.fromThrowable(t);
+        if (status.getCode() == Status.Code.UNKNOWN && status.getDescription() == null) {
+            status = status.withDescription(t.toString());
+        }
+        Metadata trailers = Status.trailersFromThrowable(t);
+        responseObserver.onError(status.withCause(t).asRuntimeException(trailers));
     }
 }

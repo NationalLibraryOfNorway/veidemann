@@ -37,6 +37,7 @@ import io.opentracing.util.GlobalTracer;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
+import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
@@ -142,6 +143,12 @@ public class FrontierClient implements AutoCloseable {
     public void queueCountForCrawlExecution(CrawlExecutionId crawlExecutionId, FutureCallback<CountResponse> callback,
             Executor executor) {
         ListenableFuture<CountResponse> future = futureStub.queueCountForCrawlExecution(crawlExecutionId);
+        Futures.addCallback(future, callback, executor);
+    }
+
+    public void queueCountForCrawlExecutions(CrawlExecutionIds crawlExecutionIds,
+            FutureCallback<CountResponse> callback, Executor executor) {
+        ListenableFuture<CountResponse> future = futureStub.queueCountForCrawlExecutions(crawlExecutionIds);
         Futures.addCallback(future, callback, executor);
     }
 
