@@ -68,7 +68,12 @@
                 <ng-container matColumnDef="uri">
                   <th mat-header-cell *matHeaderCellDef mat-sort-header i18n="@@resourceUriHeader">URI</th>
                   <td mat-cell *matCellDef="let resource">
-                    <span class="uri-value" [matTooltip]="resource.uri || ''">{{resource.uri || '—'}}</span>
+                    @if (resource.uri) {
+                      <a class="uri-value" [href]="resource.uri" target="_blank" rel="noopener noreferrer"
+                        [matTooltip]="resource.uri" (click)="$event.stopPropagation()">{{resource.uri}}</a>
+                    } @else {
+                      <span class="uri-value">—</span>
+                    }
                   </td>
                 </ng-container>
                 <ng-container matColumnDef="statusCode">
@@ -100,13 +105,20 @@
                   <td mat-cell *matCellDef="let resource">
                     <button mat-icon-button aria-label="Show resource metadata"
                       i18n-aria-label="@@showResourceMetadataLabel" matTooltip="Resource metadata"
-                      i18n-matTooltip="@@resourceMetadataTooltip" (click)="showMetadata(resource)">
+                      i18n-matTooltip="@@resourceMetadataTooltip"
+                      (click)="$event.stopPropagation(); showMetadata(resource)">
                       <mat-icon>info</mat-icon>
                     </button>
                   </td>
                 </ng-container>
                 <tr mat-header-row *matHeaderRowDef="resourceColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: resourceColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: resourceColumns"
+                  class="resource-row"
+                  [class.resource-row-link]="!!row.warcId"
+                  [attr.tabindex]="row.warcId ? 0 : null"
+                  (click)="onResourceRowClick(row, $event)"
+                  (keydown)="onResourceRowKeydown(row, $event)">
+                </tr>
                 <tr class="mat-row" *matNoDataRow>
                   <td class="mat-cell" [attr.colspan]="resourceColumns.length" i18n="@@noMatchingResources">
                     No matching resources

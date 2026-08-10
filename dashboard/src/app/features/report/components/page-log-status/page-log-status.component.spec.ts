@@ -3,7 +3,7 @@ import {Component} from '@angular/core';
 import {PageLogStatusComponent} from './page-log-status.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {PageLog, Resource} from '../../../../shared/models';
-import {provideRouter} from '@angular/router';
+import {provideRouter, Router} from '@angular/router';
 import {MatSort} from '@angular/material/sort';
 
 @Component({
@@ -208,14 +208,68 @@ describe('PageLogStatusComponent', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector('table[aria-label="Page resources"]');
-    const uriValue = table.querySelector('.uri-value') as HTMLElement;
+    const uriValue = table.querySelector('a.uri-value') as HTMLAnchorElement;
     const detailsButton = table.querySelector('button[aria-label="Show resource metadata"]');
 
     expect(table.classList).toContain('resource-table');
     expect(component.resourceColumns[0]).toBe('method');
     expect(table.closest('.resource-table-container')).not.toBeNull();
     expect(uriValue.textContent).toBe(uri);
+    expect(uriValue.href).toBe(uri);
+    expect(uriValue.target).toBe('_blank');
+    expect(uriValue.rel).toBe('noopener noreferrer');
+    expect(getComputedStyle(uriValue).display).toBe('inline-block');
+    expect(getComputedStyle(uriValue).width).toBe('fit-content');
+    expect(getComputedStyle(uriValue).maxWidth).toBe('100%');
     expect(detailsButton).not.toBeNull();
+  });
+
+  it('opens the matching crawl-log detail from the resource row without hijacking URI or metadata clicks', () => {
+    const uri = 'https://example.org/image.png';
+    fixture.componentRef.setInput('pageLog', new PageLog({
+      resource: [new Resource({uri, warcId: 'warc-resource-1'})],
+    }));
+    fixture.detectChanges();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const showMetadata = vi.spyOn(component, 'showMetadata').mockImplementation(() => undefined);
+    const row = fixture.nativeElement.querySelector('.resource-row') as HTMLTableRowElement;
+    const uriLink = row.querySelector('a.uri-value') as HTMLAnchorElement;
+    const metadataButton = row.querySelector(
+      'button[aria-label="Show resource metadata"]'
+    ) as HTMLButtonElement;
+
+    expect(row.classList).toContain('resource-row-link');
+    expect(row.tabIndex).toBe(0);
+
+    row.click();
+    expect(navigate).toHaveBeenLastCalledWith(['/report', 'crawllog', 'warc-resource-1']);
+
+    navigate.mockClear();
+    uriLink.addEventListener('click', event => event.preventDefault());
+    uriLink.click();
+    expect(navigate).not.toHaveBeenCalled();
+
+    metadataButton.click();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(showMetadata).toHaveBeenCalledOnce();
+
+    row.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    expect(navigate).toHaveBeenCalledWith(['/report', 'crawllog', 'warc-resource-1']);
+  });
+
+  it('does not make resource rows without a WARC ID navigable', () => {
+    fixture.componentRef.setInput('pageLog', new PageLog({
+      resource: [new Resource({uri: 'https://example.org/no-warc'})],
+    }));
+    fixture.detectChanges();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const row = fixture.nativeElement.querySelector('.resource-row') as HTMLTableRowElement;
+
+    expect(row.classList).not.toContain('resource-row-link');
+    expect(row.getAttribute('tabindex')).toBeNull();
+    row.click();
+    row.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('sorts resource status codes numerically and outlinks alphabetically', () => {

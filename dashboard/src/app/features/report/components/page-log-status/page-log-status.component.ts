@@ -1,4 +1,13 @@
-import {ChangeDetectionStrategy, Component, inject, Input, OnChanges, signal, ViewChild} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ErrorHandler,
+  inject,
+  Input,
+  OnChanges,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
 import {MAT_DIALOG_DATA, MatDialog, MatDialogModule} from '@angular/material/dialog';
@@ -9,6 +18,7 @@ import {MatSort, MatSortModule} from '@angular/material/sort';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {Router} from '@angular/router';
 
 import {PageLog, Resource} from '../../../../shared/models';
 import {
@@ -93,6 +103,8 @@ export class ResourceMetadataDialogComponent {
 })
 export class PageLogStatusComponent implements OnChanges {
   private readonly dialog = inject(MatDialog);
+  private readonly errorHandler = inject(ErrorHandler);
+  private readonly router = inject(Router);
   @Input() pageLog: PageLog;
 
   readonly resourceColumns = [
@@ -256,6 +268,21 @@ export class PageLogStatusComponent implements OnChanges {
     });
   }
 
+  onResourceRowClick(resource: Resource, event: Event): void {
+    if (!resource.warcId || this.isInteractiveTarget(event.target)) {
+      return;
+    }
+    this.openCrawlLog(resource);
+  }
+
+  onResourceRowKeydown(resource: Resource, event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || !resource.warcId || this.isInteractiveTarget(event.target)) {
+      return;
+    }
+    event.preventDefault();
+    this.openCrawlLog(resource);
+  }
+
   private parseOutlink(raw: string): OutlinkView {
     try {
       const url = new URL(raw);
@@ -264,6 +291,15 @@ export class PageLogStatusComponent implements OnChanges {
     } catch {
       return {raw, href: null, domain: null};
     }
+  }
+
+  private isInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof Element && !!target.closest('a, button, input, [role="button"]');
+  }
+
+  private openCrawlLog(resource: Resource): void {
+    this.router.navigate(['/report', 'crawllog', resource.warcId])
+      .catch(error => this.errorHandler.handleError(error));
   }
 
   private updateOutlinkFilter(): void {

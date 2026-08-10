@@ -85,6 +85,19 @@ table {
   table-layout: fixed;
 }
 
+.resource-row-link {
+  cursor: pointer;
+}
+
+.resource-row-link:hover {
+  background: var(--mat-sys-surface-container);
+}
+
+.resource-row-link:focus-visible {
+  outline: 3px solid var(--mat-sys-primary);
+  outline-offset: -3px;
+}
+
 .resource-table td,
 .resource-table th {
   box-sizing: border-box;
@@ -123,6 +136,19 @@ table {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+a.uri-value {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+a.uri-value:hover {
+  text-decoration: underline;
 }
 
 @container resource-table (min-width: 40rem) {
