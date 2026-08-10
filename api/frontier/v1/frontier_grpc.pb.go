@@ -20,13 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Frontier_CrawlSeed_FullMethodName                   = "/veidemann.api.frontier.v1.Frontier/CrawlSeed"
-	Frontier_GetNextPage_FullMethodName                 = "/veidemann.api.frontier.v1.Frontier/GetNextPage"
-	Frontier_PageCompleted_FullMethodName               = "/veidemann.api.frontier.v1.Frontier/PageCompleted"
-	Frontier_BusyCrawlHostGroupCount_FullMethodName     = "/veidemann.api.frontier.v1.Frontier/BusyCrawlHostGroupCount"
-	Frontier_QueueCountTotal_FullMethodName             = "/veidemann.api.frontier.v1.Frontier/QueueCountTotal"
-	Frontier_QueueCountForCrawlExecution_FullMethodName = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlExecution"
-	Frontier_QueueCountForCrawlHostGroup_FullMethodName = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlHostGroup"
+	Frontier_CrawlSeed_FullMethodName                    = "/veidemann.api.frontier.v1.Frontier/CrawlSeed"
+	Frontier_GetNextPage_FullMethodName                  = "/veidemann.api.frontier.v1.Frontier/GetNextPage"
+	Frontier_PageCompleted_FullMethodName                = "/veidemann.api.frontier.v1.Frontier/PageCompleted"
+	Frontier_BusyCrawlHostGroupCount_FullMethodName      = "/veidemann.api.frontier.v1.Frontier/BusyCrawlHostGroupCount"
+	Frontier_QueueCountTotal_FullMethodName              = "/veidemann.api.frontier.v1.Frontier/QueueCountTotal"
+	Frontier_QueueCountForCrawlExecution_FullMethodName  = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlExecution"
+	Frontier_QueueCountForCrawlExecutions_FullMethodName = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlExecutions"
+	Frontier_QueueCountForCrawlHostGroup_FullMethodName  = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlHostGroup"
 )
 
 // FrontierClient is the client API for Frontier service.
@@ -50,6 +51,8 @@ type FrontierClient interface {
 	QueueCountTotal(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CountResponse, error)
 	// Number of queued URI's for a CrawlExecution
 	QueueCountForCrawlExecution(ctx context.Context, in *CrawlExecutionId, opts ...grpc.CallOption) (*CountResponse, error)
+	// Total number of queued URI's for a set of CrawlExecutions
+	QueueCountForCrawlExecutions(ctx context.Context, in *CrawlExecutionIds, opts ...grpc.CallOption) (*CountResponse, error)
 	// Number of queued URI's for a CrawlHostGroup
 	QueueCountForCrawlHostGroup(ctx context.Context, in *CrawlHostGroup, opts ...grpc.CallOption) (*CountResponse, error)
 }
@@ -125,6 +128,16 @@ func (c *frontierClient) QueueCountForCrawlExecution(ctx context.Context, in *Cr
 	return out, nil
 }
 
+func (c *frontierClient) QueueCountForCrawlExecutions(ctx context.Context, in *CrawlExecutionIds, opts ...grpc.CallOption) (*CountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResponse)
+	err := c.cc.Invoke(ctx, Frontier_QueueCountForCrawlExecutions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *frontierClient) QueueCountForCrawlHostGroup(ctx context.Context, in *CrawlHostGroup, opts ...grpc.CallOption) (*CountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CountResponse)
@@ -156,6 +169,8 @@ type FrontierServer interface {
 	QueueCountTotal(context.Context, *emptypb.Empty) (*CountResponse, error)
 	// Number of queued URI's for a CrawlExecution
 	QueueCountForCrawlExecution(context.Context, *CrawlExecutionId) (*CountResponse, error)
+	// Total number of queued URI's for a set of CrawlExecutions
+	QueueCountForCrawlExecutions(context.Context, *CrawlExecutionIds) (*CountResponse, error)
 	// Number of queued URI's for a CrawlHostGroup
 	QueueCountForCrawlHostGroup(context.Context, *CrawlHostGroup) (*CountResponse, error)
 }
@@ -184,6 +199,9 @@ func (UnimplementedFrontierServer) QueueCountTotal(context.Context, *emptypb.Emp
 }
 func (UnimplementedFrontierServer) QueueCountForCrawlExecution(context.Context, *CrawlExecutionId) (*CountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlExecution not implemented")
+}
+func (UnimplementedFrontierServer) QueueCountForCrawlExecutions(context.Context, *CrawlExecutionIds) (*CountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlExecutions not implemented")
 }
 func (UnimplementedFrontierServer) QueueCountForCrawlHostGroup(context.Context, *CrawlHostGroup) (*CountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlHostGroup not implemented")
@@ -305,6 +323,24 @@ func _Frontier_QueueCountForCrawlExecution_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Frontier_QueueCountForCrawlExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CrawlExecutionIds)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FrontierServer).QueueCountForCrawlExecutions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Frontier_QueueCountForCrawlExecutions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FrontierServer).QueueCountForCrawlExecutions(ctx, req.(*CrawlExecutionIds))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Frontier_QueueCountForCrawlHostGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CrawlHostGroup)
 	if err := dec(in); err != nil {
@@ -349,6 +385,10 @@ var Frontier_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueueCountForCrawlExecution",
 			Handler:    _Frontier_QueueCountForCrawlExecution_Handler,
+		},
+		{
+			MethodName: "QueueCountForCrawlExecutions",
+			Handler:    _Frontier_QueueCountForCrawlExecutions_Handler,
 		},
 		{
 			MethodName: "QueueCountForCrawlHostGroup",

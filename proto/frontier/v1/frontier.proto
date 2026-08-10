@@ -36,6 +36,9 @@ service Frontier {
     // Number of queued URI's for a CrawlExecution
     rpc QueueCountForCrawlExecution (CrawlExecutionId) returns (CountResponse) {}
 
+    // Total number of queued URI's for a set of CrawlExecutions
+    rpc QueueCountForCrawlExecutions (CrawlExecutionIds) returns (CountResponse) {}
+
     // Number of queued URI's for a CrawlHostGroup
     rpc QueueCountForCrawlHostGroup (veidemann.api.frontier.v1.CrawlHostGroup) returns (CountResponse) {}
 }
@@ -51,6 +54,11 @@ message CrawlSeedRequest {
 // The execution id for a seed crawl
 message CrawlExecutionId {
     string id = 1;
+}
+
+// A set of crawl execution ids.
+message CrawlExecutionIds {
+    repeated string id = 1;
 }
 
 // Message sent from Harvester to return the harvest result.

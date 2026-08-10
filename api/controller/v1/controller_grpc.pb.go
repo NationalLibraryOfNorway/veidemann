@@ -21,16 +21,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Controller_GetRolesForActiveUser_FullMethodName       = "/veidemann.api.controller.v1.Controller/GetRolesForActiveUser"
-	Controller_RunCrawl_FullMethodName                    = "/veidemann.api.controller.v1.Controller/RunCrawl"
-	Controller_AbortCrawlExecution_FullMethodName         = "/veidemann.api.controller.v1.Controller/AbortCrawlExecution"
-	Controller_AbortJobExecution_FullMethodName           = "/veidemann.api.controller.v1.Controller/AbortJobExecution"
-	Controller_GetOpenIdConnectIssuer_FullMethodName      = "/veidemann.api.controller.v1.Controller/GetOpenIdConnectIssuer"
-	Controller_PauseCrawler_FullMethodName                = "/veidemann.api.controller.v1.Controller/PauseCrawler"
-	Controller_UnPauseCrawler_FullMethodName              = "/veidemann.api.controller.v1.Controller/UnPauseCrawler"
-	Controller_Status_FullMethodName                      = "/veidemann.api.controller.v1.Controller/Status"
-	Controller_QueueCountForCrawlExecution_FullMethodName = "/veidemann.api.controller.v1.Controller/QueueCountForCrawlExecution"
-	Controller_QueueCountForCrawlHostGroup_FullMethodName = "/veidemann.api.controller.v1.Controller/QueueCountForCrawlHostGroup"
+	Controller_GetRolesForActiveUser_FullMethodName        = "/veidemann.api.controller.v1.Controller/GetRolesForActiveUser"
+	Controller_RunCrawl_FullMethodName                     = "/veidemann.api.controller.v1.Controller/RunCrawl"
+	Controller_AbortCrawlExecution_FullMethodName          = "/veidemann.api.controller.v1.Controller/AbortCrawlExecution"
+	Controller_AbortJobExecution_FullMethodName            = "/veidemann.api.controller.v1.Controller/AbortJobExecution"
+	Controller_GetOpenIdConnectIssuer_FullMethodName       = "/veidemann.api.controller.v1.Controller/GetOpenIdConnectIssuer"
+	Controller_PauseCrawler_FullMethodName                 = "/veidemann.api.controller.v1.Controller/PauseCrawler"
+	Controller_UnPauseCrawler_FullMethodName               = "/veidemann.api.controller.v1.Controller/UnPauseCrawler"
+	Controller_Status_FullMethodName                       = "/veidemann.api.controller.v1.Controller/Status"
+	Controller_QueueCountForCrawlExecution_FullMethodName  = "/veidemann.api.controller.v1.Controller/QueueCountForCrawlExecution"
+	Controller_QueueCountForCrawlExecutions_FullMethodName = "/veidemann.api.controller.v1.Controller/QueueCountForCrawlExecutions"
+	Controller_QueueCountForCrawlHostGroup_FullMethodName  = "/veidemann.api.controller.v1.Controller/QueueCountForCrawlHostGroup"
 )
 
 // ControllerClient is the client API for Controller service.
@@ -52,6 +53,8 @@ type ControllerClient interface {
 	Status(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CrawlerStatus, error)
 	// Number of queued URI's for a CrawlExecution
 	QueueCountForCrawlExecution(ctx context.Context, in *v1.CrawlExecutionId, opts ...grpc.CallOption) (*v1.CountResponse, error)
+	// Total number of queued URI's for a set of CrawlExecutions
+	QueueCountForCrawlExecutions(ctx context.Context, in *v1.CrawlExecutionIds, opts ...grpc.CallOption) (*v1.CountResponse, error)
 	// Number of queued URI's for a CrawlHostGroup
 	QueueCountForCrawlHostGroup(ctx context.Context, in *v1.CrawlHostGroup, opts ...grpc.CallOption) (*v1.CountResponse, error)
 }
@@ -154,6 +157,16 @@ func (c *controllerClient) QueueCountForCrawlExecution(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *controllerClient) QueueCountForCrawlExecutions(ctx context.Context, in *v1.CrawlExecutionIds, opts ...grpc.CallOption) (*v1.CountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(v1.CountResponse)
+	err := c.cc.Invoke(ctx, Controller_QueueCountForCrawlExecutions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *controllerClient) QueueCountForCrawlHostGroup(ctx context.Context, in *v1.CrawlHostGroup, opts ...grpc.CallOption) (*v1.CountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(v1.CountResponse)
@@ -183,6 +196,8 @@ type ControllerServer interface {
 	Status(context.Context, *emptypb.Empty) (*CrawlerStatus, error)
 	// Number of queued URI's for a CrawlExecution
 	QueueCountForCrawlExecution(context.Context, *v1.CrawlExecutionId) (*v1.CountResponse, error)
+	// Total number of queued URI's for a set of CrawlExecutions
+	QueueCountForCrawlExecutions(context.Context, *v1.CrawlExecutionIds) (*v1.CountResponse, error)
 	// Number of queued URI's for a CrawlHostGroup
 	QueueCountForCrawlHostGroup(context.Context, *v1.CrawlHostGroup) (*v1.CountResponse, error)
 }
@@ -220,6 +235,9 @@ func (UnimplementedControllerServer) Status(context.Context, *emptypb.Empty) (*C
 }
 func (UnimplementedControllerServer) QueueCountForCrawlExecution(context.Context, *v1.CrawlExecutionId) (*v1.CountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlExecution not implemented")
+}
+func (UnimplementedControllerServer) QueueCountForCrawlExecutions(context.Context, *v1.CrawlExecutionIds) (*v1.CountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlExecutions not implemented")
 }
 func (UnimplementedControllerServer) QueueCountForCrawlHostGroup(context.Context, *v1.CrawlHostGroup) (*v1.CountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlHostGroup not implemented")
@@ -406,6 +424,24 @@ func _Controller_QueueCountForCrawlExecution_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Controller_QueueCountForCrawlExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(v1.CrawlExecutionIds)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControllerServer).QueueCountForCrawlExecutions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Controller_QueueCountForCrawlExecutions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControllerServer).QueueCountForCrawlExecutions(ctx, req.(*v1.CrawlExecutionIds))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Controller_QueueCountForCrawlHostGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(v1.CrawlHostGroup)
 	if err := dec(in); err != nil {
@@ -466,6 +502,10 @@ var Controller_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueueCountForCrawlExecution",
 			Handler:    _Controller_QueueCountForCrawlExecution_Handler,
+		},
+		{
+			MethodName: "QueueCountForCrawlExecutions",
+			Handler:    _Controller_QueueCountForCrawlExecutions_Handler,
 		},
 		{
 			MethodName: "QueueCountForCrawlHostGroup",

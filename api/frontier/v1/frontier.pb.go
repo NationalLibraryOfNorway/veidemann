@@ -139,6 +139,51 @@ func (x *CrawlExecutionId) GetId() string {
 	return ""
 }
 
+// A set of crawl execution ids.
+type CrawlExecutionIds struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            []string               `protobuf:"bytes,1,rep,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CrawlExecutionIds) Reset() {
+	*x = CrawlExecutionIds{}
+	mi := &file_frontier_v1_frontier_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CrawlExecutionIds) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CrawlExecutionIds) ProtoMessage() {}
+
+func (x *CrawlExecutionIds) ProtoReflect() protoreflect.Message {
+	mi := &file_frontier_v1_frontier_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CrawlExecutionIds.ProtoReflect.Descriptor instead.
+func (*CrawlExecutionIds) Descriptor() ([]byte, []int) {
+	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CrawlExecutionIds) GetId() []string {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
 // Message sent from Harvester to return the harvest result.
 // When the fetch is done, a stream of PageHarvest objects are returned:
 // The first object contains metrics.
@@ -160,7 +205,7 @@ type PageHarvest struct {
 
 func (x *PageHarvest) Reset() {
 	*x = PageHarvest{}
-	mi := &file_frontier_v1_frontier_proto_msgTypes[2]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -172,7 +217,7 @@ func (x *PageHarvest) String() string {
 func (*PageHarvest) ProtoMessage() {}
 
 func (x *PageHarvest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontier_v1_frontier_proto_msgTypes[2]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +230,7 @@ func (x *PageHarvest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PageHarvest.ProtoReflect.Descriptor instead.
 func (*PageHarvest) Descriptor() ([]byte, []int) {
-	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{2}
+	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PageHarvest) GetMsg() isPageHarvest_Msg {
@@ -270,7 +315,7 @@ type PageHarvestSpec struct {
 
 func (x *PageHarvestSpec) Reset() {
 	*x = PageHarvestSpec{}
-	mi := &file_frontier_v1_frontier_proto_msgTypes[3]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -282,7 +327,7 @@ func (x *PageHarvestSpec) String() string {
 func (*PageHarvestSpec) ProtoMessage() {}
 
 func (x *PageHarvestSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_frontier_v1_frontier_proto_msgTypes[3]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -295,7 +340,7 @@ func (x *PageHarvestSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PageHarvestSpec.ProtoReflect.Descriptor instead.
 func (*PageHarvestSpec) Descriptor() ([]byte, []int) {
-	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{3}
+	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PageHarvestSpec) GetQueuedUri() *QueuedUri {
@@ -328,7 +373,7 @@ type CountResponse struct {
 
 func (x *CountResponse) Reset() {
 	*x = CountResponse{}
-	mi := &file_frontier_v1_frontier_proto_msgTypes[4]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -340,7 +385,7 @@ func (x *CountResponse) String() string {
 func (*CountResponse) ProtoMessage() {}
 
 func (x *CountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontier_v1_frontier_proto_msgTypes[4]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -353,7 +398,7 @@ func (x *CountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountResponse.ProtoReflect.Descriptor instead.
 func (*CountResponse) Descriptor() ([]byte, []int) {
-	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{4}
+	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CountResponse) GetCount() int64 {
@@ -375,7 +420,7 @@ type PageHarvest_Metrics struct {
 
 func (x *PageHarvest_Metrics) Reset() {
 	*x = PageHarvest_Metrics{}
-	mi := &file_frontier_v1_frontier_proto_msgTypes[5]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -387,7 +432,7 @@ func (x *PageHarvest_Metrics) String() string {
 func (*PageHarvest_Metrics) ProtoMessage() {}
 
 func (x *PageHarvest_Metrics) ProtoReflect() protoreflect.Message {
-	mi := &file_frontier_v1_frontier_proto_msgTypes[5]
+	mi := &file_frontier_v1_frontier_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +445,7 @@ func (x *PageHarvest_Metrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PageHarvest_Metrics.ProtoReflect.Descriptor instead.
 func (*PageHarvest_Metrics) Descriptor() ([]byte, []int) {
-	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{2, 0}
+	return file_frontier_v1_frontier_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *PageHarvest_Metrics) GetUriCount() int32 {
@@ -428,7 +473,9 @@ const file_frontier_v1_frontier_proto_rawDesc = "" +
 	"\x04seed\x18\x06 \x01(\v2%.veidemann.api.config.v1.ConfigObjectR\x04seed\x124\n" +
 	"\atimeout\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\atimeout\"\"\n" +
 	"\x10CrawlExecutionId\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xd3\x02\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"#\n" +
+	"\x11CrawlExecutionIds\x12\x0e\n" +
+	"\x02id\x18\x01 \x03(\tR\x02id\"\xd3\x02\n" +
 	"\vPageHarvest\x12J\n" +
 	"\ametrics\x18\x02 \x01(\v2..veidemann.api.frontier.v1.PageHarvest.MetricsH\x00R\ametrics\x12@\n" +
 	"\aoutlink\x18\x03 \x01(\v2$.veidemann.api.frontier.v1.QueuedUriH\x00R\aoutlink\x127\n" +
@@ -444,14 +491,15 @@ const file_frontier_v1_frontier_proto_rawDesc = "" +
 	"\fcrawl_config\x18\x02 \x01(\v2%.veidemann.api.config.v1.ConfigObjectR\vcrawlConfig\x12#\n" +
 	"\rsession_token\x18\x03 \x01(\tR\fsessionToken\"%\n" +
 	"\rCountResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x03R\x05count2\xc1\x05\n" +
+	"\x05count\x18\x01 \x01(\x03R\x05count2\xbb\x06\n" +
 	"\bFrontier\x12g\n" +
 	"\tCrawlSeed\x12+.veidemann.api.frontier.v1.CrawlSeedRequest\x1a+.veidemann.api.frontier.v1.CrawlExecutionId\"\x00\x12S\n" +
 	"\vGetNextPage\x12\x16.google.protobuf.Empty\x1a*.veidemann.api.frontier.v1.PageHarvestSpec\"\x00\x12S\n" +
 	"\rPageCompleted\x12&.veidemann.api.frontier.v1.PageHarvest\x1a\x16.google.protobuf.Empty\"\x00(\x01\x12]\n" +
 	"\x17BusyCrawlHostGroupCount\x12\x16.google.protobuf.Empty\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12U\n" +
 	"\x0fQueueCountTotal\x12\x16.google.protobuf.Empty\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12v\n" +
-	"\x1bQueueCountForCrawlExecution\x12+.veidemann.api.frontier.v1.CrawlExecutionId\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12t\n" +
+	"\x1bQueueCountForCrawlExecution\x12+.veidemann.api.frontier.v1.CrawlExecutionId\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12x\n" +
+	"\x1cQueueCountForCrawlExecutions\x12,.veidemann.api.frontier.v1.CrawlExecutionIds\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12t\n" +
 	"\x1bQueueCountForCrawlHostGroup\x12).veidemann.api.frontier.v1.CrawlHostGroup\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00B\xf3\x01\n" +
 	"\x1dcom.veidemann.api.frontier.v1B\rFrontierProtoP\x01Z<github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1\xa2\x02\x03VAF\xaa\x02\x19Veidemann.Api.Frontier.V1\xca\x02\x19Veidemann\\Api\\Frontier\\V1\xe2\x02%Veidemann\\Api\\Frontier\\V1\\GPBMetadata\xea\x02\x1cVeidemann::Api::Frontier::V1b\x06proto3"
 
@@ -467,46 +515,49 @@ func file_frontier_v1_frontier_proto_rawDescGZIP() []byte {
 	return file_frontier_v1_frontier_proto_rawDescData
 }
 
-var file_frontier_v1_frontier_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_frontier_v1_frontier_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_frontier_v1_frontier_proto_goTypes = []any{
 	(*CrawlSeedRequest)(nil),      // 0: veidemann.api.frontier.v1.CrawlSeedRequest
 	(*CrawlExecutionId)(nil),      // 1: veidemann.api.frontier.v1.CrawlExecutionId
-	(*PageHarvest)(nil),           // 2: veidemann.api.frontier.v1.PageHarvest
-	(*PageHarvestSpec)(nil),       // 3: veidemann.api.frontier.v1.PageHarvestSpec
-	(*CountResponse)(nil),         // 4: veidemann.api.frontier.v1.CountResponse
-	(*PageHarvest_Metrics)(nil),   // 5: veidemann.api.frontier.v1.PageHarvest.Metrics
-	(*v1.ConfigObject)(nil),       // 6: veidemann.api.config.v1.ConfigObject
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
-	(*QueuedUri)(nil),             // 8: veidemann.api.frontier.v1.QueuedUri
-	(*v11.Error)(nil),             // 9: veidemann.api.commons.v1.Error
-	(*emptypb.Empty)(nil),         // 10: google.protobuf.Empty
-	(*CrawlHostGroup)(nil),        // 11: veidemann.api.frontier.v1.CrawlHostGroup
+	(*CrawlExecutionIds)(nil),     // 2: veidemann.api.frontier.v1.CrawlExecutionIds
+	(*PageHarvest)(nil),           // 3: veidemann.api.frontier.v1.PageHarvest
+	(*PageHarvestSpec)(nil),       // 4: veidemann.api.frontier.v1.PageHarvestSpec
+	(*CountResponse)(nil),         // 5: veidemann.api.frontier.v1.CountResponse
+	(*PageHarvest_Metrics)(nil),   // 6: veidemann.api.frontier.v1.PageHarvest.Metrics
+	(*v1.ConfigObject)(nil),       // 7: veidemann.api.config.v1.ConfigObject
+	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*QueuedUri)(nil),             // 9: veidemann.api.frontier.v1.QueuedUri
+	(*v11.Error)(nil),             // 10: veidemann.api.commons.v1.Error
+	(*emptypb.Empty)(nil),         // 11: google.protobuf.Empty
+	(*CrawlHostGroup)(nil),        // 12: veidemann.api.frontier.v1.CrawlHostGroup
 }
 var file_frontier_v1_frontier_proto_depIdxs = []int32{
-	6,  // 0: veidemann.api.frontier.v1.CrawlSeedRequest.job:type_name -> veidemann.api.config.v1.ConfigObject
-	6,  // 1: veidemann.api.frontier.v1.CrawlSeedRequest.seed:type_name -> veidemann.api.config.v1.ConfigObject
-	7,  // 2: veidemann.api.frontier.v1.CrawlSeedRequest.timeout:type_name -> google.protobuf.Timestamp
-	5,  // 3: veidemann.api.frontier.v1.PageHarvest.metrics:type_name -> veidemann.api.frontier.v1.PageHarvest.Metrics
-	8,  // 4: veidemann.api.frontier.v1.PageHarvest.outlink:type_name -> veidemann.api.frontier.v1.QueuedUri
-	9,  // 5: veidemann.api.frontier.v1.PageHarvest.error:type_name -> veidemann.api.commons.v1.Error
-	8,  // 6: veidemann.api.frontier.v1.PageHarvestSpec.queued_uri:type_name -> veidemann.api.frontier.v1.QueuedUri
-	6,  // 7: veidemann.api.frontier.v1.PageHarvestSpec.crawl_config:type_name -> veidemann.api.config.v1.ConfigObject
+	7,  // 0: veidemann.api.frontier.v1.CrawlSeedRequest.job:type_name -> veidemann.api.config.v1.ConfigObject
+	7,  // 1: veidemann.api.frontier.v1.CrawlSeedRequest.seed:type_name -> veidemann.api.config.v1.ConfigObject
+	8,  // 2: veidemann.api.frontier.v1.CrawlSeedRequest.timeout:type_name -> google.protobuf.Timestamp
+	6,  // 3: veidemann.api.frontier.v1.PageHarvest.metrics:type_name -> veidemann.api.frontier.v1.PageHarvest.Metrics
+	9,  // 4: veidemann.api.frontier.v1.PageHarvest.outlink:type_name -> veidemann.api.frontier.v1.QueuedUri
+	10, // 5: veidemann.api.frontier.v1.PageHarvest.error:type_name -> veidemann.api.commons.v1.Error
+	9,  // 6: veidemann.api.frontier.v1.PageHarvestSpec.queued_uri:type_name -> veidemann.api.frontier.v1.QueuedUri
+	7,  // 7: veidemann.api.frontier.v1.PageHarvestSpec.crawl_config:type_name -> veidemann.api.config.v1.ConfigObject
 	0,  // 8: veidemann.api.frontier.v1.Frontier.CrawlSeed:input_type -> veidemann.api.frontier.v1.CrawlSeedRequest
-	10, // 9: veidemann.api.frontier.v1.Frontier.GetNextPage:input_type -> google.protobuf.Empty
-	2,  // 10: veidemann.api.frontier.v1.Frontier.PageCompleted:input_type -> veidemann.api.frontier.v1.PageHarvest
-	10, // 11: veidemann.api.frontier.v1.Frontier.BusyCrawlHostGroupCount:input_type -> google.protobuf.Empty
-	10, // 12: veidemann.api.frontier.v1.Frontier.QueueCountTotal:input_type -> google.protobuf.Empty
+	11, // 9: veidemann.api.frontier.v1.Frontier.GetNextPage:input_type -> google.protobuf.Empty
+	3,  // 10: veidemann.api.frontier.v1.Frontier.PageCompleted:input_type -> veidemann.api.frontier.v1.PageHarvest
+	11, // 11: veidemann.api.frontier.v1.Frontier.BusyCrawlHostGroupCount:input_type -> google.protobuf.Empty
+	11, // 12: veidemann.api.frontier.v1.Frontier.QueueCountTotal:input_type -> google.protobuf.Empty
 	1,  // 13: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlExecution:input_type -> veidemann.api.frontier.v1.CrawlExecutionId
-	11, // 14: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlHostGroup:input_type -> veidemann.api.frontier.v1.CrawlHostGroup
-	1,  // 15: veidemann.api.frontier.v1.Frontier.CrawlSeed:output_type -> veidemann.api.frontier.v1.CrawlExecutionId
-	3,  // 16: veidemann.api.frontier.v1.Frontier.GetNextPage:output_type -> veidemann.api.frontier.v1.PageHarvestSpec
-	10, // 17: veidemann.api.frontier.v1.Frontier.PageCompleted:output_type -> google.protobuf.Empty
-	4,  // 18: veidemann.api.frontier.v1.Frontier.BusyCrawlHostGroupCount:output_type -> veidemann.api.frontier.v1.CountResponse
-	4,  // 19: veidemann.api.frontier.v1.Frontier.QueueCountTotal:output_type -> veidemann.api.frontier.v1.CountResponse
-	4,  // 20: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlExecution:output_type -> veidemann.api.frontier.v1.CountResponse
-	4,  // 21: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlHostGroup:output_type -> veidemann.api.frontier.v1.CountResponse
-	15, // [15:22] is the sub-list for method output_type
-	8,  // [8:15] is the sub-list for method input_type
+	2,  // 14: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlExecutions:input_type -> veidemann.api.frontier.v1.CrawlExecutionIds
+	12, // 15: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlHostGroup:input_type -> veidemann.api.frontier.v1.CrawlHostGroup
+	1,  // 16: veidemann.api.frontier.v1.Frontier.CrawlSeed:output_type -> veidemann.api.frontier.v1.CrawlExecutionId
+	4,  // 17: veidemann.api.frontier.v1.Frontier.GetNextPage:output_type -> veidemann.api.frontier.v1.PageHarvestSpec
+	11, // 18: veidemann.api.frontier.v1.Frontier.PageCompleted:output_type -> google.protobuf.Empty
+	5,  // 19: veidemann.api.frontier.v1.Frontier.BusyCrawlHostGroupCount:output_type -> veidemann.api.frontier.v1.CountResponse
+	5,  // 20: veidemann.api.frontier.v1.Frontier.QueueCountTotal:output_type -> veidemann.api.frontier.v1.CountResponse
+	5,  // 21: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlExecution:output_type -> veidemann.api.frontier.v1.CountResponse
+	5,  // 22: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlExecutions:output_type -> veidemann.api.frontier.v1.CountResponse
+	5,  // 23: veidemann.api.frontier.v1.Frontier.QueueCountForCrawlHostGroup:output_type -> veidemann.api.frontier.v1.CountResponse
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -518,7 +569,7 @@ func file_frontier_v1_frontier_proto_init() {
 		return
 	}
 	file_frontier_v1_resources_proto_init()
-	file_frontier_v1_frontier_proto_msgTypes[2].OneofWrappers = []any{
+	file_frontier_v1_frontier_proto_msgTypes[3].OneofWrappers = []any{
 		(*PageHarvest_Metrics_)(nil),
 		(*PageHarvest_Outlink)(nil),
 		(*PageHarvest_Error)(nil),
@@ -529,7 +580,7 @@ func file_frontier_v1_frontier_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_frontier_v1_frontier_proto_rawDesc), len(file_frontier_v1_frontier_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
