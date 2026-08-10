@@ -61,9 +61,6 @@ final class RethinkDbResultSet<T> implements DbResultSet<T> {
     @Override
     public void close() {
         stream.close();
-        if (result != null) {
-            result.close();
-        }
     }
 
     private static final class ResultSpliterator<T> implements Spliterator<T>, AutoCloseable {
@@ -80,17 +77,16 @@ final class RethinkDbResultSet<T> implements DbResultSet<T> {
                 throw new NullPointerException();
             }
             while (!closed && result.hasNext()) {
+                T next;
                 try {
-                    action.accept(result.next(2000, TimeUnit.MILLISECONDS));
+                    next = result.next(2000, TimeUnit.MILLISECONDS);
                 } catch (TimeoutException e) {
                     continue;
                 } catch (NoSuchElementException e) {
-                    if (closed || e.getMessage() != null && e.getMessage().contains("cancelled")) {
-                        closed = true;
-                        return false;
-                    }
-                    throw e;
+                    closed = true;
+                    return false;
                 }
+                action.accept(next);
                 return true;
             }
             return false;
