@@ -29,7 +29,7 @@ spec:
       terminationGracePeriodSeconds: 300
       containers:
         - name: log-service-writer
-          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.9.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.9.1
           ports:
             - name: grpc
               containerPort: 8080
