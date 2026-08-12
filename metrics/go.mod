@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/metrics
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.4.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0

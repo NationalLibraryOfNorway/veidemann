@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/ctl
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.3.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.4.0
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/dgraph-io/badger/v4 v4.9.5
 	github.com/dgraph-io/ristretto/v2 v2.4.2
