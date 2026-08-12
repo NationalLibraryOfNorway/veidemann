@@ -29,9 +29,9 @@ spec:
               containerPort: 9301
               protocol: TCP
           args:
-            - -metrics-address
+            - --metrics-address
             - 0.0.0.0:9301
-            - -data-dir
+            - --data-dir
             - /data
           readinessProbe:
             tcpSocket:

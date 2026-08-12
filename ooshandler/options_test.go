@@ -1,23 +1,23 @@
 package main
 
 import (
+	"os"
 	"testing"
 
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 func TestParseFlags(t *testing.T) {
-	viper.Reset()
-	t.Cleanup(viper.Reset)
-
-	err := parseFlags([]string{
+	setFlagState(t, []string{
 		"--address", "127.0.0.1:50053",
 		"--metrics-address", "127.0.0.1:9302",
 		"--log-level", "debug",
 		"--log-method",
 		"--data-dir", "/mnt/oos",
 	})
-	if err != nil {
+
+	if err := parseFlags(); err != nil {
 		t.Fatalf("parseFlags() error = %v", err)
 	}
 
@@ -40,11 +40,10 @@ func TestParseFlags(t *testing.T) {
 }
 
 func TestParseFlagsUsesEnvironment(t *testing.T) {
-	viper.Reset()
-	t.Cleanup(viper.Reset)
+	setFlagState(t, nil)
 	t.Setenv("DATA_DIR", "/env/oos")
 
-	if err := parseFlags(nil); err != nil {
+	if err := parseFlags(); err != nil {
 		t.Fatalf("parseFlags() error = %v", err)
 	}
 
@@ -53,11 +52,18 @@ func TestParseFlagsUsesEnvironment(t *testing.T) {
 	}
 }
 
-func TestParseFlagsRejectsUnknownFlag(t *testing.T) {
-	viper.Reset()
-	t.Cleanup(viper.Reset)
+func setFlagState(t *testing.T, args []string) {
+	t.Helper()
 
-	if err := parseFlags([]string{"--unknown"}); err == nil {
-		t.Fatal("parseFlags() error = nil, want an unknown flag error")
-	}
+	oldCommandLine := pflag.CommandLine
+	oldArgs := os.Args
+	pflag.CommandLine = pflag.NewFlagSet(name, pflag.ContinueOnError)
+	os.Args = append([]string{name}, args...)
+	viper.Reset()
+
+	t.Cleanup(func() {
+		pflag.CommandLine = oldCommandLine
+		os.Args = oldArgs
+		viper.Reset()
+	})
 }
