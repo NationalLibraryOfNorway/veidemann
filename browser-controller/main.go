@@ -224,7 +224,7 @@ func run() error {
 
 	slog.Info("gRPC server listening", "address", grpcAddr)
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(server.RecoveryUnaryInterceptor))
 	serverImpl := server.NewApiServer(sessions, robotsEvaluator, logWriter)
 	browserControllerV2.RegisterBrowserControllerServer(grpcServer, serverImpl)
 

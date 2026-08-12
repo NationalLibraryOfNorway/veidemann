@@ -75,10 +75,29 @@ func (sr *Registry) Get(sessId int) *Session {
 	return s
 }
 
+// GetActive returns the session for sessId when it is ready to accept resource
+// RPCs. Invalid, unallocated, initializing, and draining sessions are reported
+// as unavailable.
+func (sr *Registry) GetActive(sessId int) *Session {
+	if sessId < 0 || sessId >= len(sr.sessions) {
+		return nil
+	}
+
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	sess := sr.sessions[sessId]
+	if sess == nil || !sess.acceptingRequests() {
+		return nil
+	}
+	return sess
+}
+
 func (sr *Registry) Release(sess *Session) {
 	if sess.Id < 0 || sess.Id >= len(sr.sessions) {
 		panic(fmt.Sprintf("BUG: session registry (Release): session id is out of slice range: %d", sess.Id))
 	}
+	sess.stopAcceptingRequests()
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 	sr.sessions[sess.Id] = nil

@@ -49,12 +49,16 @@ func isCanceledByBrowser(request *browsercontrollerV2.CompleteResourceRequest) b
 // ApiServer implements the gRPC API for the browser controller. It is responsible for handling requests from the browser and forwarding them to the appropriate session. It also handles robots.txt evaluation and logging of crawl logs.
 type ApiServer struct {
 	browsercontrollerV2.UnimplementedBrowserControllerServer
-	sessions        *session.Registry
+	sessions        activeSessionLookup
 	robotsEvaluator robotsevaluator.RobotsEvaluator
 	logWriter       logwriter.LogWriter
 }
 
-func NewApiServer(sessions *session.Registry, robotsEvaluator robotsevaluator.RobotsEvaluator, logWriter logwriter.LogWriter) *ApiServer {
+type activeSessionLookup interface {
+	GetActive(int) *session.Session
+}
+
+func NewApiServer(sessions activeSessionLookup, robotsEvaluator robotsevaluator.RobotsEvaluator, logWriter logwriter.LogWriter) *ApiServer {
 	a := &ApiServer{
 		sessions:        sessions,
 		robotsEvaluator: robotsEvaluator,
@@ -91,9 +95,9 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 		}, nil
 	}
 
-	sess := a.sessions.Get(proxyId)
+	sess := a.sessions.GetActive(proxyId)
 	if sess == nil {
-		log.Debug("Cancelling nil session")
+		log.Debug("Cancelling unavailable session")
 		return canceledRegistrationReply(), nil
 	}
 	if request.GetCrawlExecutionId() != "" && request.GetCrawlExecutionId() != sess.RequestedUrl.GetExecutionId() {
@@ -133,6 +137,10 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 	}
 
 	isAllowedByRobots := a.isAllowedByRobots(ctx, sess, request.GetUri())
+	if a.sessions.GetActive(proxyId) != sess {
+		log.Debug("Cancelling resource registration for inactive session")
+		return canceledRegistrationReply(), nil
+	}
 	if !isAllowedByRobots {
 		req := sess.Requests.GotComplete(request.GetRequestId())
 		if req != nil {
@@ -181,7 +189,7 @@ func (a *ApiServer) CompleteResource(ctx context.Context, request *browsercontro
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
 	}
 
-	sess := a.sessions.Get(proxyID)
+	sess := a.sessions.GetActive(proxyID)
 	if sess == nil {
 		if isCanceledByBrowser(request) {
 			log.Debug("Discarding late browser-canceled resource for released session")

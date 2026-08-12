@@ -330,7 +330,6 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 
 	sess.frameWg = syncx.NewWaitGroup(loadCtx)
 	sess.Requests = requests.NewRegistry(sess.frameWg, log)
-	sess.startAcceptingRequests()
 
 	sess.initListeners(cdpCtx)
 	sess.timer = syncx.NewCompletionTimer(maxIdleTime, maxTotalTime, sess.Requests.MatchCrawlLogs)
@@ -490,6 +489,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		return nil, err
 	}
 	defer cleanup()
+	sess.startAcceptingRequests()
 	defer sess.stopAcceptingRequests()
 
 	if err := sess.registerNewDocumentScripts(loadCtx); err != nil {
