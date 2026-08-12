@@ -33,7 +33,7 @@ spec:
             name: controller-envoy
       containers:
         - name: controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.13.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.14.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: grpc

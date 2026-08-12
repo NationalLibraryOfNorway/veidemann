@@ -32,7 +32,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.6.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.7.0
           ports:
             - containerPort: 9999
               protocol: TCP
