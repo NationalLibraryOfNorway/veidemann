@@ -1,38 +1,33 @@
 # Veidemann log service
 
-The log service writes every accepted crawl and page log to two destinations:
+The same binary supports three storage roles while keeping one gRPC API:
 
-- Parquet files provide the permanent archive and may be handed to an
-  S3-compatible object store after finalization.
-- A bounded SQLite database provides the operational read window used by every
-  gRPC list request.
+- `writer` appends logs to the permanent Parquet archive and optionally forwards
+  a best-effort copy to a separate recent service.
+- `recent` writes logs to a bounded SQLite operational window and serves every
+  list request. It does not initialize Parquet or S3.
+- `combined` preserves the original Parquet-first, synchronous SQLite
+  best-effort behavior for compatibility.
 
-SQLite is updated synchronously after the Parquet append, so operators can query
-new logs immediately without waiting for a Parquet file to rotate. Existing
-Parquet files are never read or backfilled into SQLite.
+Production writers send to `log-service-writer`; readers send to `log-service`.
+The writer acknowledges a request as soon as its Parquet append succeeds and the
+recent copy has either been queued or dropped. Existing Parquet files are never
+read or backfilled into SQLite.
 
 ## Kubernetes requirements
 
 ### Use persistent, single-writer storage
 
-Mount separate persistent volumes at the directory configured by `PARQUET_DIR`
-and the parent directory of `RECENT_LOG_DB_PATH`. The Parquet directory contains
-archive files and per-collection `.index.json` files. The recent-log volume
-contains the SQLite main database, write-ahead log, and shared-memory sidecar.
-The supplied manifests request a dedicated 50 GiB recent-log volume so archive
-backlog cannot consume the read-store capacity.
+Each writer pod owns one Parquet volume containing archive files and
+per-collection `.index.json` files. Writers may scale horizontally only when
+every ordinal has a separate claim. The recent Deployment remains at one replica
+and exclusively owns the SQLite main database, write-ahead log, and shared-memory
+sidecar. `ReadWriteOnce` alone does not guarantee single-process access when pods
+can be scheduled on the same node.
 
-Use one log-service replica per pair of volumes. Concurrent pods must not write
-to or scan the same Parquet directory or open the same SQLite database. The
-Kubernetes manifests provide a `base/log-service/statefulset` alternative that
-gives each replica its own claims and stable ordinal. `ReadWriteOnce` alone does
-not guarantee single-process access because multiple pods on the same node may
-still be able to mount the volume.
-
-Do not delete, replace, unmount, or manually modify either volume while the
-log-service pod is running or terminating. A utility pod may mount it for
-inspection, but must not modify Parquet files, indexes, or the SQLite database
-concurrently.
+Do not modify a mounted Parquet or SQLite volume while its owning process is
+running or terminating. The supplied recent base requests a dedicated 50 GiB
+claim so archive backlog cannot consume the read-store capacity.
 
 ### Allow graceful termination
 
@@ -43,11 +38,10 @@ order:
 1. Gracefully stop the gRPC server and allow active RPCs to finish.
 2. Stop the metrics/readiness HTTP server, with a five-second HTTP shutdown
    timeout.
-3. Checkpoint and close the SQLite recent-log database.
-4. Close Parquet storage, which finalizes open files and submits them for S3
-   handoff when S3 is enabled.
-5. Stop the S3 scanner, finish all queued and active uploads, update indexes,
-   and only then exit.
+3. In writer mode, drain queued recent forwards for at most
+   `RECENT_FORWARD_SHUTDOWN_TIMEOUT`; cancel and count the remainder as dropped.
+4. In recent or combined mode, checkpoint and close SQLite.
+5. In writer or combined mode, close Parquet storage, then finish S3 handoff.
 
 Set `terminationGracePeriodSeconds` long enough for all five steps. The
 Kubernetes default of 30 seconds is often too short when S3 upload is enabled.
@@ -65,82 +59,20 @@ A `preStop` sleep is not required for internal file cleanup and does not replace
 an adequate termination grace period. If ingress propagation requires a
 `preStop` delay, include that delay in the grace-period calculation.
 
-### Recommended deployment shape
+### Deployment shapes
 
-This excerpt shows the settings that matter to storage ownership and shutdown.
-Adapt names, resources, probes, and the grace period to the cluster:
-
-```yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: log-service
-spec:
-  replicas: 1
-  serviceName: log-service
-  persistentVolumeClaimRetentionPolicy:
-    whenDeleted: Retain
-    whenScaled: Retain
-  volumeClaimTemplates:
-    - metadata:
-        name: parquet
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
-    - metadata:
-        name: recent-logs
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 50Gi
-  template:
-    spec:
-      terminationGracePeriodSeconds: 300
-      containers:
-        - name: log-service
-          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:<version>
-          env:
-            - name: PARQUET_DIR
-              value: /parquet
-            - name: RECENT_LOG_DB_PATH
-              value: /recent-logs/logs.db
-            - name: RECENT_CRAWL_LOG_MAX_ENTRIES
-              value: "1000000"
-            - name: RECENT_PAGE_LOG_MAX_ENTRIES
-              value: "250000"
-            - name: MAX_LINES_PER_FILE
-              value: "100000"
-            - name: S3_ENDPOINT
-              value: s3.example.org
-            - name: S3_BUCKET
-              value: veidemann-parquet
-            - name: S3_KEY_PREFIX
-              value: logs
-            - name: S3_UPLOAD_DELAY
-              value: "0s"
-            - name: S3_SCAN_INTERVAL
-              value: "1m"
-            - name: S3_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: log-service-s3
-                  key: access-key
-            - name: S3_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: log-service-s3
-                  key: secret-key
-          volumeMounts:
-            - name: parquet
-              mountPath: /parquet
-            - name: recent-logs
-              mountPath: /recent-logs
-```
+- `deploy/k8s/base/log-service/statefulset` supplies the scalable writer and one
+  Parquet claim per ordinal.
+- `deploy/k8s/base/log-service/recent` supplies the singleton recent Deployment,
+  Service, and SQLite claim.
+- `deploy/k8s/overlays/prod/log-service` composes those bases with three writer
+  replicas and one recent replica. It expects a separately provisioned
+  `log-service-minio` Secret containing the keys referenced by its writer patch.
+- `deploy/k8s/base/log-service/deployment` retains combined mode and exposes both
+  Service names to the same pod.
+- The development overlay changes that Deployment to recent-only mode. Its
+  `log-service-writer` Service is only an alias, so development uses SQLite and
+  no Parquet volume.
 
 Never put real S3 credentials directly in a manifest. Supply them through a
 Kubernetes `Secret` or the deployment system's secret integration.
@@ -155,12 +87,18 @@ to `PARQUET_DIR=/parquet`.
 | --- | --- | --- | --- |
 | `--host` | `HOST` | all interfaces | Interface for the gRPC API. |
 | `--port` | `PORT` | `8090` | gRPC API port. Must match the Service and container port. |
+| `--mode` | `MODE` | `combined` | Runtime role: `combined`, `writer`, or `recent`. |
 | `--metrics-address` | `METRICS_ADDRESS` | `:9153` | Address for `/metrics` and `/readyz`. |
-| `--parquet-dir` | `PARQUET_DIR` | `./data/parquet` | Local Parquet and index directory. Mount the PVC here. |
+| `--parquet-dir` | `PARQUET_DIR` | `./data/parquet` | Local Parquet and index directory used by writer and combined modes. |
 | `--max-lines-per-file` | `MAX_LINES_PER_FILE` | `100000` | Finalizes/rotates a file after this many rows. Smaller values create more upload jobs and objects. |
-| `--recent-log-db-path` | `RECENT_LOG_DB_PATH` | `./data/recent-logs.db` | SQLite database used exclusively for gRPC reads. Mount the dedicated recent-log PVC at its parent directory. |
+| `--recent-log-db-path` | `RECENT_LOG_DB_PATH` | `./data/recent-logs.db` | SQLite database used by recent and combined modes. |
 | `--recent-crawl-log-max-entries` | `RECENT_CRAWL_LOG_MAX_ENTRIES` | `1000000` | Independently retained crawl-log row limit. Must be at least one. |
 | `--recent-page-log-max-entries` | `RECENT_PAGE_LOG_MAX_ENTRIES` | `250000` | Independently retained page-log row limit. Must be at least one. |
+| `--recent-log-service-address` | `RECENT_LOG_SERVICE_ADDRESS` | empty | Optional `host:port` forwarded to asynchronously by writer mode. Empty means archive-only. |
+| `--recent-forward-queue-size` | `RECENT_FORWARD_QUEUE_SIZE` | `1024` | Bounded in-memory forwarding queue. A full queue drops the recent copy. |
+| `--recent-forward-workers` | `RECENT_FORWARD_WORKERS` | `2` | Concurrent recent-forward workers. |
+| `--recent-forward-timeout` | `RECENT_FORWARD_TIMEOUT` | `5s` | Timeout for one forwarding attempt. |
+| `--recent-forward-shutdown-timeout` | `RECENT_FORWARD_SHUTDOWN_TIMEOUT` | `30s` | Maximum graceful queue-drain time. |
 | `--s3-endpoint` | `S3_ENDPOINT` | empty | Enables S3 handoff when non-empty. May be `host:port`, `https://host`, or `http://host`; URL paths are not supported. |
 | `--s3-bucket` | `S3_BUCKET` | empty | Required when `S3_ENDPOINT` is set. |
 | `--s3-access-key` | `S3_ACCESS_KEY` | empty | Required when `S3_ENDPOINT` is set; provide from a Secret. |
@@ -173,9 +111,9 @@ to `PARQUET_DIR=/parquet`.
 | `--log-formatter` | `LOG_FORMATTER` | `logfmt` | `logfmt` or `json`. JSON is usually easier to process in Kubernetes. |
 | `--log-method` | `LOG_METHOD` | `false` | Include the source file and line in logs. |
 
-If `S3_ENDPOINT` is empty, all finalized files remain on the local volume. If it
-is set, bucket and credentials are mandatory and invalid configuration prevents
-the service from starting.
+Parquet and S3 settings are ignored in recent mode. SQLite settings are ignored
+in writer mode. If `S3_ENDPOINT` is empty, finalized files remain on the local
+volume; otherwise bucket and credentials are mandatory.
 
 ## Recent read store
 
@@ -185,11 +123,14 @@ intentionally invisible to the read API. Refreshing or repeating a query is
 enough to see a newly accepted log; Parquet rotation is unrelated to read
 visibility.
 
-The write policy is deliberately Parquet-first. A Parquet append failure fails
-the RPC and skips SQLite. After a successful archive append, the SQLite write is
-attempted synchronously. A SQLite failure is logged and counted but does not fail
-the RPC, retry from Parquet, or enable a Parquet fallback, so it can leave a
-permanent gap in the recent window.
+Writer mode is deliberately Parquet-first. A Parquet append failure fails the RPC
+and skips forwarding. After a successful append, enqueueing is non-blocking and
+the client is acknowledged without waiting for SQLite. Each queued log receives
+one timed forwarding attempt. A full queue, forward failure, process crash, or
+shutdown deadline can therefore leave a permanent gap in the recent window.
+There is no retry or Parquet backfill. Direct writes to recent mode are
+synchronous and return SQLite errors to the caller. Combined mode retains the
+old synchronous SQLite best-effort behavior.
 
 Crawl and page retention are independent. Each non-empty WARC ID has at most one
 row per log type; writing it again atomically replaces the prior payload and
@@ -228,6 +169,15 @@ The service exports these recent-store metrics:
 - `veidemann_recent_logs_payload_bytes{type}`
 - `veidemann_recent_logs_database_file_bytes{file="main|wal|shm"}`
 
+Writer mode also exports:
+
+- `veidemann_recent_forward_queue_depth`
+- `veidemann_recent_forward_total{type,outcome}`
+
+The bounded outcomes are `success`, `failure`, `queue_full_drop`, and
+`shutdown_drop`. Writer readiness intentionally does not depend on the recent
+service because the secondary copy is best-effort.
+
 If an upload fails, the finalized Parquet file and its index entry remain in
 `PARQUET_DIR`. The error is logged as `Parquet S3 handoff failed`, the service
 continues running, and the scanner retries the file after `S3_SCAN_INTERVAL`.
@@ -260,19 +210,38 @@ Before deploying S3 handoff, verify the following in the target overlay:
   signals.
 - `terminationGracePeriodSeconds` covers active RPCs and the largest expected S3
   backlog.
-- Both PVCs survive pod deletion and are mounted at exactly `PARQUET_DIR` and
-  the parent directory of `RECENT_LOG_DB_PATH` by the replacement pod.
-- Only one pod can own and write the volume pair at a time.
+- Every writer ordinal has its own retained Parquet claim, and only that ordinal
+  mounts it at `PARQUET_DIR`.
+- Exactly one recent pod mounts the SQLite claim at the parent directory of
+  `RECENT_LOG_DB_PATH`.
 - Network policy permits S3 traffic throughout termination.
 - Pod eviction, node shutdown, and rolling replacement have been tested while
   an upload is active.
 - Alerts detect S3 errors, repeated restart recovery, PVC capacity pressure, and
   pods stuck in `Terminating`.
 
-After an ungraceful termination, do not remove either PVC. The replacement
-service recovers SQLite through WAL and scans indexed finalized Parquet files to
-retry eligible uploads. Files that were successfully uploaded are deleted
-locally only after the upload call returns.
+After an ungraceful termination, do not remove any PVC. The recent replacement
+recovers SQLite through WAL, while each writer scans its own indexed finalized
+Parquet files to retry eligible uploads. Files that were successfully uploaded
+are deleted locally only after the upload call returns.
+
+### Migrating a combined StatefulSet
+
+Use a controlled write outage for the initial split:
+
+1. Stop producers and gracefully terminate the combined pod so open Parquet
+   files are finalized and SQLite is checkpointed.
+2. Confirm the old Parquet claim has been uploaded or copy its finalized files
+   before detaching it.
+3. Retain the old SQLite claim and configure the recent Deployment to mount that
+   claim, or migrate it offline to `log-service-recent-logs`.
+4. Deploy the singleton recent service and the new writer StatefulSet, whose
+   ordinals receive new Parquet claims.
+5. Verify both Services, then restart producers against `log-service-writer`.
+
+Do not automatically delete the detached legacy Parquet claim. Deploying the new
+writer against the old combined service is unsafe because the forwarded write
+would be archived a second time.
 
 ## Local tests
 

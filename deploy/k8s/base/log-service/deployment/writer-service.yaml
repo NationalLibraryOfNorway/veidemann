@@ -4,8 +4,7 @@ metadata:
   name: log-service-writer
   labels:
     app.kubernetes.io/name: log-service
-    app.kubernetes.io/component: writer
-    metrics: prometheus
+    app.kubernetes.io/component: log-service
 spec:
   type: ClusterIP
   ports:
@@ -13,10 +12,6 @@ spec:
       port: 8080
       targetPort: grpc
       protocol: TCP
-    - name: http-metrics
-      port: 9153
-      protocol: TCP
-      targetPort: http-metrics
   selector:
     app.kubernetes.io/name: log-service
-    app.kubernetes.io/component: writer
+    app.kubernetes.io/component: log-service

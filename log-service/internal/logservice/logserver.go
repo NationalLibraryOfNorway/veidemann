@@ -24,6 +24,9 @@ import (
 	"time"
 
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -33,6 +36,11 @@ const (
 	TableCrawlLog = "crawl_log"
 	TablePageLog  = "page_log"
 	TableResource = "resource"
+
+	// ForwardedMetadataKey marks writes sent by a writer-mode log service. It
+	// prevents the recent service from replacing the writer-assigned timestamp
+	// or collecting the same ingestion metrics twice.
+	ForwardedMetadataKey = "veidemann-log-forwarded"
 )
 
 type LogService interface {
@@ -47,9 +55,13 @@ type ArchiveWriter interface {
 	WritePageLog(pageLog *logV1.PageLog) error
 }
 
-type RecentLogStore interface {
+type RecentLogWriter interface {
 	WriteCrawlLog(ctx context.Context, crawlLog *logV1.CrawlLog) error
 	WritePageLog(ctx context.Context, pageLog *logV1.PageLog) error
+}
+
+type RecentLogStore interface {
+	RecentLogWriter
 	ListCrawlLogsByWarcID(ctx context.Context, warcIDs []string, emit func(*logV1.CrawlLog) error) error
 	ListCrawlLogsByExecutionID(ctx context.Context, executionID string, offset, pageSize int, emit func(*logV1.CrawlLog) error) error
 	ListRecentCrawlLogs(ctx context.Context, offset, pageSize int, emit func(*logV1.CrawlLog) error) error
@@ -58,23 +70,152 @@ type RecentLogStore interface {
 	ListRecentPageLogs(ctx context.Context, offset, pageSize int, emit func(*logV1.PageLog) error) error
 }
 
+type RecentForwarder interface {
+	EnqueueCrawlLog(crawlLog *logV1.CrawlLog)
+	EnqueuePageLog(pageLog *logV1.PageLog)
+}
+
+// LogServer is the backwards-compatible combined Parquet and SQLite server.
 type LogServer struct {
 	logV1.UnimplementedLogServer
 	archive ArchiveWriter
 	recent  RecentLogStore
 }
 
-// Assert that LogServer implements LogService.
-var _ LogService = (*LogServer)(nil)
+// WriterServer archives writes and optionally schedules an asynchronous copy
+// to a separate recent-log service. Read methods are deliberately unsupported.
+type WriterServer struct {
+	logV1.UnimplementedLogServer
+	archive   ArchiveWriter
+	forwarder RecentForwarder
+}
+
+// RecentServer stores writes in SQLite and serves recent-log reads.
+type RecentServer struct {
+	logV1.UnimplementedLogServer
+	recent RecentLogStore
+}
+
+var (
+	_ LogService = (*LogServer)(nil)
+	_ LogService = (*WriterServer)(nil)
+	_ LogService = (*RecentServer)(nil)
+)
 
 func New(archive ArchiveWriter, recent RecentLogStore) *LogServer {
-	return &LogServer{
-		archive: archive,
-		recent:  recent,
-	}
+	return &LogServer{archive: archive, recent: recent}
+}
+
+func NewWriter(archive ArchiveWriter, forwarder RecentForwarder) *WriterServer {
+	return &WriterServer{archive: archive, forwarder: forwarder}
+}
+
+func NewRecent(recent RecentLogStore) *RecentServer {
+	return &RecentServer{recent: recent}
 }
 
 func (l *LogServer) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error {
+	return receiveCrawlLogs(stream, func(crawlLog *logV1.CrawlLog) error {
+		normalizeCrawlLog(crawlLog)
+		CollectCrawlLog(crawlLog)
+		return writeCrawlLog(stream.Context(), l.archive, l.recent, crawlLog)
+	})
+}
+
+func (l *LogServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
+	pageLog, err := receivePageLog(stream)
+	if err != nil {
+		return err
+	}
+	CollectPageLog(pageLog)
+	if err := writePageLog(stream.Context(), l.archive, l.recent, pageLog); err != nil {
+		return fmt.Errorf("error writing page log: %w", err)
+	}
+	return stream.SendAndClose(&emptypb.Empty{})
+}
+
+func (l *LogServer) ListPageLogs(req *logV1.PageLogListRequest, stream logV1.Log_ListPageLogsServer) error {
+	return listPageLogs(l.recent, req, stream)
+}
+
+func (l *LogServer) ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error {
+	return listCrawlLogs(l.recent, req, stream)
+}
+
+func (l *WriterServer) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error {
+	return receiveCrawlLogs(stream, func(crawlLog *logV1.CrawlLog) error {
+		normalizeCrawlLog(crawlLog)
+		CollectCrawlLog(crawlLog)
+		if err := l.archive.WriteCrawlLog(crawlLog); err != nil {
+			return err
+		}
+		if l.forwarder != nil {
+			l.forwarder.EnqueueCrawlLog(crawlLog)
+		}
+		return nil
+	})
+}
+
+func (l *WriterServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
+	pageLog, err := receivePageLog(stream)
+	if err != nil {
+		return err
+	}
+	CollectPageLog(pageLog)
+	if err := l.archive.WritePageLog(pageLog); err != nil {
+		return fmt.Errorf("error writing page log: %w", err)
+	}
+	if l.forwarder != nil {
+		l.forwarder.EnqueuePageLog(pageLog)
+	}
+	return stream.SendAndClose(&emptypb.Empty{})
+}
+
+func (l *WriterServer) ListPageLogs(*logV1.PageLogListRequest, logV1.Log_ListPageLogsServer) error {
+	return status.Error(codes.Unimplemented, "log-service writer does not serve recent-log reads")
+}
+
+func (l *WriterServer) ListCrawlLogs(*logV1.CrawlLogListRequest, logV1.Log_ListCrawlLogsServer) error {
+	return status.Error(codes.Unimplemented, "log-service writer does not serve recent-log reads")
+}
+
+func (l *RecentServer) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error {
+	forwarded := isForwarded(stream.Context())
+	return receiveCrawlLogs(stream, func(crawlLog *logV1.CrawlLog) error {
+		if !forwarded {
+			normalizeCrawlLog(crawlLog)
+			CollectCrawlLog(crawlLog)
+		}
+		if err := l.recent.WriteCrawlLog(stream.Context(), crawlLog); err != nil {
+			return fmt.Errorf("write crawl log to recent store: %w", err)
+		}
+		return nil
+	})
+}
+
+func (l *RecentServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
+	pageLog, err := receivePageLog(stream)
+	if err != nil {
+		return err
+	}
+	if !isForwarded(stream.Context()) {
+		CollectPageLog(pageLog)
+	}
+	if err := l.recent.WritePageLog(stream.Context(), pageLog); err != nil {
+		return fmt.Errorf("write page log to recent store: %w", err)
+	}
+	return stream.SendAndClose(&emptypb.Empty{})
+}
+
+func (l *RecentServer) ListPageLogs(req *logV1.PageLogListRequest, stream logV1.Log_ListPageLogsServer) error {
+	return listPageLogs(l.recent, req, stream)
+}
+
+func (l *RecentServer) ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error {
+	return listCrawlLogs(l.recent, req, stream)
+}
+
+func receiveCrawlLogs(stream logV1.Log_WriteCrawlLogServer, write func(*logV1.CrawlLog) error) error {
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
@@ -83,46 +224,21 @@ func (l *LogServer) WriteCrawlLog(stream logV1.Log_WriteCrawlLogServer) error {
 		if err != nil {
 			return err
 		}
-		crawlLog := req.GetCrawlLog()
-		CollectCrawlLog(crawlLog)
-		if err := writeCrawlLog(stream.Context(), l.archive, l.recent, crawlLog); err != nil {
+		if err := write(req.GetCrawlLog()); err != nil {
 			return fmt.Errorf("error writing crawl log: %w", err)
 		}
 	}
 }
 
-func writeCrawlLog(ctx context.Context, archive ArchiveWriter, recent RecentLogStore, crawlLog *logV1.CrawlLog) error {
-	// Generate timestamp with millisecond precision.
-	// Preserve existing behavior and ensure deterministic timestamp precision.
-	crawlLog.TimeStamp = timestamppb.New(time.Now().UTC().Truncate(time.Millisecond))
-	// Convert FetchTimeStamp to millisecond precision
-	crawlLog.FetchTimeStamp = timestamppb.New(crawlLog.FetchTimeStamp.AsTime().Truncate(time.Millisecond))
-	if err := archive.WriteCrawlLog(crawlLog); err != nil {
-		return err
-	}
-	if err := recent.WriteCrawlLog(ctx, crawlLog); err != nil {
-		slog.Error("Failed to write crawl log to recent read store",
-			"error", err,
-			"warcId", crawlLog.GetWarcId(),
-			"executionId", crawlLog.GetExecutionId(),
-		)
-	}
-	return nil
-}
-
-func (l *LogServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
+func receivePageLog(stream logV1.Log_WritePageLogServer) (*logV1.PageLog, error) {
 	pageLog := &logV1.PageLog{}
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
-			CollectPageLog(pageLog)
-			if err := writePageLog(stream.Context(), l.archive, l.recent, pageLog); err != nil {
-				return fmt.Errorf("error writing page log: %w", err)
-			}
-			return stream.SendAndClose(&emptypb.Empty{})
+			return pageLog, nil
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		switch req.Value.(type) {
 		case *logV1.WritePageLogRequest_Outlink:
@@ -142,7 +258,37 @@ func (l *LogServer) WritePageLog(stream logV1.Log_WritePageLogServer) error {
 	}
 }
 
-func writePageLog(ctx context.Context, archive ArchiveWriter, recent RecentLogStore, pageLog *logV1.PageLog) error {
+func normalizeCrawlLog(crawlLog *logV1.CrawlLog) {
+	// Preserve the existing millisecond precision and server-assigned timestamp.
+	crawlLog.TimeStamp = timestamppb.New(time.Now().UTC().Truncate(time.Millisecond))
+	crawlLog.FetchTimeStamp = timestamppb.New(crawlLog.FetchTimeStamp.AsTime().Truncate(time.Millisecond))
+}
+
+func isForwarded(ctx context.Context) bool {
+	values := metadata.ValueFromIncomingContext(ctx, ForwardedMetadataKey)
+	for _, value := range values {
+		if value == "true" {
+			return true
+		}
+	}
+	return false
+}
+
+func writeCrawlLog(ctx context.Context, archive ArchiveWriter, recent RecentLogWriter, crawlLog *logV1.CrawlLog) error {
+	if err := archive.WriteCrawlLog(crawlLog); err != nil {
+		return err
+	}
+	if err := recent.WriteCrawlLog(ctx, crawlLog); err != nil {
+		slog.Error("Failed to write crawl log to recent read store",
+			"error", err,
+			"warcId", crawlLog.GetWarcId(),
+			"executionId", crawlLog.GetExecutionId(),
+		)
+	}
+	return nil
+}
+
+func writePageLog(ctx context.Context, archive ArchiveWriter, recent RecentLogWriter, pageLog *logV1.PageLog) error {
 	if err := archive.WritePageLog(pageLog); err != nil {
 		return err
 	}
@@ -156,38 +302,34 @@ func writePageLog(ctx context.Context, archive ArchiveWriter, recent RecentLogSt
 	return nil
 }
 
-func (l *LogServer) ListPageLogs(req *logV1.PageLogListRequest, stream logV1.Log_ListPageLogsServer) error {
+func listPageLogs(recent RecentLogStore, req *logV1.PageLogListRequest, stream logV1.Log_ListPageLogsServer) error {
 	if len(req.GetWarcId()) > 0 {
-		return l.recent.ListPageLogsByWarcID(stream.Context(), req.GetWarcId(), stream.Send)
+		return recent.ListPageLogsByWarcID(stream.Context(), req.GetWarcId(), stream.Send)
 	}
 	if executionID := req.GetQueryTemplate().GetExecutionId(); executionID != "" {
-		return l.recent.ListPageLogsByExecutionID(
+		return recent.ListPageLogsByExecutionID(
 			stream.Context(), executionID, int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
 		)
 	}
 	if hasQueryFilter(req.GetQueryTemplate(), req.GetQueryMask().GetPaths()) {
 		return fmt.Errorf("request must provide warcId or executionId")
 	}
-	return l.recent.ListRecentPageLogs(
-		stream.Context(), int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
-	)
+	return recent.ListRecentPageLogs(stream.Context(), int(req.GetOffset()), int(req.GetPageSize()), stream.Send)
 }
 
-func (l *LogServer) ListCrawlLogs(req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error {
+func listCrawlLogs(recent RecentLogStore, req *logV1.CrawlLogListRequest, stream logV1.Log_ListCrawlLogsServer) error {
 	if len(req.GetWarcId()) > 0 {
-		return l.recent.ListCrawlLogsByWarcID(stream.Context(), req.GetWarcId(), stream.Send)
+		return recent.ListCrawlLogsByWarcID(stream.Context(), req.GetWarcId(), stream.Send)
 	}
 	if executionID := req.GetQueryTemplate().GetExecutionId(); executionID != "" {
-		return l.recent.ListCrawlLogsByExecutionID(
+		return recent.ListCrawlLogsByExecutionID(
 			stream.Context(), executionID, int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
 		)
 	}
 	if hasQueryFilter(req.GetQueryTemplate(), req.GetQueryMask().GetPaths()) {
 		return fmt.Errorf("request must provide warcId or executionId")
 	}
-	return l.recent.ListRecentCrawlLogs(
-		stream.Context(), int(req.GetOffset()), int(req.GetPageSize()), stream.Send,
-	)
+	return recent.ListRecentCrawlLogs(stream.Context(), int(req.GetOffset()), int(req.GetPageSize()), stream.Send)
 }
 
 func hasQueryFilter(template proto.Message, queryPaths []string) bool {

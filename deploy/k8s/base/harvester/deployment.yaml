@@ -85,7 +85,7 @@ spec:
             - name: ROBOTS_EVALUATOR_PORT
               value: "7053"
             - name: LOG_SERVICE_HOST
-              value: "log-service"
+              value: "log-service-writer"
             - name: LOG_SERVICE_PORT
               value: "8080"
             - name: METRICS_PORT

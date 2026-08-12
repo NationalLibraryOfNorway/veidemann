@@ -7,19 +7,14 @@ spec:
     spec:
       terminationGracePeriodSeconds: 300
       volumes:
-        - name: parquet
-          persistentVolumeClaim:
-            claimName: log-service-parquet
         - name: recent-logs
           persistentVolumeClaim:
             claimName: log-service-recent-logs
       containers:
         - name: log-service
           env:
-            - name: MAX_LINES_PER_FILE
-              value: "100"
+            - name: MODE
+              value: recent
           volumeMounts:
-            - mountPath: /parquet
-              name: parquet
             - mountPath: /recent-logs
               name: recent-logs

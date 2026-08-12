@@ -38,6 +38,7 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/logservice"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/parquet"
+	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/recentforward"
 	"github.com/NationalLibraryOfNorway/veidemann/log-service/internal/recentlog"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -50,6 +51,7 @@ import (
 	"github.com/uber/jaeger-client-go/config"
 	jaegerLog "github.com/uber/jaeger-client-go/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -59,6 +61,12 @@ var (
 	date    = ""
 )
 
+const (
+	modeCombined = "combined"
+	modeWriter   = "writer"
+	modeRecent   = "recent"
+)
+
 type Options struct {
 }
 
@@ -66,12 +74,18 @@ func parseFlags() (Options, error) {
 	flags := pflag.CommandLine
 	flags.String("host", "", "Interface the log service API is listening to. No value means all interfaces.")
 	flags.Int("port", 8090, "Port the log service api is listening to")
+	flags.String("mode", modeCombined, "Runtime mode: combined, writer, or recent")
 
 	flags.String("parquet-dir", "./data/parquet", "Directory where parquet files are written")
 	flags.Int64("max-lines-per-file", 100000, "Rotate parquet file when this many rows are written")
 	flags.String("recent-log-db-path", "./data/recent-logs.db", "Path to the SQLite database used for recent log reads")
 	flags.Int64("recent-crawl-log-max-entries", 1000000, "Maximum number of crawl logs retained in the recent read store")
 	flags.Int64("recent-page-log-max-entries", 250000, "Maximum number of page logs retained in the recent read store")
+	flags.String("recent-log-service-address", "", "Optional host:port of the recent log service used by writer mode")
+	flags.Int("recent-forward-queue-size", 1024, "Maximum number of archived logs waiting for recent-service forwarding")
+	flags.Int("recent-forward-workers", 2, "Number of asynchronous recent-service forwarding workers")
+	flags.Duration("recent-forward-timeout", 5*time.Second, "Timeout for one asynchronous recent-service forward")
+	flags.Duration("recent-forward-shutdown-timeout", 30*time.Second, "Maximum time to drain recent-service forwards during shutdown")
 	flags.String("s3-endpoint", "", "S3-compatible endpoint for parquet handoff. If empty, parquet files remain on local disk")
 	flags.String("s3-bucket", "", "S3-compatible bucket for parquet handoff")
 	flags.String("s3-access-key", "", "Access key for S3-compatible parquet handoff")
@@ -101,6 +115,10 @@ func (o Options) LogLevel() string {
 	return viper.GetString("log-level")
 }
 
+func (o Options) Mode() string {
+	return strings.ToLower(strings.TrimSpace(viper.GetString("mode")))
+}
+
 func (o Options) LogFormatter() string {
 	return viper.GetString("log-formatter")
 }
@@ -127,6 +145,26 @@ func (o Options) RecentCrawlLogMaxEntries() int64 {
 
 func (o Options) RecentPageLogMaxEntries() int64 {
 	return viper.GetInt64("recent-page-log-max-entries")
+}
+
+func (o Options) RecentLogServiceAddress() string {
+	return strings.TrimSpace(viper.GetString("recent-log-service-address"))
+}
+
+func (o Options) RecentForwardQueueSize() int {
+	return viper.GetInt("recent-forward-queue-size")
+}
+
+func (o Options) RecentForwardWorkers() int {
+	return viper.GetInt("recent-forward-workers")
+}
+
+func (o Options) RecentForwardTimeout() time.Duration {
+	return viper.GetDuration("recent-forward-timeout")
+}
+
+func (o Options) RecentForwardShutdownTimeout() time.Duration {
+	return viper.GetDuration("recent-forward-shutdown-timeout")
 }
 
 func (o Options) Host() string {
@@ -173,6 +211,38 @@ func (o Options) S3ScanInterval() time.Duration {
 	return viper.GetDuration("s3-scan-interval")
 }
 
+func (o Options) Validate() error {
+	switch o.Mode() {
+	case modeCombined, modeWriter, modeRecent:
+	default:
+		return fmt.Errorf("mode must be one of %q, %q, or %q", modeCombined, modeWriter, modeRecent)
+	}
+	if o.Mode() != modeWriter && o.RecentLogServiceAddress() != "" {
+		return fmt.Errorf("recent-log-service-address is only valid in writer mode")
+	}
+	if o.Mode() == modeWriter {
+		if strings.TrimSpace(o.ParquetDir()) == "" {
+			return fmt.Errorf("parquet-dir must not be empty in writer mode")
+		}
+		if o.RecentForwardQueueSize() <= 0 {
+			return fmt.Errorf("recent-forward-queue-size must be > 0")
+		}
+		if o.RecentForwardWorkers() <= 0 {
+			return fmt.Errorf("recent-forward-workers must be > 0")
+		}
+		if o.RecentForwardTimeout() <= 0 {
+			return fmt.Errorf("recent-forward-timeout must be > 0")
+		}
+		if o.RecentForwardShutdownTimeout() <= 0 {
+			return fmt.Errorf("recent-forward-shutdown-timeout must be > 0")
+		}
+	}
+	if o.Mode() != modeWriter && strings.TrimSpace(o.RecentLogDBPath()) == "" {
+		return fmt.Errorf("recent-log-db-path must not be empty in %s mode", o.Mode())
+	}
+	return nil
+}
+
 func main() {
 	err := run()
 	if err != nil {
@@ -190,10 +260,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
+	if err := opts.Validate(); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
 
 	initLog(opts.LogLevel(), opts.LogFormatter(), opts.LogMethod())
 
-	slog.Info("Service version", "name", name, "version", version, "commit", commit, "date", date)
+	slog.Info("Service version", "name", name, "version", version, "commit", commit, "date", date, "mode", opts.Mode())
 
 	closer := initTracer(name)
 	if closer != nil {
@@ -206,82 +279,134 @@ func run() error {
 		grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)),
 	)
 
-	storageOpts := make([]parquet.Option, 0, 1)
-	s3Handoff, err := newParquetS3Handoff(opts)
-	if err != nil {
-		return err
-	}
-	if s3Handoff != nil {
-		storageOpts = append(storageOpts, parquet.WithPostCloseHandoff(s3Handoff))
-		logArgs := []any{
-			"endpoint", opts.S3Endpoint(),
-			"bucket", opts.S3Bucket(),
-			"keyPrefix", opts.S3KeyPrefix(),
-			"uploadDelay", opts.S3UploadDelay(),
-			"scanInterval", opts.S3ScanInterval(),
-		}
-		if opts.S3UploadDelay() > 0 {
-			slog.Info("Enabled parquet S3 archival with delayed upload", logArgs...)
-		} else {
-			slog.Info("Enabled parquet S3 handoff on close", logArgs...)
-		}
-	} else {
-		slog.Info("Parquet S3 handoff disabled; finalized files remain on local disk")
-	}
-
-	storage, err := parquet.New(opts.ParquetDir(), opts.MaxLinesPerFile(), storageOpts...)
-	if err != nil {
-		if s3Handoff != nil {
-			_ = s3Handoff.Close()
-		}
-		return fmt.Errorf("failed to initialize parquet storage: %w", err)
-	}
-	defer func() {
-		slog.Info("Closing parquet storage")
-		if err := storage.Close(); err != nil {
-			slog.Error("Failed to close parquet storage", "error", err)
+	var storage *parquet.Storage
+	if opts.Mode() == modeCombined || opts.Mode() == modeWriter {
+		storageOpts := make([]parquet.Option, 0, 1)
+		s3Handoff, err := newParquetS3Handoff(opts)
+		if err != nil {
+			return err
 		}
 		if s3Handoff != nil {
-			slog.Info("Closing parquet S3 handoff")
-			if err := s3Handoff.Close(); err != nil {
-				slog.Error("Failed to close parquet S3 handoff", "error", err)
+			storageOpts = append(storageOpts, parquet.WithPostCloseHandoff(s3Handoff))
+			logArgs := []any{
+				"endpoint", opts.S3Endpoint(),
+				"bucket", opts.S3Bucket(),
+				"keyPrefix", opts.S3KeyPrefix(),
+				"uploadDelay", opts.S3UploadDelay(),
+				"scanInterval", opts.S3ScanInterval(),
 			}
+			if opts.S3UploadDelay() > 0 {
+				slog.Info("Enabled parquet S3 archival with delayed upload", logArgs...)
+			} else {
+				slog.Info("Enabled parquet S3 handoff on close", logArgs...)
+			}
+		} else {
+			slog.Info("Parquet S3 handoff disabled; finalized files remain on local disk")
 		}
-	}()
 
-	slog.Info("Initialized parquet storage backend", "dir", opts.ParquetDir(), "maxLinesPerFile", opts.MaxLinesPerFile())
-
-	if strings.TrimSpace(opts.RecentLogDBPath()) == "" {
-		return fmt.Errorf("recent-log-db-path must not be empty")
-	}
-	recentLogDBPath, err := filepath.Abs(opts.RecentLogDBPath())
-	if err != nil {
-		return fmt.Errorf("resolve recent log database path: %w", err)
-	}
-	recentMetrics := recentlog.NewMetrics(prometheus.DefaultRegisterer, recentLogDBPath)
-	recentStore, err := recentlog.New(ctx, recentlog.Config{
-		Path:            recentLogDBPath,
-		CrawlMaxEntries: opts.RecentCrawlLogMaxEntries(),
-		PageMaxEntries:  opts.RecentPageLogMaxEntries(),
-		Metrics:         recentMetrics,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize recent log read store: %w", err)
-	}
-	defer func() {
-		slog.Info("Closing recent log read store")
-		if err := recentStore.Close(); err != nil {
-			slog.Error("Failed to close recent log read store", "error", err)
+		storage, err = parquet.New(opts.ParquetDir(), opts.MaxLinesPerFile(), storageOpts...)
+		if err != nil {
+			if s3Handoff != nil {
+				_ = s3Handoff.Close()
+			}
+			return fmt.Errorf("failed to initialize parquet storage: %w", err)
 		}
-	}()
-	slog.Info("Initialized recent log read store",
-		"path", recentLogDBPath,
-		"crawlMaxEntries", opts.RecentCrawlLogMaxEntries(),
-		"pageMaxEntries", opts.RecentPageLogMaxEntries(),
-	)
+		defer func() {
+			slog.Info("Closing parquet storage")
+			if err := storage.Close(); err != nil {
+				slog.Error("Failed to close parquet storage", "error", err)
+			}
+			if s3Handoff != nil {
+				slog.Info("Closing parquet S3 handoff")
+				if err := s3Handoff.Close(); err != nil {
+					slog.Error("Failed to close parquet S3 handoff", "error", err)
+				}
+			}
+		}()
+		slog.Info("Initialized parquet storage backend", "dir", opts.ParquetDir(), "maxLinesPerFile", opts.MaxLinesPerFile())
+	}
 
-	logServer := logservice.New(storage, recentStore)
-	logV1.RegisterLogServer(grpcServer, logServer)
+	var recentStore *recentlog.Store
+	if opts.Mode() == modeCombined || opts.Mode() == modeRecent {
+		recentLogDBPath, err := filepath.Abs(opts.RecentLogDBPath())
+		if err != nil {
+			return fmt.Errorf("resolve recent log database path: %w", err)
+		}
+		recentMetrics := recentlog.NewMetrics(prometheus.DefaultRegisterer, recentLogDBPath)
+		recentStore, err = recentlog.New(ctx, recentlog.Config{
+			Path:            recentLogDBPath,
+			CrawlMaxEntries: opts.RecentCrawlLogMaxEntries(),
+			PageMaxEntries:  opts.RecentPageLogMaxEntries(),
+			Metrics:         recentMetrics,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to initialize recent log read store: %w", err)
+		}
+		defer func() {
+			slog.Info("Closing recent log read store")
+			if err := recentStore.Close(); err != nil {
+				slog.Error("Failed to close recent log read store", "error", err)
+			}
+		}()
+		slog.Info("Initialized recent log read store",
+			"path", recentLogDBPath,
+			"crawlMaxEntries", opts.RecentCrawlLogMaxEntries(),
+			"pageMaxEntries", opts.RecentPageLogMaxEntries(),
+		)
+	}
+
+	switch opts.Mode() {
+	case modeCombined:
+		logV1.RegisterLogServer(grpcServer, logservice.New(storage, recentStore))
+	case modeRecent:
+		logV1.RegisterLogServer(grpcServer, logservice.NewRecent(recentStore))
+	case modeWriter:
+		var forwarder logservice.RecentForwarder
+		if address := opts.RecentLogServiceAddress(); address != "" {
+			conn, err := grpc.NewClient(address,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithStreamInterceptor(otgrpc.OpenTracingStreamClientInterceptor(tracer)),
+			)
+			if err != nil {
+				return fmt.Errorf("create recent log service client: %w", err)
+			}
+			defer func() {
+				if err := conn.Close(); err != nil {
+					slog.Error("Failed to close recent log service connection", "error", err)
+				}
+			}()
+			metrics := recentforward.NewMetrics(prometheus.DefaultRegisterer)
+			asyncForwarder, err := recentforward.New(
+				recentforward.NewLogWriter(logV1.NewLogClient(conn)),
+				recentforward.Config{
+					QueueSize: opts.RecentForwardQueueSize(),
+					Workers:   opts.RecentForwardWorkers(),
+					Timeout:   opts.RecentForwardTimeout(),
+					Metrics:   metrics,
+				},
+			)
+			if err != nil {
+				return fmt.Errorf("initialize recent log forwarder: %w", err)
+			}
+			defer func() {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), opts.RecentForwardShutdownTimeout())
+				defer cancel()
+				if err := asyncForwarder.Close(shutdownCtx); err != nil {
+					slog.Warn("Recent log forwarder did not drain before shutdown deadline", "error", err)
+				}
+			}()
+			forwarder = asyncForwarder
+			slog.Info("Enabled asynchronous recent-log forwarding",
+				"address", address,
+				"queueSize", opts.RecentForwardQueueSize(),
+				"workers", opts.RecentForwardWorkers(),
+				"timeout", opts.RecentForwardTimeout(),
+			)
+		} else {
+			slog.Info("Recent-log forwarding disabled; writes are archived only")
+		}
+		logV1.RegisterLogServer(grpcServer, logservice.NewWriter(storage, forwarder))
+	}
 
 	g, groupCtx := errgroup.WithContext(ctx)
 

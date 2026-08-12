@@ -1,34 +1,35 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: log-service-writer
+  name: log-service
   labels:
     app.kubernetes.io/name: log-service
-    app.kubernetes.io/component: writer
+    app.kubernetes.io/component: recent
   annotations:
     sidecar.jaegertracing.io/inject: jaeger
 spec:
   replicas: 1
-  serviceName: log-service-writer
-  podManagementPolicy: Parallel
-  persistentVolumeClaimRetentionPolicy:
-    whenDeleted: Retain
-    whenScaled: Retain
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: log-service
-      app.kubernetes.io/component: writer
+      app.kubernetes.io/component: recent
   template:
     metadata:
       labels:
         app.kubernetes.io/name: log-service
-        app.kubernetes.io/component: writer
+        app.kubernetes.io/component: recent
       annotations:
         linkerd.io/inject: enabled
     spec:
       terminationGracePeriodSeconds: 300
+      volumes:
+        - name: recent-logs
+          persistentVolumeClaim:
+            claimName: log-service-recent-logs
       containers:
-        - name: log-service-writer
+        - name: log-service
           image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.9.0
           ports:
             - name: grpc
@@ -41,23 +42,17 @@ spec:
             - name: PORT
               value: "8080"
             - name: MODE
-              value: writer
+              value: recent
             - name: LOG_LEVEL
               value: "debug"
-            - name: PARQUET_DIR
-              value: "/parquet"
-            - name: RECENT_LOG_SERVICE_ADDRESS
-              value: "log-service:8080"
-            - name: RECENT_FORWARD_QUEUE_SIZE
-              value: "1024"
-            - name: RECENT_FORWARD_WORKERS
-              value: "2"
-            - name: RECENT_FORWARD_TIMEOUT
-              value: "5s"
-            - name: RECENT_FORWARD_SHUTDOWN_TIMEOUT
-              value: "30s"
+            - name: RECENT_LOG_DB_PATH
+              value: "/recent-logs/logs.db"
+            - name: RECENT_CRAWL_LOG_MAX_ENTRIES
+              value: "1000000"
+            - name: RECENT_PAGE_LOG_MAX_ENTRIES
+              value: "250000"
             - name: JAEGER_SERVICE_NAME
-              value: log-service-writer
+              value: log-service
             - name: JAEGER_AGENT_HOST
               value: localhost
             - name: JAEGER_AGENT_PORT
@@ -79,14 +74,5 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 10
           volumeMounts:
-            - name: parquet
-              mountPath: /parquet
-  volumeClaimTemplates:
-    - metadata:
-        name: parquet
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
+            - name: recent-logs
+              mountPath: /recent-logs

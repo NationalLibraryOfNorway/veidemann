@@ -6,14 +6,32 @@ These notes apply to work inside `log-service/`.
 
 ## Current Storage Behavior
 
-- Every accepted log is appended to Parquet first and then synchronously written
-  to a bounded SQLite recent-log store.
+- The binary supports `writer`, `recent`, and backwards-compatible `combined`
+  modes behind the same gRPC API.
+- Writer mode appends to Parquet first, then non-blockingly queues a best-effort
+  copy for a configured recent service. Forward failures never fail an archived
+  write and are never replayed from Parquet.
+- Recent mode writes synchronously to a bounded SQLite store and returns SQLite
+  errors to direct callers. Combined mode keeps the original synchronous
+  Parquet-first/SQLite-best-effort behavior.
 - All production gRPC reads query SQLite only. Parquet and S3 are archival-only;
   they are never queried or backfilled into the recent store.
 - Crawl and page retention limits are independent, and page resources/outlinks
   remain embedded in the retained page-log protobuf.
-- The recent SQLite database and Parquet archive require separate persistent,
-  single-writer volumes.
+- Each writer replica requires its own persistent, single-writer Parquet volume.
+  The singleton recent Deployment exclusively owns its SQLite volume.
+
+## Split-Service Routing
+
+- Producers use `log-service-writer`; controller/dashboard and other readers use
+  `log-service`.
+- Writer list RPCs return gRPC `Unimplemented`; do not return an empty success for
+  misrouted reads.
+- The production overlay runs three writer StatefulSet replicas and one recent
+  Deployment. Development aliases `log-service-writer` to the SQLite-only recent
+  pod and does not mount Parquet.
+- The recent-forward queue is volatile and bounded. Preserve timeout, drop,
+  queue-depth, and shutdown-drain observability when changing it.
 
 ## Parquet Archival Behavior
 
