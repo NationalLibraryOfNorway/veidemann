@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: scopeservice
-          image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice:0.3.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice:0.4.0
           resources:
             requests:
               memory: "50Mi"
