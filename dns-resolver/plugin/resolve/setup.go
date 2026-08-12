@@ -26,8 +26,15 @@ func setup(c *caddy.Controller) error {
 	resolver := NewResolver(addr)
 
 	c.OnStartup(func() error {
-		// Find the first configured handler
 		conf := dnsserver.GetConfig(c)
+		// Use the same collector as native DNS requests when metadata is configured.
+		if handler := conf.Handler("metadata"); handler != nil {
+			if collector, ok := handler.(dnsserver.MetadataCollector); ok {
+				resolver.metadataCollector = collector
+			}
+		}
+
+		// Find the first configured handler.
 		for _, d := range dnsserver.Directives {
 			h := conf.Handler(d)
 			if h != nil {

@@ -18,6 +18,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/rcode"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/pkg/reuseport"
+	corednsrequest "github.com/coredns/coredns/request"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/miekg/dns"
 	"github.com/opentracing/opentracing-go"
@@ -37,8 +38,9 @@ type Resolve struct {
 	dnsresolverV1.UnimplementedDnsResolverServer
 
 	*grpc.Server
-	listenAddr net.Addr
-	addr       string
+	listenAddr        net.Addr
+	addr              string
+	metadataCollector dnsserver.MetadataCollector
 }
 
 // CollectionIdKey is used as context value key for collectionId
@@ -51,7 +53,8 @@ func NewResolver(addr string) *Resolve {
 		Server: grpc.NewServer(
 			grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer())),
 		),
-		addr: addr,
+		addr:              addr,
+		metadataCollector: &metadata.Metadata{},
 	}
 	// initialize server API
 	dnsresolverV1.RegisterDnsResolverServer(server, server)
@@ -79,30 +82,13 @@ func (e *Resolve) Resolve(ctx context.Context, request *dnsresolverV1.ResolveReq
 
 	ctx = context.WithValue(ctx, CollectionIdKey{}, request.GetCollectionRef().GetId())
 	ctx = context.WithValue(ctx, ExecutionIdKey{}, request.GetExecutionId())
-	// Usually this value is initialized by the server. When using the gRPC server
-	// we need to initialize it ourselves.
-	// See https://github.com/coredns/coredns/blob/8868454177bdd3e70e71bd52d3c0e38bcf0d77fd/core/dnsserver/server.go#L161
+	// gRPC requests bypass dnsserver.Server.ServeDNS, so reproduce the
+	// per-request context CoreDNS establishes for native DNS transports.
 	ctx = context.WithValue(ctx, dnsserver.Key{}, &dnsserver.Server{
 		Addr: e.addr,
 	})
 	ctx = context.WithValue(ctx, dnsserver.LoopKey{}, 0)
-	// TODO
-	//
-	// When using metadata plugin to get the upstream proxy used by the forward plugin
-	// the context is not initialized with metadata so we need to initialize
-	// it ourselves.
-	//
-	// The metadata.ContextWithMetadata function is only exported for use by provider tests
-	// so this is a bit of a HACK.
-	//
-	// It can be argued that the resolver plugin can be removed
-	// and that veidemann-frontier should just use normal DNS resolution.
-	// The downside of this is that it will not be able to cache
-	// DNS resolution per collection or know which collection to write
-	// DNS requests to. A possible solution is to just write all DNS resolutions
-	// to a single "DNS" collection. This will simplify things and remove
-	// the need for a dnsresolver API as well.
-	ctx = metadata.ContextWithMetadata(ctx)
+	ctx = e.metadataCollector.Collect(ctx, corednsrequest.Request{Req: req, W: w})
 
 	if rc, err := plugin.NextOrFailure(e.Name(), e.Next, ctx, w, req); err != nil {
 		err = &UnresolvableError{

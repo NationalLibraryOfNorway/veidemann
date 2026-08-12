@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 	"testing"
 
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
+	"github.com/coredns/coredns/plugin/metadata"
 	"github.com/coredns/coredns/plugin/test"
+	corednsrequest "github.com/coredns/coredns/request"
 	"github.com/miekg/dns"
 	"google.golang.org/grpc/peer"
 )
@@ -56,6 +59,45 @@ func TestDeprecatedPortIsEchoedForLegacyClients(t *testing.T) {
 	}
 	if reply.Port != 80 {
 		t.Errorf("Expected deprecated Port compatibility echo to be 80, got: %d", reply.Port)
+	}
+}
+
+func TestResolveInitializesMetadataWithoutConfiguredCollector(t *testing.T) {
+	server := NewResolver("8053")
+	defer func() { _ = server.OnStop() }()
+	server.Next = test.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+		if !metadata.SetValueFunc(ctx, "test/value", func() string { return "fallback" }) {
+			return dns.RcodeServerFailure, errors.New("metadata context is not initialized")
+		}
+		if got := metadata.ValueFunc(ctx, "test/value")(); got != "fallback" {
+			return dns.RcodeServerFailure, fmt.Errorf("metadata value = %q, want fallback", got)
+		}
+		return writeAResponse(w, r)
+	})
+
+	if _, err := server.Resolve(testPeerContext(t), &dnsresolverV1.ResolveRequest{Host: "example.org"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestResolveUsesConfiguredMetadataCollector(t *testing.T) {
+	server := NewResolver("8053")
+	defer func() { _ = server.OnStop() }()
+	collector := &recordingMetadataCollector{}
+	server.metadataCollector = collector
+	server.Next = test.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+		value := metadata.ValueFunc(ctx, "test/collector")
+		if value == nil || value() != "example.org." {
+			return dns.RcodeServerFailure, errors.New("collector metadata is not visible downstream")
+		}
+		return writeAResponse(w, r)
+	})
+
+	if _, err := server.Resolve(testPeerContext(t), &dnsresolverV1.ResolveRequest{Host: "example.org"}); err != nil {
+		t.Fatal(err)
+	}
+	if collector.calls != 1 {
+		t.Fatalf("metadata collector calls = %d, want 1", collector.calls)
 	}
 }
 
@@ -172,6 +214,23 @@ func TestResolveKeepsInvalidOrInternalResponsesRetryable(t *testing.T) {
 }
 
 type pluginHandler func(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
+
+type recordingMetadataCollector struct {
+	calls int
+}
+
+func (c *recordingMetadataCollector) Collect(ctx context.Context, state corednsrequest.Request) context.Context {
+	c.calls++
+	ctx = (&metadata.Metadata{}).Collect(ctx, state)
+	metadata.SetValueFunc(ctx, "test/collector", state.Name)
+	return ctx
+}
+
+func writeAResponse(w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	reply := new(dns.Msg).SetReply(r)
+	reply.Answer = []dns.RR{test.A("example.org. IN A 127.0.0.1")}
+	return reply.Rcode, w.WriteMsg(reply)
+}
 
 func testPeerContext(t *testing.T) context.Context {
 	t.Helper()
