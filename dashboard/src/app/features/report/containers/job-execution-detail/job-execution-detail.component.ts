@@ -22,6 +22,7 @@ import {
 } from '../../components/job-execution-shortcuts/job-execution-shortcuts.component';
 import {ExecutionAbortActionComponent} from '../../components/execution-abort-action/execution-abort-action.component';
 import {CommonModule} from '@angular/common';
+import {DetailOverflowComponent} from '../../../../shared/components';
 
 @Component({
   selector: 'app-crawl-log-detail',
@@ -31,6 +32,7 @@ import {CommonModule} from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    DetailOverflowComponent,
     JobExecutionStatusComponent,
     JobExecutionShortcutHelpersComponent,
     ExecutionAbortActionComponent,

@@ -17,15 +17,20 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   min-width: 0;
-  margin-bottom: 56px;
   padding-inline: 8px;
 }
 
 .destination-hero-card {
   min-width: 0;
-  min-height: clamp(360px, 42vh, 400px);
+  min-height: 320px;
   overflow: hidden;
   border-radius: 24px;
+}
+
+.destination-hero-card.mat-mdc-card {
+  border: 0;
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .destination-intro-content {
@@ -53,14 +58,6 @@
   font: var(--mat-sys-body-large);
 }
 
-.destination-assists {
-  padding-top: 32px;
-}
-
-.destination-assist-chip {
-  text-decoration: none;
-}
-
 .destination-artwork-card.mat-mdc-card.mat-mdc-card-filled {
   display: grid;
   place-items: center;
@@ -82,6 +79,7 @@
   flex-direction: column;
   gap: 48px;
   margin-inline: 24px;
+  padding-bottom: 64px;
 }
 
 .destination-group h2 {
@@ -168,10 +166,6 @@
 }
 
 @media (max-width: 599px) {
-  .destination-hero {
-    margin-bottom: 40px;
-  }
-
   .destination-hero-card {
     min-height: 0;
   }
@@ -184,10 +178,6 @@
   .destination-intro-copy h1 {
     font: var(--mat-sys-headline-large);
     letter-spacing: var(--mat-sys-headline-large-tracking);
-  }
-
-  .destination-assists {
-    padding-top: 24px;
   }
 
   .destination-artwork-card {

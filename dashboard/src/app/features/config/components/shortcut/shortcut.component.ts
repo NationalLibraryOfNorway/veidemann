@@ -1,24 +1,16 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
+import {Component, EventEmitter, HostBinding, Input, Output, ChangeDetectionStrategy, inject, signal} from '@angular/core';
 import {ConfigObject, Kind} from '../../../../shared/models/config';
 import {Params, RouterLink} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
-import {AsyncPipe, NgClass} from '@angular/common';
-import {MatChipsModule} from '@angular/material/chips';
+import {AsyncPipe} from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatMenuModule} from '@angular/material/menu';
 import {
-  BrowserConfigNamePipe,
-  BrowserScriptNamePipe,
-  CollectionNamePipe,
-  CrawlConfigNamePipe,
-  CrawlJobDisabledStatusPipe,
-  CrawlScheduleNamePipe,
-  EntityNamePipe,
-  PolitenessConfigNamePipe
+  ConfigRefObjectPipe,
 } from '../../pipe';
-import {JobNamePipe} from '../../../report/pipe';
+import {configKindIcon} from '../../func/config-kind-icon';
 
 @Component({
   selector: 'app-config-shortcut-helpers',
@@ -26,20 +18,10 @@ import {JobNamePipe} from '../../../report/pipe';
   styleUrls: ['./shortcut.component.scss'],
   imports: [
     AsyncPipe,
-    BrowserConfigNamePipe,
-    BrowserScriptNamePipe,
-    CollectionNamePipe,
-    CrawlConfigNamePipe,
-    CrawlJobDisabledStatusPipe,
-    CrawlScheduleNamePipe,
-    EntityNamePipe,
-    JobNamePipe,
+    ConfigRefObjectPipe,
     MatButtonModule,
-    MatChipsModule,
     MatIcon,
     MatMenuModule,
-    NgClass,
-    PolitenessConfigNamePipe,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,15 +31,22 @@ export class ConfigShortcutHelpersComponent {
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
   readonly Kind = Kind;
+  readonly configKindIcon = configKindIcon;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   @Input()
   configObject: ConfigObject;
 
-  @Input() showReferenceKindLabels = false;
+  @Input() showReferences = true;
   @Input() showClone = true;
   @Input() showDelete = true;
+  @Input() showEdit = false;
   @Input() showCreateSeed = true;
+  @Input() showFilters = true;
+  @Input() showActions = true;
   @Input() seedContext: ConfigObject | null = null;
+
+  readonly activeMenuConfig = signal<ConfigObject | null>(null);
+  readonly relationshipMenu = signal(false);
 
   @Output()
   createSeed = new EventEmitter<ConfigObject>();
@@ -72,6 +61,9 @@ export class ConfigShortcutHelpersComponent {
   clone = new EventEmitter<ConfigObject>();
 
   @Output()
+  edit = new EventEmitter<ConfigObject>();
+
+  @Output()
   delete = new EventEmitter<ConfigObject>();
 
   constructor() {
@@ -79,54 +71,142 @@ export class ConfigShortcutHelpersComponent {
   }
 
   get hasActions(): boolean {
-    return this.canCreateSeed
-      || this.canRunCrawl
+    return this.showActions && (this.showCreateSeed && this.canCreateSeedFor(this.configObject)
+      || this.canRunCrawlFor(this.configObject, this.seedContext)
+      || (this.showEdit && this.can('update', Kind[this.configObject.kind]))
       || (this.showClone && this.can('create', Kind[this.configObject.kind]))
-      || (this.showDelete && !!this.configObject.id && this.can('delete', Kind[this.configObject.kind]));
+      || (this.showDelete && !!this.configObject.id && this.can('delete', Kind[this.configObject.kind])));
   }
 
-  get canCreateSeed(): boolean {
-    return this.showCreateSeed
-      && this.configObject.kind === Kind.CRAWLENTITY
+  get hasMenuItems(): boolean {
+    return this.hasFilters || this.hasActions;
+  }
+
+  @HostBinding('class.empty-shortcut-layout')
+  get empty(): boolean {
+    return !this.hasMenuItems && !this.hasReferenceLinks;
+  }
+
+  get hasReferenceLinks(): boolean {
+    if (!this.showReferences) return false;
+    switch (this.configObject.kind) {
+      case Kind.SEED:
+        return !!this.configObject.seed.entityRef.id && this.can('read', Kind[Kind.CRAWLENTITY])
+          || !!this.configObject.seed.jobRefList.length && this.can('read', Kind[Kind.CRAWLJOB]);
+      case Kind.CRAWLJOB:
+        return !!this.configObject.crawlJob.scheduleRef.id && this.can('read', Kind[Kind.CRAWLSCHEDULECONFIG])
+          || !!this.configObject.crawlJob.crawlConfigRef.id && this.can('read', Kind[Kind.CRAWLCONFIG])
+          || !!this.configObject.crawlJob.scopeScriptRef.id && this.can('read', Kind[Kind.BROWSERSCRIPT]);
+      case Kind.CRAWLCONFIG:
+        return !!this.configObject.crawlConfig.collectionRef.id && this.can('read', Kind[Kind.COLLECTION])
+          || !!this.configObject.crawlConfig.browserConfigRef.id && this.can('read', Kind[Kind.BROWSERCONFIG])
+          || !!this.configObject.crawlConfig.politenessRef.id && this.can('read', Kind[Kind.POLITENESSCONFIG]);
+      case Kind.BROWSERCONFIG:
+        return !!this.configObject.browserConfig.scriptRefList.length && this.can('read', Kind[Kind.BROWSERSCRIPT]);
+      default:
+        return false;
+    }
+  }
+
+  get hasFilters(): boolean {
+    return this.showFilters && this.hasFiltersFor(this.configObject);
+  }
+
+  hasFiltersFor(configObject: ConfigObject): boolean {
+    switch (configObject.kind) {
+      case Kind.CRAWLENTITY:
+        return this.can('read', Kind[Kind.SEED]);
+      case Kind.SEED:
+        return this.can('read', 'crawlexecution') || this.can('read', Kind[Kind.SEED]);
+      case Kind.CRAWLJOB:
+        return this.can('read', 'reports')
+          || this.can('read', Kind[Kind.SEED])
+          || !!configObject.crawlJob.scheduleRef.id
+            && this.can('read', Kind[Kind.CRAWLSCHEDULECONFIG])
+          || !!configObject.crawlJob.crawlConfigRef.id
+            && this.can('read', Kind[Kind.CRAWLCONFIG]);
+      case Kind.CRAWLSCHEDULECONFIG:
+        return this.can('read', Kind[Kind.CRAWLJOB]);
+      case Kind.CRAWLCONFIG:
+        return this.can('read', Kind[Kind.CRAWLJOB])
+          || !!configObject.crawlConfig.collectionRef.id
+            && this.can('read', Kind[Kind.COLLECTION])
+          || !!configObject.crawlConfig.browserConfigRef.id
+            && this.can('read', Kind[Kind.BROWSERCONFIG])
+          || !!configObject.crawlConfig.politenessRef.id
+            && this.can('read', Kind[Kind.POLITENESSCONFIG]);
+      case Kind.COLLECTION:
+      case Kind.BROWSERCONFIG:
+      case Kind.POLITENESSCONFIG:
+        return this.can('read', Kind[Kind.CRAWLCONFIG]);
+      case Kind.BROWSERSCRIPT:
+        return this.can('read', Kind[Kind.BROWSERCONFIG]);
+      default:
+        return false;
+    }
+  }
+
+  canCreateSeedFor(configObject: ConfigObject): boolean {
+    return configObject.kind === Kind.CRAWLENTITY
       && this.can('create', Kind[Kind.SEED]);
   }
 
-  get canRunCrawl(): boolean {
-    if (this.configObject.kind === Kind.SEED) {
+  canRunCrawlFor(configObject: ConfigObject, seedContext: ConfigObject | null): boolean {
+    if (configObject.kind === Kind.SEED) {
       return this.can('runCrawl', Kind[Kind.SEED]);
     }
-    if (this.configObject.kind === Kind.CRAWLJOB) {
-      return this.seedContext?.kind === Kind.SEED
+    if (configObject.kind === Kind.CRAWLJOB) {
+      return seedContext?.kind === Kind.SEED
         ? this.can('runCrawl', Kind[Kind.SEED])
         : this.can('runCrawl', Kind[Kind.CRAWLJOB]);
     }
     return false;
   }
 
-  onClone() {
-    this.clone.emit(this.configObject);
+  openMenu(configObject: ConfigObject, relationship: boolean): void {
+    this.activeMenuConfig.set(configObject);
+    this.relationshipMenu.set(relationship);
   }
 
-  onDelete() {
-    this.delete.emit(this.configObject);
+  isDeactivated(configObject: ConfigObject | null): boolean {
+    return !!configObject && (configObject.kind === Kind.SEED && configObject.seed.disabled
+      || configObject.kind === Kind.CRAWLJOB && configObject.crawlJob.disabled);
   }
 
-  onCreateSeed() {
-    this.createSeed.emit(this.configObject);
+  menuSeedContext(): ConfigObject | null {
+    return this.relationshipMenu() && this.configObject.kind === Kind.SEED
+      ? this.configObject
+      : this.seedContext;
   }
 
-  onRunCrawl() {
-    if (this.configObject.kind === Kind.CRAWLJOB && this.seedContext?.kind === Kind.SEED) {
-      this.runSeedInCrawlJob.emit({seed: this.seedContext, crawlJob: this.configObject});
+  onClone(configObject: ConfigObject) {
+    this.clone.emit(configObject);
+  }
+
+  onEdit(configObject: ConfigObject) {
+    this.edit.emit(configObject);
+  }
+
+  onDelete(configObject: ConfigObject) {
+    this.delete.emit(configObject);
+  }
+
+  onCreateSeed(configObject: ConfigObject) {
+    this.createSeed.emit(configObject);
+  }
+
+  onRunCrawl(configObject: ConfigObject, seedContext: ConfigObject | null) {
+    if (configObject.kind === Kind.CRAWLJOB && seedContext?.kind === Kind.SEED) {
+      this.runSeedInCrawlJob.emit({seed: seedContext, crawlJob: configObject});
       return;
     }
-    this.runCrawl.emit(this.configObject);
+    this.runCrawl.emit(configObject);
   }
 
-  get crawlJobActionLabel(): string {
-    return this.seedContext?.kind === Kind.SEED
-      ? $localize`:@@configDetailRunSeedWithCrawljobAction:Crawl seed with this crawljob`
-      : $localize`:@@configDetailRunCrawljobAction:Run crawljob`;
+  crawlJobActionLabel(seedContext: ConfigObject | null): string {
+    return seedContext?.kind === Kind.SEED
+      ? $localize`:@@configDetailRunSeedWithCrawljobAction:Run crawl with this crawl job`
+      : $localize`:@@configDetailRunCrawljobAction:Run crawl`;
   }
 
   getJobRefListQueryParams(configObject: ConfigObject): Params {

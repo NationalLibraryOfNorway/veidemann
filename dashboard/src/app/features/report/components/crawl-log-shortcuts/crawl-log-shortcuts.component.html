@@ -1,42 +1,45 @@
-<mat-chip-set aria-label="Crawl log identifiers" i18n-aria-label="@@crawlLogIdentifiersLabel">
-  @if (crawlLog.warcId) {
-    <mat-chip role="button" tabindex="0" [appCopyId]="crawlLog.warcId"
-      matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip"
-      aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip">
-      <mat-icon matChipAvatar>content_copy</mat-icon>
-      <span i18n="@@copyWarcIdChip">Copy WARC ID</span>
-    </mat-chip>
-  }
+@if (presentation === 'menu') {
   @if (crawlLog.executionId) {
-    @if (can('read', 'crawlexecution')) {
-      <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlLog.executionId]"
-        matTooltip="Open crawl execution {{crawlLog.executionId}}"
-        aria-label="Open crawl execution {{crawlLog.executionId}}">
-        <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
-      </a>
-    } @else {
-      <mat-chip matTooltip="Crawl execution {{crawlLog.executionId}}"
-        aria-label="Crawl execution {{crawlLog.executionId}}">
-        <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
-      </mat-chip>
-    }
+    <a mat-menu-item [disabled]="!can('read', 'crawlexecution')"
+      [routerLink]="can('read', 'crawlexecution') ? ['/report', 'crawlexecution', crawlLog.executionId] : null">
+      <mat-icon>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
+    </a>
   }
   @if (crawlLog.jobExecutionId) {
-    @if (can('read', 'jobexecution')) {
-      <a mat-chip [routerLink]="['/report', 'jobexecution', crawlLog.jobExecutionId]"
-        matTooltip="Open job execution {{crawlLog.jobExecutionId}}"
-        aria-label="Open job execution {{crawlLog.jobExecutionId}}">
-        <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
-      </a>
-    } @else {
-      <mat-chip matTooltip="Job execution {{crawlLog.jobExecutionId}}"
-        aria-label="Job execution {{crawlLog.jobExecutionId}}">
-        <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+    <a mat-menu-item [disabled]="!can('read', 'jobexecution')"
+      [routerLink]="can('read', 'jobexecution') ? ['/report', 'jobexecution', crawlLog.jobExecutionId] : null">
+      <mat-icon>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+    </a>
+  }
+  @if (crawlLog.warcId) {
+    <button mat-menu-item type="button" [appCopyId]="crawlLog.warcId">
+      <mat-icon>content_copy</mat-icon><span i18n="@@copyWarcIdChip">Copy WARC ID</span>
+    </button>
+  }
+} @else {
+  <mat-chip-set aria-label="Crawl log identifiers" i18n-aria-label="@@crawlLogIdentifiersLabel">
+    @if (crawlLog.warcId) {
+      <mat-chip role="button" tabindex="0" [appCopyId]="crawlLog.warcId"
+        matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip"
+        aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip">
+        <mat-icon matChipAvatar>content_copy</mat-icon><span i18n="@@copyWarcIdChip">Copy WARC ID</span>
       </mat-chip>
     }
-  }
-</mat-chip-set>
+    @if (crawlLog.executionId) {
+      @if (can('read', 'crawlexecution')) {
+        <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlLog.executionId]">
+          <mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span></a>
+      } @else {
+        <mat-chip><mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span></mat-chip>
+      }
+    }
+    @if (crawlLog.jobExecutionId) {
+      @if (can('read', 'jobexecution')) {
+        <a mat-chip [routerLink]="['/report', 'jobexecution', crawlLog.jobExecutionId]">
+          <mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span></a>
+      } @else {
+        <mat-chip><mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span></mat-chip>
+      }
+    }
+  </mat-chip-set>
+}

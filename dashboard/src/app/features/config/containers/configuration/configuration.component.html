@@ -11,6 +11,57 @@
       <div class="detail-page">
         <div class="content-padding detail-pane-layout">
           <main class="primary-pane">
+            <app-detail-header class="configuration-header"
+              [icon]="configKindIcon(configObject.kind)"
+              [supertitle]="configKindLabel(configObject.kind)"
+              [title]="configObject.meta.name || newConfigTitle"
+              [titleHref]="configObject.kind === Kind.SEED ? configObject.meta.name : ''"
+              [description]="configObject.meta.description">
+                <app-config-shortcut-helpers detailHeaderActions
+                  [configObject]="configObject" [showReferences]="false"
+                  [showCreateSeed]="configObject.kind !== Kind.CRAWLENTITY"
+                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
+                  (delete)="onDeleteConfig($event)" (createSeed)="onCreateSeedFromEntity($event)">
+                </app-config-shortcut-helpers>
+            </app-detail-header>
+
+            @if (latestJobExecution) {
+              <section class="execution-section" aria-labelledby="latest-job-execution-title">
+                <h2 id="latest-job-execution-title">
+                  @if (authService.canRead('jobexecution') && latestJobExecution.id) {
+                    <a class="execution-heading-link"
+                      [routerLink]="['/report', 'jobexecution', latestJobExecution.id]"
+                      i18n="@@configLatestJobExecutionTitle">Latest job execution</a>
+                  } @else {
+                    <span i18n="@@configLatestJobExecutionTitle">Latest job execution</span>
+                  }
+                </h2>
+                <app-config-job-execution-status
+                  [jobExecutionStatus]="latestJobExecution"
+                  [crawlJob]="configObject">
+                </app-config-job-execution-status>
+              </section>
+            }
+            @if (latestCrawlExecution) {
+              <section class="execution-section" aria-labelledby="latest-crawl-title">
+                <h2 id="latest-crawl-title">
+                  @if (authService.canRead('crawlexecution') && latestCrawlExecution.id) {
+                    <a class="execution-heading-link"
+                      [routerLink]="['/report', 'crawlexecution', latestCrawlExecution.id]"
+                      i18n="@@configLatestCrawlExecutionTitle">Latest crawl execution</a>
+                  } @else {
+                    <span i18n="@@configLatestCrawlExecutionTitle">Latest crawl execution</span>
+                  }
+                </h2>
+                <app-config-crawl-execution-status
+                  [crawlExecutionStatus]="latestCrawlExecution"
+                  [crawlJobName]="crawlJobNameFor(latestCrawlExecution.jobId, options.crawlJobs)">
+                </app-config-crawl-execution-status>
+              </section>
+            }
+
+            <section class="configuration-editor" aria-label="Configuration settings"
+              i18n-aria-label="@@configurationSettingsLabel">
             @switch (configObject.kind) {
             @case (Kind.COLLECTION) {
               <app-collection-details
@@ -19,10 +70,6 @@
                 [subCollectionTypes]="options.subCollectionTypes"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-collection-details>
             }
             @case (Kind.CRAWLJOB) {
@@ -34,10 +81,6 @@
                 [scopeScripts]="options.scopeScripts"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-crawljob-details>
             }
             @case (Kind.CRAWLCONFIG) {
@@ -48,10 +91,6 @@
                 [politenessConfigs]="options.politenessConfigs"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-crawlconfig-details>
             }
             @case (Kind.CRAWLSCHEDULECONFIG) {
@@ -59,10 +98,6 @@
                 [configObject]="configObject"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-schedule-details>
             }
             @case (Kind.BROWSERCONFIG) {
@@ -71,10 +106,6 @@
                 [browserScripts]="options.browserScripts"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-browserconfig-details>
             }
             @case (Kind.POLITENESSCONFIG) {
@@ -83,10 +114,6 @@
                 [robotsPolicies]="options.robotsPolicies"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-politenessconfig-details>
             }
             @case (Kind.BROWSERSCRIPT) {
@@ -95,10 +122,6 @@
                 [browserScriptTypes]="options.browserScriptTypes"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-browserscript-details>
             }
             @case (Kind.CRAWLHOSTGROUPCONFIG) {
@@ -106,10 +129,6 @@
                 [configObject]="configObject"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-crawlhostgroupconfig-details>
             }
             @case (Kind.SEED) {
@@ -122,30 +141,14 @@
                 (move)="onMoveSeed($event)"
                 (saveMultiple)="onSaveMultipleSeeds($event)"
                 (runCrawl)="onRunCrawl($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-seed-details>
             }
             @case (Kind.CRAWLENTITY) {
               <app-entity-details
                 [configObject]="configObject"
-                [labelLinks]="labelLinks"
-                [seedDataSource]="canReadSeeds() ? entitySeedDataSource : null"
-                [seedStatus]="entitySeedDisabled()"
                 [annotationSuggestions]="(annotationSuggestions$ | async) || []"
                 (update)="onUpdateConfig($event)"
-                (save)="onSaveConfig($event)"
-                (seedStatusChange)="onEntitySeedStatusChange($event)"
-                (createSeed)="onCreateSeedFromEntity($event)"
-                (openSeed)="onOpenEntitySeed($event)"
-                (editSeed)="onEditEntitySeed($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  [showCreateSeed]="false"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
+                (save)="onSaveConfig($event)">
               </app-entity-details>
             }
             @case (Kind.ROLEMAPPING) {
@@ -154,73 +157,80 @@
                 [roles]="options.roles"
                 (update)="onUpdateConfig($event)"
                 (save)="onSaveConfig($event)">
-                <app-config-shortcut-helpers cardHeaderHelpers [configObject]="configObject"
-                  (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)" (delete)="onDeleteConfig($event)"
-                  (createSeed)="onCreateSeedFromEntity($event)">
-                </app-config-shortcut-helpers>
               </app-rolemapping-details>
             }
             }
+            </section>
           </main>
-          @let supportingLabelLinks = configObject.kind === Kind.CRAWLENTITY ? [] : labelLinks;
+          @let supportingLabelLinks = labelLinks;
           @let relatedConfigs = relatedConfigContexts();
-              @if (supportingLabelLinks.length || latestJobExecution || latestCrawlExecution || relatedConfigs.length) {
+              @if (supportingLabelLinks.length || relatedConfigs.length
+                || configObject.kind === Kind.CRAWLENTITY && canReadSeeds()) {
                 <aside class="supporting-pane">
-                  <app-config-label-links [links]="supportingLabelLinks"></app-config-label-links>
-                  @if (latestJobExecution) {
-                    <section class="context-section" aria-labelledby="latest-job-execution-title">
-                      <h2 id="latest-job-execution-title" i18n="@@configLatestJobExecutionTitle">
-                        Latest job execution
-                      </h2>
-                      <app-config-job-execution-status
-                        [jobExecutionStatus]="latestJobExecution"
-                        [crawlJob]="configObject"
-                        [canReadJobExecution]="authService.canRead('jobexecution')">
-                      </app-config-job-execution-status>
-                    </section>
+                  @if (supportingLabelLinks.length) {
+                    <app-config-label-links [links]="supportingLabelLinks"></app-config-label-links>
                   }
-                  @if (latestCrawlExecution) {
-                    <section class="context-section" aria-labelledby="latest-crawl-execution-title">
-                      <h2 id="latest-crawl-execution-title" i18n="@@configLatestCrawlExecutionTitle">
-                        Latest crawl execution
-                      </h2>
-                      <app-config-crawl-execution-status
-                        [crawlExecutionStatus]="latestCrawlExecution"
-                        [crawlJobName]="crawlJobNameFor(latestCrawlExecution.jobId, options.crawlJobs)"
-                        [canReadCrawlExecution]="authService.canRead('crawlexecution')"
-                        [canReadCrawlJob]="authService.canRead(Kind.CRAWLJOB)"
-                        [canReadJobExecution]="authService.canRead('jobexecution')">
-                      </app-config-crawl-execution-status>
-                    </section>
+                  @if (configObject.kind === Kind.CRAWLENTITY && canReadSeeds()) {
+                    <app-entity-seed-context
+                      [entity]="configObject"
+                      [seedDataSource]="entitySeedDataSource"
+                      [seedStatus]="entitySeedDisabled()"
+                      (seedStatusChange)="onEntitySeedStatusChange($event)"
+                      (createSeed)="onCreateSeedFromEntity($event)"
+                      (openSeed)="onOpenEntitySeed($event)"
+                      (editSeed)="onEditEntitySeed($event)"
+                      (runSeed)="onRunCrawl($event)"
+                      (cloneSeed)="onCloneRelatedConfig($event)"
+                      (deleteSeed)="onDeleteRelatedConfig($event)">
+                    </app-entity-seed-context>
                   }
                   @if (relatedConfigs.length) {
-                    @if (scriptAnnotationContexts$ | async; as scriptAnnotationContexts) {
-                      <section class="context-section" aria-labelledby="related-context-title">
+                    <section class="context-section" aria-labelledby="related-context-title">
                       <h2 id="related-context-title" i18n="@@configRelatedContextTitle">Related configurations</h2>
-                      <div class="related-context-grid">
-                        @for (related of relatedConfigs; track related.ref.kind + ':' + related.ref.id) {
-                          <app-config-context-card
-                            [configRef]="related.ref"
-                            [configObject]="related.configObject"
-                            [unavailable]="related.unavailable"
-                            [scriptAnnotationContext]="annotationContextFor(related.ref, scriptAnnotationContexts)"
-                            [canReadAnnotations]="canReadAnnotations">
-                            @if (!related.unavailable && related.configObject) {
-                              <app-config-shortcut-helpers cardHeaderHelpers [configObject]="related.configObject"
-                                [showReferenceKindLabels]="true"
-                                [showClone]="false"
-                                [showDelete]="false"
-                                [seedContext]="configObject.kind === Kind.SEED ? configObject : null"
-                                (runCrawl)="onRunCrawl($event)" (clone)="onClone($event)"
-                                (runSeedInCrawlJob)="onRunSeedInCrawlJob($event.seed, $event.crawlJob)"
-                                (createSeed)="onCreateSeedFromEntity($event)">
-                              </app-config-shortcut-helpers>
-                            }
-                          </app-config-context-card>
+                      <div class="related-context-groups">
+                        @for (group of relatedConfigGroups(relatedConfigs); track group.role) {
+                          <section class="related-context-group" [attr.aria-labelledby]="'related-' + group.role">
+                            <h3 [id]="'related-' + group.role">{{group.label}}</h3>
+                            <div class="related-context-list">
+                              @for (related of group.contexts;
+                                track related.descriptor.ref.kind + ':' + related.descriptor.ref.id) {
+                                <app-config-context-card
+                                  [configRef]="related.descriptor.ref"
+                                  [relationRole]="related.descriptor.role"
+                                  [relationSource]="related.descriptor.source"
+                                  [configObject]="related.configObject"
+                                  [unavailable]="related.unavailable">
+                                  <ng-container itemMenu>
+                                    @if (!related.unavailable && related.configObject) {
+                                    <app-config-shortcut-helpers [configObject]="related.configObject"
+                                      [showEdit]="true" [showReferences]="false"
+                                      [seedContext]="configObject.kind === Kind.SEED ? configObject : null"
+                                      (runCrawl)="onRunCrawl($event)" (edit)="onEditRelatedConfig($event)"
+                                      (clone)="onCloneRelatedConfig($event)" (delete)="onDeleteRelatedConfig($event)"
+                                      (runSeedInCrawlJob)="onRunSeedInCrawlJob($event.seed, $event.crawlJob)"
+                                      (createSeed)="onCreateSeedFromEntity($event)">
+                                    </app-config-shortcut-helpers>
+                                    }
+                                  </ng-container>
+                                  <ng-container relationLinks>
+                                    @if (!related.unavailable && related.configObject) {
+                                    <app-config-shortcut-helpers [configObject]="related.configObject"
+                                      [showFilters]="false" [showActions]="false" [showCreateSeed]="false"
+                                      [seedContext]="configObject.kind === Kind.SEED ? configObject : null"
+                                      (runCrawl)="onRunCrawl($event)" (edit)="onEditRelatedConfig($event)"
+                                      (clone)="onCloneRelatedConfig($event)" (delete)="onDeleteRelatedConfig($event)"
+                                      (runSeedInCrawlJob)="onRunSeedInCrawlJob($event.seed, $event.crawlJob)"
+                                      (createSeed)="onCreateSeedFromEntity($event)">
+                                    </app-config-shortcut-helpers>
+                                    }
+                                  </ng-container>
+                                </app-config-context-card>
+                              }
+                            </div>
+                          </section>
                         }
                       </div>
-                      </section>
-                    }
+                    </section>
                   }
                 </aside>
               }

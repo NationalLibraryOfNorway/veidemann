@@ -1,13 +1,11 @@
 <section class="crawl-log-detail" aria-label="Crawl log details"
          i18n-aria-label="@@crawlLogDetailsLabel">
-  <header class="detail-header">
-    <div class="detail-heading">
-      <h1 i18n="@@crawlLogReportStatusCardTitle">Crawl log</h1>
-    </div>
-    <div class="detail-header-helpers">
+  <app-detail-header icon="event_note" title="Crawl log"
+    i18n-title="@@crawlLogReportStatusCardTitle">
+    <ng-container detailHeaderActions>
       <ng-content select="[detailHeaderHelpers]"></ng-content>
-    </div>
-  </header>
+    </ng-container>
+  </app-detail-header>
 
   <div class="crawl-log-content">
     <div class="table-scroll">

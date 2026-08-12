@@ -87,9 +87,8 @@
       </mat-form-field>
 
       <ng-container formGroupName="extra">
-        <app-boolean-state-chip formControlName="createScreenshot" label="Create screenshots"
-          i18n-label="@@crawlconfigFormCreateScreenshotLabel" selectedIcon="photo_camera" unselectedIcon="no_photography">
-        </app-boolean-state-chip>
+        <mat-checkbox formControlName="createScreenshot"
+          i18n="@@crawlconfigFormCreateScreenshotLabel">Create screenshots</mat-checkbox>
       </ng-container>
     </div>
   </form>

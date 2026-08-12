@@ -1,4 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {provideRouter} from '@angular/router';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {
@@ -9,6 +10,9 @@ import {
   Kind,
 } from '../../../../shared/models';
 import {JobStatusComponent} from './job-status.component';
+import {
+  JobExecutionMetricsSectionComponent
+} from '../../../report/components/job-execution-metrics-section/job-execution-metrics-section.component';
 
 describe('JobStatusComponent', () => {
   let fixture: ComponentFixture<JobStatusComponent>;
@@ -50,62 +54,98 @@ describe('JobStatusComponent', () => {
     fixture.detectChanges();
   }
 
-  it('shows the start date and state in an initially expanded filled panel header', () => {
+  function renderedMetrics(): {label: string; value: string}[] {
+    return [...fixture.nativeElement.querySelectorAll('.metric')]
+      .map((metric: HTMLElement) => ({
+        label: metric.querySelector('dt')?.textContent.trim() ?? '',
+        value: metric.querySelector('dd')?.textContent.trim() ?? '',
+      }));
+  }
+
+  it('renders a static execution summary without metric cards', () => {
     render();
 
-    const panel = fixture.nativeElement.querySelector('mat-expansion-panel') as HTMLElement;
-    const title = panel.querySelector('mat-panel-title') as HTMLElement;
-    const description = panel.querySelector('mat-panel-description') as HTMLElement;
-    expect(panel.classList.contains('mat-expanded')).toBe(true);
-    expect(panel.classList.contains('filled-expansion-panel')).toBe(true);
-    expect(panel.classList.contains('mat-elevation-z0')).toBe(true);
-    expect(title.textContent).toContain('Aug 9, 2026');
-    expect(description.textContent.trim()).toBe('Finished');
-    expect(fixture.nativeElement.querySelector('.metric-card')).not.toBeNull();
+    const summary = fixture.nativeElement.querySelector('.execution-summary') as HTMLElement;
+    expect(summary.querySelector('app-job-execution-metrics-section')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeNull();
+    expect([...summary.querySelectorAll('app-execution-metadata dt')]
+      .map((label: HTMLElement) => label.textContent.trim())).toEqual(['Started', 'Finished']);
+    expect(summary.querySelector('app-execution-metadata dd')?.textContent).toContain('Aug 9, 2026');
+    expect(summary.querySelector('.state-badge')).toBeNull();
+    expect(summary.querySelector('mat-card')).toBeNull();
+    expect(summary.textContent).not.toContain('Queue size');
   });
 
   it('falls back when the execution has no start date', () => {
     render(new JobExecutionStatus({state: JobExecutionState.CREATED}));
 
-    const title = fixture.nativeElement.querySelector('mat-panel-title') as HTMLElement;
-    expect(title.textContent.trim()).toBe('Not available');
+    const summary = fixture.nativeElement.querySelector('.execution-summary') as HTMLElement;
+    expect([...summary.querySelectorAll('app-execution-metadata dd')]
+      .map((value: HTMLElement) => value.textContent.trim())).toEqual(['Not available', 'Now']);
   });
 
-  it('reuses the complete crawl-statistics card set from the execution detail', () => {
+  it('shows the desired state in place of Now for the latest running job execution', () => {
+    render(new JobExecutionStatus({
+      state: JobExecutionState.RUNNING,
+      desiredState: JobExecutionState.ABORTED_MANUAL,
+    }));
+
+    const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
+    expect(metadata.querySelectorAll('dd')[1].textContent.trim()).toBe('Aborted manually');
+    expect(metadata.textContent).not.toContain('Now');
+    expect(metadata.textContent).not.toContain('Requested:');
+  });
+
+  it('shows finished execution timing and outcomes without progress estimates', () => {
     render();
 
-    const metrics = [...fixture.nativeElement.querySelectorAll('.metric-card')]
-      .map((card: HTMLElement) => ({
-        label: card.querySelector('span')?.textContent.trim(),
-        value: card.querySelector('strong')?.textContent.trim(),
-      }));
-    expect(metrics).toEqual([
+    expect(renderedMetrics()).toEqual([
       {label: 'Documents crawled', value: '12'},
-      {label: 'Bytes crawled', value: '2.5 kB'},
-      {label: 'Remaining bytes', value: '2.5 kB'},
-      {label: 'Duration', value: '1 h 30 min'},
-      {label: 'Remaining time', value: '30 min'},
-      {label: 'Documents denied', value: '1'},
-      {label: 'Documents failed', value: '2'},
-      {label: 'Documents retried', value: '3'},
-      {label: 'Documents out of scope', value: '4'},
       {label: 'URIs crawled', value: '20'},
+      {label: 'Bytes crawled', value: '2.5 kB'},
+      {label: 'Duration', value: '1 h 30 min'},
+      {label: 'Documents out of scope', value: '4'},
+      {label: 'Documents failed', value: '2'},
+      {label: 'Documents denied', value: '1'},
+      {label: 'Documents retried', value: '3'},
     ]);
   });
 
-  it('links to the job execution detail from the action row', () => {
-    render();
+  it('groups progress estimates with related metrics only while running', () => {
+    const startTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    render(new JobExecutionStatus({
+      id: 'execution-1',
+      state: JobExecutionState.RUNNING,
+      startTime,
+      documentsCrawled: 12,
+      bytesCrawled: 2_500,
+      documentsOutOfScope: 4,
+      urisCrawled: 20,
+    }));
 
-    const actionRow = fixture.nativeElement.querySelector('mat-action-row') as HTMLElement;
-    const link = actionRow.querySelector('a') as HTMLAnchorElement;
-    expect(link.textContent.trim()).toBe('View job execution');
-    expect(link.getAttribute('href')).toBe('/report/jobexecution/execution-1');
+    const metrics = renderedMetrics();
+    expect(metrics.map(metric => metric.label)).toEqual([
+      'Documents crawled',
+      'URIs crawled',
+      'Bytes crawled',
+      'Duration',
+      'Remaining time',
+      'Remaining bytes',
+      'Documents out of scope',
+    ]);
+    expect(metrics.find(metric => metric.label === 'Remaining bytes')?.value).toBe('2.5 kB');
+
+    const fixedNow = new Date(new Date(startTime).getTime() + 90 * 60 * 1000);
+    const metricsSection = fixture.debugElement
+      .query(By.directive(JobExecutionMetricsSectionComponent))
+      .componentInstance as JobExecutionMetricsSectionComponent;
+    expect(metricsSection.remainingTime(fixedNow)).toBe('30 min');
   });
 
-  it('hides the navigation action without job-execution read permission', () => {
-    fixture.componentRef.setInput('canReadJobExecution', false);
+  it('does not render a duplicate summary action', () => {
     render();
 
-    expect(fixture.nativeElement.querySelector('mat-action-row')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.summary-actions')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a')).toBeNull();
   });
 });

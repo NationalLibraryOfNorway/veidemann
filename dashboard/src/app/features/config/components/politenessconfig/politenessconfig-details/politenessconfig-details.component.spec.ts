@@ -12,7 +12,7 @@ import {
 } from '../../../../../shared/models';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
-import {MatChipOptionHarness} from '@angular/material/chips/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
@@ -54,7 +54,7 @@ describe('PolitenessConfigDetailsComponent', () => {
   let revertButton: MatButtonHarness;
 
   let policySelect: MatSelectHarness;
-  let useHostnameChip: MatChipOptionHarness;
+  let useHostnameCheckbox: MatCheckboxHarness;
 
 
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe('PolitenessConfigDetailsComponent', () => {
     await fixture.whenStable();
 
     policySelect = await loader.getHarness<MatSelectHarness>(MatSelectHarness);
-    useHostnameChip = await loader.getHarness(MatChipOptionHarness.with({selector: 'app-boolean-state-chip mat-chip-option'}));
+    useHostnameCheckbox = await loader.getHarness(MatCheckboxHarness);
   });
 
   it('should create', () => {
@@ -92,12 +92,14 @@ describe('PolitenessConfigDetailsComponent', () => {
     expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
   });
 
-  it('labels the hostname selection states explicitly', async () => {
-    expect(await useHostnameChip.getText()).toContain('Use hostname');
+  it('renders Use hostname as a normal checkbox', async () => {
+    expect(await useHostnameCheckbox.getLabelText()).toBe('Use hostname');
+    expect(await useHostnameCheckbox.isChecked()).toBe(true);
 
-    await useHostnameChip.toggle();
+    await useHostnameCheckbox.toggle();
 
-    expect(await useHostnameChip.getText()).toContain('Use IP-address');
+    expect(await useHostnameCheckbox.getLabelText()).toBe('Use hostname');
+    expect(await useHostnameCheckbox.isChecked()).toBe(false);
   });
 
   describe('Creating a new politenessConfig', () => {
@@ -120,7 +122,7 @@ describe('PolitenessConfigDetailsComponent', () => {
     });
 
     it('clicking the save button emits a save event', async () => {
-      await useHostnameChip.toggle();
+      await useHostnameCheckbox.toggle();
       expect(await saveButton.isDisabled()).toBeFalsy();
       expect(component.canSave).toBeTruthy();
 
@@ -144,7 +146,7 @@ describe('PolitenessConfigDetailsComponent', () => {
     it('update button should be active if form is updated and valid', async () => {
       expect(await updateButton.isDisabled()).toBeTruthy();
       expect(component.canUpdate).toBeFalsy();
-      await useHostnameChip.toggle();
+      await useHostnameCheckbox.toggle();
       await fixture.whenStable();
       expect(await updateButton.isDisabled()).toBeFalsy();
       expect(component.canUpdate).toBeTruthy();
@@ -204,14 +206,14 @@ describe('PolitenessConfigDetailsComponent', () => {
         expect(await revertButton.isDisabled()).toBeTruthy();
         expect(component.canRevert).toBeFalsy();
 
-        await useHostnameChip.toggle();
+        await useHostnameCheckbox.toggle();
         await fixture.whenStable();
         expect(await revertButton.isDisabled()).toBeFalsy();
         expect(component.canRevert).toBeTruthy();
 
         await revertButton.click();
         await fixture.whenStable();
-        expect(await useHostnameChip.isSelected()).toBeTruthy();
+        expect(await useHostnameCheckbox.isChecked()).toBeTruthy();
         expect(component.canUpdate).toBeFalsy();
         expect(await revertButton.isDisabled()).toBeTruthy();
       });

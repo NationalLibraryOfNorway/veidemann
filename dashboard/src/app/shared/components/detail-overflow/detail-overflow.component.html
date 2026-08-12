@@ -1,0 +1,7 @@
+<button mat-icon-button type="button" [matMenuTriggerFor]="menu" [attr.aria-label]="label"
+  (menuOpened)="onMenuOpened()" (menuClosed)="onMenuClosed()">
+  <mat-icon>more_vert</mat-icon>
+</button>
+<mat-menu #menu="matMenu">
+  <ng-content></ng-content>
+</mat-menu>

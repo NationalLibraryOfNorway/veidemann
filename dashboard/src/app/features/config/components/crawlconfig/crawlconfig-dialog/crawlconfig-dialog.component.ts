@@ -9,7 +9,7 @@ import { CrawlConfigDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { MetaComponent } from '../../meta/meta.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-crawlconfig-dialog',
@@ -17,7 +17,7 @@ import {BooleanStateChipComponent} from '../../../../../shared/components';
   styleUrls: ['./crawlconfig-dialog.component.css'],
   imports: [
     MatButtonModule,
-    BooleanStateChipComponent,
+    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,

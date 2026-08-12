@@ -1,0 +1,69 @@
+:host {
+  display: block;
+  min-width: 0;
+  container: execution-metrics / inline-size;
+}
+
+.execution-metrics {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+}
+
+dl {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px 24px;
+}
+
+.secondary-metrics {
+  padding-top: 20px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  gap: 14px 24px;
+}
+
+.metric {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+dt {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+}
+
+dd {
+  min-width: 0;
+  margin: 0;
+  font: var(--mat-sys-headline-large);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.secondary-metrics dd {
+  font: var(--mat-sys-title-large);
+}
+
+.outcome-error dd {
+  color: var(--mat-sys-error);
+}
+
+@container execution-metrics (min-width: 32rem) {
+  dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container execution-metrics (min-width: 58rem) {
+  .primary-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .secondary-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

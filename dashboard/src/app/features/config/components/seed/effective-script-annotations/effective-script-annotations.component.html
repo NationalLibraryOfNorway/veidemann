@@ -1,0 +1,56 @@
+@if (canReadAnnotations && selectedCrawlJobs.length) {
+  <section class="effective-script-annotations"
+    aria-label="Effective script annotations" i18n-aria-label="@@effectiveScriptAnnotationsLabel">
+    <mat-chip-set class="crawl-job-chips"
+      aria-label="Show effective script annotations by crawl job"
+      i18n-aria-label="@@effectiveScriptAnnotationJobsLabel">
+      @for (job of selectedCrawlJobs; track job.id) {
+        <mat-chip class="crawl-job-chip" [class.expanded]="isExpanded(job.id)"
+          role="button" tabindex="0" [attr.aria-expanded]="isExpanded(job.id)"
+          (click)="toggle(job)" (keydown)="onChipKeydown($event, job)">
+          <mat-icon matChipAvatar aria-hidden="true">data_object</mat-icon>
+          {{job.name}}
+          <mat-icon matChipTrailingIcon aria-hidden="true">
+            {{isExpanded(job.id) ? 'expand_less' : 'expand_more'}}
+          </mat-icon>
+        </mat-chip>
+      }
+    </mat-chip-set>
+
+    @for (job of selectedCrawlJobs; track job.id) {
+      @if (isExpanded(job.id)) {
+        <div class="annotation-panel">
+          <p class="crawl-job-name">{{job.name}}</p>
+          @if (isLoading(job.id)) {
+            <mat-spinner diameter="24" aria-label="Loading effective script annotations"
+              i18n-aria-label="@@effectiveScriptAnnotationsLoading"></mat-spinner>
+          } @else if (contextFor(job.id); as context) {
+            @if (context.unavailable) {
+              <p class="annotation-unavailable" role="status" i18n="@@effectiveScriptAnnotationsUnavailable">
+                Effective annotations are unavailable for this crawljob.
+              </p>
+            } @else if (context.annotations.length) {
+              <mat-chip-set class="annotation-chips" aria-label="Effective script annotation values"
+                i18n-aria-label="@@effectiveScriptAnnotationValuesLabel">
+                @for (annotation of context.annotations; track annotation.key + ':' + annotation.value) {
+                  <mat-chip class="annotation-chip" draggable="true"
+                    [attr.aria-label]="annotationDragLabel(annotation)"
+                    (dragstart)="onAnnotationDragStart($event, annotation)">
+                    <app-label-display [key]="annotation.key" [value]="annotation.value || '—'"></app-label-display>
+                  </mat-chip>
+                }
+              </mat-chip-set>
+              <p class="drag-hint" i18n="@@effectiveScriptAnnotationsDragHint">
+                Drag an annotation into the script annotations field to add it.
+              </p>
+            } @else {
+              <p class="annotation-empty" role="status" i18n="@@effectiveScriptAnnotationsEmpty">
+                No script annotations are active.
+              </p>
+            }
+          }
+        </div>
+      }
+    }
+  </section>
+}

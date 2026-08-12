@@ -10,7 +10,7 @@
             matTooltip="Create a new seed with reference to the entity"
             i18n-matTooltip="@@crawlEntityListCreateSeedActionButtonTooltip">
             <mat-icon matListItemIcon>add_circle</mat-icon>
-            Create Seed
+            <span i18n="@@configMenuCreateSeedAction">Create seed</span>
           </button>
         }
       }
@@ -19,7 +19,7 @@
           <button mat-list-item
             (click)="onRunCrawl()">
             <mat-icon matListItemIcon>play_arrow</mat-icon>
-            Crawl seed
+            <span i18n="@@configMenuRunCrawlAction">Run crawl</span>
           </button>
         }
       }
@@ -28,7 +28,7 @@
           <button mat-list-item
             (click)="onRunCrawl()">
             <mat-icon matListItemIcon>play_arrow</mat-icon>
-            Run crawljob
+            <span i18n="@@configMenuRunCrawlAction">Run crawl</span>
           </button>
         }
       }
@@ -37,7 +37,7 @@
       <button mat-list-item
         (click)="onClone()">
         <mat-icon matListItemIcon>file_copy</mat-icon>
-        Clone
+        <span i18n="@@configMenuCloneAction">Clone</span>
       </button>
     }
 </mat-nav-list>

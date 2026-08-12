@@ -1,13 +1,14 @@
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatDialog} from '@angular/material/dialog';
-import {MatSelectHarness} from '@angular/material/select/testing';
 import {of} from 'rxjs';
 
 import {ConfigQuery} from '../../../../shared/func';
 import {BrowserScriptType, browserScriptTypes, ConfigObject, Kind, Meta, Role, roles, robotsPolicies, RobotsPolicy} from '../../../../shared/models';
+import {LabelService} from '../../services/label.service';
 import {ConfigQueryComponent} from './config-query.component';
 
 const searchLabels = [
@@ -28,6 +29,7 @@ describe('ConfigQueryComponent', () => {
   let fixture: ComponentFixture<ConfigQueryComponent>;
   let loader: HarnessLoader;
   let dialog: {open: ReturnType<typeof vi.fn>};
+  let getLabelKeys: ReturnType<typeof vi.fn>;
 
   const query: ConfigQuery = {
     kind: Kind.SEED,
@@ -50,9 +52,13 @@ describe('ConfigQueryComponent', () => {
 
   beforeEach(async () => {
     dialog = {open: vi.fn(() => ({afterClosed: () => of('🐶')}))};
+    getLabelKeys = vi.fn(() => of(['owner', 'category']));
     await TestBed.configureTestingModule({
       imports: [ConfigQueryComponent],
-      providers: [{provide: MatDialog, useValue: dialog}],
+      providers: [
+        {provide: MatDialog, useValue: dialog},
+        {provide: LabelService, useValue: {getLabelKeys}},
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ConfigQueryComponent);
@@ -74,32 +80,21 @@ describe('ConfigQueryComponent', () => {
     await fixture.whenStable();
   });
 
-  it('uses two single-select status chips with no selection for all seeds', async () => {
+  it('preserves applied label searches when reactive filters change', async () => {
     const emitted: Partial<ConfigQuery>[] = [];
     fixture.componentInstance.queryChange.subscribe(value => emitted.push(value));
-    const listbox = await loader.getHarness(
-      MatChipListboxHarness.with({selector: '[formControlName="disabled"]'})
-    );
-    const [enabled, disabled] = await listbox.getChips();
 
-    expect(await listbox.isMultiple()).toBe(false);
-    expect(await Promise.all([enabled.getText(), disabled.getText()])).toEqual(['Show enabled', 'Show disabled']);
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([false, false]);
-    expect(await loader.getAllHarnesses(
-      MatSelectHarness.with({selector: '[formControlName="disabled"]'})
-    )).toHaveLength(0);
+    fixture.componentRef.setInput('query', {...query, term: 'label:owner:archive'});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.form.controls['entityId'].setValue('entity-1');
+    expect(emitted.at(-1)?.term).toBe('label:owner:archive');
 
-    await enabled.select();
-    expect(emitted.at(-1)?.disabled).toBe(false);
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([true, false]);
-
-    await disabled.select();
-    expect(emitted.at(-1)?.disabled).toBe(true);
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([false, true]);
-
-    await disabled.toggle();
-    expect(emitted.at(-1)?.disabled).toBeNull();
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([false, false]);
+    fixture.componentRef.setInput('query', {...query, term: 'example label:owner:archive'});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.form.controls['entityId'].setValue('entity-2');
+    expect(emitted.at(-1)?.term).toBe('example label:owner:archive');
   });
 
   it('filters role mappings with single-select role chips', async () => {
@@ -120,21 +115,19 @@ describe('ConfigQueryComponent', () => {
     expect(emitted.at(-1)?.role).toBe(Role.CURATOR);
   });
 
-  it('places Status in the natural form flow without a dedicated Seed chip row', () => {
+  it('leaves the state filter to the configuration list header', () => {
     const forms = fixture.nativeElement.querySelectorAll('form') as NodeListOf<HTMLFormElement>;
     const form = forms[0];
     const searchField = fixture.nativeElement.querySelector('.search-form') as HTMLElement;
-    const statusFilter = fixture.nativeElement.querySelector('.status-filter') as HTMLFieldSetElement;
 
     expect(forms).toHaveLength(1);
     expect(searchField.parentElement).toBe(form);
-    expect(statusFilter.parentElement).toBe(form);
-    expect(statusFilter.querySelectorAll('mat-chip-option')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelector('.status-filter')).toBeNull();
     expect(fixture.nativeElement.querySelector('.seed-chip-filters')).toBeNull();
     expect(fixture.nativeElement.querySelector('.crawl-job-filters')).toBeNull();
   });
 
-  it('shows one selected CrawlJob after Status without a full-width wrapper', async () => {
+  it('keeps selected CrawlJobs in the query control without rendering filter chips', async () => {
     fixture.componentRef.setInput('options', {
       ...fixture.componentInstance.options,
       crawlJobs: [
@@ -148,67 +141,9 @@ describe('ConfigQueryComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
-    const crawlJobFilters = form.querySelector('.crawl-job-filters') as HTMLFieldSetElement;
-    const statusFilter = form.querySelector('.status-filter') as HTMLFieldSetElement;
-    const text = crawlJobFilters.textContent?.replace(/\s+/g, ' ');
-
-    expect(crawlJobFilters.querySelector('legend')?.textContent?.trim()).toBe('Crawl jobs');
-    expect(crawlJobFilters.querySelectorAll('mat-chip')).toHaveLength(1);
-    expect(text).toContain('Daily job');
-    expect(text).not.toContain('Crawljob:');
-    expect(statusFilter.parentElement).toBe(form);
-    expect(crawlJobFilters.parentElement).toBe(form);
-    expect(statusFilter.nextElementSibling).toBe(crawlJobFilters);
-    expect(fixture.nativeElement.querySelector('.seed-chip-filters')).toBeNull();
-  });
-
-  it('removes selected CrawlJobs through the reactive query flow', async () => {
-    const emitted: Partial<ConfigQuery>[] = [];
-    fixture.componentInstance.queryChange.subscribe(value => emitted.push(value));
-    fixture.componentRef.setInput('options', {
-      ...fixture.componentInstance.options,
-      crawlJobs: [
-        new ConfigObject({id: 'job-1', kind: Kind.CRAWLJOB, meta: new Meta({name: 'Daily job'})}),
-      ],
-    });
-    fixture.componentRef.setInput('query', {
-      ...query,
-      entityId: 'entity-1',
-      disabled: false,
-      crawlJobIdList: ['job-1', 'job-missing'],
-    });
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const removeButton = fixture.nativeElement.querySelector(
-      '.crawl-job-filters button[matChipRemove]'
-    ) as HTMLButtonElement;
-    expect(removeButton.getAttribute('aria-label')).toBe('Remove Daily job crawl job filter');
-    removeButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    expect(emitted.at(-1)).toEqual(expect.objectContaining({
-      entityId: 'entity-1',
-      disabled: false,
-      crawlJobIdList: ['job-missing'],
-    }));
-  });
-
-  it('refreshes selected CrawlJob chips from external queries', async () => {
-    fixture.componentRef.setInput('query', {...query, crawlJobIdList: ['job-1', 'job-2']});
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelectorAll('.crawl-job-filters mat-chip')).toHaveLength(2);
-
-    fixture.componentRef.setInput('query', {...query, crawlJobIdList: ['job-2']});
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const chips = fixture.nativeElement.querySelectorAll('.crawl-job-filters mat-chip') as NodeListOf<HTMLElement>;
-    expect(chips).toHaveLength(1);
-    expect(chips[0].textContent).toContain('job-2');
+    expect(fixture.componentInstance.form.controls['crawlJobIdList'].value).toEqual(['job-1']);
+    expect(fixture.nativeElement.querySelector('.crawl-job-filters')).toBeNull();
+    expect(fixture.nativeElement.querySelector('fieldset')).toBeNull();
   });
 
   it('searches only on Enter and clears the search immediately', async () => {
@@ -248,11 +183,10 @@ describe('ConfigQueryComponent', () => {
       expect(fixture.nativeElement.querySelector('[data-testid="emoji-search-helper"]')).not.toBeNull();
       const helperGroup = fixture.nativeElement.querySelector('.search-helper-actions') as HTMLElement;
       expect(helperGroup.querySelectorAll('button')).toHaveLength(2);
-      expect(fixture.nativeElement.querySelector('.label-search-suggestions')).toBeNull();
     }
   });
 
-  it('inserts a draft label term without searching and hides the helpers', async () => {
+  it('inserts a draft label term and activates label-key suggestions without searching', async () => {
     const emitted: Partial<ConfigQuery>[] = [];
     fixture.componentInstance.queryChange.subscribe(value => emitted.push(value));
     const input = fixture.nativeElement.querySelector('.search-form input') as HTMLInputElement;
@@ -268,6 +202,26 @@ describe('ConfigQueryComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="label-search-helper"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="emoji-search-helper"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="clear-search"]')).not.toBeNull();
+
+    const autocomplete = await loader.getHarness(MatAutocompleteHarness);
+    expect(await autocomplete.isOpen()).toBe(true);
+    const options = await autocomplete.getOptions();
+    expect(await Promise.all(options.map(option => option.getText()))).toEqual(['owner', 'category']);
+    expect(getLabelKeys).toHaveBeenCalledWith(Kind.SEED);
+
+    await autocomplete.selectOption({text: 'owner'});
+    expect(input.value).toBe('label:owner:');
+    expect(emitted).toHaveLength(0);
+  });
+
+  it('activates and filters label-key suggestions when label: is typed manually', async () => {
+    const autocomplete = await loader.getHarness(MatAutocompleteHarness);
+
+    await autocomplete.enterText('example label:cat');
+
+    expect(await autocomplete.isOpen()).toBe(true);
+    const options = await autocomplete.getOptions();
+    expect(await Promise.all(options.map(option => option.getText()))).toEqual(['category']);
   });
 
   it('searches immediately after choosing an emoji and leaves applied rendering outside the field', async () => {
@@ -391,43 +345,6 @@ describe('ConfigQueryComponent', () => {
     fixture.componentRef.setInput('query', {...query, kind: Kind.UNDEFINED});
     fixture.detectChanges();
     expect(fixture.componentInstance.searchLabel).toBe('Search');
-  });
-
-  it('updates the selected status chip from external queries', async () => {
-    const listbox = await loader.getHarness(MatChipListboxHarness);
-    const [enabled, disabled] = await listbox.getChips();
-
-    fixture.componentRef.setInput('query', {...query, disabled: false});
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([true, false]);
-
-    fixture.componentRef.setInput('query', {...query, disabled: true});
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([false, true]);
-
-    fixture.componentRef.setInput('query', {...query, disabled: null});
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(await Promise.all([enabled.isSelected(), disabled.isSelected()])).toEqual([false, false]);
-  });
-
-  it('uses the same deselectable status chips for CrawlJob as Seed', async () => {
-    const emitted: Partial<ConfigQuery>[] = [];
-    fixture.componentInstance.queryChange.subscribe(value => emitted.push(value));
-    fixture.componentRef.setInput('query', {...query, kind: Kind.CRAWLJOB});
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '[formControlName="disabled"]'}));
-    const chips = await listbox.getChips();
-    expect(await Promise.all(chips.map(chip => chip.getText()))).toEqual(['Show enabled', 'Show disabled']);
-    expect(await Promise.all(chips.map(chip => chip.isSelected()))).toEqual([false, false]);
-    await chips[0].select();
-    expect(fixture.componentInstance.form.controls['disabled'].value).toBe(false);
-    await chips[0].toggle();
-    expect(emitted.at(-1)?.disabled).toBeNull();
   });
 
   it('filters BrowserScripts with four single-select type chips and supports clearing the selection', async () => {

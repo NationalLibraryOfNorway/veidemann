@@ -9,6 +9,21 @@
   padding: 0 8px;
 }
 
+.ip-range-entry {
+  gap: 4px;
+}
+
+.ip-range-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.ip-range-remove {
+  margin-top: 8px;
+}
+
 .ip-range-add {
   margin-top: 1rem;
 }
@@ -19,4 +34,19 @@
 
 .ip-range-add mat-chip[role='button'] * {
   cursor: inherit;
+}
+
+@media (max-width: 599px) {
+  .ip-range-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ip-range-row mat-form-field {
+    grid-column: 1;
+  }
+
+  .ip-range-remove {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }

@@ -5,11 +5,22 @@
   min-width: 0;
 }
 
-.detail-header {
+app-detail-header {
   padding: 16px 16px 0;
 }
 
-.page-log-uri-title {
+.collection-metadata {
+  margin: 0;
+}
+
+.collection-metadata dt {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.collection-metadata dd {
+  margin: 2px 0 0;
+  font: var(--mat-sys-body-medium);
   overflow-wrap: anywhere;
 }
 
@@ -196,7 +207,7 @@ a.uri-value:hover {
 }
 
 @media (min-width: 840px) {
-  .detail-header {
+  app-detail-header {
     padding: 32px 32px 0;
   }
 }

@@ -1,21 +1,10 @@
-:host,
-mat-expansion-panel {
+:host {
   display: block;
   min-width: 0;
 }
 
-.filled-expansion-panel {
-  --mat-expansion-container-background-color: var(--mat-sys-surface-container-highest);
-  --mat-expansion-container-elevation-shadow: none;
-}
-
-mat-panel-title,
-mat-panel-description {
+.execution-summary {
+  display: grid;
   min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-mat-panel-description {
-  justify-content: flex-end;
-  text-align: right;
+  gap: 20px;
 }

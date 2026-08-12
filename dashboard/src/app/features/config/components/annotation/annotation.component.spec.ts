@@ -12,6 +12,7 @@ import {MatMenuHarness} from '@angular/material/menu/testing';
 
 import {Annotation} from '../../../../shared/models';
 import {AnnotationEditDialogResult} from './annotation-edit-dialog/annotation-edit-dialog.component';
+import {SCRIPT_ANNOTATION_DRAG_TYPE} from '../script-annotation-context';
 
 describe('AnnotationComponent', () => {
   let component: AnnotationComponent;
@@ -198,5 +199,41 @@ describe('AnnotationComponent', () => {
     component.onClickAnnotation('scope_altSeeds', 'old.example');
 
     expect(dialog.open).not.toHaveBeenCalled();
+  });
+
+  it('adds a dragged effective script annotation through the native drop target', () => {
+    const onChange = vi.fn();
+    const preventDefault = vi.fn();
+    component.registerOnChange(onChange);
+    component.writeValue([]);
+
+    component.onNativeDrop({
+      preventDefault,
+      dataTransfer: {getData: () => 'scope_altSeeds:https://alt.example'},
+    } as unknown as DragEvent);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({key: 'scope_altSeeds', value: 'https://alt.example'}),
+    ]);
+  });
+
+  it('preserves an empty effective annotation value from its structured drag payload', () => {
+    const onChange = vi.fn();
+    component.registerOnChange(onChange);
+    component.writeValue([]);
+
+    component.onNativeDrop({
+      preventDefault: vi.fn(),
+      dataTransfer: {
+        getData: (type: string) => type === SCRIPT_ANNOTATION_DRAG_TYPE
+          ? JSON.stringify({key: 'scope_altSeeds', value: ''})
+          : 'scope_altSeeds:',
+      },
+    } as unknown as DragEvent);
+
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({key: 'scope_altSeeds', value: ''}),
+    ]);
   });
 });

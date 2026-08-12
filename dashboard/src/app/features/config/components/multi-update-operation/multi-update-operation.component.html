@@ -1,0 +1,25 @@
+<section class="operation">
+  <div class="heading-row">
+    <h5>{{heading}}</h5>
+    <mat-button-toggle-group class="mode-toggle"
+      [disabled]="disabled"
+      [value]="mode"
+      [hideSingleSelectionIndicator]="true"
+      (valueChange)="modeChange.emit($event)">
+      <mat-button-toggle [value]="true" [attr.aria-label]="addLabel" [matTooltip]="addLabel">
+        <mat-icon>add</mat-icon>
+      </mat-button-toggle>
+      <mat-button-toggle [value]="false" [attr.aria-label]="removeLabel" [matTooltip]="removeLabel">
+        <mat-icon>remove</mat-icon>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+  <div class="value-row">
+    <div class="common-values">
+      <ng-content select="[multiUpdateCommon]"></ng-content>
+    </div>
+    <div class="editor">
+      <ng-content select="[multiUpdateEditor]"></ng-content>
+    </div>
+  </div>
+</section>

@@ -24,6 +24,7 @@ import {
   AnnotationEditDialogData,
   AnnotationEditDialogResult,
 } from './annotation-edit-dialog/annotation-edit-dialog.component';
+import {SCRIPT_ANNOTATION_DRAG_TYPE} from '../script-annotation-context';
 
 interface AnnotationGroup {
   key: string;
@@ -149,8 +150,53 @@ export class AnnotationComponent implements ControlValueAccessor {
     this.save(event.value);
     this.onChange(this.annotations);
     this.reset();
-
     this.control.setValue('');
+  }
+
+  onNativeDragOver(event: DragEvent): void {
+    if (this.disabled || !event.dataTransfer
+      || !event.dataTransfer.types.includes(SCRIPT_ANNOTATION_DRAG_TYPE)
+        && !event.dataTransfer.types.includes('text/plain')) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
+  onNativeDrop(event: DragEvent): void {
+    if (this.disabled) {
+      return;
+    }
+    event.preventDefault();
+    const previousLength = this.annotations.length;
+    const serializedAnnotation = event.dataTransfer?.getData(SCRIPT_ANNOTATION_DRAG_TYPE);
+    if (!this.saveSerializedAnnotation(serializedAnnotation)) {
+      this.save(event.dataTransfer?.getData('text/plain') ?? '');
+    }
+    if (this.annotations.length === previousLength) {
+      return;
+    }
+    this.onChange(this.annotations);
+    this.reset();
+    this.control.setValue('');
+  }
+
+  private saveSerializedAnnotation(serializedAnnotation: string | undefined): boolean {
+    if (!serializedAnnotation) {
+      return false;
+    }
+    try {
+      const annotation = JSON.parse(serializedAnnotation) as Partial<Annotation>;
+      const key = typeof annotation.key === 'string' ? annotation.key.trim() : '';
+      const value = typeof annotation.value === 'string' ? annotation.value : '';
+      if (!key || this.findAnnotationIndex(key, value) > -1) {
+        return true;
+      }
+      this.annotations.push(new Annotation({key, value}));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   onUseSuggestion(key: string): void {

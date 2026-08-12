@@ -1,0 +1,32 @@
+.configuration-dialog-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.configuration-dialog-title {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  padding-inline-end: 88px;
+}
+
+.configuration-dialog-form > mat-dialog-content,
+.configuration-dialog-form > mat-dialog-actions {
+  grid-column: 1 / -1;
+}
+
+.configuration-dialog-form > mat-dialog-content {
+  grid-row: 2;
+}
+
+.configuration-dialog-form > mat-dialog-actions {
+  grid-row: 3;
+}
+
+.configuration-active-toggle {
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+  margin-inline-end: 24px;
+}

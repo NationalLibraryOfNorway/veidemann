@@ -62,6 +62,7 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   @Input() displayedColumns: string[] = ['select', 'name', 'description', 'extra', 'action'];
   @Input() multiSelect = true;
   @Input() detailPath = '';
+  @Input() detailLinkTarget: '_self' | '_blank' = '_self';
 
   private _dataSource: ListDataSource<T, unknown>;
   private dataSourceSubscription = Subscription.EMPTY;
@@ -160,8 +161,11 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   }
 
   onPrimaryLink(item: T, event: Event): void {
-    event.preventDefault();
     event.stopPropagation();
+    if (this.detailLinkTarget === '_blank') {
+      return;
+    }
+    event.preventDefault();
     this.rowClick.emit(item);
   }
 

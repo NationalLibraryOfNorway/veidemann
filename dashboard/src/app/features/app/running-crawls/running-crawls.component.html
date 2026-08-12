@@ -1,6 +1,6 @@
-<section class="latest-crawl-jobs" aria-labelledby="latest-crawl-jobs-title">
+<section class="latest-crawl-jobs" aria-label="Jobs"
+  i18n-aria-label="@@dashboardCrawlJobsTitle">
   <header class="latest-crawl-jobs-header">
-    <h2 id="latest-crawl-jobs-title" i18n="@@latestCrawlJobsTitle">Latest crawl jobs</h2>
     <mat-chip-listbox multiple aria-label="Filter latest crawl jobs by state"
       i18n-aria-label="@@latestCrawlJobsStateFilterLabel">
       @for (chip of stateChips; track chip.label) {
@@ -19,7 +19,7 @@
       @if (rows.length > 0) {
         <app-job-execution-status-list
           [dataSource]="dataSource"
-          [displayedColumns]="['jobId', 'state', 'documentsCrawled', 'bytesCrawled',
+          [displayedColumns]="['jobId', 'state', 'desiredState', 'documentsCrawled', 'bytesCrawled',
                                'startTime', 'endTime', 'duration']"
           [embedded]="true"
           [sortActive]="sortActive"

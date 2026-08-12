@@ -12,7 +12,6 @@ import {
 import {AuthService} from '../../../../../core';
 import {NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
-import {MatCardModule} from '@angular/material/card';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatSelectModule} from '@angular/material/select';
@@ -23,7 +22,6 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -32,7 +30,7 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   styleUrls: ['../../config-details-grid.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    [MatCardModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
+    [MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
     CopyIdDirective,
     DurationPickerComponent,
     SelectorComponent,
@@ -44,7 +42,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   standalone: true
 })
 export class BrowserConfigDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 

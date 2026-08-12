@@ -68,11 +68,13 @@ describe('JobExecutionStatusListComponent', () => {
     expect(clicked).toEqual([row, row]);
   });
 
-  it('shows desired state as a badge when it is not a separate column', async () => {
+  it('renders desired state separately and appends duration as the final data column', async () => {
     const row = new JobExecutionStatus({
       id: 'execution-1',
       state: JobExecutionState.RUNNING,
       desiredState: JobExecutionState.ABORTED_MANUAL,
+      startTime: '2026-08-11T10:00:00.000Z',
+      endTime: '2026-08-11T11:02:00.000Z',
     });
     const dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -80,13 +82,23 @@ describe('JobExecutionStatusListComponent', () => {
       destroyRef: fixture.componentRef.injector.get(DestroyRef),
     });
     fixture.componentRef.setInput('dataSource', dataSource);
-    fixture.componentRef.setInput('displayedColumns', ['state']);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const badge = fixture.nativeElement.querySelector('.desired-state-badge') as HTMLElement;
-    expect(badge.textContent.trim()).toBe('ABORTED_MANUAL');
-    expect(badge.getAttribute('aria-label')).toBe('Desired state: ABORTED_MANUAL');
+    expect(component.displayedColumns).toEqual([
+      'jobId',
+      'state',
+      'desiredState',
+      'startTime',
+      'endTime',
+      'duration',
+      'action',
+    ]);
+    expect(fixture.nativeElement.querySelector('.desired-state-badge')).toBeNull();
+    expect(fixture.nativeElement.querySelector('td.mat-column-desiredState').textContent.trim())
+      .toBe('ABORTED_MANUAL');
+    expect(fixture.nativeElement.querySelector('td.mat-column-duration').textContent.trim())
+      .toBe('1hours:2min');
   });
 });

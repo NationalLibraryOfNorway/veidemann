@@ -60,6 +60,17 @@ html, body {
   text-decoration: underline;
 }
 
+.config-form-actions {
+  display: flex;
+  min-height: 52px;
+  box-sizing: border-box;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  align-items: center;
+  gap: 8px;
+}
+
 // Keep assist chips inside card headers while placing them on their own row.
 mat-card-header.card-header-with-helpers {
   position: relative;

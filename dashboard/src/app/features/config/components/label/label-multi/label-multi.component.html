@@ -1,11 +1,21 @@
 <div class="label-multi-layout">
-    @if (!allSelected) {
-      <h5>Common labels for the selected configurations: </h5>
-    }
-    @if (allSelected) {
-      <h5>Labels: </h5>
-    }
-    <div class="label-summary">
+  <div class="label-heading-row">
+    <h5 i18n="@@massUpdateLabelsHeading">Labels</h5>
+    <mat-button-toggle-group
+      name="shouldAddLabel"
+      [formControl]="modeControl"
+      [hideSingleSelectionIndicator]="true">
+      <mat-button-toggle [value]="true" matTooltip="Add labels for the selected configs"
+        i18n-matTooltip="@@labelsMultiAddLabelToggleButtonTooltip">
+        <mat-icon>add</mat-icon>
+      </mat-button-toggle>
+      <mat-button-toggle [value]="false" matTooltip="Remove labels from the selected configs"
+        i18n-matTooltip="@@labelsMultiRemoveLabelToggleButtonTooltip">
+        <mat-icon>remove</mat-icon>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+  <div class="label-value-row">
       <mat-chip-listbox id="commonLabelsChipList" multiple
         cdkDropList cdkDropListConnectedTo="labelInputChipList">
         @for (label of configObject.meta.labelList; track label) {
@@ -19,71 +29,48 @@
           </mat-chip-option>
         }
       </mat-chip-listbox>
-      <mat-button-toggle-group
-        name="shouldAddLabel"
-        [value]="shouldAddLabel"
-        (valueChange)="onToggleShouldAddLabels($event)">
-        <mat-button-toggle [value]="true" matTooltip="Add labels for the selected configs"
-          i18n-matTooltip="@@labelsMultiAddLabelToggleButtonTooltip">
-          <mat-icon>add</mat-icon>
-        </mat-button-toggle>
-        <mat-button-toggle [value]="false" matTooltip="Remove labels from the selected configs"
-          i18n-matTooltip="@@labelsMultiRemoveLabelToggleButtonTooltip">
-          <mat-icon>remove</mat-icon>
-        </mat-button-toggle>
-      </mat-button-toggle-group>
-    </div>
-    @if (shouldAddLabel !== undefined) {
-      <div class="label-input-section">
-        <div class="label-input-row">
-          <mat-form-field class="flex-fill">
-            <mat-label i18n="@@labelMultiInputLabel">
-              Label
-            </mat-label>
-            <mat-chip-grid id="labelInputChipList" #labelInputChipList
-              cdkDropList cdkDropListConnectedTo="commonLabelsChipList"
-              (cdkDropListDropped)="onDrop($event)">
-              @for (label of labels; track label) {
-                <mat-chip-row
-                  (removed)="onRemove(label.key, label.value)">
-                  <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
-                  <mat-icon matChipRemove>cancel</mat-icon>
-                </mat-chip-row>
-              }
-              <input #chipInput
-                matInput
-                [formControl]="control"
-                [matChipInputFor]="labelInputChipList"
-                [matChipInputSeparatorKeyCodes]="labelInputSeparators"
-                [matAutocomplete]="auto"
-                (matChipInputTokenEnd)="onAdd($event)">
-            </mat-chip-grid>
-            @if (shouldAddLabel) {
-              <mat-hint align="start">
-                Add labels to the selected configs
-              </mat-hint>
+    <div class="label-input-section">
+        <mat-form-field>
+          <mat-label i18n="@@labelMultiInputLabel">
+            Label
+          </mat-label>
+          <mat-chip-grid id="labelInputChipList" #labelInputChipList
+            cdkDropList cdkDropListConnectedTo="commonLabelsChipList"
+            (cdkDropListDropped)="onDrop($event)">
+            @for (label of labels; track label) {
+              <mat-chip-row
+                (removed)="onRemove(label.key, label.value)">
+                <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+                <mat-icon matChipRemove>cancel</mat-icon>
+              </mat-chip-row>
             }
-            @if (!shouldAddLabel) {
-              <mat-hint align="start">
-                Add labels to remove by typing a label, or dragging a label from the common label list
-              </mat-hint>
-            }
-          </mat-form-field>
-          @if (shouldAddLabel === true) {
-            <button mat-icon-button type="button"
+            <input #chipInput
+              matInput
+              [formControl]="control"
+              [matChipInputFor]="labelInputChipList"
+              [matChipInputSeparatorKeyCodes]="labelInputSeparators"
+              [matAutocomplete]="auto"
+              (matChipInputTokenEnd)="onAdd($event)">
+          </mat-chip-grid>
+          <button mat-icon-button matSuffix type="button"
               data-testid="emoji-picker-button"
+              [disabled]="shouldAddLabel === undefined"
               aria-label="Choose emoji" i18n-aria-label="@@emojiPickerButtonLabel"
               matTooltip="Choose emoji" i18n-matTooltip="@@emojiPickerButtonLabel"
               (click)="onChooseEmoji()">
               <mat-icon>add_reaction</mat-icon>
-            </button>
+          </button>
+          @if (shouldAddLabel !== undefined) {
+            <mat-hint align="start" i18n="@@labelMultiInputHint">
+              Type a label or click a common label to add it to the input.
+            </mat-hint>
           }
-        </div>
+        </mat-form-field>
         <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onAutocompleteOptionSelected($event)">
           @for (key of filteredKey$ | async; track key) {
             <mat-option [value]="key">{{key}}</mat-option>
           }
         </mat-autocomplete>
       </div>
-    }
+  </div>
 </div>

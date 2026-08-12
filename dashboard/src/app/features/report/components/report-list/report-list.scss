@@ -82,3 +82,8 @@ tr.item-row:focus-visible {
   gap: 8px;
   color: var(--mat-sys-on-surface-variant);
 }
+
+.deleted-reference {
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}

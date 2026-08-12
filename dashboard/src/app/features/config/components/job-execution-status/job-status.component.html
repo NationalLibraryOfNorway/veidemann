@@ -1,27 +1,8 @@
 @if (jobExecutionStatus) {
-  @let state = statePresentation(jobExecutionStatus.state);
-  <mat-expansion-panel expanded class="filled-expansion-panel mat-elevation-z0">
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        @if (jobExecutionStatus.startTime) {
-          {{jobExecutionStatus.startTime | date:'medium'}}
-        } @else {
-          <span i18n="@@commonNotAvailable">Not available</span>
-        }
-      </mat-panel-title>
-      <mat-panel-description>{{state.label}}</mat-panel-description>
-    </mat-expansion-panel-header>
-
-    <app-job-execution-statistics
+  <div class="execution-summary">
+    <app-job-execution-metrics-section
       [jobExecutionStatus]="jobExecutionStatus"
       [crawlJob]="crawlJob">
-    </app-job-execution-statistics>
-
-    @if (canReadJobExecution && jobExecutionStatus.id) {
-      <mat-action-row>
-        <a mat-button [routerLink]="['/report', 'jobexecution', jobExecutionStatus.id]"
-          i18n="@@viewJobExecutionAction">View job execution</a>
-      </mat-action-row>
-    }
-  </mat-expansion-panel>
+    </app-job-execution-metrics-section>
+  </div>
 }

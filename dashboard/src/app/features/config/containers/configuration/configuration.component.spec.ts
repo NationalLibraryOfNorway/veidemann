@@ -32,6 +32,7 @@ describe('ConfigurationComponent route loading', () => {
   let canRead: ReturnType<typeof vi.fn>;
   let loadOptions: ReturnType<typeof vi.fn>;
   let dialogOpen: ReturnType<typeof vi.fn>;
+  let locationBack: ReturnType<typeof vi.fn>;
   let navigate: ReturnType<typeof vi.fn>;
   let seedReadPermission: WritableSignal<boolean>;
   let appConfig: AppConfig;
@@ -40,6 +41,8 @@ describe('ConfigurationComponent route loading', () => {
   const search = vi.fn(() => of<ConfigObject>());
   const getScriptAnnotations = vi.fn(() => of([]));
   const save = vi.fn((configObject: ConfigObject) => of(configObject));
+  const update = vi.fn((configObject: ConfigObject) => of(configObject));
+  const deleteConfig = vi.fn(() => of(true));
   const move = vi.fn(() => of(1));
 
   beforeEach(async () => {
@@ -50,11 +53,15 @@ describe('ConfigurationComponent route loading', () => {
     search.mockReset();
     search.mockReturnValue(of());
     getScriptAnnotations.mockClear();
+    save.mockClear();
+    update.mockClear();
+    deleteConfig.mockClear();
     move.mockClear();
     canRead = vi.fn(() => true);
     seedReadPermission = signal(true);
     loadOptions = vi.fn(() => of({}));
     dialogOpen = vi.fn(() => ({componentInstance: {}, afterClosed: () => EMPTY}));
+    locationBack = vi.fn();
     navigate = vi.fn(() => Promise.resolve(true));
 
     await TestBed.configureTestingModule({
@@ -64,7 +71,10 @@ describe('ConfigurationComponent route loading', () => {
           provide: ActivatedRoute,
           useValue: {paramMap: idParams, parent: {paramMap: kindParams}},
         },
-        {provide: ConfigService, useValue: {get, getScriptAnnotations, save, move, search, loading$: of(false)}},
+        {
+          provide: ConfigService,
+          useValue: {get, getScriptAnnotations, save, update, delete: deleteConfig, move, search, loading$: of(false)},
+        },
         {provide: OptionsService, useValue: {options$: options, next: vi.fn()}},
         {provide: OptionsResolver, useValue: {load: loadOptions}},
         {provide: AuthService, useValue: {canRead}},
@@ -82,7 +92,7 @@ describe('ConfigurationComponent route loading', () => {
           provide: RouterExtraService,
           useValue: {getCurrentUrl: () => '', getPreviousUrl: () => ''},
         },
-        {provide: Location, useValue: {}},
+        {provide: Location, useValue: {back: locationBack}},
         {provide: Router, useValue: {events: EMPTY, navigate}},
         {provide: MatDialog, useValue: {open: dialogOpen, closeAll: vi.fn()}},
       ],
@@ -257,6 +267,66 @@ describe('ConfigurationComponent route loading', () => {
     }));
   });
 
+  it('opens related Edit and Clone dialogs in supporting-context mode', () => {
+    const configObject = new ConfigObject({id: 'collection-1', kind: Kind.COLLECTION});
+    const openDialog = vi.spyOn(fixture.componentInstance, 'onCreateConfigWithDialog');
+
+    fixture.componentInstance.onEditRelatedConfig(configObject);
+    fixture.componentInstance.onCloneRelatedConfig(configObject);
+
+    expect(openDialog).toHaveBeenNthCalledWith(1, configObject, 'related');
+    expect(openDialog).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({id: '', kind: Kind.COLLECTION}),
+      'related',
+    );
+  });
+
+  it('updates a related configuration without navigating away', () => {
+    const related = new ConfigObject({id: 'collection-1', kind: Kind.COLLECTION});
+    dialogOpen.mockReturnValue({componentInstance: {}, afterClosed: () => of(related)});
+
+    fixture.componentInstance.onEditRelatedConfig(related);
+
+    expect(update).toHaveBeenCalledWith(related);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the entity detail open after creating a seed', () => {
+    const entity = new ConfigObject({id: 'entity-1', kind: Kind.CRAWLENTITY});
+    const seed = new ConfigObject({
+      kind: Kind.SEED,
+      seed: new Seed({entityRef: ConfigObject.toConfigRef(entity)}),
+    });
+    dialogOpen.mockReturnValue({componentInstance: {move: NEVER}, afterClosed: () => of(seed)});
+
+    fixture.componentInstance.onCreateSeedFromEntity(entity);
+
+    expect(save).toHaveBeenCalledWith(seed);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not navigate when a related configuration dialog is canceled', () => {
+    const related = new ConfigObject({id: 'collection-1', kind: Kind.COLLECTION});
+    dialogOpen.mockReturnValue({componentInstance: {}, afterClosed: () => of(undefined)});
+
+    fixture.componentInstance.onEditRelatedConfig(related);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('deletes a related configuration without leaving the current detail', () => {
+    dialogOpen.mockReturnValue({componentInstance: {}, afterClosed: () => of(true)});
+    const related = new ConfigObject({id: 'collection-1', kind: Kind.COLLECTION});
+
+    fixture.componentInstance.onDeleteRelatedConfig(related);
+
+    expect(deleteConfig).toHaveBeenCalledWith(related);
+    expect(locationBack).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('opens confirmation and run dialogs as Escape-dismissible and accepts an empty result', () => {
     dialogOpen.mockReturnValue({componentInstance: {}, afterClosed: () => of(undefined)});
     const seed = new ConfigObject({id: 'seed', kind: Kind.SEED});
@@ -314,12 +384,16 @@ describe('ConfigurationComponent route loading', () => {
 
     await expect(related).resolves.toEqual([
       expect.objectContaining({
-        ref: expect.objectContaining({id: 'schedule-1'}),
+        descriptor: expect.objectContaining({
+          ref: expect.objectContaining({id: 'schedule-1'}), role: 'schedule', source: 'direct',
+        }),
         configObject: null,
         unavailable: true,
       }),
       expect.objectContaining({
-        ref: expect.objectContaining({id: 'crawl-config-1'}),
+        descriptor: expect.objectContaining({
+          ref: expect.objectContaining({id: 'crawl-config-1'}), role: 'crawl-config', source: 'direct',
+        }),
         configObject: expect.objectContaining({id: 'crawl-config-1'}),
         unavailable: false,
       }),
@@ -345,7 +419,9 @@ describe('ConfigurationComponent route loading', () => {
     fixture.detectChanges();
 
     await expect(related).resolves.toEqual([
-      expect.objectContaining({ref: expect.objectContaining({id: 'crawl-config-1'})}),
+      expect.objectContaining({descriptor: expect.objectContaining({
+        ref: expect.objectContaining({id: 'crawl-config-1'}),
+      })}),
     ]);
     expect(get).not.toHaveBeenCalledWith(expect.objectContaining({id: 'schedule-1'}));
   });
@@ -383,11 +459,15 @@ describe('ConfigurationComponent route loading', () => {
 
     await expect(related).resolves.toEqual([
       expect.objectContaining({
-        ref: expect.objectContaining({id: 'explicit-script'}),
+        descriptor: expect.objectContaining({
+          ref: expect.objectContaining({id: 'explicit-script'}), source: 'direct',
+        }),
         configObject: expect.objectContaining({id: 'explicit-script'}),
       }),
       expect.objectContaining({
-        ref: expect.objectContaining({id: 'implicit-script'}),
+        descriptor: expect.objectContaining({
+          ref: expect.objectContaining({id: 'implicit-script'}), source: 'selector',
+        }),
         configObject: expect.objectContaining({id: 'implicit-script'}),
       }),
     ]);

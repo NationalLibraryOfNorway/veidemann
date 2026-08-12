@@ -1,69 +1,40 @@
-<div class="execution-metadata">
-  <span class="state-badge" [class]="'state-badge state-' + state.tone">
-    <mat-icon aria-hidden="true">{{state.icon}}</mat-icon>
-    <span>{{state.label}}</span>
-  </span>
-
-  @if (terminalEvent === 'finished') {
-    @if (startTime && endTime) {
-      <span class="lifecycle-time">
-        @if (sameCalendarDay()) {
-          {{startTime | date:'mediumDate'}}, {{startTime | date:'shortTime'}}
-          <span class="time-arrow">→</span>
-          {{endTime | date:'shortTime'}}
-        } @else {
-          {{startTime | date:'mediumDate'}}, {{startTime | date:'shortTime'}}
-          <span class="time-arrow">→</span>
-          {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
-        }
-      </span>
-    } @else if (startTime) {
-      <span class="lifecycle-time" i18n="@@executionStartedMetadata">
-        Started {{startTime | date:'mediumDate'}} at {{startTime | date:'shortTime'}}
-      </span>
-    } @else if (endTime) {
-      <span class="lifecycle-time" i18n="@@executionEndedMetadata">
-        Ended at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
-      </span>
-    }
-  } @else {
-    @if (startTime) {
-      <span class="lifecycle-time" i18n="@@executionStartedMetadata">
-        Started {{startTime | date:'mediumDate'}} at {{startTime | date:'shortTime'}}
-      </span>
-    }
-    @if (endTime && terminalEvent) {
+<dl class="execution-lifecycle"
+  [class.execution-lifecycle--with-context]="contextLabel"
+  [class.execution-lifecycle--metrics]="presentation === 'metrics'">
+  <div>
+    <dt i18n="@@executionStartedLabel">Started</dt>
+    <dd>
       @if (startTime) {
-        <span class="metadata-divider" aria-hidden="true">·</span>
+        {{startTime | date:'medium'}}
+      } @else {
+        <span i18n="@@commonNotAvailable">Not available</span>
       }
-      @switch (terminalEvent) {
-        @case ('failed') {
-          <span class="lifecycle-time" i18n="@@executionFailedMetadata">
-            Failed at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
-          </span>
-        }
-        @case ('died') {
-          <span class="lifecycle-time" i18n="@@executionDiedMetadata">
-            Died at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
-          </span>
-        }
-        @case ('aborted') {
-          <span class="lifecycle-time" i18n="@@executionAbortedMetadata">
-            Aborted at {{endTime | date:'mediumDate'}}, {{endTime | date:'shortTime'}}
-          </span>
-        }
+    </dd>
+  </div>
+  <div>
+    <dt>{{state.label}}</dt>
+    <dd>
+      @if (endTime) {
+        {{endTime | date:'medium'}}
+      } @else if (showDesiredStateInLifecycle) {
+        {{desiredState?.label}}
+      } @else if (state.lifecycle === 'active') {
+        <span i18n="@@executionNowValue">Now</span>
+      } @else {
+        <span i18n="@@commonNotAvailable">Not available</span>
       }
-    }
+    </dd>
+  </div>
+  @if (contextLabel) {
+    <div>
+      <dt>{{contextLabel}}</dt>
+      <dd>
+        @if (contextValue.trim()) {
+          {{contextValue}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
+        }
+      </dd>
+    </div>
   }
-
-  @if (desiredState) {
-    <span class="metadata-divider" aria-hidden="true">·</span>
-    <span class="desired-state">
-      <span i18n="@@executionDesiredStateInlineLabel">Desired state:</span>
-      <span class="state-badge" [class]="'state-badge state-' + desiredState.tone">
-        <mat-icon aria-hidden="true">{{desiredState.icon}}</mat-icon>
-        <span>{{desiredState.label}}</span>
-      </span>
-    </span>
-  }
-</div>
+</dl>

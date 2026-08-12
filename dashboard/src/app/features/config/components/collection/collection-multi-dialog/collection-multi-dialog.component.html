@@ -1,0 +1,59 @@
+<form [formGroup]="form" class="mass-update-form">
+  <div mat-dialog-title class="mass-update-header">
+    <h2 i18n="@@collectionMassUpdateDialogTitle">Update collections</h2>
+    <p i18n="@@massUpdateDialogDescription">
+      Only changed settings will be applied. Values left untouched will be preserved.
+    </p>
+  </div>
+
+  <mat-dialog-content class="mass-update-content">
+    <div class="mass-update-grid">
+      <div class="mass-update-section">
+        <app-label-multi [configObject]="configObject"
+          [allSelected]="allSelected"
+          (update)="onUpdateLabels($event)">
+        </app-label-multi>
+      </div>
+
+      <div class="mass-update-section">
+        <mat-form-field>
+          <mat-label i18n="@@collectionDedupPolicyDropdownLabel">Deduplication policy</mat-label>
+          <mat-select formControlName="collectionDedupPolicy">
+            @for (policy of rotationPolicies; track policy) {
+              <mat-option [value]="policy">{{RotationPolicy[policy]}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label i18n="@@collectionFileRotationPolicyDropdownLabel">File rotation policy</mat-label>
+          <mat-select formControlName="fileRotationPolicy">
+            @for (policy of rotationPolicies; track policy) {
+              <mat-option [value]="policy">{{RotationPolicy[policy]}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <app-filesize-input [placeholder]="'File size'" formControlName="fileSize"></app-filesize-input>
+
+        <fieldset class="mass-update-choice">
+          <legend i18n="@@collectionCompressionHeading">Compression</legend>
+          <app-boolean-override formControlName="compress"
+            ariaLabel="Compression" i18n-ariaLabel="@@collectionCompressionHeading"
+            trueLabel="Compress" i18n-trueLabel="@@collectionMultiCompress"
+            falseLabel="Do not compress" i18n-falseLabel="@@collectionMultiDoNotCompress">
+          </app-boolean-override>
+        </fieldset>
+      </div>
+    </div>
+  </mat-dialog-content>
+</form>
+
+@if (canEdit) {
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onRevert()" [disabled]="!canRevert" i18n="@@commonButtonRevert">REVERT</button>
+    <button mat-button mat-dialog-close i18n="@@commonButtonCancel">CANCEL</button>
+    <button mat-flat-button [disabled]="!canUpdate" [mat-dialog-close]="onDialogClose()"
+      i18n="@@commonButtonSave">UPDATE</button>
+  </mat-dialog-actions>
+}

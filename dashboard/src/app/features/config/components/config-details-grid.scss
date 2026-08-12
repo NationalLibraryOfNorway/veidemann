@@ -1,4 +1,4 @@
-.mat-mdc-card-content.config-details-grid {
+.config-details-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
@@ -10,7 +10,7 @@
 }
 
 @media (min-width: 600px) {
-  .mat-mdc-card-content.config-details-grid {
+  .config-details-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

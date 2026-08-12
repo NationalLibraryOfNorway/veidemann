@@ -7,7 +7,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import {MatChipOptionHarness} from '@angular/material/chips/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {MatInputHarness} from '@angular/material/input/testing';
 
@@ -44,7 +44,7 @@ describe('CrawlConfigDetailsComponent', () => {
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
 
-  let screenshotChip: MatChipOptionHarness;
+  let screenshotCheckbox: MatCheckboxHarness;
 
   let priorityWeightFormField: MatFormFieldHarness;
   let priorityWeightInput: MatInputHarness;
@@ -131,7 +131,7 @@ describe('CrawlConfigDetailsComponent', () => {
       updateButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'UPDATE'}));
       revertButton = await loader.getHarness<MatButtonHarness>(MatButtonHarness.with({text: 'REVERT'}));
 
-      screenshotChip = await loader.getHarness(MatChipOptionHarness.with({selector: 'app-boolean-state-chip mat-chip-option'}));
+      screenshotCheckbox = await loader.getHarness(MatCheckboxHarness);
     });
 
     it('update button should be active if form is updated and valid', async () => {
@@ -207,11 +207,12 @@ describe('CrawlConfigDetailsComponent', () => {
       expect(await priorityWeightFormField.getTextErrors()).toEqual([]);
     });
 
-    it('toggling the screenshot state chip updates form state', async () => {
+    it('renders Create screenshots as a normal checkbox and updates form state', async () => {
       expect(component.canUpdate).toBeFalsy();
-      expect(await screenshotChip.isSelected()).toBe(true);
-      await screenshotChip.toggle();
-      expect(await screenshotChip.isSelected()).toBe(false);
+      expect(await screenshotCheckbox.getLabelText()).toBe('Create screenshots');
+      expect(await screenshotCheckbox.isChecked()).toBe(true);
+      await screenshotCheckbox.toggle();
+      expect(await screenshotCheckbox.isChecked()).toBe(false);
     });
 
     /** Testing revert button */

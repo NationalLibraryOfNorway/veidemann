@@ -14,7 +14,6 @@ import {
 
 import {AuthService} from '../../../../../core/auth';
 import {DateTime} from '../../../../../shared/func';
-import {MatCardModule} from '@angular/material/card';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
@@ -23,7 +22,6 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -34,7 +32,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   imports: [
     CopyIdDirective,
     MatButtonModule,
-    MatCardModule,
     MatDatepickerModule,
     MatFormFieldModule,
     MatInput,
@@ -46,7 +43,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   standalone: true
 })
 export class ScheduleDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 

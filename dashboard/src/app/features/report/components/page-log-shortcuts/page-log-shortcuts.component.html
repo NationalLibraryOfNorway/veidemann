@@ -1,55 +1,67 @@
-<mat-chip-set aria-label="Page log metadata" i18n-aria-label="@@pageLogMetadataLabel">
-  @if (pageLog.warcId) {
-    <mat-chip role="button" tabindex="0" [appCopyId]="pageLog.warcId"
-      matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip"
-      aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip">
-      <mat-icon matChipAvatar>content_copy</mat-icon>
-      <span i18n="@@copyWarcIdChip">Copy WARC ID</span>
-    </mat-chip>
-  }
+@if (presentation === 'menu') {
   @if (pageLog.referrer) {
     @if (referrerHref; as href) {
-      <a mat-chip [href]="href" target="_blank" rel="noopener noreferrer">
-        <mat-icon matChipAvatar>open_in_new</mat-icon>
-        <span i18n="@@pageLogReferrerChip">Referrer: {{pageLog.referrer}}</span>
+      <a mat-menu-item [href]="href" target="_blank" rel="noopener noreferrer">
+        <mat-icon>open_in_new</mat-icon><span i18n="@@pageLogOpenReferrerAction">Open referrer</span>
       </a>
     } @else {
-      <mat-chip>
-        <mat-icon matChipAvatar>link</mat-icon>
-        <span i18n="@@pageLogReferrerChip">Referrer: {{pageLog.referrer}}</span>
-      </mat-chip>
+      <button mat-menu-item type="button" disabled>
+        <mat-icon>link_off</mat-icon><span i18n="@@pageLogOpenReferrerAction">Open referrer</span>
+      </button>
     }
   }
   @if (pageLog.jobExecutionId) {
-    @if (can('read', 'jobexecution')) {
-      <a mat-chip [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]"
-        matTooltip="Open job execution {{pageLog.jobExecutionId}}"
-        aria-label="Open job execution {{pageLog.jobExecutionId}}">
-        <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
-      </a>
-    } @else {
-      <mat-chip matTooltip="Job execution {{pageLog.jobExecutionId}}"
-        aria-label="Job execution {{pageLog.jobExecutionId}}">
-        <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
-      </mat-chip>
-    }
+    <a mat-menu-item [disabled]="!can('read', 'jobexecution')"
+      [routerLink]="can('read', 'jobexecution') ? ['/report', 'jobexecution', pageLog.jobExecutionId] : null">
+      <mat-icon>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+    </a>
   }
   @if (pageLog.executionId) {
-    @if (can('read', 'crawlexecution')) {
-      <a mat-chip [routerLink]="['/report', 'crawlexecution', pageLog.executionId]"
-        matTooltip="Open crawl execution {{pageLog.executionId}}"
-        aria-label="Open crawl execution {{pageLog.executionId}}">
-        <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
-      </a>
-    } @else {
-      <mat-chip matTooltip="Crawl execution {{pageLog.executionId}}"
-        aria-label="Crawl execution {{pageLog.executionId}}">
-        <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
+    <a mat-menu-item [disabled]="!can('read', 'crawlexecution')"
+      [routerLink]="can('read', 'crawlexecution') ? ['/report', 'crawlexecution', pageLog.executionId] : null">
+      <mat-icon>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
+    </a>
+  }
+  @if (pageLog.warcId) {
+    <button mat-menu-item type="button" [appCopyId]="pageLog.warcId">
+      <mat-icon>content_copy</mat-icon><span i18n="@@copyWarcIdChip">Copy WARC ID</span>
+    </button>
+  }
+} @else {
+  <mat-chip-set aria-label="Page log metadata" i18n-aria-label="@@pageLogMetadataLabel">
+    @if (pageLog.warcId) {
+      <mat-chip role="button" tabindex="0" [appCopyId]="pageLog.warcId"
+        matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip"
+        aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip">
+        <mat-icon matChipAvatar>content_copy</mat-icon><span i18n="@@copyWarcIdChip">Copy WARC ID</span>
       </mat-chip>
     }
-  }
-</mat-chip-set>
+    @if (pageLog.referrer) {
+      @if (referrerHref; as href) {
+        <a mat-chip [href]="href" target="_blank" rel="noopener noreferrer">
+          <mat-icon matChipAvatar>open_in_new</mat-icon>
+          <span i18n="@@pageLogReferrerChip">Referrer: {{pageLog.referrer}}</span>
+        </a>
+      } @else {
+        <mat-chip><mat-icon matChipAvatar>link</mat-icon>
+          <span i18n="@@pageLogReferrerChip">Referrer: {{pageLog.referrer}}</span></mat-chip>
+      }
+    }
+    @if (pageLog.jobExecutionId) {
+      @if (can('read', 'jobexecution')) {
+        <a mat-chip [routerLink]="['/report', 'jobexecution', pageLog.jobExecutionId]">
+          <mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span></a>
+      } @else {
+        <mat-chip><mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span></mat-chip>
+      }
+    }
+    @if (pageLog.executionId) {
+      @if (can('read', 'crawlexecution')) {
+        <a mat-chip [routerLink]="['/report', 'crawlexecution', pageLog.executionId]">
+          <mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span></a>
+      } @else {
+        <mat-chip><mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span></mat-chip>
+      }
+    }
+  </mat-chip-set>
+}

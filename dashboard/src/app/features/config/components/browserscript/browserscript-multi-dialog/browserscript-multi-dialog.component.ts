@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
 import { AbstractControl,ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
+import {MatButtonModule} from '@angular/material/button';
 import { BrowserScriptDetailsComponent } from '..';
 import { ConfigObject,Kind,Label } from '../../../../../shared/models';
 import { ConfigDialogData } from '../../../func';
@@ -13,6 +14,7 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   imports: [
     ReactiveFormsModule,
     MatDialogModule,
+    MatButtonModule,
     LabelMultiComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

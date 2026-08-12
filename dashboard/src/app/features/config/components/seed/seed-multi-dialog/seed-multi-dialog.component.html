@@ -16,77 +16,53 @@
       </div>
 
       <div class="mass-update-section">
-        <div class="layout-column gap-16">
-          @if (!allSelected) {
-            <h5>Common crawljob for the selected configs:</h5>
-          }
-          @if (allSelected) {
-            <h5>Crawljobs:</h5>
-          }
-          <div class="mass-update-inline">
-            <mat-form-field class="flex-fill">
-              <mat-label i18n="@@seedDetailsFormJobRefListLabel">
-                Crawljob
-              </mat-label>
-              <mat-select  multiple formControlName="commonJobRefListId">
-                @for (crawlJob of crawlJobs; track crawlJob) {
-                  <mat-option
-                  [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-            <mat-button-toggle-group [value]="shouldAddCrawlJob"
-              (valueChange)="onToggleShouldAddCrawlJob($event)"
-              name="shouldAddCrawlJob">
-              <mat-button-toggle [value]="true" matTooltip="Add crawljobs to the selected configs">
-                <mat-icon>add</mat-icon>
-              </mat-button-toggle>
-              <mat-button-toggle [value]="false" matTooltip="Remove crawljobs from the selected configs">
-                <mat-icon>remove</mat-icon>
-              </mat-button-toggle>
-            </mat-button-toggle-group>
-          </div>
-          @if (shouldAddCrawlJob !== undefined) {
-            <div>
-              @if (shouldAddCrawlJob!==undefined) {
-                <mat-form-field>
-                  <mat-label i18n="@@seedDetailsCrawlJobDropDownLabel">
-                Crawljob
-              </mat-label>
-                  <mat-select  multiple formControlName="updateJobRefListId">
-                    @for (crawlJob of crawlJobs; track crawlJob) {
-                      <mat-option [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
-                    }
-                  </mat-select>
-                  @if (shouldAddCrawlJob) {
-                    <mat-hint>Select crawljobs to add</mat-hint>
-                  }
-                  @if (!shouldAddCrawlJob) {
-                    <mat-hint>Select crawljobs to remove</mat-hint>
-                  }
-                </mat-form-field>
+        <app-multi-update-operation
+          heading="Crawl jobs" i18n-heading="@@massUpdateCrawlJobsHeading"
+          addLabel="Add crawl jobs" i18n-addLabel="@@seedMultiAddCrawlJobsLabel"
+          removeLabel="Remove crawl jobs" i18n-removeLabel="@@seedMultiRemoveCrawlJobsLabel"
+          [mode]="shouldAddCrawlJob"
+          [disabled]="!canEdit"
+          (modeChange)="onToggleShouldAddCrawlJob($event)">
+          <mat-form-field multiUpdateCommon>
+            <mat-label i18n="@@seedDetailsFormJobRefListLabel">
+              Crawljob
+            </mat-label>
+            <mat-select multiple formControlName="commonJobRefListId">
+              @for (crawlJob of crawlJobs; track crawlJob) {
+                <mat-option
+                [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
               }
-            </div>
-          }
-        </div>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field multiUpdateEditor class="crawl-job-update-field">
+            <mat-label i18n="@@seedDetailsCrawlJobDropDownLabel">
+                Crawljob
+            </mat-label>
+            <mat-select multiple formControlName="updateJobRefListId">
+              @for (crawlJob of crawlJobs; track crawlJob) {
+                <mat-option [value]="crawlJob.id">{{crawlJob.meta.name}}</mat-option>
+              }
+            </mat-select>
+            @if (shouldAddCrawlJob === true) {
+              <mat-hint>Select crawljobs to add</mat-hint>
+            }
+            @if (shouldAddCrawlJob === false) {
+              <mat-hint>Select crawljobs to remove</mat-hint>
+            }
+          </mat-form-field>
+        </app-multi-update-operation>
 
       </div>
 
       <div class="mass-update-section">
         <fieldset class="mass-update-choice">
           <legend id="seed-mass-update-status" i18n="@@massUpdateStatusLabel">Status</legend>
-          <mat-chip-listbox
-            aria-labelledby="seed-mass-update-status"
-            [disabled]="!canEdit"
-            [value]="disabledSelection"
-            (change)="onDisabledSelectionChange($event.value)">
-            <mat-chip-option [value]="false" i18n="@@massUpdateStatusActivated">
-              Activated
-            </mat-chip-option>
-            <mat-chip-option [value]="true" i18n="@@massUpdateStatusDeactivated">
-              Deactivated
-            </mat-chip-option>
-          </mat-chip-listbox>
+          <app-boolean-override formControlName="disabledSelection"
+            appearance="chips"
+            ariaLabel="Status" i18n-ariaLabel="@@massUpdateStatusLabel"
+            trueLabel="Deactivated" i18n-trueLabel="@@massUpdateStatusDeactivated"
+            falseLabel="Activated" i18n-falseLabel="@@massUpdateStatusActivated">
+          </app-boolean-override>
         </fieldset>
       </div>
     </div>

@@ -17,14 +17,8 @@
   margin-bottom: 12px;
   padding-inline: 16px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
-}
-
-h2 {
-  margin: 0;
-  font: var(--mat-sys-headline-small);
-  letter-spacing: var(--mat-sys-headline-small-tracking);
 }
 
 mat-chip-listbox {

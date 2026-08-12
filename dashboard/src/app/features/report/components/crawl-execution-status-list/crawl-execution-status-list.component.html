@@ -19,7 +19,13 @@
           mat-header-cell *matHeaderCellDef mat-sort-header>Seed
         </th>
         <td mat-cell *matCellDef="let row">
-          {{row.seedId | getSeedNamePipe | async}}
+          @if (row.seedId | getSeedNamePipe | async; as seedName) {
+            <span [class.deleted-reference]="seedName.deleted"
+              [matTooltip]="seedName.deleted ? deletedSeedTooltip(row.seedId) : ''"
+              [attr.aria-label]="seedName.deleted ? deletedSeedAriaLabel(row.seedId) : null">
+              {{seedName.label}}
+            </span>
+          }
         </td>
       </ng-container>
 

@@ -12,7 +12,7 @@ import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/pattern
 import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {BooleanOverrideComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-politenessconfig-multi-dialog',
@@ -22,7 +22,7 @@ import {BooleanStateChipComponent} from '../../../../../shared/components';
     DurationPickerComponent,
     LabelMultiComponent,
     MatButtonModule,
-    BooleanStateChipComponent,
+    BooleanOverrideComponent,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -100,23 +100,17 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
       robotsPolicy: '',
       minimumRobotsValidityDurationS: ['', [Validators.pattern(NUMBER_OR_EMPTY_STRING)]],
       customRobots: null,
-      useHostname: {value: '', disabled: true},
+      useHostname: null,
     });
   }
 
   protected override updateForm() {
-    if (this.configObject.politenessConfig.useHostname !== null && !this.allSelected) {
-      this.useHostname.enable();
-    } else {
-      this.useHostname.disable();
-    }
-
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
       robotsPolicy: this.configObject.politenessConfig.robotsPolicy || RobotsPolicy.OBEY_ROBOTS,
       minimumRobotsValidityDurationS: this.configObject.politenessConfig.minimumRobotsValidityDurationS || '',
       customRobots: this.configObject.politenessConfig.customRobots,
-      useHostname: this.configObject.politenessConfig.useHostname,
+      useHostname: null,
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -163,7 +157,7 @@ export class PolitenessConfigMultiDialogComponent extends PolitenessConfigDetail
       pathList.push('politenessConfig.minimumRobotsValidityDurationS');
     }
 
-    if (this.useHostname.dirty && (this.allSelected || formModel.useHostname !== this.configObject.politenessConfig.useHostname)) {
+    if (this.useHostname.dirty && formModel.useHostname !== null) {
       politenessConfig.useHostname = formModel.useHostname;
       pathList.push('politenessConfig.useHostname');
     }

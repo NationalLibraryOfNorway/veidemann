@@ -9,6 +9,7 @@ import {MatChipsModule} from '@angular/material/chips';
 import {JobNamePipe} from '../../pipe/job-name.pipe';
 import {CopyIdDirective} from '../../../../shared/directives';
 import {MatTooltip} from '@angular/material/tooltip';
+import {MatMenuModule} from '@angular/material/menu';
 
 @Component({
   selector: 'app-job-execution-shortcut-helpers',
@@ -20,6 +21,7 @@ import {MatTooltip} from '@angular/material/tooltip';
     JobNamePipe,
     MatChipsModule,
     MatIcon,
+    MatMenuModule,
     RouterLink,
     MatTooltip,
   ],
@@ -37,6 +39,7 @@ export class JobExecutionShortcutHelpersComponent {
   @Input() showJobExecution = false;
   @Input() showCrawlJob = true;
   @Input() showCrawlExecutions = true;
+  @Input() presentation: 'chips' | 'menu' = 'chips';
 
   constructor() {
     this.can = this.abilityService.can;

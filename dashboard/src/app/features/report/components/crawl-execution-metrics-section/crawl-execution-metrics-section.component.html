@@ -1,0 +1,20 @@
+@if (crawlExecutionStatus) {
+  @let state = statePresentation(crawlExecutionStatus.state);
+  <section class="statistics-section"
+    aria-label="Execution metrics" i18n-aria-label="@@executionMetricsSectionLabel">
+    <app-execution-metadata presentation="metrics"
+      [state]="state"
+      [desiredState]="statePresentation(crawlExecutionStatus.desiredState)"
+      [startTime]="crawlExecutionStatus.startTime"
+      [endTime]="crawlExecutionStatus.endTime"
+      contextLabel="Crawl job" i18n-contextLabel="@@configKindCrawlJob"
+      [contextValue]="crawlJobDisplayValue">
+    </app-execution-metadata>
+
+    <app-execution-metrics
+      [source]="crawlExecutionStatus"
+      [queueSize]="queueSize"
+      [currentUris]="crawlExecutionStatus.currentUriIdList.length">
+    </app-execution-metrics>
+  </section>
+}

@@ -44,7 +44,7 @@ export class CrawlExecutionService extends LoadingService {
     if (this.cache.has(id)) {
       return this.cache.get(id);
     }
-    const seed$ = this.configService.get(configRef).pipe(
+    const seed$ = this.configService.get(configRef, {suppressNotFound: true}).pipe(
       shareReplay(1),
       catchError(() => {
         this.cache.delete(id);

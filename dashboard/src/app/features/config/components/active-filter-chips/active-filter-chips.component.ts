@@ -2,17 +2,22 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Outp
 import {MatChipsModule} from '@angular/material/chips';
 import {MatIcon} from '@angular/material/icon';
 
-import {LabelDisplayComponent} from '../../../../shared/components/label-display/label-display.component';
+import {
+  isEmojiLabel,
+  LabelDisplayComponent,
+} from '../../../../shared/components/label-display/label-display.component';
 import {ConfigQuery} from '../../../../shared/func';
 import {ConfigObject, Kind} from '../../../../shared/models';
 import {parseConfigSearchTerm} from '../../func/query';
 import type {ConfigLabelSelector} from '../../func/query';
 import type {ConfigOptions} from '../../func/options';
+import {configKindIcon} from '../../func/config-kind-icon';
 
 export interface ActiveConfigFilterChip {
-  key: 'entityId' | 'scriptIdList' | 'labelSelector';
+  key: 'entityId' | 'crawlJobIdList' | 'scriptIdList' | 'labelSelector';
   value: string;
   label: string;
+  icon?: string;
   labelSelector?: ConfigLabelSelector;
 }
 
@@ -34,6 +39,27 @@ export class ActiveFilterChipsComponent implements OnChanges {
 
   ngOnChanges(): void {
     const chips: ActiveConfigFilterChip[] = [];
+    if (this.query && this.query.kind !== Kind.ROLEMAPPING && this.query.kind !== Kind.UNDEFINED) {
+      const labelSelector = parseConfigSearchTerm(this.query.term ?? '').label;
+      if (labelSelector) {
+        chips.push({
+          key: 'labelSelector',
+          value: labelSelector.selector,
+          label: labelSelector.selector,
+          icon: isEmojiLabel(labelSelector.key, labelSelector.value) ? undefined : 'label',
+          labelSelector,
+        });
+      }
+    }
+    for (const id of this.query?.crawlJobIdList ?? []) {
+      const name = this.options?.crawlJobs?.find(config => config.id === id)?.meta?.name || id;
+      chips.push({
+        key: 'crawlJobIdList',
+        value: id,
+        label: name,
+        icon: configKindIcon(Kind.CRAWLJOB),
+      });
+    }
     if (this.query?.entityId) {
       chips.push({
         key: 'entityId',
@@ -43,18 +69,12 @@ export class ActiveFilterChipsComponent implements OnChanges {
     }
     for (const id of this.query?.scriptIdList ?? []) {
       const name = this.options?.browserScripts?.find(config => config.id === id)?.meta?.name || id;
-      chips.push({key: 'scriptIdList', value: id, label: $localize`BrowserScript: ${name}`});
-    }
-    if (this.query && this.query.kind !== Kind.ROLEMAPPING && this.query.kind !== Kind.UNDEFINED) {
-      const labelSelector = parseConfigSearchTerm(this.query.term ?? '').label;
-      if (labelSelector) {
-        chips.push({
-          key: 'labelSelector',
-          value: labelSelector.selector,
-          label: labelSelector.selector,
-          labelSelector,
-        });
-      }
+      chips.push({
+        key: 'scriptIdList',
+        value: id,
+        label: name,
+        icon: configKindIcon(Kind.BROWSERSCRIPT),
+      });
     }
     this.chips = chips;
   }
@@ -62,6 +82,12 @@ export class ActiveFilterChipsComponent implements OnChanges {
   removeFilterLabel(chip: ActiveConfigFilterChip): string {
     if (chip.key === 'labelSelector') {
       return $localize`:@@configQueryRemoveLabelFilterLabel:Remove ${chip.value} label filter`;
+    }
+    if (chip.key === 'crawlJobIdList') {
+      return $localize`:@@configQueryRemoveCrawlJobFilterLabel:Remove ${chip.label} crawl job filter`;
+    }
+    if (chip.key === 'scriptIdList') {
+      return $localize`:@@activeConfigRemoveBrowserScriptFilterLabel:Remove BrowserScript ${chip.label} filter`;
     }
     return $localize`:@@activeConfigRemoveFilterLabel:Remove ${chip.label} filter`;
   }

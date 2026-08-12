@@ -19,6 +19,10 @@ describe('ConfigLabelLinksComponent', () => {
     fixture.detectChanges();
 
     const row = fixture.nativeElement.querySelector('a[mat-list-item]') as HTMLAnchorElement;
+    const section = fixture.nativeElement.querySelector('.label-links-context') as HTMLElement;
+    const heading = section.querySelector('h2') as HTMLElement;
+    expect(heading.textContent.trim()).toBe('Links');
+    expect(section.getAttribute('aria-labelledby')).toBe(heading.id);
     expect(row.querySelector('[matListItemTitle]').textContent.trim()).toBe('Owner registry');
     expect(row.target).toBe('_blank');
     expect(row.rel).toBe('noopener noreferrer');

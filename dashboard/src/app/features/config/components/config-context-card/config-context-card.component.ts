@@ -1,15 +1,9 @@
-import {ChangeDetectionStrategy, Component, Input, signal} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
-import {MatChipsModule} from '@angular/material/chips';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatIcon} from '@angular/material/icon';
 import {RouterLink} from '@angular/router';
-import {MatTooltip} from '@angular/material/tooltip';
-import {LabelDisplayComponent} from '../../../../shared/components';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {timeToDuration} from '../../../../shared/func';
 import {
-  Annotation,
   BrowserScriptType,
   ConfigObject,
   ConfigRef,
@@ -18,20 +12,14 @@ import {
   RotationPolicy,
 } from '../../../../shared/models';
 import {configKindIcon} from '../../func/config-kind-icon';
-
-export interface ScriptAnnotationContext {
-  jobRef: ConfigRef;
-  jobName: string;
-  annotations: Annotation[];
-  unavailable: boolean;
-}
+import {ConfigRelationRole, ConfigRelationSource} from '../../func';
 
 @Component({
   selector: 'app-config-context-card',
   templateUrl: './config-context-card.component.html',
   styleUrls: ['./config-context-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FileSizePipe, LabelDisplayComponent, MatButtonModule, MatCardModule, MatChipsModule, MatIcon, MatTooltip, RouterLink],
+  imports: [FileSizePipe, MatIcon, RouterLink],
   standalone: true,
 })
 export class ConfigContextCardComponent {
@@ -42,12 +30,11 @@ export class ConfigContextCardComponent {
   readonly configKindIcon = configKindIcon;
 
   @Input({required: true}) configRef: ConfigRef;
+  @Input() relationRole: ConfigRelationRole = 'browser-script';
+  @Input() relationSource: ConfigRelationSource = 'direct';
   @Input() configObject: ConfigObject | null = null;
   @Input() unavailable = false;
-  @Input() scriptAnnotationContext: ScriptAnnotationContext | null = null;
-  @Input() canReadAnnotations = false;
-
-  readonly annotationsExpanded = signal(false);
+  readonly notSetLabel = $localize`:@@commonNotSet:Not set`;
   get title(): string {
     return this.configObject?.meta?.name || this.configRef.id;
   }
@@ -55,6 +42,21 @@ export class ConfigContextCardComponent {
   get inactive(): boolean {
     return !!(this.configObject?.kind === Kind.SEED && this.configObject.seed.disabled
       || this.configObject?.kind === Kind.CRAWLJOB && this.configObject.crawlJob.disabled);
+  }
+
+  kindLabel(kind: Kind): string {
+    switch (kind) {
+      case Kind.CRAWLENTITY: return $localize`:@@configKindEntity:Entity`;
+      case Kind.SEED: return $localize`:@@configKindSeed:Seed`;
+      case Kind.CRAWLJOB: return $localize`:@@configKindCrawlJob:Crawl job`;
+      case Kind.CRAWLSCHEDULECONFIG: return $localize`:@@configKindSchedule:Schedule`;
+      case Kind.CRAWLCONFIG: return $localize`:@@configKindCrawlConfig:Crawl config`;
+      case Kind.COLLECTION: return $localize`:@@configKindCollection:Collection`;
+      case Kind.BROWSERCONFIG: return $localize`:@@configKindBrowserConfig:Browser config`;
+      case Kind.BROWSERSCRIPT: return $localize`:@@configKindBrowserScript:Browser script`;
+      case Kind.POLITENESSCONFIG: return $localize`:@@configKindPoliteness:Politeness config`;
+      default: return $localize`:@@configKindConfiguration:Configuration`;
+    }
   }
 
   detailPath(kind: Kind): string {
@@ -68,12 +70,10 @@ export class ConfigContextCardComponent {
       case Kind.POLITENESSCONFIG: return 'politenessconfig';
       case Kind.BROWSERSCRIPT: return 'browserscript';
       case Kind.COLLECTION: return 'collection';
+      case Kind.CRAWLHOSTGROUPCONFIG: return 'crawlhostgroupconfig';
+      case Kind.ROLEMAPPING: return 'rolemapping';
       default: return '';
     }
-  }
-
-  routeFor(configRef: ConfigRef): string[] {
-    return ['/config', this.detailPath(configRef.kind), configRef.id];
   }
 
   duration(value: number, unit: 'ms' | 's'): string {
@@ -89,14 +89,4 @@ export class ConfigContextCardComponent {
     return value ? $localize`:@@commonYes:Yes` : $localize`:@@commonNo:No`;
   }
 
-  activeLabel(disabled: boolean): string {
-    return disabled ? $localize`:@@commonDeactivated:Deactivated` : $localize`:@@commonActive:Active`;
-  }
-
-  onLabelDragStart(event: DragEvent, key: string, value: string): void {
-    event.dataTransfer?.setData('text/plain', `${key}:${value}`);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'copy';
-    }
-  }
 }

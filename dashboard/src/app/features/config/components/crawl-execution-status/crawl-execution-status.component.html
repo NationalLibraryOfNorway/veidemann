@@ -1,124 +1,29 @@
-@let crawlState = statePresentation(crawlExecutionStatus.state);
-<mat-expansion-panel expanded class="filled-expansion-panel mat-elevation-z0">
-  <mat-expansion-panel-header>
-    <mat-panel-title>
-      @if (crawlJobName.trim()) {
-        {{crawlJobName}}
-      } @else {
-        <span i18n="@@commonNotAvailable">Not available</span>
-      }
-    </mat-panel-title>
-    <mat-panel-description>{{crawlState.label}}</mat-panel-description>
-  </mat-expansion-panel-header>
+<div class="execution-summary">
+  <app-crawl-execution-metrics-section
+    [crawlExecutionStatus]="crawlExecutionStatus"
+    [crawlJobDisplayValue]="crawlJobName">
+  </app-crawl-execution-metrics-section>
 
-  <div>
-    <mat-chip-set aria-label="Latest crawl execution navigation"
-      i18n-aria-label="@@latestCrawlExecutionNavigationLabel">
-      @if (canReadCrawlExecution) {
-        <a mat-chip [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]"
-          matTooltip="Open crawl execution {{crawlExecutionStatus.id}}"
-          aria-label="Open crawl execution {{crawlExecutionStatus.id}}">
-          <mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
-        </a>
-      }
-      @if (canReadCrawlJob) {
-        <a mat-chip [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]"
-          matTooltip="Open crawl job {{crawlExecutionStatus.jobId}}"
-          aria-label="Open crawl job {{crawlExecutionStatus.jobId}}">
-          <mat-icon matChipAvatar>work</mat-icon><span i18n="@@reportDetailCrawlJobAction">Crawl job</span>
-        </a>
-      }
-      @if (crawlExecutionStatus.jobExecutionId && canReadJobExecution) {
-        <a mat-chip [routerLink]="['/report', 'jobexecution', crawlExecutionStatus.jobExecutionId]"
-          matTooltip="Open job execution {{crawlExecutionStatus.jobExecutionId}}"
-          aria-label="Open job execution {{crawlExecutionStatus.jobExecutionId}}">
-          <mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span>
-        </a>
-      }
-    </mat-chip-set>
-    <dl class="summary-grid">
-      <dt i18n="@@executionStartedLabel">Started</dt>
-      <dd>
-        @if (crawlExecutionStatus.startTime) {
-          {{crawlExecutionStatus.startTime | date:'medium'}}
-        } @else {
-          <span i18n="@@commonNotAvailable">Not available</span>
+  @if (hasError()) {
+    <section class="error-summary" role="alert">
+      <h3>
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span i18n="@@executionErrorTitle">Error</span>
+      </h3>
+      <dl>
+        @if (crawlExecutionStatus.error.code !== 0) {
+          <dt i18n="@@executionErrorCodeLabel">Code</dt>
+          <dd>{{crawlExecutionStatus.error.code}}</dd>
         }
-      </dd>
-
-      <dt i18n="@@executionEndedLabel">Ended</dt>
-      <dd>
-        @if (crawlExecutionStatus.endTime) {
-          {{crawlExecutionStatus.endTime | date:'medium'}}
-        } @else {
-          <span i18n="@@commonNotAvailable">Not available</span>
+        @if (crawlExecutionStatus.error.msg) {
+          <dt i18n="@@executionErrorMessageLabel">Message</dt>
+          <dd>{{crawlExecutionStatus.error.msg}}</dd>
         }
-      </dd>
-
-    </dl>
-
-    <div class="metric-grid">
-      <div class="metric">
-        <span i18n="@@executionDurationMetric">Duration</span>
-        <strong>{{crawlExecutionStatus.startTime | durationFormat:crawlExecutionStatus.endTime}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionUrisCrawledMetric">URIs crawled</span>
-        <strong>{{crawlExecutionStatus.urisCrawled | number:'1.0-0'}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionBytesCrawledMetric">Bytes crawled</span>
-        <strong>{{crawlExecutionStatus.bytesCrawled | filesize}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionDocumentsCrawledMetric">Documents crawled</span>
-        <strong>{{crawlExecutionStatus.documentsCrawled | number:'1.0-0'}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionDocumentsFailedMetric">Documents failed</span>
-        <strong>{{crawlExecutionStatus.documentsFailed | number:'1.0-0'}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionDocumentsDeniedMetric">Documents denied</span>
-        <strong>{{crawlExecutionStatus.documentsDenied | number:'1.0-0'}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionDocumentsOutOfScopeMetric">Documents out of scope</span>
-        <strong>{{crawlExecutionStatus.documentsOutOfScope | number:'1.0-0'}}</strong>
-      </div>
-      <div class="metric">
-        <span i18n="@@executionDocumentsRetriedMetric">Documents retried</span>
-        <strong>{{crawlExecutionStatus.documentsRetried | number:'1.0-0'}}</strong>
-      </div>
-      @if (crawlExecutionStatus.currentUriIdList.length) {
-        <div class="metric">
-          <span i18n="@@crawlExecutionStatusCurrentUrisHeader">Current URIs</span>
-          <strong>{{crawlExecutionStatus.currentUriIdList.length | number:'1.0-0'}}</strong>
-        </div>
-      }
-    </div>
-
-    @if (hasError()) {
-      <section class="error-summary" role="alert">
-        <h3>
-          <mat-icon aria-hidden="true">error</mat-icon>
-          <span i18n="@@executionErrorTitle">Error</span>
-        </h3>
-        <dl>
-          @if (crawlExecutionStatus.error.code !== 0) {
-            <dt i18n="@@executionErrorCodeLabel">Code</dt>
-            <dd>{{crawlExecutionStatus.error.code}}</dd>
-          }
-          @if (crawlExecutionStatus.error.msg) {
-            <dt i18n="@@executionErrorMessageLabel">Message</dt>
-            <dd>{{crawlExecutionStatus.error.msg}}</dd>
-          }
-          @if (crawlExecutionStatus.error.detail) {
-            <dt i18n="@@executionErrorDetailLabel">Details</dt>
-            <dd>{{crawlExecutionStatus.error.detail}}</dd>
-          }
-        </dl>
-      </section>
-    }
-  </div>
-</mat-expansion-panel>
+        @if (crawlExecutionStatus.error.detail) {
+          <dt i18n="@@executionErrorDetailLabel">Details</dt>
+          <dd>{{crawlExecutionStatus.error.detail}}</dd>
+        }
+      </dl>
+    </section>
+  }
+</div>

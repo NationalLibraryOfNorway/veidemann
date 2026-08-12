@@ -5,10 +5,16 @@
 
 .status-overview {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
   min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 24px;
+}
+
+.status-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .status-badge {
@@ -55,11 +61,40 @@
   background: var(--mat-sys-error-container);
 }
 
-.metric-badge {
-  color: var(--mat-sys-on-secondary-container);
-  background: var(--mat-sys-secondary-container);
+.status-metrics {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+  justify-content: center;
+  align-items: stretch;
 }
 
-.metric-value {
-  font: var(--mat-sys-title-medium);
+.metric {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+  padding: 0 clamp(20px, 4vw, 48px);
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.metric-divider {
+  height: auto;
+  align-self: stretch;
+  border-color: var(--mat-sys-outline-variant);
+}
+
+.metric dt {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+}
+
+.metric dd {
+  min-width: 0;
+  margin: 0;
+  font: var(--mat-sys-headline-large);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }

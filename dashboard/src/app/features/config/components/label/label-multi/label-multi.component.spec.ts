@@ -53,16 +53,29 @@ describe('LabelMultiComponent', () => {
     expect(getLabelKeys).toHaveBeenCalledWith(Kind.CRAWLENTITY);
   });
 
-  it('offers the picker only in add mode and emits a selected emoji once', async () => {
+  it('keeps the disabled editor visible and offers the picker in both modes', async () => {
     const updates = [];
     component.update.subscribe(update => updates.push({add: update.add, labels: [...update.labels]}));
 
-    expect(fixture.nativeElement.querySelector('[data-testid="emoji-picker-button"]')).toBeNull();
+    const initialEmojiButton = fixture.nativeElement.querySelector(
+      '[data-testid="emoji-picker-button"]'
+    ) as HTMLButtonElement;
+    expect(initialEmojiButton).not.toBeNull();
+    expect(initialEmojiButton.disabled).toBe(true);
+    expect(component.control.disabled).toBe(true);
     const toggleButtons = fixture.nativeElement.querySelectorAll('mat-button-toggle button') as NodeListOf<HTMLButtonElement>;
     toggleButtons[0].click();
     fixture.detectChanges();
     expect(component.shouldAddLabel).toBe(true);
-    expect(fixture.nativeElement.querySelector('[data-testid="emoji-picker-button"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-hint')?.textContent.trim())
+      .toBe('Type a label or click a common label to add it to the input.');
+    const emojiButton = fixture.nativeElement.querySelector(
+      '[data-testid="emoji-picker-button"]'
+    ) as HTMLButtonElement;
+    expect(emojiButton).not.toBeNull();
+    expect(emojiButton.disabled).toBe(false);
+    expect(component.control.enabled).toBe(true);
+    expect(emojiButton.closest('mat-form-field')).not.toBeNull();
 
     await component.onChooseEmoji();
     await component.onChooseEmoji();
@@ -73,7 +86,15 @@ describe('LabelMultiComponent', () => {
 
     toggleButtons[1].click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="emoji-picker-button"]')).toBeNull();
+    expect(component.shouldAddLabel).toBe(false);
+    expect(fixture.nativeElement.querySelector('mat-hint')?.textContent.trim())
+      .toBe('Type a label or click a common label to add it to the input.');
+    expect((fixture.nativeElement.querySelector(
+      '[data-testid="emoji-picker-button"]'
+    ) as HTMLButtonElement).disabled).toBe(false);
+
+    await component.onChooseEmoji();
+    expect(updates.at(-1)).toEqual({add: false, labels: [{key: 'emoji', value: '🐶'}]});
   });
 
   it('keeps common labels inactive until an update mode is selected', async () => {
@@ -151,10 +172,21 @@ describe('LabelMultiComponent', () => {
     expect(await first.isSelected()).toBe(false);
   });
 
-  it('allocates layout height for the visible label editor', () => {
-    selectMode(0);
-
+  it('right-aligns the indicator-free toggle and uses a two-column value row', () => {
+    const headingRow = fixture.nativeElement.querySelector('.label-heading-row') as HTMLElement;
+    const valueRow = fixture.nativeElement.querySelector('.label-value-row') as HTMLElement;
+    const heading = headingRow.querySelector('h5') as HTMLElement;
+    const toggle = headingRow.querySelector('mat-button-toggle-group') as HTMLElement;
+    const commonLabels = valueRow.querySelector('#commonLabelsChipList') as HTMLElement;
     const editor = fixture.nativeElement.querySelector('.label-input-section') as HTMLElement;
+
+    expect(heading.nextElementSibling).toBe(toggle);
+    expect(toggle.getBoundingClientRect().right).toBeCloseTo(headingRow.getBoundingClientRect().right, 0);
+    expect(toggle.querySelector('.mat-pseudo-checkbox')).toBeNull();
+    expect(commonLabels.parentElement).toBe(valueRow);
+    expect(editor.parentElement).toBe(valueRow);
+    expect(getComputedStyle(valueRow).display).toBe('grid');
+    expect(getComputedStyle(valueRow).gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
     expect(editor).not.toBeNull();
     expect(getComputedStyle(editor).display).toBe('block');
     expect(editor.classList.contains('flex-fill')).toBe(false);

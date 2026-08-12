@@ -15,7 +15,6 @@ import {
   UntypedFormGroup
 } from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
-import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {CollectionMetaComponent} from '../../collection-meta/collection-meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -25,9 +24,8 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatInputModule} from '@angular/material/input';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
 import {SubcollectionChipsComponent} from '../subcollection-chips/subcollection-chips.component';
-import {configKindIcon} from '../../../func/config-kind-icon';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 
 
 @Component({
@@ -37,9 +35,8 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CopyIdDirective,
-    BooleanStateChipComponent,
+    MatCheckboxModule,
     SubcollectionChipsComponent,
-    MatCardModule,
     ReactiveFormsModule,
     MatIcon,
     CollectionMetaComponent,
@@ -53,7 +50,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   standalone: true
 })
 export class CollectionDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 

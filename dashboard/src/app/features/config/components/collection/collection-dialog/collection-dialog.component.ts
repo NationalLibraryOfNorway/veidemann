@@ -12,8 +12,8 @@ import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { CollectionMetaComponent } from '../../collection-meta/collection-meta.component';
 import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
 import {SubcollectionChipsComponent} from '../subcollection-chips/subcollection-chips.component';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-collection-dialog',
@@ -22,7 +22,7 @@ import {SubcollectionChipsComponent} from '../subcollection-chips/subcollection-
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FilesizeInputComponent,
-    BooleanStateChipComponent,
+    MatCheckboxModule,
     SubcollectionChipsComponent,
     MatButtonModule,
     MatCardModule,

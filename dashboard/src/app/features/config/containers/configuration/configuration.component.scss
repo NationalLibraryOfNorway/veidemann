@@ -13,28 +13,27 @@
 
 .content-padding {
   min-width: 0;
-  padding: 16px;
+  padding: 20px;
 }
 
 .detail-pane-layout {
+  --detail-pane-gap: 32px;
+
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 24px;
+  gap: var(--detail-pane-gap);
 }
 
-.primary-pane {
+.primary-pane,
+.supporting-pane {
+  display: grid;
   min-width: 0;
+  gap: var(--detail-pane-gap);
 }
 
 .primary-pane:only-child {
   grid-column: 1 / -1;
-}
-
-.supporting-pane {
-  display: grid;
-  min-width: 0;
-  gap: 24px;
 }
 
 .supporting-pane h2 {
@@ -42,9 +41,46 @@
   font: var(--mat-sys-title-large);
 }
 
-.related-context-grid {
+.execution-section,
+.configuration-editor {
+  min-width: 0;
+}
+
+.execution-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+
+.execution-section h2 {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.execution-heading-link {
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.execution-heading-link:hover,
+.execution-heading-link:focus-visible {
+  text-decoration: underline;
+}
+
+.related-context-groups {
+  display: grid;
+  gap: var(--detail-pane-gap);
+}
+
+.related-context-group h3 {
+  margin: 0 0 4px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+}
+
+.related-context-list {
+  display: grid;
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  padding-block-start: 12px;
   gap: 16px;
 }
 
@@ -61,6 +97,6 @@
 
 @media (min-width: 840px) {
   .content-padding {
-    padding: 24px;
+    padding: 32px;
   }
 }

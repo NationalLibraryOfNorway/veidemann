@@ -1,39 +1,24 @@
 @if (jobExecutionStatus) {
-  @let jobState = statePresentation(jobExecutionStatus.state);
   @let job = job$ | async;
   <section class="detail-grid" aria-label="Job execution details"
            i18n-aria-label="@@jobExecutionDetailGridLabel">
     <div class="primary-pane">
-      <header class="detail-header">
-        <div class="detail-title-row">
-          <div class="detail-heading">
-            <h1>{{job?.meta?.name || jobExecutionStatus.jobId}}</h1>
-          </div>
-          <div class="detail-header-actions">
-            <ng-content select="[detailActions]"></ng-content>
-          </div>
-        </div>
-        <app-execution-metadata
-          [state]="jobState"
-          [desiredState]="jobExecutionStatus.desiredState
-            ? statePresentation(jobExecutionStatus.desiredState) : null"
-          [startTime]="jobExecutionStatus.startTime"
-          [endTime]="jobExecutionStatus.endTime"
-          [terminalEvent]="terminalEvent(jobExecutionStatus.state)">
-        </app-execution-metadata>
-        <div class="detail-header-helpers">
+      <app-detail-header icon="hdr_strong"
+        supertitle="Job execution" i18n-supertitle="@@jobExecutionHeaderSupertitle"
+        [title]="job?.meta?.name || jobExecutionStatus.jobId">
+        <ng-container detailHeaderActions>
+          <ng-content select="[detailActions]"></ng-content>
+        </ng-container>
+        <div detailHeaderMetadata>
           <ng-content select="[detailHeaderHelpers]"></ng-content>
         </div>
-      </header>
+      </app-detail-header>
 
-      <section class="detail-section statistics-section" aria-labelledby="job-execution-statistics-title">
-        <h2 id="job-execution-statistics-title" i18n="@@executionCrawlStatisticsTitle">Crawl statistics</h2>
-        <app-job-execution-statistics
-          [jobExecutionStatus]="jobExecutionStatus"
-          [crawlJob]="job"
-          [queueSize]="queueSize">
-        </app-job-execution-statistics>
-      </section>
+      <app-job-execution-metrics-section class="detail-section"
+        [jobExecutionStatus]="jobExecutionStatus"
+        [crawlJob]="job"
+        [queueSize]="queueSize">
+      </app-job-execution-metrics-section>
 
       <section class="detail-section crawl-executions-section"
                aria-labelledby="job-execution-crawl-executions-title">

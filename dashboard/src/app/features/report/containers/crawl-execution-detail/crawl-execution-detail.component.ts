@@ -13,6 +13,7 @@ import {
 import {ExecutionAbortActionComponent} from '../../components/execution-abort-action/execution-abort-action.component';
 import {CrawlExecutionStatusComponent} from '../../components';
 import {CommonModule} from '@angular/common';
+import {DetailOverflowComponent} from '../../../../shared/components';
 
 @Component({
     selector: 'app-crawl-execution',
@@ -22,6 +23,7 @@ import {CommonModule} from '@angular/common';
     standalone: true,
     imports: [
       CommonModule,
+      DetailOverflowComponent,
       CrawlExecutionStatusComponent,
       CrawlExecutionShortcutHelpersComponent,
       ExecutionAbortActionComponent,

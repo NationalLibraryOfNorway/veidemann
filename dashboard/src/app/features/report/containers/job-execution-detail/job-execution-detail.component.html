@@ -5,13 +5,16 @@
       <app-job-execution-status
         [jobExecutionStatus]="jobExecutionStatus"
         [queueSize]="queueSize">
-        <app-job-execution-shortcut-helpers detailHeaderHelpers
-          [jobExecutionStatus]="jobExecutionStatus">
-        </app-job-execution-shortcut-helpers>
-        <app-execution-abort-action detailActions subject="jobexecution" [inline]="true"
-          [abortable]="jobExecutionStatus.state === JobExecutionState.RUNNING"
-          (abort)="onAbortJobExecution(jobExecutionStatus)">
-        </app-execution-abort-action>
+        <app-detail-overflow detailActions label="Job execution actions"
+          i18n-label="@@jobExecutionActionsMenuLabel">
+          <app-job-execution-shortcut-helpers presentation="menu"
+            [jobExecutionStatus]="jobExecutionStatus">
+          </app-job-execution-shortcut-helpers>
+          <app-execution-abort-action presentation="menu-item" subject="jobexecution"
+            [abortable]="jobExecutionStatus.state === JobExecutionState.RUNNING"
+            (abort)="onAbortJobExecution(jobExecutionStatus)">
+          </app-execution-abort-action>
+        </app-detail-overflow>
       </app-job-execution-status>
     </div>
   </div>

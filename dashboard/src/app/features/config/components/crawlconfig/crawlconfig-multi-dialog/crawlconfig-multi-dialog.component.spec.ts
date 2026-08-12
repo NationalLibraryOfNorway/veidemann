@@ -36,4 +36,19 @@ describe('CrawlConfigMultiDialogComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('uses explicit screenshot choices and clears a repeated selection', () => {
+    const [takeScreenshot] = fixture.nativeElement.querySelectorAll(
+      'app-boolean-override button'
+    ) as NodeListOf<HTMLButtonElement>;
+
+    takeScreenshot.click();
+    let result = component.onDialogClose();
+    expect(result.pathList).toContain('crawlConfig.extra.createScreenshot');
+    expect(result.updateTemplate.crawlConfig.extra.createScreenshot).toBe(true);
+
+    takeScreenshot.click();
+    result = component.onDialogClose();
+    expect(result.pathList).not.toContain('crawlConfig.extra.createScreenshot');
+  });
 });

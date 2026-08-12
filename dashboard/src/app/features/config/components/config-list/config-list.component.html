@@ -1,6 +1,6 @@
 <div class="container layout-column">
   @let total = totalLength();
-  @if (isSelectionMode() || total !== null) {
+  @if (isSelectionMode() || total !== null || showOrderControl) {
     <mat-list class="list-header" aria-label="Configuration list controls"
       [style.padding-left.px]="flush ? 0 : null"
       [style.padding-right.px]="flush ? 0 : null"
@@ -74,6 +74,47 @@
             {{ loadedLength() | number }} of {{ total | number }} {{ configTypePluralLabel() }}
           </span>
         }
+        @if (showStateFilter || showOrderControl) {
+          <span matListItemMeta class="list-header-controls">
+            @if (showStateFilter) {
+              <mat-chip-listbox class="state-filter"
+                [value]="disabledFilter"
+                aria-label="Filter configurations by state"
+                i18n-aria-label="@@configurationListStateFilterAriaLabel"
+                (change)="onDisabledFilterChange($event.value)">
+                <mat-chip-option [value]="false" i18n="@@configurationListActiveState">ACTIVE</mat-chip-option>
+                <mat-chip-option [value]="true" i18n="@@configurationListDeactivatedState">DEACTIVATED</mat-chip-option>
+              </mat-chip-listbox>
+            }
+            @if (showOrderControl) {
+              <button mat-button type="button" class="order-control"
+                [class.order-control-icon-only]="!orderValue"
+                data-testid="configuration-order"
+                aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
+                matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
+                [matMenuTriggerFor]="orderMenu" #orderMenuTrigger="matMenuTrigger">
+                <mat-icon>sort</mat-icon>
+                @if (orderValue) {
+                  <span class="order-label">{{ orderLabel }}</span>
+                }
+                @if (orderValue) {
+                  <mat-icon iconPositionEnd class="order-menu-indicator" aria-hidden="true">
+                    {{ orderMenuTrigger.menuOpen ? 'arrow_drop_up' : 'arrow_drop_down' }}
+                  </mat-icon>
+                }
+              </button>
+              <mat-menu #orderMenu="matMenu">
+                @for (option of orderOptions; track option.value) {
+                  <button mat-menu-item type="button"
+                    [disabled]="option.value === orderValue"
+                    (click)="onOrderChange(option.value)">
+                    {{ option.label }}
+                  </button>
+                }
+              </mat-menu>
+            }
+          </span>
+        }
       </mat-list-item>
     </mat-list>
   }
@@ -113,6 +154,7 @@
             <span matListItemTitle class="row-text">{{ configTitle(row) }}</span>
           } @else {
             <a matListItemTitle class="primary-detail-link row-text" [href]="detailHref(row)"
+              [attr.target]="detailLinkTarget" [attr.rel]="detailLinkTarget === '_blank' ? 'noopener' : null"
               (click)="onPrimaryLink(row, $event)">{{ configTitle(row) }}</a>
           }
           @if (!titleOnly) {

@@ -193,6 +193,8 @@ export class ConfigObject {
         configObject.roleMapping = RoleMapping.mergeConfigs(configs);
         return configObject;
       case Kind.COLLECTION:
+        configObject.collection = Collection.mergeConfigs(configs);
+        return configObject;
       case Kind.UNDEFINED:
       default:
         return null;

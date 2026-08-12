@@ -2,13 +2,10 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Out
 import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {CustomValidators} from '../../../../../shared/validation';
 import {ConfigObject, Kind, Meta, Role, RoleMapping} from '../../../../../shared/models';
-import {MatCardModule} from '@angular/material/card';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
 import {MatInput} from '@angular/material/input';
-import {MatIcon} from '@angular/material/icon';
-import {configKindIcon} from '../../../func/config-kind-icon';
 
 
 @Component({
@@ -17,9 +14,7 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
-    MatCardModule,
     MatFormFieldModule,
-    MatIcon,
     MatInput,
     MatSelectModule,
     ReactiveFormsModule
@@ -28,7 +23,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
 })
 
 export class RoleMappingDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
 
   readonly Role = Role;

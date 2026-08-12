@@ -11,7 +11,7 @@ import {
   Meta,
   Seed,
 } from '../../../shared/models';
-import {directConfigRefs, relatedConfigRefs} from './references';
+import {directConfigRefs, relatedConfigDescriptors, relatedConfigRefs} from './references';
 
 describe('directConfigRefs', () => {
   it('returns crawljob references in display order and ignores empty references', () => {
@@ -118,6 +118,23 @@ describe('directConfigRefs', () => {
     ];
 
     expect(relatedConfigRefs(config, browserScripts).map(ref => ref.id)).toEqual(['both', 'implicit']);
+  });
+
+  it('preserves direct and selector source metadata for browser scripts', () => {
+    const config = new ConfigObject({
+      kind: Kind.BROWSERCONFIG,
+      browserConfig: new BrowserConfig({
+        scriptRefList: [new ConfigRef({kind: Kind.BROWSERSCRIPT, id: 'explicit'})],
+        scriptSelectorList: ['profile:default'],
+      }),
+    });
+
+    expect(relatedConfigDescriptors(config, [
+      browserScript('selected', [new Label({key: 'profile', value: 'default'})]),
+    ])).toEqual([
+      expect.objectContaining({role: 'browser-script', source: 'direct', ref: expect.objectContaining({id: 'explicit'})}),
+      expect.objectContaining({role: 'browser-script', source: 'selector', ref: expect.objectContaining({id: 'selected'})}),
+    ]);
   });
 });
 

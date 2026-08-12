@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, effect, inject, signal, viewChild } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -17,17 +17,9 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
-import {MatDialog} from '@angular/material/dialog';
 import {MatTooltip} from '@angular/material/tooltip';
 import {EditorComponent} from 'ngx-monaco-editor-v2';
-import {take} from 'rxjs/operators';
-import {
-  BrowserScriptEditorDialogComponent,
-  BrowserScriptEditorDialogData,
-  BrowserScriptEditorDialogResult
-} from '../browserscript-editor-dialog/browserscript-editor-dialog.component';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {configKindIcon} from '../../../func/config-kind-icon';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,17 +43,19 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   standalone: true
 })
 export class BrowserScriptDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
-  private readonly cdr = inject(ChangeDetectorRef);
-  private readonly dialog = inject(MatDialog);
 
   private readonly editorComponent = viewChild(EditorComponent);
   private readonly darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
   private readonly darkMode = signal(this.darkModeQuery.matches);
   private readonly editorInitialized = signal(false);
   private readonly onColorSchemeChange = (event: MediaQueryListEvent) => this.darkMode.set(event.matches);
+  readonly scriptExpanded = signal(false);
+  readonly scriptToggleLabel = computed(() => this.scriptExpanded()
+    ? $localize`:@@browserscriptCollapseScriptAction:Show full form`
+    : $localize`:@@browserscriptExpandScriptAction:Edit script`
+  );
 
   readonly BrowserScriptType = BrowserScriptType;
 
@@ -131,10 +125,6 @@ export class BrowserScriptDetailsComponent implements OnChanges {
     return (this.configObject && !this.configObject.id);
   }
 
-  get name(): string {
-    return this.form.get('meta').value.name;
-  }
-
   get script(): AbstractControl {
     return this.form.get('script');
   }
@@ -157,45 +147,8 @@ export class BrowserScriptDetailsComponent implements OnChanges {
     this.editorInitialized.set(true);
   }
 
-  onEditorActionKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    this.onOpenFullscreenEditor();
-  }
-
-  onOpenFullscreenEditor(): void {
-    const data: BrowserScriptEditorDialogData = {
-      name: this.name,
-      script: this.script.value ?? '',
-      readOnly: !this.canEdit,
-      theme: this.monacoTheme(this.darkMode()),
-    };
-
-    this.dialog.open<BrowserScriptEditorDialogComponent, BrowserScriptEditorDialogData, BrowserScriptEditorDialogResult>(
-      BrowserScriptEditorDialogComponent,
-      {
-        data,
-        width: 'calc(100vw - 16px)',
-        height: 'calc(100vh - 16px)',
-        maxWidth: 'calc(100vw - 16px)',
-        maxHeight: 'calc(100vh - 16px)',
-        ariaLabel: $localize`:@@browserscriptEditorDialogLabel:Script editor`,
-        autoFocus: false,
-        restoreFocus: true,
-      }
-    ).afterClosed().pipe(take(1)).subscribe(result => {
-      if (!result || typeof result.script !== 'string') {
-        return;
-      }
-
-      this.script.setValue(result.script);
-      this.script.markAsDirty();
-      this.form.markAsDirty();
-      this.cdr.markForCheck();
-    });
+  toggleScriptExpanded(): void {
+    this.scriptExpanded.update(expanded => !expanded);
   }
 
   onSave() {

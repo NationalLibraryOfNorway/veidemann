@@ -91,4 +91,24 @@ describe('PageLogShortcutsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Crawl execution');
     expect(fixture.nativeElement.textContent).not.toContain('job-execution-1');
   });
+
+  it('renders the same destinations and copy command as menu items', () => {
+    fixture.componentRef.setInput('presentation', 'menu');
+    fixture.componentRef.setInput('pageLog', new PageLog({
+      warcId: 'warc-1',
+      referrer: 'https://referrer.example/path',
+      jobExecutionId: 'job-execution-1',
+      executionId: 'crawl-execution-1',
+    }));
+    fixture.detectChanges();
+
+    const links = [...fixture.nativeElement.querySelectorAll('a[mat-menu-item]')] as HTMLAnchorElement[];
+    expect(links.map(link => link.getAttribute('href'))).toEqual([
+      'https://referrer.example/path',
+      '/report/jobexecution/job-execution-1',
+      '/report/crawlexecution/crawl-execution-1',
+    ]);
+    expect(fixture.nativeElement.querySelectorAll('button[mat-menu-item]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
+  });
 });

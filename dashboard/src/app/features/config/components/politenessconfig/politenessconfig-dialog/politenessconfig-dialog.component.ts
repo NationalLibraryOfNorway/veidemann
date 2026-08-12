@@ -10,7 +10,7 @@ import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { MetaComponent } from '../../meta/meta.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-politenessconfig-dialog',
@@ -18,8 +18,8 @@ import {BooleanStateChipComponent} from '../../../../../shared/components';
   styleUrls: ['./politenessconfig-dialog.component.css'],
   imports: [
     DurationPickerComponent,
-    BooleanStateChipComponent,
     MatButtonModule,
+    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,

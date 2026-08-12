@@ -13,6 +13,7 @@ import {ConfigService} from '../../../../shared/services';
 import {OptionsService} from '../../services';
 import {ConfigListComponent} from '../../components';
 import {ConfigurationsComponent} from './configurations.component';
+import {MultiUpdateDialogComponent} from '../../components/multi-update-dialog/multi-update-dialog.component';
 
 describe('ConfigurationsComponent query loading', () => {
   let fixture: ComponentFixture<ConfigurationsComponent>;
@@ -188,7 +189,8 @@ describe('ConfigurationsComponent query loading', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.result-count').textContent)
       .toContain('0 of 0 collections');
-    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+    expect((fixture.debugElement.query(By.directive(ConfigListComponent)).componentInstance as ConfigListComponent).multiSelect)
+      .toBe(true);
 
     kindParams.next(convertToParamMap({kind: 'rolemapping'}));
     await fixture.whenStable();
@@ -207,7 +209,7 @@ describe('ConfigurationsComponent query loading', () => {
 
     component.onEditSelected();
 
-    expect(dialog.open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+    expect(dialog.open).toHaveBeenCalledWith(MultiUpdateDialogComponent, expect.objectContaining({
       data: expect.objectContaining({configObject: selected, allSelected: false}),
       width: '720px',
       maxWidth: 'calc(100vw - 32px)',
@@ -299,6 +301,64 @@ describe('ConfigurationsComponent query loading', () => {
     expect(options.queryParams['sort']).toBeUndefined();
   });
 
+  it('merges state changes with an applied label search', async () => {
+    queryParams.next(convertToParamMap({
+      q: 'example label:owner:archive',
+      sort: 'name:asc',
+      entity_id: 'entity-1',
+    }));
+    await fixture.whenStable();
+    navigate.mockClear();
+
+    component.onDisabledFilterChange(true);
+
+    expect(navigate).toHaveBeenCalledOnce();
+    const [, options] = navigate.mock.calls[0];
+    expect(options.queryParamsHandling).toBe('merge');
+    expect(options.queryParams).toEqual(expect.objectContaining({
+      q: 'example label:owner:archive',
+      disabled: true,
+      entity_id: 'entity-1',
+    }));
+  });
+
+  it('enables state controls only for Seed and Crawl Job and ordering for every list', async () => {
+    let list = fixture.debugElement.query(By.directive(ConfigListComponent)).componentInstance as ConfigListComponent;
+    expect(list.showStateFilter).toBe(true);
+    expect(list.showOrderControl).toBe(true);
+
+    kindParams.next(convertToParamMap({kind: 'crawljobs'}));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    list = fixture.debugElement.query(By.directive(ConfigListComponent)).componentInstance as ConfigListComponent;
+    expect(list.showStateFilter).toBe(true);
+    expect(list.showOrderControl).toBe(true);
+
+    kindParams.next(convertToParamMap({kind: 'collection'}));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    list = fixture.debugElement.query(By.directive(ConfigListComponent)).componentInstance as ConfigListComponent;
+    expect(list.showStateFilter).toBe(false);
+    expect(list.showOrderControl).toBe(true);
+  });
+
+  it('serializes supported ordering and removes the sort parameter for default order', () => {
+    component.onSort({active: 'name', direction: 'asc'});
+    expect(navigate).toHaveBeenLastCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({sort: 'name:asc'}),
+    }));
+
+    component.onSort({active: 'lastModified', direction: 'desc'});
+    expect(navigate).toHaveBeenLastCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({sort: 'lastModified:desc'}),
+    }));
+
+    component.onSort({active: '', direction: ''});
+    expect(navigate).toHaveBeenLastCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({sort: null}),
+    }));
+  });
+
   it('removes an applied label filter while preserving the name query', async () => {
     queryParams.next(convertToParamMap({
       q: 'example label:owner:archive',
@@ -318,6 +378,31 @@ describe('ConfigurationsComponent query loading', () => {
     expect(options.queryParams).toEqual(expect.objectContaining({
       q: 'example',
       entity_id: 'entity-1',
+    }));
+  });
+
+  it('removes one Crawl Job filter while preserving other active filters', async () => {
+    queryParams.next(convertToParamMap({
+      q: 'example label:owner:archive',
+      entity_id: 'entity-1',
+      crawl_job_id: ['job-1', 'job-2'],
+    }));
+    await fixture.whenStable();
+    navigate.mockClear();
+
+    component.onRemoveFilter({
+      key: 'crawlJobIdList',
+      value: 'job-1',
+      label: 'Daily job',
+      icon: 'work',
+    });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const [, options] = navigate.mock.calls[0];
+    expect(options.queryParams).toEqual(expect.objectContaining({
+      q: 'example label:owner:archive',
+      entity_id: 'entity-1',
+      crawl_job_id: ['job-2'],
     }));
   });
 
@@ -350,6 +435,9 @@ describe('ConfigurationsComponent query loading', () => {
     expect(search).toHaveBeenCalledTimes(1);
     expect(count).toHaveBeenCalledTimes(1);
     expect(search.mock.calls[0][0].kind).toBe(Kind.COLLECTION);
+    fixture.detectChanges();
+    const list = fixture.debugElement.query(By.directive(ConfigListComponent)).componentInstance as ConfigListComponent;
+    expect(list.multiSelect).toBe(true);
   });
 
   it('recounts additions and deletions but not unfiltered updates', () => {
@@ -439,10 +527,12 @@ describe('ConfigurationsComponent query loading', () => {
     fixture.detectChanges();
 
     const toolbar = fixture.nativeElement.querySelector('.filter-toolbar') as HTMLElement;
+    const activeFilters = fixture.nativeElement.querySelector('app-active-filter-chips') as HTMLElement;
     const fab = fixture.nativeElement.querySelector('.create-fab') as HTMLButtonElement;
 
     expect(toolbar.getAttribute('aria-label')).toBe('Configuration filters');
     expect(toolbar.querySelector('app-config-query')).not.toBeNull();
+    expect(toolbar.compareDocumentPosition(activeFilters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(toolbar.querySelector('.create-fab')).toBeNull();
     expect(fab).not.toBeNull();
     expect(fab.hasAttribute('mat-fab')).toBe(true);

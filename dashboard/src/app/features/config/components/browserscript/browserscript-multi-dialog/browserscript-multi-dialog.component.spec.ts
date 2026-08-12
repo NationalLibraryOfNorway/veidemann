@@ -33,4 +33,12 @@ describe('BrowserScriptMultiDialogComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('applies Material styling to every dialog action', () => {
+    const buttons = fixture.nativeElement.querySelectorAll('mat-dialog-actions button') as NodeListOf<HTMLButtonElement>;
+    expect(buttons.length).toBe(3);
+    expect(buttons[0].classList.contains('mat-mdc-button')).toBe(true);
+    expect(buttons[1].classList.contains('mat-mdc-button')).toBe(true);
+    expect(buttons[2].classList.contains('mat-mdc-unelevated-button')).toBe(true);
+  });
 });

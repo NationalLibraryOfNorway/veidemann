@@ -41,11 +41,18 @@ describe('ReportNavigationListComponent', () => {
     expect(introCard.querySelector('h1').textContent).toBe('Reports');
     expect(introCard.querySelector('p').textContent.trim())
       .toBe('Explore crawl activity, execution details, and collected logs.');
+    expect(getComputedStyle(introCard.querySelector('h1')).marginBottom).toBe('12px');
     expect(hero.firstElementChild).toBe(introCard);
     expect(introCard.nextElementSibling).toBe(artworkCard);
     expect(artworkCard.getAttribute('aria-hidden')).toBe('true');
     expect(artworkCard.classList).toContain('mat-mdc-card-filled');
     expect(artworkCard.classList).not.toContain('mat-mdc-card-outlined');
+    for (const heroCard of [introCard, artworkCard]) {
+      const style = getComputedStyle(heroCard);
+      expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+      expect(style.borderTopWidth).toBe('0px');
+      expect(style.boxShadow).toBe('none');
+    }
     expect(artworkCard.querySelector('.destination-brand-logo')?.getAttribute('src'))
       .toBe('public/logo/veidemann_logo_inline_black.png');
     expect(artworkCard.querySelector('source')?.getAttribute('srcset'))
@@ -55,15 +62,23 @@ describe('ReportNavigationListComponent', () => {
     expect(links.length).toBe(1);
     expect(links[0].getAttribute('href')).toBe('/report/pagelog');
     expect(links[0].textContent).toContain('Page log');
+    const avatar = links[0].querySelector('div[mat-card-avatar]') as HTMLElement;
+    expect(avatar).not.toBeNull();
+    expect(avatar.classList).toContain('config-kind-avatar');
+    expect(avatar.querySelector('mat-icon').textContent.trim()).toBe('art_track');
+    expect(links[0].querySelector('mat-icon[mat-card-avatar]')).toBeNull();
     expect(getComputedStyle(page).marginTop).toBe('8px');
     expect(getComputedStyle(page).marginRight).toBe('0px');
     expect(getComputedStyle(page).padding).toBe('0px');
     expect(getComputedStyle(hero).paddingInline).toBe('8px');
     expect(getComputedStyle(hero).gap).toBe('8px');
-    expect(getComputedStyle(introCard).minHeight).toBe('clamp(360px, 42vh, 400px)');
+    expect(getComputedStyle(hero).marginBottom).toBe('0');
+    expect(getComputedStyle(introCard).minHeight).toBe('320px');
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.destination-groups')).paddingBottom)
+      .toBe('64px');
   });
 
-  it('groups report destinations and links the assist chip to newest running jobs', () => {
+  it('groups report destinations without a running-crawls hero shortcut', () => {
     readableSubjects = new Set(['jobexecution', 'crawlexecution', 'pagelog', 'crawllog']);
     fixture.destroy();
     fixture = TestBed.createComponent(ReportNavigationListComponent);
@@ -72,15 +87,11 @@ describe('ReportNavigationListComponent', () => {
     const groups = Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('.destination-group'));
     const groupLinks = (group: HTMLElement) => Array.from<HTMLElement>(group.querySelectorAll('mat-card-title'))
       .map(title => title.textContent.trim());
-    const runningCrawls = fixture.nativeElement.querySelector('.destination-assist-chip') as HTMLAnchorElement;
-    const runningCrawlsQuery = new URL(runningCrawls.href).searchParams;
 
     expect(groups.map(group => group.querySelector('h2').textContent.trim()))
       .toEqual(['Executions', 'Logs']);
     expect(groupLinks(groups[0])).toEqual(['Job execution', 'Crawl execution']);
     expect(groupLinks(groups[1])).toEqual(['Page log', 'Crawl log']);
-    expect(runningCrawls.getAttribute('href')).toContain('/report/jobexecution');
-    expect(runningCrawlsQuery.getAll('state')).toEqual(['2']);
-    expect(runningCrawlsQuery.get('sort')).toBe('startTime:desc');
+    expect(fixture.nativeElement.querySelector('.destination-assist-chip')).toBeNull();
   });
 });

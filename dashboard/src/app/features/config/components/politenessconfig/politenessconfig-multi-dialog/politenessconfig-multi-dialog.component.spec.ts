@@ -38,4 +38,19 @@ describe('PolitenessConfigMultiDialogComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('uses explicit hostname choices and clears a repeated selection', () => {
+    const [useHostname] = fixture.nativeElement.querySelectorAll(
+      'app-boolean-override button'
+    ) as NodeListOf<HTMLButtonElement>;
+
+    useHostname.click();
+    let result = component.onDialogClose();
+    expect(result.pathList).toContain('politenessConfig.useHostname');
+    expect(result.updateTemplate.politenessConfig.useHostname).toBe(true);
+
+    useHostname.click();
+    result = component.onDialogClose();
+    expect(result.pathList).not.toContain('politenessConfig.useHostname');
+  });
 });

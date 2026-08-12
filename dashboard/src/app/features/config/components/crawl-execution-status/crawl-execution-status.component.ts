@@ -1,15 +1,10 @@
-import {DatePipe, DecimalPipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {MatExpansionModule} from '@angular/material/expansion';
 import {MatIcon} from '@angular/material/icon';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatTooltip} from '@angular/material/tooltip';
-import {RouterLink} from '@angular/router';
 
 import {CrawlExecutionStatus} from '../../../../shared/models/report';
-import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
-import {crawlExecutionStatePresentation} from '../../../report/func';
-import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe';
+import {
+  CrawlExecutionMetricsSectionComponent
+} from '../../../report/components/crawl-execution-metrics-section/crawl-execution-metrics-section.component';
 
 @Component({
   selector: 'app-config-crawl-execution-status',
@@ -17,27 +12,15 @@ import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe'
   styleUrls: ['./crawl-execution-status.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DatePipe,
-    DecimalPipe,
-    DurationFormatPipe,
-    FileSizePipe,
-    MatExpansionModule,
+    CrawlExecutionMetricsSectionComponent,
     MatIcon,
-    MatChipsModule,
-    MatTooltip,
-    RouterLink,
   ],
   standalone: true
 })
 export class CrawlExecutionStatusComponent {
-  readonly statePresentation = crawlExecutionStatePresentation;
-
   @Input({required: true})
   crawlExecutionStatus: CrawlExecutionStatus;
   @Input() crawlJobName = '';
-  @Input() canReadCrawlExecution = true;
-  @Input() canReadCrawlJob = true;
-  @Input() canReadJobExecution = true;
 
   hasError(): boolean {
     const error = this.crawlExecutionStatus.error;

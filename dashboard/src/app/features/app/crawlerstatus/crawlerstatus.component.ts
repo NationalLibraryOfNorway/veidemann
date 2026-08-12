@@ -5,6 +5,7 @@ import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 import {MatIcon} from '@angular/material/icon';
 import {DecimalPipe} from '@angular/common';
+import {MatDividerModule} from '@angular/material/divider';
 
 
 @Component({
@@ -14,6 +15,7 @@ import {DecimalPipe} from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatIcon,
+    MatDividerModule,
     DecimalPipe,
   ],
   standalone: true
@@ -30,6 +32,12 @@ export class CrawlerStatusComponent {
 
   @Input()
   crawlerStatus: CrawlerStatus;
+
+  @Input()
+  showMetrics = true;
+
+  @Input()
+  showControl = true;
 
   @Output()
   changeRunStatus: EventEmitter<boolean> = new EventEmitter<boolean>();

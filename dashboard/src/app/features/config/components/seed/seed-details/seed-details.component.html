@@ -1,22 +1,5 @@
 <form [formGroup]="form">
-  <mat-card appearance="outlined">
-    <mat-card-header class="card-header-with-helpers">
-      <div mat-card-avatar class="config-kind-avatar">
-        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
-      </div>
-      <mat-card-title>
-        @if (configObject.meta.name) {
-          {{configObject.meta.name}}
-        } @else {
-          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-        }
-      </mat-card-title>
-      @if (configObject.meta.description) {
-        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
-      }
-      <ng-content select="[cardHeaderHelpers]"></ng-content>
-    </mat-card-header>
-    <mat-card-content class="layout-column">
+    <div class="layout-column">
       <div class="layout-row layout-wrap gap-24">
         <div class="layout-column flex-fill">
           <app-seed-meta [kind]="configObject.kind" formControlName="meta"
@@ -72,17 +55,18 @@
               }
             </mat-select>
           </mat-form-field>
-          <app-boolean-state-chip formControlName="disabled" label="Seed status"
-            i18n-label="@@seedStatusLabel" selectedLabel="Deactivated" unselectedLabel="Active"
-            i18n-selectedLabel="@@commonDeactivated" i18n-unselectedLabel="@@commonActive"
-            selectedIcon="pause_circle" unselectedIcon="check_circle"
-            selectedTone="negative" unselectedTone="positive">
-          </app-boolean-state-chip>
+          <app-effective-script-annotations
+            [jobIds]="jobRefListId.value || []"
+            [crawlJobs]="crawlJobs"
+            [seedId]="configObject.id">
+          </app-effective-script-annotations>
+          <mat-checkbox formControlName="disabled"
+            i18n="@@commonDeactivated">Deactivated</mat-checkbox>
         </div>
       </div>
-    </mat-card-content>
+    </div>
     @if (canEdit) {
-      <mat-card-actions>
+      <div class="config-form-actions">
         @if (showSave) {
           <button mat-raised-button
             [color]="form.valid ? 'accent' : 'warn'"
@@ -104,7 +88,6 @@
           (click)="onRevert()"
           i18n="@@commonButtonRevert">REVERT
       </button>
-      </mat-card-actions>
+      </div>
     }
-  </mat-card>
 </form>

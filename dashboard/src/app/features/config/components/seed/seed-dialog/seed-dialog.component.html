@@ -1,5 +1,5 @@
-<form [formGroup]="form">
-  <h2 mat-dialog-title>
+<form [formGroup]="form" class="configuration-dialog-form">
+  <h2 mat-dialog-title class="configuration-dialog-title">
     <ng-container i18n="@@seedDetailsCardTitle">Seed</ng-container>
   </h2>
 
@@ -7,6 +7,7 @@
     <app-seed-meta [kind]="configObject.kind" formControlName="meta"
       [entityRef]="entityRef.value"
       [showOpenUrl]="!showSave"
+      [annotationSuggestions]="annotationSuggestions"
     (move)="move.emit($event)"></app-seed-meta>
     <div class="layout-column gap-16">
       <mat-form-field>
@@ -20,40 +21,47 @@
           }
         </mat-select>
       </mat-form-field>
+      <app-effective-script-annotations
+        [jobIds]="jobRefListId.value || []"
+        [crawlJobs]="crawlJobs"
+        [seedId]="configObject.id">
+      </app-effective-script-annotations>
     </div>
-    <app-boolean-state-chip formControlName="disabled" label="Seed status"
-      i18n-label="@@seedStatusLabel" selectedLabel="Deactivated" unselectedLabel="Active"
-      i18n-selectedLabel="@@commonDeactivated" i18n-unselectedLabel="@@commonActive"
-      selectedIcon="pause_circle" unselectedIcon="check_circle"
-      selectedTone="negative" unselectedTone="positive">
-    </app-boolean-state-chip>
   </mat-dialog-content>
-</form>
 
-@if (canEdit) {
-  <mat-dialog-actions>
-    @if (!showSave) {
-      <button mat-raised-button color="accent"
-        [disabled]="!canUpdate"
-        [mat-dialog-close]="onDialogClose()"
-        i18n="@@commonButtonSave">UPDATE
-  </button>
-    }
-    @if (showSave) {
-      <button mat-raised-button color="primary"
-        [disabled]="!canSave"
-        [mat-dialog-close]="onDialogClose()"
-        i18n="@@commonButtonSave">SAVE
-  </button>
-    }
-    <button mat-button
-      (click)="onRevert()"
-      [disabled]="!canRevert"
-      i18n="@@commonButtonRevert">REVERT
-  </button>
-    <button mat-button
-      mat-dialog-close
-      i18n="@@commonButtonCancel">CANCEL
-  </button>
-  </mat-dialog-actions>
-}
+  @if (canEdit) {
+    <mat-dialog-actions>
+      @if (!showSave) {
+        <button mat-raised-button type="button" color="accent"
+          [disabled]="!canUpdate"
+          [mat-dialog-close]="onDialogClose()"
+          i18n="@@commonButtonSave">UPDATE
+    </button>
+      }
+      @if (showSave) {
+        <button mat-raised-button type="button" color="primary"
+          [disabled]="!canSave"
+          [mat-dialog-close]="onDialogClose()"
+          i18n="@@commonButtonSave">SAVE
+    </button>
+      }
+      <button mat-button type="button"
+        (click)="onRevert()"
+        [disabled]="!canRevert"
+        i18n="@@commonButtonRevert">REVERT
+    </button>
+      <button mat-button type="button"
+        mat-dialog-close
+        i18n="@@commonButtonCancel">CANCEL
+    </button>
+    </mat-dialog-actions>
+  }
+
+  <mat-slide-toggle class="configuration-active-toggle"
+    [checked]="!form.controls['disabled'].value"
+    [disabled]="form.controls['disabled'].disabled"
+    (change)="onActiveChange($event.checked)"
+    aria-label="Active" i18n-aria-label="@@commonActive"
+    matTooltip="Active" i18n-matTooltip="@@commonActive">
+  </mat-slide-toggle>
+</form>

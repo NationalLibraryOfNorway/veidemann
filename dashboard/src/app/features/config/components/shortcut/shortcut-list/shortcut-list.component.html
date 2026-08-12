@@ -5,7 +5,7 @@
         <a mat-list-item
           [routerLink]="['/config', 'entity', configObject.seed.entityRef.id]">
           <mat-icon matListItemIcon>business</mat-icon>
-        {{configObject.seed.entityRef.id | getEntityName | async}}</a>
+        {{configObject.seed.entityRef | getConfigRefName | async}}</a>
         @if (configObject.seed.jobRefList.length > 0 && can('read', Kind[Kind.CRAWLJOB])) {
           <div mat-subheader>Crawljobs</div>
           @for (crawlJob of configObject.seed.jobRefList; track crawlJob) {
@@ -13,7 +13,7 @@
               [routerLink]="['/config/crawljobs/' + crawlJob.id]"
               [ngClass]='{"disabledJob": crawlJob.id | getCrawlJobDisabledStatus | async}'>
               <mat-icon matListItemIcon>work</mat-icon>
-              {{ crawlJob.id | getJobNamePipe | async }}
+              {{ crawlJob | getConfigRefName | async }}
             </a>
           }
         }
@@ -26,7 +26,7 @@
           <a mat-list-item
             [routerLink]="['/config/schedule/' + configObject.crawlJob.scheduleRef.id]">
             <mat-icon matListItemIcon>schedule</mat-icon>
-            {{configObject | getCrawlScheduleName | async}}
+            {{configObject.crawlJob.scheduleRef | getConfigRefName | async}}
           </a>
         }
         @if (configObject.crawlJob.crawlConfigRef && can('read', Kind[Kind.CRAWLCONFIG])) {
@@ -34,14 +34,14 @@
           <a mat-list-item
             [routerLink]="['/config/crawlconfig/' + configObject.crawlJob.crawlConfigRef.id]">
             <mat-icon matListItemIcon>settings_system_daydream</mat-icon>
-            {{configObject | getCrawlConfigName | async}}
+            {{configObject.crawlJob.crawlConfigRef | getConfigRefName | async}}
           </a>
         }
         @if (configObject.crawlJob.scopeScriptRef && can('read', Kind[Kind.BROWSERSCRIPT])) {
           <div mat-subheader>Scope script</div>
           <a mat-list-item [routerLink]="['/config/browserscript/' + configObject.crawlJob.scopeScriptRef.id]">
             <mat-icon matListItemIcon>web_asset</mat-icon>
-            {{configObject.crawlJob.scopeScriptRef.id | getBrowserScriptName | async}}
+            {{configObject.crawlJob.scopeScriptRef | getConfigRefName | async}}
           </a>
         }
       </mat-nav-list>
@@ -53,7 +53,7 @@
           <a mat-list-item
             [routerLink]="['/config/collection/' + configObject.crawlConfig.collectionRef.id]">
             <mat-icon matListItemIcon>collections_bookmark</mat-icon>
-            {{configObject | getCollectionName | async}}
+            {{configObject.crawlConfig.collectionRef | getConfigRefName | async}}
           </a>
         }
         @if (configObject.crawlConfig.browserConfigRef.id && can('read', Kind[Kind.BROWSERCONFIG])) {
@@ -61,7 +61,7 @@
           <a mat-list-item
             [routerLink]="['/config/browserconfig/' + configObject.crawlConfig.browserConfigRef.id]">
             <mat-icon matListItemIcon>web</mat-icon>
-            {{configObject | getBrowserConfigName | async}}
+            {{configObject.crawlConfig.browserConfigRef | getConfigRefName | async}}
           </a>
         }
         @if (configObject.crawlConfig.politenessRef.id && can('read', Kind[Kind.POLITENESSCONFIG])) {
@@ -69,7 +69,7 @@
           <a mat-list-item
             [routerLink]="['/config/politenessconfig/' + configObject.crawlConfig.politenessRef.id]">
             <mat-icon matListItemIcon>sentiment_very_satisfied</mat-icon>
-            {{configObject | getPolitenessConfigName | async}}
+            {{configObject.crawlConfig.politenessRef | getConfigRefName | async}}
           </a>
         }
       </mat-nav-list>
@@ -82,7 +82,7 @@
           @for (script of configObject.browserConfig.scriptRefList; track script) {
             <a mat-list-item [routerLink]="['/config/browserscript/' + script.id]">
               <mat-icon matListItemIcon>web_asset</mat-icon>
-              {{script.id | getBrowserScriptName | async}}
+              {{script | getConfigRefName | async}}
             </a>
           }
         </mat-nav-list>

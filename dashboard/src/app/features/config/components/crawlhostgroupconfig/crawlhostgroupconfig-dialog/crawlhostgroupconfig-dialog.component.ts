@@ -2,10 +2,12 @@ import { ChangeDetectionStrategy,Component,inject,OnInit } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatTooltip } from '@angular/material/tooltip';
 import { CrawlHostGroupConfigDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
@@ -15,15 +17,17 @@ import { MetaComponent } from '../../meta/meta.component';
 @Component({
   selector: 'app-crawlhostgroupconfig-dialog',
   templateUrl: './crawlhostgroupconfig-dialog.component.html',
-  styleUrls: ['./crawlhostgroupconfig-dialog.component.css'],
+  styleUrls: ['../crawlhostgroupconfig-details/crawlhostgroupconfig-details.component.scss'],
   imports: [
     DurationPickerComponent,
     MatButtonModule,
     MatCardModule,
+    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIcon,
     MatInputModule,
+    MatTooltip,
     MetaComponent,
     ReactiveFormsModule
   ],

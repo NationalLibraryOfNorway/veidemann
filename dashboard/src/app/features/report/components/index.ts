@@ -11,4 +11,5 @@ export * from './page-log-list/page-log-list.component';
 export * from './page-log-status/page-log-status.component';
 export * from './crawl-execution-status-list/crawl-execution-status-list.component';
 export * from './job-execution-status/job-execution-status.component';
-export * from './job-execution-statistics/job-execution-statistics.component';
+export * from './job-execution-metrics-section/job-execution-metrics-section.component';
+export * from './crawl-execution-metrics-section/crawl-execution-metrics-section.component';

@@ -6,16 +6,9 @@ import {AsyncPipe, NgClass} from '@angular/common';
 import {MatListModule} from '@angular/material/list';
 import {RouterLink} from '@angular/router';
 import {
-  BrowserConfigNamePipe,
-  BrowserScriptNamePipe,
-  CollectionNamePipe,
-  CrawlConfigNamePipe,
+  ConfigRefNamePipe,
   CrawlJobDisabledStatusPipe,
-  CrawlScheduleNamePipe,
-  EntityNamePipe,
-  PolitenessConfigNamePipe
 } from '../../../pipe';
-import {JobNamePipe} from '../../../../report/pipe';
 import {MatIcon} from '@angular/material/icon';
 
 @Component({
@@ -24,18 +17,11 @@ import {MatIcon} from '@angular/material/icon';
   styleUrls: ['./shortcut-list.component.scss'],
   imports: [
     AsyncPipe,
-    BrowserConfigNamePipe,
-    BrowserScriptNamePipe,
-    CollectionNamePipe,
-    CrawlConfigNamePipe,
+    ConfigRefNamePipe,
     CrawlJobDisabledStatusPipe,
-    CrawlScheduleNamePipe,
-    EntityNamePipe,
-    JobNamePipe,
     MatIcon,
     MatListModule,
     NgClass,
-    PolitenessConfigNamePipe,
     RouterLink
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

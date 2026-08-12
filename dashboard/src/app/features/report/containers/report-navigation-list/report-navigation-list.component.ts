@@ -1,12 +1,10 @@
 import { ChangeDetectionStrategy,Component,inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
-import {MatChipsModule} from '@angular/material/chips';
 import { MatIcon } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { MongoAbility } from '@casl/ability';
 import { AbilityServiceSignal } from '@casl/angular';
 import { NavigationListComponent } from '../../../../shared/components';
-import {JobExecutionState} from '../../../../shared/models';
 
 interface ReportDestination {
   readonly route: string;
@@ -27,7 +25,6 @@ interface ReportDestinationGroup {
   imports: [
     MatIcon,
     MatCardModule,
-    MatChipsModule,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -72,10 +69,6 @@ export class ReportNavigationListComponent extends NavigationListComponent {
       ],
     },
   ];
-  readonly runningReportQueryParams = {
-    state: JobExecutionState.RUNNING,
-    sort: 'startTime:desc',
-  } as const;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   constructor() {

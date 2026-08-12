@@ -25,7 +25,6 @@ import {MongoAbility} from '@casl/ability';
 import {AuthService, SnackBarService} from '../../core';
 import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
 import {MatToolbar} from '@angular/material/toolbar';
-import {MatMenuModule} from '@angular/material/menu';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
@@ -61,7 +60,6 @@ interface PrimaryDestination extends NavigationDestination {
     MatButtonModule,
     MatIcon,
     MatListModule,
-    MatMenuModule,
     MatSidenavModule,
     MatToolbar,
     RouterLink,
@@ -92,7 +90,7 @@ export class AppComponent implements OnInit {
     {
       route: '/config',
       icon: 'settings',
-      label: $localize`:@@mainMenuConfiguration:Configuration`,
+      label: $localize`:@@mainMenuConfiguration:Config`,
       section: 'config',
       permissionSubject: 'configs',
     },

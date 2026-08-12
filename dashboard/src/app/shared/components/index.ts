@@ -3,4 +3,8 @@ export * from './query.component';
 export * from './emoji-picker/emoji-picker.component';
 export * from './emoji-picker/emoji-picker-dialog.component';
 export * from './label-display/label-display.component';
+export * from './execution-metrics/execution-metrics.component';
+export * from './detail-header/detail-header.component';
+export * from './detail-overflow/detail-overflow.component';
 export * from './boolean-state-chip/boolean-state-chip.component';
+export * from './boolean-override/boolean-override.component';

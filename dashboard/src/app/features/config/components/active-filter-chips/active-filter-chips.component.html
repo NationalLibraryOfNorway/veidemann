@@ -2,6 +2,9 @@
   <mat-chip-set class="filter-chips" aria-label="Active filters" i18n-aria-label="@@activeConfigFiltersLabel">
     @for (chip of chips; track chip.key + ':' + chip.value) {
       <mat-chip>
+        @if (chip.icon) {
+          <mat-icon matChipAvatar aria-hidden="true">{{chip.icon}}</mat-icon>
+        }
         @if (chip.labelSelector; as label) {
           @if (label.structured) {
             <app-label-display [key]="label.key" [value]="label.value"></app-label-display>

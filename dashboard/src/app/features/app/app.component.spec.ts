@@ -113,7 +113,7 @@ describe('AppComponent navigation', () => {
       fixture.nativeElement.querySelectorAll('.drawer-section-trigger')
     ) as HTMLButtonElement[];
     expect(sectionTriggers).toHaveLength(1);
-    expect(sectionTriggers[0].textContent).toContain('Configuration');
+    expect(sectionTriggers[0].textContent.trim()).toContain('Config');
     expect(sectionTriggers[0].getAttribute('type')).toBe('button');
   });
 
@@ -159,6 +159,7 @@ describe('AppComponent navigation', () => {
     );
     expect(activeLinks.length).toBe(1);
     expect(activeLinks[0].classList).toContain('active-rail-destination');
+    expect(activeLinks[0].querySelector('.rail-label').textContent.trim()).toBe('Config');
     const homeLinks = fixture.nativeElement.querySelectorAll('.navigation-rail a[href="/"]');
     expect(homeLinks.length).toBe(1);
     expect(homeLinks[0].querySelector('.grouse-icon')).not.toBeNull();
@@ -169,7 +170,7 @@ describe('AppComponent navigation', () => {
       fixture.nativeElement.querySelectorAll('.drawer-section-trigger')
     ) as HTMLButtonElement[];
     const configurationButton = drawerTriggers.find(
-      element => element.textContent?.includes('Configuration')
+      element => element.textContent?.includes('Config')
     ) as HTMLButtonElement;
     configurationButton.click();
     fixture.detectChanges();
@@ -202,7 +203,7 @@ describe('AppComponent navigation', () => {
       expect(trigger.querySelector('mat-icon.mat-mdc-list-item-icon')).not.toBeNull();
     }
 
-    sectionTriggers.find(trigger => trigger.textContent?.includes('Configuration'))?.click();
+    sectionTriggers.find(trigger => trigger.textContent?.includes('Config'))?.click();
     fixture.detectChanges();
     const seedLink = fixture.nativeElement.querySelector(
       '.primary-navigation a[href="/config/seed"]'
@@ -308,27 +309,46 @@ describe('AppComponent navigation', () => {
     }
   });
 
-  it('keeps actions in the compact toolbar overflow menu', async () => {
+  it('places compact actions in the main drawer without a toolbar overflow menu', async () => {
     can.mockImplementation((_action: string, subject: string) =>
       ['configs', 'SEED', 'report'].includes(subject));
-    const overflowButton = fixture.nativeElement.querySelector('.toolbar-overflow') as HTMLButtonElement;
-    expect(overflowButton.getAttribute('aria-label')).toBe('More actions');
-    expect(overflowButton.querySelector('mat-icon')?.textContent).toContain('more_vert');
-
-    overflowButton.click();
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    const menuItems = Array.from(document.querySelectorAll('.mat-mdc-menu-item')) as HTMLElement[];
-    expect(menuItems.map(item => item.textContent)).toEqual(expect.arrayContaining([
+    expect(fixture.nativeElement.querySelector('.toolbar-overflow')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.main-toolbar mat-icon')?.textContent)
+      .not.toContain('more_vert');
+
+    const drawerItems = Array.from(
+      fixture.nativeElement.querySelectorAll('.primary-navigation > .mat-mdc-list-item')
+    ) as HTMLElement[];
+    expect(drawerItems.map(item => item.textContent.trim())).toEqual([
+      expect.stringContaining('Home'),
+      expect.stringContaining('Config'),
+      expect.stringContaining('Reports'),
       expect.stringContaining('Crawljob schedule'),
       expect.stringContaining('LOGIN'),
-    ]));
-    expect(menuItems.some(item => item.textContent.includes('Docs'))).toBe(false);
-    expect(menuItems.some(item => item.textContent.includes('About'))).toBe(false);
-    for (const item of menuItems) {
-      expect(item.querySelector('mat-icon')).not.toBeNull();
-    }
+    ]);
+    expect(drawerItems.at(-2)?.querySelector('mat-icon')?.textContent).toContain('calendar_month');
+    expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('account_box');
+  });
+
+  it('shows log out below the primary destinations when signed in', () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'SEED', 'report'].includes(subject));
+    const authService = TestBed.inject(AuthService) as unknown as {isLoggedIn: boolean};
+    authService.isLoggedIn = true;
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+
+    const drawerItems = Array.from(
+      fixture.nativeElement.querySelectorAll('.primary-navigation > .mat-mdc-list-item')
+    ) as HTMLElement[];
+    expect(drawerItems.at(-1)?.textContent.trim()).toContain('Log out');
+    expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
+    expect(drawerItems.some(item => item.textContent.includes('LOGIN'))).toBe(false);
   });
 
   it('shows loading while the selected destination resolver is pending', async () => {

@@ -90,39 +90,59 @@ describe('DashboardComponent', () => {
     return fixture;
   }
 
-  it('renders the dashboard hero, embedded crawler status, and full-width latest crawl jobs', () => {
+  it('renders the hero, centered status above its metrics, and full-width crawl jobs', () => {
     const fixture = createDashboard();
     const page = fixture.nativeElement.querySelector('.dashboard-page') as HTMLElement;
-    const heroHeader = page.querySelector('.dashboard-hero-card-header') as HTMLElement;
-    const introCard = heroHeader.querySelector('.dashboard-intro-card') as HTMLElement;
-    const artworkCard = heroHeader.querySelector('.dashboard-artwork-card') as HTMLElement;
+    const heroHeader = page.querySelector('.destination-hero') as HTMLElement;
+    const introCard = heroHeader.querySelector('.destination-intro-card') as HTMLElement;
+    const artworkCard = heroHeader.querySelector('.destination-artwork-card') as HTMLElement;
     const heading = introCard.querySelector('h1') as HTMLElement;
-    const subtitle = introCard.querySelector('.dashboard-intro-copy p') as HTMLElement;
+    const subtitle = introCard.querySelector('.destination-intro-copy p') as HTMLElement;
+    const crawlerStatus = page.querySelector('.dashboard-crawler-status') as HTMLElement;
     const runningCrawls = page.querySelector('.dashboard-running-crawls') as HTMLElement;
 
     expect(heading.textContent).toBe('Dashboard');
     expect(subtitle.textContent.trim()).toBe('Monitor crawler activity and follow running jobs in one place.');
     expect(heroHeader.firstElementChild).toBe(introCard);
     expect(introCard.nextElementSibling).toBe(artworkCard);
-    expect(introCard.querySelector('app-crawlerstatus')).not.toBeNull();
+    expect(introCard.querySelector('app-crawlerstatus')).toBeNull();
+    expect(heroHeader.nextElementSibling).toBe(crawlerStatus);
+    expect(crawlerStatus.nextElementSibling).toBe(runningCrawls);
+    const statusControl = crawlerStatus.querySelector('.status-control') as HTMLElement;
+    const metricList = crawlerStatus.querySelector('.status-metrics') as HTMLElement;
+    expect(statusControl.compareDocumentPosition(metricList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(statusControl).justifyContent).toBe('center');
+    const metrics = [...crawlerStatus.querySelectorAll('.metric')] as HTMLElement[];
+    expect(metrics.map(metric => metric.querySelector('dt').textContent.trim()))
+      .toEqual(['Total queue size', 'Busy crawl host groups']);
+    expect(getComputedStyle(metricList).display).toBe('flex');
+    expect(getComputedStyle(metricList).justifyContent).toBe('center');
+    expect(crawlerStatus.querySelector('.metric-divider.mat-divider-vertical')).not.toBeNull();
     expect(introCard.querySelector('mat-card')).toBeNull();
     expect(artworkCard.getAttribute('aria-hidden')).toBe('true');
     expect(artworkCard.classList).toContain('mat-mdc-card-filled');
     expect(artworkCard.classList).not.toContain('mat-mdc-card-outlined');
-    expect(artworkCard.querySelector('.dashboard-brand-logo')?.getAttribute('src'))
+    for (const heroCard of [introCard, artworkCard]) {
+      const style = getComputedStyle(heroCard);
+      expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+      expect(style.borderTopWidth).toBe('0px');
+      expect(style.boxShadow).toBe('none');
+    }
+    expect(artworkCard.querySelector('.destination-brand-logo')?.getAttribute('src'))
       .toBe('public/logo/veidemann_logo_inline_black.png');
     expect(artworkCard.querySelector('source')?.getAttribute('srcset'))
       .toBe('public/logo/veidemann_horizontal_white.png');
     expect(runningCrawls.tagName).toBe('APP-RUNNING-CRAWLS');
     expect(runningCrawls.parentElement).toBe(page);
-    expect(runningCrawls.textContent).toContain('Latest crawl jobs');
+    expect(runningCrawls.querySelector('h2')).toBeNull();
+    expect(runningCrawls.querySelector('.latest-crawl-jobs')?.getAttribute('aria-label')).toBe('Jobs');
     expect(runningCrawls.querySelector('mat-card')).toBeNull();
   });
 
-  it('uses a full-width page and applies horizontal padding only to the hero header', () => {
+  it('uses the shared full-width hero container without a bottom margin', () => {
     const fixture = createDashboard();
     const page = fixture.nativeElement.querySelector('.dashboard-page') as HTMLElement;
-    const heroHeader = page.querySelector('.dashboard-hero-card-header') as HTMLElement;
+    const heroHeader = page.querySelector('.destination-hero') as HTMLElement;
 
     expect(getComputedStyle(page).width).toBe('100%');
     expect(getComputedStyle(page).marginTop).toBe('8px');
@@ -130,26 +150,27 @@ describe('DashboardComponent', () => {
     expect(getComputedStyle(page).padding).toBe('0px');
     expect(getComputedStyle(heroHeader).paddingInline).toBe('8px');
     expect(getComputedStyle(heroHeader).gap).toBe('8px');
-    expect(getComputedStyle(heroHeader.querySelector('.dashboard-hero-card') as HTMLElement).minHeight)
-      .toBe('clamp(360px, 42vh, 400px)');
+    expect(getComputedStyle(heroHeader).marginBottom).toBe('0');
+    expect(getComputedStyle(heroHeader.querySelector('.destination-hero-card') as HTMLElement).minHeight)
+      .toBe('320px');
   });
 
   it('renders the logo and a welcome login card when logged out', () => {
     isLoggedIn = false;
     const fixture = createDashboard();
     const page = fixture.nativeElement.querySelector('.dashboard-page') as HTMLElement;
-    const heroHeader = page.querySelector('.dashboard-hero-card-header') as HTMLElement;
+    const heroHeader = page.querySelector('.destination-hero') as HTMLElement;
     const welcomeCard = heroHeader.querySelector('.dashboard-welcome-card') as HTMLElement;
-    const artworkCard = heroHeader.querySelector('.dashboard-artwork-card') as HTMLElement;
+    const artworkCard = heroHeader.querySelector('.destination-artwork-card') as HTMLElement;
     const loginButton = welcomeCard.querySelector('.dashboard-login-button') as HTMLButtonElement;
 
-    expect(welcomeCard.querySelector('h1').textContent).toBe('Logged out');
-    expect(welcomeCard.querySelector('p').textContent).toBe('Sign in to access Veidemann.');
-    expect(welcomeCard.classList).toContain('dashboard-intro-card');
+    expect(welcomeCard.querySelector('h1').textContent).toBe('Signed out');
+    expect(welcomeCard.querySelector('p').textContent).toBe('Sign in to access dashboard.');
+    expect(welcomeCard.classList).toContain('destination-intro-card');
     expect(heroHeader.firstElementChild).toBe(welcomeCard);
     expect(welcomeCard.nextElementSibling).toBe(artworkCard);
     expect(artworkCard.classList).toContain('mat-mdc-card-filled');
-    expect(artworkCard.querySelector('.dashboard-brand-logo')?.getAttribute('src'))
+    expect(artworkCard.querySelector('.destination-brand-logo')?.getAttribute('src'))
       .toBe('public/logo/veidemann_logo_inline_black.png');
     expect(loginButton.textContent).toContain('LOGIN');
     expect(getComputedStyle(loginButton).minHeight).toBe('40px');

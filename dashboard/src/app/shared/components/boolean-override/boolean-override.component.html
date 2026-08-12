@@ -1,0 +1,31 @@
+@if (appearance === 'chips') {
+  <mat-chip-listbox class="boolean-override boolean-override-chips"
+    [attr.aria-label]="ariaLabel"
+    [value]="value"
+    [multiple]="false"
+    [hideSingleSelectionIndicator]="true">
+    <mat-chip-option [value]="true" [disabled]="disabled" (click)="select(true)">
+      {{trueLabel}}
+    </mat-chip-option>
+    <mat-chip-option [value]="false" [disabled]="disabled" (click)="select(false)">
+      {{falseLabel}}
+    </mat-chip-option>
+  </mat-chip-listbox>
+} @else {
+  <div class="boolean-override" role="group" [attr.aria-label]="ariaLabel">
+    <button mat-stroked-button type="button"
+      [disabled]="disabled"
+      [class.selected]="value === true"
+      [attr.aria-pressed]="value === true"
+      (click)="select(true)">
+      {{trueLabel}}
+    </button>
+    <button mat-stroked-button type="button"
+      [disabled]="disabled"
+      [class.selected]="value === false"
+      [attr.aria-pressed]="value === false"
+      (click)="select(false)">
+      {{falseLabel}}
+    </button>
+  </div>
+}

@@ -10,9 +10,10 @@
       <mat-label i18n="@@emojiPickerSkinToneLabel">Skin tone</mat-label>
       <mat-select [formControl]="skinToneControl">
         @for (tone of skinTones(); track tone.hexcode) {
-          <mat-option [value]="tone.hexcode">
+          <mat-option [value]="tone.hexcode"
+            [attr.aria-label]="tone.label"
+            [matTooltip]="tone.label">
             <span class="emoji-font" aria-hidden="true">{{tone.unicode}}</span>
-            {{tone.label}}
           </mat-option>
         }
       </mat-select>

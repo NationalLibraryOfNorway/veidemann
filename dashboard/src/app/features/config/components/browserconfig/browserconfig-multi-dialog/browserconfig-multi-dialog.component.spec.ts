@@ -47,4 +47,23 @@ describe('BrowserConfigMultiDialogComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('keeps add/remove editors visible, disabled, and resettable', () => {
+    const operations = fixture.nativeElement.querySelectorAll(
+      'app-multi-update-operation'
+    ) as NodeListOf<HTMLElement>;
+    expect(operations.length).toBe(2);
+    expect(component.scriptRefIdList.disabled).toBe(true);
+    expect(component.scriptSelectorList.disabled).toBe(true);
+
+    (operations[0].querySelector('mat-button-toggle button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(component.scriptRefIdList.enabled).toBe(true);
+
+    component.onRevert();
+    fixture.detectChanges();
+    expect(component.shouldAddBrowserScript).toBeUndefined();
+    expect(component.scriptRefIdList.disabled).toBe(true);
+    expect(operations[0].querySelectorAll('[aria-pressed="true"]').length).toBe(0);
+  });
 });

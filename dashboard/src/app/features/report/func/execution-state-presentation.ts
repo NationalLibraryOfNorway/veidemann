@@ -6,6 +6,7 @@ export interface ExecutionStatePresentation {
   icon: string;
   label: string;
   tone: ExecutionStateTone;
+  lifecycle: 'active' | 'terminal' | 'undefined';
 }
 
 export function jobExecutionStatePresentation(state: JobExecutionState): ExecutionStatePresentation {
@@ -17,13 +18,13 @@ export function jobExecutionStatePresentation(state: JobExecutionState): Executi
     case JobExecutionState.FINISHED:
       return finished($localize`:@@executionStateFinished:Finished`);
     case JobExecutionState.ABORTED_MANUAL:
-      return error($localize`:@@executionStateAborted:Aborted`);
+      return error($localize`:@@executionStateAbortedManually:Aborted manually`);
     case JobExecutionState.FAILED:
       return error($localize`:@@executionStateFailed:Failed`);
     case JobExecutionState.DIED:
       return error($localize`:@@executionStateDied:Died`);
     default:
-      return neutral($localize`:@@executionStateUndefined:Undefined`);
+      return neutral($localize`:@@executionStateEnded:Ended`);
   }
 }
 
@@ -38,36 +39,36 @@ export function crawlExecutionStatePresentation(state: CrawlExecutionState): Exe
     case CrawlExecutionState.FINISHED:
       return finished($localize`:@@executionStateFinished:Finished`);
     case CrawlExecutionState.ABORTED_TIMEOUT:
-      return error($localize`:@@crawlExecutionStateAbortedTimeout:Aborted (timeout)`);
+      return error($localize`:@@crawlExecutionStateAbortedTimeout:Aborted after timeout`);
     case CrawlExecutionState.ABORTED_SIZE:
-      return error($localize`:@@crawlExecutionStateAbortedSize:Aborted (size)`);
+      return error($localize`:@@crawlExecutionStateAbortedSize:Aborted at size limit`);
     case CrawlExecutionState.ABORTED_MANUAL:
-      return error($localize`:@@executionStateAborted:Aborted`);
+      return error($localize`:@@executionStateAbortedManually:Aborted manually`);
     case CrawlExecutionState.FAILED:
       return error($localize`:@@executionStateFailed:Failed`);
     case CrawlExecutionState.DIED:
       return error($localize`:@@executionStateDied:Died`);
     default:
-      return neutral($localize`:@@executionStateUndefined:Undefined`);
+      return neutral($localize`:@@executionStateEnded:Ended`);
   }
 }
 
 function active(label: string): ExecutionStatePresentation {
-  return {label, icon: 'progress_activity', tone: 'active'};
+  return {label, icon: 'progress_activity', tone: 'active', lifecycle: 'active'};
 }
 
 function waiting(label: string): ExecutionStatePresentation {
-  return {label, icon: 'schedule', tone: 'waiting'};
+  return {label, icon: 'schedule', tone: 'waiting', lifecycle: 'active'};
 }
 
 function finished(label: string): ExecutionStatePresentation {
-  return {label, icon: 'check_circle', tone: 'finished'};
+  return {label, icon: 'check_circle', tone: 'finished', lifecycle: 'terminal'};
 }
 
 function error(label: string): ExecutionStatePresentation {
-  return {label, icon: 'error', tone: 'error'};
+  return {label, icon: 'error', tone: 'error', lifecycle: 'terminal'};
 }
 
 function neutral(label: string): ExecutionStatePresentation {
-  return {label, icon: 'help', tone: 'neutral'};
+  return {label, icon: 'help', tone: 'neutral', lifecycle: 'undefined'};
 }

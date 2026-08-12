@@ -1,7 +1,7 @@
 import { ErrorHandler, Injectable, inject } from '@angular/core';
-import {CallOptions, Client, createClient} from '@connectrpc/connect';
+import {CallOptions, Client, Code, ConnectError, createClient} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
-import {from, MonoTypeOperatorFunction, Observable, of} from 'rxjs';
+import {EMPTY, from, MonoTypeOperatorFunction, Observable, of} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 
 import {
@@ -68,10 +68,16 @@ export class ConfigApiService {
     );
   }
 
-  get(configRef: ConfigRef): Observable<ConfigObject> {
+  get(configRef: ConfigRef, {suppressNotFound = false}: {suppressNotFound?: boolean} = {}): Observable<ConfigObject> {
     return from(this.getClient().getConfigObject(ConfigRef.toProto(configRef), this.callOptions)).pipe(
       map(ConfigObject.fromProto),
-      catchConfigError<ConfigObject>(this.errorHandler, null),
+      catchError((error: unknown) => {
+        if (suppressNotFound && ConnectError.from(error).code === Code.NotFound) {
+          return of(null);
+        }
+        this.errorHandler.handleError(error);
+        return suppressNotFound ? EMPTY : of(null);
+      }),
     );
   }
 

@@ -52,14 +52,26 @@ describe('ActiveFilterChipsComponent', () => {
     await fixture.whenStable();
   });
 
-  it('shows named Entity and BrowserScript filters without duplicating CrawlJobs', () => {
+  it('shows Crawl Job and BrowserScript filters with kind icons and name fallbacks', () => {
     const text = fixture.nativeElement.textContent;
+    const dailyJobChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('Daily job')) as HTMLElement;
+    const missingJobChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('job-missing')) as HTMLElement;
+    const scriptChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('Scope script')) as HTMLElement;
 
     expect(text).toContain('Entity: Example entity');
-    expect(text).toContain('BrowserScript: Scope script');
+    expect(dailyJobChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('work');
+    expect(missingJobChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('work');
+    expect(dailyJobChip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
+      .toBe('Remove Daily job crawl job filter');
+    expect(text).toContain('Scope script');
+    expect(text).not.toContain('BrowserScript:');
+    expect(scriptChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('web_asset');
+    expect(scriptChip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
+      .toBe('Remove BrowserScript Scope script filter');
     expect(text).not.toContain('Crawljob:');
-    expect(text).not.toContain('Daily job');
-    expect(text).not.toContain('job-missing');
   });
 
   it('does not duplicate single-select, status, or search controls as chips', () => {
@@ -72,31 +84,40 @@ describe('ActiveFilterChipsComponent', () => {
     expect(text).not.toContain('search text');
   });
 
-  it('emits only the removed chip', () => {
+  it('emits only the selected BrowserScript chip', () => {
     let removed: ActiveConfigFilterChip | undefined;
     fixture.componentInstance.removeFilter.subscribe(chip => removed = chip);
 
-    const removeButtons = fixture.nativeElement.querySelectorAll('button[matChipRemove]') as NodeListOf<HTMLButtonElement>;
-    removeButtons[1].click();
+    const scriptChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('Scope script')) as HTMLElement;
+    (scriptChip.querySelector('button[matChipRemove]') as HTMLButtonElement).click();
 
     expect(removed).toEqual(expect.objectContaining({key: 'scriptIdList', value: 'script-1'}));
   });
 
-  it('renders ordinary and key-only applied label filters', async () => {
+  it('orders an ordinary or key-only label first and gives it the label icon', async () => {
     fixture.componentRef.setInput('query', {...query, term: 'example label:owner:archive'});
     fixture.detectChanges();
     await fixture.whenStable();
 
     let labelChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
       .find((chip: HTMLElement) => chip.textContent.includes('owner:archive')) as HTMLElement;
-    expect(labelChip).toBeTruthy();
+    expect(fixture.componentInstance.chips.map(chip => chip.key)).toEqual([
+      'labelSelector',
+      'crawlJobIdList',
+      'crawlJobIdList',
+      'entityId',
+      'scriptIdList',
+    ]);
+    expect(labelChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('label');
 
     fixture.componentRef.setInput('query', {...query, term: 'label:owner'});
     fixture.detectChanges();
     await fixture.whenStable();
     labelChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
-      .find((chip: HTMLElement) => chip.textContent.replace('cancel', '').trim() === 'owner') as HTMLElement;
-    expect(labelChip).toBeTruthy();
+      .find((chip: HTMLElement) => chip.querySelector('button[matChipRemove]')
+        ?.getAttribute('aria-label') === 'Remove owner label filter') as HTMLElement;
+    expect(labelChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('label');
   });
 
   it('renders an emoji label visually with accessible text', async () => {
@@ -106,8 +127,21 @@ describe('ActiveFilterChipsComponent', () => {
 
     const labelChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
       .find((chip: HTMLElement) => !!chip.querySelector('app-label-display')) as HTMLElement;
+    expect(fixture.componentInstance.chips[0].key).toBe('labelSelector');
+    expect(labelChip.querySelector('mat-icon[matChipAvatar]')).toBeNull();
     expect(labelChip.querySelector('.label-display__emoji')?.textContent).toBe('🐶');
     expect(labelChip.querySelector('.label-display__accessible')?.textContent).toBe('emoji:🐶');
+  });
+
+  it('emits one Crawl Job filter for removal', () => {
+    let removed: ActiveConfigFilterChip | undefined;
+    fixture.componentInstance.removeFilter.subscribe(chip => removed = chip);
+    const crawlJobChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('Daily job')) as HTMLElement;
+
+    (crawlJobChip.querySelector('button[matChipRemove]') as HTMLButtonElement).click();
+
+    expect(removed).toEqual(expect.objectContaining({key: 'crawlJobIdList', value: 'job-1'}));
   });
 
   it('emits the applied label selector when its chip is removed', async () => {

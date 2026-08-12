@@ -1,0 +1,85 @@
+<section class="seed-context" aria-labelledby="entity-seeds-title">
+  <div class="seed-list-heading">
+    <div class="seed-title-actions">
+      @if (canCreateSeed) {
+        <button matMiniFab type="button" class="create-seed-fab"
+          aria-label="Create Seed" i18n-aria-label="@@configDetailCreateSeedAction"
+          matTooltip="Create Seed" i18n-matTooltip="@@configDetailCreateSeedAction"
+          (click)="createSeed.emit(entity)">
+          <mat-icon>add</mat-icon>
+        </button>
+      }
+      <h2 id="entity-seeds-title" i18n="@@entityDetailsSeedsTitle">Seeds</h2>
+    </div>
+    <mat-chip-listbox aria-label="Filter seeds by state"
+      i18n-aria-label="@@entityDetailsSeedStateFilterLabel"
+      [value]="seedStatus"
+      (change)="seedStatusChange.emit($event.value ?? null)">
+      <mat-chip-option [value]="false" i18n="@@commonActive">Active</mat-chip-option>
+      <mat-chip-option [value]="true" i18n="@@commonDeactivated">Deactivated</mat-chip-option>
+    </mat-chip-listbox>
+  </div>
+  <app-config-list class="seed-list"
+    [dataSource]="seedDataSource"
+    detailPath="seed"
+    detailLinkTarget="_blank"
+    [multiSelect]="false"
+    [titleOnly]="true"
+    [showKindIcon]="false"
+    [flush]="true"
+    primaryLinkDestination="title"
+    (rowClick)="openSeed.emit($event)">
+    @if (canReadCrawlExecutions) {
+      <a *appFilter="let seed" mat-menu-item
+        [routerLink]="['/report/crawlexecution']"
+        [queryParams]="{seed_id: seed.id}">
+        <mat-icon>hdr_weak</mat-icon>
+        <span i18n="@@configMenuShowCrawlExecutions">Show crawl executions</span>
+      </a>
+    }
+    <ng-container *appFilter="let seed">
+      @if (seed.seed.jobRefList.length && canReadSeeds) {
+        <a mat-menu-item [routerLink]="['/config/seed']"
+          [queryParams]="getJobRefListQueryParams(seed)">
+          <mat-icon>{{configKindIcon(Kind.SEED)}}</mat-icon>
+          <span i18n="@@configMenuShowSeedsWithSameCrawlJob">Show seeds with the same crawl job</span>
+        </a>
+      }
+    </ng-container>
+    @if (canReadSeeds) {
+      <a *appFilter="let seed" mat-menu-item [routerLink]="['/config/seed']"
+        [queryParams]="{entity_id: seed.seed.entityRef.id}">
+        <mat-icon>{{configKindIcon(Kind.SEED)}}</mat-icon>
+        <span i18n="@@configMenuShowSeedsWithSameEntity">Show seeds with the same entity</span>
+      </a>
+    }
+    @if (canRunSeed) {
+      <button *appAction="let seed" mat-menu-item type="button"
+        (click)="runSeed.emit(seed)">
+        <mat-icon>play_arrow</mat-icon>
+        <span i18n="@@configMenuRunCrawlAction">Run crawl</span>
+      </button>
+    }
+    @if (canEditSeed) {
+      <button *appAction="let seed" mat-menu-item type="button"
+        (click)="editSeed.emit(seed)">
+        <mat-icon>edit</mat-icon>
+        <span i18n="@@configMenuEditAction">Edit</span>
+      </button>
+    }
+    @if (canCloneSeed) {
+      <button *appAction="let seed" mat-menu-item type="button"
+        (click)="cloneSeed.emit(seed)">
+        <mat-icon>file_copy</mat-icon>
+        <span i18n="@@configMenuCloneAction">Clone</span>
+      </button>
+    }
+    @if (canDeleteSeed) {
+      <button *appAction="let seed" mat-menu-item type="button" class="destructive-menu-item"
+        (click)="deleteSeed.emit(seed)">
+        <mat-icon>delete</mat-icon>
+        <span i18n="@@configMenuDeleteAction">Delete</span>
+      </button>
+    }
+  </app-config-list>
+</section>

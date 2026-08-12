@@ -10,18 +10,20 @@ import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
 import { MetaComponent } from '../../meta/meta.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-crawljob-dialog',
   templateUrl: './crawljob-dialog.component.html',
-  styleUrls: ['./crawljob-dialog.component.css'],
+  styleUrls: ['./crawljob-dialog.component.css', '../../config-status-toggle.scss'],
   imports: [
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    BooleanStateChipComponent,
+    MatSlideToggleModule,
+    MatTooltipModule,
     MetaComponent,
     ReactiveFormsModule,
     DurationPickerComponent,
@@ -52,5 +54,11 @@ export class CrawlJobDialogComponent extends CrawlJobDetailsComponent implements
 
   onDialogClose(): ConfigObject {
     return this.prepareSave();
+  }
+
+  onActiveChange(active: boolean): void {
+    const disabled = this.form.controls['disabled'];
+    disabled.setValue(!active);
+    disabled.markAsDirty();
   }
 }

@@ -1,0 +1,79 @@
+<div class="execution-metrics">
+  <dl class="primary-metrics">
+    <div class="metric">
+      <dt i18n="@@executionDocumentsCrawledMetric">Documents crawled</dt>
+      <dd>{{source.documentsCrawled | number:'1.0-0'}}</dd>
+    </div>
+    <div class="metric">
+      <dt i18n="@@executionUrisCrawledMetric">URIs crawled</dt>
+      <dd>{{source.urisCrawled | number:'1.0-0'}}</dd>
+    </div>
+    <div class="metric">
+      <dt i18n="@@executionBytesCrawledMetric">Bytes crawled</dt>
+      <dd>{{source.bytesCrawled | filesize}}</dd>
+    </div>
+    <div class="metric">
+      <dt i18n="@@executionDurationMetric">Duration</dt>
+      <dd>{{source.startTime | durationFormat:source.endTime}}</dd>
+    </div>
+  </dl>
+
+  @if (hasSecondaryMetrics) {
+    <dl class="secondary-metrics">
+      @if (queueSize !== undefined) {
+        <div class="metric">
+          <dt i18n="@@jobExecutionQueueSizeMetric">Queue size</dt>
+          <dd>
+            @if (queueSize !== null) {
+              {{queueSize | number:'1.0-0'}}
+            } @else {
+              <span i18n="@@commonNotAvailable">Not available</span>
+            }
+          </dd>
+        </div>
+      }
+      @if (remainingTime !== null) {
+        <div class="metric">
+          <dt i18n="@@jobExecutionRemainingTimeMetric">Remaining time</dt>
+          <dd>{{remainingTime}}</dd>
+        </div>
+      }
+      @if (remainingBytes !== null) {
+        <div class="metric">
+          <dt i18n="@@jobExecutionRemainingBytesMetric">Remaining bytes</dt>
+          <dd>{{remainingBytes | filesize}}</dd>
+        </div>
+      }
+      @if ((currentUris ?? 0) > 0) {
+        <div class="metric">
+          <dt i18n="@@crawlExecutionStatusCurrentUrisHeader">Current URIs</dt>
+          <dd>{{currentUris | number:'1.0-0'}}</dd>
+        </div>
+      }
+      @if (source.documentsOutOfScope > 0) {
+        <div class="metric">
+          <dt i18n="@@executionDocumentsOutOfScopeMetric">Documents out of scope</dt>
+          <dd>{{source.documentsOutOfScope | number:'1.0-0'}}</dd>
+        </div>
+      }
+      @if (source.documentsFailed > 0) {
+        <div class="metric outcome-error">
+          <dt i18n="@@executionDocumentsFailedMetric">Documents failed</dt>
+          <dd>{{source.documentsFailed | number:'1.0-0'}}</dd>
+        </div>
+      }
+      @if (source.documentsDenied > 0) {
+        <div class="metric">
+          <dt i18n="@@executionDocumentsDeniedMetric">Documents denied</dt>
+          <dd>{{source.documentsDenied | number:'1.0-0'}}</dd>
+        </div>
+      }
+      @if (source.documentsRetried > 0) {
+        <div class="metric">
+          <dt i18n="@@executionDocumentsRetriedMetric">Documents retried</dt>
+          <dd>{{source.documentsRetried | number:'1.0-0'}}</dd>
+        </div>
+      }
+    </dl>
+  }
+</div>

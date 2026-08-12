@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
 import { ReactiveFormsModule,Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -12,6 +11,7 @@ import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { FilesizeInputComponent } from '../../filesize-input/filesize-input.component';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
+import {BooleanOverrideComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-crawljobs-multi-dialog',
@@ -21,8 +21,8 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
     DurationPickerComponent,
     FilesizeInputComponent,
     LabelMultiComponent,
+    BooleanOverrideComponent,
     MatButtonModule,
-    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
@@ -37,7 +37,6 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
 
 
   shouldAddLabel: boolean = undefined;
-  disabledSelection: boolean | null = null;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
@@ -57,17 +56,19 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     return this.form.get('labelList');
   }
 
+  get disabledSelection(): boolean | null {
+    return this.form.get('disabledSelection')?.value ?? null;
+  }
+
   override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
-      || this.disabledSelection !== null
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
     );
   }
 
   override get canRevert(): boolean {
     return this.form.dirty
-      || this.disabledSelection !== null
       || this.shouldAddLabel !== undefined;
   }
 
@@ -81,13 +82,8 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
 
   override onRevert() {
     this.shouldAddLabel = undefined;
-    this.disabledSelection = null;
     this.labelMulti.onRevert();
     super.onRevert();
-  }
-
-  onDisabledSelectionChange(disabled: boolean | null | undefined): void {
-    this.disabledSelection = disabled ?? null;
   }
 
   onUpdateLabels({add, labels}: { add: boolean, labels: Label[] }) {
@@ -115,13 +111,12 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
       limits: this.fb.group({
         maxDurationS: ['', [Validators.pattern(NUMBER_OR_EMPTY_STRING)]],
         maxBytes: ['', [Validators.pattern(NUMBER_OR_EMPTY_STRING)]],
-      })
+      }),
+      disabledSelection: null,
     });
   }
 
   protected override updateForm() {
-    this.disabledSelection = null;
-
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
       scheduleRef: this.configObject.crawlJob.scheduleRef,
@@ -131,6 +126,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
         maxDurationS: this.configObject.crawlJob.limits.maxDurationS || '',
         maxBytes: this.configObject.crawlJob.limits.maxBytes || '',
       },
+      disabledSelection: null,
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -157,7 +153,7 @@ export class CrawlJobMultiDialogComponent extends CrawlJobDetailsComponent imple
     }
 
     if (this.disabledSelection !== null) {
-      crawlJob.disabled = this.disabledSelection;
+      crawlJob.disabled = formModel.disabledSelection;
       pathList.push('crawlJob.disabled');
     }
 

@@ -1,4 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {SortDirection} from '@angular/material/sort';
 import {ConfigObject, Kind, Label, Role} from '../../../../shared/models/config';
 import {CONFIG_LIST_IMPORTS, ConfigListBaseComponent} from './config-list-base';
 import {isEmojiLabel, LabelDisplayComponent} from '../../../../shared/components';
@@ -12,7 +13,10 @@ import {configKindIcon} from '../../func/config-kind-icon';
         './config-list.component.scss',
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [...CONFIG_LIST_IMPORTS, LabelDisplayComponent],
+    imports: [
+      ...CONFIG_LIST_IMPORTS,
+      LabelDisplayComponent,
+    ],
     standalone: true,
 })
 
@@ -21,13 +25,49 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   @Input() titleOnly = false;
   @Input() showKindIcon = true;
   @Input() flush = false;
+  @Input() primaryLinkDestination: 'detail' | 'title' = 'detail';
+  @Input() showOrderControl = false;
+  @Input() showStateFilter = false;
+  @Input() disabledFilter: boolean | null = null;
   @Output() readonly labelClick = new EventEmitter<Label>();
+  @Output() readonly disabledFilterChange = new EventEmitter<boolean | null>();
   readonly deactivatedAriaDescription = $localize`:@@configurationListDeactivatedStatus:Deactivated`;
   protected readonly isEmojiLabel = isEmojiLabel;
   protected override readonly autoSelectAppendedRows = true;
+  readonly orderOptions = [
+    {value: '', label: $localize`:@@configurationListDefaultOrder:Default order`},
+    {value: 'name:asc', label: $localize`:@@configurationListNameAscending:Name: A–Z`},
+    {value: 'name:desc', label: $localize`:@@configurationListNameDescending:Name: Z–A`},
+    {
+      value: 'lastModified:desc',
+      label: $localize`:@@configurationListModifiedNewest:Last modified: newest first`,
+    },
+    {
+      value: 'lastModified:asc',
+      label: $localize`:@@configurationListModifiedOldest:Last modified: oldest first`,
+    },
+  ];
 
   isSelectionMode(): boolean {
     return this.multiSelect && this.selectedRows().length > 0;
+  }
+
+  get orderValue(): string {
+    return this.sortActive && this.sortDirection ? `${this.sortActive}:${this.sortDirection}` : '';
+  }
+
+  get orderLabel(): string {
+    return this.orderOptions.find(option => option.value === this.orderValue)?.label
+      ?? this.orderOptions[0].label;
+  }
+
+  onDisabledFilterChange(value: boolean | null | undefined): void {
+    this.disabledFilterChange.emit(value ?? null);
+  }
+
+  onOrderChange(value: string): void {
+    const [active = '', direction = ''] = value.split(':');
+    this.sort.emit({active, direction: direction as SortDirection});
   }
 
   isDeactivated(config: ConfigObject): boolean {
@@ -57,6 +97,12 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
       return config.roleMapping?.email || config.roleMapping?.group || config.meta.name;
     }
     return config.meta.name;
+  }
+
+  override detailHref(config: ConfigObject): string {
+    return this.primaryLinkDestination === 'title'
+      ? this.configTitle(config)
+      : super.detailHref(config);
   }
 
   configSubtitle(config: ConfigObject): string {

@@ -40,9 +40,8 @@
       </mat-error>
       }
 
-      <app-boolean-state-chip formControlName="useHostname" label="Use hostname"
-        i18n-label="@@politenessconfigFormUseHostnameLabel" selectedIcon="dns" unselectedIcon="public">
-      </app-boolean-state-chip>
+      <mat-checkbox formControlName="useHostname"
+        i18n="@@politenessconfigFormUseHostnameLabel">Use hostname</mat-checkbox>
     </div>
   </form>
 </mat-dialog-content>

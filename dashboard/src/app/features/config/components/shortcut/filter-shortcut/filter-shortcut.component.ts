@@ -6,6 +6,7 @@ import {MongoAbility} from '@casl/ability';
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
+import {configKindIcon} from '../../../func/config-kind-icon';
 
 @Component({
   selector: 'app-filter-shortcut',
@@ -23,6 +24,7 @@ export class FilterShortcutComponent {
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
   readonly Kind = Kind;
+  readonly configKindIcon = configKindIcon;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input()

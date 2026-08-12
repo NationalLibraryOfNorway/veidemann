@@ -4,8 +4,9 @@
       <mat-label>{{searchLabel}}</mat-label>
       <input matInput
         #search
-        [(ngModel)]="term"
-        [ngModelOptions]="{standalone: true}"
+        [value]="term"
+        [matAutocomplete]="labelAutocomplete"
+        (input)="onSearchTermChange(search.value)"
         (keyup.enter)="onSearch(term)">
       @if (term) {
         <button mat-icon-button matSuffix type="button"
@@ -34,6 +35,13 @@
         </span>
       }
     </mat-form-field>
+    <mat-autocomplete #labelAutocomplete="matAutocomplete"
+      class="label-search-suggestions"
+      (optionSelected)="onLabelKeySelected($event)">
+      @for (key of filteredLabelKeys; track key) {
+        <mat-option [value]="key">{{key}}</mat-option>
+      }
+    </mat-autocomplete>
   }
 
   @switch ($safeNavigationMigration(query?.kind)) {
@@ -58,13 +66,6 @@
             }
           </mat-select>
         </mat-form-field>
-        <fieldset class="seed-chip-filter status-filter">
-          <legend id="crawl-job-status-filter-label" i18n="@@configQueryStatusDropdownLabel">Status</legend>
-          <mat-chip-listbox formControlName="disabled" aria-labelledby="crawl-job-status-filter-label">
-            <mat-chip-option [value]="false" i18n="@@configQueryStatusShowEnabled">Show enabled</mat-chip-option>
-            <mat-chip-option [value]="true" i18n="@@configQueryStatusShowDisabled">Show disabled</mat-chip-option>
-          </mat-chip-listbox>
-        </fieldset>
       }
       @case (Kind.SEED) {
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -84,31 +85,6 @@
         </mat-label>
           <input matInput formControlName="entityId">
         </mat-form-field>
-        <fieldset class="seed-chip-filter status-filter">
-          <legend id="seed-status-filter-label" i18n="@@configQueryStatusDropdownLabel">Status</legend>
-          <mat-chip-listbox formControlName="disabled" aria-labelledby="seed-status-filter-label">
-            <mat-chip-option [value]="false" i18n="@@configQueryStatusShowEnabled">Show enabled</mat-chip-option>
-            <mat-chip-option [value]="true" i18n="@@configQueryStatusShowDisabled">Show disabled</mat-chip-option>
-          </mat-chip-listbox>
-        </fieldset>
-        @if (selectedCrawlJobs.length) {
-          <fieldset class="seed-chip-filter crawl-job-filters">
-            <legend id="seed-crawl-job-filter-label"
-              i18n="@@configQuerySelectedCrawlJobsLabel">Crawl jobs</legend>
-            <mat-chip-set aria-labelledby="seed-crawl-job-filter-label">
-              @for (crawlJob of selectedCrawlJobs; track crawlJob.id) {
-                <mat-chip>
-                  {{crawlJob.name}}
-                  <button matChipRemove type="button"
-                    [attr.aria-label]="crawlJobRemoveLabel(crawlJob.name)"
-                    (click)="removeCrawlJob(crawlJob.id)">
-                    <mat-icon>cancel</mat-icon>
-                  </button>
-                </mat-chip>
-              }
-            </mat-chip-set>
-          </fieldset>
-        }
       }
       @case (Kind.CRAWLCONFIG) {
         <mat-form-field appearance="outline" subscriptSizing="dynamic">

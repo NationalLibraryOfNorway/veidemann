@@ -1,0 +1,19 @@
+@if (jobExecutionStatus) {
+  @let state = statePresentation(jobExecutionStatus.state);
+  <section class="statistics-section"
+    aria-label="Execution metrics" i18n-aria-label="@@executionMetricsSectionLabel">
+    <app-execution-metadata presentation="metrics"
+      [state]="state"
+      [desiredState]="statePresentation(jobExecutionStatus.desiredState)"
+      [startTime]="jobExecutionStatus.startTime"
+      [endTime]="jobExecutionStatus.endTime">
+    </app-execution-metadata>
+
+    <app-execution-metrics
+      [source]="jobExecutionStatus"
+      [queueSize]="queueSize"
+      [remainingBytes]="isRunning() ? remainingBytes() : null"
+      [remainingTime]="isRunning() ? remainingTime() : null">
+    </app-execution-metrics>
+  </section>
+}

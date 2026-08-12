@@ -74,28 +74,30 @@
       <fieldset class="ip-range-group" formArrayName="ipRangeList">
         <legend mat-card-subtitle i18n="@@ipRangeListHeader">IP range</legend>
         @for (ipRange of ipRangeControlArray.controls; track ipRange; let i = $index) {
-          <div class="layout-column">
-            <div [formGroupName]="i" class="layout-row gap-16">
-              <mat-form-field class="flex-fill">
+          <div data-testid="ipRangeList" class="layout-column ip-range-entry">
+            <div [formGroupName]="i" class="ip-range-row">
+              <mat-form-field data-testid="ipRangeFrom" class="flex-fill"
+                subscriptSizing="dynamic">
                 <mat-label i18n="@@crawlhostgroupconfigFormIpFromLabel">
-                IP address
+                From IP address
               </mat-label>
                 <input matInput formControlName="ipFrom">
                 <mat-hint i18n="@@crawlhostgroupconfigFormIpFromHint">From</mat-hint>
-                @if (!ipFromControl(i).valid) {
+                @if (shouldShowControlError(ipFromControl(i))) {
                   <mat-error
                     i18n="@@crawlhostgroupconfigFormValidIpFromRequiredError">
                 A valid IP address is required.
               </mat-error>
                 }
               </mat-form-field>
-              <mat-form-field class="flex-fill">
+              <mat-form-field data-testid="ipRangeTo" class="flex-fill"
+                subscriptSizing="dynamic">
                 <mat-label i18n="@@crawlhostgroupconfigFormIpToLabel">
-                IP address
+                To IP address
               </mat-label>
                 <input matInput formControlName="ipTo">
                 <mat-hint i18n="@@crawlhostgroupconfigFormIpToHint">To</mat-hint>
-                @if (!ipToControl(i).valid) {
+                @if (shouldShowControlError(ipToControl(i))) {
                   <mat-error
                     i18n="@@crawlhostgroupconfigFormValidIpToRequiredError">
                 A valid IP address is required.
@@ -103,17 +105,20 @@
                 }
               </mat-form-field>
               @if (canEdit) {
-                <button mat-button
+                <button mat-icon-button type="button" class="ip-range-remove"
                   (click)="onRemoveIpRange(i)"
-                  >
+                  [attr.aria-label]="removeIpRangeLabel(i)"
+                  matTooltip="Remove IP range"
+                  i18n-matTooltip="@@crawlhostgroupconfigRemoveIpRangeLabel"
+                  data-testid="removeIpRangeButton">
                   <mat-icon>remove_circle</mat-icon>
-                  <span>REMOVE</span>
                 </button>
               }
             </div>
-            @if (!isValidIpRange(ipFromControl(i).value, ipToControl(i).value)) {
+            @if (shouldShowInvalidRange(i)) {
               <mat-error
-                i18n="@@crawlhostgroupconfigFormValidIpRangeError">
+                i18n="@@crawlhostgroupconfigFormValidIpRangeError"
+                data-testid="ipRangeInvalidError">
             The IP range is not valid
           </mat-error>
             }
@@ -121,10 +126,14 @@
         }
 
         @if (canEdit) {
-          <button mat-stroked-button (click)="onAddIpRange()" class="ip-range-add-button">
-            <mat-icon>add_circle</mat-icon>
-            <span i18n="@@crawlhostgroupconfigFormAddIpRangeButton">ADD IP RANGE</span>
-          </button>
+          <mat-chip-set class="ip-range-add" aria-label="IP range actions"
+            i18n-aria-label="@@crawlhostgroupconfigIpRangeActionsLabel">
+            <mat-chip role="button" tabindex="0" (click)="onAddIpRange()"
+              (keydown)="onAddIpRangeKeydown($event)" data-testid="addIpRangeButton">
+              <mat-icon matChipAvatar>add_circle</mat-icon>
+              <span i18n="@@crawlhostgroupconfigFormAddIpRangeButton">Add IP range</span>
+            </mat-chip>
+          </mat-chip-set>
         }
       </fieldset>
     </div>

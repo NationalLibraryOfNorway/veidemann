@@ -2,7 +2,10 @@
   <div class="detail-page">
     <div class="detail-content detail-content-flush">
       <app-page-log-status [pageLog]="pageLog">
-        <app-page-log-shortcuts detailHeaderHelpers [pageLog]="pageLog"></app-page-log-shortcuts>
+        <app-detail-overflow detailHeaderHelpers label="Page log actions"
+          i18n-label="@@pageLogActionsMenuLabel">
+          <app-page-log-shortcuts presentation="menu" [pageLog]="pageLog"></app-page-log-shortcuts>
+        </app-detail-overflow>
       </app-page-log-status>
     </div>
   </div>

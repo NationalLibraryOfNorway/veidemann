@@ -6,6 +6,7 @@ import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatMenuModule} from '@angular/material/menu';
 import {CopyIdDirective} from '../../../../shared/directives';
 
 @Component({
@@ -17,6 +18,7 @@ import {CopyIdDirective} from '../../../../shared/directives';
     RouterLink,
     MatIcon,
     MatChipsModule,
+    MatMenuModule,
     MatTooltipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,6 +29,7 @@ export class CrawlLogShortcutsComponent {
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   @Input() crawlLog: CrawlLog;
+  @Input() presentation: 'chips' | 'menu' = 'chips';
 
   constructor() {
     this.can = this.abilityService.can;

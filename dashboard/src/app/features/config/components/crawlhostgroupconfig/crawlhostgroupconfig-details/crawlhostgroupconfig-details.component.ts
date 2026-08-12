@@ -14,7 +14,6 @@ import {IpRange} from '../../../../../shared/models/config/ip-range.model';
 import {ANY_DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {UnitOfTime} from '../../../../../shared/models/duration/unit-time.model';
 import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatCardModule} from '@angular/material/card';
 import {MetaComponent} from '../../meta/meta.component';
 import {DurationPickerComponent} from '../../durationpicker/duration-picker';
 import {MatIcon} from '@angular/material/icon';
@@ -23,7 +22,6 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatChipsModule} from '@angular/material/chips';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {configKindIcon} from '../../../func/config-kind-icon';
 
 @Component({
   selector: 'app-crawlhostgroupconfig-details',
@@ -33,7 +31,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   imports: [
     CopyIdDirective,
     MatButtonModule,
-    MatCardModule,
     MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -46,7 +43,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   standalone: true
 })
 export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
@@ -201,7 +197,7 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
 
   protected updateForm() {
     const ipRangeFG: UntypedFormGroup[] = this.configObject.crawlHostGroupConfig.ipRangeList
-      .map(ipRangeList => this.fb.group(ipRangeList));
+      .map(ipRange => this.initIpRange(ipRange));
 
     const ipRangeFGArray: UntypedFormArray = this.fb.array(ipRangeFG);
     if (this.form.disabled) {
@@ -248,10 +244,10 @@ export class CrawlHostGroupConfigDetailsComponent implements OnChanges {
 
   }
 
-  private initIpRange() {
+  private initIpRange(ipRange = new IpRange()) {
     return this.fb.group({
-      ipFrom: ['', [CrawlHostGroupConfigIpValidation.ipAddressValidator]],
-      ipTo: ['', [CrawlHostGroupConfigIpValidation.ipAddressValidator]],
+      ipFrom: [ipRange.ipFrom || '', [CrawlHostGroupConfigIpValidation.ipAddressValidator]],
+      ipTo: [ipRange.ipTo || '', [CrawlHostGroupConfigIpValidation.ipAddressValidator]],
     });
   }
 

@@ -1,5 +1,10 @@
 @if (abortable && can('abort', subject)) {
-  @if (inline) {
+  @if (presentation === 'menu-item') {
+    <button class="abort-action destructive-menu-item" mat-menu-item type="button" (click)="abort.emit()">
+      <mat-icon>cancel</mat-icon>
+      <span i18n="@@reportDetailAbortCrawlAction">Abort crawl</span>
+    </button>
+  } @else if (inline) {
     <button class="abort-action" mat-stroked-button type="button" (click)="abort.emit()">
       <mat-icon>cancel</mat-icon>
       <span i18n="@@reportDetailAbortCrawlAction">Abort crawl</span>

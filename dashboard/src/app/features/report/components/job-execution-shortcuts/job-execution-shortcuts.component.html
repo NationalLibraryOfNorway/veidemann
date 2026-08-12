@@ -1,4 +1,28 @@
-@if (jobExecutionStatus?.id
+@if (presentation === 'menu') {
+  @if (showJobExecution && can('read', 'jobexecution')) {
+    <a mat-menu-item [routerLink]="['/report', 'jobexecution', jobExecutionStatus.id]">
+      <mat-icon>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+    </a>
+  }
+  @if (showCrawlJob && can('read', Kind[Kind.CRAWLJOB])) {
+    <a mat-menu-item [routerLink]="['/config', 'crawljobs', jobExecutionStatus.jobId]">
+      <mat-icon>work</mat-icon>
+      @if (jobExecutionStatus.jobId | getJobNamePipe | async; as jobName) { <span>{{jobName}}</span> }
+      @else { <span i18n="@@reportDetailCrawlJobAction">Crawl job</span> }
+    </a>
+  }
+  @if (showCrawlExecutions && can('read', 'crawlexecution')) {
+    <a mat-menu-item [routerLink]="['/report', 'crawlexecution']"
+      [queryParams]="{job_id: jobExecutionStatus.jobId, job_execution_id: jobExecutionStatus.id}">
+      <mat-icon>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionsAction">Crawl executions</span>
+    </a>
+  }
+  @if (jobExecutionStatus.id) {
+    <button mat-menu-item type="button" [appCopyId]="jobExecutionStatus.id">
+      <mat-icon>content_copy</mat-icon><span i18n="@@copyIdChip">Copy ID</span>
+    </button>
+  }
+} @else if (jobExecutionStatus?.id
   || (showJobExecution && can('read', 'jobexecution'))
   || (showCrawlJob && can('read', Kind[Kind.CRAWLJOB]))
   || (showCrawlExecutions && can('read', 'crawlexecution'))) {
@@ -7,32 +31,24 @@
       <mat-chip role="button" tabindex="0" [appCopyId]="jobExecutionStatus.id"
         matTooltip="Copy job execution ID" i18n-matTooltip="@@copyJobExecutionIdTooltip"
         aria-label="Copy job execution ID" i18n-aria-label="@@copyJobExecutionIdTooltip">
-        <mat-icon matChipAvatar>content_copy</mat-icon>
-        <span i18n="@@copyIdChip">Copy ID</span>
+        <mat-icon matChipAvatar>content_copy</mat-icon><span i18n="@@copyIdChip">Copy ID</span>
       </mat-chip>
     }
     @if (showJobExecution && can('read', 'jobexecution')) {
       <a mat-chip [routerLink]="['/report', 'jobexecution', jobExecutionStatus.id]">
-        <mat-icon matChipAvatar>hdr_strong</mat-icon>
-        <span i18n="@@reportDetailJobExecutionAction">Job execution</span>
-      </a>
+        <mat-icon matChipAvatar>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span></a>
     }
     @if (showCrawlJob && can('read', Kind[Kind.CRAWLJOB])) {
       <a mat-chip [routerLink]="['/config', 'crawljobs', jobExecutionStatus.jobId]">
         <mat-icon matChipAvatar>work</mat-icon>
-        @if (jobExecutionStatus.jobId | getJobNamePipe | async; as jobName) {
-          <span>{{ jobName }}</span>
-        } @else {
-          <span i18n="@@reportDetailCrawlJobAction">Crawl job</span>
-        }
+        @if (jobExecutionStatus.jobId | getJobNamePipe | async; as jobName) { <span>{{jobName}}</span> }
+        @else { <span i18n="@@reportDetailCrawlJobAction">Crawl job</span> }
       </a>
     }
     @if (showCrawlExecutions && can('read', 'crawlexecution')) {
       <a mat-chip [routerLink]="['/report', 'crawlexecution']"
-         [queryParams]="{job_id: jobExecutionStatus.jobId, job_execution_id: jobExecutionStatus.id}">
-        <mat-icon matChipAvatar>hdr_weak</mat-icon>
-        <span i18n="@@reportDetailCrawlExecutionsAction">Crawl executions</span>
-      </a>
+        [queryParams]="{job_id: jobExecutionStatus.jobId, job_execution_id: jobExecutionStatus.id}">
+        <mat-icon matChipAvatar>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionsAction">Crawl executions</span></a>
     }
   </mat-chip-set>
 }

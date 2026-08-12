@@ -1,35 +1,39 @@
-import {DecimalPipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {MatCardModule} from '@angular/material/card';
 
-import {ConfigObject, JobExecutionStatus} from '../../../../shared/models';
+import {ExecutionMetricsComponent} from '../../../../shared/components';
+import {ConfigObject, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe';
-import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {jobExecutionStatePresentation} from '../../func';
+import {ExecutionMetadataComponent} from '../execution-metadata/execution-metadata.component';
 
 @Component({
-  selector: 'app-job-execution-statistics',
-  templateUrl: './job-execution-statistics.component.html',
-  styleUrls: ['./job-execution-statistics.component.scss'],
+  selector: 'app-job-execution-metrics-section',
+  templateUrl: './job-execution-metrics-section.component.html',
+  styleUrls: ['../execution-metrics-section.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DecimalPipe,
-    DurationFormatPipe,
-    FileSizePipe,
-    MatCardModule,
+    ExecutionMetadataComponent,
+    ExecutionMetricsComponent,
   ],
   standalone: true,
 })
-export class JobExecutionStatisticsComponent {
+export class JobExecutionMetricsSectionComponent {
   private readonly durationFormat = new DurationFormatPipe();
+
+  readonly statePresentation = jobExecutionStatePresentation;
 
   @Input({required: true})
   jobExecutionStatus: JobExecutionStatus;
 
   @Input({required: true})
-  crawlJob: ConfigObject | null = null;
+  crawlJob: ConfigObject | null;
 
   @Input()
   queueSize: number | null | undefined = undefined;
+
+  isRunning(): boolean {
+    return this.jobExecutionStatus.state === JobExecutionState.RUNNING;
+  }
 
   remainingBytes(): number | null {
     const limit = this.crawlJob?.crawlJob?.limits?.maxBytes;

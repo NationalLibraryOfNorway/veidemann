@@ -23,6 +23,13 @@
   white-space: normal;
 }
 
+.destructive-menu-item {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
 @media (max-width: 599px) {
   .destructive-actions {
     padding: 16px;

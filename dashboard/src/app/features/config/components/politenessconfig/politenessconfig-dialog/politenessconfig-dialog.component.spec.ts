@@ -5,6 +5,8 @@ import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigDialogData} from '../../../func';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 
 describe('PolitenessConfigDialogComponent', () => {
   let component: PolitenessConfigDialogComponent;
@@ -36,5 +38,10 @@ describe('PolitenessConfigDialogComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('renders Use hostname as a normal checkbox', async () => {
+    const checkbox = await TestbedHarnessEnvironment.loader(fixture).getHarness(MatCheckboxHarness);
+    expect(await checkbox.getLabelText()).toBe('Use hostname');
   });
 });

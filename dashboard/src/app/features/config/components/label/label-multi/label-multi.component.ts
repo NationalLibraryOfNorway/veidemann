@@ -1,6 +1,8 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
+  DestroyRef,
   ElementRef,
   EventEmitter,
   inject,
@@ -18,7 +20,7 @@ import {combineLatest, Observable, Subject} from 'rxjs';
 import {CdkDrag, CdkDragDrop, CdkDropList} from '@angular/cdk/drag-drop';
 import {filter, map, startWith, switchMap, take} from 'rxjs/operators';
 import {LabelService} from '../../../services/label.service';
-import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
+import {FormControl, ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {MatButtonModule} from '@angular/material/button';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -33,6 +35,7 @@ export interface LabelUpdate {
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatDialog} from '@angular/material/dialog';
 import {EMOJI_LABEL_KEY, LabelDisplayComponent} from '../../../../../shared/components';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-label-multi',
@@ -58,6 +61,8 @@ import {EMOJI_LABEL_KEY, LabelDisplayComponent} from '../../../../../shared/comp
 export class LabelMultiComponent implements OnInit {
   protected labelService = inject(LabelService);
   private dialog = inject(MatDialog);
+  private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   @Input()
   configObject: ConfigObject;
@@ -71,8 +76,9 @@ export class LabelMultiComponent implements OnInit {
   private fetchLabelKeys: Subject<void>;
 
   control = new UntypedFormControl();
+  modeControl = new FormControl<boolean | null>(null);
 
-  shouldAddLabel = undefined;
+  private activeMode: boolean | undefined;
   labelInputSeparators = [ENTER];
   labels: Label[] = [];
   filteredKey$: Observable<string[]>;
@@ -86,9 +92,15 @@ export class LabelMultiComponent implements OnInit {
 
   constructor() {
     this.fetchLabelKeys = new Subject();
+    this.control.disable({emitEvent: false});
+  }
+
+  get shouldAddLabel(): boolean | undefined {
+    return this.activeMode;
   }
 
   ngOnInit(): void {
+    this.modeControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(mode => this.applyMode(mode));
     const value$ = this.control.valueChanges.pipe(
       startWith(''),
       map(value => value || '')
@@ -107,15 +119,27 @@ export class LabelMultiComponent implements OnInit {
   }
 
   onToggleShouldAddLabels(shouldAdd: boolean): void {
-    if (this.shouldAddLabel !== undefined) {
+    this.modeControl.setValue(shouldAdd);
+  }
+
+  private applyMode(mode: boolean | null): void {
+    if (this.activeMode !== undefined && mode !== this.activeMode) {
       this.labels = [];
       this.clearCommonLabelSelection();
     }
-    this.shouldAddLabel = shouldAdd;
-    this.update.emit({add: this.shouldAddLabel, labels: this.labels});
+    this.activeMode = mode ?? undefined;
+    if (this.activeMode === undefined) {
+      this.control.disable({emitEvent: false});
+      return;
+    }
+    this.control.enable({emitEvent: false});
+    this.update.emit({add: this.activeMode, labels: this.labels});
   }
 
   onAdd(event: MatChipInputEvent) {
+    if (this.shouldAddLabel === undefined) {
+      return;
+    }
     if (event.chipInput) {
       event.input.value = '';
     }
@@ -142,7 +166,7 @@ export class LabelMultiComponent implements OnInit {
   }
 
   async onChooseEmoji(): Promise<void> {
-    if (this.shouldAddLabel !== true) {
+    if (this.shouldAddLabel === undefined) {
       return;
     }
 
@@ -196,9 +220,13 @@ export class LabelMultiComponent implements OnInit {
   }
 
   onRevert() {
-    this.shouldAddLabel = undefined;
+    this.modeControl.reset(null, {emitEvent: false});
+    this.activeMode = undefined;
+    this.control.reset('', {emitEvent: false});
+    this.control.disable({emitEvent: false});
     this.labels = [];
     this.clearCommonLabelSelection();
+    this.cdr.markForCheck();
   }
 
   onDrop(event: CdkDragDrop<string[]>): void {

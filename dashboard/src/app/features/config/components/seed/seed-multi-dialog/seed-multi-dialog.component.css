@@ -1,3 +1,7 @@
 .mat-mdc-form-field-hint {
   font-size: 75%;
 }
+
+.crawl-job-update-field {
+  min-width: 0;
+}

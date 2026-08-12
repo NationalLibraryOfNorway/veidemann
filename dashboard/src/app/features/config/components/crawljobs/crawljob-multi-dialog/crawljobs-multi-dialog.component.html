@@ -83,18 +83,12 @@
       <div class="mass-update-section">
         <fieldset class="mass-update-choice">
           <legend id="crawl-job-mass-update-status" i18n="@@massUpdateStatusLabel">Status</legend>
-          <mat-chip-listbox
-            aria-labelledby="crawl-job-mass-update-status"
-            [disabled]="!canEdit"
-            [value]="disabledSelection"
-            (change)="onDisabledSelectionChange($event.value)">
-            <mat-chip-option [value]="false" i18n="@@massUpdateStatusActivated">
-              Activated
-            </mat-chip-option>
-            <mat-chip-option [value]="true" i18n="@@massUpdateStatusDeactivated">
-              Deactivated
-            </mat-chip-option>
-          </mat-chip-listbox>
+          <app-boolean-override formControlName="disabledSelection"
+            appearance="chips"
+            ariaLabel="Status" i18n-ariaLabel="@@massUpdateStatusLabel"
+            trueLabel="Deactivated" i18n-trueLabel="@@massUpdateStatusDeactivated"
+            falseLabel="Activated" i18n-falseLabel="@@massUpdateStatusActivated">
+          </app-boolean-override>
         </fieldset>
       </div>
     </div>

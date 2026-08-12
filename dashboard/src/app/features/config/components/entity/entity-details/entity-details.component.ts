@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
+import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject} from '@angular/core';
 import {ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 import {AuthService} from '../../../../../core/auth';
-import {ConfigObject, Kind, ListDataSource, Meta} from '../../../../../shared/models';
-import {MatCardModule} from '@angular/material/card';
+import {ConfigObject, Kind, Meta} from '../../../../../shared/models';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
@@ -10,14 +9,6 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {configKindIcon} from '../../../func/config-kind-icon';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatMenuModule} from '@angular/material/menu';
-import {ConfigListComponent} from '../../config-list/config-list.component';
-import {ConfigLabelLinksComponent} from '../../config-label-links/config-label-links.component';
-import {ActionDirective} from '../../../../../shared/directives';
-import {ConfigQuery} from '../../../../../shared/func';
-import {ResolvedLabelLink} from '../../../func';
 
 @Component({
   selector: 'app-entity-details',
@@ -27,34 +18,23 @@ import {ResolvedLabelLink} from '../../../func';
   imports: [
     CopyIdDirective,
     MatButtonModule,
-    MatCardModule,
-    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatIcon,
-    MatMenuModule,
     MatTooltip,
     MetaComponent,
     ReactiveFormsModule,
-    ActionDirective,
-    ConfigLabelLinksComponent,
-    ConfigListComponent,
   ],
   standalone: true
 })
 
 export class EntityDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
 
   @Input()
   configObject: ConfigObject;
-
-  @Input() seedDataSource: ListDataSource<ConfigObject, ConfigQuery> | null = null;
-  @Input() seedStatus: boolean | null = null;
-  @Input() labelLinks: readonly ResolvedLabelLink[] = [];
 
   @Input()
   annotationSuggestions: string[] = [];
@@ -65,10 +45,6 @@ export class EntityDetailsComponent implements OnChanges {
   @Output()
   update = new EventEmitter<ConfigObject>();
 
-  @Output() seedStatusChange = new EventEmitter<boolean | null>();
-  @Output() createSeed = new EventEmitter<ConfigObject>();
-  @Output() openSeed = new EventEmitter<ConfigObject>();
-  @Output() editSeed = new EventEmitter<ConfigObject>();
 
   form: UntypedFormGroup;
 
@@ -94,14 +70,6 @@ export class EntityDetailsComponent implements OnChanges {
 
   get canEdit(): boolean {
     return this.authService.canUpdate(this.configObject.kind);
-  }
-
-  get canEditSeed(): boolean {
-    return this.authService.canUpdate(Kind.SEED);
-  }
-
-  get canCreateSeed(): boolean {
-    return this.authService.canCreate(Kind.SEED);
   }
 
   ngOnChanges(changes: SimpleChanges): void {

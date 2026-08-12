@@ -1,17 +1,15 @@
 import { ChangeDetectionStrategy,Component,inject,OnInit,ViewChild } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTooltip } from '@angular/material/tooltip';
 import { SeedDetailsComponent } from '..';
 import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/config';
 import { ConfigDialogData } from '../../../func';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
+import {BooleanOverrideComponent} from '../../../../../shared/components';
+import {MultiUpdateOperationComponent} from '../../multi-update-operation/multi-update-operation.component';
 
 @Component({
   selector: 'app-seed-multi-dialog',
@@ -19,14 +17,12 @@ import { LabelMultiComponent } from '../../label/label-multi/label-multi.compone
   styleUrls: ['./seed-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
+    BooleanOverrideComponent,
+    MultiUpdateOperationComponent,
     MatButtonModule,
-    MatButtonToggleModule,
-    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
-    MatIcon,
     MatSelectModule,
-    MatTooltip,
     ReactiveFormsModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,7 +35,6 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   shouldAddLabel = undefined;
   shouldAddCrawlJob = undefined;
-  disabledSelection: boolean | null = null;
   allSelected = false;
 
   @ViewChild(LabelMultiComponent) labelMulti: LabelMultiComponent;
@@ -66,10 +61,13 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     return this.form.get('commonJobRefListId');
   }
 
+  get disabledSelection(): boolean | null {
+    return this.form.get('disabledSelection')?.value ?? null;
+  }
+
   override get canUpdate(): boolean {
     return this.form.valid && (
       this.form.dirty
-      || this.disabledSelection !== null
       || (this.shouldAddLabel !== undefined && this.labelList.value.length)
       || (this.shouldAddCrawlJob !== undefined && this.updateJobRefListId.value.length > 0)
     );
@@ -77,7 +75,6 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   override get canRevert(): boolean {
     return this.form.dirty
-      || this.disabledSelection !== null
       || this.shouldAddLabel !== undefined
       || this.shouldAddCrawlJob !== undefined;
   }
@@ -88,40 +85,42 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
 
   override onRevert() {
     this.shouldAddCrawlJob = this.shouldAddLabel = undefined;
-    this.disabledSelection = null;
     this.labelMulti.onRevert();
     super.onRevert();
   }
 
-  onDisabledSelectionChange(disabled: boolean | null | undefined): void {
-    this.disabledSelection = disabled ?? null;
-  }
-
   onToggleShouldAddCrawlJob(shouldAdd: boolean): void {
+    if (shouldAdd !== true && shouldAdd !== false) {
+      this.shouldAddCrawlJob = undefined;
+      this.updateJobRefListId.disable();
+      return;
+    }
     this.shouldAddCrawlJob = shouldAdd;
     this.updateJobRefListId.patchValue([]);
+    this.updateJobRefListId.enable();
   }
 
   protected override createForm() {
     this.form = this.fb.group({
       labelList: [[]],
       commonJobRefListId: [[]],
-      updateJobRefListId: [[]]
+      updateJobRefListId: [{value: [], disabled: true}],
+      disabledSelection: null,
     });
   }
 
   protected override updateForm() {
-    this.disabledSelection = null;
-
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
       commonJobRefListId: this.configObject.seed.jobRefList.map(job => job.id),
-      updateJobRefListId: []
+      updateJobRefListId: [],
+      disabledSelection: null,
     });
 
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.commonJobRefListId.disable();
+    this.updateJobRefListId.disable();
     if (!this.canEdit) {
       this.form.disable();
     }
@@ -137,7 +136,7 @@ export class SeedMultiDialogComponent extends SeedDetailsComponent implements On
     const seed = updateTemplate.seed;
 
     if (this.disabledSelection !== null) {
-      seed.disabled = this.disabledSelection;
+      seed.disabled = formModel.disabledSelection;
       pathList.push('seed.disabled');
     }
 

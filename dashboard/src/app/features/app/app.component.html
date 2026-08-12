@@ -12,36 +12,8 @@
       <img class="toolbar-brand-logo" alt="" src="public/logo/veidemann_logo_inline_black.png">
     </picture>
   </a>
-
-  <span class="toolbar-spacer"></span>
-
-  <button class="toolbar-overflow" mat-icon-button [matMenuTriggerFor]="toolbarMenu"
-          aria-label="More actions" i18n-aria-label="@@mainToolbarMoreActionsLabel">
-    <mat-icon>more_vert</mat-icon>
-  </button>
 </mat-toolbar>
 }
-
-<mat-menu #toolbarMenu="matMenu">
-  @if (can('read', 'report')) {
-    <button mat-menu-item (click)="onShowJobSchedule()">
-      <mat-icon>calendar_month</mat-icon>
-      <span i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
-    </button>
-  }
-  @if (!isLoggedIn) {
-    <button mat-menu-item (click)="onLogin()">
-      <mat-icon>account_box</mat-icon>
-      <span i18n="@@mainToolbarLoginButton">LOGIN</span>
-    </button>
-  }
-  @if (isLoggedIn) {
-    <button mat-menu-item (click)="onLogout()">
-      <mat-icon>logout</mat-icon>
-      <span i18n="@@mainToolbarLogoutButton">Log out</span>
-    </button>
-  }
-</mat-menu>
 
 @if (railNavigation()) {
 <aside class="navigation-rail mat-typography">
@@ -124,6 +96,24 @@
                 </a>
               }
             }
+          }
+          @if (can('read', 'report')) {
+            <button mat-list-item type="button" (click)="onShowJobSchedule(); closePrimaryDrawer()">
+              <mat-icon matListItemIcon>calendar_month</mat-icon>
+              <span matListItemTitle i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
+            </button>
+          }
+          @if (!isLoggedIn) {
+            <button mat-list-item type="button" (click)="onLogin(); closePrimaryDrawer()">
+              <mat-icon matListItemIcon>account_box</mat-icon>
+              <span matListItemTitle i18n="@@mainToolbarLoginButton">LOGIN</span>
+            </button>
+          }
+          @if (isLoggedIn) {
+            <button mat-list-item type="button" (click)="onLogout(); closePrimaryDrawer()">
+              <mat-icon matListItemIcon>logout</mat-icon>
+              <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>
+            </button>
           }
         }
 

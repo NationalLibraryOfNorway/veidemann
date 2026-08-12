@@ -1,0 +1,32 @@
+<div mat-dialog-title class="mass-update-header">
+  @switch (data.configObject.kind) {
+    @case (Kind.CRAWLENTITY) { <h2 i18n="@@entityMassUpdateDialogTitle">Update entities</h2> }
+    @case (Kind.SEED) { <h2 i18n="@@seedMassUpdateDialogTitle">Update seeds</h2> }
+    @case (Kind.CRAWLJOB) { <h2 i18n="@@crawlJobMassUpdateDialogTitle">Update crawl jobs</h2> }
+    @case (Kind.CRAWLCONFIG) { <h2 i18n="@@crawlConfigMassUpdateDialogTitle">Update crawl configurations</h2> }
+    @case (Kind.CRAWLSCHEDULECONFIG) { <h2 i18n="@@scheduleMassUpdateDialogTitle">Update schedules</h2> }
+    @case (Kind.BROWSERCONFIG) { <h2 i18n="@@browserConfigMassUpdateDialogTitle">Update browser configurations</h2> }
+    @case (Kind.POLITENESSCONFIG) { <h2 i18n="@@politenessConfigMassUpdateDialogTitle">Update politeness configurations</h2> }
+    @case (Kind.BROWSERSCRIPT) { <h2 i18n="@@browserScriptMassUpdateDialogTitle">Update browser scripts</h2> }
+    @case (Kind.CRAWLHOSTGROUPCONFIG) { <h2 i18n="@@crawlHostGroupConfigMassUpdateDialogTitle">Update crawl host group configurations</h2> }
+    @case (Kind.ROLEMAPPING) { <h2 i18n="@@roleMappingMassUpdateDialogTitle">Update user roles</h2> }
+    @case (Kind.COLLECTION) { <h2 i18n="@@collectionMassUpdateDialogTitle">Update collections</h2> }
+  }
+  <p i18n="@@massUpdateDialogDescription">
+    Only changed settings will be applied. Values left untouched will be preserved.
+  </p>
+</div>
+
+<mat-dialog-content class="mass-update-content">
+  <ng-container #sectionHost></ng-container>
+</mat-dialog-content>
+
+@if (section && canEdit) {
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onRevert()" [disabled]="!section.canRevert"
+      i18n="@@commonButtonRevert">REVERT</button>
+    <button mat-button type="button" mat-dialog-close i18n="@@commonButtonCancel">CANCEL</button>
+    <button mat-flat-button type="button" (click)="onUpdate()" [disabled]="!section.canUpdate"
+      i18n="@@commonButtonSave">UPDATE</button>
+  </mat-dialog-actions>
+}

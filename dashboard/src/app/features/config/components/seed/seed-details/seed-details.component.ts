@@ -5,9 +5,8 @@ import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGro
 import {AuthService} from '../../../../../core/auth';
 import {ConfigObject, ConfigRef, Kind, Meta} from '../../../../../shared/models';
 import {Subject} from 'rxjs';
-import {Parcel, SeedMetaComponent} from '../..';
+import {EffectiveScriptAnnotationsComponent, Parcel, SeedMetaComponent} from '../..';
 import {configRefIdRequired} from '../../../../../shared/validation/configref';
-import {MatCardModule} from '@angular/material/card';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -22,8 +21,7 @@ import {
   MoveSeedDialogData,
   MoveSeedDialogResult,
 } from '../move-seed-dialog/move-seed-dialog.component';
-import {configKindIcon} from '../../../func/config-kind-icon';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-seed-details',
@@ -32,20 +30,19 @@ import {BooleanStateChipComponent} from '../../../../../shared/components';
   imports: [
     CopyIdDirective,
     MatButtonModule,
-    MatCardModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatIcon,
     MatInput,
     MatSelectModule,
-    BooleanStateChipComponent,
     MatTooltip,
     ReactiveFormsModule,
+    EffectiveScriptAnnotationsComponent,
     SeedMetaComponent,
   ],
   standalone: true
 })
 export class SeedDetailsComponent implements OnChanges, OnDestroy {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
   private dialog = inject(MatDialog);

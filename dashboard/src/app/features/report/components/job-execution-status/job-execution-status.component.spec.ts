@@ -74,14 +74,17 @@ describe('JobExecutionStatusComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('execution-id-that-can-wrap');
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('News crawl');
     expect(fixture.nativeElement.querySelector('.queue-badge')).toBeNull();
-    const firstMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
-    expect(firstMetric.querySelector('span')?.textContent).toBe('Queue size');
-    expect(firstMetric.querySelector('strong')?.textContent.trim()).toBe('0');
-    expect(fixture.nativeElement.querySelectorAll('.metric-card').length).toBe(6);
+    const metrics = [...fixture.nativeElement.querySelectorAll('.metric')] as HTMLElement[];
+    expect(metrics.map(metric => metric.querySelector('dt')?.textContent.trim()).slice(0, 4)).toEqual([
+      'Documents crawled', 'URIs crawled', 'Bytes crawled', 'Duration',
+    ]);
+    expect(metrics.at(-1)?.querySelector('dt')?.textContent.trim()).toBe('Queue size');
+    expect(metrics.at(-1)?.querySelector('dd')?.textContent.trim()).toBe('0');
+    expect(metrics.length).toBe(5);
     expect(fixture.nativeElement.querySelector('.error-callout')).toBeNull();
   });
 
-  it('places state metadata in the header and orders optional crawl statistics after duration', () => {
+  it('places state metadata before the crawl metrics and orders optional metrics after duration', () => {
     render(new JobExecutionStatus({
       state: JobExecutionState.RUNNING,
       desiredState: JobExecutionState.ABORTED_MANUAL,
@@ -91,23 +94,23 @@ describe('JobExecutionStatusComponent', () => {
     }));
 
     const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
-    const badges = [...metadata.querySelectorAll('.state-badge')]
-      .map((badge: HTMLElement) => badge.querySelector(':scope > span')?.textContent.trim());
-    expect(badges).toEqual(['Running', 'Aborted']);
-    expect(metadata.textContent).toContain('Desired state:');
-    expect(metadata.textContent).not.toContain('Not available');
-    const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric-card > span')]
+    expect([...metadata.querySelectorAll('dt')].map((term: HTMLElement) => term.textContent.trim()))
+      .toEqual(['Started', 'Running']);
+    expect(metadata.textContent).not.toContain('Requested:');
+    expect(metadata.textContent).toContain('Aborted manually');
+    expect(metadata.textContent).not.toContain('Now');
+    expect(metadata.querySelectorAll('dd')[1].textContent.trim()).toBe('Aborted manually');
+    const metricLabels = [...fixture.nativeElement.querySelectorAll('.metric dt')]
       .map((label: HTMLElement) => label.textContent.trim());
     expect(metricLabels).toEqual([
-      'Queue size',
       'Documents crawled',
+      'URIs crawled',
       'Bytes crawled',
       'Duration',
-      'Documents denied',
+      'Queue size',
       'Documents failed',
+      'Documents denied',
       'Documents retried',
-      'Documents out of scope',
-      'URIs crawled',
     ]);
   });
 
@@ -120,6 +123,7 @@ describe('JobExecutionStatusComponent', () => {
     });
     render(new JobExecutionStatus({
       jobId: 'job-id',
+      state: JobExecutionState.RUNNING,
       bytesCrawled: 2_500,
       startTime: '2026-08-09T10:00:00.000Z',
       endTime: '2026-08-09T11:30:00.000Z',
@@ -127,20 +131,19 @@ describe('JobExecutionStatusComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const metrics = [...fixture.nativeElement.querySelectorAll('.metric-card')]
-      .map((card: HTMLElement) => ({
-        label: card.querySelector('span')?.textContent.trim(),
-        value: card.querySelector('strong')?.textContent.trim(),
+    const metrics = [...fixture.nativeElement.querySelectorAll('.metric')]
+      .map((metric: HTMLElement) => ({
+        label: metric.querySelector('dt')?.textContent.trim(),
+        value: metric.querySelector('dd')?.textContent.trim(),
       }));
     expect(metrics).toEqual([
-      {label: 'Queue size', value: '0'},
       {label: 'Documents crawled', value: '0'},
-      {label: 'Bytes crawled', value: '2.5 kB'},
-      {label: 'Remaining bytes', value: '0 B'},
-      {label: 'Duration', value: '1 h 30 min'},
-      {label: 'Remaining time', value: '0 s'},
-      {label: 'Documents out of scope', value: '0'},
       {label: 'URIs crawled', value: '0'},
+      {label: 'Bytes crawled', value: '2.5 kB'},
+      {label: 'Duration', value: '1 h 30 min'},
+      {label: 'Queue size', value: '0'},
+      {label: 'Remaining time', value: '0 s'},
+      {label: 'Remaining bytes', value: '0 B'},
     ]);
   });
 
@@ -165,25 +168,24 @@ describe('JobExecutionStatusComponent', () => {
   it('renders an unavailable queue count distinctly from zero', () => {
     render(new JobExecutionStatus(), null);
 
-    const queueMetric = fixture.nativeElement.querySelector('.metric-card') as HTMLElement;
-    expect(queueMetric.querySelector('strong')?.textContent.trim()).toBe('Not available');
+    const queueMetric = [...fixture.nativeElement.querySelectorAll('.metric')]
+      .find((metric: HTMLElement) => metric.querySelector('dt')?.textContent.trim() === 'Queue size');
+    expect(queueMetric?.querySelector('dd')?.textContent.trim()).toBe('Not available');
   });
 
   it.each([
-    [JobExecutionState.RUNNING, 'state-active'],
-    [JobExecutionState.CREATED, 'state-waiting'],
-    [JobExecutionState.FINISHED, 'state-finished'],
-    [JobExecutionState.ABORTED_MANUAL, 'state-error'],
-    [JobExecutionState.FAILED, 'state-error'],
-    [JobExecutionState.DIED, 'state-error'],
-    [JobExecutionState.UNDEFINED, 'state-neutral'],
-  ])('uses the semantic badge treatment for state %s', (state, expectedClass) => {
+    [JobExecutionState.RUNNING, 'Running'],
+    [JobExecutionState.CREATED, 'Created'],
+    [JobExecutionState.FINISHED, 'Finished'],
+    [JobExecutionState.ABORTED_MANUAL, 'Aborted manually'],
+    [JobExecutionState.FAILED, 'Failed'],
+    [JobExecutionState.DIED, 'Died'],
+    [JobExecutionState.UNDEFINED, 'Ended'],
+  ])('uses the state verb in the lifecycle for state %s', (state, expectedLabel) => {
     render(new JobExecutionStatus({state}));
-
-    const badge = fixture.nativeElement.querySelector('.state-badge') as HTMLElement;
-    expect(badge.classList.contains(expectedClass)).toBe(true);
-    expect(badge.querySelector('mat-icon')).not.toBeNull();
-    expect(badge.textContent.trim().length).toBeGreaterThan(0);
+    const terms = fixture.nativeElement.querySelectorAll('app-execution-metadata dt');
+    expect(terms[1].textContent.trim()).toBe(expectedLabel);
+    expect(fixture.nativeElement.querySelector('.state-badge')).toBeNull();
   });
 
   it('renders an error callout only when the error contains meaningful data', () => {
@@ -205,44 +207,61 @@ describe('JobExecutionStatusComponent', () => {
     const actions = header.querySelector('.detail-header-actions') as HTMLElement;
     expect(header.querySelector('.projected-helper')).not.toBeNull();
     expect(actions.querySelector('.projected-action')).not.toBeNull();
-    expect(header.querySelector('.detail-header-helpers .projected-action')).toBeNull();
+    expect(actions.querySelector('.projected-helper')).toBeNull();
   });
 
-  it('shows desired state only when it is defined', () => {
-    render(new JobExecutionStatus({desiredState: JobExecutionState.UNDEFINED}));
+  it('shows a defined desired state in the running lifecycle value', () => {
+    render(new JobExecutionStatus({
+      state: JobExecutionState.RUNNING,
+      desiredState: JobExecutionState.UNDEFINED,
+    }));
     expect(fixture.nativeElement.querySelector('app-execution-metadata').textContent)
-      .not.toContain('Desired state');
+      .not.toContain('Requested:');
 
-    render(new JobExecutionStatus({desiredState: JobExecutionState.ABORTED_MANUAL}));
+    render(new JobExecutionStatus({
+      state: JobExecutionState.RUNNING,
+      desiredState: JobExecutionState.ABORTED_MANUAL,
+    }));
     const metadata = fixture.nativeElement.querySelector('app-execution-metadata') as HTMLElement;
-    expect(metadata.textContent).toContain('Desired state');
-    expect(metadata.textContent).toContain('Aborted');
+    expect(metadata.textContent).not.toContain('Requested:');
+    expect(metadata.querySelectorAll('dd')[1].textContent.trim()).toBe('Aborted manually');
   });
 
-  it('uses one full-width content pane for the header and crawl statistics', () => {
+  it('uses one full-width content pane and a headerless lifecycle-and-metrics section', () => {
     render(new JobExecutionStatus());
     const grid = fixture.nativeElement.querySelector('.detail-grid') as HTMLElement;
     const primary = grid.querySelector(':scope > .primary-pane') as HTMLElement;
     const statistics = primary.querySelector('.statistics-section') as HTMLElement;
-    const metrics = statistics.querySelector('.metric-grid') as HTMLElement;
+    const metrics = statistics.querySelector('app-execution-metrics') as HTMLElement;
     expect(primary).not.toBeNull();
     expect(grid.querySelector(':scope > .overview-aside')).toBeNull();
-    expect(statistics.querySelector('h2')?.textContent).toBe('Crawl statistics');
-    expect(primary.querySelector('.detail-header app-execution-metadata')).not.toBeNull();
+    expect(statistics.querySelector('h2')).toBeNull();
+    expect(statistics.getAttribute('aria-label')).toBe('Execution metrics');
+    expect(primary.querySelector('app-detail-header app-execution-metadata')).toBeNull();
     expect(statistics).not.toBeNull();
     expect(primary.querySelector('.crawl-executions-section')).not.toBeNull();
-    expect(metrics.querySelectorAll(':scope > mat-card.metric-card').length).toBe(6);
-    expect(metrics.querySelectorAll(':scope > mat-card.metric-card[appearance="filled"]').length).toBe(6);
+    const metadata = statistics.querySelector('app-execution-metadata') as HTMLElement;
+    const sharedSection = statistics.closest('app-job-execution-metrics-section') as HTMLElement;
+    expect([...metadata.querySelectorAll('dt')].map((term: HTMLElement) => term.textContent.trim()))
+      .toEqual(['Started', 'Ended']);
+    expect(sharedSection).not.toBeNull();
+    expect(metadata.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(metrics.querySelector('.primary-metrics')).not.toBeNull();
+    expect(metrics.querySelector('.secondary-metrics')).not.toBeNull();
+    expect(getComputedStyle(metadata.querySelector('.execution-lifecycle')).borderBottomStyle).toBe('solid');
+    expect(metrics.querySelectorAll('.primary-metrics > .metric').length).toBe(4);
+    expect(metrics.querySelector('mat-card')).toBeNull();
   });
 
   it.each([
-    [JobExecutionState.FINISHED, 'Ended'],
+    [JobExecutionState.FINISHED, 'Finished'],
     [JobExecutionState.FAILED, 'Failed'],
     [JobExecutionState.DIED, 'Died'],
-    [JobExecutionState.ABORTED_MANUAL, 'Aborted'],
+    [JobExecutionState.ABORTED_MANUAL, 'Aborted manually'],
   ])('uses terminal metadata for state %s', (state, expectedText) => {
     render(new JobExecutionStatus({
       state,
+      startTime: '2026-08-10T10:19:00.000Z',
       endTime: '2026-08-10T13:57:00.000Z',
     }));
 

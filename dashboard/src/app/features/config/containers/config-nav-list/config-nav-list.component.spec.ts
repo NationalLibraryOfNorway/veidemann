@@ -42,11 +42,18 @@ describe('ConfigNavListComponent', () => {
     expect(introCard.querySelector('h1').textContent).toBe('Configuration');
     expect(introCard.querySelector('p').textContent.trim())
       .toBe('Create and manage crawl targets, jobs, and supporting settings.');
+    expect(getComputedStyle(introCard.querySelector('h1')).marginBottom).toBe('12px');
     expect(hero.firstElementChild).toBe(introCard);
     expect(introCard.nextElementSibling).toBe(artworkCard);
     expect(artworkCard.getAttribute('aria-hidden')).toBe('true');
     expect(artworkCard.classList).toContain('mat-mdc-card-filled');
     expect(artworkCard.classList).not.toContain('mat-mdc-card-outlined');
+    for (const heroCard of [introCard, artworkCard]) {
+      const style = getComputedStyle(heroCard);
+      expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+      expect(style.borderTopWidth).toBe('0px');
+      expect(style.boxShadow).toBe('none');
+    }
     expect(artworkCard.querySelector('.destination-brand-logo')?.getAttribute('src'))
       .toBe('public/logo/veidemann_logo_inline_black.png');
     expect(artworkCard.querySelector('source')?.getAttribute('srcset'))
@@ -64,7 +71,10 @@ describe('ConfigNavListComponent', () => {
     expect(getComputedStyle(page).padding).toBe('0px');
     expect(getComputedStyle(hero).paddingInline).toBe('8px');
     expect(getComputedStyle(hero).gap).toBe('8px');
-    expect(getComputedStyle(introCard).minHeight).toBe('clamp(360px, 42vh, 400px)');
+    expect(getComputedStyle(hero).marginBottom).toBe('0');
+    expect(getComputedStyle(introCard).minHeight).toBe('320px');
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.destination-groups')).paddingBottom)
+      .toBe('64px');
   });
 
   it('groups every configuration destination by purpose', () => {

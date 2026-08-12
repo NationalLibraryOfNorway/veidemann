@@ -17,7 +17,7 @@ import {MatButtonHarness} from '@angular/material/button/testing';
 import {CrawlLimitsConfig} from '../../../../../shared/models/config/crawljob.model';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {SimpleChange} from '@angular/core';
-import {MatChipOptionHarness} from '@angular/material/chips/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {ExtraConfig} from '../../../../../shared/models/config/crawlconfig.model';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
@@ -130,7 +130,7 @@ describe('CrawljobDetailsComponent', () => {
   let updateButton: MatButtonHarness;
   let revertButton: MatButtonHarness;
 
-  let disabledChip: MatChipOptionHarness;
+  let disabledCheckbox: MatCheckboxHarness;
   let crawlConfigSelect: MatSelectHarness;
   let scheduleSelect: MatSelectHarness;
   let scopeScriptSelect: MatSelectHarness;
@@ -159,9 +159,7 @@ describe('CrawljobDetailsComponent', () => {
       configObject: new SimpleChange(null, component.configObject, null)
     });
     await fixture.whenStable();
-    disabledChip = await loader.getHarness(
-      MatChipOptionHarness.with({selector: 'app-boolean-state-chip mat-chip-option'}),
-    );
+    disabledCheckbox = await loader.getHarness(MatCheckboxHarness);
     scheduleSelect = await loader.getHarness<MatSelectHarness>(MatSelectHarness
       .with({selector: '[data-testid="scheduleRef"]'}));
     crawlConfigSelect = await loader.getHarness<MatSelectHarness>(MatSelectHarness
@@ -180,9 +178,14 @@ describe('CrawljobDetailsComponent', () => {
 
   it('places the deactivated control after metadata in document order', () => {
     const metadata = fixture.nativeElement.querySelector('app-meta') as HTMLElement;
-    const deactivated = fixture.nativeElement.querySelector('app-boolean-state-chip') as HTMLElement;
+    const deactivated = fixture.nativeElement.querySelector('mat-checkbox') as HTMLElement;
 
     expect(metadata.compareDocumentPosition(deactivated) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders Deactivated as a normal checkbox', async () => {
+    expect(await disabledCheckbox.getLabelText()).toBe('Deactivated');
+    expect(await disabledCheckbox.isChecked()).toBe(false);
   });
 
   describe('Creating a new crawlJob', () => {
@@ -217,8 +220,8 @@ describe('CrawljobDetailsComponent', () => {
     it('update button should be active if form is updated and valid', async () => {
       expect(await updateButton.isDisabled()).toBeTruthy();
       expect(component.canUpdate).toBeFalsy();
-      expect(await disabledChip.isSelected()).toBeFalsy();
-      await disabledChip.select();
+      expect(await disabledCheckbox.isChecked()).toBeFalsy();
+      await disabledCheckbox.check();
       await fixture.whenStable();
       expect(await updateButton.isDisabled()).toBeFalsy();
       expect(component.canUpdate).toBeTruthy();
@@ -271,7 +274,7 @@ describe('CrawljobDetailsComponent', () => {
         update = config;
       });
 
-      await disabledChip.select();
+      await disabledCheckbox.check();
       await fixture.whenStable();
 
       await updateButton.click();
@@ -281,12 +284,12 @@ describe('CrawljobDetailsComponent', () => {
 
     it('clicking revert buttons reverts form back to initial values', async () => {
       expect(await revertButton.isDisabled()).toBeTruthy();
-      await disabledChip.select();
+      await disabledCheckbox.check();
       await fixture.whenStable();
       expect(component.canRevert).toBeTruthy();
       await revertButton.click();
       await fixture.whenStable();
-      expect(await disabledChip.isSelected()).toBe(false);
+      expect(await disabledCheckbox.isChecked()).toBe(false);
       expect(component.canRevert).toBeFalsy();
       expect(component.canUpdate).toBeFalsy();
     });

@@ -3,7 +3,8 @@
       <form>
         <mat-form-field>
           <mat-label i18n="@@annotationListInputLabel">Annotation</mat-label>
-          <mat-chip-grid [disabled]="disabled" #chipList class="layout-row layout-wrap gap-8">
+          <mat-chip-grid [disabled]="disabled" #chipList class="layout-row layout-wrap gap-8"
+            (dragover)="onNativeDragOver($event)" (drop)="onNativeDrop($event)">
             @for (group of groups$ | async; track group) {
               @for (value of group.values; track value) {
                 <mat-chip-row

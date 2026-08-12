@@ -62,8 +62,34 @@ describe('CrawlerStatusComponent', () => {
     expect(fixture.nativeElement.querySelector('.status-overview').getAttribute('aria-label'))
       .toBe('Crawler overview');
     expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();
-    expect(fixture.nativeElement.querySelectorAll('.metric-badge').length).toBe(2);
+    const metrics = [...fixture.nativeElement.querySelectorAll('.status-metrics .metric')] as HTMLElement[];
+    expect(metrics.map(metric => metric.querySelector('dt')?.textContent.trim()))
+      .toEqual(['Total queue size', 'Busy crawl host groups']);
+    expect(fixture.nativeElement.querySelector('.metric-badge')).toBeNull();
+    const overview = fixture.nativeElement.querySelector('.status-overview') as HTMLElement;
+    const metricList = overview.querySelector('.status-metrics') as HTMLElement;
+    const statusControl = overview.querySelector('.status-control') as HTMLElement;
+    expect(statusControl.compareDocumentPosition(metricList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.status-overview')).flexDirection).toBe('column');
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.status-metrics')).display).toBe('flex');
+    expect(fixture.nativeElement.querySelector('.metric-divider.mat-divider-vertical')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.status-action')).toBeNull();
+  });
+
+  it('can render the control and metrics independently', () => {
+    fixture.componentRef.setInput('crawlerStatus', new CrawlerStatus({runStatus: RunStatus.RUNNING}));
+    fixture.componentRef.setInput('showMetrics', false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.status-control')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.status-metrics')).toBeNull();
+
+    fixture.componentRef.setInput('showMetrics', true);
+    fixture.componentRef.setInput('showControl', false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.status-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.status-metrics')).not.toBeNull();
   });
 
   it.each([

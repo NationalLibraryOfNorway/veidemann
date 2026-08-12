@@ -1,22 +1,5 @@
 <form [formGroup]="form">
-  <mat-card appearance="outlined">
-    <mat-card-header class="card-header-with-helpers">
-      <div mat-card-avatar class="config-kind-avatar">
-        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
-      </div>
-      <mat-card-title>
-        @if (configObject.meta.name) {
-          {{configObject.meta.name}}
-        } @else {
-          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-        }
-      </mat-card-title>
-      @if (configObject.meta.description) {
-        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
-      }
-      <ng-content select="[cardHeaderHelpers]"></ng-content>
-    </mat-card-header>
-    <mat-card-content class="config-details-grid">
+    <div class="config-details-grid">
       <div class="layout-column flex-fill">
         <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
@@ -118,14 +101,13 @@
         </mat-form-field>
 
         <ng-container formGroupName="extra">
-          <app-boolean-state-chip formControlName="createScreenshot" label="Create screenshots"
-            i18n-label="@@crawlconfigFormCreateScreenshotLabel" selectedIcon="photo_camera" unselectedIcon="no_photography">
-          </app-boolean-state-chip>
+          <mat-checkbox formControlName="createScreenshot"
+            i18n="@@crawlconfigFormCreateScreenshotLabel">Create screenshots</mat-checkbox>
         </ng-container>
       </div>
-    </mat-card-content>
+    </div>
     @if (canEdit) {
-      <mat-card-actions>
+      <div class="config-form-actions">
         @if (showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canSave"
@@ -149,7 +131,6 @@
         REVERT
       </button>
         <span class="flex-fill"></span>
-      </mat-card-actions>
+      </div>
     }
-  </mat-card>
 </form>

@@ -7,19 +7,15 @@ import {Observable, of} from 'rxjs';
 import {
   CrawlExecutionState,
   ExtraStatusCodes,
-  JobExecutionState,
   JobExecutionStatus
 } from '../../../../shared/models/report';
 import {ConfigObject} from '../../../../shared/models/config';
-import {crawlExecutionStatePresentation, jobExecutionStatePresentation} from '../../func';
+import {DetailHeaderComponent} from '../../../../shared/components';
+import {crawlExecutionStatePresentation} from '../../func';
 import {JobExecutionService} from '../../services';
 import {
-  JobExecutionStatisticsComponent
-} from '../job-execution-statistics/job-execution-statistics.component';
-import {
-  ExecutionMetadataComponent,
-  ExecutionTerminalEvent,
-} from '../execution-metadata/execution-metadata.component';
+  JobExecutionMetricsSectionComponent
+} from '../job-execution-metrics-section/job-execution-metrics-section.component';
 
 interface CrawlExecutionStateCount {
   count: number;
@@ -34,8 +30,8 @@ interface CrawlExecutionStateCount {
   imports: [
     AsyncPipe,
     DecimalPipe,
-    ExecutionMetadataComponent,
-    JobExecutionStatisticsComponent,
+    DetailHeaderComponent,
+    JobExecutionMetricsSectionComponent,
     MatIcon,
     RouterLink,
   ],
@@ -46,7 +42,6 @@ export class JobExecutionStatusComponent {
 
   readonly ExtraStatusCodes = ExtraStatusCodes;
   readonly crawlStatePresentation = crawlExecutionStatePresentation;
-  readonly statePresentation = jobExecutionStatePresentation;
 
   private status: JobExecutionStatus;
   job$: Observable<ConfigObject | null> = of(null);
@@ -76,21 +71,6 @@ export class JobExecutionStatusComponent {
   hasError(): boolean {
     const error = this.jobExecutionStatus.error;
     return !!error && (error.code !== 0 || !!error.msg?.trim() || !!error.detail?.trim());
-  }
-
-  terminalEvent(state: JobExecutionState): ExecutionTerminalEvent {
-    switch (state) {
-      case JobExecutionState.FINISHED:
-        return 'finished';
-      case JobExecutionState.FAILED:
-        return 'failed';
-      case JobExecutionState.DIED:
-        return 'died';
-      case JobExecutionState.ABORTED_MANUAL:
-        return 'aborted';
-      default:
-        return null;
-    }
   }
 
   private toCrawlExecutionState(key: string): CrawlExecutionState | null {

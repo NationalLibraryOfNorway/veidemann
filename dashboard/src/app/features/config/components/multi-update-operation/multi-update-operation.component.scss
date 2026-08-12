@@ -1,0 +1,49 @@
+:host,
+.operation {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.operation {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+h5 {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.heading-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.value-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.common-values,
+.editor {
+  min-width: 0;
+}
+
+.mode-toggle {
+  width: max-content;
+  margin-left: auto;
+}
+
+@media (max-width: 599px) {
+  .value-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

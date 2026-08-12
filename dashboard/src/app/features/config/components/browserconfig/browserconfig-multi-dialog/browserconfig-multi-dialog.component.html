@@ -14,105 +14,65 @@
         (update)="onUpdateLabels($event)">
       </app-label-multi>
 
-      @if (!allSelected) {
-        <h5>Common browserscripts for the selected configs:</h5>
-      }
-      @if (allSelected) {
-        <h5>Browserscripts:</h5>
-      }
-      <div class="mass-update-inline">
-        <mat-form-field class="flex-fill">
+      <app-multi-update-operation
+        heading="Browser scripts" i18n-heading="@@browserConfigMultiBrowserScriptsHeading"
+        addLabel="Add browser scripts" i18n-addLabel="@@browserConfigMultiAddBrowserScriptsButtonToggleTooltip"
+        removeLabel="Remove browser scripts" i18n-removeLabel="@@browserConfigMultiRemoveBrowserScriptsButtonToggleTooltip"
+        [mode]="shouldAddBrowserScript"
+        [disabled]="!canEdit"
+        (modeChange)="onToggleBrowserScript($event)">
+        <mat-form-field multiUpdateCommon>
           <mat-label i18n="@@browserconfigFormBrowserscriptsDropdownLabel">
-            BrowserScripts
+            Browser scripts
           </mat-label>
           <mat-select multiple formControlName="commonScriptRefIdList">
             @for (browserScript of browserScripts; track browserScript) {
-              <mat-option disabled="true"
-              [value]="browserScript.id">{{browserScript.meta.name}}</mat-option>
+              <mat-option [value]="browserScript.id">{{browserScript.meta.name}}</mat-option>
             }
           </mat-select>
         </mat-form-field>
-        <div>
-          <mat-button-toggle-group [value]="shouldAddBrowserScript"
-            (valueChange)="onToggleBrowserScript($event)"
-            name="shouldAddBrowserScript">
-            <mat-button-toggle [value]="true" matTooltip="Add browserscripts to all selected configurations"
-              i18n-matTooltip="@@browserConfigMultiAddBrowserScriptsButtonToggleTooltip">
-              <mat-icon>add</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle [value]="false" matTooltip="Remove browserscripts from the selected configurations"
-              i18n-matTooltip="@@browserConfigMultiRemoveBrowserScriptsButtonToggleTooltip">
-              <mat-icon>remove</mat-icon>
-            </mat-button-toggle>
-          </mat-button-toggle-group>
-        </div>
-      </div>
-      @if (shouldAddBrowserScript !== undefined) {
-        <div class="layout-column">
-          <mat-form-field class="flex-fill">
-            <mat-label i18n="@@browserconfigFormBrowserscriptsDropdownLabel">
-            BrowserScripts
+        <mat-form-field multiUpdateEditor>
+          <mat-label i18n="@@browserconfigFormBrowserscriptsDropdownLabel">
+            Browser scripts
           </mat-label>
-            <mat-select multiple formControlName="scriptRefIdList">
-              @for (browserScript of browserScripts; track browserScript) {
-                <mat-option [value]="browserScript.id">
-                  {{browserScript.meta.name}}
-                </mat-option>
-              }
-            </mat-select>
-            @if (shouldAddBrowserScript) {
-              <mat-hint>Select browser scripts to add</mat-hint>
+          <mat-select multiple formControlName="scriptRefIdList">
+            @for (browserScript of browserScripts; track browserScript) {
+              <mat-option [value]="browserScript.id">{{browserScript.meta.name}}</mat-option>
             }
-            @if (!shouldAddBrowserScript) {
-              <mat-hint>Select browser scripts to remove</mat-hint>
-            }
-          </mat-form-field>
-        </div>
-      }
+          </mat-select>
+          @if (shouldAddBrowserScript === true) {
+            <mat-hint>Select browser scripts to add</mat-hint>
+          }
+          @if (shouldAddBrowserScript === false) {
+            <mat-hint>Select browser scripts to remove</mat-hint>
+          }
+        </mat-form-field>
+      </app-multi-update-operation>
 
-      @if (!allSelected) {
-        <h5>Common script selectors for the selected configs:</h5>
-      }
-      @if (allSelected) {
-        <h5>Script selectors:</h5>
-      }
-      <div class="mass-update-inline">
-        <mat-chip-listbox class="flex-fill">
+      <app-multi-update-operation
+        heading="Script selectors" i18n-heading="@@browserConfigMultiScriptSelectorsHeading"
+        addLabel="Add script selectors" i18n-addLabel="@@browserConfigMultiAddScriptSelectorButtonToggleTooltip"
+        removeLabel="Remove script selectors" i18n-removeLabel="@@browserConfigMultiRemoveScriptSelectorButtonToggleTooltip"
+        [mode]="shouldAddSelector"
+        [disabled]="!canEdit"
+        (modeChange)="onToggleShouldAddSelector($event)">
+        <mat-chip-listbox multiUpdateCommon>
           @for (scriptSelector of configObject.browserConfig.scriptSelectorList; track scriptSelector) {
             <mat-chip-option [selectable]="false">
               {{scriptSelector}}
             </mat-chip-option>
           }
         </mat-chip-listbox>
-        <div>
-          <mat-button-toggle-group
-            [value]="shouldAddSelector"
-            (valueChange)="onToggleShouldAddSelector($event)"
-            name="shouldAddSelector">
-            <mat-button-toggle [value]="true" matTooltip="Add script selectors to all the selected configurations"
-              i18n-matTooltip="@@browserConfigMultiAddScriptSelectorButtonToggleTooltip">
-              <mat-icon>add</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle [value]="false" matTooltip="Remove script selectors from all the selected configurations"
-              i18n-matTooltip="@@browserConfigMultiRemoveScriptSelectorButtonToggleTooltip">
-              <mat-icon>remove</mat-icon>
-            </mat-button-toggle>
-          </mat-button-toggle-group>
-        </div>
-      </div>
-      @if (shouldAddSelector !== undefined) {
-        <div class="layout-column">
-          <app-selector formControlName="scriptSelectorList"
-            [removable]="true" class="flex-fill">
-          </app-selector>
-          @if (shouldAddSelector) {
+        <div multiUpdateEditor>
+          <app-selector formControlName="scriptSelectorList" [removable]="true"></app-selector>
+          @if (shouldAddSelector === true) {
             <mat-hint>Enter script selectors to add</mat-hint>
           }
-          @if (!shouldAddSelector) {
+          @if (shouldAddSelector === false) {
             <mat-hint>Enter script selectors to remove</mat-hint>
           }
         </div>
-      }
+      </app-multi-update-operation>
     </div>
 
     <div class="mass-update-section">

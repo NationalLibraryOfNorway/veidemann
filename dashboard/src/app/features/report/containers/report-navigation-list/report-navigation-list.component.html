@@ -8,18 +8,6 @@
             Explore crawl activity, execution details, and collected logs.
           </p>
         </div>
-
-        @if (can('read', 'jobexecution')) {
-          <mat-chip-set class="destination-assists" aria-label="Report shortcuts"
-                        i18n-aria-label="@@reportShortcutsLabel">
-            <a class="destination-assist-chip" mat-chip
-               [routerLink]="['/report', 'jobexecution']"
-               [queryParams]="runningReportQueryParams">
-              <mat-icon matChipAvatar>play_circle</mat-icon>
-              <span i18n="@@reportRunningCrawlsShortcut">Running crawls</span>
-            </a>
-          </mat-chip-set>
-        }
       </mat-card-content>
     </mat-card>
 
@@ -43,7 +31,9 @@
                 <a class="destination-link" [routerLink]="['/report', destination.route]">
                   <mat-card class="destination-card" appearance="outlined">
                     <mat-card-header>
-                      <mat-icon mat-card-avatar>{{destination.icon}}</mat-icon>
+                      <div mat-card-avatar class="config-kind-avatar">
+                        <mat-icon aria-hidden="true">{{destination.icon}}</mat-icon>
+                      </div>
                       <mat-card-title>{{destination.label}}</mat-card-title>
                     </mat-card-header>
                   </mat-card>

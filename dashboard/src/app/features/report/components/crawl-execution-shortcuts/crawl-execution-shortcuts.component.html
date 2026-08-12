@@ -1,4 +1,47 @@
-@if ((showPageLog && can('read', 'pagelog'))
+@if (presentation === 'menu') {
+  @if (showPageLog && can('read', 'pagelog')) {
+    <a mat-menu-item [routerLink]="['/report', 'pagelog']"
+      [queryParams]="{execution_id: crawlExecutionStatus.id}">
+      <mat-icon>art_track</mat-icon><span i18n="@@reportDetailPageLogAction">Page log</span>
+    </a>
+  }
+  @if (showCrawlLog && can('read', 'crawllog')) {
+    <a mat-menu-item [routerLink]="['/report', 'crawllog']"
+      [queryParams]="{execution_id: crawlExecutionStatus.id}">
+      <mat-icon>event_note</mat-icon><span i18n="@@reportDetailCrawlLogAction">Crawl log</span>
+    </a>
+  }
+  @if (showCrawlExecution && can('read', 'crawlexecution')) {
+    <a mat-menu-item [routerLink]="['/report', 'crawlexecution', crawlExecutionStatus.id]">
+      <mat-icon>hdr_weak</mat-icon><span i18n="@@reportDetailCrawlExecutionAction">Crawl execution</span>
+    </a>
+  }
+  @if (showJobExecution && can('read', 'jobexecution')) {
+    <a mat-menu-item [routerLink]="['/report', 'jobexecution', crawlExecutionStatus.jobExecutionId]">
+      <mat-icon>hdr_strong</mat-icon><span i18n="@@reportDetailJobExecutionAction">Job execution</span>
+    </a>
+  }
+  @if (showCrawlJob && can('read', Kind[Kind.CRAWLJOB])) {
+    <a mat-menu-item [routerLink]="['/config', 'crawljobs', crawlExecutionStatus.jobId]">
+      <mat-icon>work</mat-icon><span i18n="@@reportDetailCrawlJobAction">Crawl job</span>
+    </a>
+  }
+  @if (showSeed && can('read', Kind[Kind.SEED])) {
+    <a mat-menu-item [routerLink]="['/config', 'seed', crawlExecutionStatus.seedId]">
+      <mat-icon>link</mat-icon><span i18n="@@reportDetailSeedAction">Seed</span>
+    </a>
+  }
+  @if (showPlayback && (playbackUrl$ | async); as playbackUrl) {
+    <a mat-menu-item [href]="playbackUrl" target="_blank" rel="noopener noreferrer">
+      <mat-icon>play_circle</mat-icon><span i18n="@@reportDetailPlaybackAction">Playback</span>
+    </a>
+  }
+  @if (crawlExecutionStatus.id) {
+    <button mat-menu-item type="button" [appCopyId]="crawlExecutionStatus.id">
+      <mat-icon>content_copy</mat-icon><span i18n="@@copyIdChip">Copy ID</span>
+    </button>
+  }
+} @else if ((showPageLog && can('read', 'pagelog'))
   || (showCrawlLog && can('read', 'crawllog'))
   || (showCrawlExecution && can('read', 'crawlexecution'))
   || (showJobExecution && can('read', 'jobexecution'))

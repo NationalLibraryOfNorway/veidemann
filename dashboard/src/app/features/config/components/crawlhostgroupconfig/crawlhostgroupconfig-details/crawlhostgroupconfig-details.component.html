@@ -1,22 +1,5 @@
 <form [formGroup]="form" class="flex-fill">
-  <mat-card appearance="outlined">
-    <mat-card-header class="card-header-with-helpers">
-      <div mat-card-avatar class="config-kind-avatar">
-        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
-      </div>
-      <mat-card-title>
-        @if (configObject.meta.name) {
-          {{configObject.meta.name}}
-        } @else {
-          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-        }
-      </mat-card-title>
-      @if (configObject.meta.description) {
-        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
-      }
-      <ng-content select="[cardHeaderHelpers]"></ng-content>
-    </mat-card-header>
-    <mat-card-content class="config-details-grid">
+    <div class="config-details-grid">
       <div class="layout-column flex-fill">
         <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
@@ -109,12 +92,12 @@
         <fieldset class="ip-range-group" formArrayName="ipRangeList">
           <legend mat-card-subtitle i18n="@@ipRangeListHeader">IP range</legend>
           @for (ipRange of ipRangeControlArray.controls; track ipRange; let i = $index) {
-            <div
-              data-testid="ipRangeList" class="layout-column">
-              <div [formGroupName]="i" class="layout-row gap-16">
-                <mat-form-field data-testid="ipRangeFrom" class="flex-fill">
+            <div data-testid="ipRangeList" class="layout-column ip-range-entry">
+              <div [formGroupName]="i" class="ip-range-row">
+                <mat-form-field data-testid="ipRangeFrom" class="flex-fill"
+                  subscriptSizing="dynamic">
                   <mat-label i18n="@@crawlhostgroupconfigFormIpFromLabel">
-                  IP address
+                  From IP address
                 </mat-label>
                   <input matInput formControlName="ipFrom">
                   <mat-hint i18n="@@crawlhostgroupconfigFormIpFromHint">From</mat-hint>
@@ -125,9 +108,10 @@
                 </mat-error>
                   }
                 </mat-form-field>
-                <mat-form-field data-testid="ipRangeTo" class="flex-fill">
+                <mat-form-field data-testid="ipRangeTo" class="flex-fill"
+                  subscriptSizing="dynamic">
                   <mat-label i18n="@@crawlhostgroupconfigFormIpToLabel">
-                  IP address
+                  To IP address
                 </mat-label>
                   <input matInput formControlName="ipTo">
                   <mat-hint i18n="@@crawlhostgroupconfigFormIpToHint">To</mat-hint>
@@ -139,7 +123,7 @@
                   }
                 </mat-form-field>
                 @if (canEdit) {
-                  <button mat-icon-button type="button"
+                  <button mat-icon-button type="button" class="ip-range-remove"
                     (click)="onRemoveIpRange(i)"
                     [attr.aria-label]="removeIpRangeLabel(i)"
                     matTooltip="Remove IP range"
@@ -171,10 +155,10 @@
           }
         </fieldset>
       </div>
-    </mat-card-content>
+    </div>
 
     @if (canEdit) {
-      <mat-card-actions>
+      <div class="config-form-actions">
         @if (showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canSave"
@@ -198,7 +182,6 @@
         REVERT
       </button>
         <span class="flex-fill"></span>
-      </mat-card-actions>
+      </div>
     }
-  </mat-card>
 </form>

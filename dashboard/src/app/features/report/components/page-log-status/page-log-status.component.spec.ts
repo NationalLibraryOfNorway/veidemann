@@ -118,7 +118,8 @@ describe('PageLogStatusComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.detail-header h1')?.textContent).toBe('https://example.org');
-    expect(fixture.nativeElement.querySelector('.detail-subtitle')?.textContent).toBe('archive-collection');
+    expect(fixture.nativeElement.querySelector('.collection-metadata dt')?.textContent).toBe('Collection');
+    expect(fixture.nativeElement.querySelector('.collection-metadata dd')?.textContent).toBe('archive-collection');
     expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();
     expect(fixture.nativeElement.querySelector('mat-tab-group.detail-tabs')).not.toBeNull();
     const resourceToolbar = fixture.nativeElement.querySelector('.resource-filter-toolbar') as HTMLElement;
@@ -159,7 +160,7 @@ describe('PageLogStatusComponent', () => {
       .map((chip: Element) => chip.textContent?.trim());
     expect(chips).toEqual(['archive.example.org', 'www.example.org']);
     const domainScroll = fixture.nativeElement.querySelector('.outlink-domain-scroll') as HTMLElement;
-    expect(getComputedStyle(domainScroll).maxHeight).toBe('10rem');
+    expect(getComputedStyle(domainScroll).maxHeight).toBe('160px');
     expect(getComputedStyle(domainScroll).overflowY).toBe('auto');
 
     component.applyOutlinkDomainFilter(['www.example.org']);

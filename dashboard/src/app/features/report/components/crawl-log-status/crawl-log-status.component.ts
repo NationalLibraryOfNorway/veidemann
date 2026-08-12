@@ -6,6 +6,7 @@ import {DatePipe} from '@angular/common';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
 import {UrlFormatPipe} from '../../../../shared/pipes/url-format.pipe';
 import {MatIcon} from '@angular/material/icon';
+import {DetailHeaderComponent} from '../../../../shared/components';
 
 interface CrawlLogReportEntry {
   key: string;
@@ -22,6 +23,7 @@ interface CrawlLogReportEntry {
   imports: [
     MatIcon,
     MatTableModule,
+    DetailHeaderComponent,
     UrlFormatPipe,
   ],
   standalone: true

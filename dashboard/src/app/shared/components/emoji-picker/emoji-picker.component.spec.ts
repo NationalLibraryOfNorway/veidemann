@@ -1,7 +1,9 @@
-import {LOCALE_ID} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideHttpClient} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {MatSelectHarness} from '@angular/material/select/testing';
+import {MatTooltipHarness} from '@angular/material/tooltip/testing';
 
 import {EmojiPickerComponent} from './emoji-picker.component';
 
@@ -59,15 +61,16 @@ describe('EmojiPickerComponent', () => {
   let component: EmojiPickerComponent;
   let testAccess: EmojiPickerTestAccess;
   let http: HttpTestingController;
+  const originalDocumentLanguage = document.documentElement.lang;
 
   async function createComponent(locale: string): Promise<void> {
     TestBed.resetTestingModule();
+    document.documentElement.lang = locale;
     await TestBed.configureTestingModule({
       imports: [EmojiPickerComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        {provide: LOCALE_ID, useValue: locale},
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(EmojiPickerComponent);
@@ -77,7 +80,11 @@ describe('EmojiPickerComponent', () => {
     fixture.detectChanges();
   }
 
-  afterEach(() => http?.verify());
+  afterEach(() => {
+    http?.verify();
+    document.documentElement.lang = originalDocumentLanguage;
+    vi.restoreAllMocks();
+  });
 
   it('loads localized data, filters by CLDR names and tags, and emits the selected skin tone', async () => {
     await createComponent('en-US');
@@ -103,6 +110,27 @@ describe('EmojiPickerComponent', () => {
     component.emojiSelected.subscribe(value => selected.push(value));
     testAccess.selectEmoji(emojiData[1]);
     expect(selected).toEqual(['👋🏽']);
+
+    const skinToneSelect = await TestbedHarnessEnvironment.loader(fixture)
+      .getHarness(MatSelectHarness.with({selector: '.emoji-picker__skin-tone mat-select'}));
+    await skinToneSelect.open();
+    const skinToneOptions = await skinToneSelect.getOptions();
+    expect(await Promise.all(skinToneOptions.map(option => option.getText())))
+      .toEqual(['👋', '👋🏻', '👋🏼', '👋🏽', '👋🏾', '👋🏿']);
+    const optionElements = document.querySelectorAll('mat-option') as NodeListOf<HTMLElement>;
+    expect(Array.from(optionElements, option => option.getAttribute('aria-label'))).toEqual([
+      'Default skin tone',
+      'light skin tone',
+      'medium-light skin tone',
+      'medium skin tone',
+      'medium-dark skin tone',
+      'dark skin tone',
+    ]);
+    const optionTooltips = await TestbedHarnessEnvironment.documentRootLoader(fixture)
+      .getAllHarnesses(MatTooltipHarness.with({selector: 'mat-option'}));
+    await optionTooltips[3].show();
+    expect(await optionTooltips[3].getTooltipText()).toBe('medium skin tone');
+    await skinToneSelect.close();
   });
 
   it('uses Norwegian Bokmål assets for Norwegian locales', async () => {
@@ -111,5 +139,14 @@ describe('EmojiPickerComponent', () => {
     expect(component.dataLocale).toBe('nb');
     http.expectOne('public/emoji/nb/compact.json').flush([]);
     http.expectOne('public/emoji/nb/messages.json').flush({groups: [], skinTones: []});
+  });
+
+  it('uses the application document language instead of the browser language', async () => {
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('nb-NO');
+    await createComponent('en');
+
+    expect(component.dataLocale).toBe('en');
+    http.expectOne('public/emoji/en/compact.json').flush([]);
+    http.expectOne('public/emoji/en/messages.json').flush({groups: [], skinTones: []});
   });
 });

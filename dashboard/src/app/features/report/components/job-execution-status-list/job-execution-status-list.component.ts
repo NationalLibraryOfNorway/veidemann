@@ -11,7 +11,7 @@ import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/repor
 @Component({
   selector: 'app-job-execution-status-list',
   templateUrl: './job-execution-status-list.component.html',
-  styleUrls: ['./job-execution-status-list.component.scss', '../report-list/report-list.scss'],
+  styleUrls: ['../report-list/report-list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
@@ -31,7 +31,15 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
   @Input()
   embedded = false;
 
-  override displayedColumns: string[] = ['jobId', 'state', 'desiredState', 'startTime', 'endTime', 'action'];
+  override displayedColumns: string[] = [
+    'jobId',
+    'state',
+    'desiredState',
+    'startTime',
+    'endTime',
+    'duration',
+    'action',
+  ];
 
   duration(row: JobExecutionStatus): string {
     if (!row.startTime || !isValidDate(new Date(row.startTime)) ||
@@ -39,15 +47,6 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
       return '';
     }
     return durationBetweenDates(row.startTime, row.endTime);
-  }
-
-  showDesiredStateBadge(row: JobExecutionStatus): boolean {
-    return !this.displayedColumns.includes('desiredState')
-      && row.desiredState !== JobExecutionState.UNDEFINED;
-  }
-
-  desiredStateAriaLabel(state: JobExecutionState): string {
-    return $localize`:@@crawlJobExecutionReportListDesiredStateBadgeAriaLabel:Desired state: ${JobExecutionState[state]}`;
   }
 
 }

@@ -26,6 +26,7 @@ import {
   Parcel,
   RunCrawlDialogComponent
 } from '../../components';
+import {MultiUpdateDialogComponent} from '../../components/multi-update-dialog/multi-update-dialog.component';
 import {SortDirection} from '@angular/material/sort';
 import {ConfigService} from '../../../../shared/services';
 import {ConfigQuery, Sort} from '../../../../shared/func';
@@ -39,7 +40,6 @@ import {
   dialogByKind,
   equalConfigCountQuery,
   equalConfigQuery,
-  multiDialogByKind,
   parseConfigSearchTerm
 } from '../../func';
 import {ReferrerError} from '../../../../shared/error';
@@ -62,6 +62,7 @@ import {
 import {MatButtonModule} from '@angular/material/button';
 import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
 import {MongoAbility} from '@casl/ability';
+import {configKindIcon} from '../../func/config-kind-icon';
 
 
 @Component({
@@ -108,6 +109,7 @@ export class ConfigurationsComponent implements OnDestroy {
 
   readonly Kind = Kind;
   readonly ConfigPath = ConfigPath;
+  readonly configKindIcon = configKindIcon;
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   readonly totalLength: Signal<number | null>;
@@ -366,6 +368,7 @@ export class ConfigurationsComponent implements OnDestroy {
   onRemoveFilter(chip: ActiveConfigFilterChip): void {
     const query: ConfigQuery = {
       ...this.query(),
+      crawlJobIdList: [...this.query().crawlJobIdList],
       scriptIdList: [...this.query().scriptIdList],
     };
     switch (chip.key) {
@@ -374,6 +377,9 @@ export class ConfigurationsComponent implements OnDestroy {
         break;
       case 'scriptIdList':
         query.scriptIdList = query.scriptIdList.filter(id => id !== chip.value);
+        break;
+      case 'crawlJobIdList':
+        query.crawlJobIdList = query.crawlJobIdList.filter(id => id !== chip.value);
         break;
       case 'labelSelector':
         query.term = parseConfigSearchTerm(query.term ?? '').name;
@@ -388,6 +394,10 @@ export class ConfigurationsComponent implements OnDestroy {
       queryParamsHandling: 'merge',
       queryParams: {p: null, s: null, sort: sort.active && sort.direction ? `${sort.active}:${sort.direction}` : null}
     }).catch(error => this.errorHandler.handleError(error));
+  }
+
+  onDisabledFilterChange(disabled: boolean | null): void {
+    this.onQueryChange({...this.query(), disabled});
   }
 
   onSelectAll() {
@@ -488,8 +498,7 @@ export class ConfigurationsComponent implements OnDestroy {
   onEditSelected() {
     const configObject = ConfigObject.mergeConfigs(this.selectedConfigs);
     const data: ConfigDialogData = {configObject, options: this.options, allSelected: this.isAllSelected};
-    const componentType = multiDialogByKind(configObject.kind);
-    const dialogRef = this.dialog.open(componentType, {
+    const dialogRef = this.dialog.open(MultiUpdateDialogComponent, {
       data,
       width: '720px',
       maxWidth: 'calc(100vw - 32px)',

@@ -1,6 +1,7 @@
 import { AfterViewInit,ChangeDetectionStrategy,ChangeDetectorRef,Component,ElementRef,inject,Input,OnChanges,ViewChild } from '@angular/core';
-import { FormsModule,ReactiveFormsModule } from '@angular/forms';
+import {ReactiveFormsModule} from '@angular/forms';
 
+import {MatAutocompleteModule, MatAutocompleteSelectedEvent, MatAutocompleteTrigger} from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,11 +17,7 @@ import { BrowserScriptType, Kind, Role, RobotsPolicy } from '../../../../shared/
 import {parseConfigSearchTerm, serializeConfigSearchTerm} from '../../func/query';
 import type {ConfigLabelSelector} from '../../func/query';
 import type {ConfigOptions} from '../../func/options';
-
-interface SelectedCrawlJob {
-  id: string;
-  name: string;
-}
+import {LabelService} from '../../services/label.service';
 
 @Component({
   selector: 'app-config-query',
@@ -28,7 +25,7 @@ interface SelectedCrawlJob {
   templateUrl: './config-query.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatChipsModule,
     MatFormFieldModule,
@@ -44,6 +41,7 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
 
   private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly labelService = inject(LabelService);
 
   readonly Kind = Kind;
   readonly BrowserScriptType = BrowserScriptType;
@@ -52,6 +50,9 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
 
   term: string;
   appliedLabelSearch: ConfigLabelSelector | null = null;
+  labelKeys: string[] = [];
+  private labelKeysKind: Kind | null = null;
+  private loadingLabelKeysKind: Kind | null = null;
 
   @Input()
   options: ConfigOptions;
@@ -62,13 +63,15 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
   }
 
   @ViewChild('search') searchElement: ElementRef;
+  @ViewChild(MatAutocompleteTrigger) labelAutocompleteTrigger: MatAutocompleteTrigger;
 
-  get selectedCrawlJobs(): SelectedCrawlJob[] {
-    const selectedIds = this.form.controls['crawlJobIdList'].value as string[] | null;
-    return (selectedIds ?? []).map(id => ({
-      id,
-      name: this.options?.crawlJobs?.find(crawlJob => crawlJob.id === id)?.meta?.name || id,
-    }));
+  get filteredLabelKeys(): string[] {
+    const fragment = this.labelKeyFragment(this.term);
+    if (fragment === null) {
+      return [];
+    }
+    const normalizedFragment = fragment.toLowerCase();
+    return this.labelKeys.filter(key => key.toLowerCase().startsWith(normalizedFragment));
   }
 
   get showLabelSearchHelpers(): boolean {
@@ -108,9 +111,13 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
   }
 
   override onQuery(query: ConfigQuery) {
+    const term = Object.prototype.hasOwnProperty.call(query, 'term')
+      ? query.term
+      : serializeConfigSearchTerm(this.term, this.appliedLabelSearch);
     super.onQuery({
-      term: this.term,
+      ...this.query,
       ...query,
+      term,
       disabled: query.disabled ?? null,
       browserScriptType: query.browserScriptType ?? null,
       robotsPolicy: query.robotsPolicy ?? null,
@@ -132,6 +139,23 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
 
   insertLabelSearch(): void {
     this.insertSearchTerm('label:');
+    this.activateLabelAutocomplete();
+  }
+
+  onSearchTermChange(term: string): void {
+    this.term = term;
+    this.activateLabelAutocomplete();
+  }
+
+  onLabelKeySelected(event: MatAutocompleteSelectedEvent): void {
+    const marker = 'label:';
+    const markerIndex = this.term.indexOf(marker);
+    if (markerIndex < 0) {
+      return;
+    }
+    this.term = `${this.term.slice(0, markerIndex + marker.length)}${event.option.value}:`;
+    this.cdr.markForCheck();
+    this.searchElement?.nativeElement.focus();
   }
 
   async chooseLabelEmoji(): Promise<void> {
@@ -150,16 +174,6 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
       this.insertSearchTerm(term);
       this.onSearch(term);
     });
-  }
-
-  crawlJobRemoveLabel(name: string): string {
-    return $localize`:@@configQueryRemoveCrawlJobFilterLabel:Remove ${name} crawl job filter`;
-  }
-
-  removeCrawlJob(id: string): void {
-    const control = this.form.controls['crawlJobIdList'];
-    const selectedIds = control.value as string[] | null;
-    control.setValue((selectedIds ?? []).filter(selectedId => selectedId !== id));
   }
 
   protected override createForm(): void {
@@ -192,6 +206,54 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
     this.term = term;
     this.cdr.markForCheck();
     this.searchElement?.nativeElement.focus();
+  }
+
+  private activateLabelAutocomplete(): void {
+    const kind = this.query?.kind;
+    if (!kind || kind === Kind.ROLEMAPPING || this.labelKeyFragment(this.term) === null) {
+      this.labelAutocompleteTrigger?.closePanel();
+      return;
+    }
+
+    if (this.labelKeysKind === kind) {
+      this.openLabelAutocomplete();
+      return;
+    }
+    if (this.loadingLabelKeysKind === kind) {
+      return;
+    }
+
+    this.loadingLabelKeysKind = kind;
+    this.labelService.getLabelKeys(kind).pipe(take(1)).subscribe(keys => {
+      if (this.loadingLabelKeysKind === kind) {
+        this.loadingLabelKeysKind = null;
+      }
+      if (this.query?.kind !== kind) {
+        return;
+      }
+      this.labelKeysKind = kind;
+      this.labelKeys = keys;
+      this.openLabelAutocomplete();
+    });
+  }
+
+  private openLabelAutocomplete(): void {
+    this.cdr.markForCheck();
+    Promise.resolve().then(() => {
+      if (this.filteredLabelKeys.length && this.searchElement?.nativeElement.matches(':focus')) {
+        this.labelAutocompleteTrigger?.openPanel();
+      }
+    });
+  }
+
+  private labelKeyFragment(term: string): string | null {
+    const marker = 'label:';
+    const markerIndex = term?.indexOf(marker) ?? -1;
+    if (markerIndex < 0) {
+      return null;
+    }
+    const fragment = term.slice(markerIndex + marker.length);
+    return fragment.includes(':') ? null : fragment;
   }
 
 }

@@ -53,8 +53,11 @@ class TestHostComponent {
 describe('CrawlExecutionStatusListComponent', () => {
   let component: CrawlExecutionStatusListComponent;
   let fixture: ComponentFixture<CrawlExecutionStatusListComponent>;
+  const getSeed = vi.fn();
 
   beforeEach(() => {
+    getSeed.mockReset();
+    getSeed.mockReturnValue(of(new ConfigObject({meta: new Meta({name: 'https://example.com/seed'})})));
     TestBed.configureTestingModule({
       imports: [CrawlExecutionStatusListComponent, TestHostComponent],
       providers: [
@@ -62,9 +65,7 @@ describe('CrawlExecutionStatusListComponent', () => {
         provideRouter([]),
         {
           provide: CrawlExecutionService,
-          useValue: {
-            getSeed: () => of(new ConfigObject({meta: new Meta({name: 'https://example.com/seed'})})),
-          },
+          useValue: {getSeed},
         },
         {
           provide: JobExecutionService,
@@ -121,6 +122,32 @@ describe('CrawlExecutionStatusListComponent', () => {
     itemRow.click();
     itemRow.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
     expect(clicked).toEqual([row, row]);
+  });
+
+  it('renders a deleted seed gracefully with its ID available to users', async () => {
+    getSeed.mockReturnValue(of(null));
+    const row = new CrawlExecutionStatus({
+      id: 'crawl-execution-1',
+      seedId: 'deleted-seed-id',
+      jobId: 'job-1',
+      state: CrawlExecutionState.FINISHED,
+    });
+    const dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(row),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.componentRef.setInput('dataSource', dataSource);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const reference = fixture.nativeElement.querySelector('.deleted-reference') as HTMLElement;
+    expect(reference.textContent.trim()).toBe('Deleted seed');
+    expect(reference.getAttribute('aria-label')).toBe('Deleted seed. Seed ID: deleted-seed-id');
+    expect(component.deletedSeedTooltip(row.seedId)).toBe('Deleted seed ID: deleted-seed-id');
+    expect(getComputedStyle(reference).fontStyle).toBe('italic');
   });
 
   it('keeps log destinations inside the overflow menu', async () => {

@@ -1,23 +1,5 @@
-<mat-card appearance="outlined">
-  <mat-card-header class="card-header-with-helpers">
-    <div mat-card-avatar class="config-kind-avatar">
-      <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
-    </div>
-    <mat-card-title>
-      @if (configObject.meta.name) {
-        {{configObject.meta.name}}
-      } @else {
-        <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-      }
-    </mat-card-title>
-    @if (configObject.meta.description) {
-      <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
-    }
-    <ng-content select="[cardHeaderHelpers]"></ng-content>
-  </mat-card-header>
-
-  <form [formGroup]="form">
-    <mat-card-content class="config-details-grid">
+<form [formGroup]="form">
+    <div class="config-details-grid">
       <div class="layout-column flex-fill">
         <app-meta [kind]="configObject.kind" formControlName="meta"></app-meta>
         @if (!showSave) {
@@ -72,19 +54,12 @@
         </mat-error>
         }
 
-        <app-boolean-state-chip formControlName="useHostname" label="Use hostname"
-          i18n-label="@@politenessconfigFormUseHostnameLabel"
-          selectedLabel="Use hostname" i18n-selectedLabel="@@politenessconfigFormUseHostnameSelectedLabel"
-          unselectedLabel="Use IP-address" i18n-unselectedLabel="@@politenessconfigFormUseIpAddressLabel"
-          selectedIcon="dns" unselectedIcon="public">
-        </app-boolean-state-chip>
+        <mat-checkbox formControlName="useHostname"
+          i18n="@@politenessconfigFormUseHostnameLabel">Use hostname</mat-checkbox>
       </div>
-    </mat-card-content>
-  </form>
-
-
+    </div>
   @if (canEdit) {
-    <mat-card-actions>
+    <div class="config-form-actions">
       @if (showSave) {
         <button mat-raised-button color="accent"
           [disabled]="!canSave"
@@ -108,6 +83,6 @@
       REVERT
     </button>
       <span class="flex-fill"></span>
-    </mat-card-actions>
+    </div>
   }
-</mat-card>
+</form>

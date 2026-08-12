@@ -9,7 +9,7 @@ import { ConfigObject,ConfigRef,Kind,Label } from '../../../../../shared/models/
 import { NUMBER_OR_EMPTY_STRING } from '../../../../../shared/validation/patterns';
 import { ConfigDialogData } from '../../../func';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {BooleanOverrideComponent} from '../../../../../shared/components';
 
 @Component({
   selector: 'app-crawlconfig-multi-dialog',
@@ -17,7 +17,7 @@ import {BooleanStateChipComponent} from '../../../../../shared/components';
   styleUrls: ['./crawlconfig-multi-dialog.component.css', '../../mass-update-dialog.scss'],
   imports: [
     LabelMultiComponent,
-    BooleanStateChipComponent,
+    BooleanOverrideComponent,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -88,7 +88,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
       browserConfigRefId: '',
       politenessRefId: '',
       extra: this.fb.group({
-        createScreenshot: {value: '', disabled: true},
+        createScreenshot: null,
       }),
       minimumDnsTtlS: ['', Validators.pattern(NUMBER_OR_EMPTY_STRING)],
       priorityWeight: ['', Validators.pattern(NUMBER_OR_EMPTY_STRING)],
@@ -96,11 +96,6 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
   }
 
   protected override updateForm() {
-    if (this.configObject.crawlConfig.extra.createScreenshot !== null && !this.allSelected) {
-      this.createScreenshot.enable();
-    } else {
-      this.createScreenshot.disable();
-    }
     this.form.setValue({
       labelList: this.configObject.meta.labelList,
       collectionRefId: this.configObject.crawlConfig.collectionRef ? this.configObject.crawlConfig.collectionRef.id : '',
@@ -108,7 +103,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
       browserConfigRefId: this.configObject.crawlConfig.browserConfigRef ? this.configObject.crawlConfig.browserConfigRef.id : '',
       minimumDnsTtlS: this.configObject.crawlConfig.minimumDnsTtlS || '',
       priorityWeight: this.configObject.crawlConfig.priorityWeight || '',
-      extra: this.configObject.crawlConfig.extra,
+      extra: {createScreenshot: null},
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -145,8 +140,7 @@ export class CrawlConfigMultiDialogComponent extends CrawlConfigDetailsComponent
       pathList.push('crawlConfig.priorityWeight');
     }
 
-    if (this.createScreenshot.dirty
-      && (this.allSelected || formModel.extra.createScreenshot !== this.configObject.crawlConfig.extra.createScreenshot)) {
+    if (this.createScreenshot.dirty && formModel.extra.createScreenshot !== null) {
       crawlConfig.extra.createScreenshot = formModel.extra.createScreenshot;
       pathList.push('crawlConfig.extra.createScreenshot');
     }

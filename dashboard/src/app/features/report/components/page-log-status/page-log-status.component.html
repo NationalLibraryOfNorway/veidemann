@@ -1,16 +1,19 @@
 @if (pageLog) {
   <section class="page-log-detail" aria-label="Page log details" i18n-aria-label="@@pageLogDetailsLabel">
-    <header class="detail-header">
-      <div class="detail-heading">
-        <h1 class="page-log-uri-title">{{pageLog.uri}}</h1>
-        @if (pageLog.collectionFinalName) {
-          <p class="detail-subtitle">{{pageLog.collectionFinalName}}</p>
-        }
-      </div>
-      <div class="detail-header-helpers">
+    <app-detail-header icon="art_track" supertitle="Page log"
+      i18n-supertitle="@@pageLogHeaderSupertitle" [title]="pageLog.uri">
+      <ng-container detailHeaderActions>
         <ng-content select="[detailHeaderHelpers]"></ng-content>
-      </div>
-    </header>
+      </ng-container>
+      @if (pageLog.collectionFinalName) {
+        <dl detailHeaderMetadata class="collection-metadata">
+          <div>
+            <dt i18n="@@pageLogCollectionMetadataLabel">Collection</dt>
+            <dd>{{pageLog.collectionFinalName}}</dd>
+          </div>
+        </dl>
+      }
+    </app-detail-header>
     <mat-tab-group class="detail-tabs">
         <mat-tab [label]="resourceTabLabel(pageLog.resource.length)">
           <div class="tab-content">

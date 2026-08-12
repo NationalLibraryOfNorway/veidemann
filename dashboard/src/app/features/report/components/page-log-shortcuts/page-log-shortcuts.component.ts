@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatMenuModule} from '@angular/material/menu';
 import {CopyIdDirective} from '../../../../shared/directives';
 
 @Component({
@@ -18,6 +19,7 @@ import {CopyIdDirective} from '../../../../shared/directives';
       CopyIdDirective,
       MatChipsModule,
       MatIconModule,
+      MatMenuModule,
       MatTooltipModule,
       RouterModule,
     ]
@@ -28,6 +30,7 @@ export class PageLogShortcutsComponent {
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
 
   @Input() pageLog: PageLog;
+  @Input() presentation: 'chips' | 'menu' = 'chips';
 
   constructor() {
     this.can = this.abilityService.can;

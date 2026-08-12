@@ -19,12 +19,6 @@ import {EditorComponent, MonacoEditorModule} from 'ngx-monaco-editor-v2';
 import {AuthService} from '../../../../../core';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {vi} from 'vitest';
-import {MatDialog} from '@angular/material/dialog';
-import {Subject} from 'rxjs';
-import {
-  BrowserScriptEditorDialogComponent,
-  BrowserScriptEditorDialogResult
-} from '../browserscript-editor-dialog/browserscript-editor-dialog.component';
 
 
 const exampleBrowserScript: ConfigObject = {
@@ -57,11 +51,6 @@ describe('BrowserScriptDetailsComponent', () => {
   let updateButton: MatButtonHarness;
 
   let scriptTypeSelect: MatSelectHarness;
-  let dialogClosed: Subject<BrowserScriptEditorDialogResult | undefined>;
-
-  const dialog = {
-    open: vi.fn(),
-  };
   const authService = {
     canUpdate: vi.fn(() => true),
     canDelete: vi.fn(() => true),
@@ -77,16 +66,12 @@ describe('BrowserScriptDetailsComponent', () => {
       providers: [
         ...provideCoreTesting,
         {provide: AuthService, useValue: authService},
-        {provide: MatDialog, useValue: dialog},
       ]
     })
       .compileComponents();
   });
 
   beforeEach(async () => {
-    dialogClosed = new Subject<BrowserScriptEditorDialogResult | undefined>();
-    dialog.open.mockReset();
-    dialog.open.mockReturnValue({afterClosed: () => dialogClosed.asObservable()});
     authService.canUpdate.mockReturnValue(true);
 
     fixture = TestBed.createComponent(BrowserScriptDetailsComponent);
@@ -130,75 +115,77 @@ describe('BrowserScriptDetailsComponent', () => {
     expect(component.editorOptions.automaticLayout).toBe(true);
   });
 
-  it('places the full-screen edit chip in a separate action row without a Script header', () => {
-    const actionRow = fixture.nativeElement.querySelector('.editor-action-row') as HTMLElement;
-    const editChip = actionRow.querySelector('mat-chip[role="button"]') as HTMLElement;
+  it('places an icon-only edit-script action right aligned with update and revert', () => {
+    const actionRow = fixture.nativeElement.querySelector('.config-form-actions') as HTMLElement;
+    const editButton = actionRow.querySelector(
+      '[data-testid="toggleScriptExpandedButton"]'
+    ) as HTMLButtonElement;
 
-    expect(fixture.nativeElement.querySelector('.editor-field-label')).toBeNull();
-    expect(editChip.textContent).toContain('Edit script');
-
-    editChip.click();
-    const spaceEvent = new KeyboardEvent('keydown', {key: ' ', bubbles: true, cancelable: true});
-    editChip.dispatchEvent(spaceEvent);
-
-    expect(dialog.open).toHaveBeenCalledTimes(2);
-    expect(spaceEvent.defaultPrevented).toBe(true);
+    expect(editButton.textContent.trim()).toBe('open_in_full');
+    expect(editButton.getAttribute('aria-label')).toBe('Edit script');
+    expect(editButton.getAttribute('aria-pressed')).toBe('false');
+    expect(editButton.previousElementSibling.classList).toContain('flex-fill');
   });
 
-  it('opens the current script in a full-screen editor dialog', () => {
-    component.onOpenFullscreenEditor();
+  it('grows the script editor to the bottom of its detail-grid column', () => {
+    const detailsGrid = fixture.nativeElement.querySelector('.details-grid') as HTMLElement;
+    const editorSection = fixture.nativeElement.querySelector('.editor-section') as HTMLElement;
+    const editorField = fixture.nativeElement.querySelector('.editor-field') as HTMLElement;
+    const editor = editorField.querySelector('ngx-monaco-editor') as HTMLElement;
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      BrowserScriptEditorDialogComponent,
-      expect.objectContaining({
-        data: {
-          name: 'Example BrowserScript',
-          script: 'console.log(\'test\')',
-          readOnly: false,
-          theme: 'vs',
-        },
-        ariaLabel: 'Script editor',
-      })
-    );
+    expect(getComputedStyle(detailsGrid).alignItems).toBe('stretch');
+    expect(editorSection.classList).toContain('flex-fill');
+    expect(editorField.classList).toContain('flex-fill');
+    expect(getComputedStyle(editor).height).toBe('100%');
+    expect(getComputedStyle(editorField).minHeight).toBe('280px');
   });
 
-  it('applies a full-screen edit and marks the form dirty', () => {
-    component.onOpenFullscreenEditor();
+  it('expands the script as the sole form field while keeping form actions visible', () => {
+    component.toggleScriptExpanded();
+    fixture.detectChanges();
 
-    dialogClosed.next({script: 'console.log(\'updated\')'});
-    dialogClosed.complete();
+    const detailsGrid = fixture.nativeElement.querySelector('.details-grid') as HTMLElement;
+    const editButton = fixture.nativeElement.querySelector(
+      '[data-testid="toggleScriptExpandedButton"]'
+    ) as HTMLButtonElement;
 
-    expect(component.script.value).toBe('console.log(\'updated\')');
-    expect(component.script.dirty).toBe(true);
-    expect(component.form.dirty).toBe(true);
+    expect(detailsGrid.classList).toContain('script-expanded');
+    expect(fixture.nativeElement.querySelector('app-meta')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.url-regexp-field')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.editor-field')).not.toBeNull();
+    const editorField = fixture.nativeElement.querySelector('.editor-field') as HTMLElement;
+    const formActions = fixture.nativeElement.querySelector('.config-form-actions') as HTMLElement;
+    expect(formActions).not.toBeNull();
+    expect(detailsGrid.compareDocumentPosition(formActions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(detailsGrid).minHeight).toBe('400px');
+    expect(getComputedStyle(editorField).minHeight).toBe('0px');
+    expect(editButton.textContent.trim()).toBe('close_fullscreen');
+    expect(editButton.getAttribute('aria-label')).toBe('Show full form');
+    expect(editButton.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('applies an intentionally empty script', () => {
-    component.onOpenFullscreenEditor();
+  it('edits and updates the form script directly from expanded mode', () => {
+    const update = vi.spyOn(component.update, 'emit');
+    component.toggleScriptExpanded();
+    component.script.setValue('console.log(\'updated\')');
+    component.script.markAsDirty();
+    component.form.markAsDirty();
+    component.onUpdate();
 
-    dialogClosed.next({script: ''});
-    dialogClosed.complete();
-
-    expect(component.script.value).toBe('');
-    expect(component.form.dirty).toBe(true);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      browserScript: expect.objectContaining({script: 'console.log(\'updated\')'}),
+    }));
   });
 
-  it('discards a canceled full-screen edit', () => {
-    component.onOpenFullscreenEditor();
+  it('restores the other fields when leaving expanded mode', () => {
+    component.toggleScriptExpanded();
+    component.toggleScriptExpanded();
+    fixture.detectChanges();
 
-    dialogClosed.next(undefined);
-    dialogClosed.complete();
-
-    expect(component.script.value).toBe('console.log(\'test\')');
-    expect(component.form.pristine).toBe(true);
-  });
-
-  it('opens the full-screen editor read-only without update permission', () => {
-    authService.canUpdate.mockReturnValue(false);
-
-    component.onOpenFullscreenEditor();
-
-    expect(dialog.open.mock.calls[0][1].data.readOnly).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-meta')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.url-regexp-field')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-select')).not.toBeNull();
   });
 
   it('uses the light Monaco theme when the dashboard is in light mode', () => {

@@ -79,16 +79,14 @@
           }
         </mat-form-field>
 
-        <div formGroupName="extra"
-          role="button"
-          tabindex="0"
-          (click)="createScreenshot.disabled ? createScreenshot.enable() : null"
-          (keydown.enter)="createScreenshot.disabled ? createScreenshot.enable() : null"
-          (keydown.space)="createScreenshot.disabled ? createScreenshot.enable() : null">
-          <app-boolean-state-chip formControlName="createScreenshot" label="Create screenshots"
-            i18n-label="@@crawlconfigFormCreateScreenshotLabel">
-          </app-boolean-state-chip>
-        </div>
+        <fieldset formGroupName="extra" class="mass-update-choice">
+          <legend i18n="@@crawlconfigFormCreateScreenshotLabel">Create screenshots</legend>
+          <app-boolean-override formControlName="createScreenshot"
+            ariaLabel="Create screenshots" i18n-ariaLabel="@@crawlconfigFormCreateScreenshotLabel"
+            trueLabel="Take screenshot" i18n-trueLabel="@@crawlConfigMultiTakeScreenshot"
+            falseLabel="Do not take screenshot" i18n-falseLabel="@@crawlConfigMultiDoNotTakeScreenshot">
+          </app-boolean-override>
+        </fieldset>
       </div>
     </div>
   </mat-dialog-content>

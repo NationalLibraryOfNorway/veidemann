@@ -2,7 +2,10 @@ import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {DestroyRef, ElementRef} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatChipListboxHarness} from '@angular/material/chips/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
 import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ConfigListComponent} from './config-list.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
@@ -205,6 +208,119 @@ describe('ConfigListComponent', () => {
     expect(getComputedStyle(count).backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(getComputedStyle(count).fontSize).toBe(getComputedStyle(subtitle).fontSize);
     expect(getComputedStyle(count).lineHeight).toBe(getComputedStyle(subtitle).lineHeight);
+    expect(getComputedStyle(count).fontWeight).toBe('500');
+  });
+
+  it('renders deselectable uppercase state chips before the order control', async () => {
+    component.showStateFilter = true;
+    component.showOrderControl = true;
+    component.configKind = Kind.SEED;
+    component.length = 0;
+    const states: (boolean | null)[] = [];
+    component.disabledFilterChange.subscribe(value => states.push(value));
+    fixture.detectChanges();
+
+    const headerControls = fixture.nativeElement.querySelector('.list-header-controls') as HTMLElement;
+    const stateFilter = headerControls.querySelector('.state-filter') as HTMLElement;
+    const orderControl = headerControls.querySelector('.order-control') as HTMLElement;
+    expect(stateFilter.compareDocumentPosition(orderControl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '.state-filter'}));
+    const [active, deactivated] = await listbox.getChips();
+    expect(await listbox.isMultiple()).toBe(false);
+    expect(await Promise.all([active.getText(), deactivated.getText()])).toEqual(['ACTIVE', 'DEACTIVATED']);
+
+    await active.select();
+    expect(states.at(-1)).toBe(false);
+    await deactivated.select();
+    expect(states.at(-1)).toBe(true);
+    await deactivated.toggle();
+    expect(states.at(-1)).toBeNull();
+  });
+
+  it('offers every supported order and emits the corresponding sort', async () => {
+    component.showOrderControl = true;
+    component.length = 0;
+    const sorts: {active: string; direction: string}[] = [];
+    component.sort.subscribe(value => sorts.push(value));
+    fixture.detectChanges();
+
+    const button = await loader.getHarness(MatButtonHarness.with({
+      selector: '[data-testid="configuration-order"]',
+      appearance: 'text',
+      iconName: 'sort',
+    }));
+    expect(await button.getAppearance()).toBe('text');
+    const orderButton = fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement;
+    expect(orderButton.tagName).toBe('BUTTON');
+    expect(orderButton.classList).toContain('order-control-icon-only');
+    expect(orderButton.querySelector('.order-label')).toBeNull();
+    expect(orderButton.querySelector('.order-menu-indicator')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.list-header-controls mat-form-field')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.list-header-controls mat-select')).toBeNull();
+
+    const menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
+    await menu.open();
+    const options = await menu.getItems();
+    expect(await Promise.all(options.map(option => option.getText()))).toEqual([
+      'Default order',
+      'Name: A–Z',
+      'Name: Z–A',
+      'Last modified: newest first',
+      'Last modified: oldest first',
+    ]);
+    expect(await options[0].isDisabled()).toBe(true);
+
+    await options[1].click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: 'asc'});
+    fixture.componentRef.setInput('sortActive', 'name');
+    fixture.componentRef.setInput('sortDirection', 'asc');
+    fixture.detectChanges();
+    expect(orderButton.classList).not.toContain('order-control-icon-only');
+    const orderLabel = orderButton.querySelector('.order-label') as HTMLElement;
+    const orderIndicator = orderButton.querySelector('.order-menu-indicator') as HTMLElement;
+    expect(orderLabel.textContent?.trim()).toBe('Name: A–Z');
+    expect(orderLabel.compareDocumentPosition(orderIndicator) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await menu.open();
+    await menu.clickItem({text: 'Name: Z–A'});
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: 'desc'});
+    fixture.componentRef.setInput('sortDirection', 'desc');
+    fixture.detectChanges();
+
+    await menu.open();
+    await menu.clickItem({text: 'Last modified: newest first'});
+    expect(sorts.at(-1)).toEqual({active: 'lastModified', direction: 'desc'});
+    fixture.componentRef.setInput('sortActive', 'lastModified');
+    fixture.detectChanges();
+
+    await menu.open();
+    await menu.clickItem({text: 'Last modified: oldest first'});
+    expect(sorts.at(-1)).toEqual({active: 'lastModified', direction: 'asc'});
+    fixture.componentRef.setInput('sortDirection', 'asc');
+    fixture.detectChanges();
+
+    await menu.open();
+    await menu.clickItem({text: 'Default order'});
+    expect(sorts.at(-1)).toEqual({active: '', direction: ''});
+  });
+
+  it('keeps filtering and ordering available while rows are selected', () => {
+    const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(row),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    component.showStateFilter = true;
+    component.showOrderControl = true;
+    component.length = 1;
+    component.onCheckboxToggle(row);
+    fixture.detectChanges();
+
+    expect(component.isSelectionMode()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.state-filter')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.order-control')).not.toBeNull();
   });
 
   it('automatically selects appended rows while loaded-row selection is active', async () => {

@@ -1,33 +1,59 @@
 import {BrowserScriptType, ConfigObject, ConfigRef, Kind} from '../../../shared/models';
 
+export type ConfigRelationRole =
+  | 'entity'
+  | 'crawl-job'
+  | 'schedule'
+  | 'crawl-config'
+  | 'scope-script'
+  | 'collection'
+  | 'browser-config'
+  | 'politeness-config'
+  | 'browser-script';
+
+export type ConfigRelationSource = 'direct' | 'selector';
+
+export interface RelatedConfigDescriptor {
+  ref: ConfigRef;
+  role: ConfigRelationRole;
+  source: ConfigRelationSource;
+}
+
 /** Returns the direct configuration references stored by a configuration object. */
 export function directConfigRefs(configObject: ConfigObject): ConfigRef[] {
-  const refs: ConfigRef[] = [];
+  return directConfigDescriptors(configObject).map(descriptor => descriptor.ref);
+}
+
+/** Returns direct references with the relationship role used by their owner. */
+export function directConfigDescriptors(configObject: ConfigObject): RelatedConfigDescriptor[] {
+  const descriptors: RelatedConfigDescriptor[] = [];
 
   switch (configObject?.kind) {
     case Kind.SEED:
-      refs.push(configObject.seed?.entityRef, ...(configObject.seed?.jobRefList ?? []));
+      descriptors.push(descriptor(configObject.seed?.entityRef, 'entity'));
+      descriptors.push(...(configObject.seed?.jobRefList ?? []).map(ref => descriptor(ref, 'crawl-job')));
       break;
     case Kind.CRAWLJOB:
-      refs.push(
-        configObject.crawlJob?.scheduleRef,
-        configObject.crawlJob?.crawlConfigRef,
-        configObject.crawlJob?.scopeScriptRef,
+      descriptors.push(
+        descriptor(configObject.crawlJob?.scheduleRef, 'schedule'),
+        descriptor(configObject.crawlJob?.crawlConfigRef, 'crawl-config'),
+        descriptor(configObject.crawlJob?.scopeScriptRef, 'scope-script'),
       );
       break;
     case Kind.CRAWLCONFIG:
-      refs.push(
-        configObject.crawlConfig?.collectionRef,
-        configObject.crawlConfig?.browserConfigRef,
-        configObject.crawlConfig?.politenessRef,
+      descriptors.push(
+        descriptor(configObject.crawlConfig?.collectionRef, 'collection'),
+        descriptor(configObject.crawlConfig?.browserConfigRef, 'browser-config'),
+        descriptor(configObject.crawlConfig?.politenessRef, 'politeness-config'),
       );
       break;
     case Kind.BROWSERCONFIG:
-      refs.push(...(configObject.browserConfig?.scriptRefList ?? []));
+      descriptors.push(...(configObject.browserConfig?.scriptRefList ?? [])
+        .map(ref => descriptor(ref, 'browser-script')));
       break;
   }
 
-  return uniqueConfigRefs(refs);
+  return uniqueDescriptors(descriptors);
 }
 
 /** Returns direct references plus BrowserScripts selected by a BrowserConfig's label selectors. */
@@ -35,18 +61,34 @@ export function relatedConfigRefs(
   configObject: ConfigObject,
   browserScripts: ConfigObject[] = [],
 ): ConfigRef[] {
-  const refs = directConfigRefs(configObject);
+  return relatedConfigDescriptors(configObject, browserScripts).map(descriptor => descriptor.ref);
+}
+
+/** Returns direct and selector-derived references without losing their origin. */
+export function relatedConfigDescriptors(
+  configObject: ConfigObject,
+  browserScripts: ConfigObject[] = [],
+): RelatedConfigDescriptor[] {
+  const descriptors = directConfigDescriptors(configObject);
   const selectors = configObject?.browserConfig?.scriptSelectorList ?? [];
 
   if (configObject?.kind === Kind.BROWSERCONFIG && selectors.length) {
-    refs.push(...browserScripts
+    descriptors.push(...browserScripts
       .filter(script => script?.kind === Kind.BROWSERSCRIPT
         && script.browserScript?.browserScriptType !== BrowserScriptType.SCOPE_CHECK
         && matchesSelectors(script, selectors))
-      .map(ConfigObject.toConfigRef));
+      .map(script => descriptor(ConfigObject.toConfigRef(script), 'browser-script', 'selector')));
   }
 
-  return uniqueConfigRefs(refs);
+  return uniqueDescriptors(descriptors);
+}
+
+function descriptor(
+  ref: ConfigRef,
+  role: ConfigRelationRole,
+  source: ConfigRelationSource = 'direct',
+): RelatedConfigDescriptor {
+  return {ref, role, source};
 }
 
 function matchesSelectors(configObject: ConfigObject, selectors: string[]): boolean {
@@ -69,9 +111,9 @@ function matchesSelectors(configObject: ConfigObject, selectors: string[]): bool
   });
 }
 
-function uniqueConfigRefs(refs: ConfigRef[]): ConfigRef[] {
+function uniqueDescriptors(descriptors: RelatedConfigDescriptor[]): RelatedConfigDescriptor[] {
   const seen = new Set<string>();
-  return refs.filter(ref => {
+  return descriptors.filter(({ref}) => {
     if (!ref?.id || ref.kind === Kind.UNDEFINED) {
       return false;
     }

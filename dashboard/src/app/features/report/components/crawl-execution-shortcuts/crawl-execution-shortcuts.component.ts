@@ -6,6 +6,8 @@ import {MongoAbility} from '@casl/ability';
 import {RouterLink} from '@angular/router';
 import {MatIcon} from '@angular/material/icon';
 import {MatChipsModule} from '@angular/material/chips';
+import {MatMenuModule} from '@angular/material/menu';
+import {CopyIdDirective} from '../../../../shared/directives';
 import {catchError, defaultIfEmpty, map, of, ReplaySubject, shareReplay, switchMap} from 'rxjs';
 import {AppConfig} from '../../../../app.config';
 import {CrawlExecutionService} from '../../services';
@@ -59,8 +61,10 @@ function isHttpUrl(value: string): boolean {
   styleUrls: ['../execution-shortcut-helpers.scss'],
   imports: [
     AsyncPipe,
+    CopyIdDirective,
     MatIcon,
     MatChipsModule,
+    MatMenuModule,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -93,6 +97,7 @@ export class CrawlExecutionShortcutHelpersComponent {
   @Input() showCrawlJob = true;
   @Input() showSeed = true;
   @Input() showPlayback = false;
+  @Input() presentation: 'chips' | 'menu' = 'chips';
 
   readonly playbackUrl$ = this.crawlExecutionStatus$.pipe(
     switchMap(status => {

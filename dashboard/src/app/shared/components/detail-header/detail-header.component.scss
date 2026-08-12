@@ -1,0 +1,118 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.detail-header {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  grid-template-areas:
+    "icon heading actions"
+    ". description ."
+    ". metadata metadata"
+    ". lifecycle lifecycle";
+  align-items: start;
+  column-gap: 16px;
+  row-gap: 0;
+}
+
+.detail-header-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--mat-sys-corner-medium);
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  grid-area: icon;
+  place-items: center;
+}
+
+.detail-header-heading {
+  min-width: 0;
+  grid-area: heading;
+}
+
+.detail-header-supertitle,
+.detail-header-description {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.detail-header-supertitle {
+  margin: 0 0 2px;
+  font: var(--mat-sys-label-large);
+}
+
+h1 {
+  margin: 0;
+  font: var(--mat-sys-headline-medium);
+  overflow-wrap: anywhere;
+}
+
+.detail-header-title-link {
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.detail-header-title-link:hover {
+  text-decoration: underline;
+}
+
+.detail-header-description {
+  max-width: 70ch;
+  margin: 8px 0 0;
+  font: var(--mat-sys-body-large);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  grid-area: description;
+}
+
+.detail-header-actions {
+  display: flex;
+  min-width: 48px;
+  min-height: 48px;
+  grid-area: actions;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.detail-header-metadata,
+.detail-header-lifecycle {
+  min-width: 0;
+}
+
+.detail-header-metadata {
+  margin-block-start: 12px;
+  grid-area: metadata;
+}
+
+.detail-header-lifecycle {
+  margin-block-start: 12px;
+  grid-area: lifecycle;
+}
+
+.detail-header-metadata:empty,
+.detail-header-lifecycle:empty {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .detail-header {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    column-gap: 12px;
+  }
+
+  .detail-header-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .detail-header-actions {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  h1 {
+    font: var(--mat-sys-headline-small);
+  }
+}

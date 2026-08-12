@@ -58,14 +58,16 @@ describe('RunningCrawlsComponent', () => {
   it('renders the uncarded latest-jobs table at its natural height with the requested columns', () => {
     render([new JobExecutionStatus({id: 'execution-1'})]);
 
-    expect(fixture.nativeElement.querySelector('h2').textContent).toBe('Latest crawl jobs');
+    expect(fixture.nativeElement.querySelector('h2')).toBeNull();
     expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();
     expect(fixture.nativeElement.querySelector('.container').classList).toContain('embedded');
     const section = fixture.nativeElement.querySelector('.latest-crawl-jobs') as HTMLElement;
     const header = section.querySelector('.latest-crawl-jobs-header') as HTMLElement;
     const list = section.querySelector('app-job-execution-status-list') as HTMLElement;
     expect(getComputedStyle(section).width).toBe('100%');
+    expect(section.getAttribute('aria-label')).toBe('Jobs');
     expect(getComputedStyle(header).paddingInline).toBe('16px');
+    expect(getComputedStyle(header).justifyContent).toBe('flex-end');
     expect(getComputedStyle(list).width).toBe('100%');
     expect(getComputedStyle(list).borderStyle).toBe('none');
     const headers = [...fixture.nativeElement.querySelectorAll('th')]
@@ -73,6 +75,7 @@ describe('RunningCrawlsComponent', () => {
     expect(headers).toEqual([
       'Job',
       'State',
+      'Desired state',
       'Documents crawled',
       'Bytes crawled',
       'Start',
@@ -108,9 +111,9 @@ describe('RunningCrawlsComponent', () => {
     const itemRow = fixture.nativeElement.querySelector('.item-row') as HTMLElement;
     expect(itemRow.textContent).toContain('Daily crawl');
     expect(itemRow.textContent).toContain('FINISHED');
-    const desiredStateBadge = itemRow.querySelector('.desired-state-badge') as HTMLElement;
-    expect(desiredStateBadge.textContent.trim()).toBe('ABORTED_MANUAL');
-    expect(desiredStateBadge.getAttribute('aria-label')).toBe('Desired state: ABORTED_MANUAL');
+    expect(itemRow.querySelector('.desired-state-badge')).toBeNull();
+    expect(itemRow.querySelector('.mat-column-state')?.textContent.trim()).toBe('FINISHED');
+    expect(itemRow.querySelector('.mat-column-desiredState')?.textContent.trim()).toBe('ABORTED_MANUAL');
     expect(itemRow.querySelector('.mat-column-queueSize')).toBeNull();
     expect(itemRow.textContent).toContain('1,234');
     expect(itemRow.querySelector('.mat-column-bytesCrawled')?.textContent.trim()).toBe('1.5 kB');

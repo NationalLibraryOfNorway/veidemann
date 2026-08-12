@@ -1,39 +1,46 @@
-:host {
-  display: block;
-  flex: 1 0 100%;
+:host { display: block; min-width: 0; }
+:host.empty-shortcut-layout { display: none; }
+.shortcut-layout { display: flex; min-width: 0; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.reference-shortcuts { display: grid; width: 100%; min-width: 0; }
+.relationship-row {
+  display: grid;
   min-width: 0;
-  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: stretch;
 }
-
-.shortcut-groups {
+.relationship-row + .relationship-row {
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+.relationship-content {
+  display: grid; min-width: 0; padding: 10px 12px; border-radius: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+}
+.relationship-label { display: grid; min-width: 0; font: var(--mat-sys-body-medium); overflow-wrap: anywhere; }
+.relationship-link {
   min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  justify-self: start;
 }
-
-.shortcut-groups:not(:has(mat-chip, a[mat-chip])) {
-  display: none;
+.relationship-link:hover { text-decoration: underline; }
+.relationship-link:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }
-
-.shortcut-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+.relationship-label small { color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-label-small); }
+.relationship-row.inactive { opacity: 0.68; }
+.relation-status {
+  grid-column-start: 3;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container-highest);
+  font: var(--mat-sys-label-small);
+  justify-self: end;
 }
-
-.filter-shortcuts {
-  order: 1;
-}
-
-.reference-shortcuts {
-  order: 3;
-}
-
-.config-actions-menu-trigger {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-.disabledJob {
-  color: var(--mat-sys-error);
-}
+.relationship-menu-trigger { align-self: center; justify-self: end; }
+.filter-shortcuts { display: flex; min-width: 0; flex-wrap: wrap; gap: 8px; }
+.config-actions-menu-trigger { margin-inline-start: auto; }
+.destructive-menu-item { margin-top: 8px; border-top: 1px solid var(--mat-sys-outline-variant); }

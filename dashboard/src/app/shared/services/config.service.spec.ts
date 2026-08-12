@@ -100,6 +100,19 @@ describe('ConfigService BrowserScript filtering', () => {
     expect(list.mock.calls[0][0].labelSelector).toEqual(['thisisalabel:hei']);
     expect(count.mock.calls[0][0].labelSelector).toEqual(['thisisalabel:hei']);
   });
+
+  it('orders configuration lists by indexed metadata fields', () => {
+    service.search({
+      ...browserScriptQuery(null),
+      active: 'lastModified',
+      direction: 'desc',
+    }, {offset: 0, pageSize: 10}).subscribe();
+
+    expect(list.mock.calls[0][0]).toEqual(expect.objectContaining({
+      orderByPath: 'meta.lastModified',
+      orderDescending: true,
+    }));
+  });
 });
 
 function browserScriptQuery(browserScriptType: BrowserScriptType | null): ConfigQuery {

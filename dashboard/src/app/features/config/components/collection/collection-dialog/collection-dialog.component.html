@@ -38,9 +38,8 @@
     </mat-error>
     }
 
-    <app-boolean-state-chip formControlName="compress" label="Compression"
-      i18n-label="@@collectionFormCompressLabel" selectedIcon="compress" unselectedIcon="unfold_more">
-    </app-boolean-state-chip>
+    <mat-checkbox formControlName="compress"
+      i18n="@@collectionFormCompressedLabel">Compressed</mat-checkbox>
 
     <app-subcollection-chips formControlName="subCollectionsList"
       [types]="subCollectionTypes" [editable]="canEdit"></app-subcollection-chips>

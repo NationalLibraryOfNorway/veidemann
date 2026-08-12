@@ -96,4 +96,19 @@ describe('JobExecutionShortcutHelpersComponent', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain(hiddenLabel);
   });
+
+  it('supports menu-item presentation without changing routes or labels', async () => {
+    fixture.componentRef.setInput('presentation', 'menu');
+    render();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const links = [...fixture.nativeElement.querySelectorAll('a[mat-menu-item]')] as HTMLAnchorElement[];
+    expect(links.map(link => link.getAttribute('href'))).toEqual([
+      '/config/crawljobs/job-1',
+      '/report/crawlexecution?job_id=job-1&job_execution_id=execution-1',
+    ]);
+    expect(fixture.nativeElement.textContent).toContain('Copy ID');
+    expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
+  });
 });

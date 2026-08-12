@@ -7,6 +7,8 @@ import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {Collection, ConfigObject, Kind, Meta, rotationPolicies, RotationPolicy, subCollectionTypes} from '../../../../../shared/models';
 import {LabelService} from '../../../services';
 import {CollectionDetailsComponent} from './collection-details.component';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 
 describe('CollectionDetailsComponent', () => {
   let fixture: ComponentFixture<CollectionDetailsComponent>;
@@ -34,24 +36,22 @@ describe('CollectionDetailsComponent', () => {
     await fixture.whenStable();
   });
 
-  it('renders saved details with copy, rotation selects, state chip, and subcollection add chips', () => {
+  it('renders saved details with copy, rotation selects, compression checkbox, and subcollection add chips', async () => {
     expect(component).toBeTruthy();
     expect(fixture.nativeElement.querySelector('button[aria-label="Copy ID"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelectorAll('mat-select').length).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('(compressed)');
-    expect(fixture.nativeElement.textContent).not.toContain('Compression: (compressed)');
-    expect(fixture.nativeElement.querySelector('[aria-label="Compression: (compressed)"]')).not.toBeNull();
+    const checkbox = await TestbedHarnessEnvironment.loader(fixture).getHarness(MatCheckboxHarness);
+    expect(await checkbox.getLabelText()).toBe('Compressed');
+    expect(await checkbox.isChecked()).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Add screenshot collection');
     expect(fixture.nativeElement.textContent).toContain('Add DNS collection');
     expect(fixture.nativeElement.querySelector('fieldset.mat-elevation-z1')).toBeNull();
   });
 
-  it('marks the form dirty when the compression state chip changes and saves the value', () => {
-    component.form.get('compress').setValue(false);
-    component.form.get('compress').markAsDirty();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('(uncompressed)');
-    expect(fixture.nativeElement.querySelector('[aria-label="Compression: (uncompressed)"]')).not.toBeNull();
+  it('marks the form dirty when the compression checkbox changes and saves the value', async () => {
+    const checkbox = await TestbedHarnessEnvironment.loader(fixture).getHarness(MatCheckboxHarness);
+    await checkbox.toggle();
+    expect(await checkbox.isChecked()).toBe(false);
     expect(component.canUpdate).toBe(true);
     let update: ConfigObject | undefined;
     component.update.subscribe(value => update = value);

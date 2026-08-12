@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.effective-script-annotations {
+  display: grid;
+  gap: 12px;
+}
+
+.crawl-job-chips,
+.annotation-chips {
+  display: block;
+}
+
+.crawl-job-chip {
+  cursor: pointer;
+}
+
+.crawl-job-chip.expanded {
+  --mdc-chip-elevated-container-color: var(--mat-sys-secondary-container);
+}
+
+.annotation-panel {
+  display: grid;
+  padding: 12px;
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-surface-container-low);
+  gap: 8px;
+}
+
+.crawl-job-name,
+.annotation-empty,
+.annotation-unavailable,
+.drag-hint {
+  margin: 0;
+}
+
+.crawl-job-name {
+  font: var(--mat-sys-label-large);
+}
+
+.annotation-chip {
+  cursor: grab;
+}
+
+.annotation-chip:active {
+  cursor: grabbing;
+}
+
+.annotation-empty,
+.drag-hint {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.annotation-unavailable {
+  color: var(--mat-sys-error);
+}
+
+.drag-hint {
+  font: var(--mat-sys-body-small);
+}

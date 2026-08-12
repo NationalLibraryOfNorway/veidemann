@@ -178,4 +178,20 @@ describe('CrawlExecutionShortcutHelpersComponent', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain(hiddenLabel);
   });
+
+  it('renders permitted destinations and copy as ordered menu items', () => {
+    fixture.componentRef.setInput('presentation', 'menu');
+    render();
+
+    const items = [...fixture.nativeElement.querySelectorAll('[mat-menu-item]')] as HTMLElement[];
+    expect(items.map(item => item.textContent?.trim())).toEqual([
+      'art_trackPage log',
+      'event_noteCrawl log',
+      'hdr_strongJob execution',
+      'workCrawl job',
+      'linkSeed',
+      'content_copyCopy ID',
+    ]);
+    expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
+  });
 });

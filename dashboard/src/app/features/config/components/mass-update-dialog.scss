@@ -122,3 +122,17 @@ mat-dialog-actions {
   justify-content: flex-end;
   gap: 8px;
 }
+
+:host(.mass-update-section-host) {
+  .mass-update-header,
+  mat-dialog-actions {
+    display: none;
+  }
+
+  mat-dialog-content.mass-update-content {
+    display: block;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+  }
+}

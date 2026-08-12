@@ -6,6 +6,7 @@ import {
 } from '../../../../api/config/v1/resources_pb';
 import {SubCollection} from './subcollection.model';
 import {isNumeric} from '../../func';
+import type {ConfigObject} from './configobject.model';
 
 export enum RotationPolicy {
   NONE = 0,
@@ -46,6 +47,27 @@ export class Collection {
       fileSize: Number(proto.fileSize),
       subCollectionsList: proto.subCollections.map(SubCollection.fromProto)
     });
+  }
+
+  static mergeConfigs(configObjects: ConfigObject[]): Collection {
+    const collection = new Collection();
+    const compare = configObjects[0].collection;
+
+    collection.collectionDedupPolicy = configObjects.every(
+      config => config.collection.collectionDedupPolicy === compare.collectionDedupPolicy
+    ) ? compare.collectionDedupPolicy : null;
+    collection.fileRotationPolicy = configObjects.every(
+      config => config.collection.fileRotationPolicy === compare.fileRotationPolicy
+    ) ? compare.fileRotationPolicy : null;
+    collection.compress = configObjects.every(
+      config => config.collection.compress === compare.compress
+    ) ? compare.compress : null;
+    collection.fileSize = configObjects.every(
+      config => config.collection.fileSize === compare.fileSize
+    ) ? compare.fileSize : NaN;
+    collection.subCollectionsList = [];
+
+    return collection;
   }
 
   static toProto(collection: Collection): CollectionProto {

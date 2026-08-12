@@ -1,59 +1,8 @@
-:host {
+.dashboard-crawler-status {
   display: block;
-  height: 100%;
-  overflow: auto;
-}
-
-.dashboard-page {
-  box-sizing: border-box;
-  width: 100%;
-  margin: 8px 0 0;
-  padding: 0;
-}
-
-.dashboard-hero-card-header {
-  display: grid;
-  box-sizing: border-box;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  min-width: 0;
-  padding-inline: 8px;
-}
-
-.dashboard-hero-card {
-  min-width: 0;
-  min-height: clamp(360px, 42vh, 400px);
-  overflow: hidden;
-  border-radius: 24px;
-}
-
-.dashboard-intro-content {
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  height: 100%;
-  padding: 40px;
-  justify-content: center;
-}
-
-.dashboard-intro-copy {
-  max-width: 44ch;
-}
-
-.dashboard-intro-copy h1 {
-  margin: 0 0 12px;
-  font: var(--mat-sys-display-medium);
-  letter-spacing: var(--mat-sys-display-medium-tracking);
-}
-
-.dashboard-intro-copy p {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-large);
-}
-
-app-crawlerstatus {
-  padding-top: 32px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 24px auto 0;
 }
 
 .dashboard-login-actions {
@@ -84,79 +33,19 @@ app-crawlerstatus {
   outline-offset: 2px;
 }
 
-.dashboard-artwork-card.mat-mdc-card.mat-mdc-card-filled {
-  display: grid;
-  place-items: center;
-}
-
-.dashboard-brand-picture {
-  display: block;
-  width: min(68%, 420px);
-}
-
-.dashboard-brand-logo {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
 .dashboard-running-crawls {
   display: block;
   min-width: 0;
   margin-top: 24px;
 }
 
-@media (max-width: 839px) {
-  .dashboard-artwork-card.mat-mdc-card.mat-mdc-card-filled {
-    display: none;
-  }
-}
-
-@media (min-width: 840px) {
-  .dashboard-hero-card-header {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-artwork-card {
-    grid-row: 1;
-    grid-column: 1;
-  }
-
-  .dashboard-intro-card {
-    grid-row: 1;
-    grid-column: 2;
-  }
-
-  .dashboard-running-crawls {
-    margin: 24px 0 0;
-  }
-}
-
 @media (max-width: 599px) {
-  .dashboard-hero-card {
-    min-height: 0;
-  }
-
-  .dashboard-intro-content {
-    min-height: 280px;
-    padding: 24px;
-  }
-
-  .dashboard-intro-copy h1 {
-    font: var(--mat-sys-headline-large);
-    letter-spacing: var(--mat-sys-headline-large-tracking);
-  }
-
-  app-crawlerstatus {
-    padding-top: 24px;
+  .dashboard-crawler-status {
+    margin-top: 16px;
   }
 
   .dashboard-login-actions {
     padding-top: 24px;
-  }
-
-  .dashboard-artwork-card {
-    min-height: 200px;
   }
 
   .dashboard-running-crawls {

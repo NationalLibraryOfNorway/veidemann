@@ -21,6 +21,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import {Router} from '@angular/router';
 
 import {PageLog, Resource} from '../../../../shared/models';
+import {DetailHeaderComponent} from '../../../../shared/components';
 import {
   HttpStatusFamily,
   HttpStatusFilterComponent,
@@ -98,6 +99,7 @@ export class ResourceMetadataDialogComponent {
     MatTableModule,
     MatTabsModule,
     MatTooltipModule,
+    DetailHeaderComponent,
     HttpStatusFilterComponent,
   ]
 })

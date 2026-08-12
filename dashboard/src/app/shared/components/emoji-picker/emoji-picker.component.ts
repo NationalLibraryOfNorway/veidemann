@@ -1,5 +1,6 @@
 import {CdkVirtualScrollViewport, ScrollingModule} from '@angular/cdk/scrolling';
-import {ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, LOCALE_ID, OnInit, Output, ViewChild, computed, inject, signal} from '@angular/core';
+import {DOCUMENT} from '@angular/common';
+import {ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, OnInit, Output, ViewChild, computed, inject, signal} from '@angular/core';
 import {FormControl, ReactiveFormsModule} from '@angular/forms';
 import {HttpClient} from '@angular/common/http';
 import {MatButtonModule} from '@angular/material/button';
@@ -74,7 +75,7 @@ const SKIN_TONES = [
 })
 export class EmojiPickerComponent implements OnInit {
   private readonly http = inject(HttpClient);
-  private readonly locale = inject(LOCALE_ID);
+  private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
 
   @Output() readonly emojiSelected = new EventEmitter<string>();
@@ -90,7 +91,7 @@ export class EmojiPickerComponent implements OnInit {
   protected readonly query = signal('');
   protected readonly selectedSkinTone = signal('');
 
-  private readonly normalizedLocale = typeof this.locale === 'string' ? this.locale.toLowerCase() : '';
+  private readonly normalizedLocale = this.document.documentElement.lang.toLowerCase();
   readonly dataLocale = this.normalizedLocale.startsWith('nb') || this.normalizedLocale.startsWith('no') ? 'nb' : 'en';
 
   protected readonly groups = computed<EmojiGroup[]>(() => {

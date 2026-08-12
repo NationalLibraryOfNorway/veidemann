@@ -1,55 +1,61 @@
 @if (crawlerStatus) {
   <section class="status-overview" aria-label="Crawler overview"
            i18n-aria-label="@@crawlerStatusOverviewLabel">
-    @if (crawlerStatus.runStatus === RunStatus.RUNNING) {
-      @if (can('update', 'crawlerStatus')) {
-        <button class="status-badge status-action status-running" type="button"
-                (click)="onPauseCrawler(true)">
-          <mat-icon>play_circle</mat-icon>
-          <span i18n="@@crawlerStatusRunningLabel">Running</span>
-          <span class="status-action-divider" aria-hidden="true">·</span>
-          <span i18n="@@crawlerStatusPauseAction">Pause crawler</span>
-        </button>
-      } @else {
-        <div class="status-badge status-running" role="status">
-          <mat-icon>play_circle</mat-icon>
-          <span i18n="@@crawlerStatusRunningLabel">Running</span>
-        </div>
-      }
-    }
-    @if (crawlerStatus.runStatus === RunStatus.PAUSE_REQUESTED) {
-      <div class="status-badge status-pausing" role="status">
-        <mat-icon>pending</mat-icon>
-        <span i18n="@@crawlerStatusPausingLabel">Pausing</span>
+    @if (showControl) {
+      <div class="status-control">
+        @if (crawlerStatus.runStatus === RunStatus.RUNNING) {
+          @if (can('update', 'crawlerStatus')) {
+            <button class="status-badge status-action status-running" type="button"
+                    (click)="onPauseCrawler(true)">
+              <mat-icon>play_circle</mat-icon>
+              <span i18n="@@crawlerStatusRunningLabel">Running</span>
+              <span class="status-action-divider" aria-hidden="true">·</span>
+              <span i18n="@@crawlerStatusPauseAction">Pause crawler</span>
+            </button>
+          } @else {
+            <div class="status-badge status-running" role="status">
+              <mat-icon>play_circle</mat-icon>
+              <span i18n="@@crawlerStatusRunningLabel">Running</span>
+            </div>
+          }
+        }
+        @if (crawlerStatus.runStatus === RunStatus.PAUSE_REQUESTED) {
+          <div class="status-badge status-pausing" role="status">
+            <mat-icon>pending</mat-icon>
+            <span i18n="@@crawlerStatusPausingLabel">Pausing</span>
+          </div>
+        }
+        @if (crawlerStatus.runStatus === RunStatus.PAUSED) {
+          @if (can('update', 'crawlerStatus')) {
+            <button class="status-badge status-action status-paused" type="button"
+                    (click)="onPauseCrawler(false)">
+              <mat-icon>pause_circle</mat-icon>
+              <span i18n="@@crawlerStatusPausedLabel">Paused</span>
+              <span class="status-action-divider" aria-hidden="true">·</span>
+              <span i18n="@@crawlerStatusResumeAction">Resume crawler</span>
+            </button>
+          } @else {
+            <div class="status-badge status-paused" role="status">
+              <mat-icon>pause_circle</mat-icon>
+              <span i18n="@@crawlerStatusPausedLabel">Paused</span>
+            </div>
+          }
+        }
       </div>
     }
-    @if (crawlerStatus.runStatus === RunStatus.PAUSED) {
-      @if (can('update', 'crawlerStatus')) {
-        <button class="status-badge status-action status-paused" type="button"
-                (click)="onPauseCrawler(false)">
-          <mat-icon>pause_circle</mat-icon>
-          <span i18n="@@crawlerStatusPausedLabel">Paused</span>
-          <span class="status-action-divider" aria-hidden="true">·</span>
-          <span i18n="@@crawlerStatusResumeAction">Resume crawler</span>
-        </button>
-      } @else {
-        <div class="status-badge status-paused" role="status">
-          <mat-icon>pause_circle</mat-icon>
-          <span i18n="@@crawlerStatusPausedLabel">Paused</span>
-        </div>
-      }
+
+    @if (showMetrics) {
+      <div class="status-metrics">
+        <dl class="metric">
+          <dt i18n="@@crawlerStatusQueueSizeTitle">Total queue size</dt>
+          <dd class="metric-value">{{ crawlerStatus.queueSize | number }}</dd>
+        </dl>
+        <mat-divider class="metric-divider" [vertical]="true" aria-hidden="true"></mat-divider>
+        <dl class="metric">
+          <dt i18n="@@crawlerStatusBusyGroupsTitle">Busy crawl host groups</dt>
+          <dd class="metric-value">{{ crawlerStatus.busyCrawlHostGroupCount | number }}</dd>
+        </dl>
+      </div>
     }
-
-    <div class="status-badge metric-badge">
-      <mat-icon>format_list_numbered</mat-icon>
-      <span i18n="@@crawlerStatusQueueSizeTitle">Total queue size</span>
-      <strong class="metric-value">{{ crawlerStatus.queueSize | number }}</strong>
-    </div>
-
-    <div class="status-badge metric-badge">
-      <mat-icon>groups</mat-icon>
-      <span i18n="@@crawlerStatusBusyGroupsTitle">Busy crawlhost groups</span>
-      <strong class="metric-value">{{ crawlerStatus.busyCrawlHostGroupCount | number }}</strong>
-    </div>
   </section>
 }

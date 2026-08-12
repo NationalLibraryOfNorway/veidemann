@@ -5,6 +5,8 @@ import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 
 describe('CollectionDialogComponent', () => {
   let component: CollectionDialogComponent;
@@ -41,5 +43,10 @@ describe('CollectionDialogComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('renders Compressed as a normal checkbox', async () => {
+    const checkbox = await TestbedHarnessEnvironment.loader(fixture).getHarness(MatCheckboxHarness);
+    expect(await checkbox.getLabelText()).toBe('Compressed');
   });
 });

@@ -1,86 +1,25 @@
 @if (crawlExecutionStatus) {
-  @let crawlState = statePresentation(crawlExecutionStatus.state);
   @let seedName = crawlExecutionStatus.seedId | getSeedNamePipe | async;
   @let jobName = crawlExecutionStatus.jobId | getJobNamePipe | async;
   <section class="detail-grid" aria-label="Crawl execution details"
            i18n-aria-label="@@crawlExecutionDetailGridLabel">
     <div class="primary-pane">
-      <header class="detail-header">
-        <div class="detail-title-row">
-          <div class="detail-heading">
-            <h1>{{seedName || crawlExecutionStatus.seedId}}</h1>
-            <p class="detail-subtitle">{{jobName || crawlExecutionStatus.jobId}}</p>
-          </div>
-          <div class="detail-header-actions">
-            <ng-content select="[detailActions]"></ng-content>
-          </div>
-        </div>
-        <app-execution-metadata
-          [state]="crawlState"
-          [desiredState]="crawlExecutionStatus.desiredState
-            ? statePresentation(crawlExecutionStatus.desiredState) : null"
-          [startTime]="crawlExecutionStatus.startTime"
-          [endTime]="crawlExecutionStatus.endTime"
-          [terminalEvent]="terminalEvent(crawlExecutionStatus.state)">
-        </app-execution-metadata>
-        <div class="detail-header-helpers">
+      <app-detail-header icon="hdr_weak"
+        supertitle="Crawl execution" i18n-supertitle="@@crawlExecutionHeaderSupertitle"
+        [title]="seedName?.label || crawlExecutionStatus.seedId">
+        <ng-container detailHeaderActions>
+          <ng-content select="[detailActions]"></ng-content>
+        </ng-container>
+        <div detailHeaderMetadata>
           <ng-content select="[detailHeaderHelpers]"></ng-content>
         </div>
-      </header>
+      </app-detail-header>
 
-      <section class="detail-section statistics-section" aria-labelledby="crawl-execution-statistics-title">
-        <h2 id="crawl-execution-statistics-title" i18n="@@executionCrawlStatisticsTitle">Crawl statistics</h2>
-        <div class="metric-grid">
-          <mat-card class="metric-card" appearance="filled">
-            <span i18n="@@crawlExecutionQueueSizeMetric">Queue size</span>
-            <strong>
-              @if (queueSize !== null) {
-                {{queueSize | number:'1.0-0'}}
-              } @else {
-                <span i18n="@@commonNotAvailable">Not available</span>
-              }
-            </strong>
-          </mat-card>
-          <mat-card class="metric-card" appearance="filled">
-            <span i18n="@@executionDocumentsCrawledMetric">Documents crawled</span>
-            <strong>{{crawlExecutionStatus.documentsCrawled | number:'1.0-0'}}</strong>
-          </mat-card>
-          <mat-card class="metric-card" appearance="filled">
-            <span i18n="@@executionBytesCrawledMetric">Bytes crawled</span>
-            <strong>{{crawlExecutionStatus.bytesCrawled | filesize}}</strong>
-          </mat-card>
-          <mat-card class="metric-card" appearance="filled">
-            <span i18n="@@executionDurationMetric">Duration</span>
-            <strong>{{crawlExecutionStatus.startTime | durationFormat:crawlExecutionStatus.endTime}}</strong>
-          </mat-card>
-          @if (crawlExecutionStatus.documentsDenied > 0) {
-            <mat-card class="metric-card" appearance="filled">
-              <span i18n="@@executionDocumentsDeniedMetric">Documents denied</span>
-              <strong>{{crawlExecutionStatus.documentsDenied | number:'1.0-0'}}</strong>
-            </mat-card>
-          }
-          @if (crawlExecutionStatus.documentsFailed > 0) {
-            <mat-card class="metric-card" appearance="filled">
-              <span i18n="@@executionDocumentsFailedMetric">Documents failed</span>
-              <strong>{{crawlExecutionStatus.documentsFailed | number:'1.0-0'}}</strong>
-            </mat-card>
-          }
-          @if (crawlExecutionStatus.documentsRetried > 0) {
-            <mat-card class="metric-card" appearance="filled">
-              <span i18n="@@executionDocumentsRetriedMetric">Documents retried</span>
-              <strong>{{crawlExecutionStatus.documentsRetried | number:'1.0-0'}}</strong>
-            </mat-card>
-          }
-          <mat-card class="metric-card" appearance="filled">
-            <span i18n="@@executionDocumentsOutOfScopeMetric">Documents out of scope</span>
-            <strong>{{crawlExecutionStatus.documentsOutOfScope | number:'1.0-0'}}</strong>
-          </mat-card>
-          <mat-card class="metric-card" appearance="filled">
-            <span i18n="@@executionUrisCrawledMetric">URIs crawled</span>
-            <strong>{{crawlExecutionStatus.urisCrawled | number:'1.0-0'}}</strong>
-          </mat-card>
-        </div>
-      </section>
+      <app-crawl-execution-metrics-section class="detail-section"
+        [crawlExecutionStatus]="crawlExecutionStatus"
+        [crawlJobDisplayValue]="jobName || crawlExecutionStatus.jobId"
+        [queueSize]="queueSize">
+      </app-crawl-execution-metrics-section>
 
       @if (hasError()) {
         <section class="error-callout" aria-labelledby="crawl-execution-error-title">

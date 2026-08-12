@@ -1,244 +1,362 @@
 <div class="shortcut-layout">
-  <mat-chip-set class="shortcut-groups reference-shortcuts" aria-label="Related configuration shortcuts"
-    i18n-aria-label="@@configDetailReferenceShortcutsLabel">
-  @switch (configObject.kind) {
-    @case (Kind.SEED) {
-      @if (can('read', Kind[Kind.CRAWLENTITY]) || can('read', Kind[Kind.CRAWLJOB])) {
-        @if (can('read', Kind[Kind.CRAWLENTITY])) {
-          <a mat-chip [routerLink]="['/config', 'entity', configObject.seed.entityRef.id]">
-            <mat-icon matChipAvatar>business</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.CRAWLENTITY)
-              : (configObject.seed.entityRef.id | getEntityName | async)}}</span>
-          </a>
+  @if (showReferences) {
+    <nav class="reference-shortcuts" aria-label="Related configurations"
+      i18n-aria-label="@@configDetailReferenceShortcutsLabel">
+      @switch (configObject.kind) {
+        @case (Kind.SEED) {
+          @if (configObject.seed.entityRef.id && can('read', Kind[Kind.CRAWLENTITY])) {
+            @let entity = configObject.seed.entityRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">business</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.CRAWLENTITY)}}</small>
+                  <a class="relationship-link" [routerLink]="['/config', 'entity', configObject.seed.entityRef.id]">
+                    {{entity?.meta?.name || configObject.seed.entityRef.id}}
+                  </a></span>
+              </div>
+              @if (entity) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(entity, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          @for (crawlJob of configObject.seed.jobRefList; track crawlJob.id) {
+            @if (can('read', Kind[Kind.CRAWLJOB])) {
+              @let relatedCrawlJob = crawlJob | getConfigRefObject | async;
+              <div class="relationship-row" [class.inactive]="isDeactivated(relatedCrawlJob)">
+                <div class="relationship-content">
+                  <mat-icon aria-hidden="true">work</mat-icon>
+                  <span class="relationship-label"><small>{{referenceKindLabel(Kind.CRAWLJOB)}}</small>
+                    <a class="relationship-link" [routerLink]="['/config/crawljobs/' + crawlJob.id]">
+                      {{relatedCrawlJob?.meta?.name || crawlJob.id}}
+                    </a></span>
+                  @if (isDeactivated(relatedCrawlJob)) {
+                    <span class="relation-status" i18n="@@commonDeactivated">Deactivated</span>
+                  }
+                </div>
+                @if (relatedCrawlJob) {
+                  <button mat-icon-button class="relationship-menu-trigger" type="button"
+                    [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(relatedCrawlJob, true)"
+                    aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                }
+              </div>
+            }
+          }
         }
-        @for (crawlJob of configObject.seed.jobRefList; track crawlJob.id) {
-          @if (can('read', Kind[Kind.CRAWLJOB])) {
-            <a mat-chip [routerLink]="['/config/crawljobs/' + crawlJob.id]"
-              [ngClass]="{disabledJob: crawlJob.id | getCrawlJobDisabledStatus | async}">
-              <mat-icon matChipAvatar>work</mat-icon>
-              <span>{{showReferenceKindLabels
-                ? referenceKindLabel(Kind.CRAWLJOB)
-                : (crawlJob.id | getJobNamePipe | async)}}</span>
-            </a>
+        @case (Kind.CRAWLJOB) {
+          @if (configObject.crawlJob.scheduleRef.id && can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
+            @let schedule = configObject.crawlJob.scheduleRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">schedule</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.CRAWLSCHEDULECONFIG)}}</small>
+                  <a class="relationship-link"
+                    [routerLink]="['/config/schedule/' + configObject.crawlJob.scheduleRef.id]">
+                    {{schedule?.meta?.name || configObject.crawlJob.scheduleRef.id}}
+                  </a></span>
+              </div>
+              @if (schedule) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(schedule, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          @if (configObject.crawlJob.crawlConfigRef.id && can('read', Kind[Kind.CRAWLCONFIG])) {
+            @let crawlConfig = configObject.crawlJob.crawlConfigRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">settings_system_daydream</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.CRAWLCONFIG)}}</small>
+                  <a class="relationship-link"
+                    [routerLink]="['/config/crawlconfig/' + configObject.crawlJob.crawlConfigRef.id]">
+                    {{crawlConfig?.meta?.name || configObject.crawlJob.crawlConfigRef.id}}
+                  </a></span>
+              </div>
+              @if (crawlConfig) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(crawlConfig, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          @if (configObject.crawlJob.scopeScriptRef.id && can('read', Kind[Kind.BROWSERSCRIPT])) {
+            @let scopeScript = configObject.crawlJob.scopeScriptRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">web_asset</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.BROWSERSCRIPT)}}</small>
+                  <a class="relationship-link"
+                    [routerLink]="['/config/browserscript/' + configObject.crawlJob.scopeScriptRef.id]">
+                    {{scopeScript?.meta?.name || configObject.crawlJob.scopeScriptRef.id}}
+                  </a></span>
+              </div>
+              @if (scopeScript) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(scopeScript, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        }
+        @case (Kind.CRAWLCONFIG) {
+          @if (configObject.crawlConfig.collectionRef.id && can('read', Kind[Kind.COLLECTION])) {
+            @let collection = configObject.crawlConfig.collectionRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">collections_bookmark</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.COLLECTION)}}</small>
+                  <a class="relationship-link"
+                    [routerLink]="['/config/collection/' + configObject.crawlConfig.collectionRef.id]">
+                    {{collection?.meta?.name || configObject.crawlConfig.collectionRef.id}}
+                  </a></span>
+              </div>
+              @if (collection) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(collection, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          @if (configObject.crawlConfig.browserConfigRef.id && can('read', Kind[Kind.BROWSERCONFIG])) {
+            @let browserConfig = configObject.crawlConfig.browserConfigRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">web</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.BROWSERCONFIG)}}</small>
+                  <a class="relationship-link"
+                    [routerLink]="['/config/browserconfig/' + configObject.crawlConfig.browserConfigRef.id]">
+                    {{browserConfig?.meta?.name || configObject.crawlConfig.browserConfigRef.id}}
+                  </a></span>
+              </div>
+              @if (browserConfig) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(browserConfig, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          @if (configObject.crawlConfig.politenessRef.id && can('read', Kind[Kind.POLITENESSCONFIG])) {
+            @let politeness = configObject.crawlConfig.politenessRef | getConfigRefObject | async;
+            <div class="relationship-row">
+              <div class="relationship-content">
+                <mat-icon aria-hidden="true">sentiment_very_satisfied</mat-icon>
+                <span class="relationship-label"><small>{{referenceKindLabel(Kind.POLITENESSCONFIG)}}</small>
+                  <a class="relationship-link"
+                    [routerLink]="['/config/politenessconfig/' + configObject.crawlConfig.politenessRef.id]">
+                    {{politeness?.meta?.name || configObject.crawlConfig.politenessRef.id}}
+                  </a></span>
+              </div>
+              @if (politeness) {
+                <button mat-icon-button class="relationship-menu-trigger" type="button"
+                  [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(politeness, true)"
+                  aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        }
+        @case (Kind.BROWSERCONFIG) {
+          @for (script of configObject.browserConfig.scriptRefList; track script.id) {
+            @if (can('read', Kind[Kind.BROWSERSCRIPT])) {
+              @let browserScript = script | getConfigRefObject | async;
+              <div class="relationship-row">
+                <div class="relationship-content">
+                  <mat-icon aria-hidden="true">web_asset</mat-icon>
+                  <span class="relationship-label"><small>{{referenceKindLabel(Kind.BROWSERSCRIPT)}}</small>
+                    <a class="relationship-link" [routerLink]="['/config/browserscript/' + script.id]">
+                      {{browserScript?.meta?.name || script.id}}
+                    </a></span>
+                </div>
+                @if (browserScript) {
+                  <button mat-icon-button class="relationship-menu-trigger" type="button"
+                    [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(browserScript, true)"
+                    aria-label="Configuration actions" i18n-aria-label="@@configDetailActionsMenuLabel">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                }
+              </div>
+            }
           }
         }
       }
-    }
-    @case (Kind.CRAWLJOB) {
-      @if ((configObject.crawlJob.scheduleRef.id && can('read', Kind[Kind.CRAWLSCHEDULECONFIG]))
-        || (configObject.crawlJob.crawlConfigRef.id && can('read', Kind[Kind.CRAWLCONFIG]))
-        || (configObject.crawlJob.scopeScriptRef.id && can('read', Kind[Kind.BROWSERSCRIPT]))) {
-        @if (configObject.crawlJob.scheduleRef.id && can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
-          <a mat-chip [routerLink]="['/config/schedule/' + configObject.crawlJob.scheduleRef.id]">
-            <mat-icon matChipAvatar>schedule</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.CRAWLSCHEDULECONFIG)
-              : (configObject | getCrawlScheduleName | async)}}</span>
-          </a>
-        }
-        @if (configObject.crawlJob.crawlConfigRef.id && can('read', Kind[Kind.CRAWLCONFIG])) {
-          <a mat-chip [routerLink]="['/config/crawlconfig/' + configObject.crawlJob.crawlConfigRef.id]">
-            <mat-icon matChipAvatar>settings_system_daydream</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.CRAWLCONFIG)
-              : (configObject | getCrawlConfigName | async)}}</span>
-          </a>
-        }
-        @if (configObject.crawlJob.scopeScriptRef.id && can('read', Kind[Kind.BROWSERSCRIPT])) {
-          <a mat-chip [routerLink]="['/config/browserscript/' + configObject.crawlJob.scopeScriptRef.id]">
-            <mat-icon matChipAvatar>web_asset</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.BROWSERSCRIPT)
-              : (configObject.crawlJob.scopeScriptRef.id | getBrowserScriptName | async)}}</span>
-          </a>
-        }
-      }
-    }
-    @case (Kind.CRAWLCONFIG) {
-      @if ((configObject.crawlConfig.collectionRef.id && can('read', Kind[Kind.COLLECTION]))
-        || (configObject.crawlConfig.browserConfigRef.id && can('read', Kind[Kind.BROWSERCONFIG]))
-        || (configObject.crawlConfig.politenessRef.id && can('read', Kind[Kind.POLITENESSCONFIG]))) {
-        @if (configObject.crawlConfig.collectionRef.id && can('read', Kind[Kind.COLLECTION])) {
-          <a mat-chip [routerLink]="['/config/collection/' + configObject.crawlConfig.collectionRef.id]">
-            <mat-icon matChipAvatar>collections_bookmark</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.COLLECTION)
-              : (configObject | getCollectionName | async)}}</span>
-          </a>
-        }
-        @if (configObject.crawlConfig.browserConfigRef.id && can('read', Kind[Kind.BROWSERCONFIG])) {
-          <a mat-chip [routerLink]="['/config/browserconfig/' + configObject.crawlConfig.browserConfigRef.id]">
-            <mat-icon matChipAvatar>web</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.BROWSERCONFIG)
-              : (configObject | getBrowserConfigName | async)}}</span>
-          </a>
-        }
-        @if (configObject.crawlConfig.politenessRef.id && can('read', Kind[Kind.POLITENESSCONFIG])) {
-          <a mat-chip [routerLink]="['/config/politenessconfig/' + configObject.crawlConfig.politenessRef.id]">
-            <mat-icon matChipAvatar>sentiment_very_satisfied</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.POLITENESSCONFIG)
-              : (configObject | getPolitenessConfigName | async)}}</span>
-          </a>
-        }
-      }
-    }
-    @case (Kind.BROWSERCONFIG) {
-      @if (configObject.browserConfig.scriptRefList.length && can('read', Kind[Kind.BROWSERSCRIPT])) {
-        @for (script of configObject.browserConfig.scriptRefList; track script.id) {
-          <a mat-chip [routerLink]="['/config/browserscript/' + script.id]">
-            <mat-icon matChipAvatar>web_asset</mat-icon>
-            <span>{{showReferenceKindLabels
-              ? referenceKindLabel(Kind.BROWSERSCRIPT)
-              : (script.id | getBrowserScriptName | async)}}</span>
-          </a>
-        }
-      }
-    }
+    </nav>
   }
-  </mat-chip-set>
 
-  <mat-chip-set class="shortcut-groups filter-shortcuts" aria-label="Configuration filters"
-    i18n-aria-label="@@configDetailFilterShortcutsLabel">
-  @switch (configObject.kind) {
-    @case (Kind.CRAWLENTITY) {
-      @if (can('read', Kind[Kind.SEED])) {
-        <a mat-chip [routerLink]="['../../seed']" [queryParams]="{entity_id: configObject.id}">
-          <mat-icon matChipAvatar>link</mat-icon>
-          <span i18n="@@configDetailShowSeedsAction">Show seeds</span>
-        </a>
+  @if (hasMenuItems) {
+    <button mat-icon-button class="config-actions-menu-trigger" data-testid="config-actions-menu" type="button"
+      [matMenuTriggerFor]="configActionsMenu" (click)="openMenu(configObject, false)" aria-label="Configuration actions"
+      i18n-aria-label="@@configDetailActionsMenuLabel"><mat-icon>more_vert</mat-icon></button>
+  }
+  <mat-menu #configActionsMenu="matMenu">
+  @if (activeMenuConfig(); as configObject) {
+    @if (relationshipMenu() || showFilters) {
+    @switch (configObject.kind) {
+      @case (Kind.CRAWLENTITY) {
+        @if (can('read', Kind[Kind.SEED])) {
+          <a mat-menu-item [routerLink]="['../../seed']" [queryParams]="{entity_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.SEED)}}</mat-icon>
+            <span i18n="@@configMenuShowSeeds">Show seeds</span>
+          </a>
+        }
       }
-    }
-    @case (Kind.SEED) {
-      @if (can('read', 'reports') || can('read', Kind[Kind.SEED])) {
-        @if (can('read', 'reports')) {
-          <a mat-chip [routerLink]="['/report/crawlexecution']" [queryParams]="{seed_id: configObject.id}">
-            <mat-icon matChipAvatar>hdr_weak</mat-icon>
-            <span i18n="@@configDetailShowCrawlExecutionsAction">Show crawlexecutions</span>
+      @case (Kind.SEED) {
+        @if (can('read', 'crawlexecution')) {
+          <a mat-menu-item [routerLink]="['/report/crawlexecution']" [queryParams]="{seed_id: configObject.id}">
+            <mat-icon>hdr_weak</mat-icon>
+            <span i18n="@@configMenuShowCrawlExecutions">Show crawl executions</span>
           </a>
         }
         @if (configObject.seed.jobRefList.length && can('read', Kind[Kind.SEED])) {
-          <a mat-chip [routerLink]="['../../seed']" [queryParams]="getJobRefListQueryParams(configObject)">
-            <mat-icon matChipAvatar>work</mat-icon>
-            <span i18n="@@configDetailFilterByCrawljobAction">Filter by crawljob</span>
+          <a mat-menu-item [routerLink]="['../../seed']" [queryParams]="getJobRefListQueryParams(configObject)">
+            <mat-icon>{{configKindIcon(Kind.SEED)}}</mat-icon>
+            <span i18n="@@configMenuShowSeedsWithSameCrawlJob">Show seeds with the same crawl job</span>
           </a>
         }
         @if (can('read', Kind[Kind.SEED])) {
-          <a mat-chip [routerLink]="['../../seed']"
-            [queryParams]="{entity_id: configObject.seed.entityRef.id}">
-            <mat-icon matChipAvatar>business</mat-icon>
-            <span i18n="@@configDetailFilterByEntityAction">Filter by entity</span>
+          <a mat-menu-item [routerLink]="['../../seed']" [queryParams]="{entity_id: configObject.seed.entityRef.id}">
+            <mat-icon>{{configKindIcon(Kind.SEED)}}</mat-icon>
+            <span i18n="@@configMenuShowSeedsWithSameEntity">Show seeds with the same entity</span>
           </a>
         }
       }
-    }
-    @case (Kind.CRAWLJOB) {
-      @if (can('read', 'reports') || can('read', Kind[Kind.SEED])) {
+      @case (Kind.CRAWLJOB) {
         @if (can('read', 'reports')) {
-          <a mat-chip [routerLink]="['/report/jobexecution']" [queryParams]="{job_id: configObject.id}">
-            <mat-icon matChipAvatar>hdr_strong</mat-icon>
-            <span i18n="@@configDetailShowJobExecutionsAction">Show jobexecutions</span>
+          <a mat-menu-item [routerLink]="['/report/jobexecution']" [queryParams]="{job_id: configObject.id}">
+            <mat-icon>hdr_strong</mat-icon>
+            <span i18n="@@configMenuShowJobExecutions">Show job executions</span>
           </a>
         }
         @if (can('read', Kind[Kind.SEED])) {
-          <a mat-chip [routerLink]="['../../seed']" [queryParams]="{crawl_job_id: configObject.id}">
-            <mat-icon matChipAvatar>link</mat-icon>
-            <span i18n="@@configDetailShowSeedsAction">Show seeds</span>
+          <a mat-menu-item [routerLink]="['../../seed']" [queryParams]="{crawl_job_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.SEED)}}</mat-icon>
+            <span i18n="@@configMenuShowSeeds">Show seeds</span>
+          </a>
+        }
+        @if (configObject.crawlJob.scheduleRef.id && can('read', Kind[Kind.CRAWLSCHEDULECONFIG])) {
+          <a mat-menu-item [routerLink]="['../../schedule', configObject.crawlJob.scheduleRef.id]">
+            <mat-icon>{{configKindIcon(Kind.CRAWLSCHEDULECONFIG)}}</mat-icon>
+            <span i18n="@@configMenuGoToSchedule">Go to schedule</span>
+          </a>
+        }
+        @if (configObject.crawlJob.crawlConfigRef.id && can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../crawlconfig', configObject.crawlJob.crawlConfigRef.id]">
+            <mat-icon>{{configKindIcon(Kind.CRAWLCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuGoToCrawlConfiguration">Go to crawl configuration</span>
+          </a>
+        }
+      }
+      @case (Kind.CRAWLSCHEDULECONFIG) {
+        @if (can('read', Kind[Kind.CRAWLJOB])) {
+          <a mat-menu-item [routerLink]="['../../crawljobs']" [queryParams]="{schedule_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.CRAWLJOB)}}</mat-icon>
+            <span i18n="@@configMenuShowCrawlJobs">Show crawl jobs</span>
+          </a>
+        }
+      }
+      @case (Kind.CRAWLCONFIG) {
+        @if (configObject.crawlConfig.collectionRef.id && can('read', Kind[Kind.COLLECTION])) {
+          <a mat-menu-item [routerLink]="['../../collection', configObject.crawlConfig.collectionRef.id]">
+            <mat-icon>{{configKindIcon(Kind.COLLECTION)}}</mat-icon>
+            <span i18n="@@configMenuGoToCollection">Go to collection</span>
+          </a>
+        }
+        @if (configObject.crawlConfig.browserConfigRef.id && can('read', Kind[Kind.BROWSERCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../browserconfig', configObject.crawlConfig.browserConfigRef.id]">
+            <mat-icon>{{configKindIcon(Kind.BROWSERCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuGoToBrowserConfiguration">Go to browser configuration</span>
+          </a>
+        }
+        @if (configObject.crawlConfig.politenessRef.id && can('read', Kind[Kind.POLITENESSCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../politenessconfig', configObject.crawlConfig.politenessRef.id]">
+            <mat-icon>{{configKindIcon(Kind.POLITENESSCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuGoToPolitenessConfiguration">Go to politeness configuration</span>
+          </a>
+        }
+        @if (can('read', Kind[Kind.CRAWLJOB])) {
+          <a mat-menu-item [routerLink]="['../../crawljobs']" [queryParams]="{crawl_config_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.CRAWLJOB)}}</mat-icon>
+            <span i18n="@@configMenuShowCrawlJobs">Show crawl jobs</span>
+          </a>
+        }
+      }
+      @case (Kind.COLLECTION) {
+        @if (can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../crawlconfig']" [queryParams]="{collection_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.CRAWLCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuShowCrawlConfigurations">Show crawl configurations</span>
+          </a>
+        }
+      }
+      @case (Kind.BROWSERCONFIG) {
+        @if (can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../crawlconfig']" [queryParams]="{browser_config_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.CRAWLCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuShowCrawlConfigurations">Show crawl configurations</span>
+          </a>
+        }
+      }
+      @case (Kind.BROWSERSCRIPT) {
+        @if (can('read', Kind[Kind.BROWSERCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../browserconfig']" [queryParams]="{script_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.BROWSERCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuShowBrowserConfigurations">Show browser configurations</span>
+          </a>
+        }
+      }
+      @case (Kind.POLITENESSCONFIG) {
+        @if (can('read', Kind[Kind.CRAWLCONFIG])) {
+          <a mat-menu-item [routerLink]="['../../crawlconfig']" [queryParams]="{politeness_id: configObject.id}">
+            <mat-icon>{{configKindIcon(Kind.CRAWLCONFIG)}}</mat-icon>
+            <span i18n="@@configMenuShowCrawlConfigurations">Show crawl configurations</span>
           </a>
         }
       }
     }
-    @case (Kind.CRAWLSCHEDULECONFIG) {
-      @if (can('read', Kind[Kind.CRAWLJOB])) {
-        <a mat-chip [routerLink]="['../../crawljobs']" [queryParams]="{schedule_id: configObject.id}">
-          <mat-icon matChipAvatar>work</mat-icon>
-          <span i18n="@@configDetailShowCrawljobsForScheduleAction">Show crawljobs</span>
-        </a>
-      }
     }
-    @case (Kind.CRAWLCONFIG) {
-      @if (can('read', Kind[Kind.CRAWLJOB])) {
-        <a mat-chip [routerLink]="['../../crawljobs']" [queryParams]="{crawl_config_id: configObject.id}">
-          <mat-icon matChipAvatar>work</mat-icon>
-          <span i18n="@@configDetailShowCrawljobsForCrawlConfigAction">Show crawljobs</span>
-        </a>
-      }
-    }
-    @case (Kind.COLLECTION) {
-      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
-        <a mat-chip [routerLink]="['../../crawlconfig']" [queryParams]="{collection_id: configObject.id}">
-          <mat-icon matChipAvatar>settings_system_daydream</mat-icon>
-          <span i18n="@@configDetailShowCrawlConfigsForCollectionAction">Show crawlconfigs</span>
-        </a>
-      }
-    }
-    @case (Kind.BROWSERCONFIG) {
-      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
-        <a mat-chip [routerLink]="['../../crawlconfig']" [queryParams]="{browser_config_id: configObject.id}">
-          <mat-icon matChipAvatar>settings_system_daydream</mat-icon>
-          <span i18n="@@configDetailShowCrawlConfigsForBrowserConfigAction">Show crawlconfigs</span>
-        </a>
-      }
-    }
-    @case (Kind.BROWSERSCRIPT) {
-      @if (can('read', Kind[Kind.BROWSERCONFIG])) {
-        <a mat-chip [routerLink]="['../../browserconfig']" [queryParams]="{script_id: configObject.id}">
-          <mat-icon matChipAvatar>web</mat-icon>
-          <span i18n="@@configDetailShowBrowserConfigsForScriptAction">Show browserconfigs</span>
-        </a>
-      }
-    }
-    @case (Kind.POLITENESSCONFIG) {
-      @if (can('read', Kind[Kind.CRAWLCONFIG])) {
-        <a mat-chip [routerLink]="['../../crawlconfig']" [queryParams]="{politeness_id: configObject.id}">
-          <mat-icon matChipAvatar>settings_system_daydream</mat-icon>
-          <span i18n="@@configDetailShowCrawlConfigsForPolitenessAction">Show crawlconfigs</span>
-        </a>
-      }
-    }
-  }
-  </mat-chip-set>
-
-  @if (hasActions) {
-    <button mat-icon-button class="config-actions-menu-trigger"
-      data-testid="config-actions-menu"
-      type="button"
-      [matMenuTriggerFor]="configActionsMenu"
-      aria-label="Configuration actions"
-      i18n-aria-label="@@configDetailActionsMenuLabel">
-      <mat-icon>more_vert</mat-icon>
-    </button>
-    <mat-menu #configActionsMenu="matMenu">
-      @if (canRunCrawl) {
-        <button mat-menu-item type="button" data-testid="run-crawl-action" (click)="onRunCrawl()">
+      @if ((relationshipMenu() || showActions) && canRunCrawlFor(configObject, menuSeedContext())) {
+        <button mat-menu-item type="button" data-testid="run-crawl-action"
+          (click)="onRunCrawl(configObject, menuSeedContext())">
           <mat-icon>play_arrow</mat-icon>
-          @if (configObject.kind === Kind.SEED) {
-            <span i18n="@@configDetailRunSeedAction">Crawl seed</span>
-          } @else {
-            <span>{{crawlJobActionLabel}}</span>
-          }
+          @if (configObject.kind === Kind.SEED || !menuSeedContext()) {
+            <span i18n="@@configMenuRunCrawlAction">Run crawl</span>
+          } @else { <span>{{crawlJobActionLabel(menuSeedContext())}}</span> }
         </button>
       }
-      @if (canCreateSeed) {
-        <button mat-menu-item type="button" data-testid="create-seed-action" (click)="onCreateSeed()">
-          <mat-icon>add_circle</mat-icon>
-          <span i18n="@@configDetailCreateSeedAction">Create Seed</span>
-        </button>
+      @if ((relationshipMenu() || showActions && showCreateSeed) && canCreateSeedFor(configObject)) {
+        <button mat-menu-item type="button" data-testid="create-seed-action" (click)="onCreateSeed(configObject)">
+          <mat-icon>add_circle</mat-icon><span i18n="@@configMenuCreateSeedAction">Create seed</span></button>
       }
-      @if (showClone && can('create', Kind[configObject.kind])) {
-        <button mat-menu-item type="button" data-testid="clone-config-action" (click)="onClone()">
-          <mat-icon>file_copy</mat-icon>
-          <span i18n="@@configDetailCloneAction">Clone</span>
-        </button>
+      @if ((relationshipMenu() || showActions && showEdit) && can('update', Kind[configObject.kind])) {
+        <button mat-menu-item type="button" data-testid="edit-config-action" (click)="onEdit(configObject)">
+          <mat-icon>edit</mat-icon><span i18n="@@configMenuEditAction">Edit</span></button>
       }
-      @if (showDelete && configObject.id && can('delete', Kind[configObject.kind])) {
-        <button mat-menu-item type="button" data-testid="delete-config-action" (click)="onDelete()">
-          <mat-icon>delete</mat-icon>
-          <span i18n="@@commonButtonDelete">Delete</span>
-        </button>
+      @if ((relationshipMenu() || showActions && showClone) && can('create', Kind[configObject.kind])) {
+        <button mat-menu-item type="button" data-testid="clone-config-action" (click)="onClone(configObject)">
+          <mat-icon>file_copy</mat-icon><span i18n="@@configMenuCloneAction">Clone</span></button>
       }
-    </mat-menu>
+      @if ((relationshipMenu() || showActions && showDelete) && configObject.id
+        && can('delete', Kind[configObject.kind])) {
+        <button mat-menu-item class="destructive-menu-item" type="button" data-testid="delete-config-action"
+          (click)="onDelete(configObject)">
+          <mat-icon>delete</mat-icon><span i18n="@@configMenuDeleteAction">Delete</span></button>
+      }
   }
+  </mat-menu>
 </div>

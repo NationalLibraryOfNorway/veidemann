@@ -64,15 +64,14 @@
       </mat-error>
       }
 
-      <div role="button"
-        tabindex="0"
-        (click)="useHostname.disabled ? useHostname.enable() : null"
-        (keydown.enter)="useHostname.disabled ? useHostname.enable() : null"
-        (keydown.space)="useHostname.disabled ? useHostname.enable() : null">
-        <app-boolean-state-chip formControlName="useHostname" label="Use hostname"
-          i18n-label="@@politenesslconfigFormUseHostnameLabel">
-        </app-boolean-state-chip>
-      </div>
+      <fieldset class="mass-update-choice">
+        <legend i18n="@@politenesslconfigFormUseHostnameLabel">Use hostname</legend>
+        <app-boolean-override formControlName="useHostname"
+          ariaLabel="Use hostname" i18n-ariaLabel="@@politenesslconfigFormUseHostnameLabel"
+          trueLabel="Use hostname" i18n-trueLabel="@@politenessMultiUseHostname"
+          falseLabel="Do not use hostname" i18n-falseLabel="@@politenessMultiDoNotUseHostname">
+        </app-boolean-override>
+      </fieldset>
     </div>
     </div>
   </mat-dialog-content>

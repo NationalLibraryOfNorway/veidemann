@@ -1,14 +1,5 @@
 <xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en-US" trgLang="no">
   <file id="ngi18n" original="ng.template">
-    <unit id="1287518954549055324">
-      <notes>
-        <note category="description">configListActionButtonCloneConfig</note>
-      </notes>
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">file_copy</pc> Clone </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">file_copy</pc> Clone </target>
-      </segment>
-    </unit>
     <unit id="2433999855674989295">
       <notes>
         <note category="description">@snackBarMessage.multipleSaved</note>
@@ -54,10 +45,40 @@
         <target>Noe gikk galt. Prøv igjen.</target>
       </segment>
     </unit>
-    <unit id="statusCodeTooltip">
+    <unit id="crawlLogReportStatusCode">
       <segment state="initial">
         <source>Status code</source>
         <target>Status code</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusFieldHeaderCell">
+      <segment state="initial">
+        <source>Field</source>
+        <target>Field</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStatusValueHeaderCell">
+      <segment state="initial">
+        <source>Value</source>
+        <target>Value</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportStorageReference">
+      <segment state="initial">
+        <source>Storage reference</source>
+        <target>Storage reference</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportTimestamp">
+      <segment state="initial">
+        <source>Timestamp</source>
+        <target>Timestamp</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportWarcRefersTo">
+      <segment state="initial">
+        <source>WARC refers to</source>
+        <target>WARC refers to</target>
       </segment>
     </unit>
     <unit id="subcollectionTypeDns">
@@ -162,12 +183,6 @@
         <target> configurations moved</target>
       </segment>
     </unit>
-    <unit id="9003462487896732359">
-      <segment state="initial">
-        <source>BrowserScript: <ph id="0" equiv="PH" disp="name"/></source>
-        <target>BrowserScript: <ph id="0" equiv="PH" disp="name"/></target>
-      </segment>
-    </unit>
     <unit id="906028096900228100">
       <segment state="initial">
         <source>Entity: <ph id="0" equiv="PH" disp="this.entity?.meta?.name || this.query.entityId"/></source>
@@ -190,6 +205,12 @@
       <segment state="final">
         <source>Abort crawl?</source>
         <target>Avbryt crawl?</target>
+      </segment>
+    </unit>
+    <unit id="activeConfigRemoveBrowserScriptFilterLabel">
+      <segment state="initial">
+        <source>Remove BrowserScript <ph id="0" equiv="PH" disp="chip.label"/> filter</source>
+        <target>Remove BrowserScript <ph id="0" equiv="PH" disp="chip.label"/> filter</target>
       </segment>
     </unit>
     <unit id="activeConfigRemoveFilterLabel">
@@ -350,44 +371,56 @@
     </unit>
     <unit id="browserConfigListFilterCrawljobsWithBrowserconfigActionButtonTooltip">
       <segment state="initial">
-        <source>Show crawlconfigs with reference to the browserconfig</source>
-        <target>Show crawlconfigs with reference to the browserconfig</target>
+        <source>Show crawl configurations that use this browser configuration</source>
+        <target>Vis crawl-konfigurasjoner som bruker denne nettleserkonfigurasjonen</target>
       </segment>
     </unit>
     <unit id="browserConfigMultiAddBrowserScriptsButtonToggleTooltip">
       <segment state="initial">
-        <source>Add browserscripts to all selected configurations</source>
-        <target>Add browserscripts to all selected configurations</target>
+        <source>Add browser scripts</source>
+        <target>Add browser scripts</target>
       </segment>
     </unit>
     <unit id="browserConfigMultiAddScriptSelectorButtonToggleTooltip">
       <segment state="initial">
-        <source>Add script selectors to all the selected configurations</source>
-        <target>Add script selectors to all the selected configurations</target>
+        <source>Add script selectors</source>
+        <target>Add script selectors</target>
+      </segment>
+    </unit>
+    <unit id="browserConfigMultiBrowserScriptsHeading">
+      <segment state="initial">
+        <source>Browser scripts</source>
+        <target>Nettleserskript</target>
       </segment>
     </unit>
     <unit id="browserConfigMultiRemoveBrowserScriptsButtonToggleTooltip">
       <segment state="initial">
-        <source>Remove browserscripts from the selected configurations</source>
-        <target>Remove browserscripts from the selected configurations</target>
+        <source>Remove browser scripts</source>
+        <target>Remove browser scripts</target>
       </segment>
     </unit>
     <unit id="browserConfigMultiRemoveScriptSelectorButtonToggleTooltip">
       <segment state="initial">
-        <source>Remove script selectors from all the selected configurations</source>
-        <target>Remove script selectors from all the selected configurations</target>
+        <source>Remove script selectors</source>
+        <target>Remove script selectors</target>
+      </segment>
+    </unit>
+    <unit id="browserConfigMultiScriptSelectorsHeading">
+      <segment state="initial">
+        <source>Script selectors</source>
+        <target>Skriptselektorer</target>
+      </segment>
+    </unit>
+    <unit id="browserscriptCollapseScriptAction">
+      <segment state="initial">
+        <source>Show full form</source>
+        <target>Show full form</target>
       </segment>
     </unit>
     <unit id="browserscriptDetailsCardTitle">
       <segment state="initial">
-        <source>Browserscript</source>
-        <target>Browserscript</target>
-      </segment>
-    </unit>
-    <unit id="browserscriptEditorDialogLabel">
-      <segment state="initial">
-        <source>Script editor</source>
-        <target>Script editor</target>
+        <source>BrowserScript</source>
+        <target>BrowserScript</target>
       </segment>
     </unit>
     <unit id="browserScriptFormBrowserScriptTypeDropdownLabel">
@@ -404,11 +437,11 @@
     </unit>
     <unit id="browserscriptListFilterBrowserconfigsWithBrowserscriptActionButtonTooltip">
       <segment state="initial">
-        <source>Show browserconfigs with reference to the browserscript</source>
-        <target>Show browserconfigs with reference to the browserscript</target>
+        <source>Show browser configurations that use this browser script</source>
+        <target>Vis nettleserkonfigurasjoner som bruker dette nettleserskriptet</target>
       </segment>
     </unit>
-    <unit id="browserscriptOpenScriptFullscreenAction">
+    <unit id="browserscriptExpandScriptAction">
       <segment state="final">
         <source>Edit script</source>
         <target>Rediger skript</target>
@@ -424,12 +457,6 @@
       <segment state="initial">
         <source>Edit the expression</source>
         <target>Edit the expression</target>
-      </segment>
-    </unit>
-    <unit id="browserscriptScriptActionsLabel">
-      <segment state="final">
-        <source>Script actions</source>
-        <target>Skripthandlinger</target>
       </segment>
     </unit>
     <unit id="browserscriptUrlRegexpInputLabel">
@@ -470,8 +497,8 @@
     </unit>
     <unit id="collectionDuplicateSubcollectionTypeError">
       <segment state="initial">
-        <source>Only one subcollection of each type is allowed.</source>
-        <target>Only one subcollection of each type is allowed.</target>
+        <source> Only one subcollection of each type is allowed. </source>
+        <target> Only one subcollection of each type is allowed. </target>
       </segment>
     </unit>
     <unit id="collectionFileRotationPolicyDropdownLabel">
@@ -480,22 +507,16 @@
         <target> File rotation policy </target>
       </segment>
     </unit>
-    <unit id="collectionFormCompressLabel">
+    <unit id="collectionCompressionHeading">
       <segment state="initial">
         <source>Compression</source>
         <target>Compression</target>
       </segment>
     </unit>
     <unit id="collectionFormCompressedLabel">
-      <segment state="final">
-        <source>(compressed)</source>
+      <segment state="initial">
+        <source>Compressed</source>
         <target>(komprimert)</target>
-      </segment>
-    </unit>
-    <unit id="collectionFormUncompressedLabel">
-      <segment state="final">
-        <source>(uncompressed)</source>
-        <target>(ukomprimert)</target>
       </segment>
     </unit>
     <unit id="collectionFormSubCollectionNameLabel">
@@ -512,8 +533,14 @@
     </unit>
     <unit id="collectionListShowCrawlConfigsWitchCollectionRefActionButtonTooltip">
       <segment state="initial">
-        <source>Show crawlconfigs with reference to the collection</source>
-        <target>Show crawlconfigs with reference to the collection</target>
+        <source>Show crawl configurations that use this collection</source>
+        <target>Vis crawl-konfigurasjoner som bruker denne samlingen</target>
+      </segment>
+    </unit>
+    <unit id="collectionMassUpdateDialogTitle">
+      <segment state="initial">
+        <source>Update collections</source>
+        <target>Oppdater samlinger</target>
       </segment>
     </unit>
     <unit id="collectionMetaNamePatternError">
@@ -524,14 +551,26 @@
     </unit>
     <unit id="collectionMetaSubcollectionNamePatternError">
       <segment state="initial">
-        <source>Enter at least two valid characters.</source>
-        <target>Enter at least two valid characters.</target>
+        <source> Enter at least two valid characters. </source>
+        <target> Enter at least two valid characters. </target>
       </segment>
     </unit>
     <unit id="collectionMissingFileSizeError">
       <segment state="initial">
         <source> Not specifying any file size will generate an immense amount of WARC&apos;s </source>
         <target> Not specifying any file size will generate an immense amount of WARC&apos;s </target>
+      </segment>
+    </unit>
+    <unit id="collectionMultiCompress">
+      <segment state="initial">
+        <source>Compress</source>
+        <target>Komprimer</target>
+      </segment>
+    </unit>
+    <unit id="collectionMultiDoNotCompress">
+      <segment state="initial">
+        <source>Do not compress</source>
+        <target>Ikke komprimer</target>
       </segment>
     </unit>
     <unit id="collectionSubCollectionTypeDropdownLabel">
@@ -546,10 +585,22 @@
         <target>Subcollection actions</target>
       </segment>
     </unit>
-    <unit id="collectionTooltip">
+    <unit id="configKindCollection">
       <segment state="initial">
         <source>Collection</source>
         <target>Collection</target>
+      </segment>
+    </unit>
+    <unit id="configKindConfiguration">
+      <segment state="initial">
+        <source>Configuration</source>
+        <target>Konfigurasjon</target>
+      </segment>
+    </unit>
+    <unit id="commonActive">
+      <segment state="initial">
+        <source>Active</source>
+        <target>Aktiv</target>
       </segment>
     </unit>
     <unit id="commonButtonApply">
@@ -572,8 +623,8 @@
     </unit>
     <unit id="commonButtonDelete">
       <segment state="initial">
-        <source> DELETE </source>
-        <target> DELETE </target>
+        <source>DELETE </source>
+        <target>DELETE </target>
       </segment>
     </unit>
     <unit id="commonButtonOk">
@@ -614,8 +665,8 @@
     </unit>
     <unit id="commonConfigDetailsCardSubtitle">
       <segment state="initial">
-        <source> New (unsaved)</source>
-        <target> New (unsaved)</target>
+        <source>New (unsaved)</source>
+        <target>New (unsaved)</target>
       </segment>
     </unit>
     <unit id="commonDisabled">
@@ -648,6 +699,12 @@
         <target>Ikke tilgjengelig</target>
       </segment>
     </unit>
+    <unit id="commonNotSet">
+      <segment state="initial">
+        <source>Not set</source>
+        <target>Ikke angitt</target>
+      </segment>
+    </unit>
     <unit id="commonCancel">
       <segment state="final">
         <source> Cancel </source>
@@ -660,13 +717,31 @@
         <target>Yes</target>
       </segment>
     </unit>
-    <unit id="configContextBrowserConfig">
+    <unit id="configKindBrowserConfig">
       <segment state="initial">
-        <source>BrowserConfig</source>
-        <target>BrowserConfig</target>
+        <source>Browser config</source>
+        <target>Browser config</target>
       </segment>
     </unit>
-    <unit id="configContextCollection">
+    <unit id="configKindBrowserScript">
+      <segment state="initial">
+        <source>Browser script</source>
+        <target>Nettleserskript</target>
+      </segment>
+    </unit>
+    <unit id="configRelationBrowserConfig">
+      <segment state="initial">
+        <source>Browser config</source>
+        <target>Browser config</target>
+      </segment>
+    </unit>
+    <unit id="configRelationBrowserScripts">
+      <segment state="initial">
+        <source>Browser scripts</source>
+        <target>Nettleserskript</target>
+      </segment>
+    </unit>
+    <unit id="configRelationCollection">
       <segment state="initial">
         <source>Collection</source>
         <target>Collection</target>
@@ -678,19 +753,31 @@
         <target>Compression</target>
       </segment>
     </unit>
-    <unit id="configContextCrawlConfig">
+    <unit id="configRelationCrawlConfig">
       <segment state="initial">
-        <source>CrawlConfig</source>
-        <target>CrawlConfig</target>
+        <source>Crawl config</source>
+        <target>Crawl config</target>
       </segment>
     </unit>
-    <unit id="configContextCrawljobs">
+    <unit id="configRelationCrawlJobs">
       <segment state="initial">
-        <source>Crawljobs</source>
-        <target>Crawljobs</target>
+        <source>Crawl jobs</source>
+        <target>Crawljobber</target>
       </segment>
     </unit>
-    <unit id="configContextCron">
+    <unit id="configRelationEntity">
+      <segment state="initial">
+        <source>Entity</source>
+        <target>Entity</target>
+      </segment>
+    </unit>
+    <unit id="configRelationExplicitReference">
+      <segment state="initial">
+        <source>Explicit reference</source>
+        <target>Eksplisitt referanse</target>
+      </segment>
+    </unit>
+    <unit id="configFactCronExpression">
       <segment state="initial">
         <source>CRON expression</source>
         <target>CRON expression</target>
@@ -702,13 +789,13 @@
         <target>Deduplication</target>
       </segment>
     </unit>
-    <unit id="configContextDnsTtl">
+    <unit id="configFactMinimumDnsTtl">
       <segment state="initial">
         <source>Minimum DNS TTL</source>
         <target>Minimum DNS TTL</target>
       </segment>
     </unit>
-    <unit id="configContextEntity">
+    <unit id="configKindEntity">
       <segment state="initial">
         <source>Entity</source>
         <target>Entity</target>
@@ -716,8 +803,8 @@
     </unit>
     <unit id="configContextFileRotation">
       <segment state="initial">
-        <source>File rotation</source>
-        <target>File rotation</target>
+        <source>Rotation</source>
+        <target>Rotation</target>
       </segment>
     </unit>
     <unit id="configContextFileSize">
@@ -732,22 +819,16 @@
         <target>Maximum inactivity</target>
       </segment>
     </unit>
-    <unit id="configContextLabels">
-      <segment state="final">
-        <source>Configuration labels</source>
-        <target>Konfigurasjonslabeler</target>
-      </segment>
-    </unit>
-    <unit id="configContextMaxBytes">
+    <unit id="configFactMaximumSize">
       <segment state="initial">
         <source>Maximum size</source>
-        <target>Maximum size</target>
+        <target>Maksimal størrelse</target>
       </segment>
     </unit>
-    <unit id="configContextMaxDuration">
+    <unit id="configFactMaximumDuration">
       <segment state="initial">
         <source>Maximum duration</source>
-        <target>Maximum duration</target>
+        <target>Maksimal varighet</target>
       </segment>
     </unit>
     <unit id="configContextPageLoadTimeout">
@@ -756,16 +837,10 @@
         <target>Page-load timeout</target>
       </segment>
     </unit>
-    <unit id="configContextPoliteness">
-      <segment state="initial">
-        <source>Politeness</source>
-        <target>Politeness</target>
-      </segment>
-    </unit>
-    <unit id="configContextPriority">
+    <unit id="configFactPriorityWeight">
       <segment state="initial">
         <source>Priority weight</source>
-        <target>Priority weight</target>
+        <target>Prioritetsvekt</target>
       </segment>
     </unit>
     <unit id="configContextRobotsPolicy">
@@ -776,23 +851,29 @@
     </unit>
     <unit id="configContextRobotsValidity">
       <segment state="initial">
-        <source>Minimum robots validity</source>
-        <target>Minimum robots validity</target>
+        <source>Minimum validity</source>
+        <target>Minimum validity</target>
       </segment>
     </unit>
-    <unit id="configContextSchedule">
+    <unit id="configKindRoleMapping">
+      <segment state="initial">
+        <source>User</source>
+        <target>Bruker</target>
+      </segment>
+    </unit>
+    <unit id="configKindSchedule">
       <segment state="initial">
         <source>Schedule</source>
         <target>Schedule</target>
       </segment>
     </unit>
-    <unit id="configContextScopeScript">
+    <unit id="configRelationScopeScript">
       <segment state="initial">
         <source>Scope script</source>
-        <target>Scope script</target>
+        <target>Avgrensningsskript</target>
       </segment>
     </unit>
-    <unit id="configContextScreenshots">
+    <unit id="configFactScreenshots">
       <segment state="initial">
         <source>Screenshots</source>
         <target>Screenshots</target>
@@ -804,18 +885,6 @@
         <target>Script type</target>
       </segment>
     </unit>
-    <unit id="configContextStatus">
-      <segment state="initial">
-        <source>Status</source>
-        <target>Status</target>
-      </segment>
-    </unit>
-    <unit id="configContextSummary">
-      <segment state="initial">
-        <source>Summary</source>
-        <target>Summary</target>
-      </segment>
-    </unit>
     <unit id="configContextUnavailable">
       <segment state="initial">
         <source>Related configuration is unavailable.</source>
@@ -824,14 +893,14 @@
     </unit>
     <unit id="configContextUrlRegexps">
       <segment state="initial">
-        <source>URL expressions</source>
-        <target>URL expressions</target>
+        <source>URL regular expressions</source>
+        <target>URL regular expressions</target>
       </segment>
     </unit>
     <unit id="configContextUseHostname">
       <segment state="initial">
-        <source>Hostname state</source>
-        <target>Hostname state</target>
+        <source>Hostname mode</source>
+        <target>Hostname mode</target>
       </segment>
     </unit>
     <unit id="configContextUserAgent">
@@ -840,22 +909,16 @@
         <target>User agent</target>
       </segment>
     </unit>
-    <unit id="configContextValidFrom">
+    <unit id="configFactValidFrom">
       <segment state="initial">
         <source>Valid from</source>
-        <target>Valid from</target>
+        <target>Gyldig fra</target>
       </segment>
     </unit>
-    <unit id="configContextValidTo">
+    <unit id="configFactValidTo">
       <segment state="initial">
         <source>Valid to</source>
-        <target>Valid to</target>
-      </segment>
-    </unit>
-    <unit id="configContextViewDetails">
-      <segment state="initial">
-        <source>View details</source>
-        <target>View details</target>
+        <target>Gyldig til</target>
       </segment>
     </unit>
     <unit id="configContextWindow">
@@ -864,16 +927,34 @@
         <target>Viewport</target>
       </segment>
     </unit>
+    <unit id="configLabelLinkOpenAriaLabel">
+      <segment state="initial">
+        <source>Open <ph id="0" equiv="LINK_TITLE" disp="text"/> in a new tab</source>
+        <target>Open <ph id="0" equiv="LINK_TITLE" disp="text"/> in a new tab</target>
+      </segment>
+    </unit>
+    <unit id="configLabelLinksContextTitle">
+      <segment state="initial">
+        <source>Links</source>
+        <target>Links</target>
+      </segment>
+    </unit>
     <unit id="configLatestCrawlExecutionTitle">
       <segment state="final">
         <source>Latest crawl execution</source>
         <target>Siste crawl-kjøring</target>
       </segment>
     </unit>
-    <unit id="configDetailCloneAction">
+    <unit id="configDetailActionsMenuLabel">
+      <segment state="initial">
+        <source>Configuration actions</source>
+        <target>Configuration actions</target>
+      </segment>
+    </unit>
+    <unit id="configMenuCloneAction">
       <segment state="initial">
         <source>Clone</source>
-        <target>Clone</target>
+        <target>Klon</target>
       </segment>
     </unit>
     <unit id="configDetailCreateSeedAction">
@@ -882,88 +963,76 @@
         <target>Create Seed</target>
       </segment>
     </unit>
-    <unit id="configDetailFilterByCrawljobAction">
+    <unit id="configDetailReferenceShortcutsLabel">
       <segment state="initial">
-        <source>Filter by crawljob</source>
-        <target>Filter by crawljob</target>
-      </segment>
-    </unit>
-    <unit id="configDetailFilterByEntityAction">
-      <segment state="initial">
-        <source>Filter by entity</source>
-        <target>Filter by entity</target>
+        <source>Related configurations</source>
+        <target>Related configurations</target>
       </segment>
     </unit>
     <unit id="configDetailRunCrawljobAction">
       <segment state="initial">
-        <source>Run crawljob</source>
-        <target>Run crawljob</target>
+        <source>Run crawl</source>
+        <target>Start crawl</target>
       </segment>
     </unit>
-    <unit id="configDetailRunSeedAction">
+    <unit id="configDetailRunSeedWithCrawljobAction">
       <segment state="initial">
-        <source>Crawl seed</source>
-        <target>Crawl seed</target>
+        <source>Run crawl with this crawl job</source>
+        <target>Start crawl med denne crawl-jobben</target>
       </segment>
     </unit>
-    <unit id="configDetailShowBrowserConfigsForScriptAction">
+    <unit id="configMenuRunCrawlAction">
       <segment state="initial">
-        <source>Show browserconfigs</source>
-        <target>Show browserconfigs</target>
+        <source>Run crawl</source>
+        <target>Start crawl</target>
       </segment>
     </unit>
-    <unit id="configDetailShowCrawlConfigsForBrowserConfigAction">
+    <unit id="configMenuShowBrowserConfigurations">
       <segment state="initial">
-        <source>Show crawlconfigs</source>
-        <target>Show crawlconfigs</target>
+        <source>Show browser configurations</source>
+        <target>Vis nettleserkonfigurasjoner</target>
       </segment>
     </unit>
-    <unit id="configDetailShowCrawlConfigsForCollectionAction">
+    <unit id="configMenuShowCrawlConfigurations">
       <segment state="initial">
-        <source>Show crawlconfigs</source>
-        <target>Show crawlconfigs</target>
+        <source>Show crawl configurations</source>
+        <target>Vis crawl-konfigurasjoner</target>
       </segment>
     </unit>
-    <unit id="configDetailShowCrawlConfigsForPolitenessAction">
+    <unit id="configMenuShowCrawlExecutions">
       <segment state="initial">
-        <source>Show crawlconfigs</source>
-        <target>Show crawlconfigs</target>
+        <source>Show crawl executions</source>
+        <target>Vis crawl-kjøringer</target>
       </segment>
     </unit>
-    <unit id="configDetailShowCrawlExecutionsAction">
+    <unit id="configMenuShowCrawlJobs">
       <segment state="initial">
-        <source>Show crawlexecutions</source>
-        <target>Show crawlexecutions</target>
+        <source>Show crawl jobs</source>
+        <target>Vis crawl-jobber</target>
       </segment>
     </unit>
-    <unit id="configDetailShowCrawljobsForCrawlConfigAction">
+    <unit id="configMenuShowJobExecutions">
       <segment state="initial">
-        <source>Show crawljobs</source>
-        <target>Show crawljobs</target>
+        <source>Show job executions</source>
+        <target>Vis jobbkjøringer</target>
       </segment>
     </unit>
-    <unit id="configDetailShowCrawljobsForScheduleAction">
-      <segment state="initial">
-        <source>Show crawljobs</source>
-        <target>Show crawljobs</target>
-      </segment>
-    </unit>
-    <unit id="configDetailShowJobExecutionsAction">
-      <segment state="initial">
-        <source>Show jobexecutions</source>
-        <target>Show jobexecutions</target>
-      </segment>
-    </unit>
-    <unit id="configDetailShowSeedsAction">
+    <unit id="configMenuShowSeeds">
       <segment state="initial">
         <source>Show seeds</source>
-        <target>Show seeds</target>
+        <target>Vis seed-er</target>
       </segment>
     </unit>
-    <unit id="configDetailShortcutsLabel">
-      <segment state="final">
-        <source>Configuration shortcuts</source>
-        <target>Konfigurasjonssnarveier</target>
+    <unit id="configMenuShowSeedsWithSameCrawlJob">
+      <segment state="initial">
+        <source>Show seeds with the same crawl job</source>
+        <target>Vis seed-er med samme crawl-jobb</target>
+      </segment>
+    </unit>
+    <unit id="configMenuShowSeedsWithSameEntity">
+      <segment state="initial">
+        <source>Show seeds with the same entity</source>
+        <target>Vis seed-er med samme entitet</target>
       </segment>
     </unit>
     <unit id="configIdLabel">
@@ -972,130 +1041,58 @@
         <target> Id </target>
       </segment>
     </unit>
-    <unit id="configListActionButtonCreateSeed">
+    <unit id="configMenuCreateSeedAction">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">add_circle</pc> Create seed </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">add_circle</pc> Create seed </target>
+        <source>Create seed</source>
+        <target>Opprett seed</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonEditConfig">
+    <unit id="configMenuDeleteAction">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">edit</pc> Edit </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">edit</pc> Edit </target>
+        <source>Delete</source>
+        <target>Slett</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonFilterBrowserconfigWithBrowserscript">
+    <unit id="configMenuEditAction">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Show browserconfigs </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Show browserconfigs </target>
+        <source>Edit</source>
+        <target>Rediger</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonFilterCrawlconfigswithPoliteness">
+    <unit id="configMenuGoToBrowserConfiguration">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </target>
+        <source>Go to browser configuration</source>
+        <target>Gå til nettleserkonfigurasjon</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonFilterCrawljobsWithBrowserconfig">
+    <unit id="configMenuGoToCollection">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </target>
+        <source>Go to collection</source>
+        <target>Gå til samling</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonFilterCrawljobsWithCrawlconfig">
+    <unit id="configMenuGoToCrawlConfiguration">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </target>
+        <source>Go to crawl configuration</source>
+        <target>Gå til crawl-konfigurasjon</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonFilterSeedsByCrawljob">
+    <unit id="configMenuGoToPolitenessConfiguration">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Filter list by crawljob </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Filter list by crawljob </target>
+        <source>Go to politeness configuration</source>
+        <target>Gå til høflighetskonfigurasjon</target>
       </segment>
     </unit>
-    <unit id="configListActionButtonFilterSeedsWithCrawljob">
+    <unit id="configMenuGoToSchedule">
       <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Show seeds </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Show seeds </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToBrowserconfig">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Go to browserconfig </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">web</pc> Go to browserconfig </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToCollection">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">collections_bookmark</pc> Go to collection </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">collections_bookmark</pc> Go to collection </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToCrawlconfig">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Go to crawlconfig </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Go to crawlconfig </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToJobExecution">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Show jobexecutions </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_strong</pc> Show jobexecutions </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToPolitenessconfig">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">sentiment_very_satisfied</pc> Go to politenessconfig </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">sentiment_very_satisfied</pc> Go to politenessconfig </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToSchedule">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">schedule</pc> Go to schedule </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">schedule</pc> Go to schedule </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonGoToSeedList">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed list </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">link</pc> Go to seed list </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonRunCrawl">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">play_arrow</pc> Run crawl </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">play_arrow</pc> Run crawl </target>
+        <source>Go to schedule</source>
+        <target>Gå til tidsplan</target>
       </segment>
     </unit>
     <unit id="configListActionButtonRunCrawlOfSeedTooltip">
       <segment state="initial">
         <source>Start crawling seed: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></source>
         <target>Start crawling seed: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonShowCrawlConfig">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">settings_system_daydream</pc> Show crawlconfigs </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonShowCrawlExecutions">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Show crawlexecutions </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">hdr_weak</pc> Show crawlexecutions </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonShowCrawljobsWithSchedule">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">work</pc> Show crawljobs </target>
-      </segment>
-    </unit>
-    <unit id="configListActionButtonShowSeedsForEntity">
-      <segment state="initial">
-        <source><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">business</pc> Show seeds for entity </source>
-        <target><pc id="0" equivStart="START_TAG_MAT_ICON" equivEnd="CLOSE_TAG_MAT_ICON" type="other" dispStart="&lt;mat-icon&gt;" dispEnd="&lt;/mat-icon&gt;">business</pc> Show seeds for entity </target>
       </segment>
     </unit>
     <unit id="configQueryBrowserConfigDropdownLabel">
@@ -1160,8 +1157,8 @@
     </unit>
     <unit id="configQueryRemoveCrawlJobFilterLabel">
       <segment state="initial">
-        <source>Remove <ph id="0" equiv="PH" disp="name"/> crawl job filter</source>
-        <target>Remove <ph id="0" equiv="PH" disp="name"/> crawl job filter</target>
+        <source>Remove <ph id="0" equiv="PH" disp="chip.label"/> crawl job filter</source>
+        <target>Remove <ph id="0" equiv="PH" disp="chip.label"/> crawl job filter</target>
       </segment>
     </unit>
     <unit id="configQueryRemoveLabelFilterLabel">
@@ -1248,30 +1245,6 @@
         <target>Search users</target>
       </segment>
     </unit>
-    <unit id="configQuerySelectedCrawlJobsLabel">
-      <segment state="initial">
-        <source>Crawl jobs</source>
-        <target>Crawl jobs</target>
-      </segment>
-    </unit>
-    <unit id="configQueryStatusDropdownLabel">
-      <segment state="initial">
-        <source>Status</source>
-        <target>Status</target>
-      </segment>
-    </unit>
-    <unit id="configQueryStatusShowDisabled">
-      <segment state="initial">
-        <source>Show disabled</source>
-        <target>Show disabled</target>
-      </segment>
-    </unit>
-    <unit id="configQueryStatusShowEnabled">
-      <segment state="initial">
-        <source>Show enabled</source>
-        <target>Show enabled</target>
-      </segment>
-    </unit>
     <unit id="configRelatedContextTitle">
       <segment state="initial">
         <source>Related configurations</source>
@@ -1308,16 +1281,16 @@
         <target>Configuration filters</target>
       </segment>
     </unit>
+    <unit id="configurationPageSubtitle">
+      <segment state="initial">
+        <source> Create and manage crawl targets, jobs, and supporting settings. </source>
+        <target> Create and manage crawl targets, jobs, and supporting settings. </target>
+      </segment>
+    </unit>
     <unit id="configurationPageTitle">
       <segment state="initial">
         <source>Configuration</source>
         <target>Configuration</target>
-      </segment>
-    </unit>
-    <unit id="configurationPageSubtitle">
-      <segment state="final">
-        <source> Create and manage crawl targets, jobs, and supporting settings. </source>
-        <target> Opprett og administrer høstemål, høstejobber og tilhørende innstillinger. </target>
       </segment>
     </unit>
     <unit id="configurationGroupCrawlTargets">
@@ -1342,6 +1315,12 @@
       <segment state="initial">
         <source>Start crawl of selected seeds</source>
         <target>Start crawl of selected seeds</target>
+      </segment>
+    </unit>
+    <unit id="configurationSettingsLabel">
+      <segment state="initial">
+        <source>Configuration settings</source>
+        <target>Konfigurasjonsinnstillinger</target>
       </segment>
     </unit>
     <unit id="configurationSideBarMenuAddConfigButtonTooltip">
@@ -1464,10 +1443,10 @@
         <target> Please choose a collection </target>
       </segment>
     </unit>
-    <unit id="crawlconfigDetailsCardTitle">
+    <unit id="configKindCrawlConfig">
       <segment state="initial">
-        <source>Crawlconfig</source>
-        <target>Crawlconfig</target>
+        <source>Crawl config</source>
+        <target>Crawl config</target>
       </segment>
     </unit>
     <unit id="crawlConfigDropDownLabel">
@@ -1508,14 +1487,14 @@
     </unit>
     <unit id="crawlConfigListFilterCrawljobsWithCrawlconfigActionButtonTooltip">
       <segment state="initial">
-        <source>Show crawljobs with reference to the crawlconfig</source>
-        <target>Show crawljobs with reference to the crawlconfig</target>
+        <source>Show crawl jobs that use this crawl configuration</source>
+        <target>Vis crawl-jobber som bruker denne crawl-konfigurasjonen</target>
       </segment>
     </unit>
     <unit id="crawlConfigListGoToBrowserConfigActionButtonTooltip">
       <segment state="initial">
-        <source>Go to browserconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getBrowserConfigName | async}}"/></source>
-        <target>Go to browserconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getBrowserConfigName | async}}"/></target>
+        <source>Go to browser configuration: <ph id="0" equiv="INTERPOLATION" disp="{{row | getBrowserConfigName | async}}"/></source>
+        <target>Gå til nettleserkonfigurasjon: <ph id="0" equiv="INTERPOLATION" disp="{{row | getBrowserConfigName | async}}"/></target>
       </segment>
     </unit>
     <unit id="crawlConfigListGoToCollectionActionButtonTooltip">
@@ -1526,8 +1505,8 @@
     </unit>
     <unit id="crawlConfigListGoToPolitenessActionButtonTooltip">
       <segment state="initial">
-        <source>Go to politenessconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getPolitenessConfigName | async}}"/></source>
-        <target>Go to politenessconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getPolitenessConfigName | async}}"/></target>
+        <source>Go to politeness configuration: <ph id="0" equiv="INTERPOLATION" disp="{{row | getPolitenessConfigName | async}}"/></source>
+        <target>Gå til høflighetskonfigurasjon: <ph id="0" equiv="INTERPOLATION" disp="{{row | getPolitenessConfigName | async}}"/></target>
       </segment>
     </unit>
     <unit id="crawlConfigPolitenessconfigRequiredError">
@@ -1544,8 +1523,8 @@
     </unit>
     <unit id="crawlerStatusBusyGroupsTitle">
       <segment state="initial">
-        <source>Busy crawlhost groups</source>
-        <target>Busy crawlhost groups</target>
+        <source>Busy crawl host groups</source>
+        <target>Busy crawl host groups</target>
       </segment>
     </unit>
     <unit id="crawlerStatusOverviewLabel">
@@ -1603,15 +1582,15 @@
       </segment>
     </unit>
     <unit id="dashboardWelcomeTitle">
-      <segment state="final">
-        <source>Logged out</source>
+      <segment state="initial">
+        <source>Signed out</source>
         <target>Logget ut</target>
       </segment>
     </unit>
     <unit id="dashboardWelcomeSubtitle">
-      <segment state="final">
-        <source>Sign in to access Veidemann.</source>
-        <target>Logg inn for å få tilgang til Veidemann.</target>
+      <segment state="initial">
+        <source>Sign in to access dashboard.</source>
+        <target>Logg inn for å få tilgang til dashboardet.</target>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFailedFilterLabel">
@@ -1676,8 +1655,8 @@
     </unit>
     <unit id="crawlExecutionReportFilterStateLabel">
       <segment state="initial">
-        <source> State </source>
-        <target> State </target>
+        <source>State</source>
+        <target>State</target>
       </segment>
     </unit>
     <unit id="crawlExecutionReportListCrawljobHeaderCell">
@@ -1722,12 +1701,6 @@
         <target>Last changed </target>
       </segment>
     </unit>
-    <unit id="crawlExecutionReportListQueueCountHeaderCell">
-      <segment state="initial">
-        <source>Queue </source>
-        <target>Queue </target>
-      </segment>
-    </unit>
     <unit id="crawlExecutionReportListSeedHeaderCell">
       <segment state="initial">
         <source>Seed </source>
@@ -1756,36 +1729,6 @@
       <segment state="final">
         <source>Crawl actions</source>
         <target>Crawlhandlinger</target>
-      </segment>
-    </unit>
-    <unit id="executionCrawlStatisticsTitle">
-      <segment state="final">
-        <source>Crawl statistics</source>
-        <target>Crawlstatistikk</target>
-      </segment>
-    </unit>
-    <unit id="executionCreatedLabel">
-      <segment state="final">
-        <source>Created</source>
-        <target>Opprettet</target>
-      </segment>
-    </unit>
-    <unit id="executionAbortedMetadata">
-      <segment state="final">
-        <source> Aborted at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
-        <target> Avbrutt <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
-      </segment>
-    </unit>
-    <unit id="executionDesiredStateInlineLabel">
-      <segment state="final">
-        <source>Desired state:</source>
-        <target>Ønsket tilstand:</target>
-      </segment>
-    </unit>
-    <unit id="executionDiedMetadata">
-      <segment state="final">
-        <source> Died at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
-        <target> Stanset <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
       </segment>
     </unit>
     <unit id="executionDocumentsCrawledMetric">
@@ -1824,22 +1767,10 @@
         <target>Duration</target>
       </segment>
     </unit>
-    <unit id="executionEndedLabel">
+    <unit id="executionStateEnded">
       <segment state="final">
         <source>Ended</source>
         <target>Avsluttet</target>
-      </segment>
-    </unit>
-    <unit id="executionEndedMetadata">
-      <segment state="final">
-        <source> Ended at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
-        <target> Avsluttet <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
-      </segment>
-    </unit>
-    <unit id="executionFailedMetadata">
-      <segment state="final">
-        <source> Failed at <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/>, <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </source>
-        <target> Mislyktes <ph id="0" equiv="INTERPOLATION" disp="{{endTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{endTime | date:&apos;shortTime&apos;}}"/> </target>
       </segment>
     </unit>
     <unit id="reportDetailJobExecutionAction">
@@ -1848,10 +1779,22 @@
         <target>Jobbkjøring</target>
       </segment>
     </unit>
-    <unit id="viewJobExecutionAction">
+    <unit id="jobExecutionQueueSizeMetric">
+      <segment state="initial">
+        <source>Queue size</source>
+        <target>Queue size</target>
+      </segment>
+    </unit>
+    <unit id="jobExecutionRemainingBytesMetric">
       <segment state="final">
-        <source>View job execution</source>
-        <target>Vis jobbkjøring</target>
+        <source>Remaining bytes</source>
+        <target>Gjenstående byte</target>
+      </segment>
+    </unit>
+    <unit id="jobExecutionRemainingTimeMetric">
+      <segment state="final">
+        <source>Remaining time</source>
+        <target>Gjenstående tid</target>
       </segment>
     </unit>
     <unit id="reportDetailPageLogAction">
@@ -1878,10 +1821,16 @@
         <target>Report filters</target>
       </segment>
     </unit>
-    <unit id="executionLastChangedLabel">
+    <unit id="executionMetricsSectionLabel">
+      <segment state="initial">
+        <source>Execution metrics</source>
+        <target>Execution metrics</target>
+      </segment>
+    </unit>
+    <unit id="executionNowValue">
       <segment state="final">
-        <source>Last changed</source>
-        <target>Sist endret</target>
+        <source>Now</source>
+        <target>Nå</target>
       </segment>
     </unit>
     <unit id="executionStartedLabel">
@@ -1890,16 +1839,10 @@
         <target>Startet</target>
       </segment>
     </unit>
-    <unit id="executionStartedMetadata">
+    <unit id="executionStateAbortedManually">
       <segment state="final">
-        <source> Started <ph id="0" equiv="INTERPOLATION" disp="{{startTime | date:&apos;mediumDate&apos;}}"/> at <ph id="1" equiv="INTERPOLATION_1" disp="{{startTime | date:&apos;shortTime&apos;}}"/> </source>
-        <target> Startet <ph id="0" equiv="INTERPOLATION" disp="{{startTime | date:&apos;mediumDate&apos;}}"/> kl. <ph id="1" equiv="INTERPOLATION_1" disp="{{startTime | date:&apos;shortTime&apos;}}"/> </target>
-      </segment>
-    </unit>
-    <unit id="executionStateAborted">
-      <segment state="final">
-        <source>Aborted</source>
-        <target>Avbrutt</target>
+        <source>Aborted manually</source>
+        <target>Avbrutt manuelt</target>
       </segment>
     </unit>
     <unit id="executionStateCreated">
@@ -1926,22 +1869,10 @@
         <target>Fullført</target>
       </segment>
     </unit>
-    <unit id="executionStateLabel">
-      <segment state="initial">
-        <source>State</source>
-        <target>Tilstand</target>
-      </segment>
-    </unit>
     <unit id="executionStateRunning">
       <segment state="final">
         <source>Running</source>
         <target>Kjører</target>
-      </segment>
-    </unit>
-    <unit id="executionStateUndefined">
-      <segment state="final">
-        <source>Undefined</source>
-        <target>Udefinert</target>
       </segment>
     </unit>
     <unit id="executionUrisCrawledMetric">
@@ -1950,22 +1881,22 @@
         <target>URI-er innhentet</target>
       </segment>
     </unit>
-    <unit id="crawlExecutionSeedLabel">
+    <unit id="configKindSeed">
       <segment state="final">
         <source>Seed</source>
         <target>Startadresse</target>
       </segment>
     </unit>
     <unit id="crawlExecutionStateAbortedSize">
-      <segment state="final">
-        <source>Aborted (size)</source>
-        <target>Avbrutt (størrelse)</target>
+      <segment state="initial">
+        <source>Aborted at size limit</source>
+        <target>Avbrutt ved størrelsesgrensen</target>
       </segment>
     </unit>
     <unit id="crawlExecutionStateAbortedTimeout">
-      <segment state="final">
-        <source>Aborted (timeout)</source>
-        <target>Avbrutt (tidsavbrudd)</target>
+      <segment state="initial">
+        <source>Aborted after timeout</source>
+        <target>Avbrutt etter tidsavbrudd</target>
       </segment>
     </unit>
     <unit id="crawlExecutionStateFetching">
@@ -1986,16 +1917,10 @@
         <target>Current URIs</target>
       </segment>
     </unit>
-    <unit id="crawlhostgroupconfigDetailsCardTitle">
-      <segment state="initial">
-        <source>Crawlhostgroupconfig</source>
-        <target>Crawlhostgroupconfig</target>
-      </segment>
-    </unit>
     <unit id="crawlhostgroupconfigFormAddIpRangeButton">
       <segment state="initial">
-        <source>ADD IP RANGE</source>
-        <target>ADD IP RANGE</target>
+        <source>Add IP range</source>
+        <target>Add IP range</target>
       </segment>
     </unit>
     <unit id="crawlhostgroupconfigFormDelayFactorLabel">
@@ -2012,8 +1937,8 @@
     </unit>
     <unit id="crawlhostgroupconfigFormIpFromLabel">
       <segment state="initial">
-        <source> IP address </source>
-        <target> IP address </target>
+        <source> From IP address </source>
+        <target> From IP address </target>
       </segment>
     </unit>
     <unit id="crawlhostgroupconfigFormIpToHint">
@@ -2024,8 +1949,8 @@
     </unit>
     <unit id="crawlhostgroupconfigFormIpToLabel">
       <segment state="initial">
-        <source> IP address </source>
-        <target> IP address </target>
+        <source> To IP address </source>
+        <target> To IP address </target>
       </segment>
     </unit>
     <unit id="crawlhostgroupconfigFormMaxRetriesLabel">
@@ -2088,16 +2013,16 @@
         <target> A valid IP address is required. </target>
       </segment>
     </unit>
+    <unit id="crawlhostgroupconfigIpRangeActionsLabel">
+      <segment state="initial">
+        <source>IP range actions</source>
+        <target>IP range actions</target>
+      </segment>
+    </unit>
     <unit id="crawljobCrawlconfigRequiredError">
       <segment state="initial">
         <source> A CrawlConfig is required </source>
         <target> A CrawlConfig is required </target>
-      </segment>
-    </unit>
-    <unit id="crawljobDetailsCardTitle">
-      <segment state="initial">
-        <source>Crawljob</source>
-        <target>Crawljob</target>
       </segment>
     </unit>
     <unit id="crawlJobDropdownLabel">
@@ -2144,8 +2069,8 @@
     </unit>
     <unit id="crawlJobExecutionReportFilterStateLabel">
       <segment state="initial">
-        <source> State </source>
-        <target> State </target>
+        <source>State</source>
+        <target>State</target>
       </segment>
     </unit>
     <unit id="executionErrorCodeLabel">
@@ -2170,6 +2095,12 @@
       <segment state="final">
         <source>Error</source>
         <target>Feil</target>
+      </segment>
+    </unit>
+    <unit id="crawlJobExecutionReportListBytesCrawledHeaderCell">
+      <segment state="initial">
+        <source>Bytes crawled </source>
+        <target>Bytes crawled </target>
       </segment>
     </unit>
     <unit id="crawlJobExecutionReportListCrawljobHeaderCell">
@@ -2214,10 +2145,40 @@
         <target>State </target>
       </segment>
     </unit>
-    <unit id="crawlExecutionCrawlJobLabel">
+    <unit id="configKindCrawlHostGroup">
+      <segment state="initial">
+        <source>Crawl host group</source>
+        <target>Vertgruppe</target>
+      </segment>
+    </unit>
+    <unit id="configKindCrawlJob">
       <segment state="final">
         <source>Crawl job</source>
         <target>Crawljobb</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionActionsMenuLabel">
+      <segment state="final">
+        <source>Crawl execution actions</source>
+        <target>Handlinger for crawl-kjøring</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionDeletedSeedAriaLabel">
+      <segment state="initial">
+        <source>Deleted seed. Seed ID: <ph id="0" equiv="SEED_ID" disp="seedId"/></source>
+        <target>Deleted seed. Seed ID: <ph id="0" equiv="SEED_ID" disp="seedId"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionDeletedSeedName">
+      <segment state="initial">
+        <source>Deleted seed</source>
+        <target>Deleted seed</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionDeletedSeedTooltip">
+      <segment state="initial">
+        <source>Deleted seed ID: <ph id="0" equiv="SEED_ID" disp="seedId"/></source>
+        <target>Deleted seed ID: <ph id="0" equiv="SEED_ID" disp="seedId"/></target>
       </segment>
     </unit>
     <unit id="crawlExecutionDetailGridLabel">
@@ -2226,22 +2187,16 @@
         <target>Detaljer for crawl-kjøring</target>
       </segment>
     </unit>
-    <unit id="crawlExecutionIdLabel">
+    <unit id="crawlExecutionHeaderSupertitle">
       <segment state="final">
-        <source>Execution ID</source>
-        <target>Kjørings-ID</target>
+        <source>Crawl execution</source>
+        <target>Crawl-kjøring</target>
       </segment>
     </unit>
-    <unit id="crawlExecutionOverviewTitle">
+    <unit id="jobExecutionActionsMenuLabel">
       <segment state="final">
-        <source>Crawl execution overview</source>
-        <target>Oversikt over crawl-kjøring</target>
-      </segment>
-    </unit>
-    <unit id="crawlExecutionParentJobExecutionLabel">
-      <segment state="final">
-        <source>Job execution</source>
-        <target>Jobbkjøring</target>
+        <source>Job execution actions</source>
+        <target>Handlinger for jobbkjøring</target>
       </segment>
     </unit>
     <unit id="jobExecutionCrawlExecutionsNavigationLabel">
@@ -2258,8 +2213,8 @@
     </unit>
     <unit id="jobExecutionCrawlExecutionsTitle">
       <segment state="final">
-        <source>Crawl executions</source>
-        <target>Crawl-kjøringer</target>
+        <source> Crawl executions </source>
+        <target> Crawl-kjøringer </target>
       </segment>
     </unit>
     <unit id="jobExecutionDetailGridLabel">
@@ -2268,94 +2223,16 @@
         <target>Detaljer for jobbkjøring</target>
       </segment>
     </unit>
+    <unit id="jobExecutionHeaderSupertitle">
+      <segment state="final">
+        <source>Job execution</source>
+        <target>Jobbkjøring</target>
+      </segment>
+    </unit>
     <unit id="jobExecutionNoCrawlExecutions">
       <segment state="final">
         <source>No crawl executions</source>
         <target>Ingen crawl-kjøringer</target>
-      </segment>
-    </unit>
-    <unit id="jobExecutionOverviewTitle">
-      <segment state="final">
-        <source>Job execution overview</source>
-        <target>Oversikt over jobbkjøring</target>
-      </segment>
-    </unit>
-    <unit id="jobExecutionQueueLabel">
-      <segment state="final">
-        <source>Queue</source>
-        <target>Kø</target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusEndHeaderCell">
-      <segment state="initial">
-        <source>End</source>
-        <target>End</target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusPanelDescription">
-      <segment state="initial">
-        <source>State</source>
-        <target>State</target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStartHeaderCell">
-      <segment state="initial">
-        <source>Start</source>
-        <target>Start</target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsDocumentsCrawledHeaderCell">
-      <segment state="initial">
-        <source>Documents crawled </source>
-        <target>Documents crawled </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsDocumentsDeniedHeaderCell">
-      <segment state="initial">
-        <source>Documents denied </source>
-        <target>Documents denied </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsDocumentsFailedHeaderCell">
-      <segment state="initial">
-        <source>Documents failed </source>
-        <target>Documents failed </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsDocumentsRetriedHeaderCell">
-      <segment state="initial">
-        <source>Documents retried </source>
-        <target>Documents retried </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsExecutionStateMapCountHeaderCell">
-      <segment state="initial">
-        <source>Count </source>
-        <target>Count </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsExecutionStateMapStateHeaderCell">
-      <segment state="initial">
-        <source>State </source>
-        <target>State </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsHeaderCell">
-      <segment state="initial">
-        <source>Statistics </source>
-        <target>Statistics </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsOutOfScopeHeaderCell">
-      <segment state="initial">
-        <source>Documents out of scope </source>
-        <target>Documents out of scope </target>
-      </segment>
-    </unit>
-    <unit id="crawlJobExecutionStatusStatisticsUrisCrawledHeaderCell">
-      <segment state="initial">
-        <source>URIs crawled </source>
-        <target>URIs crawled </target>
       </segment>
     </unit>
     <unit id="crawljobFormMaxDurationLabel">
@@ -2372,20 +2249,20 @@
     </unit>
     <unit id="crawljobListCrawlconfigShortcutActionButtonTooltip">
       <segment state="initial">
-        <source>Go to crawlconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlConfigName | async}}"/></source>
-        <target>Go to crawlconfig: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlConfigName | async}}"/></target>
+        <source>Go to crawl configuration: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlConfigName | async}}"/></source>
+        <target>Gå til crawl-konfigurasjon: <ph id="0" equiv="INTERPOLATION" disp="{{row | getCrawlConfigName | async}}"/></target>
       </segment>
     </unit>
     <unit id="crawljobListFilterSeedsWithCrawljobActionButtonTooltip">
       <segment state="initial">
-        <source>Show seeds with reference to the crawljob</source>
-        <target>Show seeds with reference to the crawljob</target>
+        <source>Show seeds that use this crawl job</source>
+        <target>Vis seed-er som bruker denne crawl-jobben</target>
       </segment>
     </unit>
     <unit id="crawljobListJobExecutionShortcutActionButtonTooltip">
       <segment state="initial">
-        <source>Go to jobexecutions for crawljob</source>
-        <target>Go to jobexecutions for crawljob</target>
+        <source>Show job executions for this crawl job</source>
+        <target>Vis jobbkjøringer for denne crawl-jobben</target>
       </segment>
     </unit>
     <unit id="crawljobListScheduleShortcutActionButtonTooltip">
@@ -2400,22 +2277,70 @@
         <target> A scope script is required </target>
       </segment>
     </unit>
+    <unit id="crawlLogActionsMenuLabel">
+      <segment state="final">
+        <source>Crawl log actions</source>
+        <target>Handlinger for crawl-logg</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogContentTypeFilterLabel">
+      <segment state="initial">
+        <source>Filter crawl logs by MIME type</source>
+        <target>Filter crawl logs by MIME type</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogContentTypeFilterLegend">
+      <segment state="initial">
+        <source>MIME type</source>
+        <target>MIME type</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogDetailsLabel">
+      <segment state="initial">
+        <source>Crawl log details</source>
+        <target>Crawl log details</target>
+      </segment>
+    </unit>
     <unit id="crawlLogIdentifiersLabel">
       <segment state="final">
         <source>Crawl log identifiers</source>
         <target>Crawllogg-identifikatorer</target>
       </segment>
     </unit>
+    <unit id="crawlLogMethodFilterLabel">
+      <segment state="initial">
+        <source>Filter crawl logs by method</source>
+        <target>Filter crawl logs by method</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogMethodFilterLegend">
+      <segment state="initial">
+        <source>Method</source>
+        <target>Method</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportIpAddress">
+      <segment state="initial">
+        <source>IP address</source>
+        <target>IP address</target>
+      </segment>
+    </unit>
     <unit id="crawlLogReportListContentTypeHeaderCell">
       <segment state="initial">
-        <source>Content type </source>
-        <target>Content type </target>
+        <source>MIME type </source>
+        <target>MIME type </target>
       </segment>
     </unit>
     <unit id="crawlLogReportListDiscoveryPathHeaderCell">
       <segment state="initial">
         <source>Discovery path </source>
         <target>Discovery path </target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportListMethodHeaderCell">
+      <segment state="initial">
+        <source>Method </source>
+        <target>Method </target>
       </segment>
     </unit>
     <unit id="crawlLogReportListRequestedUriHeaderCell">
@@ -2436,40 +2361,94 @@
         <target>Timestamp </target>
       </segment>
     </unit>
+    <unit id="crawlLogReportMethod">
+      <segment state="initial">
+        <source>Method</source>
+        <target>Method</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportSize">
+      <segment state="initial">
+        <source>Size</source>
+        <target>Size</target>
+      </segment>
+    </unit>
     <unit id="crawlLogReportStatusCardTitle">
       <segment state="initial">
-        <source>CrawlLog</source>
-        <target>CrawlLog</target>
+        <source>Crawl log</source>
+        <target>Crawl log</target>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusDiscoveryPathHeaderCell">
+    <unit id="crawlLogReportBlockDigest">
       <segment state="initial">
-        <source> Discovery path </source>
-        <target> Discovery path </target>
+        <source>Block digest</source>
+        <target>Block digest</target>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusHeaderCell">
+    <unit id="crawlLogReportCollection">
       <segment state="initial">
-        <source>Report</source>
-        <target>Report</target>
+        <source>Collection</source>
+        <target>Collection</target>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusReferrerHeaderCell">
+    <unit id="crawlLogReportContentType">
       <segment state="initial">
-        <source> Referrer </source>
-        <target> Referrer </target>
+        <source>Content type</source>
+        <target>Content type</target>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusRequestUriHeaderCell">
+    <unit id="crawlLogReportDiscoveryPath">
       <segment state="initial">
-        <source> Requested URI </source>
-        <target> Requested URI </target>
+        <source>Discovery path</source>
+        <target>Discovery path</target>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusResponseUriHeaderCell">
+    <unit id="crawlLogReportFetchTime">
       <segment state="initial">
-        <source> Response URI </source>
-        <target> Response URI </target>
+        <source>Fetch time</source>
+        <target>Fetch time</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportFetchTimestamp">
+      <segment state="initial">
+        <source>Fetch timestamp</source>
+        <target>Fetch timestamp</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportPayloadDigest">
+      <segment state="initial">
+        <source>Payload digest</source>
+        <target>Payload digest</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportRecordType">
+      <segment state="initial">
+        <source>Record type</source>
+        <target>Record type</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportReferrer">
+      <segment state="initial">
+        <source>Referrer</source>
+        <target>Referrer</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportRequestedUri">
+      <segment state="initial">
+        <source>Requested URI</source>
+        <target>Requested URI</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportResponseUri">
+      <segment state="initial">
+        <source>Response URI</source>
+        <target>Response URI</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportRetries">
+      <segment state="initial">
+        <source>Retries</source>
+        <target>Retries</target>
       </segment>
     </unit>
     <unit id="deleteDialogConfirmationText">
@@ -2508,10 +2487,16 @@
         <target>Delete confirmation</target>
       </segment>
     </unit>
-    <unit id="disableCrawljobToggleSwitch">
+    <unit id="detailActionsMenuLabel">
+      <segment state="final">
+        <source>More actions</source>
+        <target>Flere handlinger</target>
+      </segment>
+    </unit>
+    <unit id="commonDeactivated">
       <segment state="initial">
-        <source> Deactivated </source>
-        <target> Deactivated </target>
+        <source>Deactivated</source>
+        <target>Deactivated</target>
       </segment>
     </unit>
     <unit id="durationPickerDaysLabel">
@@ -2544,10 +2529,40 @@
         <target>Seconds</target>
       </segment>
     </unit>
+    <unit id="effectiveScriptAnnotationDragLabel">
+      <segment state="initial">
+        <source>Drag <ph id="0" equiv="PH" disp="annotation.key"/>:<ph id="1" equiv="PH_1" disp="annotation.value"/> to script annotations</source>
+        <target>Drag <ph id="0" equiv="PH" disp="annotation.key"/>:<ph id="1" equiv="PH_1" disp="annotation.value"/> to script annotations</target>
+      </segment>
+    </unit>
+    <unit id="effectiveScriptAnnotationJobsLabel">
+      <segment state="initial">
+        <source>Show effective script annotations by crawl job</source>
+        <target>Show effective script annotations by crawl job</target>
+      </segment>
+    </unit>
+    <unit id="effectiveScriptAnnotationsDragHint">
+      <segment state="initial">
+        <source> Drag an annotation into the script annotations field to add it. </source>
+        <target> Drag an annotation into the script annotations field to add it. </target>
+      </segment>
+    </unit>
     <unit id="effectiveScriptAnnotationsEmpty">
       <segment state="initial">
-        <source>No script annotations are active.</source>
-        <target>No script annotations are active.</target>
+        <source> No script annotations are active. </source>
+        <target> No script annotations are active. </target>
+      </segment>
+    </unit>
+    <unit id="effectiveScriptAnnotationsLabel">
+      <segment state="initial">
+        <source>Effective script annotations</source>
+        <target>Effective script annotations</target>
+      </segment>
+    </unit>
+    <unit id="effectiveScriptAnnotationsLoading">
+      <segment state="initial">
+        <source>Loading effective script annotations</source>
+        <target>Loading effective script annotations</target>
       </segment>
     </unit>
     <unit id="effectiveScriptAnnotationValuesLabel">
@@ -2640,6 +2655,18 @@
         <target>CrawlConfig</target>
       </segment>
     </unit>
+    <unit id="entityDetailsSeedStateFilterLabel">
+      <segment state="initial">
+        <source>Filter seeds by state</source>
+        <target>Filter seeds by state</target>
+      </segment>
+    </unit>
+    <unit id="entityDetailsSeedsTitle">
+      <segment state="initial">
+        <source>Seeds</source>
+        <target>Seeds</target>
+      </segment>
+    </unit>
     <unit id="entityViewFilteredByLabel">
       <segment state="initial">
         <source>Filtered by entity</source>
@@ -2676,10 +2703,52 @@
         <target> <ph id="0" equiv="INTERPOLATION" disp="{{fileSize.errors[&apos;invalidUnit&apos;].unit}}"/> doesn&apos;t appear to be a valid unit </target>
       </segment>
     </unit>
-    <unit id="httpMethodTooltip">
+    <unit id="httpStatusClientErrorDescription">
       <segment state="initial">
-        <source>HTTP method</source>
-        <target>HTTP method</target>
+        <source>Client error responses (400 – 499)</source>
+        <target>Client error responses (400 – 499)</target>
+      </segment>
+    </unit>
+    <unit id="httpStatusExactDescription">
+      <segment state="initial">
+        <source>Status code <ph id="0" equiv="STATUS_CODE" disp="statusCode"/></source>
+        <target>Status code <ph id="0" equiv="STATUS_CODE" disp="statusCode"/></target>
+      </segment>
+    </unit>
+    <unit id="httpStatusFilterLabel">
+      <segment state="initial">
+        <source>Filter by status code</source>
+        <target>Filter by status code</target>
+      </segment>
+    </unit>
+    <unit id="httpStatusFilterLegend">
+      <segment state="initial">
+        <source>Status code</source>
+        <target>Status code</target>
+      </segment>
+    </unit>
+    <unit id="httpStatusInformationalDescription">
+      <segment state="initial">
+        <source>Informational responses (100 – 199)</source>
+        <target>Informational responses (100 – 199)</target>
+      </segment>
+    </unit>
+    <unit id="httpStatusRedirectionDescription">
+      <segment state="initial">
+        <source>Redirection messages (300 – 399)</source>
+        <target>Redirection messages (300 – 399)</target>
+      </segment>
+    </unit>
+    <unit id="httpStatusServerErrorDescription">
+      <segment state="initial">
+        <source>Server error responses (500 – 599)</source>
+        <target>Server error responses (500 – 599)</target>
+      </segment>
+    </unit>
+    <unit id="httpStatusSuccessfulDescription">
+      <segment state="initial">
+        <source>Successful responses (200 – 299)</source>
+        <target>Successful responses (200 – 299)</target>
       </segment>
     </unit>
     <unit id="ipRangeListHeader">
@@ -2700,6 +2769,12 @@
         <target><ph id="0" equiv="INTERPOLATION" disp="{{labelText}}"/></target>
       </segment>
     </unit>
+    <unit id="labelMultiInputHint">
+      <segment state="initial">
+        <source> Type a label or click a common label to add it to the input. </source>
+        <target> Type a label or click a common label to add it to the input. </target>
+      </segment>
+    </unit>
     <unit id="labelMultiInputLabel">
       <segment state="initial">
         <source> Label </source>
@@ -2716,12 +2791,6 @@
       <segment state="initial">
         <source>Remove labels from the selected configs</source>
         <target>Remove labels from the selected configs</target>
-      </segment>
-    </unit>
-    <unit id="latestCrawlExecutionNavigationLabel">
-      <segment state="final">
-        <source>Latest crawl execution navigation</source>
-        <target>Navigasjon for siste crawl-kjøring</target>
       </segment>
     </unit>
     <unit id="latestCrawlJobsEmpty">
@@ -2742,16 +2811,16 @@
         <target>Filter latest crawl jobs by state</target>
       </segment>
     </unit>
-    <unit id="latestCrawlJobsTitle">
+    <unit id="dashboardCrawlJobsTitle">
       <segment state="initial">
-        <source>Latest crawl jobs</source>
-        <target>Latest crawl jobs</target>
+        <source>Jobs</source>
+        <target>Jobber</target>
       </segment>
     </unit>
     <unit id="mainMenuConfiguration">
       <segment state="initial">
-        <source>Configuration</source>
-        <target>Configuration</target>
+        <source>Config</source>
+        <target>Config</target>
       </segment>
     </unit>
     <unit id="configurationListLabelsAriaLabel">
@@ -2790,6 +2859,60 @@
         <target>Kontroller for konfigurasjonslisten</target>
       </segment>
     </unit>
+    <unit id="configurationListStateFilterAriaLabel">
+      <segment state="initial">
+        <source>Filter configurations by state</source>
+        <target>Filtrer konfigurasjoner etter status</target>
+      </segment>
+    </unit>
+    <unit id="configurationListActiveState">
+      <segment state="initial">
+        <source>ACTIVE</source>
+        <target>AKTIV</target>
+      </segment>
+    </unit>
+    <unit id="configurationListDeactivatedState">
+      <segment state="initial">
+        <source>DEACTIVATED</source>
+        <target>DEAKTIVERT</target>
+      </segment>
+    </unit>
+    <unit id="configurationListOrderByLabel">
+      <segment state="initial">
+        <source>Order by</source>
+        <target>Sorter etter</target>
+      </segment>
+    </unit>
+    <unit id="configurationListDefaultOrder">
+      <segment state="initial">
+        <source>Default order</source>
+        <target>Standardrekkefølge</target>
+      </segment>
+    </unit>
+    <unit id="configurationListNameAscending">
+      <segment state="initial">
+        <source>Name: A–Z</source>
+        <target>Navn: A–Z</target>
+      </segment>
+    </unit>
+    <unit id="configurationListNameDescending">
+      <segment state="initial">
+        <source>Name: Z–A</source>
+        <target>Navn: Z–A</target>
+      </segment>
+    </unit>
+    <unit id="configurationListModifiedNewest">
+      <segment state="initial">
+        <source>Last modified: newest first</source>
+        <target>Sist endret: nyeste først</target>
+      </segment>
+    </unit>
+    <unit id="configurationListModifiedOldest">
+      <segment state="initial">
+        <source>Last modified: oldest first</source>
+        <target>Sist endret: eldste først</target>
+      </segment>
+    </unit>
     <unit id="configurationListDatabaseSelectionAriaLabel">
       <segment state="final">
         <source>Database selection</source>
@@ -2803,8 +2926,8 @@
       </segment>
     </unit>
     <unit id="configurationListDeselectConfigurationAriaLabel">
-      <segment state="final">
-        <source>Deselect <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></source>
+      <segment state="initial">
+        <source>Deselect <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
         <target>Fjern markeringen av <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></target>
       </segment>
     </unit>
@@ -2851,8 +2974,8 @@
       </segment>
     </unit>
     <unit id="configurationListSelectConfigurationAriaLabel">
-      <segment state="final">
-        <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></source>
+      <segment state="initial">
+        <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
         <target>Marker <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></target>
       </segment>
     </unit>
@@ -2922,6 +3045,12 @@
         <target>høflighetskonfigurasjoner</target>
       </segment>
     </unit>
+    <unit id="configurationListTypeRoleMappings">
+      <segment state="initial">
+        <source>role mappings</source>
+        <target>role mappings</target>
+      </segment>
+    </unit>
     <unit id="configurationListTypeSchedules">
       <segment state="final">
         <source>schedules</source>
@@ -2974,12 +3103,6 @@
       <segment state="initial">
         <source>Log out</source>
         <target>Logg ut</target>
-      </segment>
-    </unit>
-    <unit id="mainToolbarMoreActionsLabel">
-      <segment state="initial">
-        <source>More actions</source>
-        <target>More actions</target>
       </segment>
     </unit>
     <unit id="mainToolbarScheduledCrawljobsButtonTooltip">
@@ -3084,10 +3207,16 @@
         <target> Name is required. </target>
       </segment>
     </unit>
-    <unit id="openCollectionTooltip">
+    <unit id="outlinkDomainFilterLabel">
       <segment state="initial">
-        <source>Open collection</source>
-        <target>Open collection</target>
+        <source>Filter outlinks by domain</source>
+        <target>Filter outlinks by domain</target>
+      </segment>
+    </unit>
+    <unit id="outlinkDomainFilterLegend">
+      <segment state="initial">
+        <source>Domain</source>
+        <target>Domain</target>
       </segment>
     </unit>
     <unit id="outlinkUriHeader">
@@ -3096,10 +3225,28 @@
         <target>URI</target>
       </segment>
     </unit>
-    <unit id="pageLogCollectionAriaLabel">
+    <unit id="pageLogActionsMenuLabel">
       <segment state="final">
-        <source>Collection: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.collectionFinalName}}"/></source>
-        <target>Samling: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.collectionFinalName}}"/></target>
+        <source>Page log actions</source>
+        <target>Handlinger for sideloggen</target>
+      </segment>
+    </unit>
+    <unit id="pageLogCollectionMetadataLabel">
+      <segment state="final">
+        <source>Collection</source>
+        <target>Samling</target>
+      </segment>
+    </unit>
+    <unit id="pageLogDetailsLabel">
+      <segment state="initial">
+        <source>Page log details</source>
+        <target>Page log details</target>
+      </segment>
+    </unit>
+    <unit id="pageLogHeaderSupertitle">
+      <segment state="final">
+        <source>Page log</source>
+        <target>Sidelogg</target>
       </segment>
     </unit>
     <unit id="pageLogMetadataLabel">
@@ -3108,10 +3255,10 @@
         <target>Sideloggmetadata</target>
       </segment>
     </unit>
-    <unit id="pageLogMethodAriaLabel">
+    <unit id="pageLogOpenReferrerAction">
       <segment state="final">
-        <source>Method: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.method}}"/></source>
-        <target>Metode: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.method}}"/></target>
+        <source>Open referrer</source>
+        <target>Åpne henviser</target>
       </segment>
     </unit>
     <unit id="pageLogReferrerChip">
@@ -3136,12 +3283,6 @@
       <segment state="initial">
         <source>URI</source>
         <target>URI</target>
-      </segment>
-    </unit>
-    <unit id="pageLogTitle">
-      <segment state="initial">
-        <source>Page log</source>
-        <target>Page log</target>
       </segment>
     </unit>
     <unit id="pageOutlinksTabLabel">
@@ -3180,10 +3321,10 @@
         <target>Confirm action</target>
       </segment>
     </unit>
-    <unit id="politenessconfigDetailsCardTitle">
+    <unit id="configKindPoliteness">
       <segment state="initial">
-        <source>Politenessconfig</source>
-        <target>Politenessconfig</target>
+        <source>Politeness config</source>
+        <target>Politeness config</target>
       </segment>
     </unit>
     <unit id="politenessConfigDropdownLabel">
@@ -3222,28 +3363,28 @@
         <target>Use hostname</target>
       </segment>
     </unit>
-    <unit id="politenessconfigFormUseHostnameSelectedLabel">
+    <unit id="politenessMultiDoNotUseHostname">
+      <segment state="initial">
+        <source>Do not use hostname</source>
+        <target>Ikke bruk vertsnavn</target>
+      </segment>
+    </unit>
+    <unit id="politenessMultiUseHostname">
       <segment state="final">
         <source>Use hostname</source>
         <target>Bruk vertsnavn</target>
       </segment>
     </unit>
-    <unit id="politenessconfigFormUseIpAddressLabel">
-      <segment state="final">
-        <source>Use IP-address</source>
-        <target>Bruk IP-adresse</target>
-      </segment>
-    </unit>
     <unit id="politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
       <segment state="initial">
-        <source>Show crawlconfigs with reference to the politeness</source>
-        <target>Show crawlconfigs with reference to the politeness</target>
+        <source>Show crawl configurations that use this politeness configuration</source>
+        <target>Vis crawl-konfigurasjoner som bruker denne høflighetskonfigurasjonen</target>
       </segment>
     </unit>
     <unit id="politenesslconfigFormUseHostnameLabel">
       <segment state="initial">
-        <source> Use hostname </source>
-        <target> Use hostname </target>
+        <source>Use hostname</source>
+        <target>Use hostname</target>
       </segment>
     </unit>
     <unit id="primaryNavigationBackLabel">
@@ -3372,16 +3513,16 @@
         <target>Page log</target>
       </segment>
     </unit>
+    <unit id="reportPageSubtitle">
+      <segment state="initial">
+        <source> Explore crawl activity, execution details, and collected logs. </source>
+        <target> Explore crawl activity, execution details, and collected logs. </target>
+      </segment>
+    </unit>
     <unit id="reportPageTitle">
       <segment state="initial">
         <source>Reports</source>
         <target>Reports</target>
-      </segment>
-    </unit>
-    <unit id="reportPageSubtitle">
-      <segment state="final">
-        <source> Explore crawl activity, execution details, and collected logs. </source>
-        <target> Utforsk høsteaktivitet, kjøringsdetaljer og innsamlede logger. </target>
       </segment>
     </unit>
     <unit id="reportGroupExecutions">
@@ -3510,6 +3651,24 @@
         <target>WARC ID</target>
       </segment>
     </unit>
+    <unit id="resourceMethodHeader">
+      <segment state="initial">
+        <source>Method</source>
+        <target>Method</target>
+      </segment>
+    </unit>
+    <unit id="resourceMimeTypeFilterLabel">
+      <segment state="initial">
+        <source>Filter resources by MIME type</source>
+        <target>Filter resources by MIME type</target>
+      </segment>
+    </unit>
+    <unit id="resourceMimeTypeFilterLegend">
+      <segment state="initial">
+        <source>MIME type</source>
+        <target>MIME type</target>
+      </segment>
+    </unit>
     <unit id="resourceMimeTypeHeader">
       <segment state="initial">
         <source>MIME type</source>
@@ -3518,8 +3677,20 @@
     </unit>
     <unit id="resourceStatusHeader">
       <segment state="initial">
-        <source>Status</source>
-        <target>Status</target>
+        <source>Status code</source>
+        <target>Status code</target>
+      </segment>
+    </unit>
+    <unit id="resourceTypeFilterLabel">
+      <segment state="initial">
+        <source>Filter resources by resource type</source>
+        <target>Filter resources by resource type</target>
+      </segment>
+    </unit>
+    <unit id="resourceTypeFilterLegend">
+      <segment state="initial">
+        <source>Resource type</source>
+        <target>Resource type</target>
       </segment>
     </unit>
     <unit id="resourceTypeHeader">
@@ -3538,18 +3709,6 @@
       <segment state="final">
         <source>Related records</source>
         <target>Relaterte oppføringer</target>
-      </segment>
-    </unit>
-    <unit id="reportRunningCrawlsShortcut">
-      <segment state="final">
-        <source>Running crawls</source>
-        <target>Pågående crawler</target>
-      </segment>
-    </unit>
-    <unit id="roleMappingDetailsCardTitle">
-      <segment state="initial">
-        <source>Rolemapping</source>
-        <target>Rolemapping</target>
       </segment>
     </unit>
     <unit id="roleMappingDetailsEmailInputLabel">
@@ -3590,8 +3749,8 @@
     </unit>
     <unit id="runCrawlActionButtonTooltip">
       <segment state="initial">
-        <source>Run crawljob: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></source>
-        <target>Run crawljob: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></target>
+        <source>Run crawl job: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></source>
+        <target>Start crawl-jobb: <ph id="0" equiv="INTERPOLATION" disp="{{row.meta.name}}"/></target>
       </segment>
     </unit>
     <unit id="runCrawlDialogRunConfirmationText">
@@ -3660,7 +3819,19 @@
         <target> Month </target>
       </segment>
     </unit>
-    <unit id="scheduleDetailsCardTitle">
+    <unit id="configRelationMatchedBySelector">
+      <segment state="initial">
+        <source>Matched by label selector</source>
+        <target>Valgt av etikettselektor</target>
+      </segment>
+    </unit>
+    <unit id="configRelationPoliteness">
+      <segment state="initial">
+        <source>Politeness config</source>
+        <target>Politeness config</target>
+      </segment>
+    </unit>
+    <unit id="configRelationSchedule">
       <segment state="initial">
         <source>Schedule</source>
         <target>Schedule</target>
@@ -3692,20 +3863,14 @@
     </unit>
     <unit id="scheduleListShowCrawljobsWithScheduleActionButtonTooltip">
       <segment state="initial">
-        <source>Show crawljobs with reference to the schedule</source>
-        <target>Show crawljobs with reference to the schedule</target>
+        <source>Show crawl jobs that use this schedule</source>
+        <target>Vis crawl-jobber som bruker denne tidsplanen</target>
       </segment>
     </unit>
     <unit id="scopeScriptDropdownLabel">
       <segment state="initial">
         <source> Scope script </source>
         <target> Scope script </target>
-      </segment>
-    </unit>
-    <unit id="scriptAnnotationsLabel">
-      <segment state="initial">
-        <source>Script annotations</source>
-        <target>Script annotations</target>
       </segment>
     </unit>
     <unit id="searchOutlinksLabel">
@@ -3744,12 +3909,6 @@
         <target> Crawljob </target>
       </segment>
     </unit>
-    <unit id="seedDisabledToggleSwitch">
-      <segment state="initial">
-        <source> Deactivated </source>
-        <target> Deactivated </target>
-      </segment>
-    </unit>
     <unit id="seedListFilterSeedByEntityActionButtonTooltip">
       <segment state="initial">
         <source>Show seeds with the same entity</source>
@@ -3758,8 +3917,8 @@
     </unit>
     <unit id="seedListFilterSeedsByCrawljobActionButtonTooltip">
       <segment state="initial">
-        <source>Show seeds with the same crawljob</source>
-        <target>Show seeds with the same crawljob</target>
+        <source>Show seeds with the same crawl job</source>
+        <target>Vis seed-er med samme crawl-jobb</target>
       </segment>
     </unit>
     <unit id="seedMetaGoToEntityWithExistingSeedButtonTooltip">
@@ -3966,22 +4125,46 @@
         <target> Bare endrede innstillinger blir brukt. Verdier som ikke endres, blir bevart. </target>
       </segment>
     </unit>
+    <unit id="massUpdateLabelsHeading">
+      <segment state="final">
+        <source>Labels</source>
+        <target>Etiketter</target>
+      </segment>
+    </unit>
+    <unit id="massUpdateCrawlJobsHeading">
+      <segment state="final">
+        <source>Crawl jobs</source>
+        <target>Crawl-jobber</target>
+      </segment>
+    </unit>
     <unit id="massUpdateStatusActivated">
       <segment state="final">
-        <source> Activated </source>
-        <target> Aktivert </target>
+        <source>Activated</source>
+        <target>Aktivert</target>
       </segment>
     </unit>
     <unit id="massUpdateStatusDeactivated">
       <segment state="final">
-        <source> Deactivated </source>
-        <target> Deaktivert </target>
+        <source>Deactivated</source>
+        <target>Deaktivert</target>
       </segment>
     </unit>
     <unit id="massUpdateStatusLabel">
       <segment state="final">
         <source>Status</source>
         <target>Status</target>
+      </segment>
+    </unit>
+    <unit id="seedMultiAddCrawlJobsLabel">
+      <segment state="final">
+        <source>Add crawl jobs</source>
+        <target>Legg til crawl-jobber</target>
+      </segment>
+    </unit>
+    <unit id="seedMultiRemoveCrawlJobsLabel">
+      <segment state="final">
+        <source>Remove crawl jobs</source>
+        <target>Fjern crawl-jobber</target>
       </segment>
     </unit>
     <unit id="browserConfigMassUpdateDialogTitle">
@@ -4002,10 +4185,34 @@
         <target>Oppdater høstekonfigurasjoner</target>
       </segment>
     </unit>
+    <unit id="crawlConfigMultiDoNotTakeScreenshot">
+      <segment state="initial">
+        <source>Do not take screenshot</source>
+        <target>Ikke ta skjermbilde</target>
+      </segment>
+    </unit>
+    <unit id="crawlConfigMultiTakeScreenshot">
+      <segment state="initial">
+        <source>Take screenshot</source>
+        <target>Ta skjermbilde</target>
+      </segment>
+    </unit>
     <unit id="crawlHostGroupConfigMassUpdateDialogTitle">
       <segment state="final">
         <source>Update crawl host group configurations</source>
         <target>Oppdater konfigurasjoner for crawl-vertsgrupper</target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigRemoveIpRangeAriaLabel">
+      <segment state="initial">
+        <source>Remove IP range <ph id="0" equiv="PH" disp="index + 1"/></source>
+        <target>Remove IP range <ph id="0" equiv="PH" disp="index + 1"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlhostgroupconfigRemoveIpRangeLabel">
+      <segment state="initial">
+        <source>Remove IP range</source>
+        <target>Remove IP range</target>
       </segment>
     </unit>
     <unit id="crawlJobMassUpdateDialogTitle">
@@ -4030,6 +4237,12 @@
       <segment state="final">
         <source>Update user roles</source>
         <target>Oppdater brukerroller</target>
+      </segment>
+    </unit>
+    <unit id="roleMappingRoleFilterLabel">
+      <segment state="initial">
+        <source>Role</source>
+        <target>Role</target>
       </segment>
     </unit>
     <unit id="scheduleMassUpdateDialogTitle">

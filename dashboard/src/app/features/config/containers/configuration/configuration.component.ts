@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, OnDestroy, Signal, signal, inject} from '@angular/core';
-import {ActivatedRoute, NavigationStart, Router} from '@angular/router';
+import {ActivatedRoute, NavigationStart, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
 import {combineLatest, EMPTY, forkJoin, merge, Observable, of, Subject} from 'rxjs';
@@ -32,6 +32,7 @@ import {
   CrawlJobDetailsComponent,
   DeleteDialogComponent,
   EntityDetailsComponent,
+  EntitySeedContextComponent,
   JobStatusComponent,
   Parcel,
   PolitenessConfigDetailsComponent,
@@ -43,7 +44,15 @@ import {
 import {OptionsResolver, OptionsService} from '../../services';
 import {RunCrawlDialogComponent} from '../../components/run-crawl-dialog/run-crawl-dialog.component';
 import {ConfigService} from '../../../../shared/services';
-import {configKindFromPath, ConfigDialogData, ConfigPath, dialogByKind, relatedConfigRefs} from '../../func';
+import {
+  configKindFromPath,
+  ConfigDialogData,
+  ConfigPath,
+  ConfigRelationRole,
+  dialogByKind,
+  RelatedConfigDescriptor,
+  relatedConfigDescriptors,
+} from '../../func';
 import {RouterExtraService} from '../../services/router-extra.service';
 import {AsyncPipe, Location} from '@angular/common';
 import {ConfigShortcutHelpersComponent} from '../../components/shortcut/shortcut.component';
@@ -54,6 +63,8 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {AppConfig} from '../../../../app.config';
 import {ResolvedLabelLink, resolveLabelLink} from '../../func';
+import {configKindIcon} from '../../func/config-kind-icon';
+import {DetailHeaderComponent} from '../../../../shared/components';
 
 
 export interface ConfigOptions {
@@ -73,10 +84,18 @@ export interface ConfigOptions {
 }
 
 export interface RelatedConfigContext {
-  ref: ConfigRef;
+  descriptor: RelatedConfigDescriptor;
   configObject: ConfigObject | null;
   unavailable: boolean;
 }
+
+export interface RelatedConfigGroup {
+  role: ConfigRelationRole;
+  label: string;
+  contexts: RelatedConfigContext[];
+}
+
+type ConfigDialogContext = 'current' | 'related';
 
 @Component({
   selector: 'app-configuration',
@@ -95,7 +114,9 @@ export interface RelatedConfigContext {
     CrawlExecutionStatusPipe,
     CrawlHostGroupConfigDetailsComponent,
     CrawlJobDetailsComponent,
+    DetailHeaderComponent,
     EntityDetailsComponent,
+    EntitySeedContextComponent,
     JobExecutionStatusPipe,
     JobStatusComponent,
     PolitenessConfigDetailsComponent,
@@ -103,6 +124,7 @@ export interface RelatedConfigContext {
     SeedDetailsComponent,
     ConfigShortcutHelpersComponent,
     RoleMappingDetailsComponent,
+    RouterLink,
   ],
   standalone: true
 })
@@ -124,8 +146,9 @@ export class ConfigurationComponent implements OnDestroy {
   private appConfig = inject(AppConfig);
 
   readonly Kind = Kind;
-  readonly canReadAnnotations = this.authService.canRead('annotation');
+  readonly configKindIcon = configKindIcon;
   readonly canReadSeeds = computed(() => this.abilityService.can('read', Kind[Kind.SEED]));
+  readonly newConfigTitle = $localize`:@@commonConfigDetailsCardSubtitle:New (unsaved)`;
 
   private ngUnsubscribe = new Subject<void>();
 
@@ -184,14 +207,14 @@ export class ConfigurationComponent implements OnDestroy {
     });
     this.relatedConfigs$ = combineLatest([this.configObject$, this.options$]).pipe(
       switchMap(([configObject, options]) => {
-        const refs = relatedConfigRefs(configObject, options?.browserScripts)
-          .filter(ref => this.authService.canRead(ref.kind));
-        if (!refs.length) {
+        const descriptors = relatedConfigDescriptors(configObject, options?.browserScripts)
+          .filter(({ref}) => this.authService.canRead(ref.kind));
+        if (!descriptors.length) {
           return of([] as RelatedConfigContext[]);
         }
-        return forkJoin(refs.map(ref => this.dataService.get(ref).pipe(
-          map(related => ({ref, configObject: related, unavailable: false} as RelatedConfigContext)),
-          catchError(() => of({ref, configObject: null, unavailable: true} as RelatedConfigContext)),
+        return forkJoin(descriptors.map(descriptor => this.dataService.get(descriptor.ref).pipe(
+          map(related => ({descriptor, configObject: related, unavailable: false} as RelatedConfigContext)),
+          catchError(() => of({descriptor, configObject: null, unavailable: true} as RelatedConfigContext)),
         )));
       }),
     );
@@ -216,13 +239,48 @@ export class ConfigurationComponent implements OnDestroy {
     return crawlJobs.find(crawlJob => crawlJob.id === jobId)?.meta.name?.trim() ?? '';
   }
 
-  annotationContextFor(
-    ref: ConfigRef,
-    contexts: readonly ScriptAnnotationContext[],
-  ): ScriptAnnotationContext | null {
-    return ref.kind === Kind.CRAWLJOB
-      ? contexts.find(context => context.jobRef.id === ref.id) ?? null
-      : null;
+  configKindLabel(kind: Kind): string {
+    switch (kind) {
+      case Kind.CRAWLENTITY: return $localize`:@@configKindEntity:Entity`;
+      case Kind.SEED: return $localize`:@@configKindSeed:Seed`;
+      case Kind.CRAWLJOB: return $localize`:@@configKindCrawlJob:Crawl job`;
+      case Kind.CRAWLSCHEDULECONFIG: return $localize`:@@configKindSchedule:Schedule`;
+      case Kind.CRAWLCONFIG: return $localize`:@@configKindCrawlConfig:Crawl config`;
+      case Kind.COLLECTION: return $localize`:@@configKindCollection:Collection`;
+      case Kind.BROWSERCONFIG: return $localize`:@@configKindBrowserConfig:Browser config`;
+      case Kind.BROWSERSCRIPT: return $localize`:@@configKindBrowserScript:Browser script`;
+      case Kind.POLITENESSCONFIG: return $localize`:@@configKindPoliteness:Politeness config`;
+      case Kind.CRAWLHOSTGROUPCONFIG: return $localize`:@@configKindCrawlHostGroup:Crawl host group`;
+      case Kind.ROLEMAPPING: return $localize`:@@configKindRoleMapping:User`;
+      default: return $localize`:@@configKindConfiguration:Configuration`;
+    }
+  }
+
+  relatedConfigGroups(contexts: readonly RelatedConfigContext[]): RelatedConfigGroup[] {
+    const groups = new Map<ConfigRelationRole, RelatedConfigContext[]>();
+    for (const context of contexts) {
+      const role = context.descriptor.role;
+      groups.set(role, [...(groups.get(role) ?? []), context]);
+    }
+    return [...groups.entries()].map(([role, groupContexts]) => ({
+      role,
+      label: this.relationshipLabel(role),
+      contexts: groupContexts,
+    }));
+  }
+
+  relationshipLabel(role: ConfigRelationRole): string {
+    switch (role) {
+      case 'entity': return $localize`:@@configRelationEntity:Entity`;
+      case 'crawl-job': return $localize`:@@configRelationCrawlJobs:Crawl jobs`;
+      case 'schedule': return $localize`:@@configRelationSchedule:Schedule`;
+      case 'crawl-config': return $localize`:@@configRelationCrawlConfig:Crawl config`;
+      case 'scope-script': return $localize`:@@configRelationScopeScript:Scope script`;
+      case 'collection': return $localize`:@@configRelationCollection:Collection`;
+      case 'browser-config': return $localize`:@@configRelationBrowserConfig:Browser config`;
+      case 'politeness-config': return $localize`:@@configRelationPoliteness:Politeness config`;
+      case 'browser-script': return $localize`:@@configRelationBrowserScripts:Browser scripts`;
+    }
   }
 
   labelLinksFor(configObject: ConfigObject): ResolvedLabelLink[] {
@@ -252,7 +310,7 @@ export class ConfigurationComponent implements OnDestroy {
   }
 
   onEditEntitySeed(seed: ConfigObject): void {
-    this.onCreateConfigWithDialog(seed, false);
+    this.onCreateConfigWithDialog(seed, 'related');
   }
 
   private entitySeedQuery(
@@ -357,10 +415,10 @@ export class ConfigurationComponent implements OnDestroy {
     const entityRef = ConfigObject.toConfigRef(entity);
     const configObject = new ConfigObject({kind: Kind.SEED, seed: new Seed({entityRef})});
 
-    this.onCreateConfigWithDialog(configObject);
+    this.onCreateConfigWithDialog(configObject, 'related');
   }
 
-  onCreateConfigWithDialog(configObject: ConfigObject, updateCurrentConfig = true) {
+  onCreateConfigWithDialog(configObject: ConfigObject, context: ConfigDialogContext = 'current') {
     if (!configObject) {
       return;
     }
@@ -372,13 +430,13 @@ export class ConfigurationComponent implements OnDestroy {
       next: kindOptions => {
         const options = {...this.options, ...kindOptions};
         this.optionsService.next(kindOptions);
-        this.openConfigDialog(configObject, options, updateCurrentConfig);
+        this.openConfigDialog(configObject, options, context);
       },
       error: error => this.errorHandler.handleError(error),
     });
   }
 
-  private openConfigDialog(configObject: ConfigObject, options: ConfigOptions, updateCurrentConfig: boolean) {
+  private openConfigDialog(configObject: ConfigObject, options: ConfigOptions, context: ConfigDialogContext) {
     const data: ConfigDialogData = {configObject, options};
     const componentType = dialogByKind(configObject.kind);
     const dialogRef = this.dialog.open(componentType, {data});
@@ -401,24 +459,45 @@ export class ConfigurationComponent implements OnDestroy {
       takeUntil(this.ngUnsubscribe),
     ).subscribe((config: ConfigObject) => {
       if (config.id) {
-        if (updateCurrentConfig) {
+        if (context === 'current') {
           this.onUpdateConfig(config);
         } else {
-          this.onUpdateEntitySeed(config);
+          this.onUpdateRelatedConfig(config);
         }
-      } else {
+      } else if (context === 'current') {
         this.onSaveConfig(config);
+      } else {
+        this.onSaveRelatedConfig(config);
       }
     });
   }
 
-  private onUpdateEntitySeed(seed: ConfigObject): void {
-    this.dataService.update(seed)
+  private onUpdateRelatedConfig(configObject: ConfigObject): void {
+    this.dataService.update(configObject)
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(() => {
         this.entitySeedDataSource.refreshLoaded();
+        this.reload.update(value => value + 1);
         this.snackBarService.openSnackBar($localize`:@snackBarMessage.updated:Updated`);
       });
+  }
+
+  private onSaveRelatedConfig(configObject: ConfigObject): void {
+    this.dataService.save(configObject)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe(() => {
+        this.entitySeedDataSource.refreshLoaded();
+        this.reload.update(value => value + 1);
+        this.snackBarService.openSnackBar($localize`:@snackBarMessage.saved:Saved`);
+      });
+  }
+
+  onEditRelatedConfig(configObject: ConfigObject): void {
+    this.onCreateConfigWithDialog(configObject, 'related');
+  }
+
+  onCloneRelatedConfig(configObject: ConfigObject): void {
+    this.onCreateConfigWithDialog(ConfigObject.clone(configObject), 'related');
   }
 
   onClone(configObject: ConfigObject) {
@@ -447,6 +526,14 @@ export class ConfigurationComponent implements OnDestroy {
 
 
   onDeleteConfig(configObject: ConfigObject) {
+    this.deleteConfig(configObject, true);
+  }
+
+  onDeleteRelatedConfig(configObject: ConfigObject): void {
+    this.deleteConfig(configObject, false);
+  }
+
+  private deleteConfig(configObject: ConfigObject, navigateAfterDelete: boolean): void {
     const dialogRef = this.dialog.open(DeleteDialogComponent, {
       disableClose: false,
       autoFocus: true,
@@ -461,7 +548,10 @@ export class ConfigurationComponent implements OnDestroy {
         filter(deleted => !!deleted)
       )
       .subscribe(() => {
-        if (previousUrl !== currentUrl) {
+        if (!navigateAfterDelete) {
+          this.entitySeedDataSource.refreshLoaded();
+          this.reload.update(value => value + 1);
+        } else if (previousUrl !== currentUrl) {
           this.location.back();
         } else {
           this.router.navigate(['../'], {

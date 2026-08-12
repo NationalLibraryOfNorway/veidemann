@@ -41,8 +41,8 @@ export class ConfigService
   // The listRequest last used to fetch data
   private effectiveListRequest: ListRequest;
 
-  get(configRef: ConfigRef): Observable<ConfigObject> {
-    return this.load(this.configApiService.get(configRef));
+  get(configRef: ConfigRef, options: {suppressNotFound?: boolean} = {}): Observable<ConfigObject> {
+    return this.load(this.configApiService.get(configRef, options));
   }
 
   search(query: ConfigQuery, range: ListRange): Observable<ConfigObject> {

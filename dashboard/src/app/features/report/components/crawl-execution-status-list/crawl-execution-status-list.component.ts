@@ -32,4 +32,12 @@ export class CrawlExecutionStatusListComponent extends ReportListBaseComponent<C
 
   override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'startTime', 'endTime', 'action'];
 
+  deletedSeedTooltip(seedId: string): string {
+    return $localize`:@@crawlExecutionDeletedSeedTooltip:Deleted seed ID: ${seedId}:SEED_ID:`;
+  }
+
+  deletedSeedAriaLabel(seedId: string): string {
+    return $localize`:@@crawlExecutionDeletedSeedAriaLabel:Deleted seed. Seed ID: ${seedId}:SEED_ID:`;
+  }
+
 }

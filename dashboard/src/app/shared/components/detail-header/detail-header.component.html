@@ -1,0 +1,27 @@
+<header class="detail-header">
+  <div class="detail-header-icon" aria-hidden="true">
+    <mat-icon>{{icon}}</mat-icon>
+  </div>
+  <div class="detail-header-heading">
+    @if (supertitle) {
+      <p class="detail-header-supertitle">{{supertitle}}</p>
+    }
+    <h1>@if (titleHref) {<a
+      class="detail-header-title-link"
+      [href]="titleHref"
+      target="_blank"
+      rel="noopener noreferrer">{{title}}</a>} @else {<span>{{title}}</span>}</h1>
+  </div>
+  @if (description) {
+    <p class="detail-header-description">{{description}}</p>
+  }
+  <div class="detail-header-actions">
+    <ng-content select="[detailHeaderActions]"></ng-content>
+  </div>
+  <div class="detail-header-metadata">
+    <ng-content select="[detailHeaderMetadata]"></ng-content>
+  </div>
+  <div class="detail-header-lifecycle">
+    <ng-content select="[detailHeaderLifecycle]"></ng-content>
+  </div>
+</header>

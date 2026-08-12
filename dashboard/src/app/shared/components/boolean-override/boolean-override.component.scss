@@ -1,0 +1,11 @@
+.boolean-override {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button.selected {
+  --mdc-outlined-button-container-color: var(--mat-sys-primary-container);
+  --mdc-outlined-button-label-text-color: var(--mat-sys-on-primary-container);
+  border-color: var(--mat-sys-primary);
+}

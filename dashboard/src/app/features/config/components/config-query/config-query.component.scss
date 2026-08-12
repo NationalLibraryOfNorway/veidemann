@@ -31,16 +31,6 @@
   white-space: nowrap;
 }
 
-.seed-chip-filter {
-  box-sizing: border-box;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
 .script-type-filter {
   box-sizing: border-box;
   flex: 0 0 100%;
@@ -50,7 +40,6 @@
   border: 0;
 }
 
-.seed-chip-filter legend,
 .script-type-filter legend {
   margin-bottom: 8px;
   color: var(--mat-sys-on-surface-variant);
@@ -68,11 +57,6 @@
     flex-basis: 100%;
     width: 100%;
     max-width: none;
-  }
-
-  .seed-chip-filter {
-    flex-basis: 100%;
-    width: 100%;
   }
 
   .script-type-filter {

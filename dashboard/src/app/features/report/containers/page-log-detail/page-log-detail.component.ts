@@ -7,6 +7,7 @@ import {map, mergeMap} from 'rxjs/operators';
 import {PageLogStatusComponent} from '../../components';
 import {PageLogShortcutsComponent} from '../../components/page-log-shortcuts/page-log-shortcuts.component';
 import {CommonModule} from '@angular/common';
+import {DetailOverflowComponent} from '../../../../shared/components';
 
 @Component({
     selector: 'app-crawl-log-detail',
@@ -16,6 +17,7 @@ import {CommonModule} from '@angular/common';
     PageLogStatusComponent,
     PageLogShortcutsComponent,
     CommonModule,
+    DetailOverflowComponent,
   ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true

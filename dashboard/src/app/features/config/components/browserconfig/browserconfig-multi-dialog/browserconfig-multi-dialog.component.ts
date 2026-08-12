@@ -1,11 +1,9 @@
 import { ChangeDetectionStrategy,Component,OnInit,ViewChild,inject } from '@angular/core';
 import { AbstractControl,ReactiveFormsModule,Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { BrowserConfigDetailsComponent } from '..';
@@ -15,6 +13,7 @@ import { ConfigDialogData } from '../../../func';
 import { DurationPickerComponent } from '../../durationpicker/duration-picker';
 import { LabelMultiComponent } from '../../label/label-multi/label-multi.component';
 import { SelectorComponent } from '../../selector/selector.component';
+import {MultiUpdateOperationComponent} from '../../multi-update-operation/multi-update-operation.component';
 
 @Component({
   selector: 'app-browserconfig-multi-dialog',
@@ -23,6 +22,7 @@ import { SelectorComponent } from '../../selector/selector.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     LabelMultiComponent,
+    MultiUpdateOperationComponent,
     ReactiveFormsModule,
     MatFormFieldModule,
     DurationPickerComponent,
@@ -30,9 +30,7 @@ import { SelectorComponent } from '../../selector/selector.component';
     MatButtonModule,
     MatChipsModule,
     MatSelectModule,
-    MatButtonToggleModule,
     SelectorComponent,
-    MatIconModule,
     MatInputModule,
   ],
   standalone: true
@@ -90,13 +88,25 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
   }
 
   onToggleShouldAddSelector(value: boolean) {
+    if (value !== true && value !== false) {
+      this.shouldAddSelector = undefined;
+      this.scriptSelectorList.disable();
+      return;
+    }
     this.shouldAddSelector = value;
     this.scriptSelectorList.patchValue([]);
+    this.scriptSelectorList.enable();
   }
 
   onToggleBrowserScript(value: boolean) {
+    if (value !== true && value !== false) {
+      this.shouldAddBrowserScript = undefined;
+      this.scriptRefIdList.disable();
+      return;
+    }
     this.shouldAddBrowserScript = value;
     this.scriptRefIdList.patchValue([]);
+    this.scriptRefIdList.enable();
   }
 
   override onRevert() {
@@ -124,8 +134,8 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
       maxInactivityTimeMs: ['', [Validators.pattern(NUMBER_OR_EMPTY_STRING)]],
       // headers: this.fb.group({''}),
       commonScriptRefIdList: [[]],
-      scriptRefIdList: [[]],
-      scriptSelectorList: '',
+      scriptRefIdList: [{value: [], disabled: true}],
+      scriptSelectorList: [{value: [], disabled: true}],
     });
   }
 
@@ -140,10 +150,13 @@ export class BrowserConfigMultiDialogComponent extends BrowserConfigDetailsCompo
       // headers: this.configObject.configObject.headers;
       commonScriptRefIdList: this.configObject.browserConfig.scriptRefList.map(ref => ref.id),
       scriptRefIdList: [],
-      scriptSelectorList: [[]],
+      scriptSelectorList: [],
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
+    this.form.get('commonScriptRefIdList').disable();
+    this.scriptRefIdList.disable();
+    this.scriptSelectorList.disable();
     if (!this.canEdit) {
       this.form.disable();
     }

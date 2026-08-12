@@ -1,22 +1,5 @@
 <form [formGroup]="form">
-  <mat-card appearance="outlined">
-    <mat-card-header class="card-header-with-helpers">
-      <div mat-card-avatar class="config-kind-avatar">
-        <mat-icon aria-hidden="true">{{configKindIcon(configObject.kind)}}</mat-icon>
-      </div>
-      <mat-card-title>
-        @if (configObject.meta.name) {
-          {{configObject.meta.name}}
-        } @else {
-          <span i18n="@@commonConfigDetailsCardSubtitle">New (unsaved)</span>
-        }
-      </mat-card-title>
-      @if (configObject.meta.description) {
-        <mat-card-subtitle class="config-card-description">{{configObject.meta.description}}</mat-card-subtitle>
-      }
-      <ng-content select="[cardHeaderHelpers]"></ng-content>
-    </mat-card-header>
-    <mat-card-content>
+    <div class="config-details-content">
       <div class="layout-row layout-wrap gap-24">
         <mat-form-field>
           <mat-label i18n-placeholder="@@roleMappingDetailsTypeDropdownLabel">
@@ -59,9 +42,9 @@
           }
         </mat-form-field>
       </div>
-    </mat-card-content>
+    </div>
 
-    <mat-card-actions>
+    <div class="config-form-actions">
       @if (showSave) {
         <button mat-raised-button color="accent"
           [disabled]="!canSave"
@@ -85,6 +68,5 @@
         REVERT
       </button>
       <span class="flex-fill"></span>
-    </mat-card-actions>
-  </mat-card>
+    </div>
 </form>

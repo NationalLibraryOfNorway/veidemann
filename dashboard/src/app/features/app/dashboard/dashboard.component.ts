@@ -21,7 +21,10 @@ import {RunningCrawlsComponent} from '../running-crawls/running-crawls.component
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css'],
+  styleUrls: [
+    '../../../shared/components/navigation-grid/navigation-grid.scss',
+    './dashboard.component.css',
+  ],
   imports: [
     AsyncPipe,
     CrawlerStatusComponent,

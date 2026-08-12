@@ -56,4 +56,15 @@ describe('ExecutionAbortActionComponent', () => {
     expect(fixture.nativeElement.querySelector('.destructive-actions')).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Crawl actions');
   });
+
+  it('renders a destructive menu item for unified header menus', () => {
+    fixture.componentRef.setInput('abortable', true);
+    fixture.componentRef.setInput('presentation', 'menu-item');
+    fixture.detectChanges();
+
+    const action = fixture.nativeElement.querySelector('button[mat-menu-item]') as HTMLButtonElement;
+    expect(action.classList).toContain('destructive-menu-item');
+    expect(action.textContent).toContain('Abort crawl');
+    expect(fixture.nativeElement.querySelector('.destructive-actions')).toBeNull();
+  });
 });

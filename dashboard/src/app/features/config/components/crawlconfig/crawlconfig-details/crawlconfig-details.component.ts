@@ -3,7 +3,6 @@ import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGro
 import {DECIMAL_NUMBER_OR_EMPTY_STRING, NUMBER_OR_EMPTY_STRING} from '../../../../../shared/validation/patterns';
 import {ConfigObject, ConfigRef, CrawlConfig, Kind, Meta} from '../../../../../shared/models';
 import {AuthService} from '../../../../../core/auth';
-import {MatCardModule} from '@angular/material/card';
 import {MetaComponent} from '../../meta/meta.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
@@ -12,8 +11,7 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {CopyIdDirective} from '../../../../../shared/directives';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
-import {configKindIcon} from '../../../func/config-kind-icon';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-crawlconfig-details',
@@ -22,9 +20,8 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CopyIdDirective,
-    BooleanStateChipComponent,
     MatButtonModule,
-    MatCardModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatIcon,
@@ -36,7 +33,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
   standalone: true
 })
 export class CrawlConfigDetailsComponent implements OnChanges {
-  readonly configKindIcon = configKindIcon;
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 

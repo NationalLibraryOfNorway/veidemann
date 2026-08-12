@@ -1,33 +1,33 @@
 import {DatePipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {MatIcon} from '@angular/material/icon';
-
 import {ExecutionStatePresentation} from '../../func';
-
-export type ExecutionTerminalEvent = 'finished' | 'failed' | 'died' | 'aborted' | null;
 
 @Component({
   selector: 'app-execution-metadata',
   templateUrl: './execution-metadata.component.html',
   styleUrls: ['./execution-metadata.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatIcon],
+  imports: [DatePipe],
   standalone: true,
 })
 export class ExecutionMetadataComponent {
   @Input({required: true}) state: ExecutionStatePresentation;
+  @Input() presentation: 'compact' | 'metrics' = 'compact';
   @Input() desiredState: ExecutionStatePresentation | null = null;
   @Input() startTime = '';
   @Input() endTime = '';
-  @Input() terminalEvent: ExecutionTerminalEvent = null;
+  @Input() contextLabel = '';
+  @Input() contextValue = '';
 
-  sameCalendarDay(): boolean {
-    const start = new Date(this.startTime);
-    const end = new Date(this.endTime);
-    return !Number.isNaN(start.getTime())
-      && !Number.isNaN(end.getTime())
-      && start.getFullYear() === end.getFullYear()
-      && start.getMonth() === end.getMonth()
-      && start.getDate() === end.getDate();
+  get showDesiredStateInLifecycle(): boolean {
+    return this.hasDistinctDesiredState
+      && this.state.lifecycle === 'active'
+      && !this.endTime;
+  }
+
+  private get hasDistinctDesiredState(): boolean {
+    return !!this.desiredState
+      && this.desiredState.lifecycle !== 'undefined'
+      && this.desiredState.label !== this.state.label;
   }
 }

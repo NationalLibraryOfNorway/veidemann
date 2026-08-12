@@ -91,4 +91,18 @@ describe('CrawlLogShortcutsComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('200');
     expect(fixture.nativeElement.textContent).not.toContain('archive_2026');
   });
+
+  it('renders navigation before the copy command in menu presentation', () => {
+    fixture.componentRef.setInput('presentation', 'menu');
+    fixture.componentRef.setInput('crawlLog', new CrawlLog({
+      warcId: 'warc-1', executionId: 'crawl-execution-1', jobExecutionId: 'job-execution-1',
+    }));
+    fixture.detectChanges();
+
+    const items = [...fixture.nativeElement.querySelectorAll('[mat-menu-item]')] as HTMLElement[];
+    expect(items.map(item => item.textContent?.trim())).toEqual([
+      'hdr_weakCrawl execution', 'hdr_strongJob execution', 'content_copyCopy WARC ID',
+    ]);
+    expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
+  });
 });

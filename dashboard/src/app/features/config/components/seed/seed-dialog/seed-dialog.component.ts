@@ -4,23 +4,27 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { SeedDetailsComponent } from '..';
+import { EffectiveScriptAnnotationsComponent, SeedDetailsComponent } from '..';
 import { ConfigObject } from '../../../../../shared/models';
 import { ConfigDialogData } from '../../../func';
 import { SeedMetaComponent } from '../../seed-meta/seed-meta.component';
-import {BooleanStateChipComponent} from '../../../../../shared/components';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-entity-dialog',
   templateUrl: './seed-dialog.component.html',
+  styleUrls: ['../../config-status-toggle.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    BooleanStateChipComponent,
+    MatSlideToggleModule,
+    MatTooltipModule,
     ReactiveFormsModule,
+    EffectiveScriptAnnotationsComponent,
     SeedMetaComponent
   ],
   standalone: true
@@ -49,5 +53,11 @@ export class SeedDialogComponent extends SeedDetailsComponent implements OnInit 
     return this.isMultipleSeed()
       ? this.prepareSaveMultiple()
       : this.prepareSave();
+  }
+
+  onActiveChange(active: boolean): void {
+    const disabled = this.form.controls['disabled'];
+    disabled.setValue(!active);
+    disabled.markAsDirty();
   }
 }
