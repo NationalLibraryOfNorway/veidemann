@@ -1,7 +1,90 @@
-````markdown
-# Monorepo Module Tagging
+# Release helper scripts
 
-This script reports and optionally creates Git tags for independently versioned modules in a monorepo.
+## Updating Go API dependencies
+
+`update-golang-api.sh` updates direct consumers of published Go modules without
+creating commits or tags. API releases require two stages because `log-service`
+and `recorderproxy` are both API consumers and libraries used by other services.
+
+Go module tags use a slash between the module directory and version:
+
+```text
+api/v1.4.0
+log-service/v0.8.2
+recorderproxy/v0.9.4
+```
+
+These are separate from container release tags such as
+`log-service-v0.8.2`. Both tags may point to the same commit, but a hyphen tag
+cannot publish a nested Go module version.
+
+### Stage 1: update direct API consumers
+
+Commit the API changes, create and push the API module tag, then run:
+
+```bash
+git tag -a api/v1.4.0 -m 'Release API version 1.4.0'
+git push origin refs/tags/api/v1.4.0
+
+./hack/update-golang-api.sh v1.4.0
+```
+
+Before changing any `go.mod`, the script runs:
+
+```bash
+go list -m github.com/NationalLibraryOfNorway/veidemann/api@v1.4.0
+```
+
+It retries until the configured Go module proxy can resolve the tag, for up to
+ten minutes by default. This avoids asking every consumer to fetch a version
+while the proxy still has stale tag information.
+
+Review and commit the resulting `go.mod` and `go.sum` changes. This commit is
+the source for new Go module releases of API-consuming libraries. In the
+current dependency graph those libraries are `log-service` and
+`recorderproxy`.
+
+### Stage 2: publish libraries and update their consumers
+
+Create and push slash-tags on the stage 1 commit. Choose new versions according
+to the changes being released; the versions below are examples:
+
+```bash
+git tag -a log-service/v0.8.2 -m 'Release log-service Go module version 0.8.2'
+git tag -a recorderproxy/v0.9.4 -m 'Release recorderproxy Go module version 0.9.4'
+git push origin refs/tags/log-service/v0.8.2
+git push origin refs/tags/recorderproxy/v0.9.4
+```
+
+Then update their direct consumers:
+
+```bash
+./hack/update-golang-api.sh \
+    --module log-service@v0.8.2 \
+    --module recorderproxy@v0.9.4
+```
+
+Each `--module` version is warmed with `go list -m` before any consumer runs
+`go get`. With the current dependency graph this updates `dns-resolver` for
+`log-service`, and `browser-controller` for both libraries. Additional
+repository modules can be supplied with repeated `--module` options.
+
+Use `--wait-timeout SECONDS` to change the ten-minute maximum, or `--dry-run`
+to inspect dependency targeting and commands without waiting or modifying
+files:
+
+```bash
+./hack/update-golang-api.sh --dry-run v1.4.0
+./hack/update-golang-api.sh --dry-run \
+    --module log-service@v0.8.2 \
+    --module recorderproxy@v0.9.4
+```
+
+## Monorepo component tagging
+
+`module-tags.sh` reports and optionally creates hyphen-style release tags for
+independently versioned components in the monorepo. It does not create the
+slash-style Go module tags described above.
 
 For each module, it determines:
 
@@ -14,9 +97,9 @@ Tags are created on the latest commit that changed the module, which may be an e
 
 When multiple tags are pushed, the script pushes them one-by-one. This ensures that GitHub receives a separate push event for each tag, allowing tag-triggered GitHub Actions workflows to run independently.
 
-## Tag convention
+## Component tag convention
 
-Module tags use the following format:
+Tags created by `module-tags.sh` use the following format:
 
 ```text
 <module>-v<major>.<minor>.<patch>
@@ -361,4 +444,3 @@ Push the selected tags one-by-one:
     --changed-since origin/main \
     --push origin
 ```
-````
