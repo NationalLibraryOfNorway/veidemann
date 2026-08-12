@@ -20,16 +20,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Config_GetConfigObject_FullMethodName      = "/veidemann.api.config.v1.Config/GetConfigObject"
-	Config_ListConfigObjects_FullMethodName    = "/veidemann.api.config.v1.Config/ListConfigObjects"
-	Config_CountConfigObjects_FullMethodName   = "/veidemann.api.config.v1.Config/CountConfigObjects"
-	Config_SaveConfigObject_FullMethodName     = "/veidemann.api.config.v1.Config/SaveConfigObject"
-	Config_UpdateConfigObjects_FullMethodName  = "/veidemann.api.config.v1.Config/UpdateConfigObjects"
-	Config_DeleteConfigObject_FullMethodName   = "/veidemann.api.config.v1.Config/DeleteConfigObject"
-	Config_GetLabelKeys_FullMethodName         = "/veidemann.api.config.v1.Config/GetLabelKeys"
-	Config_GetLogConfig_FullMethodName         = "/veidemann.api.config.v1.Config/GetLogConfig"
-	Config_SaveLogConfig_FullMethodName        = "/veidemann.api.config.v1.Config/SaveLogConfig"
-	Config_GetScriptAnnotations_FullMethodName = "/veidemann.api.config.v1.Config/GetScriptAnnotations"
+	Config_GetConfigObject_FullMethodName          = "/veidemann.api.config.v1.Config/GetConfigObject"
+	Config_ListConfigObjects_FullMethodName        = "/veidemann.api.config.v1.Config/ListConfigObjects"
+	Config_CountConfigObjects_FullMethodName       = "/veidemann.api.config.v1.Config/CountConfigObjects"
+	Config_SaveConfigObject_FullMethodName         = "/veidemann.api.config.v1.Config/SaveConfigObject"
+	Config_UpdateConfigObjects_FullMethodName      = "/veidemann.api.config.v1.Config/UpdateConfigObjects"
+	Config_StartUpdateConfigObjects_FullMethodName = "/veidemann.api.config.v1.Config/StartUpdateConfigObjects"
+	Config_DeleteConfigObject_FullMethodName       = "/veidemann.api.config.v1.Config/DeleteConfigObject"
+	Config_GetLabelKeys_FullMethodName             = "/veidemann.api.config.v1.Config/GetLabelKeys"
+	Config_GetLogConfig_FullMethodName             = "/veidemann.api.config.v1.Config/GetLogConfig"
+	Config_SaveLogConfig_FullMethodName            = "/veidemann.api.config.v1.Config/SaveLogConfig"
+	Config_GetScriptAnnotations_FullMethodName     = "/veidemann.api.config.v1.Config/GetScriptAnnotations"
 )
 
 // ConfigClient is the client API for Config service.
@@ -48,6 +49,8 @@ type ConfigClient interface {
 	SaveConfigObject(ctx context.Context, in *ConfigObject, opts ...grpc.CallOption) (*ConfigObject, error)
 	// Update config objects
 	UpdateConfigObjects(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
+	// Start updating config objects in the background
+	StartUpdateConfigObjects(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateTaskAccepted, error)
 	// Delete a config object
 	DeleteConfigObject(ctx context.Context, in *ConfigObject, opts ...grpc.CallOption) (*DeleteResponse, error)
 	GetLabelKeys(ctx context.Context, in *GetLabelKeysRequest, opts ...grpc.CallOption) (*LabelKeysResponse, error)
@@ -123,6 +126,16 @@ func (c *configClient) UpdateConfigObjects(ctx context.Context, in *UpdateReques
 	return out, nil
 }
 
+func (c *configClient) StartUpdateConfigObjects(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateTaskAccepted, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateTaskAccepted)
+	err := c.cc.Invoke(ctx, Config_StartUpdateConfigObjects_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *configClient) DeleteConfigObject(ctx context.Context, in *ConfigObject, opts ...grpc.CallOption) (*DeleteResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteResponse)
@@ -189,6 +202,8 @@ type ConfigServer interface {
 	SaveConfigObject(context.Context, *ConfigObject) (*ConfigObject, error)
 	// Update config objects
 	UpdateConfigObjects(context.Context, *UpdateRequest) (*UpdateResponse, error)
+	// Start updating config objects in the background
+	StartUpdateConfigObjects(context.Context, *UpdateRequest) (*UpdateTaskAccepted, error)
 	// Delete a config object
 	DeleteConfigObject(context.Context, *ConfigObject) (*DeleteResponse, error)
 	GetLabelKeys(context.Context, *GetLabelKeysRequest) (*LabelKeysResponse, error)
@@ -218,6 +233,9 @@ func (UnimplementedConfigServer) SaveConfigObject(context.Context, *ConfigObject
 }
 func (UnimplementedConfigServer) UpdateConfigObjects(context.Context, *UpdateRequest) (*UpdateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateConfigObjects not implemented")
+}
+func (UnimplementedConfigServer) StartUpdateConfigObjects(context.Context, *UpdateRequest) (*UpdateTaskAccepted, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartUpdateConfigObjects not implemented")
 }
 func (UnimplementedConfigServer) DeleteConfigObject(context.Context, *ConfigObject) (*DeleteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteConfigObject not implemented")
@@ -337,6 +355,24 @@ func _Config_UpdateConfigObjects_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Config_StartUpdateConfigObjects_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigServer).StartUpdateConfigObjects(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Config_StartUpdateConfigObjects_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigServer).StartUpdateConfigObjects(ctx, req.(*UpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Config_DeleteConfigObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ConfigObject)
 	if err := dec(in); err != nil {
@@ -449,6 +485,10 @@ var Config_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateConfigObjects",
 			Handler:    _Config_UpdateConfigObjects_Handler,
+		},
+		{
+			MethodName: "StartUpdateConfigObjects",
+			Handler:    _Config_StartUpdateConfigObjects_Handler,
 		},
 		{
 			MethodName: "DeleteConfigObject",

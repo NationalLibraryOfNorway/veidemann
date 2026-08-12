@@ -1,10 +1,74 @@
 # Release helper scripts
 
+## Updating Go build tools
+
+`update-go-tools.sh` updates tools declared in `tools/go.mod`. With no tool
+arguments it updates every declared tool to its latest version; pass a full
+package path with an optional version to target one tool:
+
+```bash
+./hack/update-go-tools.sh
+./hack/update-go-tools.sh github.com/bufbuild/buf/cmd/buf@v1.73.0
+./hack/update-go-tools.sh --dry-run
+```
+
+The script updates only the tools module. It also reports the pinned and latest
+upstream versions of the remote Go protobuf generators without changing their
+pins. See [`tools/README.md`](../tools/README.md) for the direct Go commands and
+the required API-regeneration step.
+
+## Releasing the Go API end to end
+
+`update-api.sh` performs the complete Go module release sequence. It verifies
+API generation, creates and pushes the API module tag, updates and tests direct
+consumers, publishes patch releases for intermediate modules, and then updates
+their consumers:
+
+```bash
+./hack/update-api.sh --bump minor
+```
+
+Use `patch`, `minor`, or `major` for the API bump. The bump applies only to the
+API; intermediate libraries such as `log-service` and `recorderproxy` receive
+patch releases. Preview the dependency graph and commands without fetching,
+generating, committing, tagging, or pushing with:
+
+```bash
+./hack/update-api.sh --bump minor --dry-run
+```
+
+The command must start on a clean, non-detached branch whose same-named
+upstream is on `origin` (or the remote selected with `--remote`). The branch may
+be ahead of its upstream, but it may not be behind or diverged. Commit API and
+protobuf changes before starting. If regeneration produces a diff, the release
+stops so that the generated files can be reviewed and committed.
+
+Publication is necessarily staged because the Go module proxy must resolve one
+release before its consumers can use it. Each stage atomically pushes its
+branch commit and slash-style module tags. The default proxy wait is ten
+minutes per published module and can be changed with `--wait-timeout`.
+
+If a release stops after selecting or publishing an API version, fix the
+reported problem and resume it without moving any tags:
+
+```bash
+./hack/update-api.sh --version v1.4.0
+```
+
+Resume mode reuses existing API and intermediate tags only when their module
+contents and dependency versions match the current branch. Conflicting tags or
+unexpected worktree changes stop the command for manual review.
+
+This workflow creates only Go module tags such as `api/v1.4.0` and
+`log-service/v0.8.2`. It does not create hyphen-style component tags such as
+`log-service-v0.8.2`, so it does not trigger container-image releases.
+
 ## Updating Go API dependencies
 
-`update-golang-api.sh` updates direct consumers of published Go modules without
-creating commits or tags. API releases require two stages because `log-service`
-and `recorderproxy` are both API consumers and libraries used by other services.
+`update-golang-api.sh` is the lower-level helper used by `update-api.sh`. It
+updates direct consumers of published Go modules without creating commits or
+tags. API releases require multiple stages because `log-service` and
+`recorderproxy` are both API consumers and libraries used by other services.
 
 Go module tags use a slash between the module directory and version:
 
