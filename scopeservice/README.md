@@ -37,6 +37,25 @@ maxHopsFromSeed(param('scope_maxHopsFromSeed'), param('scope_hopsIncludeRedirect
 isUrl(param('scope_excludedUris')).then(Blocked)
 ```
 
+### Host scope anchors
+
+`isSameHost()` compares canonical host names. With `includeSubdomains=False`,
+only the exact seed host or an exact host listed in `altSeeds` matches.
+
+With `includeSubdomains=True`, one leading `www` or numbered `www` label on
+each seed host is treated as an alias for the host below it. For example, a
+seed on `www.example.no` or `www2.example.no` uses `example.no` as its scope
+anchor, so the apex and subdomains such as `news.example.no` are in scope.
+The alias is removed only when the remainder contains a registrable domain;
+`www.co.uk` therefore cannot widen scope to the `co.uk` public suffix.
+
+This rule removes at most one label matching `www[0-9]*`. It does not treat
+labels such as `wwwx` as aliases, promote arbitrary hosts to their registrable
+domain, resolve DNS aliases, follow redirects to redefine scope, or rewrite the
+seed or candidate URI. Existing scripts that call `isSameHost(True)` receive
+this behavior automatically; strict scripts can continue to pass `False`.
+No configuration or database migration is required.
+
 For path-based rules, the normal use case is prefix matching rather than exact URL matching. The DSL now supports that directly:
 
 ```python

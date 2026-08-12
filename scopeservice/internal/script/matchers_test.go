@@ -143,6 +143,25 @@ func Test_isSameHost(t *testing.T) {
 	}
 }
 
+func Test_isSameHostDebugIncludesScopeAnchor(t *testing.T) {
+	got := RunScopeScript(
+		"scope_anchor_debug",
+		"isSameHost(True).then(Include)",
+		&frontierV1.QueuedUri{
+			Uri:     "http://example.com/path",
+			SeedUri: "http://www2.example.com/",
+		},
+		true,
+	)
+
+	if got.Evaluation != scopecheckerV1.ScopeCheckResponse_INCLUDE {
+		t.Fatalf("RunScopeScript().Evaluation = %v, want INCLUDE", got.Evaluation)
+	}
+	if !strings.Contains(got.Console, "seedHost=www2.example.com, scopeAnchor=example.com, match=true") {
+		t.Fatalf("RunScopeScript().Console = %q, want seed host and scope anchor", got.Console)
+	}
+}
+
 func Test_isScheme(t *testing.T) {
 	tests := []testdata{
 		{name: "isScheme1",

@@ -84,7 +84,11 @@ func isSameHost(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 	includeSubs := parameterAsBool(includeSubdomains)
 	for _, seed := range seedHosts {
 		match := matchSameHost(host, seed.Host, includeSubs)
-		printDebugf(thread, b, args, kwargs, "host=%v, seedHost=%v, match=%v", host, seed.Host, match)
+		anchor := seed.Host
+		if includeSubs {
+			anchor = scopeAnchorHost(seed.Host)
+		}
+		printDebugf(thread, b, args, kwargs, "host=%v, seedHost=%v, scopeAnchor=%v, match=%v", host, seed.Host, anchor, match)
 		if match {
 			return True, nil
 		}

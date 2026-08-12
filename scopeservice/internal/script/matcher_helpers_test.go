@@ -27,14 +27,36 @@ func Test_canonicalSeedHosts(t *testing.T) {
 }
 
 func Test_matchSameHost(t *testing.T) {
-	if !matchSameHost("example.com", "example.com", false) {
-		t.Fatalf("expected exact host match")
+	tests := []struct {
+		name              string
+		host              string
+		seedHost          string
+		includeSubdomains bool
+		want              bool
+	}{
+		{name: "exact host", host: "example.com", seedHost: "example.com", want: true},
+		{name: "subdomain enabled", host: "sub.example.com", seedHost: "example.com", includeSubdomains: true, want: true},
+		{name: "subdomain disabled", host: "sub.example.com", seedHost: "example.com", want: false},
+		{name: "apex to www", host: "www.example.com", seedHost: "example.com", includeSubdomains: true, want: true},
+		{name: "www to apex", host: "example.com", seedHost: "www.example.com", includeSubdomains: true, want: true},
+		{name: "numbered www to sibling", host: "news.example.com", seedHost: "www2.example.com", includeSubdomains: true, want: true},
+		{name: "www exact mode", host: "example.com", seedHost: "www.example.com", want: false},
+		{name: "unrelated domain", host: "other.example", seedHost: "www.example.com", includeSubdomains: true, want: false},
+		{name: "suffix lookalike", host: "notexample.com", seedHost: "example.com", includeSubdomains: true, want: false},
+		{name: "non www label", host: "example.com", seedHost: "wwwx.example.com", includeSubdomains: true, want: false},
+		{name: "public suffix", host: "co.uk", seedHost: "www.co.uk", includeSubdomains: true, want: false},
+		{name: "remove one www label", host: "news.www2.example.com", seedHost: "www1.www2.example.com", includeSubdomains: true, want: true},
+		{name: "do not remove two www labels", host: "example.com", seedHost: "www1.www2.example.com", includeSubdomains: true, want: false},
+		{name: "ip exact", host: "192.0.2.1", seedHost: "192.0.2.1", includeSubdomains: true, want: true},
+		{name: "ip different", host: "192.0.2.2", seedHost: "192.0.2.1", includeSubdomains: true, want: false},
 	}
-	if !matchSameHost("sub.example.com", "example.com", true) {
-		t.Fatalf("expected subdomain match")
-	}
-	if matchSameHost("sub.example.com", "example.com", false) {
-		t.Fatalf("unexpected subdomain match")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := matchSameHost(tt.host, tt.seedHost, tt.includeSubdomains); got != tt.want {
+				t.Fatalf("matchSameHost(%q, %q, %v) = %v, want %v", tt.host, tt.seedHost, tt.includeSubdomains, got, tt.want)
+			}
+		})
 	}
 }
 
