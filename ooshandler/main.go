@@ -55,7 +55,7 @@ func main() {
 }
 
 func run() error {
-	err := parseFlags()
+	err := parseFlags(os.Args[1:])
 	if err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}

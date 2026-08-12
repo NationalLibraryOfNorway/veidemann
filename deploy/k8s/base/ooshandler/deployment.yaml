@@ -32,7 +32,7 @@ spec:
             - -metrics-address
             - 0.0.0.0:9301
             - -data-dir
-            - /data/oos
+            - /data
           readinessProbe:
             tcpSocket:
               port: 50052
