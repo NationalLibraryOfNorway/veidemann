@@ -2,6 +2,8 @@ package no.nb.nna.veidemann.frontier.db.script;
 
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_JOB_EXECUTION_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.QUEUE_COUNT_TOTAL_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.REMOVE_URI_QUEUE_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.UCHG;
@@ -46,6 +48,8 @@ public class UriRemoveScript extends RedisJob<Long> {
                     uchgKey,
                     chgKey,
                     CRAWL_EXECUTION_ID_COUNT_KEY,
+                    JOB_EXECUTION_ID_COUNT_KEY,
+                    CRAWL_EXECUTION_JOB_EXECUTION_KEY,
                     QUEUE_COUNT_TOTAL_KEY,
                     REMOVE_URI_QUEUE_KEY);
 

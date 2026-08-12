@@ -36,6 +36,14 @@ public class RedisDataAssert extends AbstractAssert<RedisDataAssert, RedisData> 
         return new CrawlExecutionCountsAssert(actual.getCrawlExecutionCounts());
     }
 
+    public JobExecutionCountsAssert jobExecutionQueueCounts() {
+        return new JobExecutionCountsAssert(actual.getJobExecutionCounts());
+    }
+
+    public CrawlExecutionJobExecutionsAssert crawlExecutionJobExecutions() {
+        return new CrawlExecutionJobExecutionsAssert(actual.getCrawlExecutionJobExecutions());
+    }
+
     public CrawlHostGroupMapAssert crawlHostGroups() {
         return new CrawlHostGroupMapAssert(actual.getCrawlHostGroups());
     }
@@ -104,6 +112,55 @@ public class RedisDataAssert extends AbstractAssert<RedisDataAssert, RedisData> 
         public CrawlExecutionCountsAssert hasQueueCount(String crawlExecutionId, long count) {
             if (actual.get(crawlExecutionId) != count) {
                 failWithMessage("Expected count for CrawlExecution <%s> to be <%d>, but was <%d>", crawlExecutionId, count, actual.get(crawlExecutionId));
+            }
+            return this;
+        }
+    }
+
+    public static class JobExecutionCountsAssert extends AbstractAssert<JobExecutionCountsAssert, Map<String, Long>> {
+
+        public JobExecutionCountsAssert(Map<String, Long> actual) {
+            super(actual, JobExecutionCountsAssert.class);
+        }
+
+        public JobExecutionCountsAssert hasNumberOfElements(int expected) {
+            if (actual.size() != expected) {
+                failWithMessage("Expected number of JobExecution elements to be <%d>, but was <%d>",
+                        expected, actual.size());
+            }
+            return this;
+        }
+
+        public JobExecutionCountsAssert hasQueueCount(String jobExecutionId, long count) {
+            Long actualCount = actual.get(jobExecutionId);
+            if (actualCount == null || actualCount != count) {
+                failWithMessage("Expected count for JobExecution <%s> to be <%d>, but was <%s>",
+                        jobExecutionId, count, actualCount);
+            }
+            return this;
+        }
+    }
+
+    public static class CrawlExecutionJobExecutionsAssert
+            extends AbstractAssert<CrawlExecutionJobExecutionsAssert, Map<String, String>> {
+
+        public CrawlExecutionJobExecutionsAssert(Map<String, String> actual) {
+            super(actual, CrawlExecutionJobExecutionsAssert.class);
+        }
+
+        public CrawlExecutionJobExecutionsAssert hasNumberOfElements(int expected) {
+            if (actual.size() != expected) {
+                failWithMessage("Expected number of CrawlExecution ownership elements to be <%d>, but was <%d>",
+                        expected, actual.size());
+            }
+            return this;
+        }
+
+        public CrawlExecutionJobExecutionsAssert mapsTo(String crawlExecutionId, String jobExecutionId) {
+            String actualJobExecutionId = actual.get(crawlExecutionId);
+            if (!jobExecutionId.equals(actualJobExecutionId)) {
+                failWithMessage("Expected CrawlExecution <%s> to map to JobExecution <%s>, but was <%s>",
+                        crawlExecutionId, jobExecutionId, actualJobExecutionId);
             }
             return this;
         }

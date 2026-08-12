@@ -2,8 +2,10 @@ local ueIdKey = KEYS[1]
 local uchgKey = KEYS[2]
 local chgKey = KEYS[3]
 local crawlExecutionIdCountKey = KEYS[4]
-local queueCountTotalKey = KEYS[5]
-local uriremovequeuekey = KEYS[6]
+local jobExecutionIdCountKey = KEYS[5]
+local crawlExecutionJobExecutionKey = KEYS[6]
+local queueCountTotalKey = KEYS[7]
+local uriremovequeuekey = KEYS[8]
 
 local ueIdVal = ARGV[1]
 local eid = ARGV[2]
@@ -20,8 +22,20 @@ if removed > 0 then
 
     -- Decrement crawl execution queue count
     local remaining_uri_count = redis.call('HINCRBY', crawlExecutionIdCountKey, eid, -1)
+
+    -- Decrement job execution queue count when the crawl-to-job mapping exists.
+    -- Existing queues created before this counter was introduced have no mapping.
+    local jobExecutionId = redis.call('HGET', crawlExecutionJobExecutionKey, eid)
+    if jobExecutionId then
+        local remaining_job_uri_count = redis.call('HINCRBY', jobExecutionIdCountKey, jobExecutionId, -1)
+        if remaining_job_uri_count <= 0 then
+            redis.call('HDEL', jobExecutionIdCountKey, jobExecutionId)
+        end
+    end
+
     if remaining_uri_count <= 0 then
         redis.call('HDEL', crawlExecutionIdCountKey, eid)
+        redis.call('HDEL', crawlExecutionJobExecutionKey, eid)
     end
     -- Decrement total queue count
     redis.call('DECR', queueCountTotalKey);

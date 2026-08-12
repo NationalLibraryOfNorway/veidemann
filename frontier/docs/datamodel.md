@@ -62,3 +62,31 @@ ZADD UCHG:chg uri.weight uri.eid
 
 CrawlHostGroup
 
+## Queue counters
+
+Frontier maintains queue counts in Redis as part of the same Lua operation that
+updates a crawl host group:
+
+- `QCT` is the total queued URI count.
+- `EIDC` is a hash from crawl-execution ID to queued URI count.
+- `JEIDC` is a hash from job-execution ID to queued URI count.
+- `EIDJ` is a hash from crawl-execution ID to its owning job-execution ID.
+
+Adding a URI increments all three counters and records the ownership mapping.
+Removing a URI decrements the counters only when the URI was actually removed.
+Zero-valued crawl and job fields, and ownership mappings for empty crawl
+executions, are deleted.
+
+`JEIDC` and `EIDJ` are not backfilled during an upgrade. Queue counts for jobs
+that were already active when Frontier was upgraded can therefore be zero or
+partial. Jobs started after the upgraded Frontier is running have complete job
+queue counts.
+
+## gRPC inbound message size
+
+Frontier accepts the optional `MAX_INBOUND_MESSAGE_SIZE` environment variable as
+a positive byte count. When it is unset, Frontier does not configure an override
+and gRPC-Java's native inbound message-size default remains in effect. Set the
+variable through deployment-specific environment configuration or a Kubernetes
+overlay when a larger request is required; the Kubernetes base intentionally
+does not set it.

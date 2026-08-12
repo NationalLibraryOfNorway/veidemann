@@ -37,12 +37,12 @@ import io.opentracing.util.GlobalTracer;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
-import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierBlockingStub;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierFutureStub;
+import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.client.GrpcUtil;
 import no.nb.nna.veidemann.db.ProtoUtils;
@@ -146,9 +146,9 @@ public class FrontierClient implements AutoCloseable {
         Futures.addCallback(future, callback, executor);
     }
 
-    public void queueCountForCrawlExecutions(CrawlExecutionIds crawlExecutionIds,
+    public void queueCountForJobExecution(JobExecutionId jobExecutionId,
             FutureCallback<CountResponse> callback, Executor executor) {
-        ListenableFuture<CountResponse> future = futureStub.queueCountForCrawlExecutions(crawlExecutionIds);
+        ListenableFuture<CountResponse> future = futureStub.queueCountForJobExecution(jobExecutionId);
         Futures.addCallback(future, callback, executor);
     }
 

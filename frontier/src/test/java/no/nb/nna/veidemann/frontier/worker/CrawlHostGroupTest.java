@@ -20,6 +20,7 @@ import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
+import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbConnectionException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.db.ProtoUtils;
@@ -113,15 +114,22 @@ public class CrawlHostGroupTest {
             String chgId2 = "mySecondChgId";
             String eId1 = "myCrawlExecutionId";
             String eId2 = "mySecondCrawlExecutionId";
+            String eId3 = "myThirdCrawlExecutionId";
+            String jobExecutionId1 = "myJobExecutionId";
+            String jobExecutionId2 = "mySecondJobExecutionId";
             Timestamp earliestFetchTimestamp1 = ProtoUtils.odtToTs(OffsetDateTime.parse("2107-12-03T10:15:30+01:00"));
             Timestamp earliestFetchTimestamp2 = ProtoUtils.odtToTs(OffsetDateTime.parse("2107-12-13T10:15:30+01:00"));
 
             ChgAddScript chgAddScript = new ChgAddScript();
 
-            chgAddScript.run(ctx, chgId1, eId1, earliestFetchTimestamp1, 1000);
+            chgAddScript.run(ctx, chgId1, eId1, jobExecutionId1, earliestFetchTimestamp1, 1000);
             assertThat(redisData)
                     .hasQueueTotalCount(1)
                     .crawlExecutionQueueCounts().hasNumberOfElements(1).hasQueueCount(eId1, 1);
+            assertThat(redisData).jobExecutionQueueCounts()
+                    .hasNumberOfElements(1).hasQueueCount(jobExecutionId1, 1);
+            assertThat(redisData).crawlExecutionJobExecutions()
+                    .hasNumberOfElements(1).mapsTo(eId1, jobExecutionId1);
             assertThat(redisData)
                     .crawlHostGroups().hasNumberOfElements(1).id(chgId1).hasQueueCount(1);
             assertThat(redisData).waitQueue()
@@ -131,10 +139,12 @@ public class CrawlHostGroupTest {
             assertThat(redisData).readyQueue().hasNumberOfElements(0);
 
 
-            chgAddScript.run(ctx, chgId1, eId1, earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId1, eId1, jobExecutionId1, earliestFetchTimestamp2, 1000);
             assertThat(redisData)
                     .hasQueueTotalCount(2)
                     .crawlExecutionQueueCounts().hasNumberOfElements(1).hasQueueCount(eId1, 2);
+            assertThat(redisData).jobExecutionQueueCounts()
+                    .hasNumberOfElements(1).hasQueueCount(jobExecutionId1, 2);
             assertThat(redisData)
                     .crawlHostGroups().hasNumberOfElements(1).id(chgId1).hasQueueCount(2);
             assertThat(redisData).waitQueue()
@@ -144,10 +154,14 @@ public class CrawlHostGroupTest {
             assertThat(redisData).readyQueue().hasNumberOfElements(0);
 
 
-            chgAddScript.run(ctx, chgId1, eId2, earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId1, eId2, jobExecutionId2, earliestFetchTimestamp2, 1000);
             assertThat(redisData)
                     .hasQueueTotalCount(3)
                     .crawlExecutionQueueCounts().hasNumberOfElements(2).hasQueueCount(eId1, 2).hasQueueCount(eId2, 1);
+            assertThat(redisData).jobExecutionQueueCounts()
+                    .hasNumberOfElements(2)
+                    .hasQueueCount(jobExecutionId1, 2)
+                    .hasQueueCount(jobExecutionId2, 1);
             assertThat(redisData)
                     .crawlHostGroups().hasNumberOfElements(1).id(chgId1).hasQueueCount(3);
             assertThat(redisData).waitQueue()
@@ -157,10 +171,14 @@ public class CrawlHostGroupTest {
             assertThat(redisData).readyQueue().hasNumberOfElements(0);
 
 
-            chgAddScript.run(ctx, chgId2, eId2, earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId2, eId2, jobExecutionId2, earliestFetchTimestamp2, 1000);
             assertThat(redisData)
                     .hasQueueTotalCount(4)
                     .crawlExecutionQueueCounts().hasNumberOfElements(2).hasQueueCount(eId1, 2).hasQueueCount(eId2, 2);
+            assertThat(redisData).jobExecutionQueueCounts()
+                    .hasNumberOfElements(2)
+                    .hasQueueCount(jobExecutionId1, 2)
+                    .hasQueueCount(jobExecutionId2, 2);
             assertThat(redisData)
                     .crawlHostGroups().hasNumberOfElements(2)
                     .id(chgId1).hasQueueCount(3)
@@ -171,6 +189,75 @@ public class CrawlHostGroupTest {
                     .element(1).hasTimestamp(earliestFetchTimestamp2).hasValue(chgId2);
             assertThat(redisData).busyQueue().hasNumberOfElements(0);
             assertThat(redisData).readyQueue().hasNumberOfElements(0);
+
+            chgAddScript.run(ctx, chgId2, eId3, jobExecutionId1, earliestFetchTimestamp2, 1000);
+            assertThat(redisData).jobExecutionQueueCounts()
+                    .hasNumberOfElements(2)
+                    .hasQueueCount(jobExecutionId1, 3)
+                    .hasQueueCount(jobExecutionId2, 2);
+            assertThat(redisData).crawlExecutionJobExecutions()
+                    .hasNumberOfElements(3)
+                    .mapsTo(eId1, jobExecutionId1)
+                    .mapsTo(eId2, jobExecutionId2)
+                    .mapsTo(eId3, jobExecutionId1);
+        }
+    }
+
+    @Test
+    public void uriRemovalUpdatesAndCleansUpJobExecutionCounters() throws Exception {
+        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
+            Timestamp fetchTime = ProtoUtils.getNowTs();
+            QueuedUri queuedUri = QueuedUri.newBuilder()
+                    .setId("uriId")
+                    .setCrawlHostGroupId("crawlHostGroupId")
+                    .setExecutionId("crawlExecutionId")
+                    .setJobExecutionId("jobExecutionId")
+                    .setSequence(1)
+                    .setEarliestFetchTimeStamp(fetchTime)
+                    .setPriorityWeight(1)
+                    .setDiscoveryPath("parent")
+                    .build();
+
+            new UriAddScript().run(ctx, queuedUri);
+            new ChgAddScript().run(ctx,
+                    queuedUri.getCrawlHostGroupId(),
+                    queuedUri.getExecutionId(),
+                    queuedUri.getJobExecutionId(),
+                    fetchTime,
+                    1000);
+
+            assertThat(redisData).jobExecutionQueueCounts()
+                    .hasNumberOfElements(1).hasQueueCount(queuedUri.getJobExecutionId(), 1);
+            assertThat(redisData).crawlExecutionJobExecutions()
+                    .hasNumberOfElements(1)
+                    .mapsTo(queuedUri.getExecutionId(), queuedUri.getJobExecutionId());
+
+            UriRemoveScript uriRemoveScript = new UriRemoveScript();
+            long removed = uriRemoveScript.run(ctx,
+                    queuedUri.getId(),
+                    queuedUri.getCrawlHostGroupId(),
+                    queuedUri.getExecutionId(),
+                    queuedUri.getSequence(),
+                    fetchTime.getSeconds(),
+                    false);
+
+            assertThat(removed).isEqualTo(1);
+            assertThat(redisData).hasQueueTotalCount(0);
+            assertThat(redisData).crawlExecutionQueueCounts().hasNumberOfElements(0);
+            assertThat(redisData).jobExecutionQueueCounts().hasNumberOfElements(0);
+            assertThat(redisData).crawlExecutionJobExecutions().hasNumberOfElements(0);
+
+            long removedAgain = uriRemoveScript.run(ctx,
+                    queuedUri.getId(),
+                    queuedUri.getCrawlHostGroupId(),
+                    queuedUri.getExecutionId(),
+                    queuedUri.getSequence(),
+                    fetchTime.getSeconds(),
+                    false);
+
+            assertThat(removedAgain).isZero();
+            assertThat(redisData).hasQueueTotalCount(0);
+            assertThat(redisData).jobExecutionQueueCounts().hasNumberOfElements(0);
         }
     }
 
@@ -188,10 +275,10 @@ public class CrawlHostGroupTest {
             ChgDelayedQueueScript chgDelayedQueueScript = new ChgDelayedQueueScript();
 
             // Add some CrawlHostGroups
-            chgAddScript.run(ctx, chgId1, eId1, earliestFetchTimestamp1, 1000);
-            chgAddScript.run(ctx, chgId1, eId1, earliestFetchTimestamp2, 1000);
-            chgAddScript.run(ctx, chgId1, eId2, earliestFetchTimestamp2, 1000);
-            chgAddScript.run(ctx, chgId2, eId2, earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId1, eId1, "jobExecutionId", earliestFetchTimestamp1, 1000);
+            chgAddScript.run(ctx, chgId1, eId1, "jobExecutionId", earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId1, eId2, "jobExecutionId", earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId2, eId2, "jobExecutionId", earliestFetchTimestamp2, 1000);
 
             // Check expected state
             assertThat(redisData)
@@ -261,11 +348,11 @@ public class CrawlHostGroupTest {
             ChgReleaseScript chgReleaseScript = new ChgReleaseScript();
 
             // Add some CrawlHostGroups and move to ready
-            chgAddScript.run(ctx, chgId1, eId1, earliestFetchTimestamp1, 1000);
-            chgAddScript.run(ctx, chgId1, eId1, earliestFetchTimestamp1, 1000);
-            chgAddScript.run(ctx, chgId1, eId2, earliestFetchTimestamp2, 1000);
-            chgAddScript.run(ctx, chgId2, eId3, earliestFetchTimestamp1, 1000);
-            chgAddScript.run(ctx, chgId3, eId4, earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId1, eId1, "jobExecutionId", earliestFetchTimestamp1, 1000);
+            chgAddScript.run(ctx, chgId1, eId1, "jobExecutionId", earliestFetchTimestamp1, 1000);
+            chgAddScript.run(ctx, chgId1, eId2, "jobExecutionId", earliestFetchTimestamp2, 1000);
+            chgAddScript.run(ctx, chgId2, eId3, "jobExecutionId", earliestFetchTimestamp1, 1000);
+            chgAddScript.run(ctx, chgId3, eId4, "jobExecutionId", earliestFetchTimestamp2, 1000);
             Long moved = chgDelayedQueueScript.run(ctx, CHG_WAIT_KEY, CHG_READY_KEY);
 
             // Check expected state

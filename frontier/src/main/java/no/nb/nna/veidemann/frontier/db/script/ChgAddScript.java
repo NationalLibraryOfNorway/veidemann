@@ -3,6 +3,8 @@ package no.nb.nna.veidemann.frontier.db.script;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_WAIT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_JOB_EXECUTION_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.QUEUE_COUNT_TOTAL_KEY;
 
 import java.util.List;
@@ -28,6 +30,7 @@ public class ChgAddScript extends RedisJob<Long> {
     public long run(JedisContext ctx,
             String chgId,
             String crawlExecutionId,
+            String jobExecutionId,
             Timestamp earliestFetchTimestamp,
             long busyTimeout) {
         return execute(ctx, jedis -> {
@@ -39,11 +42,14 @@ public class ChgAddScript extends RedisJob<Long> {
                     chgKey,
                     CHG_WAIT_KEY,
                     CRAWL_EXECUTION_ID_COUNT_KEY,
+                    JOB_EXECUTION_ID_COUNT_KEY,
+                    CRAWL_EXECUTION_JOB_EXECUTION_KEY,
                     QUEUE_COUNT_TOTAL_KEY);
 
             List<String> chgArgs = ImmutableList.of(
                     readyTimeString,
                     crawlExecutionId,
+                    jobExecutionId,
                     chgId);
 
             return (Long) chgAddScript.runString(jedis, chgKeys, chgArgs);

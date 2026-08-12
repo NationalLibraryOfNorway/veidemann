@@ -29,11 +29,11 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
-import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
+import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvest;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvestSpec;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
@@ -134,9 +134,9 @@ public class FrontierGrpcService extends FrontierGrpc.FrontierImplBase implement
     }
 
     @Override
-    public void queueCountForCrawlExecutions(CrawlExecutionIds request, StreamObserver<CountResponse> responseObserver) {
+    public void queueCountForJobExecution(JobExecutionId request, StreamObserver<CountResponse> responseObserver) {
         CountResponse response = CountResponse.newBuilder()
-                .setCount(ctx.getCrawlQueueManager().countByCrawlExecutions(request.getIdList()))
+                .setCount(ctx.getCrawlQueueManager().countByJobExecution(request.getId()))
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();

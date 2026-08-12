@@ -48,6 +48,7 @@ public class FrontierApiServer implements AutoCloseable {
 
     public FrontierApiServer(ServerBuilder<?> serverBuilder, int shutdownTimeoutSeconds, Frontier frontier) {
         this.shutdownTimeoutMillis = shutdownTimeoutSeconds * 1000L;
+        configureMaxInboundMessageSize(serverBuilder, frontier.getSettings().getMaxInboundMessageSize());
 
         TracingServerInterceptor tracingInterceptor = TracingServerInterceptor
                 .newBuilder()
@@ -73,6 +74,12 @@ public class FrontierApiServer implements AutoCloseable {
                         tracingInterceptor))
                 .addService(health.getHealthService())
                 .build();
+    }
+
+    static void configureMaxInboundMessageSize(ServerBuilder<?> serverBuilder, Integer maxInboundMessageSize) {
+        if (maxInboundMessageSize != null) {
+            serverBuilder.maxInboundMessageSize(maxInboundMessageSize);
+        }
     }
 
     public FrontierApiServer start() {

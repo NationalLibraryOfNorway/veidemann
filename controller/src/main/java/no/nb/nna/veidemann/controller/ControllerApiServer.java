@@ -111,6 +111,7 @@ public class ControllerApiServer implements AutoCloseable {
         this.scopeServiceClient = scopeServiceClient; // may be null in tests
         this.logServiceClient = logServiceClient; // may be null in tests
 
+        configureMaxInboundMessageSize(this.serverBuilder, settings.getMaxInboundMessageSize());
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         this.serverBuilder.executor(executor);
 
@@ -118,6 +119,12 @@ public class ControllerApiServer implements AutoCloseable {
                 Thread.ofPlatform()
                         .name("controller-api-shutdown-hook")
                         .unstarted(this::safeClose));
+    }
+
+    static void configureMaxInboundMessageSize(ServerBuilder<?> serverBuilder, Integer maxInboundMessageSize) {
+        if (maxInboundMessageSize != null) {
+            serverBuilder.maxInboundMessageSize(maxInboundMessageSize);
+        }
     }
 
     public void addJobExecutionListener(JobExecutionListener listener) {

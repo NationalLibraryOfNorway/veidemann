@@ -37,8 +37,8 @@ service Controller {
     // Number of queued URI's for a CrawlExecution
     rpc QueueCountForCrawlExecution (veidemann.api.frontier.v1.CrawlExecutionId) returns (veidemann.api.frontier.v1.CountResponse) {}
 
-    // Total number of queued URI's for a set of CrawlExecutions
-    rpc QueueCountForCrawlExecutions (veidemann.api.frontier.v1.CrawlExecutionIds) returns (veidemann.api.frontier.v1.CountResponse) {}
+    // Total number of queued URI's for a JobExecution
+    rpc QueueCountForJobExecution (veidemann.api.frontier.v1.JobExecutionId) returns (veidemann.api.frontier.v1.CountResponse) {}
 
     // Number of queued URI's for a CrawlHostGroup
     rpc QueueCountForCrawlHostGroup (veidemann.api.frontier.v1.CrawlHostGroup) returns (veidemann.api.frontier.v1.CountResponse) {}

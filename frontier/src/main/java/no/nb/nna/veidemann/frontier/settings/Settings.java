@@ -20,6 +20,7 @@ import java.time.Duration;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.Optional;
 
 import no.nb.nna.veidemann.commons.settings.CommonSettings;
 
@@ -29,6 +30,9 @@ import no.nb.nna.veidemann.commons.settings.CommonSettings;
 public class Settings extends CommonSettings {
 
     private int apiPort;
+
+    @Optional
+    private Integer maxInboundMessageSize;
 
     private int maxConcurrentRequests = 100;
 
@@ -82,6 +86,17 @@ public class Settings extends CommonSettings {
 
     public void setApiPort(int apiPort) {
         this.apiPort = apiPort;
+    }
+
+    public Integer getMaxInboundMessageSize() {
+        return maxInboundMessageSize;
+    }
+
+    public void setMaxInboundMessageSize(Integer maxInboundMessageSize) {
+        if (maxInboundMessageSize != null && maxInboundMessageSize <= 0) {
+            throw new IllegalArgumentException("maxInboundMessageSize must be a positive byte count");
+        }
+        this.maxInboundMessageSize = maxInboundMessageSize;
     }
 
     public int getMaxConcurrentRequests() {

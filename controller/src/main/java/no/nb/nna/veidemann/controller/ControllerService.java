@@ -36,9 +36,9 @@ import no.nb.nna.veidemann.api.controller.v1.RunCrawlRequest;
 import no.nb.nna.veidemann.api.controller.v1.RunStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
-import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
+import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.auth.AllowedRoles;
 import no.nb.nna.veidemann.commons.auth.RolesContextKey;
@@ -278,8 +278,8 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
     }
 
     @Override
-    public void queueCountForCrawlExecutions(CrawlExecutionIds request, StreamObserver<CountResponse> responseObserver) {
-        JobExecutionUtil.queueCountForCrawlExecutions(request, new FutureCallback<CountResponse>() {
+    public void queueCountForJobExecution(JobExecutionId request, StreamObserver<CountResponse> responseObserver) {
+        JobExecutionUtil.queueCountForJobExecution(request, new FutureCallback<CountResponse>() {
             @Override
             public void onSuccess(@Nullable CountResponse result) {
                 responseObserver.onNext(result);

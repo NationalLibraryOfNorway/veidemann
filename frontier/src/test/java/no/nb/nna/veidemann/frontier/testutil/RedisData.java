@@ -4,6 +4,8 @@ import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_BUSY_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_READY_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_WAIT_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_JOB_EXECUTION_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.SESSION_TO_CHG_KEY;
 
 import java.util.List;
@@ -36,6 +38,19 @@ public class RedisData {
         try (Jedis jedis = jedisSupplier.get()) {
             return jedis.hgetAll("EIDC").entrySet().stream()
                     .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> Long.parseLong(e.getValue())));
+        }
+    }
+
+    public Map<String, Long> getJobExecutionCounts() {
+        try (Jedis jedis = jedisSupplier.get()) {
+            return jedis.hgetAll(JOB_EXECUTION_ID_COUNT_KEY).entrySet().stream()
+                    .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> Long.parseLong(e.getValue())));
+        }
+    }
+
+    public Map<String, String> getCrawlExecutionJobExecutions() {
+        try (Jedis jedis = jedisSupplier.get()) {
+            return jedis.hgetAll(CRAWL_EXECUTION_JOB_EXECUTION_KEY);
         }
     }
 

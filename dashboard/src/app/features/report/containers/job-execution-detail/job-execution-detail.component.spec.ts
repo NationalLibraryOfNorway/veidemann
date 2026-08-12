@@ -4,9 +4,9 @@ import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, convertToParamMap} from '@angular/router';
 import {BehaviorSubject, EMPTY, firstValueFrom, of} from 'rxjs';
 
-import {ControllerApiService, ReportApiService, SnackBarService} from '../../../../core';
+import {ControllerApiService, SnackBarService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {CrawlExecutionStatus, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
+import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {JobExecutionService} from '../../services';
 import {JobExecutionDetailComponent} from './job-execution-detail.component';
 
@@ -16,18 +16,10 @@ describe('JobExecutionDetailComponent', () => {
     jobId: 'job-1',
     state: JobExecutionState.RUNNING,
   });
-  let listCrawlExecutionsUnchecked: ReturnType<typeof vi.fn>;
-  let queueCountForCrawlExecutions: ReturnType<typeof vi.fn>;
-  let queueCountForCrawlExecution: ReturnType<typeof vi.fn>;
+  let queueCountForJobExecution: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    listCrawlExecutionsUnchecked = vi.fn(() => of(
-      new CrawlExecutionStatus({id: 'crawl-1'}),
-      new CrawlExecutionStatus({id: 'crawl-1'}),
-      new CrawlExecutionStatus({id: 'crawl-2'}),
-    ));
-    queueCountForCrawlExecutions = vi.fn(() => of({count: 23}));
-    queueCountForCrawlExecution = vi.fn();
+    queueCountForJobExecution = vi.fn(() => of({count: 23}));
 
     await TestBed.configureTestingModule({
       imports: [JobExecutionDetailComponent],
@@ -45,12 +37,8 @@ describe('JobExecutionDetailComponent', () => {
           useValue: {get: vi.fn(() => of(jobStatus))},
         },
         {
-          provide: ReportApiService,
-          useValue: {listCrawlExecutionsUnchecked},
-        },
-        {
           provide: ControllerApiService,
-          useValue: {queueCountForCrawlExecutions, queueCountForCrawlExecution},
+          useValue: {queueCountForJobExecution},
         },
         {provide: MatDialog, useValue: {}},
         {provide: SnackBarService, useValue: {}},
@@ -65,25 +53,16 @@ describe('JobExecutionDetailComponent', () => {
     return component;
   }
 
-  it('deduplicates active execution ids and makes one aggregate request', async () => {
+  it('gets the aggregate count by job execution id', async () => {
     const component = createComponent();
 
     expect(await firstValueFrom(component.queueSize$)).toBe(23);
-    expect(queueCountForCrawlExecutions).toHaveBeenCalledOnce();
-    expect(queueCountForCrawlExecutions).toHaveBeenCalledWith(['crawl-1', 'crawl-2']);
-    expect(queueCountForCrawlExecution).not.toHaveBeenCalled();
+    expect(queueCountForJobExecution).toHaveBeenCalledOnce();
+    expect(queueCountForJobExecution.mock.calls[0][0].id).toBe(jobStatus.id);
   });
 
-  it('returns zero without a controller request when no active executions exist', async () => {
-    listCrawlExecutionsUnchecked.mockReturnValue(of());
-    const component = createComponent();
-
-    expect(await firstValueFrom(component.queueSize$)).toBe(0);
-    expect(queueCountForCrawlExecutions).not.toHaveBeenCalled();
-  });
-
-  it('maps a failed batch count to unavailable', async () => {
-    queueCountForCrawlExecutions.mockReturnValue(EMPTY);
+  it('maps a failed job count to unavailable', async () => {
+    queueCountForJobExecution.mockReturnValue(EMPTY);
     const component = createComponent();
 
     expect(await firstValueFrom(component.queueSize$)).toBeNull();

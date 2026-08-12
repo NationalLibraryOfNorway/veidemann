@@ -3,7 +3,6 @@ package no.nb.nna.veidemann.frontier.db;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -69,6 +68,8 @@ public class CrawlQueueManager implements AutoCloseable {
     public static final String UCHG = "UCHG:";
     public static final String JOB_EXECUTION_PREFIX = "JEID:";
     public static final String CRAWL_EXECUTION_ID_COUNT_KEY = "EIDC";
+    public static final String CRAWL_EXECUTION_JOB_EXECUTION_KEY = "EIDJ";
+    public static final String JOB_EXECUTION_ID_COUNT_KEY = "JEIDC";
     public static final String QUEUE_COUNT_TOTAL_KEY = "QCT";
     public static final String REMOVE_URI_QUEUE_KEY = "REMURI";
     public static final String URI_ALREADY_INCLUDED_PREFIX = "AINC:";
@@ -92,7 +93,7 @@ public class CrawlQueueManager implements AutoCloseable {
     final ChgBusyTimeoutScript chgBusyTimeoutScript;
     final JobExecutionGetScript jobExecutionGetScript;
     final JobExecutionUpdateScript jobExecutionUpdateScript;
-    final CrawlExecutionQueueCounter crawlExecutionQueueCounter;
+    final JobExecutionQueueCounter jobExecutionQueueCounter;
 
     private final Frontier frontier;
     private final CrawlQueueWorker crawlQueueWorker;
@@ -119,7 +120,7 @@ public class CrawlQueueManager implements AutoCloseable {
         chgBusyTimeoutScript = new ChgBusyTimeoutScript();
         jobExecutionGetScript = new JobExecutionGetScript();
         jobExecutionUpdateScript = new JobExecutionUpdateScript();
-        crawlExecutionQueueCounter = new CrawlExecutionQueueCounter(jedisSupplier);
+        jobExecutionQueueCounter = new JobExecutionQueueCounter(jedisSupplier);
 
         this.crawlQueueWorker = new CrawlQueueWorker(frontier, jedisSupplier);
 
@@ -169,6 +170,7 @@ public class CrawlQueueManager implements AutoCloseable {
                         ctx,
                         qUri.getCrawlHostGroupId(),
                         qUri.getExecutionId(),
+                        qUri.getJobExecutionId(),
                         qUri.getEarliestFetchTimeStamp(),
                         frontier.getSettings().getBusyTimeout().toMillis());
             }
@@ -412,6 +414,7 @@ public class CrawlQueueManager implements AutoCloseable {
         try (Jedis jedis = jedisSupplier.get()) {
             jedis.del(URI_ALREADY_INCLUDED_PREFIX + jobExecutionId);
             jedis.del(JOB_EXECUTION_PREFIX + jobExecutionId);
+            jedis.hdel(JOB_EXECUTION_ID_COUNT_KEY, jobExecutionId);
         }
     }
 
@@ -458,8 +461,8 @@ public class CrawlQueueManager implements AutoCloseable {
         }
     }
 
-    public long countByCrawlExecutions(List<String> executionIds) {
-        return crawlExecutionQueueCounter.count(executionIds);
+    public long countByJobExecution(String jobExecutionId) {
+        return jobExecutionQueueCounter.count(jobExecutionId);
     }
 
     public long countByCrawlHostGroup(CrawlHostGroup chg) {
