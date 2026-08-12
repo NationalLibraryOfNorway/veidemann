@@ -55,6 +55,16 @@ export enum ExtraStatusCodes {
    */
   RETRY_LIMIT_REACHED = -8,
   /**
+   * DNS_NXDOMAIN (-9)
+   * DNS name does not exist.
+   */
+  DNS_NXDOMAIN = -9,
+  /**
+   * DNS_NO_DATA (-10)
+   * DNS name exists but has no usable address record.
+   */
+  DNS_NO_DATA = -10,
+  /**
    * FAILED_FETCHING_ROBOTS (-61)
    * Prerequisite robots.txt fetch failed, precluding a fetch attempt.
    */
@@ -137,6 +147,5 @@ export enum ExtraStatusCodes {
   PRECLUDED_BY_ROBOTS = -9998,
 
 }
-
 
 

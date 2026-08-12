@@ -25,10 +25,12 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.opentracing.contrib.grpc.TracingClientInterceptor;
 import io.opentracing.util.GlobalTracer;
+import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.config.v1.ConfigRef;
 import no.nb.nna.veidemann.api.dnsresolver.v1.DnsResolverGrpc;
 import no.nb.nna.veidemann.api.dnsresolver.v1.ResolveReply;
 import no.nb.nna.veidemann.api.dnsresolver.v1.ResolveRequest;
+import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.client.GrpcUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 public class DnsServiceClient implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DnsServiceClient.class);
+    private static final int DNS_RCODE_NOERROR = 0;
+    private static final int DNS_RCODE_NXDOMAIN = 3;
 
     private final ManagedChannel channel;
     private final DnsResolverGrpc.DnsResolverFutureStub futureStub;
@@ -61,13 +65,12 @@ public class DnsServiceClient implements AutoCloseable {
         futureStub = DnsResolverGrpc.newFutureStub(channel);
     }
 
-    public ListenableFuture<InetSocketAddress> resolve(Frontier frontier, String host, int port, String executionId, ConfigRef collectionRef) {
+    public ListenableFuture<Resolution> resolve(Frontier frontier, String host, int port, String executionId, ConfigRef collectionRef) {
         // Ensure host is never null
         String hostName = host == null ? "" : host;
         Objects.requireNonNull(collectionRef, "CollectionRef cannot be null");
         ResolveRequest request = ResolveRequest.newBuilder()
                 .setHost(hostName)
-                .setPort(port)
                 .setExecutionId(executionId)
                 .setCollectionRef(collectionRef)
                 .build();
@@ -90,13 +93,83 @@ public class DnsServiceClient implements AutoCloseable {
             }
         }, MoreExecutors.directExecutor());
 
-        ListenableFuture<InetSocketAddress> address = Futures.transformAsync(reply, r -> {
-            return Futures.immediateFuture(
-                    new InetSocketAddress(InetAddress.getByAddress(r.getHost(), r.getRawIp().toByteArray()), r.getPort())
-            );
+        return Futures.transformAsync(reply, r -> {
+            return Futures.immediateFuture(mapReply(hostName, port, r));
         }, frontier.getAsyncFunctionsThreadPool());
+    }
 
-        return address;
+    static Resolution mapReply(String requestedHost, int requestedPort, ResolveReply reply)
+            throws UnknownHostException {
+        if (reply.hasError()) {
+            return Resolution.failure(mapDnsError(requestedHost, reply.getError()));
+        }
+        InetSocketAddress address = new InetSocketAddress(
+                InetAddress.getByAddress(reply.getHost(), reply.getRawIp().toByteArray()), requestedPort);
+        return Resolution.success(address);
+    }
+
+    static Error mapDnsError(String host, Error dnsError) {
+        ExtraStatusCodes status;
+        switch (dnsError.getCode()) {
+            case DNS_RCODE_NOERROR:
+                status = ExtraStatusCodes.DNS_NO_DATA;
+                break;
+            case DNS_RCODE_NXDOMAIN:
+                status = ExtraStatusCodes.DNS_NXDOMAIN;
+                break;
+            default:
+                status = ExtraStatusCodes.FAILED_DNS;
+                break;
+        }
+
+        String reason = dnsError.getMsg().isBlank()
+                ? "RCODE " + dnsError.getCode()
+                : dnsError.getMsg();
+        Error.Builder error = status.toFetchError(
+                "DNS lookup for " + host + " returned " + reason + " (RCODE " + dnsError.getCode() + ")")
+                .toBuilder();
+        if (!dnsError.getDetail().isBlank()) {
+            error.setDetail(dnsError.getDetail());
+        } else {
+            error.setDetail("DNS RCODE " + dnsError.getCode());
+        }
+        return error.build();
+    }
+
+    public static final class Resolution {
+        private final InetSocketAddress address;
+        private final Error error;
+
+        private Resolution(InetSocketAddress address, Error error) {
+            this.address = address;
+            this.error = error;
+        }
+
+        static Resolution success(InetSocketAddress address) {
+            return new Resolution(Objects.requireNonNull(address), null);
+        }
+
+        static Resolution failure(Error error) {
+            return new Resolution(null, Objects.requireNonNull(error));
+        }
+
+        public boolean hasError() {
+            return error != null;
+        }
+
+        public InetSocketAddress getAddress() {
+            if (address == null) {
+                throw new IllegalStateException("DNS resolution has no address");
+            }
+            return address;
+        }
+
+        public Error getError() {
+            if (error == null) {
+                throw new IllegalStateException("DNS resolution has no error");
+            }
+            return error;
+        }
     }
 
     @Override

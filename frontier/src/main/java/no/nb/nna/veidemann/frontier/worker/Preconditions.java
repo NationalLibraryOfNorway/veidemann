@@ -15,7 +15,6 @@
  */
 package no.nb.nna.veidemann.frontier.worker;
 
-import java.net.InetSocketAddress;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -34,6 +33,7 @@ import no.nb.nna.veidemann.api.config.v1.CrawlLimitsConfig;
 import no.nb.nna.veidemann.api.config.v1.PolitenessConfig.RobotsPolicy;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.db.DbException;
+import no.nb.nna.veidemann.frontier.worker.DnsServiceClient.Resolution;
 
 /**
  * Preconditions for fetching a URI: crawl execution state, limits, DNS,
@@ -115,7 +115,7 @@ public class Preconditions {
             SettableFuture<PreconditionState> future = SettableFuture.create();
 
             LOG.debug("Resolve IP for URI '{}'", qUri.getUri());
-            ListenableFuture<InetSocketAddress> dnsFuture = frontier.getDnsServiceClient()
+            ListenableFuture<Resolution> dnsFuture = frontier.getDnsServiceClient()
                     .resolve(frontier,
                             qUri.getHost(),
                             qUri.getPort(),
@@ -171,7 +171,7 @@ public class Preconditions {
     /**
      * Callback for asynchronous DNS resolution.
      */
-    static class ResolveDnsCallback implements FutureCallback<InetSocketAddress> {
+    static class ResolveDnsCallback implements FutureCallback<Resolution> {
         private final Frontier frontier;
         private final QueuedUriWrapper qUri;
         private final StatusWrapper status;
@@ -202,7 +202,12 @@ public class Preconditions {
         }
 
         @Override
-        public void onSuccess(InetSocketAddress result) {
+        public void onSuccess(Resolution result) {
+            if (result.hasError()) {
+                handleFailure(result.getError());
+                return;
+            }
+
             // Side-effects must always run, even if the future got cancelled.
             try (Scope scope = activateSpanSafely(frontier, parentSpan)) {
                 ConfigObject politeness = frontier.getConfig(
@@ -216,7 +221,7 @@ public class Preconditions {
                     changedCrawlHostGroup = qUri.getCrawlHostGroupId();
                 }
 
-                qUri.setIp(result.getAddress().getHostAddress());
+                qUri.setIp(result.getAddress().getAddress().getHostAddress());
                 qUri.setResolved(politeness);
 
                 IsAllowedFunc isAllowedFunc = new IsAllowedFunc(
@@ -250,18 +255,29 @@ public class Preconditions {
 
         @Override
         public void onFailure(Throwable t) {
+            handleFailure(ExtraStatusCodes.FAILED_DNS.toFetchError(t.toString()));
+        }
+
+        private void handleFailure(no.nb.nna.veidemann.api.commons.v1.Error error) {
             LOG.info("Failed IP resolution for URI '{}' by extracting host '{}' and port '{}'.",
                     qUri.getUri(),
                     qUri.getHost(),
                     qUri.getPort());
 
             try (Scope scope = activateSpanSafely(frontier, parentSpan)) {
-                qUri.setError(ExtraStatusCodes.FAILED_DNS.toFetchError(t.toString()))
-                        .setEarliestFetchDelaySeconds(
-                                qUri.getCrawlHostGroup().getRetryDelaySeconds());
+                qUri.setError(error);
+
+                ExtraStatusCodes statusCode = ExtraStatusCodes.fromFetchError(error);
+                boolean initialSeed = qUri.getDiscoveryPath().isEmpty()
+                        && qUri.getQueuedUri().getId().isEmpty();
+                boolean updateCounters = statusCode.isTemporary() || !initialSeed;
 
                 PreconditionState state = ErrorHandler.fetchFailure(
-                        frontier, status, qUri, qUri.getError());
+                        frontier, status, qUri, qUri.getError(), updateCounters);
+
+                if (state == PreconditionState.DENIED && !statusCode.isTemporary()) {
+                    frontier.writeLog(qUri);
+                }
 
                 if (state == PreconditionState.RETRY
                         && !qUri.getCrawlHostGroupId().isEmpty()

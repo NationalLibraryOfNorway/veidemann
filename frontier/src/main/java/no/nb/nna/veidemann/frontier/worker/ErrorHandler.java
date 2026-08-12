@@ -45,6 +45,19 @@ public class ErrorHandler {
             StatusWrapper status,
             QueuedUriWrapper qUri,
             Error error) throws DbException {
+        return fetchFailure(frontier, status, qUri, error, true);
+    }
+
+    /**
+     * Handle a failed fetch, optionally leaving terminal accounting to the caller.
+     * This is used for a seed denied before it has entered the queue: the seed
+     * creation path records the failure when it finalizes the crawl execution.
+     */
+    static PreconditionState fetchFailure(Frontier frontier,
+            StatusWrapper status,
+            QueuedUriWrapper qUri,
+            Error error,
+            boolean updateCounters) throws DbException {
         MDC.put("eid", qUri.getExecutionId());
         MDC.put("uri", qUri.getUri());
         try {
@@ -64,7 +77,9 @@ public class ErrorHandler {
                     LOG.info("Failed fetch of {} ({} {}) at attempt #{}. URI will not be retried due to retry limit",
                             qUri.getUri(), error.getCode(), error.getMsg(), qUri.getRetries());
                     frontier.writeLog(qUri, ExtraStatusCodes.RETRY_LIMIT_REACHED.getCode());
-                    status.incrementDocumentsFailed();
+                    if (updateCounters) {
+                        status.incrementDocumentsFailed();
+                    }
                     return PreconditionState.DENIED;
                 } else {
                     LOG.info("Failed fetch of {} ({} {}) at attempt #{}, retrying in {} seconds",
@@ -76,14 +91,18 @@ public class ErrorHandler {
                     qUri.setEarliestFetchDelaySeconds(
                             qUri.getCrawlHostGroup().getRetryDelaySeconds());
 
-                    status.incrementDocumentsRetried();
+                    if (updateCounters) {
+                        status.incrementDocumentsRetried();
+                    }
                     return PreconditionState.RETRY;
                 }
             } else {
                 LOG.info(
                         "Failed fetch of {} ({} {}) at attempt #{}. URI will not be retried because error is permanent",
                         qUri.getUri(), error.getCode(), error.getMsg(), qUri.getRetries());
-                status.incrementDocumentsFailed();
+                if (updateCounters) {
+                    status.incrementDocumentsFailed();
+                }
                 return PreconditionState.DENIED;
             }
         } finally {

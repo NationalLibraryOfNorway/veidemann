@@ -21,6 +21,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.dnsresolver.v1.DnsResolverGrpc;
 import no.nb.nna.veidemann.api.dnsresolver.v1.ResolveReply;
 import no.nb.nna.veidemann.api.dnsresolver.v1.ResolveRequest;
@@ -30,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +46,8 @@ public class DnsResolverMock implements AutoCloseable {
     public final RequestLog<String> requestLog = new RequestLog<>();
     private final RequestMatcher exceptionForHost = new RequestMatcher(requestLog);
     private final RequestMatcher fetchErrorForHost = new RequestMatcher(requestLog);
+    private final RequestMatcher dnsResponseErrorForHost = new RequestMatcher(requestLog);
+    private final Map<String, Error> dnsResponseErrors = new ConcurrentHashMap<>();
 
     final Server server;
 
@@ -81,6 +86,18 @@ public class DnsResolverMock implements AutoCloseable {
         return this;
     }
 
+    public DnsResolverMock withDnsResponseErrorForAllHostRequests(String host, int code, String message) {
+        dnsResponseErrors.put(host, Error.newBuilder().setCode(code).setMsg(message).build());
+        dnsResponseErrorForHost.withMatchAllRequests(host);
+        return this;
+    }
+
+    public DnsResolverMock withDnsResponseErrorForHostRequests(String host, int code, String message, int from, int to) {
+        dnsResponseErrors.put(host, Error.newBuilder().setCode(code).setMsg(message).build());
+        dnsResponseErrorForHost.withMatchRequests(host, from, to);
+        return this;
+    }
+
     public DnsResolverMock withSimulatedLookupTimeMs(long time) {
         this.simulatedLookupTimeMs = time;
         return this;
@@ -99,6 +116,15 @@ public class DnsResolverMock implements AutoCloseable {
             // Simulate dns lookup error for host
             if (fetchErrorForHost.match(request.getHost())) {
                 responseObserver.onError(Status.INTERNAL.withDescription("Simulated DNS lookup error").asRuntimeException());
+                return;
+            }
+
+            if (dnsResponseErrorForHost.match(request.getHost())) {
+                responseObserver.onNext(ResolveReply.newBuilder()
+                        .setHost(request.getHost())
+                        .setError(dnsResponseErrors.get(request.getHost()))
+                        .build());
+                responseObserver.onCompleted();
                 return;
             }
 
@@ -127,7 +153,6 @@ public class DnsResolverMock implements AutoCloseable {
             byte[] bytes = ip.getAddress();
             responseObserver.onNext(ResolveReply.newBuilder()
                     .setHost(request.getHost())
-                    .setPort(request.getPort())
                     .setTextualIp(textualIp)
                     .setRawIp(ByteString.copyFrom(bytes))
                     .build());

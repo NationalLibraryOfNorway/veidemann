@@ -17,15 +17,20 @@ service DnsResolver {
 
 message ResolveRequest {
     string host = 1;
-    int32 port = 2;
+    // Deprecated: a port is application metadata and is not part of DNS resolution.
+    int32 port = 2 [deprecated = true];
     string execution_id = 6;
     veidemann.api.config.v1.ConfigRef collection_ref = 7;
 }
 
 message ResolveReply {
     string host = 1;
-    int32 port = 2;
+    // Deprecated: a port is application metadata and is not part of DNS resolution.
+    int32 port = 2 [deprecated = true];
     string textual_ip = 3;
     bytes raw_ip = 4;
+    // Set when the DNS server returned a valid negative or failure response.
+    // Error.code contains the DNS RCODE. Presence with code 0 means NODATA.
+    // Transport and resolver-internal failures are returned as gRPC errors.
     veidemann.api.commons.v1.Error error = 5;
 }

@@ -40,7 +40,7 @@ func main() {
 	}
 
 	for _, host := range args {
-		response, err := client.Resolve(ctx, &dnsresolverV1.ResolveRequest{Host: host, Port: 80})
+		response, err := client.Resolve(ctx, &dnsresolverV1.ResolveRequest{Host: host})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			break

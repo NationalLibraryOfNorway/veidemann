@@ -7,13 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metadata"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/rcode"
+	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/pkg/reuseport"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/miekg/dns"
@@ -111,20 +114,25 @@ func (e *Resolve) Resolve(ctx context.Context, request *dnsresolverV1.ResolveReq
 		return nil, err
 	}
 	msg := w.Msg
-
-	if msg.Rcode != dns.RcodeSuccess {
-		// TODO return error in resolveReply.Error
-		// TODO frontier must be refactored to do this
+	if msg == nil || !msg.Response || msg.Truncated {
 		err := &UnresolvableError{
 			Host:  request.Host,
-			Rcode: msg.Rcode,
+			Rcode: dns.RcodeServerFailure,
+			Err:   errors.New("missing, malformed, or truncated DNS response"),
 		}
-		log.Debug(err)
+		log.Error(err)
 		return nil, err
+	}
+
+	if msg.Rcode != dns.RcodeSuccess {
+		log.Debugf("DNS lookup for %s returned %s", request.Host, rcode.ToString(msg.Rcode))
+		return dnsErrorReply(request, msg.Rcode, rcode.ToString(msg.Rcode)), nil
 	}
 
 	res := &dnsresolverV1.ResolveReply{
 		Host: request.Host,
+		// Preserve the deprecated request/reply echo for older Frontier clients.
+		// Current clients neither send nor consume this value.
 		Port: request.Port,
 	}
 out:
@@ -145,12 +153,29 @@ out:
 		return res, nil
 	}
 
+	responseType, _ := response.Typify(msg, time.Now())
+	if responseType == response.NoData {
+		log.Debugf("DNS lookup for %s returned NODATA", request.Host)
+		return dnsErrorReply(request, dns.RcodeSuccess, "NODATA"), nil
+	}
+
 	err := &UnresolvableError{
 		Host:  request.Host,
 		Rcode: msg.Rcode,
 	}
 	log.Debug(err)
 	return nil, err
+}
+
+func dnsErrorReply(request *dnsresolverV1.ResolveRequest, responseCode int, message string) *dnsresolverV1.ResolveReply {
+	return &dnsresolverV1.ResolveReply{
+		Host: request.Host,
+		Error: &commonsV1.Error{
+			Code:   int32(responseCode),
+			Msg:    message,
+			Detail: fmt.Sprintf("DNS response for %s: %s (RCODE %d)", request.Host, message, responseCode),
+		},
+	}
 }
 
 // Name implements the Handler interface.

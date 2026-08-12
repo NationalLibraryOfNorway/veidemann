@@ -85,6 +85,18 @@ public enum ExtraStatusCodes {
      */
     RETRY_LIMIT_REACHED(-8, "Multiple retries failed, retry limit reached.", false),
     /**
+     * DNS_NXDOMAIN (-9)
+     * <p>
+     * DNS name does not exist.
+     */
+    DNS_NXDOMAIN(-9, "DNS name does not exist (NXDOMAIN).", false),
+    /**
+     * DNS_NO_DATA (-10)
+     * <p>
+     * DNS name exists but has no usable address record.
+     */
+    DNS_NO_DATA(-10, "DNS name has no usable address record (NODATA).", false),
+    /**
      * FAILED_FETCHING_ROBOTS (-61)
      * <p>
      * Prerequisite robots.txt fetch failed, precluding a fetch attempt.

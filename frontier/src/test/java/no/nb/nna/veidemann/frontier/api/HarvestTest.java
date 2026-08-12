@@ -1,6 +1,8 @@
 package no.nb.nna.veidemann.frontier.api;
 
 import static no.nb.nna.veidemann.commons.ExtraStatusCodes.FAILED_DNS;
+import static no.nb.nna.veidemann.commons.ExtraStatusCodes.DNS_NO_DATA;
+import static no.nb.nna.veidemann.commons.ExtraStatusCodes.DNS_NXDOMAIN;
 import static no.nb.nna.veidemann.commons.ExtraStatusCodes.PRECLUDED_BY_ROBOTS;
 import static no.nb.nna.veidemann.commons.ExtraStatusCodes.RETRY_LIMIT_REACHED;
 import static no.nb.nna.veidemann.commons.ExtraStatusCodes.RUNTIME_EXCEPTION;
@@ -213,19 +215,22 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
     }
 
     @Test
-    public void testDnsFailureOnce() throws Exception {
+    public void testDnsServfailOnce() throws Exception {
         int seedCount = 1;
         int linksPerLevel = 0;
         int maxHopsFromSeed = 1;
 
         scopeCheckerServiceMock.withMaxHopsFromSeed(maxHopsFromSeed);
         harvesterMock.withLinksPerLevel(linksPerLevel);
-        dnsResolverMock.withFetchErrorForHostRequests("a.seed-000000.com", 1, 1);
+        dnsResolverMock.withDnsResponseErrorForHostRequests("a.seed-000000.com", 2, "SERVFAIL", 1, 1);
 
         ConfigObject job = crawlRunner.genJob("job1");
         List<SeedAndExecutions> seeds = crawlRunner.genSeeds(seedCount, "a.seed", job);
         RunningCrawl crawl = crawlRunner.runCrawl(job, seeds);
         crawlRunner.awaitCrawlFinished(crawl);
+
+        assertThat(dnsResolverMock.requestLog)
+                .hasNumberOfRequests("a.seed-000000.com", 2);
 
         assertThat(logServiceMock.crawlLogs).hasNumberOfRequests(0);
 
@@ -243,6 +248,87 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
                 .sessionTokens().hasNumberOfElements(0);
         assertThat(redisData)
                 .readyQueue().hasNumberOfElements(0);
+    }
+
+    @Test
+    public void testDnsNxdomainIsNotRetried() throws Exception {
+        assertPermanentDnsFailure(3, "NXDOMAIN", DNS_NXDOMAIN);
+    }
+
+    @Test
+    public void testDnsNoDataIsNotRetried() throws Exception {
+        assertPermanentDnsFailure(0, "NODATA", DNS_NO_DATA);
+    }
+
+    @Test
+    public void testDnsNxdomainOutlinkIsNotRetried() throws Exception {
+        String host = "a.seed-000000.com";
+        scopeCheckerServiceMock.withMaxHopsFromSeed(1);
+        harvesterMock.withLinksPerLevel(1);
+        dnsResolverMock.withDnsResponseErrorForHostRequests(host, 3, "NXDOMAIN", 2, 2);
+
+        ConfigObject job = crawlRunner.genJob("job1");
+        List<SeedAndExecutions> seeds = crawlRunner.genSeeds(1, "a.seed", job);
+        RunningCrawl crawl = crawlRunner.runCrawl(job, seeds);
+        crawlRunner.awaitCrawlFinished(crawl);
+
+        assertThat(dnsResolverMock.requestLog).hasNumberOfRequests(host, 2);
+        assertThat(logServiceMock.crawlLogs).hasNumberOfRequests(1);
+        assertThat(logServiceMock.crawlLogs.get(0))
+                .statusCodeEquals(DNS_NXDOMAIN)
+                .requestedUriEquals("http://" + host + "/p0")
+                .error().isNotNull().codeEquals(DNS_NXDOMAIN);
+
+        String crawlExecutionId = seeds.get(0).getCrawlExecution(job).get().getId();
+        assertThat(rethinkDbData)
+                .crawlExecutionStatuses().hasEntrySatisfying(crawlExecutionId, status -> {
+                    assertThat(status)
+                            .hasState(CrawlExecutionStatus.State.FINISHED)
+                            .documentsCrawledEquals(1)
+                            .documentsFailedEquals(1)
+                            .documentsRetriedEquals(0)
+                            .currentUriIdCountIsEqualTo(0);
+                });
+        assertThat(rethinkDbData).hasQueueTotalCount(0).jobStatsMatchesCrawlExecutions();
+        assertThat(redisData).hasQueueTotalCount(0).crawlHostGroups().hasNumberOfElements(0);
+    }
+
+    private void assertPermanentDnsFailure(int dnsRcode, String dnsMessage, no.nb.nna.veidemann.commons.ExtraStatusCodes expectedStatus)
+            throws Exception {
+        String host = "a.seed-000000.com";
+        scopeCheckerServiceMock.withMaxHopsFromSeed(1);
+        harvesterMock.withLinksPerLevel(0);
+        dnsResolverMock.withDnsResponseErrorForAllHostRequests(host, dnsRcode, dnsMessage);
+
+        ConfigObject job = crawlRunner.genJob("job1");
+        List<SeedAndExecutions> seeds = crawlRunner.genSeeds(1, "a.seed", job);
+        RunningCrawl crawl = crawlRunner.runCrawl(job, seeds);
+        crawlRunner.awaitCrawlFinished(crawl);
+
+        assertThat(dnsResolverMock.requestLog).hasNumberOfRequests(host, 1);
+        assertThat(logServiceMock.crawlLogs).hasNumberOfRequests(1);
+        assertThat(logServiceMock.crawlLogs.get(0))
+                .hasWarcId()
+                .statusCodeEquals(expectedStatus)
+                .requestedUriEquals("http://" + host)
+                .error().isNotNull().codeEquals(expectedStatus);
+
+        String crawlExecutionId = seeds.get(0).getCrawlExecution(job).get().getId();
+        assertThat(rethinkDbData)
+                .crawlExecutionStatuses().hasSize(1).hasEntrySatisfying(crawlExecutionId, status -> {
+                    assertThat(status)
+                            .hasState(CrawlExecutionStatus.State.FAILED)
+                            .documentsFailedEquals(1)
+                            .documentsRetriedEquals(0)
+                            .currentUriIdCountIsEqualTo(0);
+                });
+
+        assertThat(rethinkDbData)
+                .hasQueueTotalCount(0)
+                .jobStatsMatchesCrawlExecutions();
+        assertThat(redisData)
+                .hasQueueTotalCount(0)
+                .crawlHostGroups().hasNumberOfElements(0);
     }
 
     @Test
