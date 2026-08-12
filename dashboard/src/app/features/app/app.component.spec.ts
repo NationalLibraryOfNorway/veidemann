@@ -332,6 +332,8 @@ describe('AppComponent navigation', () => {
     ]);
     expect(drawerItems.at(-2)?.querySelector('mat-icon')?.textContent).toContain('calendar_month');
     expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('account_box');
+    expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
+    expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);
   });
 
   it('shows log out below the primary destinations when signed in', () => {
@@ -349,6 +351,8 @@ describe('AppComponent navigation', () => {
     expect(drawerItems.at(-1)?.textContent.trim()).toContain('Log out');
     expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
     expect(drawerItems.some(item => item.textContent.includes('LOGIN'))).toBe(false);
+    expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
+    expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);
   });
 
   it('shows loading while the selected destination resolver is pending', async () => {
@@ -406,3 +410,12 @@ describe('AppComponent navigation', () => {
     expect(fixture.nativeElement.querySelector('.module-loader')).toBeNull();
   });
 });
+
+function expectDrawerActionStyle(button: HTMLButtonElement): void {
+  const style = getComputedStyle(button);
+
+  expect(style.appearance).toBe('none');
+  expect(style.borderStyle).toBe('none');
+  expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+  expect(style.textAlign).toBe('left');
+}
