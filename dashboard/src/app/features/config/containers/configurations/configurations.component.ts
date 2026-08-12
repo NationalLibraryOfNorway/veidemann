@@ -514,8 +514,18 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onUpdateMulti({updateTemplate, pathList}: { updateTemplate: ConfigObject, pathList: string[] }) {
+    if (this.isAllSelected) {
+      this.configService.startUpdateWithTemplate(updateTemplate, pathList)
+        .pipe(takeUntil(this.ngUnsubscribe))
+        .subscribe(taskId => {
+          this.snackBarService.openSnackBar(
+            $localize`:@@snackBarMessage.backgroundUpdateStarted:Update started in the background. Reload later to see the result. Task ID: ${taskId}:TASK_ID:`);
+        });
+      return;
+    }
+
     this.configService.updateWithTemplate(
-      updateTemplate, pathList, this.isAllSelected ? [] : this.selectedConfigs.map(config => config.id))
+      updateTemplate, pathList, this.selectedConfigs.map(config => config.id))
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe(updatedConfigs => {
         this.dataSource.reload();

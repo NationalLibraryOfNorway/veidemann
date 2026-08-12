@@ -36,18 +36,25 @@ import no.nb.nna.veidemann.api.config.v1.LogLevels;
 import no.nb.nna.veidemann.api.config.v1.Role;
 import no.nb.nna.veidemann.api.config.v1.UpdateRequest;
 import no.nb.nna.veidemann.api.config.v1.UpdateResponse;
+import no.nb.nna.veidemann.api.config.v1.UpdateTaskAccepted;
 import no.nb.nna.veidemann.commons.auth.AllowedRoles;
 import no.nb.nna.veidemann.commons.auth.Authorisations;
+import no.nb.nna.veidemann.commons.auth.EmailContextKey;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static no.nb.nna.veidemann.controller.JobExecutionUtil.handleGet;
 
-public class ConfigService extends ConfigGrpc.ConfigImplBase {
+public class ConfigService extends ConfigGrpc.ConfigImplBase implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigService.class);
 
@@ -55,9 +62,19 @@ public class ConfigService extends ConfigGrpc.ConfigImplBase {
 
     private final ScopeServiceClient scopeServiceClient;
 
+    private final ExecutorService updateExecutor;
+
+    private final AtomicBoolean updateActive = new AtomicBoolean();
+
     public ConfigService(ConfigAdapter db, ScopeServiceClient scopeServiceClient) {
+        this(db, scopeServiceClient, Executors.newSingleThreadExecutor(
+                Thread.ofPlatform().name("config-background-update").factory()));
+    }
+
+    ConfigService(ConfigAdapter db, ScopeServiceClient scopeServiceClient, ExecutorService updateExecutor) {
         this.db = db;
         this.scopeServiceClient = scopeServiceClient;
+        this.updateExecutor = updateExecutor;
     }
 
     @Override
@@ -141,6 +158,66 @@ public class ConfigService extends ConfigGrpc.ConfigImplBase {
             Status status = Status.UNKNOWN.withDescription(ex.toString());
             responseObserver.onError(status.asException());
         }
+    }
+
+    @Override
+    @Authorisations({
+            @AllowedRoles({Role.CURATOR, Role.OPERATOR, Role.ADMIN}),
+            @AllowedRoles(value = {Role.ADMIN}, kind = {Kind.roleMapping}),
+            @AllowedRoles(value = {Role.ADMIN, Role.CURATOR, Role.OPERATOR, Role.CONSULTANT},
+                    kind = {Kind.crawlEntity, Kind.seed})
+    })
+    public void startUpdateConfigObjects(UpdateRequest request,
+            StreamObserver<UpdateTaskAccepted> responseObserver) {
+        if (!updateActive.compareAndSet(false, true)) {
+            responseObserver.onError(Status.RESOURCE_EXHAUSTED
+                    .withDescription("A database-wide configuration update is already running")
+                    .asException());
+            return;
+        }
+
+        String taskId = UUID.randomUUID().toString();
+        String submittedBy = EmailContextKey.email();
+        io.grpc.Context taskContext = io.grpc.Context.current().fork();
+        try {
+            updateExecutor.execute(taskContext.wrap(() -> runUpdateTask(taskId, submittedBy, request)));
+        } catch (RejectedExecutionException e) {
+            updateActive.set(false);
+            LOG.warn("Configuration update task {} was rejected", taskId, e);
+            responseObserver.onError(Status.UNAVAILABLE
+                    .withDescription("The background update executor is unavailable")
+                    .withCause(e)
+                    .asException());
+            return;
+        }
+
+        LOG.info("Accepted configuration update task {} submittedBy={} kind={}",
+                taskId, submittedBy, request.getListRequest().getKind());
+        responseObserver.onNext(UpdateTaskAccepted.newBuilder().setTaskId(taskId).build());
+        responseObserver.onCompleted();
+    }
+
+    private void runUpdateTask(String taskId, String submittedBy, UpdateRequest request) {
+        long started = System.nanoTime();
+        LOG.info("Starting configuration update task {} submittedBy={} kind={}",
+                taskId, submittedBy, request.getListRequest().getKind());
+        try {
+            UpdateResponse response = db.updateConfigObjects(request);
+            LOG.info("Completed configuration update task {} submittedBy={} kind={} updated={} durationMs={}",
+                    taskId, submittedBy, request.getListRequest().getKind(), response.getUpdated(),
+                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
+        } catch (Exception e) {
+            LOG.error("Failed configuration update task {} submittedBy={} kind={} durationMs={}",
+                    taskId, submittedBy, request.getListRequest().getKind(),
+                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started), e);
+        } finally {
+            updateActive.set(false);
+        }
+    }
+
+    @Override
+    public void close() {
+        updateExecutor.shutdownNow();
     }
 
     @Override

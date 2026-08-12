@@ -95,6 +95,16 @@ export class ConfigApiService {
     );
   }
 
+  startUpdate(updateRequest: UpdateRequest): Observable<string> {
+    return from(this.getClient().startUpdateConfigObjects(updateRequest, this.callOptions)).pipe(
+      map(response => response.taskId),
+      catchError(error => {
+        this.errorHandler.handleError(error);
+        return EMPTY;
+      }),
+    );
+  }
+
   delete(configObject: ConfigObject): Observable<boolean> {
     return from(this.getClient().deleteConfigObject(ConfigObject.toProto(configObject), this.callOptions)).pipe(
       map(response => response.deleted),

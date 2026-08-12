@@ -40,6 +40,11 @@
         <source>Something went wrong. Try again.</source>
       </segment>
     </unit>
+    <unit id="snackBarMessage.backgroundUpdateStarted">
+      <segment>
+        <source>Update started in the background. Reload later to see the result. Task ID: <ph id="0" equiv="TASK_ID" disp="taskId"/></source>
+      </segment>
+    </unit>
     <unit id="crawlLogReportStatusCode">
       <segment>
         <source>Status code</source>

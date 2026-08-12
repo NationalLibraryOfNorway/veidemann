@@ -45,6 +45,12 @@
         <target>Noe gikk galt. Prøv igjen.</target>
       </segment>
     </unit>
+    <unit id="snackBarMessage.backgroundUpdateStarted">
+      <segment state="final">
+        <source>Update started in the background. Reload later to see the result. Task ID: <ph id="0" equiv="TASK_ID" disp="taskId"/></source>
+        <target>Oppdateringen er startet i bakgrunnen. Last inn siden på nytt senere for å se resultatet. Oppgave-ID: <ph id="0" equiv="TASK_ID" disp="taskId"/></target>
+      </segment>
+    </unit>
     <unit id="crawlLogReportStatusCode">
       <segment state="initial">
         <source>Status code</source>

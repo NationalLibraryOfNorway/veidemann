@@ -8,6 +8,7 @@ import {
   GetScriptAnnotationsRequestSchema,
   ListRequest,
   ListRequestSchema,
+  UpdateRequest,
   UpdateRequestSchema
 } from '../../../api/config/v1/config_pb';
 import {
@@ -72,8 +73,17 @@ export class ConfigService
   }
 
   updateWithTemplate(updateTemplate: ConfigObject, paths: string[], ids: string[]): Observable<number> {
-    let listRequest: ListRequest;
+    const updateRequest = this.createUpdateRequest(updateTemplate, paths, ids);
+    return this.load(this.configApiService.update(updateRequest));
+  }
 
+  startUpdateWithTemplate(updateTemplate: ConfigObject, paths: string[]): Observable<string> {
+    const updateRequest = this.createUpdateRequest(updateTemplate, paths, []);
+    return this.load(this.configApiService.startUpdate(updateRequest));
+  }
+
+  private createUpdateRequest(updateTemplate: ConfigObject, paths: string[], ids: string[]): UpdateRequest {
+    let listRequest: ListRequest;
     if (ids.length > 0) {
       listRequest = create(ListRequestSchema, {
         kind: updateTemplate.kind.valueOf(),
@@ -93,7 +103,7 @@ export class ConfigService
       updateMask: create(FieldMaskSchema, {paths})
     });
 
-    return this.load(this.configApiService.update(updateRequest));
+    return updateRequest;
   }
 
   delete(configObject: ConfigObject): Observable<boolean> {

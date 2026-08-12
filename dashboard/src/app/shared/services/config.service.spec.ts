@@ -1,10 +1,10 @@
 import {TestBed} from '@angular/core/testing';
 import {EMPTY, of} from 'rxjs';
 
-import {ListRequest} from '../../../api/config/v1/config_pb';
+import {ListRequest, UpdateRequest} from '../../../api/config/v1/config_pb';
 import {ConfigApiService} from '../../core';
 import {ConfigQuery} from '../func';
-import {BrowserScriptType, Kind, Role, robotsPolicies, RobotsPolicy} from '../models';
+import {BrowserScriptType, ConfigObject, Kind, Label, Role, robotsPolicies, RobotsPolicy} from '../models';
 import {ConfigService} from './config.service';
 
 describe('ConfigService BrowserScript filtering', () => {
@@ -16,15 +16,20 @@ describe('ConfigService BrowserScript filtering', () => {
     void request;
     return of(0);
   });
+  const startUpdate = vi.fn((request: UpdateRequest) => {
+    void request;
+    return of('task-123');
+  });
   let service: ConfigService;
 
   beforeEach(() => {
     list.mockClear();
     count.mockClear();
+    startUpdate.mockClear();
     TestBed.configureTestingModule({
       providers: [
         ConfigService,
-        {provide: ConfigApiService, useValue: {list, count}},
+        {provide: ConfigApiService, useValue: {list, count, startUpdate}},
       ],
     });
     service = TestBed.inject(ConfigService);
@@ -112,6 +117,33 @@ describe('ConfigService BrowserScript filtering', () => {
       orderByPath: 'meta.lastModified',
       orderDescending: true,
     }));
+  });
+
+  it('starts an all-database update with the compact active filter', () => {
+    const query: ConfigQuery = {
+      ...browserScriptQuery(null),
+      kind: Kind.SEED,
+      crawlJobIdList: ['job-1'],
+      term: 'label:status:📦',
+    };
+    service.search(query, {offset: 200, pageSize: 100}).subscribe();
+    const updateTemplate = new ConfigObject({kind: Kind.SEED});
+    updateTemplate.meta.labelList = [new Label({key: 'status', value: '📦'})];
+
+    service.startUpdateWithTemplate(updateTemplate, ['meta.label-']).subscribe();
+
+    expect(startUpdate).toHaveBeenCalledOnce();
+    const request = startUpdate.mock.calls[0][0];
+    expect(request.listRequest).toEqual(expect.objectContaining({
+      kind: Kind.SEED,
+      id: [],
+      labelSelector: ['status:📦'],
+      pageSize: 0,
+      offset: 0,
+    }));
+    expect(request.listRequest?.queryMask?.paths).toEqual(['seed.jobRef']);
+    expect(request.listRequest?.queryTemplate?.spec.case).toBe('seed');
+    expect(request.updateMask?.paths).toEqual(['meta.label-']);
   });
 });
 

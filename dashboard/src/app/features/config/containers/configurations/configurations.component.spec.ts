@@ -31,12 +31,15 @@ describe('ConfigurationsComponent query loading', () => {
     return of(0);
   });
   const update = vi.fn((config: ConfigObject) => of(config));
+  const updateWithTemplate = vi.fn(() => of(2));
+  const startUpdateWithTemplate = vi.fn(() => of('task-123'));
   const save = vi.fn((config: ConfigObject) => of(config));
   const deleteConfig = vi.fn((config: ConfigObject) => {
     void config;
     return of(true);
   });
   const can = vi.fn(() => false);
+  const openSnackBar = vi.fn();
   const navigate = vi.fn<Router['navigate']>().mockResolvedValue(true);
   const dialog = {
     open: vi.fn(() => ({afterClosed: () => of(true)})),
@@ -49,10 +52,13 @@ describe('ConfigurationsComponent query loading', () => {
     search.mockClear();
     count.mockClear();
     update.mockClear();
+    updateWithTemplate.mockClear();
+    startUpdateWithTemplate.mockClear();
     save.mockClear();
     deleteConfig.mockClear();
     can.mockReset();
     can.mockReturnValue(false);
+    openSnackBar.mockClear();
     navigate.mockClear();
     dialog.open.mockClear();
 
@@ -74,6 +80,8 @@ describe('ConfigurationsComponent query loading', () => {
             count,
             get: () => of(null),
             update,
+            updateWithTemplate,
+            startUpdateWithTemplate,
             save,
             delete: deleteConfig,
             loading$: of(false),
@@ -96,7 +104,7 @@ describe('ConfigurationsComponent query loading', () => {
             canRunCrawl: () => false,
           }
         },
-        {provide: SnackBarService, useValue: {openSnackBar: vi.fn()}},
+        {provide: SnackBarService, useValue: {openSnackBar}},
       ]
     }).compileComponents();
 
@@ -217,6 +225,32 @@ describe('ConfigurationsComponent query loading', () => {
       autoFocus: 'first-tabbable',
       restoreFocus: true,
     }));
+  });
+
+  it('starts all-database updates in the background without reloading', () => {
+    const updateTemplate = new ConfigObject({kind: Kind.SEED});
+    component.isAllSelected = true;
+    search.mockClear();
+    count.mockClear();
+
+    component.onUpdateMulti({updateTemplate, pathList: ['meta.label-']});
+
+    expect(startUpdateWithTemplate).toHaveBeenCalledWith(updateTemplate, ['meta.label-']);
+    expect(updateWithTemplate).not.toHaveBeenCalled();
+    expect(search).not.toHaveBeenCalled();
+    expect(count).not.toHaveBeenCalled();
+    expect(openSnackBar).toHaveBeenCalledWith(expect.stringContaining('task-123'));
+  });
+
+  it('keeps explicitly selected multi-updates synchronous', () => {
+    const updateTemplate = new ConfigObject({kind: Kind.SEED});
+    component.isAllSelected = false;
+    component['selectedConfigs'] = [new ConfigObject({id: 'seed-1', kind: Kind.SEED})];
+
+    component.onUpdateMulti({updateTemplate, pathList: ['seed.disabled']});
+
+    expect(updateWithTemplate).toHaveBeenCalledWith(updateTemplate, ['seed.disabled'], ['seed-1']);
+    expect(startUpdateWithTemplate).not.toHaveBeenCalled();
   });
 
   it('loads and serializes the BrowserScript type route filter', async () => {

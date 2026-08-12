@@ -23,6 +23,8 @@ service Config {
     rpc SaveConfigObject (veidemann.api.config.v1.ConfigObject) returns (veidemann.api.config.v1.ConfigObject) {}
     // Update config objects
     rpc UpdateConfigObjects (veidemann.api.config.v1.UpdateRequest) returns (veidemann.api.config.v1.UpdateResponse) {}
+    // Start updating config objects in the background
+    rpc StartUpdateConfigObjects (veidemann.api.config.v1.UpdateRequest) returns (veidemann.api.config.v1.UpdateTaskAccepted) {}
     // Delete a config object
     rpc DeleteConfigObject (veidemann.api.config.v1.ConfigObject) returns (veidemann.api.config.v1.DeleteResponse) {}
 
@@ -103,6 +105,10 @@ message UpdateRequest {
 
 message UpdateResponse {
     int64 updated = 1;
+}
+
+message UpdateTaskAccepted {
+    string task_id = 1;
 }
 
 message ListCountResponse {

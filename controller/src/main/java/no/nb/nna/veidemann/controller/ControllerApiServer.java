@@ -75,6 +75,7 @@ public class ControllerApiServer implements AutoCloseable {
     private final List<JobExecutionListener> jobExecutionListeners = new CopyOnWriteArrayList<>();
 
     private Server server;
+    private ConfigService configService;
     private boolean closed;
 
     public interface JobExecutionListener {
@@ -131,8 +132,9 @@ public class ControllerApiServer implements AutoCloseable {
         List<ServerInterceptor> interceptors = buildInterceptors();
         configureTlsIfAvailable();
 
+        configService = new ConfigService(dbService.getConfigAdapter(), scopeServiceClient);
         server = serverBuilder
-            .addService(createService(new ConfigService(dbService.getConfigAdapter(), scopeServiceClient), interceptors))
+            .addService(createService(configService, interceptors))
             .addService(createService(new ControllerService(settings, dbService.getConfigAdapter(), dbService.getExecutionsAdapter(), jobExecutionListeners), interceptors))
             .addService(createService(new ReportService(settings, dbService.getExecutionsAdapter(), dbService.getDbQueryAdapter()), interceptors))
                 .addService(createService(new LogService(logServiceClient), interceptors))
@@ -242,6 +244,7 @@ public class ControllerApiServer implements AutoCloseable {
         closed = true;
 
         shutdownServer();
+        shutdownConfigService();
         shutdownExecutor();
 
         LOG.info("Controller API server shut down");
@@ -288,6 +291,12 @@ public class ControllerApiServer implements AutoCloseable {
             Thread.currentThread().interrupt();
             LOG.warn("Interrupted while awaiting executor termination, forcing shutdownNow().", e);
             executor.shutdownNow();
+        }
+    }
+
+    private void shutdownConfigService() {
+        if (configService != null) {
+            configService.close();
         }
     }
 }
