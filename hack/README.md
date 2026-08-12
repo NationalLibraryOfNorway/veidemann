@@ -150,14 +150,21 @@ files:
 independently versioned components in the monorepo. It does not create the
 slash-style Go module tags described above.
 
+Hidden directories and repository-support directories are not release
+components and are omitted. This includes `tools`, whose Go module pins build
+tools used elsewhere in the repository rather than producing a release.
+
 For each module, it determines:
 
 - The latest commit that touched the module directory
 - The most recent tag matching `<module>-v<major>.<minor>.<patch>`
-- The proposed next version tag
+- The proposed next version tag when the module is not already current
 - The subject and date of the latest module commit
 
 Tags are created on the latest commit that changed the module, which may be an earlier commit than `HEAD`.
+A module is current when its latest version tag points to that commit. Current
+modules remain in the report with `-` as their proposed version and are skipped
+when creating tags.
 
 When multiple tags are pushed, the script pushes them one-by-one. This ensures that GitHub receives a separate push event for each tag, allowing tag-triggered GitHub Actions workflows to run independently.
 
@@ -224,11 +231,11 @@ module-tags.sh [options] [module ...]
 ./module-tags.sh
 ```
 
-Discovers all immediate module directories and reports:
+Discovers all immediate, non-hidden release component directories and reports:
 
 - The latest commit that touched each module
 - The previous module tag
-- The proposed next patch tag
+- The proposed next patch tag, or `-` when the module is current
 - The commit date and subject
 
 No tags are created or pushed.
@@ -236,9 +243,9 @@ No tags are created or pushed.
 Example output:
 
 ```text
-MODULE          COMMIT        DATE        PREVIOUS TAG          PROPOSED TAG
-my-service      6d018ab8f91e  2026-07-24  my-service-v0.2.0     my-service-v0.2.1
-billing         fd320fe0f65a  2026-07-22  billing-v1.4.3        billing-v1.4.4
+MODULE          COMMIT        DATE        PREVIOUS VERSION  PROPOSED VERSION
+my-service      6d018ab8f91e  2026-07-24  0.2.0             -
+billing         fd320fe0f65a  2026-07-22  1.4.3             1.4.4
 ```
 
 This mode is useful for reviewing the repository before deciding which modules should be released.
@@ -283,7 +290,8 @@ git fetch origin main
 ./module-tags.sh --tag my-service billing
 ```
 
-Creates the next patch tag for each selected module.
+Creates the next patch tag for each selected module that is not already current.
+Current modules are reported but skipped.
 
 For example:
 
@@ -350,6 +358,7 @@ my-service-v2.0.0
 ```
 
 Explicit versions require exactly one module. This prevents accidentally assigning the same version to multiple independently versioned modules.
+If the module is already current, it is skipped even when `--version` is used.
 
 ### 8. Create and push one module tag
 

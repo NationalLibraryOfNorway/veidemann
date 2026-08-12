@@ -30,13 +30,12 @@ readonly -a EXEMPT_MODULES=(
     "api"
     "commons"
     "deploy"
-    ".devcontainer"
-    ".gradle"
     "docs"
     "gradle"
     "hack"
     "java-api"
     "proto"
+    "tools"
 )
 
 usage() {
@@ -135,6 +134,10 @@ is_exempt_module() {
     local module="$1"
     local exempt_module
 
+    if [[ "$module" == .* ]]; then
+        return 0
+    fi
+
     for exempt_module in "${EXEMPT_MODULES[@]}"; do
         if [[ "$module" == "$exempt_module" ]]; then
             return 0
@@ -165,6 +168,14 @@ latest_module_tag() {
         --list "$pattern" \
         --sort=-version:refname |
         head -n 1
+}
+
+module_tag_commit() {
+    local tag="$1"
+
+    git rev-parse \
+        --verify \
+        "refs/tags/${tag}^{commit}"
 }
 
 latest_module_commit() {
@@ -212,8 +223,7 @@ discover_modules() {
             -mindepth 1 \
             -maxdepth 1 \
             -type d \
-            ! -name '.git' \
-            ! -name '.github' \
+            ! -name '.*' \
             ! -name 'node_modules' \
             ! -name 'target' \
             ! -name 'build' \
@@ -365,12 +375,13 @@ main() {
     local commit_date
     local subject
     local previous_tag
+    local previous_tag_commit
     local previous_tag_display
     local previous_version
     local next_version
     local proposed_tag
     local proposed_tag_display
-    local status
+    local is_current
     local -a created_tags=()
 
     printf '%-28s %-12s %-10s %-16s %-16s %s\n' \
@@ -420,23 +431,36 @@ main() {
         commit_date="$(latest_module_commit_date "$commit")"
         subject="$(latest_module_commit_subject "$commit")"
         previous_tag="$(latest_module_tag "$module")"
+        previous_tag_display="$(tag_version "$module" "$previous_tag")"
+        previous_tag_commit=""
+        is_current=false
 
-        if [[ -n "$EXPLICIT_VERSION" ]]; then
-            next_version="$EXPLICIT_VERSION"
-        elif [[ -n "$previous_tag" ]]; then
-            previous_version="${previous_tag#"$module-v"}"
-            next_version="$(bump_version "$previous_version" "$BUMP_KIND")"
-        else
-            next_version="0.1.0"
+        if [[ -n "$previous_tag" ]]; then
+            previous_tag_commit="$(module_tag_commit "$previous_tag")"
+
+            if [[ "$previous_tag_commit" == "$commit" ]]; then
+                is_current=true
+            fi
         fi
 
-        proposed_tag="${module}-v${next_version}"
-        
-        previous_tag_display="$(tag_version "$module" "$previous_tag")"
-        proposed_tag_display="$next_version"
+        if [[ "$is_current" == true ]]; then
+            proposed_tag_display="-"
+        else
+            if [[ -n "$EXPLICIT_VERSION" ]]; then
+                next_version="$EXPLICIT_VERSION"
+            elif [[ -n "$previous_tag" ]]; then
+                previous_version="${previous_tag#"$module-v"}"
+                next_version="$(bump_version "$previous_version" "$BUMP_KIND")"
+            else
+                next_version="0.1.0"
+            fi
 
-        if git rev-parse --verify --quiet "refs/tags/$proposed_tag" >/dev/null; then
-            proposed_tag_display="${next_version} (exists)"
+            proposed_tag="${module}-v${next_version}"
+            proposed_tag_display="$next_version"
+
+            if git rev-parse --verify --quiet "refs/tags/$proposed_tag" >/dev/null; then
+                proposed_tag_display="${next_version} (exists)"
+            fi
         fi
 
         printf '%-28s %-12s %-10s %-16s %-16s %s\n' \
@@ -446,6 +470,10 @@ main() {
             "$previous_tag_display" \
             "$proposed_tag_display" \
             "$subject"
+
+        if [[ "$is_current" == true ]]; then
+            continue
+        fi
 
         if [[ "$CREATE_TAGS" == true ]]; then
             if git rev-parse --verify --quiet "refs/tags/$proposed_tag" >/dev/null; then
