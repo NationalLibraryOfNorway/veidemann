@@ -10,10 +10,10 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/NationalLibraryOfNorway/veidemann/api v1.4.0 h1:0jq3sOX+mq5sREbo49FmaZL4nlwVHqlUY2nWazLPcYQ=
 github.com/NationalLibraryOfNorway/veidemann/api v1.4.0/go.mod h1:Jyk1oo8IIraLX5vHkOXcEp+zavnk99WgFhrJBhmfu1s=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.1 h1:YBUaxv5XXCapR0PXPLDvU+78SVUimtsDgW7Mpmos16I=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.1/go.mod h1:SkChv1qDmb+3Nke0FUWos6c19eef/QicFxEkW886k1Q=
-github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.3 h1:dIepbkkMb5vS7hu+c4HEYdX9r0Ey1WhomJuZKcP1ytE=
-github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.3/go.mod h1:QNwAHFciMeSTrap/cMHw1IsKZVKHvFt/BNMPAsTIwdQ=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.2 h1:kdGsiwIMSPtWeU9FBGpHL57PH+s+X9LKtQCSRzC9J4g=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.2/go.mod h1:im42Jt8JW0WRGY2iw7K7H+zCRqXqvbbvKSlYVeiA53k=
+github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.4 h1:WqJ8cudKfJmNnoZ3/wGp6u03cSY6FdbElSQKCQvyZpk=
+github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.4/go.mod h1:zWg+RZY7EzTNm0M+lllJ4oZi3mk4N4XbUxdL1oGo+zA=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
