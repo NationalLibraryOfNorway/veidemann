@@ -6,6 +6,7 @@ import {Observable, ReplaySubject, of} from 'rxjs';
 import {catchError, defaultIfEmpty, distinctUntilChanged, map, shareReplay, startWith, switchMap} from 'rxjs/operators';
 
 import {CrawlExecutionStatus, JobExecutionStatus} from '../../../../shared/models';
+import {DetailOverflowComponent} from '../../../../shared/components';
 import {CrawlExecutionService, JobExecutionService} from '../../services';
 import {
   CrawlExecutionShortcutHelpersComponent,
@@ -32,6 +33,7 @@ interface ContextIds {
   imports: [
     AsyncPipe,
     CrawlExecutionShortcutHelpersComponent,
+    DetailOverflowComponent,
     JobExecutionShortcutHelpersComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,6 +48,12 @@ export class LogListShortcutsComponent implements OnChanges {
   @Input() executionId = '';
   @Input() jobExecutionId = '';
   @Input({required: true}) logKind: LogListKind;
+
+  get actionsMenuLabel(): string {
+    return this.logKind === 'crawllog'
+      ? $localize`:@@crawlLogActionsMenuLabel:Crawl log actions`
+      : $localize`:@@pageLogActionsMenuLabel:Page log actions`;
+  }
 
   readonly context$: Observable<LogListContext | null> = this.contextIds$.pipe(
     distinctUntilChanged((previous, current) =>

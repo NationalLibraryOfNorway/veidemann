@@ -4,8 +4,15 @@
     }
     @if (query(); as query) {
       <div class="report-filter-toolbar" aria-label="Report filters" i18n-aria-label="@@reportFiltersLabel">
-        <app-crawl-log-query class="report-filter-controls"
-        [query]="query" (queryChange)="onQueryChange($event)"></app-crawl-log-query>
+        <div class="report-filter-header">
+          <app-crawl-log-query class="report-filter-controls"
+            [query]="query" (queryChange)="onQueryChange($event)"></app-crawl-log-query>
+          <app-log-list-shortcuts
+            [executionId]="query.executionId"
+            [jobExecutionId]="query.jobExecutionId"
+            logKind="crawllog">
+          </app-log-list-shortcuts>
+        </div>
         <fieldset class="facet-filter">
           <legend i18n="@@crawlLogContentTypeFilterLegend">MIME type</legend>
           <mat-chip-listbox multiple
@@ -45,11 +52,6 @@
           }
         </div>
       </div>
-      <app-log-list-shortcuts
-        [executionId]="query.executionId"
-        [jobExecutionId]="query.jobExecutionId"
-        logKind="crawllog">
-      </app-log-list-shortcuts>
       <div class="report-result-content flex-fill">
         <app-crawl-log-list
           [dataSource]="dataSource"

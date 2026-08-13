@@ -41,6 +41,19 @@ describe('CrawlLogComponent', () => {
     await fixture.whenStable();
   });
 
+  it('places filtered-log actions at the top right of the filter toolbar', () => {
+    fixture.detectChanges();
+    const header = fixture.nativeElement.querySelector('.report-filter-header') as HTMLElement;
+    const controls = header.querySelector('app-crawl-log-query') as HTMLElement;
+    const shortcuts = header.querySelector('app-log-list-shortcuts') as HTMLElement;
+
+    expect(header.firstElementChild).toBe(controls);
+    expect(header.lastElementChild).toBe(shortcuts);
+    expect(getComputedStyle(header).display).toBe('flex');
+    expect(getComputedStyle(controls).flexGrow).toBe('1');
+    expect(getComputedStyle(shortcuts).marginLeft).toBe('auto');
+  });
+
   it('offers unique normalized content types from loaded rows and filters by type', async () => {
     fixture.detectChanges();
     const chips = [...fixture.nativeElement.querySelectorAll('.report-filter-toolbar > .facet-filter mat-chip-option')]

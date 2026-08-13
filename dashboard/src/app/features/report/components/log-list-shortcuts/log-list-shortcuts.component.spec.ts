@@ -53,12 +53,22 @@ describe('LogListShortcutsComponent', () => {
 
     expect(getCrawlExecution).toHaveBeenCalledWith({id: 'crawl-execution-1', watch: false});
     expect(getJobExecution).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('Crawl execution');
-    expect(fixture.nativeElement.textContent).toContain('Job execution');
-    expect(fixture.nativeElement.textContent).toContain('Crawl job');
-    expect(fixture.nativeElement.textContent).toContain('Seed');
-    expect(fixture.nativeElement.textContent).not.toContain('Page log');
-    expect(fixture.nativeElement.textContent).not.toContain('Crawl log');
+    expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
+
+    const menu = await openMenu('Page log actions');
+    expect(menu.textContent).toContain('Crawl execution');
+    expect(menu.textContent).toContain('Job execution');
+    expect(menu.textContent).toContain('Crawl job');
+    expect(menu.textContent).toContain('Seed');
+    expect(menu.textContent).toContain('Copy ID');
+    expect(menu.textContent).not.toContain('Page log');
+    expect(menu.textContent).not.toContain('Crawl log');
+    expect(menuLinks(menu)).toEqual([
+      '/report/crawlexecution/crawl-execution-1',
+      '/report/jobexecution/job-execution-1',
+      '/config/crawljobs/job-1',
+      '/config/seed/seed-1',
+    ]);
   });
 
   it('adds the Page Log link for a Crawl Log execution context', async () => {
@@ -67,8 +77,11 @@ describe('LogListShortcutsComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(fixture.nativeElement.textContent).toContain('Page log');
-    expect(fixture.nativeElement.textContent).not.toContain('Crawl log');
+    const menu = await openMenu('Crawl log actions');
+    expect(menu.textContent).toContain('Page log');
+    expect(menu.textContent).not.toContain('Crawl log');
+    expect(menu.textContent).toContain('Copy ID');
+    expect(menuLinks(menu)[0]).toBe('/report/pagelog?execution_id=crawl-execution-1');
   });
 
   it('shows only the two unambiguous relationships for a job execution filter', async () => {
@@ -77,17 +90,23 @@ describe('LogListShortcutsComponent', () => {
     await fixture.whenStable();
 
     expect(getJobExecution).toHaveBeenCalledWith({id: 'job-execution-1', watch: false});
-    expect(fixture.nativeElement.textContent).toContain('Job execution');
-    expect(fixture.nativeElement.textContent).toContain('Daily crawl');
-    expect(fixture.nativeElement.textContent).not.toContain('Crawl executions');
-    expect(fixture.nativeElement.textContent).not.toContain('Seed');
+    const menu = await openMenu('Page log actions');
+    expect(menu.textContent).toContain('Job execution');
+    expect(menu.textContent).toContain('Daily crawl');
+    expect(menu.textContent).toContain('Copy ID');
+    expect(menu.textContent).not.toContain('Crawl executions');
+    expect(menu.textContent).not.toContain('Seed');
+    expect(menuLinks(menu)).toEqual([
+      '/report/jobexecution/job-execution-1',
+      '/config/crawljobs/job-1',
+    ]);
   });
 
   it('does not load or render context when unfiltered, unauthorized, or unavailable', async () => {
     fixture.detectChanges();
     expect(getCrawlExecution).not.toHaveBeenCalled();
     expect(getJobExecution).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
 
     can.mockReturnValue(false);
     fixture.componentRef.setInput('executionId', 'unauthorized');
@@ -99,13 +118,13 @@ describe('LogListShortcutsComponent', () => {
     fixture.componentRef.setInput('executionId', 'missing');
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
 
     getCrawlExecution.mockReturnValue(throwError(() => new Error('failed context')));
     fixture.componentRef.setInput('executionId', 'failed');
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
   });
 
   it('cancels stale loads and does not reload unchanged IDs', async () => {
@@ -122,8 +141,8 @@ describe('LogListShortcutsComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const hrefs = [...fixture.nativeElement.querySelectorAll('a')]
-      .map((link: HTMLAnchorElement) => link.getAttribute('href'));
+    const menu = await openMenu('Page log actions');
+    const hrefs = menuLinks(menu);
     expect(hrefs.some(href => href?.includes('/first'))).toBe(false);
     expect(hrefs.some(href => href?.includes('/second'))).toBe(true);
 
@@ -131,4 +150,20 @@ describe('LogListShortcutsComponent', () => {
     fixture.detectChanges();
     expect(getCrawlExecution).toHaveBeenCalledTimes(2);
   });
+
+  async function openMenu(label: string): Promise<HTMLElement> {
+    const trigger = fixture.nativeElement.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement;
+    expect(trigger).not.toBeNull();
+    expect(trigger.querySelector('mat-icon')?.textContent).toContain('more_vert');
+    trigger.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise(resolve => setTimeout(resolve));
+    return document.querySelector('.mat-mdc-menu-panel') as HTMLElement;
+  }
+
+  function menuLinks(menu: HTMLElement): (string | null)[] {
+    return [...menu.querySelectorAll('a')]
+      .map((link: HTMLAnchorElement) => link.getAttribute('href'));
+  }
 });

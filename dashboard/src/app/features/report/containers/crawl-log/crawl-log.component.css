@@ -1,3 +1,19 @@
+.report-filter-header {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 8px;
+}
+
+.report-filter-header .report-filter-controls {
+  flex: 1 1 auto;
+}
+
+.report-filter-header app-log-list-shortcuts {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .facet-filter {
   min-width: 0;
   margin: 12px 0 0;

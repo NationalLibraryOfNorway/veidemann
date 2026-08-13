@@ -1,8 +1,9 @@
 @if (context$ | async; as context) {
-  <nav aria-label="Related records" i18n-aria-label="@@reportRelatedRecordsLabel">
+  <app-detail-overflow [label]="actionsMenuLabel">
     @switch (context.kind) {
       @case ('crawlExecution') {
         <app-crawl-execution-shortcut-helpers
+          presentation="menu"
           [crawlExecutionStatus]="context.status"
           [showPageLog]="logKind === 'crawllog'"
           [showCrawlLog]="false"
@@ -11,11 +12,12 @@
       }
       @case ('jobExecution') {
         <app-job-execution-shortcut-helpers
+          presentation="menu"
           [jobExecutionStatus]="context.status"
           [showJobExecution]="true"
           [showCrawlExecutions]="false">
         </app-job-execution-shortcut-helpers>
       }
     }
-  </nav>
+  </app-detail-overflow>
 }

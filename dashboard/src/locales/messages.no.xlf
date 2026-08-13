@@ -3807,12 +3807,6 @@
         <target>URI</target>
       </segment>
     </unit>
-    <unit id="reportRelatedRecordsLabel">
-      <segment state="final">
-        <source>Related records</source>
-        <target>Relaterte oppføringer</target>
-      </segment>
-    </unit>
     <unit id="rolemappingDetailsCardTitle">
       <segment state="initial">
         <source>Rolemapping</source>

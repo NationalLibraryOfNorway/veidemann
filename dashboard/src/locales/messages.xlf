@@ -3275,11 +3275,6 @@
         <source>URI</source>
       </segment>
     </unit>
-    <unit id="reportRelatedRecordsLabel">
-      <segment>
-        <source>Related records</source>
-      </segment>
-    </unit>
     <unit id="rolemappingDetailsCardTitle">
       <segment>
         <source>Rolemapping</source>

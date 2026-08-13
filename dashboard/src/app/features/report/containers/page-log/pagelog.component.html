@@ -4,15 +4,17 @@
     }
     @if (query(); as query) {
       <div class="report-filter-toolbar" aria-label="Report filters" i18n-aria-label="@@reportFiltersLabel">
-        <app-page-log-query class="report-filter-controls"
-          [query]="query"
-        (queryChange)="onQueryChange($event)"></app-page-log-query>
+        <div class="report-filter-header">
+          <app-page-log-query class="report-filter-controls"
+            [query]="query"
+            (queryChange)="onQueryChange($event)"></app-page-log-query>
+          <app-log-list-shortcuts
+            [executionId]="query.executionId"
+            [jobExecutionId]="query.jobExecutionId"
+            logKind="pagelog">
+          </app-log-list-shortcuts>
+        </div>
       </div>
-      <app-log-list-shortcuts
-        [executionId]="query.executionId"
-        [jobExecutionId]="query.jobExecutionId"
-        logKind="pagelog">
-      </app-log-list-shortcuts>
       <div class="report-result-content flex-fill">
         <app-pagelog-list
           [dataSource]="dataSource"
