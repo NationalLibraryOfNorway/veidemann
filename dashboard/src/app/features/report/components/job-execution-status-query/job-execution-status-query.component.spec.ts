@@ -56,6 +56,14 @@ for (const {name, locale} of [
       const selected = await Promise.all(chips.map(chip => chip.isSelected()));
 
       expect(await listbox.isMultiple()).toBe(true);
+      expect(labels).toEqual([
+        'CREATED',
+        'RUNNING',
+        'FINISHED',
+        'ABORTED_MANUAL',
+        'FAILED',
+        'DIED',
+      ]);
       expect(labels.filter((_, index) => selected[index])).toEqual(['RUNNING']);
     });
 

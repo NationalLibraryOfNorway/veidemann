@@ -56,28 +56,60 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     const selected = await Promise.all(chips.map(chip => chip.isSelected()));
 
     expect(await listbox.isMultiple()).toBe(true);
+    expect(labels).toEqual([
+      'CREATED',
+      'FETCHING',
+      'SLEEPING',
+      'FINISHED',
+      'ABORTED_TIMEOUT',
+      'ABORTED_SIZE',
+      'ABORTED_MANUAL',
+      'FAILED',
+      'DIED',
+    ]);
     expect(labels.filter((_, index) => selected[index])).toEqual(['FETCHING', 'FINISHED']);
   });
 
-  it('uses chips for boolean filters without adding a contextual crawl-job chip', () => {
+  it('places the has-error filter before the state group and polling control', () => {
+    const statusControls = fixture.nativeElement.querySelector('.report-status-controls-row') as HTMLElement;
     const filterChips = fixture.nativeElement.querySelectorAll(
       'mat-chip-listbox:not([formcontrolname="stateList"]) mat-chip-option'
     ) as NodeListOf<HTMLElement>;
     const contextChip = fixture.nativeElement.querySelector('mat-chip:not(mat-chip-option)') as HTMLElement;
+    const stateFieldset = statusControls.children[1] as HTMLFieldSetElement;
 
     expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
-    expect([...filterChips].map(chip => chip.textContent.trim())).toEqual(['Failed']);
+    expect([...filterChips].map(chip => chip.textContent.trim())).toEqual(['HAS ERROR']);
     expect(fixture.nativeElement.querySelector('[formcontrolname="watch"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.report-status-filter-row app-polling-refresh-button'))
-      .not.toBeNull();
+    expect(statusControls.children[0].getAttribute('formcontrolname')).toBe('hasError');
+    expect(stateFieldset.classList).toContain('report-status-filter');
+    expect(stateFieldset.querySelector('legend')?.textContent.trim()).toBe('State');
+    expect(stateFieldset.querySelector('[formcontrolname="hasError"]')).toBeNull();
+    expect(statusControls.children[2].tagName).toBe('APP-POLLING-REFRESH-BUTTON');
     expect(contextChip).toBeNull();
     expect(fixture.nativeElement.querySelectorAll('mat-select')).toHaveLength(1);
   });
 
+  it('emits the has-error filter without changing the selected states', async () => {
+    let emitted: Partial<CrawlExecutionStatusQuery> | undefined;
+    fixture.componentInstance.queryChange.subscribe(query => emitted = query);
+    const listbox = await loader.getHarness(MatChipListboxHarness.with({
+      selector: '[formControlName="hasError"]',
+    }));
+    const [hasErrorChip] = await listbox.getChips();
+
+    await hasErrorChip.select();
+
+    expect(emitted?.hasError).toBe(true);
+    expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
+  });
+
   it('places the state filters after the other controls', () => {
     const form = fixture.nativeElement.querySelector('.report-filter-form') as HTMLFormElement;
+    const statusControls = form.lastElementChild as HTMLElement;
 
-    expect(form.lastElementChild?.classList).toContain('report-status-filter');
+    expect(statusControls.classList).toContain('report-status-controls-row');
+    expect(statusControls.querySelector('.report-status-filter')).not.toBeNull();
   });
 
   it('renders an inclusive date range without time inputs', async () => {

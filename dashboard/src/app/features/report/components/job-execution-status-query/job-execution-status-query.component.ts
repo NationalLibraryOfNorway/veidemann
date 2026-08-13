@@ -32,7 +32,9 @@ import {PollingRefreshButtonComponent} from '../../../../shared/components';
 export class JobExecutionStatusQueryComponent extends StartTimeDateRangeQueryComponent<JobExecutionStatusQuery> {
 
   readonly JobExecutionState = JobExecutionState;
-  readonly jobExecutionStates = jobExecutionStates;
+  readonly jobExecutionStates = jobExecutionStates.filter(
+    state => state !== JobExecutionState.UNDEFINED
+  );
 
   @Input()
   crawlJobOptions: ConfigObject[];

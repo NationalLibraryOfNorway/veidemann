@@ -49,21 +49,24 @@
     }
   </mat-form-field>
 
-  <mat-chip-listbox formControlName="hasError" aria-label="Failed filter"
-    i18n-aria-label="@@crawlExecutionReportFailedFilterLabel">
-    <mat-chip-option [value]="true" i18n="@@crawlExecutionReportFilterHasErrorLabel">Failed</mat-chip-option>
-  </mat-chip-listbox>
+  <div class="report-status-controls-row">
+    <mat-chip-listbox formControlName="hasError" aria-label="Has error filter"
+      i18n-aria-label="@@crawlExecutionReportFailedFilterLabel">
+      <mat-chip-option [value]="true" i18n="@@crawlExecutionReportFilterHasErrorLabel">HAS ERROR</mat-chip-option>
+    </mat-chip-listbox>
 
-  <fieldset class="report-status-filter">
-    <legend id="crawl-execution-state-filter-label" i18n="@@crawlExecutionReportFilterStateLabel">State</legend>
-    <div class="report-status-filter-row">
-      <mat-chip-listbox multiple formControlName="stateList"
-        aria-labelledby="crawl-execution-state-filter-label">
-        @for (state of crawlExecutionStates; track state) {
-          <mat-chip-option [value]="state">{{CrawlExecutionState[state]}}</mat-chip-option>
-        }
-      </mat-chip-listbox>
-      <app-polling-refresh-button (refresh)="refresh.emit()"></app-polling-refresh-button>
-    </div>
-  </fieldset>
+    <fieldset class="report-status-filter">
+      <legend id="crawl-execution-state-filter-label" i18n="@@crawlExecutionReportFilterStateLabel">State</legend>
+      <div class="report-status-filter-row">
+        <mat-chip-listbox multiple formControlName="stateList"
+          aria-labelledby="crawl-execution-state-filter-label">
+          @for (state of crawlExecutionStates; track state) {
+            <mat-chip-option [value]="state">{{CrawlExecutionState[state]}}</mat-chip-option>
+          }
+        </mat-chip-listbox>
+      </div>
+    </fieldset>
+
+    <app-polling-refresh-button (refresh)="refresh.emit()"></app-polling-refresh-button>
+  </div>
 </form>

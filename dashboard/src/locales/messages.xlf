@@ -1382,7 +1382,7 @@
     </unit>
     <unit id="crawlExecutionReportFailedFilterLabel">
       <segment>
-        <source>Failed filter</source>
+        <source>Has error filter</source>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterCrawlJobLabel">
@@ -1402,7 +1402,7 @@
     </unit>
     <unit id="crawlExecutionReportFilterHasErrorLabel">
       <segment>
-        <source>Failed</source>
+        <source>HAS ERROR</source>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterJobExecutionIdLabel">
@@ -1580,6 +1580,16 @@
         <source>Now</source>
       </segment>
     </unit>
+    <unit id="executionQueueSizeHeaderCell">
+      <segment>
+        <source>Queue</source>
+      </segment>
+    </unit>
+    <unit id="executionQueueSizeUnavailableLabel">
+      <segment>
+        <source>Queue count unavailable</source>
+      </segment>
+    </unit>
     <unit id="executionStartedLabel">
       <segment>
         <source>Started</source>
@@ -1615,9 +1625,19 @@
         <source>Running</source>
       </segment>
     </unit>
+    <unit id="executionStopWatchingAction">
+      <segment>
+        <source>Stop watching</source>
+      </segment>
+    </unit>
     <unit id="executionUrisCrawledMetric">
       <segment>
         <source>URIs crawled</source>
+      </segment>
+    </unit>
+    <unit id="executionWatchUpdatesAction">
+      <segment>
+        <source>Watch updates</source>
       </segment>
     </unit>
     <unit id="configKindSeed">
@@ -3138,16 +3158,6 @@
     <unit id="reportShortcutsLabel">
       <segment>
         <source>Report shortcuts</source>
-      </segment>
-    </unit>
-    <unit id="reportWatchFilterLabel">
-      <segment>
-        <source>Watch filter</source>
-      </segment>
-    </unit>
-    <unit id="reportWatchFilterOption">
-      <segment>
-        <source>Watch</source>
       </segment>
     </unit>
     <unit id="resourceDiscoveryPathHeader">

@@ -171,11 +171,29 @@ mat-card-header.card-header-with-helpers {
 }
 
 .report-status-filter-row mat-chip-listbox {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .report-status-filter-row app-polling-refresh-button {
   margin-left: auto;
+}
+
+.report-status-controls-row {
+  display: flex;
+  flex: 0 0 100%;
+  min-width: 0;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.report-status-controls-row > .report-status-filter {
+  flex: 1 1 auto;
+}
+
+.report-status-controls-row > mat-chip-listbox,
+.report-status-controls-row > app-polling-refresh-button {
+  flex: 0 0 auto;
 }
 
 .report-result-content {

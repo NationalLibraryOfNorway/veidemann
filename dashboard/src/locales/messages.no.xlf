@@ -1618,9 +1618,9 @@
       </segment>
     </unit>
     <unit id="crawlExecutionReportFailedFilterLabel">
-      <segment state="initial">
-        <source>Failed filter</source>
-        <target>Failed filter</target>
+      <segment state="final">
+        <source>Has error filter</source>
+        <target>Filter for feil</target>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterCrawlJobLabel">
@@ -1642,9 +1642,9 @@
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterHasErrorLabel">
-      <segment state="initial">
-        <source>Failed</source>
-        <target>Failed</target>
+      <segment state="final">
+        <source>HAS ERROR</source>
+        <target>HAR FEIL</target>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterJobExecutionIdLabel">
@@ -1857,6 +1857,18 @@
         <target>Nå</target>
       </segment>
     </unit>
+    <unit id="executionQueueSizeHeaderCell">
+      <segment state="initial">
+        <source>Queue</source>
+        <target>Queue</target>
+      </segment>
+    </unit>
+    <unit id="executionQueueSizeUnavailableLabel">
+      <segment state="initial">
+        <source>Queue count unavailable</source>
+        <target>Queue count unavailable</target>
+      </segment>
+    </unit>
     <unit id="executionStartedLabel">
       <segment state="final">
         <source>Started</source>
@@ -1899,10 +1911,22 @@
         <target>Kjører</target>
       </segment>
     </unit>
+    <unit id="executionStopWatchingAction">
+      <segment state="initial">
+        <source>Stop watching</source>
+        <target>Stop watching</target>
+      </segment>
+    </unit>
     <unit id="executionUrisCrawledMetric">
       <segment state="final">
         <source>URIs crawled</source>
         <target>URI-er innhentet</target>
+      </segment>
+    </unit>
+    <unit id="executionWatchUpdatesAction">
+      <segment state="initial">
+        <source>Watch updates</source>
+        <target>Watch updates</target>
       </segment>
     </unit>
     <unit id="configKindSeed">
@@ -3643,18 +3667,6 @@
       <segment state="final">
         <source>Report shortcuts</source>
         <target>Rapportsnarveier</target>
-      </segment>
-    </unit>
-    <unit id="reportWatchFilterLabel">
-      <segment state="initial">
-        <source>Watch filter</source>
-        <target>Watch filter</target>
-      </segment>
-    </unit>
-    <unit id="reportWatchFilterOption">
-      <segment state="initial">
-        <source>Watch</source>
-        <target>Watch</target>
       </segment>
     </unit>
     <unit id="resourceDiscoveryPathHeader">

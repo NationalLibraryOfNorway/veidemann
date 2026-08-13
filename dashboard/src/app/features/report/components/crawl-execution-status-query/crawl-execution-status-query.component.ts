@@ -31,8 +31,10 @@ import {PollingRefreshButtonComponent} from '../../../../shared/components';
 })
 export class CrawlExecutionStatusQueryComponent extends StartTimeDateRangeQueryComponent<CrawlExecutionStatusQuery> {
 
-  readonly crawlExecutionStates = crawlExecutionStates;
   readonly CrawlExecutionState = CrawlExecutionState;
+  readonly crawlExecutionStates = crawlExecutionStates.filter(
+    state => state !== CrawlExecutionState.UNDEFINED
+  );
 
   @Input()
   crawlJobOptions: ConfigObject[];
