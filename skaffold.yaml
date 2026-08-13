@@ -149,29 +149,3 @@ profiles:
     patches:
       - op: remove
         path: /build
-
----
-
-apiVersion: skaffold/v4beta13
-kind: Config
-metadata:
-  name: dashboard
-
-build:
-  local:
-    useBuildkit: true
-    push: false
-  artifacts:
-    - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
-      context: ./dashboard
-      docker: {}
-
-manifests:
-  kustomize:
-    paths:
-      - deploy/k8s/overlays/dev/dashboard
-
-deploy:
-  kubeContext: minikube
-  statusCheck: true
-  kubectl: {}
