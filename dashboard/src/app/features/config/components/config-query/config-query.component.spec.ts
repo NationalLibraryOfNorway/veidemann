@@ -339,12 +339,24 @@ describe('ConfigQueryComponent', () => {
       await fixture.whenStable();
 
       const label = fixture.nativeElement.querySelector('.search-form mat-label') as HTMLElement;
+      const searchIcon = fixture.nativeElement.querySelector('.search-form mat-icon[matprefix]') as HTMLElement;
       expect(label.textContent?.trim()).toBe(expectedLabel);
+      expect(searchIcon.textContent?.trim()).toBe('search');
+      expect(searchIcon.getAttribute('aria-hidden')).toBe('true');
     }
 
     fixture.componentRef.setInput('query', {...query, kind: Kind.UNDEFINED});
     fixture.detectChanges();
     expect(fixture.componentInstance.searchLabel).toBe('Search');
+  });
+
+  it('uses the doubled desktop search width while retaining its shrink limit', () => {
+    const searchField = fixture.nativeElement.querySelector('.search-form') as HTMLElement;
+    const styles = getComputedStyle(searchField);
+
+    expect(styles.flexBasis).toBe('560px');
+    expect(styles.minWidth).toBe('280px');
+    expect(styles.maxWidth).toBe('800px');
   });
 
   it('filters BrowserScripts with four single-select type chips and supports clearing the selection', async () => {

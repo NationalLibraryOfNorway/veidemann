@@ -2,6 +2,7 @@
   @if (query?.kind) {
     <mat-form-field appearance="outline" class="search-form" subscriptSizing="dynamic">
       <mat-label>{{searchLabel}}</mat-label>
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
       <input matInput
         #search
         [value]="term"

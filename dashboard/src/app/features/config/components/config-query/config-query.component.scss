@@ -17,10 +17,10 @@
   max-width: 280px;
 }
 
-.search-form.mat-mdc-form-field {
-  flex-basis: 280px;
+.query-fields > .search-form.mat-mdc-form-field {
+  flex: 1 1 560px;
   min-width: 280px;
-  max-width: 400px;
+  max-width: 800px;
 }
 
 .search-helper-actions {
@@ -52,7 +52,7 @@
 }
 
 @media (max-width: 599px) {
-  .search-form.mat-mdc-form-field,
+  .query-fields > .search-form.mat-mdc-form-field,
   .query-fields > .mat-mdc-form-field {
     flex-basis: 100%;
     width: 100%;
