@@ -6,23 +6,66 @@
       [style.padding-right.px]="flush ? 0 : null"
       i18n-aria-label="@@configurationListControlsAriaLabel">
       <mat-list-item class="list-header-row">
+        <span matListItemTitle class="list-header-leading">
+          @if (isSelectionMode()) {
+            <span class="selection-leading">
+              <mat-checkbox class="master-selection-control selection-control"
+                [checked]="isAllLoadedSelected()"
+                [indeterminate]="selectedRows().length > 0 && !isAllLoadedSelected()"
+                [disabled]="!dataSource?.length"
+                aria-label="Select all loaded configurations"
+                i18n-aria-label="@@configurationListSelectAllLoadedAriaLabel"
+                (change)="onMasterCheckboxToggle($event.checked)"></mat-checkbox>
+              <span class="selection-actions" role="group" aria-label="Bulk actions"
+                i18n-aria-label="@@configurationListBulkActionsAriaLabel">
+                <ng-content></ng-content>
+              </span>
+            </span>
+          }
+          @if (showStateFilter || showOrderControl) {
+            <span class="list-header-controls">
+              @if (showOrderControl) {
+                <button mat-button type="button" class="order-control"
+                  [class.order-control-icon-only]="!orderValue"
+                  data-testid="configuration-order"
+                  aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
+                  matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
+                  [matMenuTriggerFor]="orderMenu" #orderMenuTrigger="matMenuTrigger">
+                  <mat-icon>sort</mat-icon>
+                  @if (orderValue) {
+                    <span class="order-label">{{ orderLabel }}</span>
+                  }
+                  @if (orderValue) {
+                    <mat-icon iconPositionEnd class="order-menu-indicator" aria-hidden="true">
+                      {{ orderMenuTrigger.menuOpen ? 'arrow_drop_up' : 'arrow_drop_down' }}
+                    </mat-icon>
+                  }
+                </button>
+                <mat-menu #orderMenu="matMenu">
+                  @for (option of orderOptions; track option.value) {
+                    <button mat-menu-item type="button"
+                      [disabled]="option.value === orderValue"
+                      (click)="onOrderChange(option.value)">
+                      {{ option.label }}
+                    </button>
+                  }
+                </mat-menu>
+              }
+              @if (showStateFilter) {
+                <mat-chip-listbox class="state-filter"
+                  [value]="disabledFilter"
+                  aria-label="Filter configurations by state"
+                  i18n-aria-label="@@configurationListStateFilterAriaLabel"
+                  (change)="onDisabledFilterChange($event.value)">
+                  <mat-chip-option [value]="false" i18n="@@configurationListActiveState">ACTIVE</mat-chip-option>
+                  <mat-chip-option [value]="true" i18n="@@configurationListDeactivatedState">DEACTIVATED</mat-chip-option>
+                </mat-chip-listbox>
+              }
+            </span>
+          }
+        </span>
         @if (isSelectionMode()) {
-          <mat-checkbox matListItemIcon class="master-selection-control selection-control"
-            [checked]="isAllLoadedSelected()"
-            [indeterminate]="selectedRows().length > 0 && !isAllLoadedSelected()"
-            [disabled]="!dataSource?.length"
-            aria-label="Select all loaded configurations"
-            i18n-aria-label="@@configurationListSelectAllLoadedAriaLabel"
-            (change)="onMasterCheckboxToggle($event.checked)"></mat-checkbox>
-        }
-        @if (isSelectionMode()) {
-          <span matListItemTitle class="selection-actions" role="group" aria-label="Bulk actions"
-            i18n-aria-label="@@configurationListBulkActionsAriaLabel">
-            <ng-content></ng-content>
-          </span>
-        }
-        @if (isSelectionMode()) {
-          <span matListItemMeta class="selection-summary" role="status" aria-live="polite">
+          <span matListItemMeta class="header-summary selection-summary" role="status" aria-live="polite">
             @if (!allSelected()) {
               @if (isAllLoadedSelected()) {
                 @if (total !== null) {
@@ -69,50 +112,9 @@
           </span>
         }
         @if (total !== null && !isSelectionMode()) {
-          <span matListItemTitle class="result-count" role="status" aria-live="polite"
+          <span matListItemMeta class="header-summary result-count" role="status" aria-live="polite"
             i18n="@@configurationListResultCount">
             {{ loadedLength() | number }} of {{ total | number }} {{ configTypePluralLabel() }}
-          </span>
-        }
-        @if (showStateFilter || showOrderControl) {
-          <span matListItemMeta class="list-header-controls">
-            @if (showStateFilter) {
-              <mat-chip-listbox class="state-filter"
-                [value]="disabledFilter"
-                aria-label="Filter configurations by state"
-                i18n-aria-label="@@configurationListStateFilterAriaLabel"
-                (change)="onDisabledFilterChange($event.value)">
-                <mat-chip-option [value]="false" i18n="@@configurationListActiveState">ACTIVE</mat-chip-option>
-                <mat-chip-option [value]="true" i18n="@@configurationListDeactivatedState">DEACTIVATED</mat-chip-option>
-              </mat-chip-listbox>
-            }
-            @if (showOrderControl) {
-              <button mat-button type="button" class="order-control"
-                [class.order-control-icon-only]="!orderValue"
-                data-testid="configuration-order"
-                aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
-                matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
-                [matMenuTriggerFor]="orderMenu" #orderMenuTrigger="matMenuTrigger">
-                <mat-icon>sort</mat-icon>
-                @if (orderValue) {
-                  <span class="order-label">{{ orderLabel }}</span>
-                }
-                @if (orderValue) {
-                  <mat-icon iconPositionEnd class="order-menu-indicator" aria-hidden="true">
-                    {{ orderMenuTrigger.menuOpen ? 'arrow_drop_up' : 'arrow_drop_down' }}
-                  </mat-icon>
-                }
-              </button>
-              <mat-menu #orderMenu="matMenu">
-                @for (option of orderOptions; track option.value) {
-                  <button mat-menu-item type="button"
-                    [disabled]="option.value === orderValue"
-                    (click)="onOrderChange(option.value)">
-                    {{ option.label }}
-                  </button>
-                }
-              </mat-menu>
-            }
           </span>
         }
       </mat-list-item>

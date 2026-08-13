@@ -35,34 +35,51 @@
   color: var(--mat-sys-on-surface);
 }
 
-.selection-actions {
+.list-header-leading {
   display: flex;
   flex: 0 1 auto;
   min-width: 0;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selection-leading,
+.selection-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.selection-leading {
+  flex: 0 0 auto;
+}
+
+.selection-actions {
+  flex: 0 1 auto;
   gap: 4px;
 }
 
-.list-header-row.mat-mdc-list-item .selection-actions,
-.list-header-row.mat-mdc-list-item .selection-summary,
-.list-header-row.mat-mdc-list-item .result-count,
-.list-header-row.mat-mdc-list-item .list-header-controls {
+.list-header-row.mat-mdc-list-item .list-header-leading,
+.list-header-row.mat-mdc-list-item .header-summary {
   align-self: center;
   margin-block: 0;
 }
 
-.list-header-row.mat-mdc-list-item .selection-summary::before,
-.list-header-row.mat-mdc-list-item .result-count::before,
-.list-header-row.mat-mdc-list-item .list-header-controls::before {
+.list-header-row.mat-mdc-list-item .header-summary::before {
   display: none;
 }
 
-.result-count {
-  flex: 1 1 auto;
+.header-summary {
+  display: flex;
+  flex: 1 1 240px;
   min-width: 0;
-  color: var(--mat-sys-on-surface);
-  text-align: start;
-  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+  text-align: center;
 }
 
 .list-header-row.mat-mdc-list-item .result-count,
@@ -78,17 +95,13 @@
   font-weight: 500;
 }
 
+.result-count {
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+}
+
 .selection-summary {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  align-items: center;
-  justify-content: flex-start;
-  padding-inline: 12px;
-  flex-wrap: wrap;
-  gap: 8px;
   color: var(--mat-sys-on-surface-variant);
-  text-align: start;
 }
 
 .database-selection-chip {
@@ -100,7 +113,7 @@
   flex: 0 0 auto;
   min-width: 0;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 12px;
 }
 
@@ -244,10 +257,11 @@ mat-list .item-row.row-checked {
     flex-wrap: wrap;
   }
 
-  .list-header-controls {
+  .list-header-leading {
     width: 100%;
-    justify-content: flex-start;
-    padding-block-end: 8px;
+  }
+
+  .list-header-controls {
     flex-wrap: wrap;
   }
 
@@ -255,8 +269,8 @@ mat-list .item-row.row-checked {
     max-width: 100%;
   }
 
-  .selection-summary {
-    justify-content: flex-start;
+  .header-summary {
+    flex-basis: 100%;
     padding-inline: 4px;
   }
 

@@ -133,7 +133,7 @@ describe('ConfigListComponent', () => {
     const header = fixture.nativeElement.querySelector('.list-header-row') as HTMLElement;
     const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
     expect(header.querySelector('.master-selection-control')).not.toBeNull();
-    expect(header.querySelector('.master-selection-control').classList).toContain('mat-mdc-list-item-icon');
+    expect(header.querySelector('.list-header-leading')?.classList).toContain('mat-mdc-list-item-title');
     expect(await master.getAriaLabel()).toBe('Select all loaded configurations');
     expect(await master.isChecked()).toBe(true);
     expect(await master.isIndeterminate()).toBe(false);
@@ -165,11 +165,10 @@ describe('ConfigListComponent', () => {
     const summary = header.querySelector('.selection-summary') as HTMLElement;
     expect(masterElement.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(actions.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(actions.classList).toContain('mat-mdc-list-item-title');
     expect(summary.classList).toContain('mat-mdc-list-item-meta');
     expect(summary.textContent.replace(/\s+/g, ' ').trim()).toBe('1 configurations of 2 selected.');
-    expect(getComputedStyle(summary).justifyContent).toBe('flex-start');
-    expect(getComputedStyle(summary).textAlign).toBe('start');
+    expect(getComputedStyle(summary).justifyContent).toBe('center');
+    expect(getComputedStyle(summary).textAlign).toBe('center');
     expect(header.querySelector('.result-count')).toBeNull();
 
     await master.check();
@@ -183,7 +182,7 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
   });
 
-  it('renders a left-aligned, type-specific result count with row subtitle typography', () => {
+  it('renders a centered, type-specific result count with row subtitle typography', () => {
     const first = new ConfigObject({
       id: 'one',
       kind: Kind.SEED,
@@ -201,17 +200,17 @@ describe('ConfigListComponent', () => {
 
     const count = fixture.nativeElement.querySelector('.result-count') as HTMLElement;
     const subtitle = fixture.nativeElement.querySelector('.item-row .mat-mdc-list-item-line') as HTMLElement;
-    expect(count.classList).toContain('mat-mdc-list-item-title');
-    expect(count.classList).not.toContain('mat-mdc-list-item-meta');
+    expect(count.classList).toContain('mat-mdc-list-item-meta');
     expect(count.textContent.replace(/\s+/g, ' ').trim()).toBe('2 of 3,842 seeds');
-    expect(getComputedStyle(count).textAlign).toBe('start');
+    expect(getComputedStyle(count).justifyContent).toBe('center');
+    expect(getComputedStyle(count).textAlign).toBe('center');
     expect(getComputedStyle(count).backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(getComputedStyle(count).fontSize).toBe(getComputedStyle(subtitle).fontSize);
     expect(getComputedStyle(count).lineHeight).toBe(getComputedStyle(subtitle).lineHeight);
     expect(getComputedStyle(count).fontWeight).toBe('500');
   });
 
-  it('renders deselectable uppercase state chips before the order control', async () => {
+  it('renders the order control before deselectable uppercase state chips', async () => {
     component.showStateFilter = true;
     component.showOrderControl = true;
     component.configKind = Kind.SEED;
@@ -223,7 +222,10 @@ describe('ConfigListComponent', () => {
     const headerControls = fixture.nativeElement.querySelector('.list-header-controls') as HTMLElement;
     const stateFilter = headerControls.querySelector('.state-filter') as HTMLElement;
     const orderControl = headerControls.querySelector('.order-control') as HTMLElement;
-    expect(stateFilter.compareDocumentPosition(orderControl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const resultCount = fixture.nativeElement.querySelector('.result-count') as HTMLElement;
+    expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
+    expect(orderControl.compareDocumentPosition(stateFilter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(headerControls.compareDocumentPosition(resultCount) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '.state-filter'}));
     const [active, deactivated] = await listbox.getChips();
@@ -305,7 +307,7 @@ describe('ConfigListComponent', () => {
     expect(sorts.at(-1)).toEqual({active: '', direction: ''});
   });
 
-  it('keeps filtering and ordering available while rows are selected', () => {
+  it('prepends selection controls while preserving filtering and ordering', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -314,13 +316,37 @@ describe('ConfigListComponent', () => {
     });
     component.showStateFilter = true;
     component.showOrderControl = true;
+    component.disabledFilter = true;
+    component.sortActive = 'name';
+    component.sortDirection = 'asc';
     component.length = 1;
     component.onCheckboxToggle(row);
     fixture.detectChanges();
 
     expect(component.isSelectionMode()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.state-filter')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.order-control')).not.toBeNull();
+    const leading = fixture.nativeElement.querySelector('.list-header-leading') as HTMLElement;
+    const selection = leading.querySelector('.selection-leading') as HTMLElement;
+    const master = selection.querySelector('.master-selection-control') as HTMLElement;
+    const bulk = selection.querySelector('.selection-actions') as HTMLElement;
+    const controls = leading.querySelector('.list-header-controls') as HTMLElement;
+    const order = controls.querySelector('.order-control') as HTMLElement;
+    const states = controls.querySelector('.state-filter') as HTMLElement;
+
+    expect(master.compareDocumentPosition(bulk) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(selection.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(order.compareDocumentPosition(states) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(leading).gap).toBe('8px');
+    expect(order.textContent).toContain('Name: A–Z');
+
+    const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '.state-filter'}));
+    const [, deactivated] = await listbox.getChips();
+    expect(await deactivated.isSelected()).toBe(true);
+
+    component.onDeselectAll();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
+    expect(await deactivated.isSelected()).toBe(true);
   });
 
   it('automatically selects appended rows while loaded-row selection is active', async () => {
