@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,7 +78,7 @@ class ControllerQueueCountTest {
         StatusRuntimeException forwarded = (StatusRuntimeException) error.getValue();
         assertThat(forwarded.getStatus().getCode()).isEqualTo(Status.Code.RESOURCE_EXHAUSTED);
         assertThat(forwarded.getStatus().getDescription()).isEqualTo("busy");
-        assertThat(forwarded.getTrailers().get(retryHint)).isEqualTo("later");
+        assertThat(Objects.requireNonNull(forwarded.getTrailers()).get(retryHint)).isEqualTo("later");
     }
 
     @Test

@@ -29,19 +29,20 @@ class FrontierGrpcServiceQueueCountTest {
         when(frontier.getCrawlQueueManager()).thenReturn(crawlQueueManager);
         when(crawlQueueManager.countByJobExecutions(List.of("job-1", "job-2")))
                 .thenReturn(Map.of("job-1", 4L, "job-2", 0L));
-        FrontierGrpcService service = new FrontierGrpcService(frontier);
-        @SuppressWarnings("unchecked")
-        StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
+        try (FrontierGrpcService service = new FrontierGrpcService(frontier)) {
+            @SuppressWarnings("unchecked")
+            StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
 
-        service.queueCountsForJobExecutions(
-                ExecutionIds.newBuilder().addId("job-1").addId("job-1").addId("job-2").build(),
-                observer);
+            service.queueCountsForJobExecutions(
+                    ExecutionIds.newBuilder().addId("job-1").addId("job-1").addId("job-2").build(),
+                    observer);
 
-        ArgumentCaptor<QueueCountsResponse> response = ArgumentCaptor.forClass(QueueCountsResponse.class);
-        verify(observer).onNext(response.capture());
-        assertThat(response.getValue().getCountsMap()).containsExactlyInAnyOrderEntriesOf(
-                Map.of("job-1", 4L, "job-2", 0L));
-        verify(observer).onCompleted();
+            ArgumentCaptor<QueueCountsResponse> response = ArgumentCaptor.forClass(QueueCountsResponse.class);
+            verify(observer).onNext(response.capture());
+            assertThat(response.getValue().getCountsMap()).containsExactlyInAnyOrderEntriesOf(
+                    Map.of("job-1", 4L, "job-2", 0L));
+            verify(observer).onCompleted();
+        }
     }
 
     @Test
@@ -49,20 +50,20 @@ class FrontierGrpcServiceQueueCountTest {
         Frontier frontier = mock(Frontier.class);
         CrawlQueueManager crawlQueueManager = mock(CrawlQueueManager.class);
         when(frontier.getCrawlQueueManager()).thenReturn(crawlQueueManager);
-        FrontierGrpcService service = new FrontierGrpcService(frontier);
+        try (FrontierGrpcService service = new FrontierGrpcService(frontier)) {
+            for (ExecutionIds request : List.of(
+                    ExecutionIds.newBuilder().addId(" ").build(),
+                    ExecutionIds.newBuilder().addAllId(
+                            java.util.stream.IntStream.range(0, 101).mapToObj(Integer::toString).toList()).build())) {
+                @SuppressWarnings("unchecked")
+                StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
+                service.queueCountsForCrawlExecutions(request, observer);
 
-        for (ExecutionIds request : List.of(
-                ExecutionIds.newBuilder().addId(" ").build(),
-                ExecutionIds.newBuilder().addAllId(
-                        java.util.stream.IntStream.range(0, 101).mapToObj(Integer::toString).toList()).build())) {
-            @SuppressWarnings("unchecked")
-            StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
-            service.queueCountsForCrawlExecutions(request, observer);
-
-            ArgumentCaptor<Throwable> error = ArgumentCaptor.forClass(Throwable.class);
-            verify(observer).onError(error.capture());
-            assertThat(((StatusRuntimeException) error.getValue()).getStatus().getCode())
-                    .isEqualTo(Status.Code.INVALID_ARGUMENT);
+                ArgumentCaptor<Throwable> error = ArgumentCaptor.forClass(Throwable.class);
+                verify(observer).onError(error.capture());
+                assertThat(((StatusRuntimeException) error.getValue()).getStatus().getCode())
+                        .isEqualTo(Status.Code.INVALID_ARGUMENT);
+            }
         }
         verify(crawlQueueManager, never()).countByCrawlExecutions(org.mockito.ArgumentMatchers.anyList());
     }

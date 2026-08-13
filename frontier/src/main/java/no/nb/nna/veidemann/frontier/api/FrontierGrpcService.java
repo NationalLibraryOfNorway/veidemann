@@ -171,7 +171,7 @@ public class FrontierGrpcService extends FrontierGrpc.FrontierImplBase implement
                     .asRuntimeException());
             return null;
         }
-        if (request.getIdList().stream().anyMatch(String::isBlank)) {
+        if (request.getIdList().stream().anyMatch(id -> id.isBlank())) {
             responseObserver.onError(Status.INVALID_ARGUMENT
                     .withDescription("Execution ids must not be blank")
                     .asRuntimeException());

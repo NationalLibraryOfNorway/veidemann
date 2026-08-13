@@ -69,7 +69,9 @@ class SimpleConcurrencyLimitInterceptorTest {
 
         @SuppressWarnings("unchecked")
         ServerCallHandler<String, String> workingHandler = mock(ServerCallHandler.class);
-        when(workingHandler.startCall(any(), any())).thenReturn(mock(ServerCall.Listener.class));
+        @SuppressWarnings("unchecked")
+        ServerCall.Listener<String> workingDelegate = mock(ServerCall.Listener.class);
+        when(workingHandler.startCall(any(), any())).thenReturn(workingDelegate);
         interceptor.interceptCall(mockCall(), new Metadata(), workingHandler);
         verify(workingHandler).startCall(any(), any());
     }
