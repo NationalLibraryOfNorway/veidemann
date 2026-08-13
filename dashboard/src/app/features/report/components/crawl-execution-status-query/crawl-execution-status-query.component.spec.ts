@@ -108,6 +108,8 @@ describe('CrawlExecutionStatusQueryComponent', () => {
 
     expect(directInputs).toHaveLength(2);
     expect(directInputs.every(input => (input.closest('mat-form-field') as HTMLElement).hidden)).toBe(true);
+    expect(directInputs.every(input => getComputedStyle(input.closest('mat-form-field') as HTMLElement).display === 'none'))
+      .toBe(true);
     expect(chips.map(chip => chip.textContent.trim())).toEqual([
       expect.stringContaining('Daily crawl'),
       expect.stringContaining('Example seed'),
@@ -120,6 +122,14 @@ describe('CrawlExecutionStatusQueryComponent', () => {
       .toBe('Remove job execution execution-1 filter');
     expect(chips[1].querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
       .toBe('Remove seed seed-1 filter');
+
+    const form = fixture.nativeElement.querySelector('.report-filter-form') as HTMLElement;
+    const dateField = form.querySelector('mat-date-range-input')?.closest('mat-form-field') as HTMLElement;
+    const chipSet = form.querySelector('.report-active-filter-chips') as HTMLElement;
+    const statusRow = form.querySelector('.report-status-controls-row') as HTMLElement;
+    expect(dateField.compareDocumentPosition(chipSet) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chipSet.compareDocumentPosition(statusRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(chipSet).flexBasis).toBe('100%');
   });
 
   it('removes one direct-ID filter without changing the other query values', () => {

@@ -39,6 +39,8 @@ describe('PageLogQueryComponent', () => {
     expect(component.form.contains('executionId')).toBe(true);
     expect(component.form.contains('jobExecutionId')).toBe(false);
     expect(component.form.contains('uri')).toBe(false);
-    expect((executionInput.closest('mat-form-field') as HTMLElement).hidden).toBe(true);
+    const executionField = executionInput.closest('mat-form-field') as HTMLElement;
+    expect(executionField.hidden).toBe(true);
+    expect(getComputedStyle(executionField).display).toBe('none');
   });
 });

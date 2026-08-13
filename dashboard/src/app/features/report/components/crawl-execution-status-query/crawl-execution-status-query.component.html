@@ -27,6 +27,28 @@
     <input matInput formControlName="seedId">
   </mat-form-field>
 
+  <mat-form-field appearance="outline">
+    <mat-label i18n="@@crawlExecutionReportFilterStartDateRangeLabel">Crawl start date</mat-label>
+    <mat-date-range-input [rangePicker]="startTimeRangePicker">
+      <input matStartDate formControlName="startTimeFrom" placeholder="From"
+        i18n-placeholder="@@crawlExecutionReportFilterStartTimeFromLabel">
+      <input matEndDate formControlName="startTimeTo" placeholder="To"
+        i18n-placeholder="@@crawlExecutionReportFilterStartDateToLabel">
+    </mat-date-range-input>
+    <mat-datepicker-toggle matIconSuffix [for]="startTimeRangePicker"></mat-datepicker-toggle>
+    <mat-date-range-picker #startTimeRangePicker>
+      <mat-date-range-picker-actions>
+        <button mat-button matDateRangePickerCancel type="button" i18n="@@reportDateRangeCancelAction">Cancel</button>
+        <button mat-flat-button matDateRangePickerApply type="button" i18n="@@reportDateRangeApplyAction">Apply</button>
+      </mat-date-range-picker-actions>
+    </mat-date-range-picker>
+    <mat-hint i18n="@@crawlExecutionReportFilterDateRangeHint">Both dates are inclusive</mat-hint>
+    @if (form.controls['startTimeFrom'].hasError('matStartDateInvalid') ||
+         form.controls['startTimeTo'].hasError('matEndDateInvalid')) {
+      <mat-error i18n="@@crawlExecutionReportFilterDateRangeError">From must be on or before To</mat-error>
+    }
+  </mat-form-field>
+
   @if (query?.jobExecutionId || query?.seedId) {
     <mat-chip-set class="report-active-filter-chips" aria-label="Active report filters"
       i18n-aria-label="@@activeReportFiltersLabel">
@@ -68,28 +90,6 @@
       }
     </mat-chip-set>
   }
-
-  <mat-form-field appearance="outline">
-    <mat-label i18n="@@crawlExecutionReportFilterStartDateRangeLabel">Crawl start date</mat-label>
-    <mat-date-range-input [rangePicker]="startTimeRangePicker">
-      <input matStartDate formControlName="startTimeFrom" placeholder="From"
-        i18n-placeholder="@@crawlExecutionReportFilterStartTimeFromLabel">
-      <input matEndDate formControlName="startTimeTo" placeholder="To"
-        i18n-placeholder="@@crawlExecutionReportFilterStartDateToLabel">
-    </mat-date-range-input>
-    <mat-datepicker-toggle matIconSuffix [for]="startTimeRangePicker"></mat-datepicker-toggle>
-    <mat-date-range-picker #startTimeRangePicker>
-      <mat-date-range-picker-actions>
-        <button mat-button matDateRangePickerCancel type="button" i18n="@@reportDateRangeCancelAction">Cancel</button>
-        <button mat-flat-button matDateRangePickerApply type="button" i18n="@@reportDateRangeApplyAction">Apply</button>
-      </mat-date-range-picker-actions>
-    </mat-date-range-picker>
-    <mat-hint i18n="@@crawlExecutionReportFilterDateRangeHint">Both dates are inclusive</mat-hint>
-    @if (form.controls['startTimeFrom'].hasError('matStartDateInvalid') ||
-         form.controls['startTimeTo'].hasError('matEndDateInvalid')) {
-      <mat-error i18n="@@crawlExecutionReportFilterDateRangeError">From must be on or before To</mat-error>
-    }
-  </mat-form-field>
 
   <div class="report-status-controls-row">
     <mat-chip-listbox formControlName="hasError" aria-label="Has error filter"

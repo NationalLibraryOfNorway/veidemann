@@ -125,8 +125,10 @@ describe('ConfigQueryComponent', () => {
     expect(fixture.nativeElement.querySelector('.status-filter')).toBeNull();
     expect(fixture.nativeElement.querySelector('.seed-chip-filters')).toBeNull();
     expect(fixture.nativeElement.querySelector('.crawl-job-filters')).toBeNull();
-    expect(fixture.nativeElement.querySelector('[formcontrolname="entityId"]')
-      .closest('mat-form-field').hidden).toBe(true);
+    const entityField = fixture.nativeElement.querySelector('[formcontrolname="entityId"]')
+      .closest('mat-form-field') as HTMLElement;
+    expect(entityField.hidden).toBe(true);
+    expect(getComputedStyle(entityField).display).toBe('none');
   });
 
   it('keeps selected CrawlJobs in the query control without rendering filter chips', async () => {
@@ -352,13 +354,14 @@ describe('ConfigQueryComponent', () => {
     expect(fixture.componentInstance.searchLabel).toBe('Search');
   });
 
-  it('uses the doubled desktop search width while retaining its shrink limit', () => {
+  it('spans two normal desktop fields plus their gap and can shrink to one field', () => {
     const searchField = fixture.nativeElement.querySelector('.search-form') as HTMLElement;
     const styles = getComputedStyle(searchField);
 
-    expect(styles.flexBasis).toBe('560px');
-    expect(styles.minWidth).toBe('280px');
-    expect(styles.maxWidth).toBe('800px');
+    expect(styles.flexGrow).toBe('2');
+    expect(styles.flexBasis).toBe('372px');
+    expect(styles.minWidth).toBe('180px');
+    expect(styles.maxWidth).toBe('572px');
   });
 
   it('filters BrowserScripts with four single-select type chips and supports clearing the selection', async () => {

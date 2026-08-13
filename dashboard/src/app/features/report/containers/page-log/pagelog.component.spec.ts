@@ -52,4 +52,14 @@ describe('PageLogComponent', () => {
     }));
     expect(navigate.mock.calls[0][1]?.queryParams?.['sort']).toBeUndefined();
   });
+
+  it('places filtered-log actions at the top right of the filter toolbar', () => {
+    const header = fixture.nativeElement.querySelector('.report-filter-header') as HTMLElement;
+    const controls = header.querySelector('app-page-log-query') as HTMLElement;
+    const shortcuts = header.querySelector('app-log-list-shortcuts') as HTMLElement;
+
+    expect(getComputedStyle(header).display).toBe('grid');
+    expect(getComputedStyle(controls).gridColumnStart).toBe('1');
+    expect(getComputedStyle(shortcuts).display).toBe('contents');
+  });
 });

@@ -148,6 +148,10 @@ mat-card-header.card-header-with-helpers {
   max-width: 280px;
 }
 
+.report-filter-form > mat-form-field[hidden] {
+  display: none;
+}
+
 .report-status-filter {
   box-sizing: border-box;
   flex: 0 0 100%;

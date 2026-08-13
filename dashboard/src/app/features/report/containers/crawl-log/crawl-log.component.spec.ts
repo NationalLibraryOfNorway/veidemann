@@ -49,9 +49,9 @@ describe('CrawlLogComponent', () => {
 
     expect(header.firstElementChild).toBe(controls);
     expect(header.lastElementChild).toBe(shortcuts);
-    expect(getComputedStyle(header).display).toBe('flex');
-    expect(getComputedStyle(controls).flexGrow).toBe('1');
-    expect(getComputedStyle(shortcuts).marginLeft).toBe('auto');
+    expect(getComputedStyle(header).display).toBe('grid');
+    expect(getComputedStyle(controls).gridColumnStart).toBe('1');
+    expect(getComputedStyle(shortcuts).display).toBe('contents');
   });
 
   it('clears the execution filter and unsupported legacy log parameters without changing sort', () => {

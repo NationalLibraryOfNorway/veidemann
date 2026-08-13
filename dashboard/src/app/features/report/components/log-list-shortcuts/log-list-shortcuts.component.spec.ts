@@ -58,8 +58,11 @@ describe('LogListShortcutsComponent', () => {
     expect(chip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('link');
     expect(chip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
       .toBe('Remove crawl execution crawl-execution-1 filter');
+    expect(getComputedStyle(fixture.nativeElement).display).toBe('contents');
+    expect(getComputedStyle(chip.closest('.log-context-filter') as HTMLElement).gridRowStart).toBe('2');
 
     const menu = await openMenu('Page log actions');
+    expect(getComputedStyle(fixture.nativeElement.querySelector('app-detail-overflow')).gridRowStart).toBe('1');
     expect(menu.textContent).toContain('Crawl execution');
     expect(menu.textContent).toContain('Job execution');
     expect(menu.textContent).toContain('Crawl job');
