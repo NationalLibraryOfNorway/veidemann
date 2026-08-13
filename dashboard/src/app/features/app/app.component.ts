@@ -11,6 +11,7 @@ import {
 import {BreakpointObserver} from '@angular/cdk/layout';
 import {
   ActivatedRoute,
+  IsActiveMatchOptions,
   NavigationEnd,
   Router,
   RouterLink,
@@ -37,7 +38,7 @@ type NavigationSection = 'config' | 'report';
 type DrawerLevel = 'main' | NavigationSection;
 
 const RAIL_BREAKPOINT = '(min-width: 840px)';
-const PERSISTENT_DRAWER_BREAKPOINT = '(min-width: 1200px)';
+const PERSISTENT_DRAWER_BREAKPOINT = '(min-width: 1921px)';
 
 interface NavigationDestination {
   readonly route: string;
@@ -48,6 +49,12 @@ interface NavigationDestination {
 interface PrimaryDestination extends NavigationDestination {
   readonly icon: string;
   readonly section?: NavigationSection;
+}
+
+interface RailDestination extends NavigationDestination {
+  readonly icon: string;
+  readonly sectionPermissionSubject?: string;
+  readonly queryParams?: Readonly<Record<string, string>>;
 }
 
 @Component({
@@ -80,6 +87,8 @@ export class AppComponent implements OnInit {
   private breakpointObserver = inject(BreakpointObserver);
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
+  readonly openNavigationLabel = $localize`:@@primaryNavigationOpenLabel:Open navigation`;
+  readonly closeNavigationLabel = $localize`:@@primaryNavigationCloseLabel:Close navigation`;
 
   readonly primaryDestinations: readonly PrimaryDestination[] = [
     {
@@ -102,6 +111,55 @@ export class AppComponent implements OnInit {
       permissionSubject: 'report',
     },
   ];
+
+  readonly railDestinations: readonly RailDestination[] = [
+    {
+      route: '/',
+      icon: 'home',
+      label: $localize`:@@mainMenuHome:Home`,
+    },
+    {
+      route: '/config/entity',
+      icon: 'business',
+      label: $localize`:@@railNavigationEntities:Entities`,
+      sectionPermissionSubject: 'configs',
+      permissionSubject: 'CRAWLENTITY',
+    },
+    {
+      route: '/config/seed',
+      icon: 'link',
+      label: $localize`:@@railNavigationSeeds:Seeds`,
+      sectionPermissionSubject: 'configs',
+      permissionSubject: 'SEED',
+    },
+    {
+      route: '/report/jobexecution',
+      icon: 'hdr_strong',
+      label: $localize`:@@railNavigationJobs:Jobs`,
+      sectionPermissionSubject: 'report',
+      permissionSubject: 'jobexecution',
+      queryParams: {sort: 'startTime:desc'},
+    },
+    {
+      route: '/report/crawlexecution',
+      icon: 'hdr_weak',
+      label: $localize`:@@railNavigationCrawls:Crawls`,
+      sectionPermissionSubject: 'report',
+      permissionSubject: 'crawlexecution',
+      queryParams: {sort: 'startTime:desc'},
+    },
+  ];
+
+  readonly exactRailLinkMatchOptions: IsActiveMatchOptions = {
+    paths: 'exact',
+    queryParams: 'ignored',
+    matrixParams: 'ignored',
+    fragment: 'ignored',
+  };
+  readonly childRailLinkMatchOptions: IsActiveMatchOptions = {
+    ...this.exactRailLinkMatchOptions,
+    paths: 'subset',
+  };
 
   readonly configDestinations: readonly NavigationDestination[] = [
     {route: '/config/entity', label: 'Entity', permissionSubject: 'CRAWLENTITY'},
@@ -192,6 +250,11 @@ export class AppComponent implements OnInit {
 
   canNavigate(destination: NavigationDestination): boolean {
     return !destination.permissionSubject || this.can('read', destination.permissionSubject);
+  }
+
+  canNavigateRail(destination: RailDestination): boolean {
+    return (!destination.sectionPermissionSubject || this.can('read', destination.sectionPermissionSubject))
+      && this.canNavigate(destination);
   }
 
   togglePrimaryDrawer(): void {

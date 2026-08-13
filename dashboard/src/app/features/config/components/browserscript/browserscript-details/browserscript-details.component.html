@@ -74,13 +74,9 @@
                 <mat-card-actions>
                   @if (canUpdateRegex) {
                     <button mat-raised-button color="accent"
-                      (click)="onUpdateRegexp(regexpEdit.value)" i18n="@@commonButtonOk">
-                  OK
-                </button>
+                      (click)="onUpdateRegexp(regexpEdit.value)"><ng-container i18n="@@commonButtonOk">OK</ng-container></button>
                   }
-                  <button i18n="@@commonButtonCancel" mat-button (click)="onAbort()">
-                  CANCEL
-                </button>
+                  <button mat-button (click)="onAbort()"><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
                 </mat-card-actions>
               </mat-card>
             </form>
@@ -107,25 +103,16 @@
         @if (showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canSave"
-            (click)="onSave()"
-            i18n="@@commonButtonSave">
-        SAVE
-      </button>
+            (click)="onSave()"><ng-container i18n="@@commonButtonSave">SAVE</ng-container></button>
         }
         @if (!showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canUpdate"
-            (click)="onUpdate()"
-            i18n="@@commonButtonSave">
-        UPDATE
-      </button>
+            (click)="onUpdate()"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
         }
         <button mat-button
           (click)="onRevert()"
-          [disabled]="!form.dirty"
-          i18n="@@commonButtonRevert">
-        REVERT
-      </button>
+          [disabled]="!form.dirty"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
       }
       <span class="flex-fill"></span>
       <button mat-icon-button type="button" (click)="toggleScriptExpanded()"

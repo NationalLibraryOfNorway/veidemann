@@ -285,10 +285,16 @@
         <target>Can&apos;t be empty.</target>
       </segment>
     </unit>
-    <unit id="appLoadingText">
+    <unit id="appInitializingText">
       <segment state="initial">
         <source>Initializing...</source>
         <target>Initializing...</target>
+      </segment>
+    </unit>
+    <unit id="appLoadingText">
+      <segment state="initial">
+        <source>Loading...</source>
+        <target>Loading...</target>
       </segment>
     </unit>
     <unit id="appModuleInitFailedMessage">
@@ -311,8 +317,8 @@
     </unit>
     <unit id="browserconfigFormBrowserscriptsDropdownLabel">
       <segment state="initial">
-        <source> BrowserScripts </source>
-        <target> BrowserScripts </target>
+        <source>Browser scripts</source>
+        <target>Browser scripts</target>
       </segment>
     </unit>
     <unit id="browserconfigFormPageLoadTimeoutLabel">
@@ -345,10 +351,16 @@
         <target> User agent </target>
       </segment>
     </unit>
-    <unit id="browserconfigFormUserAgentRequiredError">
+    <unit id="browserconfigFormUserAgentMinLengthError">
       <segment state="initial">
         <source> Must contain at least 2 characters. </source>
         <target> Must contain at least 2 characters. </target>
+      </segment>
+    </unit>
+    <unit id="browserconfigFormUserAgentRequiredError">
+      <segment state="initial">
+        <source> Must contain at least 1 character. </source>
+        <target> Must contain at least 1 character. </target>
       </segment>
     </unit>
     <unit id="browserconfigFormWindowHeightLabel">
@@ -473,8 +485,8 @@
     </unit>
     <unit id="collectionDedupPolicyDropdownLabel">
       <segment state="initial">
-        <source> Deduplication policy </source>
-        <target> Deduplication policy </target>
+        <source>Deduplication policy</source>
+        <target>Deduplication policy</target>
       </segment>
     </unit>
     <unit id="collectionAddDnsSubcollectionButton">
@@ -509,8 +521,8 @@
     </unit>
     <unit id="collectionFileRotationPolicyDropdownLabel">
       <segment state="initial">
-        <source> File rotation policy </source>
-        <target> File rotation policy </target>
+        <source>File rotation policy</source>
+        <target>File rotation policy</target>
       </segment>
     </unit>
     <unit id="collectionCompressionHeading">
@@ -617,8 +629,8 @@
     </unit>
     <unit id="commonButtonCancel">
       <segment state="initial">
-        <source>CANCEL </source>
-        <target>CANCEL </target>
+        <source>CANCEL</source>
+        <target>CANCEL</target>
       </segment>
     </unit>
     <unit id="commonButtonClose">
@@ -635,8 +647,8 @@
     </unit>
     <unit id="commonButtonOk">
       <segment state="initial">
-        <source>OK </source>
-        <target>OK </target>
+        <source>OK</source>
+        <target>OK</target>
       </segment>
     </unit>
     <unit id="commonButtonRetry">
@@ -647,8 +659,8 @@
     </unit>
     <unit id="commonButtonRevert">
       <segment state="initial">
-        <source> REVERT </source>
-        <target> REVERT </target>
+        <source>REVERT</source>
+        <target>REVERT</target>
       </segment>
     </unit>
     <unit id="commonButtonRun">
@@ -659,14 +671,14 @@
     </unit>
     <unit id="commonButtonSave">
       <segment state="initial">
-        <source> SAVE </source>
-        <target> SAVE </target>
+        <source>SAVE</source>
+        <target>SAVE</target>
       </segment>
     </unit>
     <unit id="commonButtonUpdate">
       <segment state="initial">
-        <source>UPDATE </source>
-        <target>UPDATE </target>
+        <source>UPDATE</source>
+        <target>UPDATE</target>
       </segment>
     </unit>
     <unit id="commonConfigDetailsCardSubtitle">
@@ -1043,8 +1055,8 @@
     </unit>
     <unit id="configIdLabel">
       <segment state="initial">
-        <source> Id </source>
-        <target> Id </target>
+        <source>Id</source>
+        <target>Id</target>
       </segment>
     </unit>
     <unit id="configMenuCreateSeedAction">
@@ -1453,6 +1465,12 @@
       <segment state="initial">
         <source>Crawl config</source>
         <target>Crawl config</target>
+      </segment>
+    </unit>
+    <unit id="crawlconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>CrawlConfig</source>
+        <target>CrawlConfig</target>
       </segment>
     </unit>
     <unit id="crawlConfigDropDownLabel">
@@ -1923,6 +1941,12 @@
         <target>Current URIs</target>
       </segment>
     </unit>
+    <unit id="crawlhostgroupconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>CrawlHostGroup</source>
+        <target>CrawlHostGroup</target>
+      </segment>
+    </unit>
     <unit id="crawlhostgroupconfigFormAddIpRangeButton">
       <segment state="initial">
         <source>Add IP range</source>
@@ -2029,6 +2053,12 @@
       <segment state="initial">
         <source> A CrawlConfig is required </source>
         <target> A CrawlConfig is required </target>
+      </segment>
+    </unit>
+    <unit id="crawljobDetailsCardTitle">
+      <segment state="initial">
+        <source>Crawljob</source>
+        <target>Crawljob</target>
       </segment>
     </unit>
     <unit id="crawlJobDropdownLabel">
@@ -2657,8 +2687,8 @@
     </unit>
     <unit id="entityDetailsCardTitle">
       <segment state="initial">
-        <source>CrawlConfig</source>
-        <target>CrawlConfig</target>
+        <source>Entity</source>
+        <target>Entity</target>
       </segment>
     </unit>
     <unit id="entityDetailsSeedStateFilterLabel">
@@ -3149,8 +3179,8 @@
     </unit>
     <unit id="metaCreatedInputPlaceholder">
       <segment state="initial">
-        <source> Created </source>
-        <target> Created </target>
+        <source>Created</source>
+        <target>Created</target>
       </segment>
     </unit>
     <unit id="metaDescriptionInputLabel">
@@ -3209,8 +3239,8 @@
     </unit>
     <unit id="metaNameRequiredError">
       <segment state="initial">
-        <source> Name is required. </source>
-        <target> Name is required. </target>
+        <source>Name is required.</source>
+        <target>Name is required.</target>
       </segment>
     </unit>
     <unit id="outlinkDomainFilterLabel">
@@ -3273,6 +3303,24 @@
         <target>Referent: <ph id="0" equiv="INTERPOLATION" disp="{{pageLog.referrer}}"/></target>
       </segment>
     </unit>
+    <unit id="pageLogReportFilterExecutionIdLabel">
+      <segment state="initial">
+        <source> Execution ID </source>
+        <target> Execution ID </target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportFilterJobExecutionIdLabel">
+      <segment state="initial">
+        <source> JobExecution ID </source>
+        <target> JobExecution ID </target>
+      </segment>
+    </unit>
+    <unit id="pageLogReportFilterUriLabel">
+      <segment state="initial">
+        <source> URI </source>
+        <target> URI </target>
+      </segment>
+    </unit>
     <unit id="PageLogReportListNrOfOutlinksNameHeaderCell">
       <segment state="initial">
         <source># Outlinks</source>
@@ -3333,6 +3381,12 @@
         <target>Politeness config</target>
       </segment>
     </unit>
+    <unit id="politenessconfigDetailsCardTitle">
+      <segment state="initial">
+        <source>Politenessconfig</source>
+        <target>Politenessconfig</target>
+      </segment>
+    </unit>
     <unit id="politenessConfigDropdownLabel">
       <segment state="initial">
         <source> PolitenessConfig </source>
@@ -3347,8 +3401,8 @@
     </unit>
     <unit id="politenessconfigFormMinRobotsValidDurationLabel">
       <segment state="initial">
-        <source> Minimum robots validity </source>
-        <target> Minimum robots validity </target>
+        <source>Minimum robots validity</source>
+        <target>Minimum robots validity</target>
       </segment>
     </unit>
     <unit id="politenessconfigFormMinRobotsValidDurationValidationError">
@@ -3399,6 +3453,12 @@
         <target>Tilbake til hovednavigasjonen</target>
       </segment>
     </unit>
+    <unit id="primaryNavigationCloseLabel">
+      <segment state="initial">
+        <source>Close navigation</source>
+        <target>Close navigation</target>
+      </segment>
+    </unit>
     <unit id="primaryNavigationLabel">
       <segment state="initial">
         <source>Primary navigation</source>
@@ -3409,6 +3469,30 @@
       <segment state="initial">
         <source>Open navigation</source>
         <target>Open navigation</target>
+      </segment>
+    </unit>
+    <unit id="railNavigationCrawls">
+      <segment state="initial">
+        <source>Crawls</source>
+        <target>Crawls</target>
+      </segment>
+    </unit>
+    <unit id="railNavigationEntities">
+      <segment state="initial">
+        <source>Entities</source>
+        <target>Entities</target>
+      </segment>
+    </unit>
+    <unit id="railNavigationJobs">
+      <segment state="initial">
+        <source>Jobs</source>
+        <target>Jobs</target>
+      </segment>
+    </unit>
+    <unit id="railNavigationSeeds">
+      <segment state="initial">
+        <source>Seeds</source>
+        <target>Seeds</target>
       </segment>
     </unit>
     <unit id="removeLabelButtonLabel">
@@ -3717,6 +3801,12 @@
         <target>Relaterte oppføringer</target>
       </segment>
     </unit>
+    <unit id="rolemappingDetailsCardTitle">
+      <segment state="initial">
+        <source>Rolemapping</source>
+        <target>Rolemapping</target>
+      </segment>
+    </unit>
     <unit id="roleMappingDetailsEmailInputLabel">
       <segment state="initial">
         <source> Email </source>
@@ -3838,6 +3928,12 @@
       </segment>
     </unit>
     <unit id="configRelationSchedule">
+      <segment state="initial">
+        <source>Schedule</source>
+        <target>Schedule</target>
+      </segment>
+    </unit>
+    <unit id="scheduleDetailsCardTitle">
       <segment state="initial">
         <source>Schedule</source>
         <target>Schedule</target>

@@ -5,9 +5,7 @@
   <form [formGroup]="form" class="layout-column gap-16">
     <app-collection-meta [kind]="configObject.kind" formControlName="meta"></app-collection-meta>
     <mat-form-field>
-      <mat-label i18n="@@collectionDedupPolicyDropdownLabel">
-        Deduplication policy
-      </mat-label>
+      <mat-label i18n="@@collectionDedupPolicyDropdownLabel">Deduplication policy</mat-label>
       <mat-select formControlName="collectionDedupPolicy">
         @for (policy of rotationPolicies; track policy) {
           <mat-option [value]="policy">
@@ -18,9 +16,7 @@
     </mat-form-field>
 
     <mat-form-field>
-      <mat-label i18n="@@collectionFileRotationPolicyDropdownLabel">
-        File rotation policy
-      </mat-label>
+      <mat-label i18n="@@collectionFileRotationPolicyDropdownLabel">File rotation policy</mat-label>
       <mat-select formControlName="fileRotationPolicy">
         @for (policy of rotationPolicies; track policy) {
           <mat-option [value]="policy">
@@ -54,10 +50,7 @@
         [color]="validFileSize ? 'accent' : 'warn'"
         [matTooltip]="validFileSize ? null : 'Save config knowing the consequences of not setting file size'"
         [mat-dialog-close]="onDialogClose()"
-        i18n="@@commonButtonSave"
-        i18n-matTooltip="@@collectionSaveConfigWithoutFileSizeTooltip">
-    SAVE
-  </button>
+        i18n-matTooltip="@@collectionSaveConfigWithoutFileSizeTooltip"><ng-container i18n="@@commonButtonSave">SAVE</ng-container></button>
     }
     @if (!showSave) {
       <button mat-raised-button
@@ -65,21 +58,13 @@
         [color]="validFileSize ? 'accent' : 'warn'"
         [matTooltip]="validFileSize ? null : 'Update config knowing the consequences of not setting file size'"
         [mat-dialog-close]="onDialogClose()"
-        i18n="@@commonButtonUpdate"
-        i18n-matTooltip="@@collectionUpdateConfigWithoutFileSizeTooltip">
-    UPDATE
-  </button>
+        i18n-matTooltip="@@collectionUpdateConfigWithoutFileSizeTooltip"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
     }
     <button mat-button
       (click)="onRevert()"
-      [disabled]="!canRevert"
-      i18n="@@commonButtonRevert">
-    REVERT
-  </button>
+      [disabled]="!canRevert"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
     <span class="flex-fill"></span>
     <button mat-button
-      mat-dialog-close
-      i18n="@@commonButtonCancel">CANCEL
-  </button>
+      mat-dialog-close><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
   </mat-dialog-actions>
 }

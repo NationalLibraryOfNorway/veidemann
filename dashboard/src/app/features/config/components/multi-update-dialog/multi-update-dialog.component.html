@@ -23,10 +23,8 @@
 
 @if (section && canEdit) {
   <mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="onRevert()" [disabled]="!section.canRevert"
-      i18n="@@commonButtonRevert">REVERT</button>
-    <button mat-button type="button" mat-dialog-close i18n="@@commonButtonCancel">CANCEL</button>
-    <button mat-flat-button type="button" (click)="onUpdate()" [disabled]="!section.canUpdate"
-      i18n="@@commonButtonSave">UPDATE</button>
+    <button mat-button type="button" (click)="onRevert()" [disabled]="!section.canRevert"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
+    <button mat-button type="button" mat-dialog-close><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
+    <button mat-flat-button type="button" (click)="onUpdate()" [disabled]="!section.canUpdate"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
   </mat-dialog-actions>
 }

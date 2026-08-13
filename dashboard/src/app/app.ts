@@ -16,7 +16,7 @@ import {RouterOutlet} from '@angular/router';
       <p>{{ error.message }}</p>
   } @placeholder {
     <header>
-      <h1 i18n="@@appLoadingText">Initializing...</h1>
+      <h1 i18n="@@appInitializingText">Initializing...</h1>
     </header>
   } @loading {
     <header>

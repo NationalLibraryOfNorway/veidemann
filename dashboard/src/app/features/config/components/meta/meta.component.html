@@ -6,13 +6,9 @@
     </mat-label>
     <input matInput #nameInput formControlName="name" required data-testid="name">
     @if (nameInput.value.length < 2) {
-      <mat-hint i18n="@@metaNameInputLengthHinht">
-      Minimum 2 characters
-    </mat-hint>
+      <mat-hint i18n="@@metaNameInputLengthHinht">Minimum 2 characters</mat-hint>
     }
-    <mat-error i18n="@@metaNameRequiredError">
-      Name is required
-    </mat-error>
+    <mat-error i18n="@@metaNameRequiredError">Name is required.</mat-error>
   </mat-form-field>
 
   <mat-form-field>

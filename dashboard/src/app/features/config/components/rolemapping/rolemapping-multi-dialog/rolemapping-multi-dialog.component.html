@@ -27,17 +27,10 @@
 <mat-dialog-actions align="end">
   <button mat-button
     (click)="onRevert()"
-    [disabled]="!canRevert"
-    i18n="@@commonButtonRevert">
-    REVERT
-  </button>
+    [disabled]="!canRevert"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
   <button mat-button
-    mat-dialog-close
-    i18n="@@commonButtonCancel">CANCEL
-  </button>
+    mat-dialog-close><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
   <button mat-flat-button
     [disabled]="!canUpdate"
-    [mat-dialog-close]="onDialogClose()"
-    i18n="@@commonButtonSave">UPDATE
-  </button>
+    [mat-dialog-close]="onDialogClose()"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
 </mat-dialog-actions>

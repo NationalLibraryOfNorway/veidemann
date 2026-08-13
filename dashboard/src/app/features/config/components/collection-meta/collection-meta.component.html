@@ -13,10 +13,7 @@
       <mat-hint i18n="@@metaNameInputLengthHinht">Minimum 2 characters</mat-hint>
     }
     @if (name.hasError('required')) {
-      <mat-error
-        i18n="@@metaNameRequiredError">
-        Name is required.
-      </mat-error>
+      <mat-error i18n="@@metaNameRequiredError">Name is required.</mat-error>
     }
     @if (name.hasError('pattern')) {
       <mat-error
@@ -42,9 +39,7 @@
     <div class="layout-stack-compact layout-row gap-8">
       @if (created.value) {
         <mat-form-field class="flex-fill">
-          <mat-label i18n="@@metaCreatedInputPlaceholder">
-            Created
-          </mat-label>
+          <mat-label i18n="@@metaCreatedInputPlaceholder">Created</mat-label>
           <input matInput
                  formControlName="created">
         </mat-form-field>

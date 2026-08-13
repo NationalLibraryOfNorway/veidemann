@@ -17,12 +17,8 @@
 <div mat-dialog-actions>
   <button mat-button
     color="warn"
-    i18n="@@commonButtonOk"
-    [mat-dialog-close]="true">OK
-  </button>
+    [mat-dialog-close]="true"><ng-container i18n="@@commonButtonOk">OK</ng-container></button>
   <button mat-button
-    i18n="@@commonButtonCancel"
-    [mat-dialog-close]="false">CANCEL
-  </button>
+    [mat-dialog-close]="false"><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
 </div>
 

@@ -43,9 +43,7 @@
 
 <div mat-dialog-actions>
   <button mat-button
-    i18n="@@commonButtonCancel"
-    mat-dialog-close>CANCEL
-  </button>
+    mat-dialog-close><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
   @if (kind === Kind.CRAWLJOB || kind === Kind.SEED && jobRefId) {
     <button
       mat-raised-button

@@ -1,5 +1,5 @@
 <h2 mat-dialog-title>
-  <ng-container i18n="@@entityDetailsCardTitle">CrawlConfig</ng-container>
+  <ng-container i18n="@@crawlconfigDetailsCardTitle">CrawlConfig</ng-container>
 </h2>
 
 <mat-dialog-content>
@@ -97,24 +97,16 @@
   @if (showSave) {
     <button mat-raised-button color="accent"
       [disabled]="!canSave"
-      [mat-dialog-close]="onDialogClose()"
-      i18n="@@commonButtonSave">SAVE
-  </button>
+      [mat-dialog-close]="onDialogClose()"><ng-container i18n="@@commonButtonSave">SAVE</ng-container></button>
   }
   @if (!showSave) {
     <button mat-raised-button color="accent"
       [disabled]="!canUpdate"
-      [mat-dialog-close]="onDialogClose()"
-      i18n="@@commonButtonUpdate">UPDATE
-  </button>
+      [mat-dialog-close]="onDialogClose()"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
   }
   <button mat-button
     (click)="onRevert()"
-    [disabled]="!form.dirty"
-    i18n="@@commonButtonRevert">REVERT
-  </button>
+    [disabled]="!form.dirty"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
   <button mat-button
-    mat-dialog-close
-    i18n="@@commonButtonCancel">CANCEL
-  </button>
+    mat-dialog-close><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
 </mat-dialog-actions>

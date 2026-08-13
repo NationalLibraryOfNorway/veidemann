@@ -11,9 +11,7 @@
 
           @if (!showSave) {
             <mat-form-field>
-              <mat-label i18n="@@configIdLabel">
-              Id
-            </mat-label>
+              <mat-label i18n="@@configIdLabel">Id</mat-label>
               <input matInput
                 readonly
                 formControlName="id">
@@ -111,22 +109,16 @@
         @if (showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canSave"
-            (click)="onSave()"
-            i18n="@@commonButtonSave">SAVE
-      </button>
+            (click)="onSave()"><ng-container i18n="@@commonButtonSave">SAVE</ng-container></button>
         }
         @if (!showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canUpdate"
-            (click)="onUpdate()"
-            i18n="@@commonButtonSave">UPDATE
-      </button>
+            (click)="onUpdate()"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
         }
         <button mat-button
           (click)="onRevert()"
-          [disabled]="!canRevert"
-          i18n="@@commonButtonRevert">REVERT
-      </button>
+          [disabled]="!canRevert"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
         <span class="flex-fill"></span>
       </div>
     }

@@ -47,17 +47,14 @@
             <mat-datepicker-toggle matIconSuffix [for]="validityRangePicker"></mat-datepicker-toggle>
             <mat-date-range-picker #validityRangePicker>
               <mat-date-range-picker-actions>
-                <button mat-button matDateRangePickerCancel type="button"
-                  i18n="@@commonButtonCancel">CANCEL</button>
+                <button mat-button matDateRangePickerCancel type="button"><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
                 <button mat-flat-button matDateRangePickerApply type="button"
                   i18n="@@commonButtonApply">APPLY</button>
               </mat-date-range-picker-actions>
             </mat-date-range-picker>
             <mat-hint i18n="@@scheduleMassUpdateValidityRangeHint">Both dates are inclusive; either date may be empty.</mat-hint>
             @if (validFrom.hasError('matStartDateInvalid') || validTo.hasError('matEndDateInvalid')) {
-              <mat-error i18n="@@scheduleMassUpdateValidityRangeError">
-                Valid from must be on or before Valid to.
-              </mat-error>
+              <mat-error i18n="@@scheduleMassUpdateValidityRangeError">Valid from must be on or before Valid to.</mat-error>
             }
           </mat-form-field>
         </div>
@@ -70,17 +67,11 @@
   <mat-dialog-actions align="end">
     <button mat-button type="button"
       (click)="onRevert()"
-      [disabled]="!canRevert"
-      i18n="@@commonButtonRevert">REVERT
-    </button>
+      [disabled]="!canRevert"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
     <button mat-button type="button"
-      mat-dialog-close
-      i18n="@@commonButtonCancel">CANCEL
-    </button>
+      mat-dialog-close><ng-container i18n="@@commonButtonCancel">CANCEL</ng-container></button>
     <button mat-flat-button type="button"
       [disabled]="!canUpdate"
-      [mat-dialog-close]="onDialogClose()"
-      i18n="@@commonButtonSave">UPDATE
-    </button>
+      [mat-dialog-close]="onDialogClose()"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
   </mat-dialog-actions>
 }

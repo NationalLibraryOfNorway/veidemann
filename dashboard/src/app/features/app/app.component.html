@@ -1,7 +1,8 @@
 @if (!railNavigation()) {
 <mat-toolbar class="main-toolbar mat-typography">
-  <button class="toolbar-leading" mat-icon-button (click)="togglePrimaryDrawer()"
-          aria-label="Open navigation" i18n-aria-label="@@primaryNavigationOpenLabel">
+  <button class="toolbar-leading" mat-icon-button type="button" (click)="togglePrimaryDrawer()"
+          [attr.aria-label]="compactDrawerOpen() ? closeNavigationLabel : openNavigationLabel"
+          [attr.aria-expanded]="compactDrawerOpen()" aria-controls="primary-navigation-drawer">
     <mat-icon>{{compactDrawerOpen() ? 'menu_open' : 'menu'}}</mat-icon>
   </button>
   <a class="brand-link" routerLink="/" routerLinkActive="active-toolbar-link"
@@ -17,12 +18,25 @@
 
 @if (railNavigation()) {
 <aside class="navigation-rail mat-typography">
+  @if (!expandedNavigation()) {
+    <button class="rail-menu" mat-icon-button type="button" (click)="togglePrimaryDrawer()"
+            [matTooltip]="compactDrawerOpen() ? closeNavigationLabel : openNavigationLabel"
+            [attr.aria-label]="compactDrawerOpen() ? closeNavigationLabel : openNavigationLabel"
+            [attr.aria-expanded]="compactDrawerOpen()" aria-controls="primary-navigation-drawer">
+      <mat-icon>{{compactDrawerOpen() ? 'menu_open' : 'menu'}}</mat-icon>
+    </button>
+  }
+
   <nav class="rail-destinations" aria-label="Primary navigation"
        i18n-aria-label="@@primaryNavigationLabel">
-    @for (destination of primaryDestinations; track destination.route) {
-      @if (canNavigate(destination)) {
-        <a class="rail-destination" [routerLink]="destination.route" routerLinkActive="active-rail-destination"
-           [routerLinkActiveOptions]="{exact: destination.route === '/'}" ariaCurrentWhenActive="page">
+    @for (destination of railDestinations; track destination.route) {
+      @if (canNavigateRail(destination)) {
+        <a class="rail-destination" [routerLink]="destination.route" [queryParams]="destination.queryParams"
+           routerLinkActive="active-rail-destination"
+           [routerLinkActiveOptions]="destination.route === '/'
+             ? exactRailLinkMatchOptions
+             : childRailLinkMatchOptions"
+           ariaCurrentWhenActive="page" (click)="closePrimaryDrawer()">
           <span class="rail-icon-container">
             @if (destination.route === '/') {
               <picture>
@@ -69,9 +83,9 @@
 }
 
 <mat-sidenav-container class="app-shell mat-typography">
-    <mat-sidenav class="primary-drawer"
+    <mat-sidenav id="primary-navigation-drawer" class="primary-drawer"
       [mode]="expandedNavigation() ? 'side' : 'over'"
-      [opened]="expandedNavigation() ? activeSection() !== null : !railNavigation() && compactDrawerOpen()"
+      [opened]="expandedNavigation() ? activeSection() !== null : compactDrawerOpen()"
       [disableClose]="expandedNavigation()" (closedStart)="closePrimaryDrawer()">
       <mat-nav-list class="primary-navigation" aria-label="Primary navigation"
                     i18n-aria-label="@@primaryNavigationLabel">

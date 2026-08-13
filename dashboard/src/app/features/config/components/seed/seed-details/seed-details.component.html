@@ -72,22 +72,16 @@
             [color]="form.valid ? 'accent' : 'warn'"
             [disabled]="!canSave"
             (click)="onSave()"
-            [matTooltip]="!form.valid ? 'Form not valid!.' : ''"
-            i18n="@@commonButtonSave">SAVE
-      </button>
+            [matTooltip]="!form.valid ? 'Form not valid!.' : ''"><ng-container i18n="@@commonButtonSave">SAVE</ng-container></button>
         }
         @if (!showSave) {
           <button mat-raised-button color="accent"
             [disabled]="!canUpdate"
-            (click)="onUpdate()"
-            i18n="@@commonButtonSave">UPDATE
-      </button>
+            (click)="onUpdate()"><ng-container i18n="@@commonButtonUpdate">UPDATE</ng-container></button>
         }
         <button mat-button
           [disabled]="!canRevert"
-          (click)="onRevert()"
-          i18n="@@commonButtonRevert">REVERT
-      </button>
+          (click)="onRevert()"><ng-container i18n="@@commonButtonRevert">REVERT</ng-container></button>
       </div>
     }
 </form>

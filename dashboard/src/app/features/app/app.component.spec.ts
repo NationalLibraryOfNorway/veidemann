@@ -14,7 +14,7 @@ import {AppComponent} from './app.component';
 class EmptyRouteComponent {}
 
 const RAIL_BREAKPOINT = '(min-width: 840px)';
-const PERSISTENT_DRAWER_BREAKPOINT = '(min-width: 1200px)';
+const PERSISTENT_DRAWER_BREAKPOINT = '(min-width: 1921px)';
 
 describe('AppComponent navigation', () => {
   let fixture: ComponentFixture<AppComponent>;
@@ -22,10 +22,12 @@ describe('AppComponent navigation', () => {
   let breakpointState: BehaviorSubject<BreakpointState>;
   let seedResolution: ReplaySubject<unknown>;
   let dialog: {open: ReturnType<typeof vi.fn>};
-  const can = vi.fn((_action: string, subject: string) => ['configs', 'SEED'].includes(subject));
+  const can = vi.fn((_action: string, subject: string) =>
+    ['configs', 'CRAWLENTITY', 'SEED'].includes(subject));
 
   beforeEach(async () => {
-    can.mockImplementation((_action: string, subject: string) => ['configs', 'SEED'].includes(subject));
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'CRAWLENTITY', 'SEED'].includes(subject));
     breakpointState = new BehaviorSubject<BreakpointState>({
       matches: false,
       breakpoints: {
@@ -51,6 +53,7 @@ describe('AppComponent navigation', () => {
               {path: '', component: EmptyRouteComponent},
               {path: 'entity', component: EmptyRouteComponent},
               {path: 'seed', component: EmptyRouteComponent, resolve: {options: seedResolver}},
+              {path: 'browserscript', component: EmptyRouteComponent},
             ],
           },
           {
@@ -58,6 +61,9 @@ describe('AppComponent navigation', () => {
             children: [
               {path: '', component: EmptyRouteComponent},
               {path: 'jobexecution', component: EmptyRouteComponent},
+              {path: 'jobexecution/:id', component: EmptyRouteComponent},
+              {path: 'crawlexecution', component: EmptyRouteComponent},
+              {path: 'crawlexecution/:id', component: EmptyRouteComponent},
             ],
           },
         ]),
@@ -140,11 +146,6 @@ describe('AppComponent navigation', () => {
   });
 
   it('shows the rail and keeps section navigation collapsed at middle widths', async () => {
-    (fixture.nativeElement.querySelector('button.toolbar-leading') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).not.toBeNull();
-
     setNavigationWidth(true, false);
     await router.navigateByUrl('/config/entity');
     fixture.detectChanges();
@@ -153,16 +154,198 @@ describe('AppComponent navigation', () => {
     expect(fixture.nativeElement.querySelector('.main-toolbar')).toBeNull();
     expect(fixture.nativeElement.querySelector('.navigation-rail')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).toBeNull();
+    const menuButton = fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement;
+    expect(menuButton).not.toBeNull();
+    expect(menuButton.getAttribute('aria-label')).toBe('Open navigation');
+    expect(menuButton.getAttribute('aria-expanded')).toBe('false');
+    expect(menuButton.getAttribute('aria-controls')).toBe('primary-navigation-drawer');
+    expect(fixture.nativeElement.querySelector('.navigation-rail a[href="/config"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('.navigation-rail a[href="/report"]')).toBeNull();
     const activeLinks = fixture.nativeElement.querySelectorAll(
-      '.navigation-rail a[href="/config"][aria-current="page"]'
+      '.navigation-rail a[href="/config/entity"][aria-current="page"]'
     );
     expect(activeLinks.length).toBe(1);
     expect(activeLinks[0].classList).toContain('active-rail-destination');
-    expect(activeLinks[0].querySelector('.rail-label').textContent.trim()).toBe('Config');
+    expect(activeLinks[0].querySelector('.rail-label').textContent.trim()).toBe('Entities');
     const homeLinks = fixture.nativeElement.querySelectorAll('.navigation-rail a[href="/"]');
     expect(homeLinks.length).toBe(1);
     expect(homeLinks[0].querySelector('.grouse-icon')).not.toBeNull();
+  });
+
+  it('shows direct rail destinations in order with descending execution links', () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'CRAWLENTITY', 'SEED', 'report', 'jobexecution', 'crawlexecution'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+
+    const links = Array.from(
+      fixture.nativeElement.querySelectorAll('.rail-destinations .rail-destination')
+    ) as HTMLAnchorElement[];
+    expect(links.map(link => link.querySelector('.rail-label')?.textContent.trim())).toEqual([
+      'Home',
+      'Entities',
+      'Seeds',
+      'Jobs',
+      'Crawls',
+    ]);
+    expect(links.map(link => link.querySelector('mat-icon')?.textContent.trim() ?? 'logo')).toEqual([
+      'logo',
+      'business',
+      'link',
+      'hdr_strong',
+      'hdr_weak',
+    ]);
+    expect(new URL(links[1].href).pathname).toBe('/config/entity');
+    expect(new URL(links[2].href).pathname).toBe('/config/seed');
+    expect(new URL(links[3].href).pathname).toBe('/report/jobexecution');
+    expect(new URL(links[3].href).searchParams.get('sort')).toBe('startTime:desc');
+    expect(new URL(links[4].href).pathname).toBe('/report/crawlexecution');
+    expect(new URL(links[4].href).searchParams.get('sort')).toBe('startTime:desc');
+    expect(links.some(link => ['/config', '/report'].includes(new URL(link.href).pathname))).toBe(false);
+  });
+
+  it('requires section and destination permissions for direct rail links', () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'CRAWLENTITY', 'jobexecution'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+
+    const labels = (Array.from(
+      fixture.nativeElement.querySelectorAll('.rail-destinations .rail-label')
+    ) as HTMLElement[]).map(label => label.textContent.trim());
+    expect(labels).toEqual(['Home', 'Entities']);
+  });
+
+  it('keeps execution rail links active across filters and detail routes', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['report', 'jobexecution', 'crawlexecution'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+
+    await router.navigateByUrl('/report/jobexecution/execution-1?sort=state:asc&job_id=job-1');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector(
+      '.navigation-rail a[href^="/report/jobexecution"].active-rail-destination[aria-current="page"]'
+    )).not.toBeNull();
+
+    await router.navigateByUrl('/report/crawlexecution/execution-2?sort=endTime:asc&seed_id=seed-1');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector(
+      '.navigation-rail a[href^="/report/crawlexecution"].active-rail-destination[aria-current="page"]'
+    )).not.toBeNull();
+  });
+
+  it('closes the overlay and resets execution filters when a rail destination is selected', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['report', 'jobexecution'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+
+    (fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).not.toBeNull();
+
+    (fixture.nativeElement.querySelector(
+      '.navigation-rail a[href^="/report/jobexecution"]'
+    ) as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const url = new URL(router.url, 'http://localhost');
+    expect(url.pathname).toBe('/report/jobexecution');
+    expect(url.searchParams.get('sort')).toBe('startTime:desc');
+    expect([...url.searchParams.keys()]).toEqual(['sort']);
+    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).toBeNull();
+  });
+
+  it('opens contextual configuration navigation from the rail and closes after selection', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'SEED', 'BROWSERSCRIPT'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+    seedResolution.next({});
+    seedResolution.complete();
+    await router.navigateByUrl('/config/seed');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const menuButton = fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement;
+    menuButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).not.toBeNull();
+    expect(menuButton.getAttribute('aria-label')).toBe('Close navigation');
+    expect(menuButton.getAttribute('aria-expanded')).toBe('true');
+    expect(menuButton.querySelector('mat-icon')?.textContent.trim()).toBe('menu_open');
+    const browserScriptLink = fixture.nativeElement.querySelector(
+      '.primary-navigation a[href="/config/browserscript"]'
+    ) as HTMLAnchorElement;
+    expect(browserScriptLink).not.toBeNull();
+
+    menuButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).toBeNull();
+    expect(menuButton.getAttribute('aria-label')).toBe('Open navigation');
+    expect(menuButton.getAttribute('aria-expanded')).toBe('false');
+
+    menuButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    (fixture.nativeElement.querySelector(
+      '.primary-navigation a[href="/config/browserscript"]'
+    ) as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(router.url).toBe('/config/browserscript');
+    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).toBeNull();
+  });
+
+  it('opens the main menu from home and contextual report navigation from report routes', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'report', 'jobexecution'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+
+    let menuButton = fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement;
+    menuButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.drawer-section-trigger')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/report/jobexecution"]')).toBeNull();
+
+    menuButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await router.navigateByUrl('/report/jobexecution');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    menuButton = fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement;
+    menuButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector(
+      '.primary-navigation a[href="/report/jobexecution"]'
+    )).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).toBeNull();
   });
 
   it('drills into section navigation and returns to the main drawer', () => {
@@ -221,6 +404,7 @@ describe('AppComponent navigation', () => {
     ) as HTMLButtonElement;
     reportTrigger.click();
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/report"]')).not.toBeNull();
     const jobExecutionLink = fixture.nativeElement.querySelector(
       '.primary-navigation a[href="/report/jobexecution"]'
     ) as HTMLAnchorElement;
@@ -239,6 +423,8 @@ describe('AppComponent navigation', () => {
       '.main-toolbar button.toolbar-leading'
     ) as HTMLButtonElement;
     expect(menuButton.getAttribute('aria-label')).toBe('Open navigation');
+    expect(menuButton.getAttribute('aria-expanded')).toBe('false');
+    expect(menuButton.getAttribute('aria-controls')).toBe('primary-navigation-drawer');
     expect(menuButton.querySelector('mat-icon')?.textContent).toContain('menu');
     expect(fixture.nativeElement.querySelector('.main-toolbar a.brand-link[href="/"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar .toolbar-brand-logo')).not.toBeNull();
@@ -249,6 +435,8 @@ describe('AppComponent navigation', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).not.toBeNull();
+    expect(menuButton.getAttribute('aria-label')).toBe('Close navigation');
+    expect(menuButton.getAttribute('aria-expanded')).toBe('true');
     expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).not.toBeNull();
 
     menuButton.click();
@@ -287,6 +475,7 @@ describe('AppComponent navigation', () => {
     expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.drawer-back')).toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rail-menu')).toBeNull();
     const homeLinks = fixture.nativeElement.querySelectorAll('.navigation-rail a[href="/"]');
     expect(homeLinks.length).toBe(1);
     expect(homeLinks[0].querySelector('.grouse-icon')).not.toBeNull();
@@ -297,7 +486,7 @@ describe('AppComponent navigation', () => {
       ['configs', 'SEED', 'report'].includes(subject));
     setNavigationWidth(true, false);
 
-    expect(fixture.nativeElement.querySelector('.navigation-rail a[href="/report"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.navigation-rail a[href="/report"]')).toBeNull();
     const actions = Array.from(
       fixture.nativeElement.querySelectorAll('.rail-actions .rail-action')
     ) as HTMLButtonElement[];
