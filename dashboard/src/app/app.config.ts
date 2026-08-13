@@ -5,6 +5,7 @@ import { NoPreloading, provideRouter, withPreloading } from '@angular/router';
 import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
+import { MatIconRegistry } from '@angular/material/icon';
 
 import { Ability, createMongoAbility } from '@casl/ability';
 import { AuthConfig, OAuthModule, OAuthService } from 'angular-oauth2-oidc';
@@ -76,10 +77,15 @@ export const appConfig: ApplicationConfig = {
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { floatLabel: 'auto' } },
     { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS },
     { provide: ErrorHandler, useClass: ApplicationErrorHandler },
+    provideAppInitializer(configureMaterialSymbols),
   ]
 }
 
 export const initError = signal<Error | null>(null);
+
+export function configureMaterialSymbols(): void {
+  inject(MatIconRegistry).setDefaultFontSetClass('material-symbols-outlined', 'mat-ligature-font');
+}
 
 export async function initializeApp() {
       const controllerApiService = inject(ControllerApiService);

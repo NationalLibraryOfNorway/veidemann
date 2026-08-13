@@ -6,15 +6,16 @@
       <app-job-execution-status
         [jobExecutionStatus]="jobExecutionStatus"
         [queueSize]="queueSize">
-        <button detailActions class="watch-toggle" mat-icon-button type="button"
-          [class.active]="watching"
-          [attr.aria-pressed]="watching"
-          [disabled]="!watching && JobExecutionStatus.DONE_STATES.includes(jobExecutionStatus.state)"
-          [matTooltip]="watching ? stopWatchingLabel : watchUpdatesLabel"
-          [attr.aria-label]="watching ? stopWatchingLabel : watchUpdatesLabel"
-          (click)="toggleWatch(watching)">
-          <mat-icon>refresh</mat-icon>
-        </button>
+        @if (!JobExecutionStatus.DONE_STATES.includes(jobExecutionStatus.state)) {
+          <button detailActions class="watch-toggle" mat-icon-button type="button"
+            [class.active]="watching"
+            [attr.aria-pressed]="watching"
+            [matTooltip]="watching ? stopWatchingLabel : watchUpdatesLabel"
+            [attr.aria-label]="watching ? stopWatchingLabel : watchUpdatesLabel"
+            (click)="toggleWatch(watching)">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        }
         <app-detail-overflow detailActions label="Job execution actions"
           i18n-label="@@jobExecutionActionsMenuLabel">
           <app-job-execution-shortcut-helpers presentation="menu"

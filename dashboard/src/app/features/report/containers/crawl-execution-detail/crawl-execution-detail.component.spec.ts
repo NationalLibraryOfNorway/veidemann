@@ -89,4 +89,19 @@ describe('CrawlExecutionDetailComponent', () => {
     actions[0].click();
     expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({queryParams: {watch: true}}));
   });
+
+  it('hides the watch button when the execution is already finished', async () => {
+    get.mockReturnValue(of(new CrawlExecutionStatus({
+      id: status.id,
+      state: CrawlExecutionState.FINISHED,
+    })));
+    const fixture = TestBed.createComponent(CrawlExecutionDetailComponent);
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve));
+    fixture.detectChanges();
+
+    const actions = [...fixture.nativeElement.querySelector('.detail-header-actions').children] as HTMLElement[];
+    expect(fixture.nativeElement.querySelector('.watch-toggle')).toBeNull();
+    expect(actions[0].tagName).toBe('APP-DETAIL-OVERFLOW');
+  });
 });

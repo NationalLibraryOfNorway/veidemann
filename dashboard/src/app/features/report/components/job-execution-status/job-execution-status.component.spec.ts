@@ -165,6 +165,34 @@ describe('JobExecutionStatusComponent', () => {
     expect(links[0].getAttribute('href')).toContain(`state=${CrawlExecutionState.FETCHING}`);
   });
 
+  it('uses distinct Material Symbols for every crawl execution state', () => {
+    const expectedIcons = new Map<CrawlExecutionState, string>([
+      [CrawlExecutionState.UNDEFINED, 'help_outline'],
+      [CrawlExecutionState.CREATED, 'schedule'],
+      [CrawlExecutionState.FETCHING, 'cloud_download'],
+      [CrawlExecutionState.SLEEPING, 'snooze'],
+      [CrawlExecutionState.FINISHED, 'check_circle'],
+      [CrawlExecutionState.ABORTED_TIMEOUT, 'timer_off'],
+      [CrawlExecutionState.ABORTED_SIZE, 'data_usage'],
+      [CrawlExecutionState.ABORTED_MANUAL, 'cancel'],
+      [CrawlExecutionState.FAILED, 'error'],
+      [CrawlExecutionState.DIED, 'dangerous'],
+    ]);
+    render(new JobExecutionStatus({
+      id: 'job-execution-1',
+      jobId: 'job-1',
+      executionsStateMap: new Map(
+        [...expectedIcons.keys()].map(state => [CrawlExecutionState[state], 1])
+      ),
+    }));
+
+    const icons = [...fixture.nativeElement.querySelectorAll('.state-list-label mat-icon')]
+      .map((icon: HTMLElement) => icon.textContent.trim());
+    expect(icons).toEqual([...expectedIcons.entries()]
+      .sort(([left], [right]) => left - right)
+      .map(([, icon]) => icon));
+  });
+
   it('renders an unavailable queue count distinctly from zero', () => {
     render(new JobExecutionStatus(), null);
 

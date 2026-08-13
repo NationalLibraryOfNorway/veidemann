@@ -7,6 +7,7 @@ import {MatDialog} from '@angular/material/dialog';
 import {BehaviorSubject, filter, firstValueFrom, ReplaySubject, take} from 'rxjs';
 
 import {AuthService, SnackBarService} from '../../core';
+import {configureMaterialSymbols} from '../../app.config';
 import {provideMaterialAnimationsDisabled} from '../../core/core.testing.module';
 import {AppComponent} from './app.component';
 
@@ -85,6 +86,7 @@ describe('AppComponent navigation', () => {
       ],
     }).compileComponents();
 
+    TestBed.runInInjectionContext(configureMaterialSymbols);
     router = TestBed.inject(Router);
     fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
@@ -141,7 +143,8 @@ describe('AppComponent navigation', () => {
       const chevron = meta.querySelector('mat-icon') as HTMLElement;
       expect(meta.classList).toContain('mat-mdc-list-item-meta');
       expect(chevron.textContent).toContain('chevron_right');
-      expect(chevron.classList).toContain('material-icons');
+      expect(chevron.classList).toContain('material-symbols-outlined');
+      expect(chevron.classList).toContain('mat-ligature-font');
       expect(chevron.classList).not.toContain('mat-mdc-list-item-meta');
     }
   });
@@ -503,6 +506,40 @@ describe('AppComponent navigation', () => {
     }
   });
 
+  it('omits destinations and actions from the main drawer when the rail already provides them', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'SEED', 'report'].includes(subject));
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    setNavigationWidth(true, false);
+
+    (fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let drawerText = (fixture.nativeElement.querySelector('.primary-navigation') as HTMLElement).textContent;
+    expect(drawerText).not.toContain('Home');
+    expect(drawerText).not.toContain('Crawljob schedule');
+    expect(drawerText).not.toContain('LOGIN');
+    expect(drawerText).not.toContain('Log out');
+    expect(drawerText).toContain('Config');
+    expect(drawerText).toContain('Reports');
+
+    const authService = TestBed.inject(AuthService) as unknown as {isLoggedIn: boolean};
+    authService.isLoggedIn = true;
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    drawerText = (fixture.nativeElement.querySelector('.primary-navigation') as HTMLElement).textContent;
+    expect(drawerText).not.toContain('Log out');
+    expect(fixture.nativeElement.querySelector('.rail-actions [aria-label="Log out"]')).not.toBeNull();
+  });
+
   it('places compact actions in the main drawer without a toolbar overflow menu', async () => {
     can.mockImplementation((_action: string, subject: string) =>
       ['configs', 'SEED', 'report'].includes(subject));
@@ -544,7 +581,7 @@ describe('AppComponent navigation', () => {
     ) as HTMLElement[];
     expect(drawerItems.at(-1)?.textContent.trim()).toContain('Log out');
     expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
-    expect(getComputedStyle(drawerItems.at(-1) as HTMLElement).marginTop).toBe('auto');
+    expect(getComputedStyle(drawerItems.at(-1) as HTMLElement).marginTop).not.toBe('auto');
     expect(drawerItems.some(item => item.textContent.includes('LOGIN'))).toBe(false);
     expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
     expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);

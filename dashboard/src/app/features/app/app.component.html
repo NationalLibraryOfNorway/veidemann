@@ -91,7 +91,7 @@
                     i18n-aria-label="@@primaryNavigationLabel">
         @if (visibleDrawerLevel() === 'main') {
           @for (destination of primaryDestinations; track destination.route) {
-            @if (canNavigate(destination)) {
+            @if ((!railNavigation() || destination.route !== '/') && canNavigate(destination)) {
               @if (destination.section) {
                 <button class="drawer-section-trigger" mat-list-item type="button"
                         (click)="showDrawerLevel(destination.section)">
@@ -111,24 +111,25 @@
               }
             }
           }
-          @if (can('read', 'report')) {
-            <button mat-list-item type="button" (click)="onShowJobSchedule(); closePrimaryDrawer()">
-              <mat-icon matListItemIcon>calendar_month</mat-icon>
-              <span matListItemTitle i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
-            </button>
-          }
-          @if (!isLoggedIn) {
-            <button mat-list-item type="button" (click)="onLogin(); closePrimaryDrawer()">
-              <mat-icon matListItemIcon>account_box</mat-icon>
-              <span matListItemTitle i18n="@@mainToolbarLoginButton">LOGIN</span>
-            </button>
-          }
-          @if (isLoggedIn) {
-            <button class="drawer-logout" mat-list-item type="button"
-                    (click)="onLogout(); closePrimaryDrawer()">
-              <mat-icon matListItemIcon>logout</mat-icon>
-              <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>
-            </button>
+          @if (!railNavigation()) {
+            @if (can('read', 'report')) {
+              <button mat-list-item type="button" (click)="onShowJobSchedule(); closePrimaryDrawer()">
+                <mat-icon matListItemIcon>calendar_month</mat-icon>
+                <span matListItemTitle i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
+              </button>
+            }
+            @if (!isLoggedIn) {
+              <button mat-list-item type="button" (click)="onLogin(); closePrimaryDrawer()">
+                <mat-icon matListItemIcon>account_box</mat-icon>
+                <span matListItemTitle i18n="@@mainToolbarLoginButton">LOGIN</span>
+              </button>
+            }
+            @if (isLoggedIn) {
+              <button mat-list-item type="button" (click)="onLogout(); closePrimaryDrawer()">
+                <mat-icon matListItemIcon>logout</mat-icon>
+                <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>
+              </button>
+            }
           }
         }
 
