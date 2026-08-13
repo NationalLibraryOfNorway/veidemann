@@ -26,11 +26,13 @@
   ],
 
   "containerEnv": {
-    "GOCACHE": "/tmp/go-build-cache"
+    "GOCACHE": "/tmp/go-build-cache",
+    "GRADLE_USER_HOME": "/tmp/gradle-home"
   },
 
   "postCreateCommand": {
     "agent-tools": "sudo /nix/var/nix/profiles/default/bin/nix profile add --profile /nix/var/nix/profiles/default 'github:maeb/agentics?dir=nix/agent-tools#default'",
-    "go-cache": "install -d -m 0700 /tmp/go-build-cache"
+    "go-cache": "install -d -m 0700 /tmp/go-build-cache",
+    "gradle-cache": "install -d -m 0700 /tmp/gradle-home"
   }
 }
