@@ -2960,6 +2960,11 @@
         <source>Use hostname</source>
       </segment>
     </unit>
+    <unit id="pollingRefreshAction">
+      <segment>
+        <source>Refresh now</source>
+      </segment>
+    </unit>
     <unit id="politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
       <segment>
         <source>Show crawl configurations that use this politeness configuration</source>
@@ -2993,6 +2998,11 @@
     <unit id="primaryNavigationOpenLabel">
       <segment>
         <source>Open navigation</source>
+      </segment>
+    </unit>
+    <unit id="railNavigationCrawlJobs">
+      <segment>
+        <source>Crawl jobs</source>
       </segment>
     </unit>
     <unit id="railNavigationCrawls">

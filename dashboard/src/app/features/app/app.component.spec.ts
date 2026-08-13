@@ -53,6 +53,7 @@ describe('AppComponent navigation', () => {
               {path: '', component: EmptyRouteComponent},
               {path: 'entity', component: EmptyRouteComponent},
               {path: 'seed', component: EmptyRouteComponent, resolve: {options: seedResolver}},
+              {path: 'crawljobs', component: EmptyRouteComponent},
               {path: 'browserscript', component: EmptyRouteComponent},
             ],
           },
@@ -174,7 +175,8 @@ describe('AppComponent navigation', () => {
 
   it('shows direct rail destinations in order with descending execution links', () => {
     can.mockImplementation((_action: string, subject: string) =>
-      ['configs', 'CRAWLENTITY', 'SEED', 'report', 'jobexecution', 'crawlexecution'].includes(subject));
+      ['configs', 'CRAWLENTITY', 'SEED', 'CRAWLJOB', 'report', 'jobexecution', 'crawlexecution']
+        .includes(subject));
     fixture.destroy();
     fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
@@ -187,6 +189,7 @@ describe('AppComponent navigation', () => {
       'Home',
       'Entities',
       'Seeds',
+      'Crawl jobs',
       'Jobs',
       'Crawls',
     ]);
@@ -194,15 +197,17 @@ describe('AppComponent navigation', () => {
       'logo',
       'business',
       'link',
+      'work',
       'hdr_strong',
       'hdr_weak',
     ]);
     expect(new URL(links[1].href).pathname).toBe('/config/entity');
     expect(new URL(links[2].href).pathname).toBe('/config/seed');
-    expect(new URL(links[3].href).pathname).toBe('/report/jobexecution');
-    expect(new URL(links[3].href).searchParams.get('sort')).toBe('startTime:desc');
-    expect(new URL(links[4].href).pathname).toBe('/report/crawlexecution');
+    expect(new URL(links[3].href).pathname).toBe('/config/crawljobs');
+    expect(new URL(links[4].href).pathname).toBe('/report/jobexecution');
     expect(new URL(links[4].href).searchParams.get('sort')).toBe('startTime:desc');
+    expect(new URL(links[5].href).pathname).toBe('/report/crawlexecution');
+    expect(new URL(links[5].href).searchParams.get('sort')).toBe('startTime:desc');
     expect(links.some(link => ['/config', '/report'].includes(new URL(link.href).pathname))).toBe(false);
   });
 
@@ -539,6 +544,7 @@ describe('AppComponent navigation', () => {
     ) as HTMLElement[];
     expect(drawerItems.at(-1)?.textContent.trim()).toContain('Log out');
     expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
+    expect(getComputedStyle(drawerItems.at(-1) as HTMLElement).marginTop).toBe('auto');
     expect(drawerItems.some(item => item.textContent.includes('LOGIN'))).toBe(false);
     expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
     expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);

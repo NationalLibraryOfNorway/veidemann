@@ -133,6 +133,13 @@ export class AppComponent implements OnInit {
       permissionSubject: 'SEED',
     },
     {
+      route: '/config/crawljobs',
+      icon: 'work',
+      label: $localize`:@@railNavigationCrawlJobs:Crawl jobs`,
+      sectionPermissionSubject: 'configs',
+      permissionSubject: 'CRAWLJOB',
+    },
+    {
       route: '/report/jobexecution',
       icon: 'hdr_strong',
       label: $localize`:@@railNavigationJobs:Jobs`,

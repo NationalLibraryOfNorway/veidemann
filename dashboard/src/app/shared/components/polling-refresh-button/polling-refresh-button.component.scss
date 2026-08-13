@@ -8,18 +8,22 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
-.polling-refresh-button:hover {
+.polling-refresh-button:hover,
+.polling-refresh-button:focus-visible {
   background: var(--mat-sys-surface-container-high);
 }
 
 mat-progress-spinner {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   opacity: 0.55;
+  transition: opacity 150ms ease;
   --mdc-circular-progress-active-indicator-color: var(--mat-sys-primary);
 }
 
-mat-icon {
-  width: 19px;
-  height: 19px;
-  font-size: 19px;
+.polling-refresh-button:hover mat-progress-spinner,
+.polling-refresh-button:focus-visible mat-progress-spinner {
+  opacity: 0.8;
 }

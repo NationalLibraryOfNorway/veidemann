@@ -124,7 +124,8 @@
             </button>
           }
           @if (isLoggedIn) {
-            <button mat-list-item type="button" (click)="onLogout(); closePrimaryDrawer()">
+            <button class="drawer-logout" mat-list-item type="button"
+                    (click)="onLogout(); closePrimaryDrawer()">
               <mat-icon matListItemIcon>logout</mat-icon>
               <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>
             </button>

@@ -1,6 +1,5 @@
 import {ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, inject, Input, Output, signal} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
-import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {interval} from 'rxjs';
@@ -14,7 +13,6 @@ import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
   standalone: true,
   imports: [
     MatButtonModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
   ],

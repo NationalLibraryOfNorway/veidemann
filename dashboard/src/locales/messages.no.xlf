@@ -3435,6 +3435,12 @@
         <target>Bruk vertsnavn</target>
       </segment>
     </unit>
+    <unit id="pollingRefreshAction">
+      <segment state="initial">
+        <source>Refresh now</source>
+        <target>Refresh now</target>
+      </segment>
+    </unit>
     <unit id="politenessConfigListFilterCrawlconfigWithPolitenessActionButtonTooltip">
       <segment state="initial">
         <source>Show crawl configurations that use this politeness configuration</source>
@@ -3469,6 +3475,12 @@
       <segment state="initial">
         <source>Open navigation</source>
         <target>Open navigation</target>
+      </segment>
+    </unit>
+    <unit id="railNavigationCrawlJobs">
+      <segment state="initial">
+        <source>Crawl jobs</source>
+        <target>Crawl jobs</target>
       </segment>
     </unit>
     <unit id="railNavigationCrawls">

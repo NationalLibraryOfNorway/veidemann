@@ -19,6 +19,21 @@ describe('PollingRefreshButtonComponent', () => {
 
   afterEach(() => vi.useRealTimers());
 
+  it('renders a centered progress ring as the accessible refresh button', () => {
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const spinner = button.querySelector('mat-progress-spinner') as HTMLElement;
+    const spinnerStyle = getComputedStyle(spinner);
+
+    expect(button.getAttribute('aria-label')).toBe('Refresh now');
+    expect(button.querySelector('mat-icon')).toBeNull();
+    expect(spinner.getAttribute('aria-hidden')).toBe('true');
+    expect(spinnerStyle.width).toBe('28px');
+    expect(spinnerStyle.height).toBe('28px');
+    expect(spinnerStyle.top).toBe('50%');
+    expect(spinnerStyle.left).toBe('50%');
+    expect(spinnerStyle.transform).toBe('translate(-50%, -50%)');
+  });
+
   it('fills the determinate ring and refreshes automatically every 15 seconds', async () => {
     const refreshed = vi.fn();
     fixture.componentInstance.refresh.subscribe(refreshed);

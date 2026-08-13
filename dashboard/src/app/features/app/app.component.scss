@@ -29,7 +29,10 @@
 }
 
 .primary-navigation {
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
+  height: 100%;
   padding: 8px 12px;
 }
 
@@ -38,6 +41,10 @@
   width: 100%;
   margin: 2px 0;
   border-radius: var(--mat-sys-corner-full);
+}
+
+.primary-navigation .drawer-logout {
+  margin-top: auto;
 }
 
 .primary-navigation .mat-mdc-list-item.mdc-list-item--activated {
