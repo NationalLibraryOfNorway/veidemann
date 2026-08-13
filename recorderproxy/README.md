@@ -176,6 +176,57 @@ With a request-scoped `RecordContext`, the terminal path completes BrowserContro
 
 BrowserController remains the correlation partner, not the source of recorder errors. Chromium's inner request ID is registered normally, and recorderproxy's later `CompleteResource` supplies the authoritative crawl log even if Chromium reports `Network.loadingFailed` first.
 
+## Runtime Metrics And Profiling
+
+Recorderproxy exposes the standard Prometheus Go runtime and process metrics on
+port `9302` at `/metrics`. The monitoring `ServiceMonitor` scrapes this as a
+second endpoint on the harvester Service. The **Go Runtime / Profiling Signals**
+Grafana dashboard can select recorderproxy by choosing the harvester job and the
+instance whose address ends in `:9302`. The same dashboard works with any target
+that exports the standard `client_golang` metrics.
+
+Prometheus metrics show trends such as live heap, process RSS, allocation rate,
+GC frequency, goroutines, CPU, and file descriptors. Prometheus does not store
+pprof profiles. Heap, CPU, and goroutine profiles must be fetched from the
+process while the problem is occurring.
+
+The pprof server is disabled by default and listens only on
+`127.0.0.1:6060` when enabled. Enable it temporarily in the deployment overlay:
+
+```yaml
+env:
+  - name: PROFILING_ENABLED
+    value: "true"
+```
+
+Forward the profiling port without exposing it through a Kubernetes Service:
+
+```sh
+kubectl -n <namespace> port-forward pod/<harvester-pod> 6060:6060
+```
+
+Capture a heap baseline early in the crawl and another profile as memory grows:
+
+```sh
+curl -o recorderproxy-baseline.heap http://127.0.0.1:6060/debug/pprof/heap
+curl -o recorderproxy-high.heap http://127.0.0.1:6060/debug/pprof/heap
+go tool pprof -top recorderproxy-high.heap
+go tool pprof -http=127.0.0.1:0 -diff_base=recorderproxy-baseline.heap recorderproxy-high.heap
+```
+
+Capture CPU and goroutine profiles when the dashboard shows pressure:
+
+```sh
+curl -o recorderproxy.cpu 'http://127.0.0.1:6060/debug/pprof/profile?seconds=30'
+curl -o recorderproxy.goroutine http://127.0.0.1:6060/debug/pprof/goroutine
+go tool pprof -http=127.0.0.1:0 recorderproxy.cpu
+go tool pprof -top recorderproxy.goroutine
+```
+
+Profiles can contain URLs, headers, and other process data. Keep the pprof port
+out of the Service, store captures as sensitive operational artifacts, and turn
+profiling off after the investigation.
+
 ## Development
 
 This directory is an independent Go module. Run tests from here:

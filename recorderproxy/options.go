@@ -29,6 +29,12 @@ func parseFlags() (Options, error) {
 	flags.String("ca-key", "", "Path to private key for CA certificate used for signing client connections")
 	flags.String("cache-host", "", "Cache host")
 	flags.String("cache-port", "", "Cache port")
+	flags.String("metrics-interface", "", "interface for exposing Prometheus metrics. Empty means all interfaces")
+	flags.Int("metrics-port", 9302, "port for exposing Prometheus metrics")
+	flags.String("metrics-path", "/metrics", "path for exposing Prometheus metrics")
+	flags.Bool("profiling-enabled", false, "enable the Go pprof HTTP server")
+	flags.String("profiling-interface", "127.0.0.1", "interface for exposing the pprof HTTP server")
+	flags.Int("profiling-port", 6060, "port for exposing the pprof HTTP server")
 	flags.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
 	flags.String("log-formatter", "text", "log formatter, available values are text, logfmt and json")
 	flags.Bool("log-method", false, "log method name")
@@ -58,6 +64,30 @@ func (o Options) Port() int {
 
 func (o Options) ProxyCount() int {
 	return o.v.GetInt("proxy-count")
+}
+
+func (o Options) MetricsInterface() string {
+	return o.v.GetString("metrics-interface")
+}
+
+func (o Options) MetricsPort() int {
+	return o.v.GetInt("metrics-port")
+}
+
+func (o Options) MetricsPath() string {
+	return o.v.GetString("metrics-path")
+}
+
+func (o Options) ProfilingEnabled() bool {
+	return o.v.GetBool("profiling-enabled")
+}
+
+func (o Options) ProfilingInterface() string {
+	return o.v.GetString("profiling-interface")
+}
+
+func (o Options) ProfilingPort() int {
+	return o.v.GetInt("profiling-port")
 }
 
 func (o Options) Help() bool {

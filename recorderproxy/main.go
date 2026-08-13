@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
@@ -85,6 +90,28 @@ func run() error {
 	cacheAddr := opts.CacheHost() + ":" + opts.CachePort()
 	slog.Info("Using cache", "address", cacheAddr)
 
+	metricsAddr := net.JoinHostPort(opts.MetricsInterface(), strconv.Itoa(opts.MetricsPort()))
+	metricsListener, err := net.Listen("tcp", metricsAddr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on metrics address %s: %w", metricsAddr, err)
+	}
+	metricsServer := newMetricsServer(metricsAddr, opts.MetricsPath())
+	defer shutdownHTTPServer(metricsServer)
+
+	go serveHTTP("Metrics", metricsServer, metricsListener)
+
+	if opts.ProfilingEnabled() {
+		profilingAddr := net.JoinHostPort(opts.ProfilingInterface(), strconv.Itoa(opts.ProfilingPort()))
+		profilingListener, err := net.Listen("tcp", profilingAddr)
+		if err != nil {
+			return fmt.Errorf("failed to listen on profiling address %s: %w", profilingAddr, err)
+		}
+		profilingServer := newProfilingServer(profilingAddr)
+		defer shutdownHTTPServer(profilingServer)
+
+		go serveHTTP("Profiling", profilingServer, profilingListener)
+	}
+
 	iface := opts.Interface()
 	firstPort := opts.Port()
 	proxyCount := opts.ProxyCount()
@@ -128,4 +155,20 @@ func run() error {
 	}
 
 	return nil
+}
+
+func serveHTTP(name string, server *http.Server, listener net.Listener) {
+	slog.Info(name+" server listening", "address", listener.Addr())
+	if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error(name+" server stopped", "error", err)
+	}
+}
+
+func shutdownHTTPServer(server *http.Server) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("Failed to shut down HTTP server", "address", server.Addr, "error", err)
+	}
 }
