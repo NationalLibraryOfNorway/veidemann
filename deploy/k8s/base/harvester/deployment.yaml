@@ -104,6 +104,9 @@ spec:
             - containerPort: 9900
               name: proxy
               protocol: TCP
+            - containerPort: 9302
+              name: rp-metrics
+              protocol: TCP
           env:
             - name: PORT
               value: "9900"
@@ -125,6 +128,10 @@ spec:
               value: "cache-balancer"
             - name: CACHE_PORT
               value: "3128"
+            - name: METRICS_PORT
+              value: "9302"
+            - name: PROFILING_ENABLED
+              value: "false"
             - name: JAEGER_SERVICE_NAME
               value: harvester-proxy
             - name: LOG_LEVEL

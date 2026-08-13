@@ -6,6 +6,8 @@ spec:
   endpoints:
   - path: /metrics
     port: http-metrics
+  - path: /metrics
+    port: http-rp-metrics
   jobLabel: app.kubernetes.io/name
   namespaceSelector:
     any: true

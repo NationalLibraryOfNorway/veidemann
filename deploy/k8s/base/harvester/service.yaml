@@ -19,6 +19,10 @@ spec:
       port: 9301
       protocol: TCP
       targetPort: http-metrics
+    - name: http-rp-metrics
+      port: 9302
+      protocol: TCP
+      targetPort: rp-metrics
     - name: http-debug
       port: 3000
       targetPort: debug

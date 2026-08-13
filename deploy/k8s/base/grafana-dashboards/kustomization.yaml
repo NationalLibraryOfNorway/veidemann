@@ -36,3 +36,6 @@ configMapGenerator:
   - name: grafana-dashboard-kvrocks
     files:
       - kvrocks.json
+  - name: grafana-dashboard-go-runtime
+    files:
+      - go-runtime.json
