@@ -39,7 +39,6 @@ for (const {name, locale} of [
         jobId: '',
         startTimeFrom: '',
         startTimeTo: '',
-        watch: false,
         active: '',
         direction: '',
       } satisfies JobExecutionStatusQuery);
@@ -60,13 +59,11 @@ for (const {name, locale} of [
       expect(labels.filter((_, index) => selected[index])).toEqual(['RUNNING']);
     });
 
-    it('uses a chip for the watch filter', () => {
-      const chip = fixture.nativeElement.querySelector(
-        'mat-chip-listbox[formcontrolname="watch"] mat-chip-option'
-      ) as HTMLElement;
-
+    it('places a polling refresh control beside the state filters without a watch filter', () => {
       expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
-      expect(chip.textContent.trim()).toBe('Watch');
+      expect(fixture.nativeElement.querySelector('[formcontrolname="watch"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.report-status-filter-row app-polling-refresh-button'))
+        .not.toBeNull();
     });
 
     it('places the state filters after the other controls', () => {
@@ -125,7 +122,6 @@ for (const {name, locale} of [
         jobId: '',
         startTimeFrom: selectedDate.toISOString(),
         startTimeTo: upperBoundary.toISOString(),
-        watch: false,
         active: '',
         direction: '',
       } satisfies JobExecutionStatusQuery);

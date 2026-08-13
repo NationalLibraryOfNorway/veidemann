@@ -163,6 +163,21 @@ mat-card-header.card-header-with-helpers {
   font: var(--mat-sys-label-medium);
 }
 
+.report-status-filter-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-status-filter-row mat-chip-listbox {
+  min-width: 0;
+}
+
+.report-status-filter-row app-polling-refresh-button {
+  margin-left: auto;
+}
+
 .report-result-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

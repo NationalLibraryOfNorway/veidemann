@@ -10,7 +10,7 @@ import { Detail, Sort, toTimestampProto, Watch } from '../../../shared/func';
 import { ConfigObject, ConfigRef, CrawlExecutionState, CrawlExecutionStatus, Kind, ListRange } from '../../../shared/models';
 import { ConfigService, LoadingService } from '../../../shared/services';
 
-export interface CrawlExecutionStatusQuery extends Sort, Watch {
+export interface CrawlExecutionStatusQuery extends Sort {
   jobId: string;
   jobExecutionId: string;
   seedId: string;
@@ -102,10 +102,6 @@ export class CrawlExecutionService extends LoadingService {
 
     if (query.stateList.length) {
       listRequest.state = query.stateList.map(state => state.valueOf());
-    }
-
-    if (query.watch) {
-      listRequest.watch = query.watch;
     }
 
     if (query.direction && query.active) {

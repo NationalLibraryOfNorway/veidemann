@@ -31,6 +31,7 @@ export class CrawlExecutionStatus {
     CrawlExecutionState.ABORTED_TIMEOUT,
     CrawlExecutionState.FAILED,
     CrawlExecutionState.FINISHED,
+    CrawlExecutionState.DIED,
   ];
 
   id: string;

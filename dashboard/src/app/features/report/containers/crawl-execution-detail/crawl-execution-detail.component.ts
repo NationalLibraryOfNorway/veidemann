@@ -1,9 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {ChangeDetectionStrategy, Component, ErrorHandler, OnInit, inject} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
-import {combineLatest, merge, Observable} from 'rxjs';
-import {defaultIfEmpty, filter, map, mergeMap, shareReplay, switchMap, takeWhile} from 'rxjs/operators';
+import {combineLatest, concat, Observable, of, timer} from 'rxjs';
+import {defaultIfEmpty, distinctUntilChanged, map, shareReplay, switchMap, takeWhile} from 'rxjs/operators';
+import {Router} from '@angular/router';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {ControllerApiService, SnackBarService} from '../../../../core';
-import {CrawlExecutionState, CrawlExecutionStatus, ExecutionId} from '../../../../shared/models';
+import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/models';
 import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
 import {DetailDirective} from '../../directives';
 import {CrawlExecutionService} from '../../services';
@@ -27,6 +31,9 @@ import {DetailOverflowComponent} from '../../../../shared/components';
       CrawlExecutionStatusComponent,
       CrawlExecutionShortcutHelpersComponent,
       ExecutionAbortActionComponent,
+      MatButtonModule,
+      MatIconModule,
+      MatTooltipModule,
     ],
 })
 export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutionStatus> implements OnInit {
@@ -34,39 +41,56 @@ export class CrawlExecutionDetailComponent extends DetailDirective<CrawlExecutio
   protected controllerApiService = inject(ControllerApiService);
   protected dialog = inject(MatDialog);
   protected snackBarService = inject(SnackBarService);
+  private router = inject(Router);
+  private errorHandler = inject(ErrorHandler);
   queueSize$: Observable<number | null>;
+  watching$: Observable<boolean>;
+  readonly CrawlExecutionStatus = CrawlExecutionStatus;
+  readonly watchUpdatesLabel = $localize`:@@executionWatchUpdatesAction:Watch updates`;
+  readonly stopWatchingLabel = $localize`:@@executionStopWatchingAction:Stop watching`;
 
 
   override ngOnInit() {
     super.ngOnInit();
 
-    const item$: Observable<CrawlExecutionStatus> = this.query$.pipe(
-      map(({id}) => ({id, watch: false})),
-      mergeMap(query => this.service.get(query)),
+    this.watching$ = this.query$.pipe(
+      map(query => query.watch),
+      distinctUntilChanged(),
     );
-
-    const watchedItem$: Observable<CrawlExecutionStatus> = combineLatest([
-      this.query$, item$
-    ]).pipe(
-      // only watch if job execution isn't in one of the done states
-      filter(([, item]) => !CrawlExecutionStatus.DONE_STATES.includes(item.state)),
-      switchMap(([query]) => this.service.get(query).pipe(
-        takeWhile(item => !CrawlExecutionStatus.DONE_STATES.includes((item.state)), true),
+    this.item$ = this.query$.pipe(
+      switchMap(query => this.service.get({id: query.id, watch: false}).pipe(
+        switchMap(item => query.watch && !CrawlExecutionStatus.DONE_STATES.includes(item.state)
+          ? concat(
+            of(item),
+            this.service.get({id: query.id, watch: true}).pipe(
+              takeWhile(update => !CrawlExecutionStatus.DONE_STATES.includes(update.state), true),
+            ),
+          )
+          : of(item)),
       )),
+      shareReplay({bufferSize: 1, refCount: true}),
     );
+    this.queueSize$ = combineLatest([this.item$, this.watching$]).pipe(
+      switchMap(([item, watching]) => (
+        watching && !CrawlExecutionStatus.DONE_STATES.includes(item.state) ? timer(0, 15_000) : of(0)
+      ).pipe(
+        switchMap(() => this.controllerApiService
+          .queueCountsForCrawlExecutions([item.id])
+          .pipe(
+            map(counts => counts.get(item.id) ?? 0),
+            defaultIfEmpty(null),
+          )),
+      )),
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
+  }
 
-    this.item$ = merge(item$, watchedItem$).pipe(
-      shareReplay({bufferSize: 1, refCount: true}),
-    );
-    this.queueSize$ = this.item$.pipe(
-      switchMap(item => this.controllerApiService
-        .queueCountForCrawlExecution(new ExecutionId({id: item.id}))
-        .pipe(
-          map(response => response.count),
-          defaultIfEmpty(null),
-        )),
-      shareReplay({bufferSize: 1, refCount: true}),
-    );
+  toggleWatch(watching: boolean): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {watch: watching ? null : true},
+      queryParamsHandling: 'merge',
+    }).catch(error => this.errorHandler.handleError(error));
   }
 
   canAbort(crawlExecutionStatus: CrawlExecutionStatus): boolean {

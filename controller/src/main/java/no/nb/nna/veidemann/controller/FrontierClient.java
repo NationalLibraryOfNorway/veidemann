@@ -39,11 +39,12 @@ import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
+import no.nb.nna.veidemann.api.frontier.v1.ExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierBlockingStub;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc.FrontierFutureStub;
-import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
+import no.nb.nna.veidemann.api.frontier.v1.QueueCountsResponse;
 import no.nb.nna.veidemann.commons.client.GrpcUtil;
 import no.nb.nna.veidemann.db.ProtoUtils;
 
@@ -140,15 +141,15 @@ public class FrontierClient implements AutoCloseable {
         return futureStub.queueCountTotal(Empty.getDefaultInstance());
     }
 
-    public void queueCountForCrawlExecution(CrawlExecutionId crawlExecutionId, FutureCallback<CountResponse> callback,
-            Executor executor) {
-        ListenableFuture<CountResponse> future = futureStub.queueCountForCrawlExecution(crawlExecutionId);
+    public void queueCountsForCrawlExecutions(ExecutionIds executionIds,
+            FutureCallback<QueueCountsResponse> callback, Executor executor) {
+        ListenableFuture<QueueCountsResponse> future = futureStub.queueCountsForCrawlExecutions(executionIds);
         Futures.addCallback(future, callback, executor);
     }
 
-    public void queueCountForJobExecution(JobExecutionId jobExecutionId,
-            FutureCallback<CountResponse> callback, Executor executor) {
-        ListenableFuture<CountResponse> future = futureStub.queueCountForJobExecution(jobExecutionId);
+    public void queueCountsForJobExecutions(ExecutionIds executionIds,
+            FutureCallback<QueueCountsResponse> callback, Executor executor) {
+        ListenableFuture<QueueCountsResponse> future = futureStub.queueCountsForJobExecutions(executionIds);
         Futures.addCallback(future, callback, executor);
     }
 

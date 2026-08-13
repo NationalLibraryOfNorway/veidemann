@@ -45,6 +45,19 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="queueSize">
+        <th i18n="@@executionQueueSizeHeaderCell" mat-header-cell *matHeaderCellDef>Queue</th>
+        <td mat-cell *matCellDef="let row">
+          @if (queueCount(row); as count) {
+            {{count}}
+          } @else if (queueCount(row) === 0) {
+            0
+          } @else {
+            <span aria-label="Queue count unavailable" i18n-aria-label="@@executionQueueSizeUnavailableLabel">—</span>
+          }
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="errorCode">
         <th i18n="@@crawlExecutionReportListErrorCodeHeaderCell"
           mat-header-cell *matHeaderCellDef>Error

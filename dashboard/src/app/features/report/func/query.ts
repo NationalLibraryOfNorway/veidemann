@@ -15,10 +15,6 @@ interface RouteSortQuery {
   direction: SortDirection;
 }
 
-interface RouteListQuery extends RouteSortQuery {
-  watch: boolean;
-}
-
 export function pageLogQueryFromParamMap(params: ParamMap): PageLogQuery {
   return {
     ...sortQueryFromParamMap(params),
@@ -38,7 +34,7 @@ export function crawlLogQueryFromParamMap(params: ParamMap): CrawlLogQuery {
 
 export function jobExecutionQueryFromParamMap(params: ParamMap): JobExecutionStatusQuery {
   return {
-    ...listQueryFromParamMap(params),
+    ...sortQueryFromParamMap(params),
     jobId: params.get('job_id'),
     stateList: numericValues<JobExecutionState>(params.getAll('state')),
     startTimeFrom: validDate(params.get('start_time_from')),
@@ -48,7 +44,7 @@ export function jobExecutionQueryFromParamMap(params: ParamMap): JobExecutionSta
 
 export function crawlExecutionQueryFromParamMap(params: ParamMap): CrawlExecutionStatusQuery {
   return {
-    ...listQueryFromParamMap(params),
+    ...sortQueryFromParamMap(params),
     jobId: params.get('job_id'),
     jobExecutionId: params.get('job_execution_id'),
     seedId: params.get('seed_id'),
@@ -76,7 +72,7 @@ export function equalJobExecutionQuery(
   previous: JobExecutionStatusQuery,
   current: JobExecutionStatusQuery
 ): boolean {
-  return equalListQuery(previous, current)
+  return equalSortQuery(previous, current)
     && previous.jobId === current.jobId
     && equalArrayValues(previous.stateList, current.stateList)
     && previous.startTimeFrom === current.startTimeFrom
@@ -87,7 +83,7 @@ export function equalCrawlExecutionQuery(
   previous: CrawlExecutionStatusQuery,
   current: CrawlExecutionStatusQuery
 ): boolean {
-  return equalListQuery(previous, current)
+  return equalSortQuery(previous, current)
     && previous.jobId === current.jobId
     && previous.jobExecutionId === current.jobExecutionId
     && previous.seedId === current.seedId
@@ -95,13 +91,6 @@ export function equalCrawlExecutionQuery(
     && previous.hasError === current.hasError
     && previous.startTimeFrom === current.startTimeFrom
     && previous.startTimeTo === current.startTimeTo;
-}
-
-function listQueryFromParamMap(params: ParamMap): RouteListQuery {
-  return {
-    ...sortQueryFromParamMap(params),
-    watch: params.get('watch') === 'true',
-  };
 }
 
 function sortQueryFromParamMap(params: ParamMap): RouteSortQuery {
@@ -112,11 +101,6 @@ function sortQueryFromParamMap(params: ParamMap): RouteSortQuery {
     active: direction ? active : '',
     direction,
   };
-}
-
-function equalListQuery(previous: RouteListQuery, current: RouteListQuery): boolean {
-  return equalSortQuery(previous, current)
-    && previous.watch === current.watch;
 }
 
 function equalSortQuery(previous: RouteSortQuery, current: RouteSortQuery): boolean {

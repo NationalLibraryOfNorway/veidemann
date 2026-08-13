@@ -1,0 +1,25 @@
+:host {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.polling-refresh-button {
+  position: relative;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.polling-refresh-button:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+
+mat-progress-spinner {
+  position: absolute;
+  opacity: 0.55;
+  --mdc-circular-progress-active-indicator-color: var(--mat-sys-primary);
+}
+
+mat-icon {
+  width: 19px;
+  height: 19px;
+  font-size: 19px;
+}

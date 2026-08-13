@@ -10,6 +10,7 @@
         </mat-chip-option>
       }
     </mat-chip-listbox>
+    <app-polling-refresh-button (refresh)="refresh.emit()"></app-polling-refresh-button>
   </header>
 
   @if (dataSource.rows$ | async; as rows) {
@@ -19,7 +20,8 @@
       @if (rows.length > 0) {
         <app-job-execution-status-list
           [dataSource]="dataSource"
-          [displayedColumns]="['jobId', 'state', 'desiredState', 'documentsCrawled', 'bytesCrawled',
+          [queueCounts]="queueCounts"
+          [displayedColumns]="['jobId', 'state', 'desiredState', 'queueSize', 'documentsCrawled', 'bytesCrawled',
                                'startTime', 'endTime', 'duration']"
           [embedded]="true"
           [sortActive]="sortActive"

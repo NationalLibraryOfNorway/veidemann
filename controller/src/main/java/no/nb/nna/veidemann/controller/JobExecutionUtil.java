@@ -15,9 +15,10 @@ import no.nb.nna.veidemann.api.controller.v1.CrawlerStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
-import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
+import no.nb.nna.veidemann.api.frontier.v1.ExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus.State;
+import no.nb.nna.veidemann.api.frontier.v1.QueueCountsResponse;
 import no.nb.nna.veidemann.api.report.v1.CrawlExecutionsListRequest;
 import no.nb.nna.veidemann.api.report.v1.JobExecutionsListRequest;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
@@ -264,28 +265,25 @@ public class JobExecutionUtil {
         }
     }
 
-    public static void queueCountForCrawlExecution(CrawlExecutionId crawlExecutionId, FutureCallback<CountResponse> callback) {
-        String type = "url";
-        FrontierClient frontierClient = frontierClients.get(type);
-
+    public static void queueCountsForCrawlExecutions(
+            ExecutionIds executionIds, FutureCallback<QueueCountsResponse> callback) {
+        FrontierClient frontierClient = frontierClients.get("url");
         if (frontierClient != null) {
-            frontierClient.queueCountForCrawlExecution(crawlExecutionId, callback, exe);
+            frontierClient.queueCountsForCrawlExecutions(executionIds, callback, exe);
         } else {
-            LOG.warn("No frontier defined for seed type {}", type);
-            callback.onFailure(new IllegalArgumentException("No frontier defined for seed type " + type));
+            LOG.warn("No frontier defined for seed type url");
+            callback.onFailure(new IllegalArgumentException("No frontier defined for seed type url"));
         }
     }
 
-    public static void queueCountForJobExecution(JobExecutionId jobExecutionId,
-            FutureCallback<CountResponse> callback) {
-        String type = "url";
-        FrontierClient frontierClient = frontierClients.get(type);
-
+    public static void queueCountsForJobExecutions(
+            ExecutionIds executionIds, FutureCallback<QueueCountsResponse> callback) {
+        FrontierClient frontierClient = frontierClients.get("url");
         if (frontierClient != null) {
-            frontierClient.queueCountForJobExecution(jobExecutionId, callback, exe);
+            frontierClient.queueCountsForJobExecutions(executionIds, callback, exe);
         } else {
-            LOG.warn("No frontier defined for seed type {}", type);
-            callback.onFailure(new IllegalArgumentException("No frontier defined for seed type " + type));
+            LOG.warn("No frontier defined for seed type url");
+            callback.onFailure(new IllegalArgumentException("No frontier defined for seed type url"));
         }
     }
 

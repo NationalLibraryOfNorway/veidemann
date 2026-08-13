@@ -1,12 +1,11 @@
 import {ChangeDetectionStrategy, Component, DestroyRef, ErrorHandler, inject, OnInit} from '@angular/core';
-import {BehaviorSubject, EMPTY, Observable, Subject, timer} from 'rxjs';
+import {BehaviorSubject, EMPTY, Observable, of, Subject} from 'rxjs';
 import {catchError, startWith, switchMap, take} from 'rxjs/operators';
 import {MatCardModule} from '@angular/material/card';
 import {MatDialog} from '@angular/material/dialog';
 import {MatIcon} from '@angular/material/icon';
 import {Sort, SortDirection} from '@angular/material/sort';
 import {Router} from '@angular/router';
-import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 import {AuthService, ControllerApiService} from '../../../core';
@@ -15,7 +14,12 @@ import {CrawlerStatusDialogComponent} from '../crawlerstatus-dialog/crawlerstatu
 import {AsyncPipe} from '@angular/common';
 import {CrawlerStatusComponent} from '../crawlerstatus/crawlerstatus.component';
 import {JobExecutionState, JobExecutionStatus, ListDataSource} from '../../../shared/models';
-import {JobExecutionService, JobExecutionStatusQuery} from '../../report/services';
+import {
+  ExecutionQueueCounts,
+  ExecutionQueueCountService,
+  JobExecutionService,
+  JobExecutionStatusQuery,
+} from '../../report/services';
 import {RunningCrawlsComponent} from '../running-crawls/running-crawls.component';
 
 @Component({
@@ -42,14 +46,17 @@ export class DashboardComponent implements OnInit {
   private dialog = inject(MatDialog);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
   private jobExecutionService = inject(JobExecutionService);
+  private executionQueueCountService = inject(ExecutionQueueCountService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
+  readonly emptyQueueCounts: ExecutionQueueCounts = new Map();
 
   updateRunStatus = new Subject<void>();
   crawlerStatus$: Observable<CrawlerStatus>;
   latestJobsDataSource: ListDataSource<JobExecutionStatus, JobExecutionStatusQuery> | null = null;
+  latestJobQueueCounts$: Observable<ExecutionQueueCounts> = of(new Map());
   readonly latestJobsQuery = new BehaviorSubject<JobExecutionStatusQuery>({
     active: 'startTime',
     direction: 'desc',
@@ -57,7 +64,6 @@ export class DashboardComponent implements OnInit {
     startTimeFrom: '',
     startTimeTo: '',
     stateList: [JobExecutionState.RUNNING],
-    watch: false,
   });
 
   constructor() {
@@ -80,9 +86,7 @@ export class DashboardComponent implements OnInit {
         load: (query, range) => this.jobExecutionService.search(query, range),
         destroyRef: this.destroyRef,
       });
-      timer(15_000, 15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
-        () => this.latestJobsDataSource?.refreshLoaded()
-      );
+      this.latestJobQueueCounts$ = this.executionQueueCountService.forJobExecutions(this.latestJobsDataSource);
     }
   }
 
@@ -121,6 +125,10 @@ export class DashboardComponent implements OnInit {
   onJobExecutionClick(row: JobExecutionStatus): void {
     this.router.navigate(['/report', 'jobexecution', row.id])
       .catch(error => this.errorHandler.handleError(error));
+  }
+
+  onLatestJobsRefresh(): void {
+    this.latestJobsDataSource?.refreshLoaded();
   }
 
   onChangeRunStatus(shouldPause: boolean) {

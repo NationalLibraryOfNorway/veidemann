@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontier/v1/frontier.proto.
  */
 export const file_frontier_v1_frontier: GenFile = /*@__PURE__*/
-  fileDesc("Chpmcm9udGllci92MS9mcm9udGllci5wcm90bxIZdmVpZGVtYW5uLmFwaS5mcm9udGllci52MSLCAQoQQ3Jhd2xTZWVkUmVxdWVzdBIYChBqb2JfZXhlY3V0aW9uX2lkGAEgASgJEjIKA2pvYhgFIAEoCzIlLnZlaWRlbWFubi5hcGkuY29uZmlnLnYxLkNvbmZpZ09iamVjdBIzCgRzZWVkGAYgASgLMiUudmVpZGVtYW5uLmFwaS5jb25maWcudjEuQ29uZmlnT2JqZWN0EisKB3RpbWVvdXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIh4KEENyYXdsRXhlY3V0aW9uSWQSCgoCaWQYASABKAkiHAoOSm9iRXhlY3V0aW9uSWQSCgoCaWQYASABKAkikQIKC1BhZ2VIYXJ2ZXN0EkEKB21ldHJpY3MYAiABKAsyLi52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLlBhZ2VIYXJ2ZXN0Lk1ldHJpY3NIABI3CgdvdXRsaW5rGAMgASgLMiQudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5RdWV1ZWRVcmlIABIwCgVlcnJvchgEIAEoCzIfLnZlaWRlbWFubi5hcGkuY29tbW9ucy52MS5FcnJvckgAEhUKDXNlc3Npb25fdG9rZW4YBSABKAkaNgoHTWV0cmljcxIRCgl1cmlfY291bnQYASABKAUSGAoQYnl0ZXNfZG93bmxvYWRlZBgCIAEoA0IFCgNtc2cinwEKD1BhZ2VIYXJ2ZXN0U3BlYxI4CgpxdWV1ZWRfdXJpGAEgASgLMiQudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5RdWV1ZWRVcmkSOwoMY3Jhd2xfY29uZmlnGAIgASgLMiUudmVpZGVtYW5uLmFwaS5jb25maWcudjEuQ29uZmlnT2JqZWN0EhUKDXNlc3Npb25fdG9rZW4YAyABKAkiHgoNQ291bnRSZXNwb25zZRINCgVjb3VudBgBIAEoAzK1BgoIRnJvbnRpZXISZwoJQ3Jhd2xTZWVkEisudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5DcmF3bFNlZWRSZXF1ZXN0GisudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5DcmF3bEV4ZWN1dGlvbklkIgASUwoLR2V0TmV4dFBhZ2USFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKi52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLlBhZ2VIYXJ2ZXN0U3BlYyIAElMKDVBhZ2VDb21wbGV0ZWQSJi52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLlBhZ2VIYXJ2ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5IgAoARJdChdCdXN5Q3Jhd2xIb3N0R3JvdXBDb3VudBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRooLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ291bnRSZXNwb25zZSIAElUKD1F1ZXVlQ291bnRUb3RhbBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRooLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ291bnRSZXNwb25zZSIAEnYKG1F1ZXVlQ291bnRGb3JDcmF3bEV4ZWN1dGlvbhIrLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ3Jhd2xFeGVjdXRpb25JZBooLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ291bnRSZXNwb25zZSIAEnIKGVF1ZXVlQ291bnRGb3JKb2JFeGVjdXRpb24SKS52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLkpvYkV4ZWN1dGlvbklkGigudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5Db3VudFJlc3BvbnNlIgASdAobUXVldWVDb3VudEZvckNyYXdsSG9zdEdyb3VwEikudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5DcmF3bEhvc3RHcm91cBooLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ291bnRSZXNwb25zZSIAQnYKI25vLm5iLm5uYS52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxQg9Gcm9udGllclNlcnZpY2VQAVo8Z2l0aHViLmNvbS9OYXRpb25hbExpYnJhcnlPZk5vcndheS92ZWlkZW1hbm4vYXBpL2Zyb250aWVyL3YxYgZwcm90bzM", [file_commons_v1_resources, file_config_v1_resources, file_frontier_v1_resources, file_google_protobuf_empty, file_google_protobuf_timestamp]);
+  fileDesc("Chpmcm9udGllci92MS9mcm9udGllci5wcm90bxIZdmVpZGVtYW5uLmFwaS5mcm9udGllci52MSLCAQoQQ3Jhd2xTZWVkUmVxdWVzdBIYChBqb2JfZXhlY3V0aW9uX2lkGAEgASgJEjIKA2pvYhgFIAEoCzIlLnZlaWRlbWFubi5hcGkuY29uZmlnLnYxLkNvbmZpZ09iamVjdBIzCgRzZWVkGAYgASgLMiUudmVpZGVtYW5uLmFwaS5jb25maWcudjEuQ29uZmlnT2JqZWN0EisKB3RpbWVvdXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIh4KEENyYXdsRXhlY3V0aW9uSWQSCgoCaWQYASABKAkiHAoOSm9iRXhlY3V0aW9uSWQSCgoCaWQYASABKAkiGgoMRXhlY3V0aW9uSWRzEgoKAmlkGAEgAygJIpECCgtQYWdlSGFydmVzdBJBCgdtZXRyaWNzGAIgASgLMi4udmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5QYWdlSGFydmVzdC5NZXRyaWNzSAASNwoHb3V0bGluaxgDIAEoCzIkLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuUXVldWVkVXJpSAASMAoFZXJyb3IYBCABKAsyHy52ZWlkZW1hbm4uYXBpLmNvbW1vbnMudjEuRXJyb3JIABIVCg1zZXNzaW9uX3Rva2VuGAUgASgJGjYKB01ldHJpY3MSEQoJdXJpX2NvdW50GAEgASgFEhgKEGJ5dGVzX2Rvd25sb2FkZWQYAiABKANCBQoDbXNnIp8BCg9QYWdlSGFydmVzdFNwZWMSOAoKcXVldWVkX3VyaRgBIAEoCzIkLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuUXVldWVkVXJpEjsKDGNyYXdsX2NvbmZpZxgCIAEoCzIlLnZlaWRlbWFubi5hcGkuY29uZmlnLnYxLkNvbmZpZ09iamVjdBIVCg1zZXNzaW9uX3Rva2VuGAMgASgJIh4KDUNvdW50UmVzcG9uc2USDQoFY291bnQYASABKAMikAEKE1F1ZXVlQ291bnRzUmVzcG9uc2USSgoGY291bnRzGAEgAygLMjoudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5RdWV1ZUNvdW50c1Jlc3BvbnNlLkNvdW50c0VudHJ5Gi0KC0NvdW50c0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEyvwYKCEZyb250aWVyEmcKCUNyYXdsU2VlZBIrLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ3Jhd2xTZWVkUmVxdWVzdBorLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuQ3Jhd2xFeGVjdXRpb25JZCIAElMKC0dldE5leHRQYWdlEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GioudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5QYWdlSGFydmVzdFNwZWMiABJTCg1QYWdlQ29tcGxldGVkEiYudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5QYWdlSGFydmVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eSIAKAESXQoXQnVzeUNyYXdsSG9zdEdyb3VwQ291bnQSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKC52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLkNvdW50UmVzcG9uc2UiABJVCg9RdWV1ZUNvdW50VG90YWwSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKC52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLkNvdW50UmVzcG9uc2UiABJ6Ch1RdWV1ZUNvdW50c0ZvckNyYXdsRXhlY3V0aW9ucxInLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjEuRXhlY3V0aW9uSWRzGi4udmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5RdWV1ZUNvdW50c1Jlc3BvbnNlIgASeAobUXVldWVDb3VudHNGb3JKb2JFeGVjdXRpb25zEicudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5FeGVjdXRpb25JZHMaLi52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLlF1ZXVlQ291bnRzUmVzcG9uc2UiABJ0ChtRdWV1ZUNvdW50Rm9yQ3Jhd2xIb3N0R3JvdXASKS52ZWlkZW1hbm4uYXBpLmZyb250aWVyLnYxLkNyYXdsSG9zdEdyb3VwGigudmVpZGVtYW5uLmFwaS5mcm9udGllci52MS5Db3VudFJlc3BvbnNlIgBCdgojbm8ubmIubm5hLnZlaWRlbWFubi5hcGkuZnJvbnRpZXIudjFCD0Zyb250aWVyU2VydmljZVABWjxnaXRodWIuY29tL05hdGlvbmFsTGlicmFyeU9mTm9yd2F5L3ZlaWRlbWFubi9hcGkvZnJvbnRpZXIvdjFiBnByb3RvMw", [file_commons_v1_resources, file_config_v1_resources, file_frontier_v1_resources, file_google_protobuf_empty, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message veidemann.api.frontier.v1.CrawlSeedRequest
@@ -93,6 +93,25 @@ export const JobExecutionIdSchema: GenMessage<JobExecutionId> = /*@__PURE__*/
   messageDesc(file_frontier_v1_frontier, 2);
 
 /**
+ * A bounded list of execution ids. Queue count RPCs accept at most 100 entries.
+ *
+ * @generated from message veidemann.api.frontier.v1.ExecutionIds
+ */
+export type ExecutionIds = Message<"veidemann.api.frontier.v1.ExecutionIds"> & {
+  /**
+   * @generated from field: repeated string id = 1;
+   */
+  id: string[];
+};
+
+/**
+ * Describes the message veidemann.api.frontier.v1.ExecutionIds.
+ * Use `create(ExecutionIdsSchema)` to create a new message.
+ */
+export const ExecutionIdsSchema: GenMessage<ExecutionIds> = /*@__PURE__*/
+  messageDesc(file_frontier_v1_frontier, 3);
+
+/**
  * Message sent from Harvester to return the harvest result.
  * When the fetch is done, a stream of PageHarvest objects are returned:
  * The first object contains metrics.
@@ -144,7 +163,7 @@ export type PageHarvest = Message<"veidemann.api.frontier.v1.PageHarvest"> & {
  * Use `create(PageHarvestSchema)` to create a new message.
  */
 export const PageHarvestSchema: GenMessage<PageHarvest> = /*@__PURE__*/
-  messageDesc(file_frontier_v1_frontier, 3);
+  messageDesc(file_frontier_v1_frontier, 4);
 
 /**
  * @generated from message veidemann.api.frontier.v1.PageHarvest.Metrics
@@ -170,7 +189,7 @@ export type PageHarvest_Metrics = Message<"veidemann.api.frontier.v1.PageHarvest
  * Use `create(PageHarvest_MetricsSchema)` to create a new message.
  */
 export const PageHarvest_MetricsSchema: GenMessage<PageHarvest_Metrics> = /*@__PURE__*/
-  messageDesc(file_frontier_v1_frontier, 3, 0);
+  messageDesc(file_frontier_v1_frontier, 4, 0);
 
 /**
  * A specification of the page to fetch.
@@ -206,7 +225,7 @@ export type PageHarvestSpec = Message<"veidemann.api.frontier.v1.PageHarvestSpec
  * Use `create(PageHarvestSpecSchema)` to create a new message.
  */
 export const PageHarvestSpecSchema: GenMessage<PageHarvestSpec> = /*@__PURE__*/
-  messageDesc(file_frontier_v1_frontier, 4);
+  messageDesc(file_frontier_v1_frontier, 5);
 
 /**
  * @generated from message veidemann.api.frontier.v1.CountResponse
@@ -223,7 +242,24 @@ export type CountResponse = Message<"veidemann.api.frontier.v1.CountResponse"> &
  * Use `create(CountResponseSchema)` to create a new message.
  */
 export const CountResponseSchema: GenMessage<CountResponse> = /*@__PURE__*/
-  messageDesc(file_frontier_v1_frontier, 5);
+  messageDesc(file_frontier_v1_frontier, 6);
+
+/**
+ * @generated from message veidemann.api.frontier.v1.QueueCountsResponse
+ */
+export type QueueCountsResponse = Message<"veidemann.api.frontier.v1.QueueCountsResponse"> & {
+  /**
+   * @generated from field: map<string, int64> counts = 1;
+   */
+  counts: { [key: string]: bigint };
+};
+
+/**
+ * Describes the message veidemann.api.frontier.v1.QueueCountsResponse.
+ * Use `create(QueueCountsResponseSchema)` to create a new message.
+ */
+export const QueueCountsResponseSchema: GenMessage<QueueCountsResponse> = /*@__PURE__*/
+  messageDesc(file_frontier_v1_frontier, 7);
 
 /**
  * Service for controlling frontier.
@@ -285,24 +321,24 @@ export const Frontier: GenService<{
     output: typeof CountResponseSchema;
   },
   /**
-   * Number of queued URI's for a CrawlExecution
+   * Number of queued URI's for up to 100 CrawlExecutions
    *
-   * @generated from rpc veidemann.api.frontier.v1.Frontier.QueueCountForCrawlExecution
+   * @generated from rpc veidemann.api.frontier.v1.Frontier.QueueCountsForCrawlExecutions
    */
-  queueCountForCrawlExecution: {
+  queueCountsForCrawlExecutions: {
     methodKind: "unary";
-    input: typeof CrawlExecutionIdSchema;
-    output: typeof CountResponseSchema;
+    input: typeof ExecutionIdsSchema;
+    output: typeof QueueCountsResponseSchema;
   },
   /**
-   * Total number of queued URI's for a JobExecution
+   * Number of queued URI's for up to 100 JobExecutions
    *
-   * @generated from rpc veidemann.api.frontier.v1.Frontier.QueueCountForJobExecution
+   * @generated from rpc veidemann.api.frontier.v1.Frontier.QueueCountsForJobExecutions
    */
-  queueCountForJobExecution: {
+  queueCountsForJobExecutions: {
     methodKind: "unary";
-    input: typeof JobExecutionIdSchema;
-    output: typeof CountResponseSchema;
+    input: typeof ExecutionIdsSchema;
+    output: typeof QueueCountsResponseSchema;
   },
   /**
    * Number of queued URI's for a CrawlHostGroup

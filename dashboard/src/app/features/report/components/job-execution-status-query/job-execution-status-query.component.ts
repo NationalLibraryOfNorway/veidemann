@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
@@ -10,6 +10,7 @@ import {JobExecutionState, jobExecutionStates} from '../../../../shared/models';
 import {ConfigObject} from '../../../../shared/models/config';
 import {JobExecutionStatusQuery} from '../../services';
 import {StartTimeDateRangeQueryComponent} from '../start-time-date-range-query.component';
+import {PollingRefreshButtonComponent} from '../../../../shared/components';
 
 @Component({
   selector: 'app-job-execution-status-query',
@@ -23,6 +24,7 @@ import {StartTimeDateRangeQueryComponent} from '../start-time-date-range-query.c
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    PollingRefreshButtonComponent,
     ReactiveFormsModule
   ],
   standalone: true
@@ -35,13 +37,14 @@ export class JobExecutionStatusQueryComponent extends StartTimeDateRangeQueryCom
   @Input()
   crawlJobOptions: ConfigObject[];
 
+  @Output() readonly refresh = new EventEmitter<void>();
+
   protected override createForm(): void {
     this.form = this.fb.group({
       stateList: null,
       jobId: '',
       startTimeFrom: '',
       startTimeTo: '',
-      watch: {value: null, disabled: true},
     });
   }
 

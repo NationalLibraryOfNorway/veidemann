@@ -40,7 +40,10 @@ app-job-execution-status-list {
 
 @media (max-width: 699px) {
   .latest-crawl-jobs-header {
-    align-items: flex-start;
-    flex-direction: column;
+    gap: 8px;
+  }
+
+  mat-chip-listbox {
+    flex: 1 1 auto;
   }
 }

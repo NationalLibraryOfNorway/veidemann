@@ -1,9 +1,19 @@
+@let watching = (watching$ | async) ?? false;
 @if (item$ | async; as crawlExecutionStatus) {
   <div class="detail-page">
     <div class="detail-content">
       <app-crawl-execution-status
         [crawlExecutionStatus]="crawlExecutionStatus"
         [queueSize]="queueSize$ | async">
+        <button detailActions class="watch-toggle" mat-icon-button type="button"
+          [class.active]="watching"
+          [attr.aria-pressed]="watching"
+          [disabled]="!watching && CrawlExecutionStatus.DONE_STATES.includes(crawlExecutionStatus.state)"
+          [matTooltip]="watching ? stopWatchingLabel : watchUpdatesLabel"
+          [attr.aria-label]="watching ? stopWatchingLabel : watchUpdatesLabel"
+          (click)="toggleWatch(watching)">
+          <mat-icon>refresh</mat-icon>
+        </button>
         <app-detail-overflow detailActions label="Crawl execution actions"
           i18n-label="@@crawlExecutionActionsMenuLabel">
           <app-crawl-execution-shortcut-helpers presentation="menu"

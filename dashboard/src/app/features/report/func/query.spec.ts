@@ -3,13 +3,14 @@ import {convertToParamMap} from '@angular/router';
 import {JobExecutionState} from '../../../shared/models';
 import {
   equalJobExecutionQuery,
+  crawlExecutionQueryFromParamMap,
   crawlLogQueryFromParamMap,
   jobExecutionQueryFromParamMap,
   pageLogQueryFromParamMap
 } from './query';
 
 describe('report query route parsing', () => {
-  it('parses paging, sorting, watch, dates, and numeric states', () => {
+  it('parses sorting, dates, and numeric states while ignoring legacy list parameters', () => {
     const query = jobExecutionQueryFromParamMap(convertToParamMap({
       job_id: 'job',
       state: [`${JobExecutionState.RUNNING}`],
@@ -25,8 +26,8 @@ describe('report query route parsing', () => {
       stateList: [JobExecutionState.RUNNING],
       active: 'startTime',
       direction: 'desc',
-      watch: true,
     }));
+    expect('watch' in query).toBe(false);
     expect('pageSize' in query).toBe(false);
     expect('pageIndex' in query).toBe(false);
   });
@@ -44,10 +45,12 @@ describe('report query route parsing', () => {
     expect('pageIndex' in query).toBe(false);
   });
 
-  it('ignores legacy watch parameters for page and crawl logs', () => {
+  it('ignores legacy watch parameters for all report lists', () => {
     const params = convertToParamMap({watch: 'true'});
 
     expect('watch' in pageLogQueryFromParamMap(params)).toBe(false);
     expect('watch' in crawlLogQueryFromParamMap(params)).toBe(false);
+    expect('watch' in crawlExecutionQueryFromParamMap(params)).toBe(false);
+    expect('watch' in jobExecutionQueryFromParamMap(params)).toBe(false);
   });
 });

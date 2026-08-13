@@ -345,7 +345,7 @@ const file_controller_v1_controller_proto_rawDesc = "" +
 	"\aRUNNING\x10\x00\x12\n" +
 	"\n" +
 	"\x06PAUSED\x10\x01\x12\x13\n" +
-	"\x0fPAUSE_REQUESTED\x10\x022\xd5\b\n" +
+	"\x0fPAUSE_REQUESTED\x10\x022\xdf\b\n" +
 	"\n" +
 	"Controller\x12X\n" +
 	"\x15GetRolesForActiveUser\x12\x16.google.protobuf.Empty\x1a%.veidemann.api.controller.v1.RoleList\"\x00\x12f\n" +
@@ -355,9 +355,9 @@ const file_controller_v1_controller_proto_rawDesc = "" +
 	"\x16GetOpenIdConnectIssuer\x12\x16.google.protobuf.Empty\x1a5.veidemann.api.controller.v1.OpenIdConnectIssuerReply\"\x00\x12@\n" +
 	"\fPauseCrawler\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12B\n" +
 	"\x0eUnPauseCrawler\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12N\n" +
-	"\x06Status\x12\x16.google.protobuf.Empty\x1a*.veidemann.api.controller.v1.CrawlerStatus\"\x00\x12v\n" +
-	"\x1bQueueCountForCrawlExecution\x12+.veidemann.api.frontier.v1.CrawlExecutionId\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12r\n" +
-	"\x19QueueCountForJobExecution\x12).veidemann.api.frontier.v1.JobExecutionId\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00\x12t\n" +
+	"\x06Status\x12\x16.google.protobuf.Empty\x1a*.veidemann.api.controller.v1.CrawlerStatus\"\x00\x12z\n" +
+	"\x1dQueueCountsForCrawlExecutions\x12'.veidemann.api.frontier.v1.ExecutionIds\x1a..veidemann.api.frontier.v1.QueueCountsResponse\"\x00\x12x\n" +
+	"\x1bQueueCountsForJobExecutions\x12'.veidemann.api.frontier.v1.ExecutionIds\x1a..veidemann.api.frontier.v1.QueueCountsResponse\"\x00\x12t\n" +
 	"\x1bQueueCountForCrawlHostGroup\x12).veidemann.api.frontier.v1.CrawlHostGroup\x1a(.veidemann.api.frontier.v1.CountResponse\"\x00B\x81\x02\n" +
 	"\x1fcom.veidemann.api.controller.v1B\x0fControllerProtoP\x01Z>github.com/NationalLibraryOfNorway/veidemann/api/controller/v1\xa2\x02\x03VAC\xaa\x02\x1bVeidemann.Api.Controller.V1\xca\x02\x1bVeidemann\\Api\\Controller\\V1\xe2\x02'Veidemann\\Api\\Controller\\V1\\GPBMetadata\xea\x02\x1eVeidemann::Api::Controller::V1b\x06proto3"
 
@@ -385,11 +385,11 @@ var file_controller_v1_controller_proto_goTypes = []any{
 	(v1.Role)(0),                     // 6: veidemann.api.config.v1.Role
 	(*emptypb.Empty)(nil),            // 7: google.protobuf.Empty
 	(*ExecutionId)(nil),              // 8: veidemann.api.controller.v1.ExecutionId
-	(*v11.CrawlExecutionId)(nil),     // 9: veidemann.api.frontier.v1.CrawlExecutionId
-	(*v11.JobExecutionId)(nil),       // 10: veidemann.api.frontier.v1.JobExecutionId
-	(*v11.CrawlHostGroup)(nil),       // 11: veidemann.api.frontier.v1.CrawlHostGroup
-	(*v11.CrawlExecutionStatus)(nil), // 12: veidemann.api.frontier.v1.CrawlExecutionStatus
-	(*v11.JobExecutionStatus)(nil),   // 13: veidemann.api.frontier.v1.JobExecutionStatus
+	(*v11.ExecutionIds)(nil),         // 9: veidemann.api.frontier.v1.ExecutionIds
+	(*v11.CrawlHostGroup)(nil),       // 10: veidemann.api.frontier.v1.CrawlHostGroup
+	(*v11.CrawlExecutionStatus)(nil), // 11: veidemann.api.frontier.v1.CrawlExecutionStatus
+	(*v11.JobExecutionStatus)(nil),   // 12: veidemann.api.frontier.v1.JobExecutionStatus
+	(*v11.QueueCountsResponse)(nil),  // 13: veidemann.api.frontier.v1.QueueCountsResponse
 	(*v11.CountResponse)(nil),        // 14: veidemann.api.frontier.v1.CountResponse
 }
 var file_controller_v1_controller_proto_depIdxs = []int32{
@@ -403,19 +403,19 @@ var file_controller_v1_controller_proto_depIdxs = []int32{
 	7,  // 7: veidemann.api.controller.v1.Controller.PauseCrawler:input_type -> google.protobuf.Empty
 	7,  // 8: veidemann.api.controller.v1.Controller.UnPauseCrawler:input_type -> google.protobuf.Empty
 	7,  // 9: veidemann.api.controller.v1.Controller.Status:input_type -> google.protobuf.Empty
-	9,  // 10: veidemann.api.controller.v1.Controller.QueueCountForCrawlExecution:input_type -> veidemann.api.frontier.v1.CrawlExecutionId
-	10, // 11: veidemann.api.controller.v1.Controller.QueueCountForJobExecution:input_type -> veidemann.api.frontier.v1.JobExecutionId
-	11, // 12: veidemann.api.controller.v1.Controller.QueueCountForCrawlHostGroup:input_type -> veidemann.api.frontier.v1.CrawlHostGroup
+	9,  // 10: veidemann.api.controller.v1.Controller.QueueCountsForCrawlExecutions:input_type -> veidemann.api.frontier.v1.ExecutionIds
+	9,  // 11: veidemann.api.controller.v1.Controller.QueueCountsForJobExecutions:input_type -> veidemann.api.frontier.v1.ExecutionIds
+	10, // 12: veidemann.api.controller.v1.Controller.QueueCountForCrawlHostGroup:input_type -> veidemann.api.frontier.v1.CrawlHostGroup
 	3,  // 13: veidemann.api.controller.v1.Controller.GetRolesForActiveUser:output_type -> veidemann.api.controller.v1.RoleList
 	2,  // 14: veidemann.api.controller.v1.Controller.RunCrawl:output_type -> veidemann.api.controller.v1.RunCrawlReply
-	12, // 15: veidemann.api.controller.v1.Controller.AbortCrawlExecution:output_type -> veidemann.api.frontier.v1.CrawlExecutionStatus
-	13, // 16: veidemann.api.controller.v1.Controller.AbortJobExecution:output_type -> veidemann.api.frontier.v1.JobExecutionStatus
+	11, // 15: veidemann.api.controller.v1.Controller.AbortCrawlExecution:output_type -> veidemann.api.frontier.v1.CrawlExecutionStatus
+	12, // 16: veidemann.api.controller.v1.Controller.AbortJobExecution:output_type -> veidemann.api.frontier.v1.JobExecutionStatus
 	4,  // 17: veidemann.api.controller.v1.Controller.GetOpenIdConnectIssuer:output_type -> veidemann.api.controller.v1.OpenIdConnectIssuerReply
 	7,  // 18: veidemann.api.controller.v1.Controller.PauseCrawler:output_type -> google.protobuf.Empty
 	7,  // 19: veidemann.api.controller.v1.Controller.UnPauseCrawler:output_type -> google.protobuf.Empty
 	5,  // 20: veidemann.api.controller.v1.Controller.Status:output_type -> veidemann.api.controller.v1.CrawlerStatus
-	14, // 21: veidemann.api.controller.v1.Controller.QueueCountForCrawlExecution:output_type -> veidemann.api.frontier.v1.CountResponse
-	14, // 22: veidemann.api.controller.v1.Controller.QueueCountForJobExecution:output_type -> veidemann.api.frontier.v1.CountResponse
+	13, // 21: veidemann.api.controller.v1.Controller.QueueCountsForCrawlExecutions:output_type -> veidemann.api.frontier.v1.QueueCountsResponse
+	13, // 22: veidemann.api.controller.v1.Controller.QueueCountsForJobExecutions:output_type -> veidemann.api.frontier.v1.QueueCountsResponse
 	14, // 23: veidemann.api.controller.v1.Controller.QueueCountForCrawlHostGroup:output_type -> veidemann.api.frontier.v1.CountResponse
 	13, // [13:24] is the sub-list for method output_type
 	2,  // [2:13] is the sub-list for method input_type

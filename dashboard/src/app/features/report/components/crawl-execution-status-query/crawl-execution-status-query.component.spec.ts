@@ -39,7 +39,6 @@ describe('CrawlExecutionStatusQueryComponent', () => {
       startTimeFrom: '',
       startTimeTo: '',
       hasError: false,
-      watch: false,
       active: '',
       direction: '',
     } satisfies CrawlExecutionStatusQuery);
@@ -67,7 +66,10 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     const contextChip = fixture.nativeElement.querySelector('mat-chip:not(mat-chip-option)') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
-    expect([...filterChips].map(chip => chip.textContent.trim())).toEqual(['Failed', 'Watch']);
+    expect([...filterChips].map(chip => chip.textContent.trim())).toEqual(['Failed']);
+    expect(fixture.nativeElement.querySelector('[formcontrolname="watch"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.report-status-filter-row app-polling-refresh-button'))
+      .not.toBeNull();
     expect(contextChip).toBeNull();
     expect(fixture.nativeElement.querySelectorAll('mat-select')).toHaveLength(1);
   });
@@ -118,7 +120,6 @@ describe('CrawlExecutionStatusQueryComponent', () => {
       startTimeFrom: selectedDate.toISOString(),
       startTimeTo: upperBoundary.toISOString(),
       hasError: false,
-      watch: false,
       active: '',
       direction: '',
     } satisfies CrawlExecutionStatusQuery);

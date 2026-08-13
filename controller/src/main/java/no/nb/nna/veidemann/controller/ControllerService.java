@@ -35,11 +35,11 @@ import no.nb.nna.veidemann.api.controller.v1.RunCrawlReply;
 import no.nb.nna.veidemann.api.controller.v1.RunCrawlRequest;
 import no.nb.nna.veidemann.api.controller.v1.RunStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
-import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
-import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
+import no.nb.nna.veidemann.api.frontier.v1.ExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
+import no.nb.nna.veidemann.api.frontier.v1.QueueCountsResponse;
 import no.nb.nna.veidemann.commons.auth.AllowedRoles;
 import no.nb.nna.veidemann.commons.auth.RolesContextKey;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
@@ -64,6 +64,7 @@ import static no.nb.nna.veidemann.controller.JobExecutionUtil.crawlSeed;
 public class ControllerService extends ControllerGrpc.ControllerImplBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(ControllerService.class);
+    static final int MAX_QUEUE_COUNT_IDS = 100;
 
     private final ConfigAdapter db;
     private final ExecutionsAdapter executionsAdapter;
@@ -261,37 +262,21 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
     }
 
     @Override
-    public void queueCountForCrawlExecution(CrawlExecutionId request, StreamObserver<CountResponse> responseObserver) {
-        JobExecutionUtil.queueCountForCrawlExecution(request, new FutureCallback<CountResponse>() {
-            @Override
-            public void onSuccess(@Nullable CountResponse result) {
-                responseObserver.onNext(result);
-                responseObserver.onCompleted();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                LOG.error(t.getMessage(), t);
-                forwardRpcFailure(t, responseObserver);
-            }
-        });
+    public void queueCountsForCrawlExecutions(
+            ExecutionIds request, StreamObserver<QueueCountsResponse> responseObserver) {
+        if (!validateExecutionIds(request, responseObserver)) {
+            return;
+        }
+        JobExecutionUtil.queueCountsForCrawlExecutions(request, forwardingCallback(responseObserver));
     }
 
     @Override
-    public void queueCountForJobExecution(JobExecutionId request, StreamObserver<CountResponse> responseObserver) {
-        JobExecutionUtil.queueCountForJobExecution(request, new FutureCallback<CountResponse>() {
-            @Override
-            public void onSuccess(@Nullable CountResponse result) {
-                responseObserver.onNext(result);
-                responseObserver.onCompleted();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                LOG.error(t.getMessage(), t);
-                forwardRpcFailure(t, responseObserver);
-            }
-        });
+    public void queueCountsForJobExecutions(
+            ExecutionIds request, StreamObserver<QueueCountsResponse> responseObserver) {
+        if (!validateExecutionIds(request, responseObserver)) {
+            return;
+        }
+        JobExecutionUtil.queueCountsForJobExecutions(request, forwardingCallback(responseObserver));
     }
 
     @Override
@@ -318,5 +303,37 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
         }
         Metadata trailers = Status.trailersFromThrowable(t);
         responseObserver.onError(status.withCause(t).asRuntimeException(trailers));
+    }
+
+    private static boolean validateExecutionIds(ExecutionIds request, StreamObserver<?> responseObserver) {
+        if (request.getIdCount() > MAX_QUEUE_COUNT_IDS) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Execution id list may contain at most " + MAX_QUEUE_COUNT_IDS + " entries")
+                    .asRuntimeException());
+            return false;
+        }
+        if (request.getIdList().stream().anyMatch(String::isBlank)) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Execution ids must not be blank")
+                    .asRuntimeException());
+            return false;
+        }
+        return true;
+    }
+
+    private static <T> FutureCallback<T> forwardingCallback(StreamObserver<T> responseObserver) {
+        return new FutureCallback<>() {
+            @Override
+            public void onSuccess(@Nullable T result) {
+                responseObserver.onNext(result);
+                responseObserver.onCompleted();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                LOG.error(t.getMessage(), t);
+                forwardRpcFailure(t, responseObserver);
+            }
+        };
     }
 }

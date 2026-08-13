@@ -31,10 +31,14 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
   @Input()
   embedded = false;
 
+  @Input()
+  queueCounts: ReadonlyMap<string, number> = new Map();
+
   override displayedColumns: string[] = [
     'jobId',
     'state',
     'desiredState',
+    'queueSize',
     'startTime',
     'endTime',
     'duration',
@@ -47,6 +51,13 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
       return '';
     }
     return durationBetweenDates(row.startTime, row.endTime);
+  }
+
+  queueCount(row: JobExecutionStatus): number | null {
+    if (JobExecutionStatus.DONE_STATES.includes(row.state)) {
+      return 0;
+    }
+    return this.queueCounts.get(row.id) ?? null;
   }
 
 }

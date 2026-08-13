@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
@@ -10,6 +10,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {ConfigObject, CrawlExecutionState, crawlExecutionStates} from '../../../../shared/models';
 import {CrawlExecutionStatusQuery} from '../../services';
 import {StartTimeDateRangeQueryComponent} from '../start-time-date-range-query.component';
+import {PollingRefreshButtonComponent} from '../../../../shared/components';
 
 @Component({
   selector: 'app-crawl-execution-status-query',
@@ -24,6 +25,7 @@ import {StartTimeDateRangeQueryComponent} from '../start-time-date-range-query.c
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    PollingRefreshButtonComponent,
     ReactiveFormsModule
   ]
 })
@@ -35,6 +37,8 @@ export class CrawlExecutionStatusQueryComponent extends StartTimeDateRangeQueryC
   @Input()
   crawlJobOptions: ConfigObject[];
 
+  @Output() readonly refresh = new EventEmitter<void>();
+
   protected override createForm(): void {
     this.form = this.fb.group({
       stateList: null,
@@ -44,7 +48,6 @@ export class CrawlExecutionStatusQueryComponent extends StartTimeDateRangeQueryC
       startTimeFrom: '',
       startTimeTo: '',
       hasError: null,
-      watch: null,
     });
   }
 }

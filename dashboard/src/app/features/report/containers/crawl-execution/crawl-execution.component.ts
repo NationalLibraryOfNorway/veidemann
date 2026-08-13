@@ -9,8 +9,7 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {combineLatest, Observable} from 'rxjs';
-import {distinctUntilChanged, map} from 'rxjs/operators';
+import {Observable} from 'rxjs';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {ControllerApiService, SnackBarService} from '../../../../core';
@@ -21,7 +20,12 @@ import {CrawlExecutionState, CrawlExecutionStatus} from '../../../../shared/mode
 import {AbortCrawlDialogComponent} from '../../components/abort-crawl-dialog/abort-crawl-dialog.component';
 import {CrawlExecutionStatusListComponent, CrawlExecutionStatusQueryComponent} from '../../components';
 import {crawlExecutionQueryFromParamMap, equalCrawlExecutionQuery} from '../../func';
-import {CrawlExecutionService, CrawlExecutionStatusQuery} from '../../services';
+import {
+  CrawlExecutionService,
+  CrawlExecutionStatusQuery,
+  ExecutionQueueCounts,
+  ExecutionQueueCountService,
+} from '../../services';
 
 @Component({
   selector: 'app-crawl-execution',
@@ -45,6 +49,7 @@ export class CrawlExecutionComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private crawlExecutionService = inject(CrawlExecutionService);
+  private executionQueueCountService = inject(ExecutionQueueCountService);
   private errorHandler = inject(ErrorHandler);
   private dialog = inject(MatDialog);
   private controllerApiService = inject(ControllerApiService);
@@ -58,6 +63,8 @@ export class CrawlExecutionComponent {
   readonly query: Signal<CrawlExecutionStatusQuery>;
   readonly dataSource: ListDataSource<CrawlExecutionStatus, CrawlExecutionStatusQuery>;
   readonly loading$: Observable<boolean>;
+  readonly queueCounts$: Observable<ExecutionQueueCounts>;
+  readonly emptyQueueCounts: ExecutionQueueCounts = new Map();
   readonly crawlJobOptions: ConfigObject[];
   readonly hasActions = (row: CrawlExecutionStatus): boolean =>
     this.can('read', 'pagelog')
@@ -83,12 +90,9 @@ export class CrawlExecutionComponent {
       query$,
       load: (query, range) => this.crawlExecutionService.search(query, range),
       destroyRef,
-      capacity: query => query.watch ? 100 : 0,
     });
-    this.loading$ = combineLatest([this.dataSource.loading$, this.crawlExecutionService.loading$]).pipe(
-      map(([listLoading, operationLoading]) => listLoading || operationLoading),
-      distinctUntilChanged()
-    );
+    this.loading$ = this.dataSource.initialLoading$;
+    this.queueCounts$ = this.executionQueueCountService.forCrawlExecutions(this.dataSource);
   }
 
   onQueryChange(query: Partial<CrawlExecutionStatusQuery>) {
@@ -102,7 +106,6 @@ export class CrawlExecutionComponent {
       start_time_to: query.startTimeTo || null,
       start_time_from: query.startTimeFrom || null,
       has_error: query.hasError || null,
-      watch: query.watch || null
     };
     this.router.navigate([], {
       relativeTo: this.route,
@@ -125,6 +128,10 @@ export class CrawlExecutionComponent {
       .catch(error => this.errorHandler.handleError(error));
   }
 
+  onRefresh(): void {
+    this.dataSource.refreshLoaded();
+  }
+
   isDone(item: CrawlExecutionStatus): boolean {
     return CrawlExecutionStatus.DONE_STATES.includes(item.state);
   }
@@ -144,7 +151,7 @@ export class CrawlExecutionComponent {
         this.controllerApiService.abortCrawlExecution(executionId).subscribe(crawlExecStatus => {
           if (crawlExecStatus.state === CrawlExecutionState.ABORTED_MANUAL) {
             this.snackBarService.openSnackBar('Crawl aborted');
-            this.dataSource.reload({retainRows: this.query().watch});
+            this.dataSource.reload();
           }
         });
       }

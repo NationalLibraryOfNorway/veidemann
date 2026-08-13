@@ -30,7 +30,16 @@ export class CrawlExecutionStatusListComponent extends ReportListBaseComponent<C
 
   @Input() hasOverflowActions: (row: CrawlExecutionStatus) => boolean = () => true;
 
-  override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'errorCode', 'documentsCrawled', 'startTime', 'endTime', 'action'];
+  @Input() queueCounts: ReadonlyMap<string, number> = new Map();
+
+  override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'queueSize', 'errorCode', 'documentsCrawled', 'startTime', 'endTime', 'action'];
+
+  queueCount(row: CrawlExecutionStatus): number | null {
+    if (CrawlExecutionStatus.DONE_STATES.includes(row.state)) {
+      return 0;
+    }
+    return this.queueCounts.get(row.id) ?? null;
+  }
 
   deletedSeedTooltip(seedId: string): string {
     return $localize`:@@crawlExecutionDeletedSeedTooltip:Deleted seed ID: ${seedId}:SEED_ID:`;

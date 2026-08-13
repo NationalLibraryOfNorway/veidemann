@@ -20,14 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Frontier_CrawlSeed_FullMethodName                   = "/veidemann.api.frontier.v1.Frontier/CrawlSeed"
-	Frontier_GetNextPage_FullMethodName                 = "/veidemann.api.frontier.v1.Frontier/GetNextPage"
-	Frontier_PageCompleted_FullMethodName               = "/veidemann.api.frontier.v1.Frontier/PageCompleted"
-	Frontier_BusyCrawlHostGroupCount_FullMethodName     = "/veidemann.api.frontier.v1.Frontier/BusyCrawlHostGroupCount"
-	Frontier_QueueCountTotal_FullMethodName             = "/veidemann.api.frontier.v1.Frontier/QueueCountTotal"
-	Frontier_QueueCountForCrawlExecution_FullMethodName = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlExecution"
-	Frontier_QueueCountForJobExecution_FullMethodName   = "/veidemann.api.frontier.v1.Frontier/QueueCountForJobExecution"
-	Frontier_QueueCountForCrawlHostGroup_FullMethodName = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlHostGroup"
+	Frontier_CrawlSeed_FullMethodName                     = "/veidemann.api.frontier.v1.Frontier/CrawlSeed"
+	Frontier_GetNextPage_FullMethodName                   = "/veidemann.api.frontier.v1.Frontier/GetNextPage"
+	Frontier_PageCompleted_FullMethodName                 = "/veidemann.api.frontier.v1.Frontier/PageCompleted"
+	Frontier_BusyCrawlHostGroupCount_FullMethodName       = "/veidemann.api.frontier.v1.Frontier/BusyCrawlHostGroupCount"
+	Frontier_QueueCountTotal_FullMethodName               = "/veidemann.api.frontier.v1.Frontier/QueueCountTotal"
+	Frontier_QueueCountsForCrawlExecutions_FullMethodName = "/veidemann.api.frontier.v1.Frontier/QueueCountsForCrawlExecutions"
+	Frontier_QueueCountsForJobExecutions_FullMethodName   = "/veidemann.api.frontier.v1.Frontier/QueueCountsForJobExecutions"
+	Frontier_QueueCountForCrawlHostGroup_FullMethodName   = "/veidemann.api.frontier.v1.Frontier/QueueCountForCrawlHostGroup"
 )
 
 // FrontierClient is the client API for Frontier service.
@@ -49,10 +49,10 @@ type FrontierClient interface {
 	BusyCrawlHostGroupCount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CountResponse, error)
 	// Total number of queued URI's
 	QueueCountTotal(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CountResponse, error)
-	// Number of queued URI's for a CrawlExecution
-	QueueCountForCrawlExecution(ctx context.Context, in *CrawlExecutionId, opts ...grpc.CallOption) (*CountResponse, error)
-	// Total number of queued URI's for a JobExecution
-	QueueCountForJobExecution(ctx context.Context, in *JobExecutionId, opts ...grpc.CallOption) (*CountResponse, error)
+	// Number of queued URI's for up to 100 CrawlExecutions
+	QueueCountsForCrawlExecutions(ctx context.Context, in *ExecutionIds, opts ...grpc.CallOption) (*QueueCountsResponse, error)
+	// Number of queued URI's for up to 100 JobExecutions
+	QueueCountsForJobExecutions(ctx context.Context, in *ExecutionIds, opts ...grpc.CallOption) (*QueueCountsResponse, error)
 	// Number of queued URI's for a CrawlHostGroup
 	QueueCountForCrawlHostGroup(ctx context.Context, in *CrawlHostGroup, opts ...grpc.CallOption) (*CountResponse, error)
 }
@@ -118,20 +118,20 @@ func (c *frontierClient) QueueCountTotal(ctx context.Context, in *emptypb.Empty,
 	return out, nil
 }
 
-func (c *frontierClient) QueueCountForCrawlExecution(ctx context.Context, in *CrawlExecutionId, opts ...grpc.CallOption) (*CountResponse, error) {
+func (c *frontierClient) QueueCountsForCrawlExecutions(ctx context.Context, in *ExecutionIds, opts ...grpc.CallOption) (*QueueCountsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CountResponse)
-	err := c.cc.Invoke(ctx, Frontier_QueueCountForCrawlExecution_FullMethodName, in, out, cOpts...)
+	out := new(QueueCountsResponse)
+	err := c.cc.Invoke(ctx, Frontier_QueueCountsForCrawlExecutions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *frontierClient) QueueCountForJobExecution(ctx context.Context, in *JobExecutionId, opts ...grpc.CallOption) (*CountResponse, error) {
+func (c *frontierClient) QueueCountsForJobExecutions(ctx context.Context, in *ExecutionIds, opts ...grpc.CallOption) (*QueueCountsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CountResponse)
-	err := c.cc.Invoke(ctx, Frontier_QueueCountForJobExecution_FullMethodName, in, out, cOpts...)
+	out := new(QueueCountsResponse)
+	err := c.cc.Invoke(ctx, Frontier_QueueCountsForJobExecutions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,10 +167,10 @@ type FrontierServer interface {
 	BusyCrawlHostGroupCount(context.Context, *emptypb.Empty) (*CountResponse, error)
 	// Total number of queued URI's
 	QueueCountTotal(context.Context, *emptypb.Empty) (*CountResponse, error)
-	// Number of queued URI's for a CrawlExecution
-	QueueCountForCrawlExecution(context.Context, *CrawlExecutionId) (*CountResponse, error)
-	// Total number of queued URI's for a JobExecution
-	QueueCountForJobExecution(context.Context, *JobExecutionId) (*CountResponse, error)
+	// Number of queued URI's for up to 100 CrawlExecutions
+	QueueCountsForCrawlExecutions(context.Context, *ExecutionIds) (*QueueCountsResponse, error)
+	// Number of queued URI's for up to 100 JobExecutions
+	QueueCountsForJobExecutions(context.Context, *ExecutionIds) (*QueueCountsResponse, error)
 	// Number of queued URI's for a CrawlHostGroup
 	QueueCountForCrawlHostGroup(context.Context, *CrawlHostGroup) (*CountResponse, error)
 }
@@ -197,11 +197,11 @@ func (UnimplementedFrontierServer) BusyCrawlHostGroupCount(context.Context, *emp
 func (UnimplementedFrontierServer) QueueCountTotal(context.Context, *emptypb.Empty) (*CountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueueCountTotal not implemented")
 }
-func (UnimplementedFrontierServer) QueueCountForCrawlExecution(context.Context, *CrawlExecutionId) (*CountResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlExecution not implemented")
+func (UnimplementedFrontierServer) QueueCountsForCrawlExecutions(context.Context, *ExecutionIds) (*QueueCountsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueueCountsForCrawlExecutions not implemented")
 }
-func (UnimplementedFrontierServer) QueueCountForJobExecution(context.Context, *JobExecutionId) (*CountResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method QueueCountForJobExecution not implemented")
+func (UnimplementedFrontierServer) QueueCountsForJobExecutions(context.Context, *ExecutionIds) (*QueueCountsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueueCountsForJobExecutions not implemented")
 }
 func (UnimplementedFrontierServer) QueueCountForCrawlHostGroup(context.Context, *CrawlHostGroup) (*CountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueueCountForCrawlHostGroup not implemented")
@@ -305,38 +305,38 @@ func _Frontier_QueueCountTotal_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Frontier_QueueCountForCrawlExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CrawlExecutionId)
+func _Frontier_QueueCountsForCrawlExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecutionIds)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FrontierServer).QueueCountForCrawlExecution(ctx, in)
+		return srv.(FrontierServer).QueueCountsForCrawlExecutions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Frontier_QueueCountForCrawlExecution_FullMethodName,
+		FullMethod: Frontier_QueueCountsForCrawlExecutions_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FrontierServer).QueueCountForCrawlExecution(ctx, req.(*CrawlExecutionId))
+		return srv.(FrontierServer).QueueCountsForCrawlExecutions(ctx, req.(*ExecutionIds))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Frontier_QueueCountForJobExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(JobExecutionId)
+func _Frontier_QueueCountsForJobExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecutionIds)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FrontierServer).QueueCountForJobExecution(ctx, in)
+		return srv.(FrontierServer).QueueCountsForJobExecutions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Frontier_QueueCountForJobExecution_FullMethodName,
+		FullMethod: Frontier_QueueCountsForJobExecutions_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FrontierServer).QueueCountForJobExecution(ctx, req.(*JobExecutionId))
+		return srv.(FrontierServer).QueueCountsForJobExecutions(ctx, req.(*ExecutionIds))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -383,12 +383,12 @@ var Frontier_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Frontier_QueueCountTotal_Handler,
 		},
 		{
-			MethodName: "QueueCountForCrawlExecution",
-			Handler:    _Frontier_QueueCountForCrawlExecution_Handler,
+			MethodName: "QueueCountsForCrawlExecutions",
+			Handler:    _Frontier_QueueCountsForCrawlExecutions_Handler,
 		},
 		{
-			MethodName: "QueueCountForJobExecution",
-			Handler:    _Frontier_QueueCountForJobExecution_Handler,
+			MethodName: "QueueCountsForJobExecutions",
+			Handler:    _Frontier_QueueCountsForJobExecutions_Handler,
 		},
 		{
 			MethodName: "QueueCountForCrawlHostGroup",

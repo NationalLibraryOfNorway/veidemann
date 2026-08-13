@@ -7,11 +7,11 @@ import {JobExecutionsListRequest, JobExecutionsListRequestSchema} from '../../..
 import {ConfigObject, ConfigRef, JobExecutionState, JobExecutionStatus, Kind} from '../../../shared/models';
 import {ReportApiService} from '../../../core';
 import {catchError, shareReplay} from 'rxjs/operators';
-import {Detail, Sort, toTimestampProto, Watch} from '../../../shared/func';
+import {Detail, Sort, toTimestampProto} from '../../../shared/func';
 import {ConfigService, LoadingService} from '../../../shared/services';
 import {ListRange} from '../../../shared/models';
 
-export interface JobExecutionStatusQuery extends Sort, Watch {
+export interface JobExecutionStatusQuery extends Sort {
   jobId: string;
   stateList: JobExecutionState[];
   startTimeTo: string;
@@ -62,11 +62,6 @@ export class JobExecutionService extends LoadingService {
     if (query.stateList.length) {
       listRequest.state = query.stateList.map(state => state.valueOf());
     }
-
-    if (query.watch) {
-      listRequest.watch = query.watch;
-    }
-
 
     if (query.direction && query.active) {
       listRequest.orderByPath = query.active;

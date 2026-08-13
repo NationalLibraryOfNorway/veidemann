@@ -50,10 +50,12 @@
       @if (latestJobsDataSource; as dataSource) {
         <app-running-crawls class="dashboard-running-crawls"
           [dataSource]="dataSource"
+          [queueCounts]="(latestJobQueueCounts$ | async) ?? emptyQueueCounts"
           [selectedStates]="selectedStates"
           [sortActive]="sortActive"
           [sortDirection]="sortDirection"
           (selectedStatesChange)="onSelectedStatesChange($event)"
+          (refresh)="onLatestJobsRefresh()"
           (rowClick)="onJobExecutionClick($event)"
           (sort)="onLatestJobsSort($event)">
         </app-running-crawls>

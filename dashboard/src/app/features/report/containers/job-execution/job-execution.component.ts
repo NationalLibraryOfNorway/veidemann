@@ -7,8 +7,7 @@ import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
 import {MongoAbility} from '@casl/ability';
 import {MatMenuItem} from '@angular/material/menu';
-import {combineLatest, Observable} from 'rxjs';
-import {distinctUntilChanged, map} from 'rxjs/operators';
+import {Observable} from 'rxjs';
 import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {FilterDirective} from '../../../../shared/directives';
@@ -21,7 +20,12 @@ import {
 } from '../../../../shared/models';
 import {JobExecutionStatusListComponent, JobExecutionStatusQueryComponent} from '../../components';
 import {equalJobExecutionQuery, jobExecutionQueryFromParamMap} from '../../func';
-import {JobExecutionService, JobExecutionStatusQuery} from '../../services';
+import {
+  ExecutionQueueCounts,
+  ExecutionQueueCountService,
+  JobExecutionService,
+  JobExecutionStatusQuery,
+} from '../../services';
 
 @Component({
   selector: 'app-job-execution',
@@ -44,6 +48,7 @@ export class JobExecutionComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private jobExecutionService = inject(JobExecutionService);
+  private executionQueueCountService = inject(ExecutionQueueCountService);
   private errorHandler = inject(ErrorHandler);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
 
@@ -55,6 +60,8 @@ export class JobExecutionComponent {
   readonly query: Signal<JobExecutionStatusQuery>;
   readonly dataSource: ListDataSource<JobExecutionStatus, JobExecutionStatusQuery>;
   readonly loading$: Observable<boolean>;
+  readonly queueCounts$: Observable<ExecutionQueueCounts>;
+  readonly emptyQueueCounts: ExecutionQueueCounts = new Map();
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -75,12 +82,9 @@ export class JobExecutionComponent {
       query$,
       load: (query, range) => this.jobExecutionService.search(query, range),
       destroyRef,
-      capacity: query => query.watch ? 100 : 0,
     });
-    this.loading$ = combineLatest([this.dataSource.loading$, this.jobExecutionService.loading$]).pipe(
-      map(([listLoading, operationLoading]) => listLoading || operationLoading),
-      distinctUntilChanged()
-    );
+    this.loading$ = this.dataSource.initialLoading$;
+    this.queueCounts$ = this.executionQueueCountService.forJobExecutions(this.dataSource);
   }
 
   onQueryChange(query: Partial<JobExecutionStatusQuery>) {
@@ -91,7 +95,6 @@ export class JobExecutionComponent {
       job_id: query.jobId || null,
       start_time_to: query.startTimeTo || null,
       start_time_from: query.startTimeFrom || null,
-      watch: query.watch || null,
     };
     this.router.navigate([], {
       relativeTo: this.route,
@@ -111,5 +114,9 @@ export class JobExecutionComponent {
   onRowClick(row: JobExecutionStatus): void {
     this.router.navigate([row.id], {relativeTo: this.route})
       .catch(error => this.errorHandler.handleError(error));
+  }
+
+  onRefresh(): void {
+    this.dataSource.refreshLoaded();
   }
 }

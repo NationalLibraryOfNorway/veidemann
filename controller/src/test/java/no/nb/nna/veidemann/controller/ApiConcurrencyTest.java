@@ -200,11 +200,6 @@ public class ApiConcurrencyTest {
                 }
 
                 @Override
-                public void queueCountForCrawlExecution(CrawlExecutionId request, StreamObserver<CountResponse> responseObserver) {
-                    super.queueCountForCrawlExecution(request, responseObserver);
-                }
-
-                @Override
                 public void queueCountForCrawlHostGroup(CrawlHostGroup request, StreamObserver<CountResponse> responseObserver) {
                     super.queueCountForCrawlHostGroup(request, responseObserver);
                 }

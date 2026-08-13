@@ -3,6 +3,9 @@ package no.nb.nna.veidemann.frontier.db;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -461,8 +464,32 @@ public class CrawlQueueManager implements AutoCloseable {
         }
     }
 
-    public long countByJobExecution(String jobExecutionId) {
-        return jobExecutionQueueCounter.count(jobExecutionId);
+    public Map<String, Long> countByCrawlExecutions(List<String> executionIds) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        if (executionIds.isEmpty()) {
+            return counts;
+        }
+
+        try (Jedis jedis = jedisSupplier.get()) {
+            List<String> values = jedis.hmget(CRAWL_EXECUTION_ID_COUNT_KEY, executionIds.toArray(String[]::new));
+            for (int index = 0; index < executionIds.size(); index++) {
+                String executionId = executionIds.get(index);
+                String value = values.get(index);
+                Long parsed = value == null ? null : Longs.tryParse(value);
+                if (parsed == null) {
+                    if (value != null) {
+                        LOG.warn("Invalid crawl execution count '{}' for executionId {}", value, executionId);
+                    }
+                    parsed = 0L;
+                }
+                counts.put(executionId, parsed);
+            }
+        }
+        return counts;
+    }
+
+    public Map<String, Long> countByJobExecutions(List<String> jobExecutionIds) {
+        return jobExecutionQueueCounter.counts(jobExecutionIds);
     }
 
     public long countByCrawlHostGroup(CrawlHostGroup chg) {

@@ -11,6 +11,8 @@ import {
 } from '../../../shared/models';
 import {JobExecutionStatusListComponent} from '../../report/components';
 import {JobExecutionStatusQuery} from '../../report/services';
+import {ExecutionQueueCounts} from '../../report/services';
+import {PollingRefreshButtonComponent} from '../../../shared/components';
 
 interface StateChip {
   label: string;
@@ -27,6 +29,7 @@ interface StateChip {
     AsyncPipe,
     JobExecutionStatusListComponent,
     MatChipsModule,
+    PollingRefreshButtonComponent,
   ],
 })
 export class RunningCrawlsComponent {
@@ -48,6 +51,9 @@ export class RunningCrawlsComponent {
   selectedStates: readonly JobExecutionState[] = [JobExecutionState.RUNNING];
 
   @Input()
+  queueCounts: ExecutionQueueCounts = new Map();
+
+  @Input()
   sortActive = 'startTime';
 
   @Input()
@@ -55,6 +61,7 @@ export class RunningCrawlsComponent {
 
   @Output() readonly selectedStatesChange = new EventEmitter<readonly JobExecutionState[]>();
   @Output() readonly rowClick = new EventEmitter<JobExecutionStatus>();
+  @Output() readonly refresh = new EventEmitter<void>();
   @Output() readonly sort = new EventEmitter<Sort>();
 
   isChipSelected(chip: StateChip): boolean {

@@ -4,10 +4,11 @@ Api server and controller for Veidemann
 
 ## Job queue counts
 
-Controller forwards `QueueCountForJobExecution` to Frontier using only the job
-execution ID. This replaces the former batch crawl-execution count RPC. Because
-the API change is breaking, Dashboard, Controller, and Frontier must be upgraded
-together.
+Controller forwards single-execution queue counts and bounded list-oriented
+counts to Frontier. `QueueCountsForJobExecutions` and
+`QueueCountsForCrawlExecutions` accept at most 100 IDs per request; Dashboard
+chunks larger loaded lists. Deploy Frontier and Controller before a Dashboard
+that uses these additive RPCs.
 
 Frontier does not backfill the underlying Redis job counters. Jobs active during
 the rollout can report zero or partial queue counts; jobs started after Frontier

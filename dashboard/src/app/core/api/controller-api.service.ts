@@ -6,7 +6,7 @@ import {EMPTY, from, Observable} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 
 import {Controller} from '../../../api/controller/v1/controller_pb';
-import {CrawlExecutionIdSchema, JobExecutionIdSchema} from '../../../api/frontier/v1/frontier_pb';
+import {ExecutionIds, ExecutionIdsSchema, QueueCountsResponse} from '../../../api/frontier/v1/frontier_pb';
 import {AuthService} from '../auth';
 import {Role} from '../../shared/models/config';
 import {
@@ -17,7 +17,6 @@ import {
 } from '../../shared/models/controller/controller.model';
 import {ApplicationErrorHandler} from '../error.handler';
 import {CrawlExecutionStatus, JobExecutionStatus} from '../../shared/models/report';
-import {CountResponse} from '../../shared/models';
 import {AppConfig} from '../../app.config';
 
 @Injectable({providedIn: 'root'})
@@ -108,21 +107,23 @@ export class ControllerApiService {
     );
   }
 
-  queueCountForCrawlExecution(request: ExecutionId): Observable<CountResponse> {
-    const crawlExecutionId = create(CrawlExecutionIdSchema, {id: request.id});
-    return from(this.getClient().queueCountForCrawlExecution(crawlExecutionId, this.callOptions)).pipe(
-      map(CountResponse.fromProto),
-      catchError(error => {
-        this.errorHandler.handleError(error);
-        return EMPTY;
-      }),
-    );
+  queueCountsForCrawlExecutions(ids: readonly string[]): Observable<ReadonlyMap<string, number>> {
+    return this.queueCounts(ids, request => this.getClient().queueCountsForCrawlExecutions(request, this.callOptions));
   }
 
-  queueCountForJobExecution(request: ExecutionId): Observable<CountResponse> {
-    const jobExecutionId = create(JobExecutionIdSchema, {id: request.id});
-    return from(this.getClient().queueCountForJobExecution(jobExecutionId, this.callOptions)).pipe(
-      map(CountResponse.fromProto),
+  queueCountsForJobExecutions(ids: readonly string[]): Observable<ReadonlyMap<string, number>> {
+    return this.queueCounts(ids, request => this.getClient().queueCountsForJobExecutions(request, this.callOptions));
+  }
+
+  private queueCounts(
+    ids: readonly string[],
+    requestCounts: (request: ExecutionIds) => PromiseLike<QueueCountsResponse>,
+  ): Observable<ReadonlyMap<string, number>> {
+    const executionIds = create(ExecutionIdsSchema, {id: [...ids]});
+    return from(requestCounts(executionIds)).pipe(
+      map(response => new Map(
+        Object.entries(response.counts).map(([id, count]) => [id, Number(count)]),
+      )),
       catchError(error => {
         this.errorHandler.handleError(error);
         return EMPTY;

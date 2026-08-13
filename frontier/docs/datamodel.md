@@ -82,6 +82,11 @@ that were already active when Frontier was upgraded can therefore be zero or
 partial. Jobs started after the upgraded Frontier is running have complete job
 queue counts.
 
+The single-execution count RPCs perform one hash lookup. The list-oriented
+`QueueCountsForJobExecutions` and `QueueCountsForCrawlExecutions` RPCs accept at
+most 100 IDs and perform one `HMGET` against `JEIDC` or `EIDC`. Missing or invalid
+stored values are returned as zero.
+
 ## gRPC inbound message size
 
 Frontier accepts the optional `MAX_INBOUND_MESSAGE_SIZE` environment variable as

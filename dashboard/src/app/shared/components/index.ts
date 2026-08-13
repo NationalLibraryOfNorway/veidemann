@@ -8,3 +8,4 @@ export * from './detail-header/detail-header.component';
 export * from './detail-overflow/detail-overflow.component';
 export * from './boolean-state-chip/boolean-state-chip.component';
 export * from './boolean-override/boolean-override.component';
+export * from './polling-refresh-button/polling-refresh-button.component';

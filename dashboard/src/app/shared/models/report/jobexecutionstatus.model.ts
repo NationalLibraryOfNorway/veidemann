@@ -24,6 +24,7 @@ export class JobExecutionStatus {
     JobExecutionState.ABORTED_MANUAL,
     JobExecutionState.FAILED,
     JobExecutionState.FINISHED,
+    JobExecutionState.DIED,
   ];
 
   id: string;

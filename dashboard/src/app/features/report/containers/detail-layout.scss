@@ -18,6 +18,11 @@
   padding: 0;
 }
 
+.watch-toggle.active {
+  color: var(--mat-sys-on-primary-container);
+  background: var(--mat-sys-primary-container);
+}
+
 @media (min-width: 840px) {
   .detail-content {
     padding: 32px;

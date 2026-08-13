@@ -24,7 +24,6 @@ describe('RunningCrawlsComponent', () => {
     startTimeFrom: '',
     startTimeTo: '',
     stateList: [JobExecutionState.RUNNING],
-    watch: false,
   };
 
   beforeEach(async () => {
@@ -76,6 +75,7 @@ describe('RunningCrawlsComponent', () => {
       'Job',
       'State',
       'Desired state',
+      'Queue',
       'Documents crawled',
       'Bytes crawled',
       'Start',
@@ -114,7 +114,7 @@ describe('RunningCrawlsComponent', () => {
     expect(itemRow.querySelector('.desired-state-badge')).toBeNull();
     expect(itemRow.querySelector('.mat-column-state')?.textContent.trim()).toBe('FINISHED');
     expect(itemRow.querySelector('.mat-column-desiredState')?.textContent.trim()).toBe('ABORTED_MANUAL');
-    expect(itemRow.querySelector('.mat-column-queueSize')).toBeNull();
+    expect(itemRow.querySelector('.mat-column-queueSize')?.textContent.trim()).toBe('0');
     expect(itemRow.textContent).toContain('1,234');
     expect(itemRow.querySelector('.mat-column-bytesCrawled')?.textContent.trim()).toBe('1.5 kB');
     expect(itemRow.textContent).toContain('1hours:2min');

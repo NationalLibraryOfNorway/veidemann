@@ -61,6 +61,7 @@ describe('DashboardComponent', () => {
             getCrawlerStatus,
             pauseCrawler,
             unpauseCrawler,
+            queueCountsForJobExecutions: vi.fn(() => of(new Map())),
           },
         },
         {
@@ -253,7 +254,6 @@ describe('DashboardComponent', () => {
       active: 'startTime',
       direction: 'desc',
       stateList: [JobExecutionState.RUNNING],
-      watch: false,
     }));
     expect(range).toEqual({offset: 0, pageSize: 100});
     expect(fixture.nativeElement.querySelectorAll('.item-row').length).toBe(12);

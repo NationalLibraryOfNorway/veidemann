@@ -5,8 +5,8 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import no.nb.nna.veidemann.api.frontier.v1.CountResponse;
-import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
+import no.nb.nna.veidemann.api.frontier.v1.ExecutionIds;
+import no.nb.nna.veidemann.api.frontier.v1.QueueCountsResponse;
 import no.nb.nna.veidemann.commons.db.ConfigAdapter;
 import no.nb.nna.veidemann.commons.db.ExecutionsAdapter;
 import no.nb.nna.veidemann.controller.settings.Settings;
@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 class ControllerQueueCountTest {
@@ -35,64 +36,63 @@ class ControllerQueueCountTest {
     }
 
     @Test
-    void forwardsJobExecutionCountResponses() {
+    void forwardsBatchResponses() {
+        QueueCountsResponse expected = QueueCountsResponse.newBuilder()
+                .putCounts("job-1", 8L)
+                .putCounts("job-2", 0L)
+                .build();
         doAnswer(invocation -> {
-            FutureCallback<CountResponse> callback = invocation.getArgument(1);
-            callback.onSuccess(CountResponse.newBuilder().setCount(42).build());
+            FutureCallback<QueueCountsResponse> callback = invocation.getArgument(1);
+            callback.onSuccess(expected);
             return null;
-        }).when(frontierClient).queueCountForJobExecution(any(), any(), any());
+        }).when(frontierClient).queueCountsForJobExecutions(any(), any(), any());
         @SuppressWarnings("unchecked")
-        StreamObserver<CountResponse> observer = mock(StreamObserver.class);
+        StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
 
-        controllerService.queueCountForJobExecution(
-                JobExecutionId.newBuilder().setId("job-execution").build(), observer);
+        controllerService.queueCountsForJobExecutions(
+                ExecutionIds.newBuilder().addId("job-1").addId("job-2").build(), observer);
 
-        ArgumentCaptor<CountResponse> response = ArgumentCaptor.forClass(CountResponse.class);
-        verify(observer).onNext(response.capture());
-        assertThat(response.getValue().getCount()).isEqualTo(42L);
+        verify(observer).onNext(expected);
         verify(observer).onCompleted();
     }
 
     @Test
-    void forwardsAnEmptyJobExecutionId() {
-        doAnswer(invocation -> {
-            JobExecutionId request = invocation.getArgument(0);
-            assertThat(request.getId()).isEmpty();
-            FutureCallback<CountResponse> callback = invocation.getArgument(1);
-            callback.onSuccess(CountResponse.getDefaultInstance());
-            return null;
-        }).when(frontierClient).queueCountForJobExecution(any(), any(), any());
-        @SuppressWarnings("unchecked")
-        StreamObserver<CountResponse> observer = mock(StreamObserver.class);
-
-        controllerService.queueCountForJobExecution(JobExecutionId.getDefaultInstance(), observer);
-
-        verify(observer).onNext(CountResponse.getDefaultInstance());
-        verify(observer).onCompleted();
-    }
-
-    @Test
-    void preservesResourceExhaustedStatus() {
+    void preservesBatchFailureStatusAndTrailers() {
         Metadata.Key<String> retryHint = Metadata.Key.of("retry-hint", Metadata.ASCII_STRING_MARSHALLER);
         Metadata trailers = new Metadata();
         trailers.put(retryHint, "later");
         doAnswer(invocation -> {
-            FutureCallback<CountResponse> callback = invocation.getArgument(1);
-            callback.onFailure(Status.RESOURCE_EXHAUSTED
-                    .withDescription("concurrency limit reached")
-                    .asRuntimeException(trailers));
+            FutureCallback<QueueCountsResponse> callback = invocation.getArgument(1);
+            callback.onFailure(Status.RESOURCE_EXHAUSTED.withDescription("busy").asRuntimeException(trailers));
             return null;
-        }).when(frontierClient).queueCountForJobExecution(any(), any(), any());
+        }).when(frontierClient).queueCountsForCrawlExecutions(any(), any(), any());
         @SuppressWarnings("unchecked")
-        StreamObserver<CountResponse> observer = mock(StreamObserver.class);
+        StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
 
-        controllerService.queueCountForJobExecution(JobExecutionId.getDefaultInstance(), observer);
+        controllerService.queueCountsForCrawlExecutions(
+                ExecutionIds.newBuilder().addId("crawl-1").build(), observer);
 
         ArgumentCaptor<Throwable> error = ArgumentCaptor.forClass(Throwable.class);
         verify(observer).onError(error.capture());
         StatusRuntimeException forwarded = (StatusRuntimeException) error.getValue();
         assertThat(forwarded.getStatus().getCode()).isEqualTo(Status.Code.RESOURCE_EXHAUSTED);
-        assertThat(forwarded.getStatus().getDescription()).isEqualTo("concurrency limit reached");
+        assertThat(forwarded.getStatus().getDescription()).isEqualTo("busy");
         assertThat(forwarded.getTrailers().get(retryHint)).isEqualTo("later");
+    }
+
+    @Test
+    void rejectsOversizedBatchBeforeForwarding() {
+        ExecutionIds request = ExecutionIds.newBuilder().addAllId(
+                java.util.stream.IntStream.range(0, 101).mapToObj(Integer::toString).toList()).build();
+        @SuppressWarnings("unchecked")
+        StreamObserver<QueueCountsResponse> observer = mock(StreamObserver.class);
+
+        controllerService.queueCountsForJobExecutions(request, observer);
+
+        ArgumentCaptor<Throwable> error = ArgumentCaptor.forClass(Throwable.class);
+        verify(observer).onError(error.capture());
+        assertThat(((StatusRuntimeException) error.getValue()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT);
+        verify(frontierClient, never()).queueCountsForJobExecutions(any(), any(), any());
     }
 }

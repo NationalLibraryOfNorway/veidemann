@@ -90,6 +90,7 @@ describe('JobExecutionStatusListComponent', () => {
       'jobId',
       'state',
       'desiredState',
+      'queueSize',
       'startTime',
       'endTime',
       'duration',

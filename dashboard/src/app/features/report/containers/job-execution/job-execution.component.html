@@ -7,11 +7,13 @@
         <app-job-execution-status-query class="report-filter-controls"
           [crawlJobOptions]="crawlJobOptions"
           [query]="query"
-        (queryChange)="onQueryChange($event)"></app-job-execution-status-query>
+          (queryChange)="onQueryChange($event)"
+          (refresh)="onRefresh()"></app-job-execution-status-query>
       </div>
       <div class="report-result-content flex-fill">
         <app-job-execution-status-list
           [dataSource]="dataSource"
+          [queueCounts]="(queueCounts$ | async) ?? emptyQueueCounts"
           [sortDirection]="sortDirection()"
           [sortActive]="sortActive()"
           (rowClick)="onRowClick($event)"

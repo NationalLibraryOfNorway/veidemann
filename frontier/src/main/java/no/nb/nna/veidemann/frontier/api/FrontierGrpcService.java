@@ -15,6 +15,9 @@
  */
 package no.nb.nna.veidemann.frontier.api;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -32,10 +35,11 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlSeedRequest;
+import no.nb.nna.veidemann.api.frontier.v1.ExecutionIds;
 import no.nb.nna.veidemann.api.frontier.v1.FrontierGrpc;
-import no.nb.nna.veidemann.api.frontier.v1.JobExecutionId;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvest;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvestSpec;
+import no.nb.nna.veidemann.api.frontier.v1.QueueCountsResponse;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 
 /**
@@ -44,6 +48,7 @@ import no.nb.nna.veidemann.frontier.worker.Frontier;
 public class FrontierGrpcService extends FrontierGrpc.FrontierImplBase implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FrontierGrpcService.class);
+    static final int MAX_QUEUE_COUNT_IDS = 100;
 
     private final Frontier frontier;
     private final Context ctx;
@@ -125,20 +130,28 @@ public class FrontierGrpcService extends FrontierGrpc.FrontierImplBase implement
     }
 
     @Override
-    public void queueCountForCrawlExecution(CrawlExecutionId request, StreamObserver<CountResponse> responseObserver) {
-        CountResponse response = CountResponse.newBuilder()
-                .setCount(ctx.getCrawlQueueManager().countByCrawlExecution(request.getId()))
-                .build();
-        responseObserver.onNext(response);
+    public void queueCountsForCrawlExecutions(
+            ExecutionIds request, StreamObserver<QueueCountsResponse> responseObserver) {
+        List<String> ids = validateExecutionIds(request, responseObserver);
+        if (ids == null) {
+            return;
+        }
+        responseObserver.onNext(QueueCountsResponse.newBuilder()
+                .putAllCounts(ctx.getCrawlQueueManager().countByCrawlExecutions(ids))
+                .build());
         responseObserver.onCompleted();
     }
 
     @Override
-    public void queueCountForJobExecution(JobExecutionId request, StreamObserver<CountResponse> responseObserver) {
-        CountResponse response = CountResponse.newBuilder()
-                .setCount(ctx.getCrawlQueueManager().countByJobExecution(request.getId()))
-                .build();
-        responseObserver.onNext(response);
+    public void queueCountsForJobExecutions(
+            ExecutionIds request, StreamObserver<QueueCountsResponse> responseObserver) {
+        List<String> ids = validateExecutionIds(request, responseObserver);
+        if (ids == null) {
+            return;
+        }
+        responseObserver.onNext(QueueCountsResponse.newBuilder()
+                .putAllCounts(ctx.getCrawlQueueManager().countByJobExecutions(ids))
+                .build());
         responseObserver.onCompleted();
     }
 
@@ -149,5 +162,21 @@ public class FrontierGrpcService extends FrontierGrpc.FrontierImplBase implement
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+    }
+
+    private static List<String> validateExecutionIds(ExecutionIds request, StreamObserver<?> responseObserver) {
+        if (request.getIdCount() > MAX_QUEUE_COUNT_IDS) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Execution id list may contain at most " + MAX_QUEUE_COUNT_IDS + " entries")
+                    .asRuntimeException());
+            return null;
+        }
+        if (request.getIdList().stream().anyMatch(String::isBlank)) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Execution ids must not be blank")
+                    .asRuntimeException());
+            return null;
+        }
+        return new ArrayList<>(new LinkedHashSet<>(request.getIdList()));
     }
 }

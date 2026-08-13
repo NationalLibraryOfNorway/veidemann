@@ -33,11 +33,11 @@ service Frontier {
     // Total number of queued URI's
     rpc QueueCountTotal (google.protobuf.Empty) returns (CountResponse) {}
 
-    // Number of queued URI's for a CrawlExecution
-    rpc QueueCountForCrawlExecution (CrawlExecutionId) returns (CountResponse) {}
+    // Number of queued URI's for up to 100 CrawlExecutions
+    rpc QueueCountsForCrawlExecutions (ExecutionIds) returns (QueueCountsResponse) {}
 
-    // Total number of queued URI's for a JobExecution
-    rpc QueueCountForJobExecution (JobExecutionId) returns (CountResponse) {}
+    // Number of queued URI's for up to 100 JobExecutions
+    rpc QueueCountsForJobExecutions (ExecutionIds) returns (QueueCountsResponse) {}
 
     // Number of queued URI's for a CrawlHostGroup
     rpc QueueCountForCrawlHostGroup (veidemann.api.frontier.v1.CrawlHostGroup) returns (CountResponse) {}
@@ -59,6 +59,11 @@ message CrawlExecutionId {
 // The id of a job execution.
 message JobExecutionId {
     string id = 1;
+}
+
+// A bounded list of execution ids. Queue count RPCs accept at most 100 entries.
+message ExecutionIds {
+    repeated string id = 1;
 }
 
 // Message sent from Harvester to return the harvest result.
@@ -100,4 +105,8 @@ message PageHarvestSpec {
 
 message CountResponse {
     int64 count = 1;
+}
+
+message QueueCountsResponse {
+    map<string, int64> counts = 1;
 }
