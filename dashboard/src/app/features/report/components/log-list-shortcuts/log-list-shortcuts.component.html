@@ -1,23 +1,32 @@
 @if (context$ | async; as context) {
-  <app-detail-overflow [label]="actionsMenuLabel">
-    @switch (context.kind) {
-      @case ('crawlExecution') {
-        <app-crawl-execution-shortcut-helpers
-          presentation="menu"
-          [crawlExecutionStatus]="context.status"
-          [showPageLog]="logKind === 'crawllog'"
-          [showCrawlLog]="false"
-          [showCrawlExecution]="true">
-        </app-crawl-execution-shortcut-helpers>
-      }
-      @case ('jobExecution') {
-        <app-job-execution-shortcut-helpers
-          presentation="menu"
-          [jobExecutionStatus]="context.status"
-          [showJobExecution]="true"
-          [showCrawlExecutions]="false">
-        </app-job-execution-shortcut-helpers>
-      }
-    }
-  </app-detail-overflow>
+  <mat-chip-set class="log-context-filter" aria-label="Active report filters"
+    i18n-aria-label="@@activeReportFiltersLabel">
+    <mat-chip [matTooltip]="executionFilterTooltip(context.executionId)">
+      <mat-icon matChipAvatar aria-hidden="true">{{context.seedLabel ? 'link' : 'hdr_weak'}}</mat-icon>
+      <span class="filter-chip-label">
+        @if (context.seedLabel) {
+          {{context.seedLabel}}
+        } @else {
+          <span i18n="@@logListExecutionFilterFallbackChip">Crawl execution: {{context.executionId}}</span>
+        }
+      </span>
+      <button matChipRemove type="button"
+        [attr.aria-label]="removeExecutionFilterLabel(context.executionId)"
+        (click)="removeExecutionFilter.emit()">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </mat-chip>
+  </mat-chip-set>
+
+  @if (context.status; as status) {
+    <app-detail-overflow [label]="actionsMenuLabel">
+      <app-crawl-execution-shortcut-helpers
+        presentation="menu"
+        [crawlExecutionStatus]="status"
+        [showPageLog]="logKind === 'crawllog'"
+        [showCrawlLog]="false"
+        [showCrawlExecution]="true">
+      </app-crawl-execution-shortcut-helpers>
+    </app-detail-overflow>
+  }
 }

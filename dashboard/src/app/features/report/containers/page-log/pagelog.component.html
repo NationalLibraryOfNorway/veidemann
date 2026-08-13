@@ -10,8 +10,8 @@
             (queryChange)="onQueryChange($event)"></app-page-log-query>
           <app-log-list-shortcuts
             [executionId]="query.executionId"
-            [jobExecutionId]="query.jobExecutionId"
-            logKind="pagelog">
+            logKind="pagelog"
+            (removeExecutionFilter)="onExecutionFilterRemove()">
           </app-log-list-shortcuts>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import {ErrorHandler} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {provideRouter} from '@angular/router';
+import {provideRouter, Router} from '@angular/router';
 import {of} from 'rxjs';
 
 import {provideCoreTesting} from '../../../../core/core.testing.module';
@@ -52,6 +52,23 @@ describe('CrawlLogComponent', () => {
     expect(getComputedStyle(header).display).toBe('flex');
     expect(getComputedStyle(controls).flexGrow).toBe('1');
     expect(getComputedStyle(shortcuts).marginLeft).toBe('auto');
+  });
+
+  it('clears the execution filter and unsupported legacy log parameters without changing sort', () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    component.onQueryChange({...component.query(), executionId: ''});
+
+    expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({
+      queryParamsHandling: 'merge',
+      queryParams: expect.objectContaining({
+        p: null,
+        s: null,
+        execution_id: null,
+        job_execution_id: null,
+      }),
+    }));
+    expect(navigate.mock.calls[0][1]?.queryParams?.['sort']).toBeUndefined();
   });
 
   it('offers unique normalized content types from loaded rows and filters by type', async () => {

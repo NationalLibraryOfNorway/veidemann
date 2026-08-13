@@ -32,4 +32,13 @@ describe('PageLogQueryComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Watch');
     expect(component.form.contains('watch')).toBe(false);
   });
+
+  it('keeps only a hidden execution-ID control', () => {
+    const executionInput = fixture.nativeElement.querySelector('[formcontrolname="executionId"]') as HTMLElement;
+
+    expect(component.form.contains('executionId')).toBe(true);
+    expect(component.form.contains('jobExecutionId')).toBe(false);
+    expect(component.form.contains('uri')).toBe(false);
+    expect((executionInput.closest('mat-form-field') as HTMLElement).hidden).toBe(true);
+  });
 });

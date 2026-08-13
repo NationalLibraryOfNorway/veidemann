@@ -13,19 +13,61 @@
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" hidden>
     <mat-label i18n="@@crawlExecutionReportFilterJobExecutionIdLabel">
       JobExecution ID
     </mat-label>
     <input matInput formControlName="jobExecutionId">
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" hidden>
     <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
       Seed ID
     </mat-label>
     <input matInput formControlName="seedId">
   </mat-form-field>
+
+  @if (query?.jobExecutionId || query?.seedId) {
+    <mat-chip-set class="report-active-filter-chips" aria-label="Active report filters"
+      i18n-aria-label="@@activeReportFiltersLabel">
+      @if (query.jobExecutionId) {
+        <mat-chip [matTooltip]="jobExecutionFilterTooltip(query.jobExecutionId)">
+          <mat-icon matChipAvatar aria-hidden="true">hdr_strong</mat-icon>
+          <span class="filter-chip-label">
+            @if (jobExecutionLabel$ | async; as label) {
+              {{label}}
+            } @else {
+              <span i18n="@@crawlExecutionJobExecutionFilterFallbackChip">
+                Job execution: {{query.jobExecutionId}}
+              </span>
+            }
+          </span>
+          <button matChipRemove type="button"
+            [attr.aria-label]="removeJobExecutionFilterLabel(query.jobExecutionId)"
+            (click)="removeDirectFilter('jobExecutionId')">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      }
+      @if (query.seedId) {
+        <mat-chip [matTooltip]="seedFilterTooltip(query.seedId)">
+          <mat-icon matChipAvatar aria-hidden="true">link</mat-icon>
+          <span class="filter-chip-label">
+            @if (seedLabel$ | async; as label) {
+              {{label}}
+            } @else {
+              <span i18n="@@crawlExecutionSeedFilterFallbackChip">Seed: {{query.seedId}}</span>
+            }
+          </span>
+          <button matChipRemove type="button"
+            [attr.aria-label]="removeSeedFilterLabel(query.seedId)"
+            (click)="removeDirectFilter('seedId')">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+  }
 
   <mat-form-field appearance="outline">
     <mat-label i18n="@@crawlExecutionReportFilterStartDateRangeLabel">Crawl start date</mat-label>

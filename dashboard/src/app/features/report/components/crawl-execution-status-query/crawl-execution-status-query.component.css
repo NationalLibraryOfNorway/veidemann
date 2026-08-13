@@ -1,0 +1,11 @@
+.report-active-filter-chips {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+.filter-chip-label {
+  overflow: hidden;
+  max-width: min(32rem, 60vw);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -4,15 +4,15 @@ import {AbilityServiceSignal} from '@casl/angular';
 import {EMPTY, Subject, of, throwError} from 'rxjs';
 
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {ConfigObject, CrawlExecutionStatus, JobExecutionStatus, Meta} from '../../../../shared/models';
-import {CrawlExecutionService, JobExecutionService} from '../../services';
+import {ConfigObject, CrawlExecutionStatus, Kind, Meta} from '../../../../shared/models';
+import {CrawlExecutionService} from '../../services';
 import {LogListShortcutsComponent} from './log-list-shortcuts.component';
 
 describe('LogListShortcutsComponent', () => {
   let fixture: ComponentFixture<LogListShortcutsComponent>;
   let can: ReturnType<typeof vi.fn>;
   let getCrawlExecution: ReturnType<typeof vi.fn>;
-  let getJobExecution: ReturnType<typeof vi.fn>;
+  let getSeed: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     can = vi.fn(() => true);
@@ -22,9 +22,10 @@ describe('LogListShortcutsComponent', () => {
       jobId: 'job-1',
       seedId: 'seed-1',
     })));
-    getJobExecution = vi.fn(({id}: {id: string}) => of(new JobExecutionStatus({
+    getSeed = vi.fn((id: string) => of(new ConfigObject({
       id,
-      jobId: 'job-1',
+      kind: Kind.SEED,
+      meta: new Meta({name: 'Example seed'}),
     })));
 
     await TestBed.configureTestingModule({
@@ -33,11 +34,7 @@ describe('LogListShortcutsComponent', () => {
         ...provideCoreTesting,
         provideRouter([]),
         {provide: AbilityServiceSignal, useValue: {can}},
-        {provide: CrawlExecutionService, useValue: {get: getCrawlExecution}},
-        {provide: JobExecutionService, useValue: {
-          get: getJobExecution,
-          getJob: () => of(new ConfigObject({meta: new Meta({name: 'Daily crawl'})})),
-        }},
+        {provide: CrawlExecutionService, useValue: {get: getCrawlExecution, getSeed}},
       ],
     }).compileComponents();
 
@@ -45,15 +42,22 @@ describe('LogListShortcutsComponent', () => {
     fixture.componentRef.setInput('logKind', 'pagelog');
   });
 
-  it('uses a crawl execution filter for the complete Page Log context without linking to either log list', async () => {
+  it('reuses one Crawl Execution context to resolve a prefix-free Seed chip and Page Log menu', async () => {
     fixture.componentRef.setInput('executionId', 'crawl-execution-1');
-    fixture.componentRef.setInput('jobExecutionId', 'conflicting-job-execution');
     fixture.detectChanges();
     await fixture.whenStable();
 
+    expect(getCrawlExecution).toHaveBeenCalledOnce();
     expect(getCrawlExecution).toHaveBeenCalledWith({id: 'crawl-execution-1', watch: false});
-    expect(getJobExecution).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
+    expect(getSeed).toHaveBeenCalledOnce();
+    expect(getSeed).toHaveBeenCalledWith('seed-1');
+
+    const chip = fixture.nativeElement.querySelector('.log-context-filter mat-chip') as HTMLElement;
+    expect(chip.textContent).toContain('Example seed');
+    expect(chip.textContent).not.toContain('Seed:');
+    expect(chip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('link');
+    expect(chip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
+      .toBe('Remove crawl execution crawl-execution-1 filter');
 
     const menu = await openMenu('Page log actions');
     expect(menu.textContent).toContain('Crawl execution');
@@ -71,7 +75,7 @@ describe('LogListShortcutsComponent', () => {
     ]);
   });
 
-  it('adds the Page Log link for a Crawl Log execution context', async () => {
+  it('adds the Page Log action for a Crawl Log execution context', async () => {
     fixture.componentRef.setInput('logKind', 'crawllog');
     fixture.componentRef.setInput('executionId', 'crawl-execution-1');
     fixture.detectChanges();
@@ -84,63 +88,68 @@ describe('LogListShortcutsComponent', () => {
     expect(menuLinks(menu)[0]).toBe('/report/pagelog?execution_id=crawl-execution-1');
   });
 
-  it('shows only the two unambiguous relationships for a job execution filter', async () => {
-    fixture.componentRef.setInput('jobExecutionId', 'job-execution-1');
+  it('emits removal for the exact execution filter', async () => {
+    let removed = false;
+    fixture.componentInstance.removeExecutionFilter.subscribe(() => removed = true);
+    fixture.componentRef.setInput('executionId', 'crawl-execution-1');
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(getJobExecution).toHaveBeenCalledWith({id: 'job-execution-1', watch: false});
-    const menu = await openMenu('Page log actions');
-    expect(menu.textContent).toContain('Job execution');
-    expect(menu.textContent).toContain('Daily crawl');
-    expect(menu.textContent).toContain('Copy ID');
-    expect(menu.textContent).not.toContain('Crawl executions');
-    expect(menu.textContent).not.toContain('Seed');
-    expect(menuLinks(menu)).toEqual([
-      '/report/jobexecution/job-execution-1',
-      '/config/crawljobs/job-1',
-    ]);
+    (fixture.nativeElement.querySelector('button[matChipRemove]') as HTMLButtonElement).click();
+
+    expect(removed).toBe(true);
   });
 
-  it('does not load or render context when unfiltered, unauthorized, or unavailable', async () => {
+  it('keeps an ID fallback chip but omits the menu when context is unauthorized or unavailable', async () => {
     fixture.detectChanges();
     expect(getCrawlExecution).not.toHaveBeenCalled();
-    expect(getJobExecution).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-chip')).toBeNull();
 
     can.mockReturnValue(false);
     fixture.componentRef.setInput('executionId', 'unauthorized');
     fixture.detectChanges();
+    await fixture.whenStable();
     expect(getCrawlExecution).not.toHaveBeenCalled();
+    expect(fallbackChipText()).toContain('Crawl execution: unauthorized');
+    expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
 
     can.mockReturnValue(true);
     getCrawlExecution.mockReturnValue(EMPTY);
     fixture.componentRef.setInput('executionId', 'missing');
     fixture.detectChanges();
     await fixture.whenStable();
+    expect(fallbackChipText()).toContain('Crawl execution: missing');
     expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
 
     getCrawlExecution.mockReturnValue(throwError(() => new Error('failed context')));
     fixture.componentRef.setInput('executionId', 'failed');
     fixture.detectChanges();
     await fixture.whenStable();
+    expect(fallbackChipText()).toContain('Crawl execution: failed');
     expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
   });
 
-  it('cancels stale loads and does not reload unchanged IDs', async () => {
+  it('cancels stale context loads and does not reload unchanged IDs', async () => {
     const first = new Subject<CrawlExecutionStatus>();
     const second = new Subject<CrawlExecutionStatus>();
     getCrawlExecution.mockImplementation(({id}: {id: string}) => id === 'first' ? first : second);
+    getSeed.mockImplementation((id: string) => of(new ConfigObject({
+      id,
+      kind: Kind.SEED,
+      meta: new Meta({name: id === 'second-seed' ? 'Second seed' : 'First seed'}),
+    })));
 
     fixture.componentRef.setInput('executionId', 'first');
     fixture.detectChanges();
     fixture.componentRef.setInput('executionId', 'second');
     fixture.detectChanges();
-    first.next(new CrawlExecutionStatus({id: 'first'}));
-    second.next(new CrawlExecutionStatus({id: 'second'}));
+    first.next(new CrawlExecutionStatus({id: 'first', seedId: 'first-seed'}));
+    second.next(new CrawlExecutionStatus({id: 'second', seedId: 'second-seed'}));
     fixture.detectChanges();
     await fixture.whenStable();
 
+    expect(fixture.nativeElement.querySelector('mat-chip')?.textContent).toContain('Second seed');
+    expect(fixture.nativeElement.querySelector('mat-chip')?.textContent).not.toContain('First seed');
     const menu = await openMenu('Page log actions');
     const hrefs = menuLinks(menu);
     expect(hrefs.some(href => href?.includes('/first'))).toBe(false);
@@ -150,6 +159,12 @@ describe('LogListShortcutsComponent', () => {
     fixture.detectChanges();
     expect(getCrawlExecution).toHaveBeenCalledTimes(2);
   });
+
+  function fallbackChipText(): string {
+    const chip = fixture.nativeElement.querySelector('.log-context-filter mat-chip') as HTMLElement;
+    expect(chip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('hdr_weak');
+    return chip.textContent;
+  }
 
   async function openMenu(label: string): Promise<HTMLElement> {
     const trigger = fixture.nativeElement.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement;

@@ -89,11 +89,15 @@ export class PageLogComponent {
       queryParams: {
         p: null,
         s: null,
-        uri: query.uri || null,
-        job_execution_id: query.jobExecutionId || null,
+        uri: null,
+        job_execution_id: null,
         execution_id: query.executionId || null,
       },
     }).catch(error => this.errorHandler.handleError(error));
+  }
+
+  onExecutionFilterRemove(): void {
+    this.onQueryChange({...this.query(), executionId: ''});
   }
 
   private applySort(active: string, direction: SortDirection): void {

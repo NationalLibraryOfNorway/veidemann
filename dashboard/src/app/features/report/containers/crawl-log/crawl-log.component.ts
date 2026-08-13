@@ -136,10 +136,14 @@ export class CrawlLogComponent {
       queryParams: {
         p: null,
         s: null,
-        job_execution_id: query.jobExecutionId || null,
+        job_execution_id: null,
         execution_id: query.executionId || null,
       },
     }).catch(error => this.errorHandler.handleError(error));
+  }
+
+  onExecutionFilterRemove(): void {
+    this.onQueryChange({...this.query(), executionId: ''});
   }
 
   onRowClick(row: CrawlLog): void {

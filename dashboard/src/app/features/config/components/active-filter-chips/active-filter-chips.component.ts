@@ -1,6 +1,7 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output} from '@angular/core';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatIcon} from '@angular/material/icon';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {
   isEmojiLabel,
@@ -18,6 +19,7 @@ export interface ActiveConfigFilterChip {
   value: string;
   label: string;
   icon?: string;
+  tooltip?: string;
   labelSelector?: ConfigLabelSelector;
 }
 
@@ -26,7 +28,7 @@ export interface ActiveConfigFilterChip {
   templateUrl: './active-filter-chips.component.html',
   styleUrls: ['./active-filter-chips.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LabelDisplayComponent, MatChipsModule, MatIcon],
+  imports: [LabelDisplayComponent, MatChipsModule, MatIcon, MatTooltipModule],
   standalone: true,
 })
 export class ActiveFilterChipsComponent implements OnChanges {
@@ -61,10 +63,13 @@ export class ActiveFilterChipsComponent implements OnChanges {
       });
     }
     if (this.query?.entityId) {
+      const entityName = this.entity?.meta?.name;
       chips.push({
         key: 'entityId',
         value: this.query.entityId,
-        label: $localize`Entity: ${this.entity?.meta?.name || this.query.entityId}`,
+        label: entityName || $localize`:@@activeConfigEntityFilterFallbackChip:Entity: ${this.query.entityId}:ENTITY_ID:`,
+        icon: configKindIcon(Kind.CRAWLENTITY),
+        tooltip: $localize`:@@activeConfigEntityFilterTooltip:Entity ID: ${this.query.entityId}:ENTITY_ID:`,
       });
     }
     for (const id of this.query?.scriptIdList ?? []) {
@@ -88,6 +93,9 @@ export class ActiveFilterChipsComponent implements OnChanges {
     }
     if (chip.key === 'scriptIdList') {
       return $localize`:@@activeConfigRemoveBrowserScriptFilterLabel:Remove BrowserScript ${chip.label} filter`;
+    }
+    if (chip.key === 'entityId') {
+      return $localize`:@@activeConfigRemoveEntityFilterLabel:Remove entity ${chip.value}:ENTITY_ID: filter`;
     }
     return $localize`:@@activeConfigRemoveFilterLabel:Remove ${chip.label} filter`;
   }

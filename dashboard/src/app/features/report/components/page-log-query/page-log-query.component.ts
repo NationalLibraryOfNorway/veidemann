@@ -21,9 +21,7 @@ export class PageLogQueryComponent extends QueryComponent<PageLogQuery> {
 
   protected override createForm(): void {
     this.form = this.fb.group({
-      jobExecutionId: '',
       executionId: '',
-      uri: '',
     });
   }
 }

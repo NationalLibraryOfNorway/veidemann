@@ -9,8 +9,8 @@
             [query]="query" (queryChange)="onQueryChange($event)"></app-crawl-log-query>
           <app-log-list-shortcuts
             [executionId]="query.executionId"
-            [jobExecutionId]="query.jobExecutionId"
-            logKind="crawllog">
+            logKind="crawllog"
+            (removeExecutionFilter)="onExecutionFilterRemove()">
           </app-log-list-shortcuts>
         </div>
         <fieldset class="facet-filter">

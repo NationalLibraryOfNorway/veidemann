@@ -6,10 +6,11 @@ import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/
 import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatDateRangeInputHarness} from '@angular/material/datepicker/testing';
 import {enUS} from 'date-fns/locale';
+import {of} from 'rxjs';
 
 import {provideMaterialAnimationsDisabled} from '../../../../core/core.testing.module';
-import {ConfigObject, CrawlExecutionState, Meta} from '../../../../shared/models';
-import {CrawlExecutionStatusQuery} from '../../services';
+import {ConfigObject, CrawlExecutionState, JobExecutionStatus, Kind, Meta} from '../../../../shared/models';
+import {CrawlExecutionService, CrawlExecutionStatusQuery, JobExecutionService} from '../../services';
 import {CrawlExecutionStatusQueryComponent} from './crawl-execution-status-query.component';
 
 describe('CrawlExecutionStatusQueryComponent', () => {
@@ -24,6 +25,17 @@ describe('CrawlExecutionStatusQueryComponent', () => {
         {provide: DateAdapter, useClass: DateFnsAdapter, deps: [MAT_DATE_LOCALE]},
         {provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS},
         {provide: MAT_DATE_LOCALE, useValue: enUS},
+        {provide: JobExecutionService, useValue: {
+          get: ({id}: {id: string}) => of(new JobExecutionStatus({id, jobId: 'job-1'})),
+          getJob: () => of(new ConfigObject({
+            id: 'job-1', kind: Kind.CRAWLJOB, meta: new Meta({name: 'Daily crawl'}),
+          })),
+        }},
+        {provide: CrawlExecutionService, useValue: {
+          getSeed: () => of(new ConfigObject({
+            id: 'seed-1', kind: Kind.SEED, meta: new Meta({name: 'Example seed'}),
+          })),
+        }},
       ],
     }).compileComponents();
 
@@ -35,7 +47,7 @@ describe('CrawlExecutionStatusQueryComponent', () => {
       stateList: [CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED],
       jobId: 'job-1',
       jobExecutionId: 'execution-1',
-      seedId: '',
+      seedId: 'seed-1',
       startTimeFrom: '',
       startTimeTo: '',
       hasError: false,
@@ -75,7 +87,6 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     const filterChips = fixture.nativeElement.querySelectorAll(
       'mat-chip-listbox:not([formcontrolname="stateList"]) mat-chip-option'
     ) as NodeListOf<HTMLElement>;
-    const contextChip = fixture.nativeElement.querySelector('mat-chip:not(mat-chip-option)') as HTMLElement;
     const stateFieldset = statusControls.children[1] as HTMLFieldSetElement;
 
     expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
@@ -86,8 +97,40 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(stateFieldset.querySelector('legend')?.textContent.trim()).toBe('State');
     expect(stateFieldset.querySelector('[formcontrolname="hasError"]')).toBeNull();
     expect(statusControls.children[2].tagName).toBe('APP-POLLING-REFRESH-BUTTON');
-    expect(contextChip).toBeNull();
     expect(fixture.nativeElement.querySelectorAll('mat-select')).toHaveLength(1);
+  });
+
+  it('hides direct-ID fields and resolves prefix-free chips with representative icons', () => {
+    const directInputs = [...fixture.nativeElement.querySelectorAll(
+      '[formcontrolname="jobExecutionId"], [formcontrolname="seedId"]'
+    )] as HTMLInputElement[];
+    const chips = [...fixture.nativeElement.querySelectorAll('.report-active-filter-chips mat-chip')] as HTMLElement[];
+
+    expect(directInputs).toHaveLength(2);
+    expect(directInputs.every(input => (input.closest('mat-form-field') as HTMLElement).hidden)).toBe(true);
+    expect(chips.map(chip => chip.textContent.trim())).toEqual([
+      expect.stringContaining('Daily crawl'),
+      expect.stringContaining('Example seed'),
+    ]);
+    expect(chips[0].textContent).not.toContain('Job execution:');
+    expect(chips[1].textContent).not.toContain('Seed:');
+    expect(chips.map(chip => chip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()))
+      .toEqual(['hdr_strong', 'link']);
+    expect(chips[0].querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
+      .toBe('Remove job execution execution-1 filter');
+    expect(chips[1].querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
+      .toBe('Remove seed seed-1 filter');
+  });
+
+  it('removes one direct-ID filter without changing the other query values', () => {
+    let emitted: Partial<CrawlExecutionStatusQuery> | undefined;
+    fixture.componentInstance.queryChange.subscribe(query => emitted = query);
+
+    fixture.componentInstance.removeDirectFilter('jobExecutionId');
+
+    expect(emitted?.jobExecutionId).toBe('');
+    expect(emitted?.seedId).toBe('seed-1');
+    expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
   });
 
   it('emits the has-error filter without changing the selected states', async () => {

@@ -40,9 +40,16 @@ describe('report query route parsing', () => {
   });
 
   it('accepts but ignores legacy paging parameters', () => {
-    const query = pageLogQueryFromParamMap(convertToParamMap({s: '25', p: '2'}));
+    const query = pageLogQueryFromParamMap(convertToParamMap({
+      s: '25', p: '2', uri: 'https://example.org', job_execution_id: 'job-execution-1',
+    }));
     expect('pageSize' in query).toBe(false);
     expect('pageIndex' in query).toBe(false);
+    expect('uri' in query).toBe(false);
+    expect('jobExecutionId' in query).toBe(false);
+    expect('jobExecutionId' in crawlLogQueryFromParamMap(convertToParamMap({
+      job_execution_id: 'job-execution-1',
+    }))).toBe(false);
   });
 
   it('ignores legacy watch parameters for all report lists', () => {

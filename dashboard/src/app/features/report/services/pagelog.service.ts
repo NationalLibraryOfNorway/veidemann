@@ -10,9 +10,7 @@ import { PageLogListRequest, PageLogListRequestSchema } from '../../../../api/lo
 
 
 export interface PageLogQuery extends Sort {
-  uri: string;
   executionId: string;
-  jobExecutionId: string;
 }
 
 @Injectable({
@@ -48,16 +46,6 @@ export class PageLogService extends LoadingService {
     if (query.executionId) {
       queryTemplate.executionId = query.executionId;
       fieldMask.paths.push('executionId');
-    }
-
-    if (query.jobExecutionId) {
-      queryTemplate.jobExecutionId = query.jobExecutionId;
-      fieldMask.paths.push('jobExecutionId');
-    }
-
-    if (query.uri) {
-      queryTemplate.uri = query.uri;
-      fieldMask.paths.push('uri');
     }
 
     if (fieldMask.paths.length > 0) {

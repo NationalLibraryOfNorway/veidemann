@@ -125,6 +125,8 @@ describe('ConfigQueryComponent', () => {
     expect(fixture.nativeElement.querySelector('.status-filter')).toBeNull();
     expect(fixture.nativeElement.querySelector('.seed-chip-filters')).toBeNull();
     expect(fixture.nativeElement.querySelector('.crawl-job-filters')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[formcontrolname="entityId"]')
+      .closest('mat-form-field').hidden).toBe(true);
   });
 
   it('keeps selected CrawlJobs in the query control without rendering filter chips', async () => {

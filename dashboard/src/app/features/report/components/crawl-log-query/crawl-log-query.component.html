@@ -1,12 +1,5 @@
 <form [formGroup]="form" class="report-filter-form">
-  <mat-form-field appearance="outline">
-    <mat-label i18n="@@reportCrawlLogQueryJobExecutiondInputLabel">
-      Job execution ID
-    </mat-label>
-    <input matInput formControlName="jobExecutionId">
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" hidden>
     <mat-label i18n="@@reportCrawlLogQueryExecutiondInputLabel">
       Execution ID
     </mat-label>

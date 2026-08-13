@@ -1,4 +1,6 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {MatTooltip} from '@angular/material/tooltip';
+import {By} from '@angular/platform-browser';
 
 import {provideMaterialAnimationsDisabled} from '../../../../core/core.testing.module';
 import {ConfigQuery} from '../../../../shared/func';
@@ -61,7 +63,8 @@ describe('ActiveFilterChipsComponent', () => {
     const scriptChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
       .find((chip: HTMLElement) => chip.textContent.includes('Scope script')) as HTMLElement;
 
-    expect(text).toContain('Entity: Example entity');
+    expect(text).toContain('Example entity');
+    expect(text).not.toContain('Entity: Example entity');
     expect(dailyJobChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('work');
     expect(missingJobChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('work');
     expect(dailyJobChip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
@@ -72,6 +75,14 @@ describe('ActiveFilterChipsComponent', () => {
     expect(scriptChip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
       .toBe('Remove BrowserScript Scope script filter');
     expect(text).not.toContain('Crawljob:');
+    const entityChip = [...fixture.nativeElement.querySelectorAll('mat-chip')]
+      .find((chip: HTMLElement) => chip.textContent.includes('Example entity')) as HTMLElement;
+    expect(entityChip.querySelector('mat-icon[matChipAvatar]')?.textContent.trim()).toBe('business');
+    const entityChipDebug = fixture.debugElement.queryAll(By.css('mat-chip'))
+      .find(element => element.nativeElement === entityChip);
+    expect(entityChipDebug?.injector.get(MatTooltip).message).toBe('Entity ID: entity-1');
+    expect(entityChip.querySelector('button[matChipRemove]')?.getAttribute('aria-label'))
+      .toBe('Remove entity entity-1 filter');
   });
 
   it('does not duplicate single-select, status, or search controls as chips', () => {

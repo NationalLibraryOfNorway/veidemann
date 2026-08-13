@@ -189,10 +189,16 @@
         <target> configurations moved</target>
       </segment>
     </unit>
-    <unit id="906028096900228100">
-      <segment state="initial">
-        <source>Entity: <ph id="0" equiv="PH" disp="this.entity?.meta?.name || this.query.entityId"/></source>
-        <target>Entity: <ph id="0" equiv="PH" disp="this.entity?.meta?.name || this.query.entityId"/></target>
+    <unit id="activeConfigEntityFilterFallbackChip">
+      <segment state="final">
+        <source>Entity: <ph id="0" equiv="ENTITY_ID" disp="this.query.entityId"/></source>
+        <target>Entitet: <ph id="0" equiv="ENTITY_ID" disp="this.query.entityId"/></target>
+      </segment>
+    </unit>
+    <unit id="activeConfigEntityFilterTooltip">
+      <segment state="final">
+        <source>Entity ID: <ph id="0" equiv="ENTITY_ID" disp="this.query.entityId"/></source>
+        <target>Entitets-ID: <ph id="0" equiv="ENTITY_ID" disp="this.query.entityId"/></target>
       </segment>
     </unit>
     <unit id="activeConfigFiltersLabel">
@@ -219,10 +225,22 @@
         <target>Remove BrowserScript <ph id="0" equiv="PH" disp="chip.label"/> filter</target>
       </segment>
     </unit>
+    <unit id="activeConfigRemoveEntityFilterLabel">
+      <segment state="final">
+        <source>Remove entity <ph id="0" equiv="ENTITY_ID" disp="chip.value"/> filter</source>
+        <target>Fjern filteret for entitet <ph id="0" equiv="ENTITY_ID" disp="chip.value"/></target>
+      </segment>
+    </unit>
     <unit id="activeConfigRemoveFilterLabel">
       <segment state="final">
         <source>Remove <ph id="0" equiv="PH" disp="chip.label"/> filter</source>
         <target>Fjern filteret <ph id="0" equiv="PH" disp="chip.label"/></target>
+      </segment>
+    </unit>
+    <unit id="activeReportFiltersLabel">
+      <segment state="final">
+        <source>Active report filters</source>
+        <target>Aktive rapportfiltre</target>
       </segment>
     </unit>
     <unit id="annotationChipListPlaceholder">
@@ -1617,6 +1635,18 @@
         <target>Logg inn for å få tilgang til dashboardet.</target>
       </segment>
     </unit>
+    <unit id="crawlExecutionRemoveJobExecutionFilterLabel">
+      <segment state="final">
+        <source>Remove job execution <ph id="0" equiv="JOB_EXECUTION_ID" disp="id"/> filter</source>
+        <target>Fjern filteret for jobbkjøring <ph id="0" equiv="JOB_EXECUTION_ID" disp="id"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionRemoveSeedFilterLabel">
+      <segment state="final">
+        <source>Remove seed <ph id="0" equiv="SEED_ID" disp="id"/> filter</source>
+        <target>Fjern filteret for startadresse <ph id="0" equiv="SEED_ID" disp="id"/></target>
+      </segment>
+    </unit>
     <unit id="crawlExecutionReportFailedFilterLabel">
       <segment state="final">
         <source>Has error filter</source>
@@ -1935,6 +1965,18 @@
         <target>Startadresse</target>
       </segment>
     </unit>
+    <unit id="crawlExecutionSeedFilterFallbackChip">
+      <segment state="final">
+        <source>Seed: <ph id="0" equiv="INTERPOLATION" disp="{{query.seedId}}"/></source>
+        <target>Startadresse: <ph id="0" equiv="INTERPOLATION" disp="{{query.seedId}}"/></target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionSeedFilterTooltip">
+      <segment state="final">
+        <source>Seed ID: <ph id="0" equiv="SEED_ID" disp="id"/></source>
+        <target>Startadresse-ID: <ph id="0" equiv="SEED_ID" disp="id"/></target>
+      </segment>
+    </unit>
     <unit id="crawlExecutionStateAbortedSize">
       <segment state="initial">
         <source>Aborted at size limit</source>
@@ -2251,6 +2293,18 @@
       <segment state="final">
         <source>Crawl execution</source>
         <target>Crawl-kjøring</target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionJobExecutionFilterFallbackChip">
+      <segment state="final">
+        <source> Job execution: <ph id="0" equiv="INTERPOLATION" disp="{{query.jobExecutionId}}"/> </source>
+        <target> Jobbkjøring: <ph id="0" equiv="INTERPOLATION" disp="{{query.jobExecutionId}}"/> </target>
+      </segment>
+    </unit>
+    <unit id="crawlExecutionJobExecutionFilterTooltip">
+      <segment state="final">
+        <source>Job execution ID: <ph id="0" equiv="JOB_EXECUTION_ID" disp="id"/></source>
+        <target>Jobbkjørings-ID: <ph id="0" equiv="JOB_EXECUTION_ID" disp="id"/></target>
       </segment>
     </unit>
     <unit id="jobExecutionActionsMenuLabel">
@@ -2871,6 +2925,24 @@
         <target>Filter latest crawl jobs by state</target>
       </segment>
     </unit>
+    <unit id="logListExecutionFilterFallbackChip">
+      <segment state="final">
+        <source>Crawl execution: <ph id="0" equiv="INTERPOLATION" disp="{{context.executionId}}"/></source>
+        <target>Crawl-kjøring: <ph id="0" equiv="INTERPOLATION" disp="{{context.executionId}}"/></target>
+      </segment>
+    </unit>
+    <unit id="logListExecutionFilterTooltip">
+      <segment state="final">
+        <source>Crawl execution ID: <ph id="0" equiv="EXECUTION_ID" disp="id"/></source>
+        <target>Crawl-kjørings-ID: <ph id="0" equiv="EXECUTION_ID" disp="id"/></target>
+      </segment>
+    </unit>
+    <unit id="logListRemoveExecutionFilterLabel">
+      <segment state="final">
+        <source>Remove crawl execution <ph id="0" equiv="EXECUTION_ID" disp="id"/> filter</source>
+        <target>Fjern filteret for crawl-kjøring <ph id="0" equiv="EXECUTION_ID" disp="id"/></target>
+      </segment>
+    </unit>
     <unit id="dashboardCrawlJobsTitle">
       <segment state="initial">
         <source>Jobs</source>
@@ -3333,18 +3405,6 @@
         <target> Execution ID </target>
       </segment>
     </unit>
-    <unit id="pageLogReportFilterJobExecutionIdLabel">
-      <segment state="initial">
-        <source> JobExecution ID </source>
-        <target> JobExecution ID </target>
-      </segment>
-    </unit>
-    <unit id="pageLogReportFilterUriLabel">
-      <segment state="initial">
-        <source> URI </source>
-        <target> URI </target>
-      </segment>
-    </unit>
     <unit id="PageLogReportListNrOfOutlinksNameHeaderCell">
       <segment state="initial">
         <source># Outlinks</source>
@@ -3547,12 +3607,6 @@
       <segment state="initial">
         <source> Execution ID </source>
         <target> Execution ID </target>
-      </segment>
-    </unit>
-    <unit id="reportCrawlLogQueryJobExecutiondInputLabel">
-      <segment state="initial">
-        <source> Job execution ID </source>
-        <target> Job execution ID </target>
       </segment>
     </unit>
     <unit id="reportDetailAbortCrawlAction">

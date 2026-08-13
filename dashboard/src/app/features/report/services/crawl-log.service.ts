@@ -11,7 +11,6 @@ import {ListRange} from '../../../shared/models';
 
 
 export interface CrawlLogQuery extends Sort {
-  jobExecutionId: string;
   executionId: string;
 }
 
@@ -30,11 +29,6 @@ export class CrawlLogService extends LoadingService {
     });
     const queryTemplate = new CrawlLog();
     const fieldMask = create(FieldMaskSchema);
-
-    if (query.jobExecutionId) {
-      queryTemplate.jobExecutionId = query.jobExecutionId;
-      fieldMask.paths.push('jobExecutionId');
-    }
 
     if (query.executionId) {
       queryTemplate.executionId = query.executionId;

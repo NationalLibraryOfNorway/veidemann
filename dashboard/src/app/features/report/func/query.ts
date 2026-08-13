@@ -18,9 +18,7 @@ interface RouteSortQuery {
 export function pageLogQueryFromParamMap(params: ParamMap): PageLogQuery {
   return {
     ...sortQueryFromParamMap(params),
-    uri: params.get('uri'),
     executionId: params.get('execution_id'),
-    jobExecutionId: params.get('job_execution_id'),
   };
 }
 
@@ -28,7 +26,6 @@ export function crawlLogQueryFromParamMap(params: ParamMap): CrawlLogQuery {
   return {
     ...sortQueryFromParamMap(params),
     executionId: params.get('execution_id'),
-    jobExecutionId: params.get('job_execution_id'),
   };
 }
 
@@ -57,15 +54,12 @@ export function crawlExecutionQueryFromParamMap(params: ParamMap): CrawlExecutio
 
 export function equalPageLogQuery(previous: PageLogQuery, current: PageLogQuery): boolean {
   return equalSortQuery(previous, current)
-    && previous.uri === current.uri
-    && previous.executionId === current.executionId
-    && previous.jobExecutionId === current.jobExecutionId;
+    && previous.executionId === current.executionId;
 }
 
 export function equalCrawlLogQuery(previous: CrawlLogQuery, current: CrawlLogQuery): boolean {
   return equalSortQuery(previous, current)
-    && previous.executionId === current.executionId
-    && previous.jobExecutionId === current.jobExecutionId;
+    && previous.executionId === current.executionId;
 }
 
 export function equalJobExecutionQuery(

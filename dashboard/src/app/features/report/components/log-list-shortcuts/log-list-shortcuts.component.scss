@@ -1,4 +1,17 @@
 :host {
-  display: block;
+  display: flex;
   min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-context-filter {
+  min-width: 0;
+}
+
+.filter-chip-label {
+  overflow: hidden;
+  max-width: min(32rem, 60vw);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
