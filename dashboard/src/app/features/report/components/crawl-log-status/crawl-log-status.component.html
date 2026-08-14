@@ -1,12 +1,5 @@
 <section class="crawl-log-detail" aria-label="Crawl log details"
          i18n-aria-label="@@crawlLogDetailsLabel">
-  <app-detail-header icon="event_note" title="Crawl log"
-    i18n-title="@@crawlLogReportStatusCardTitle">
-    <ng-container detailHeaderActions>
-      <ng-content select="[detailHeaderHelpers]"></ng-content>
-    </ng-container>
-  </app-detail-header>
-
   <div class="crawl-log-content">
     <div class="table-scroll">
       <table mat-table class="report-table" [dataSource]="getReport()">
@@ -19,7 +12,22 @@
         <ng-container matColumnDef="value">
           <th mat-header-cell *matHeaderCellDef i18n="@@crawlLogReportStatusValueHeaderCell">Value</th>
           <td mat-cell *matCellDef="let report">
-            @if (report.url) {
+            @if (report.presentation === 'copy' && report.actionValue) {
+              <span class="identifier-action">
+                <span>{{report.value}}</span>
+                <button mat-icon-button type="button" [appCopyId]="report.actionValue"
+                  aria-label="Copy WARC ID" i18n-aria-label="@@copyWarcIdTooltip"
+                  matTooltip="Copy WARC ID" i18n-matTooltip="@@copyWarcIdTooltip">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </span>
+            } @else if (report.presentation === 'crawlExecution' && report.actionValue &&
+              can('read', 'crawlexecution')) {
+              <a [routerLink]="['/report', 'crawlexecution', report.actionValue]">{{report.value}}</a>
+            } @else if (report.presentation === 'jobExecution' && report.actionValue &&
+              can('read', 'jobexecution')) {
+              <a [routerLink]="['/report', 'jobexecution', report.actionValue]">{{report.value}}</a>
+            } @else if (report.presentation === 'url' && report.actionValue) {
               <span [innerHTML]="report.value | urlFormat"></span>
             } @else {
               {{report.value}}
@@ -30,32 +38,5 @@
         <tr mat-row *matRowDef="let row; columns: crawlLogReportDisplayedColumns"></tr>
       </table>
     </div>
-
-    @if (crawlLog.error; as error) {
-      <section class="error-callout" aria-labelledby="crawl-log-error-title">
-        <header class="error-callout-header">
-          <mat-icon aria-hidden="true">error</mat-icon>
-          <h2 id="crawl-log-error-title" i18n="@@executionErrorTitle">Error</h2>
-        </header>
-        <dl class="error-details">
-          <div>
-            <dt i18n="@@executionErrorCodeLabel">Code</dt>
-            <dd>{{error.code}}: {{ExtraStatusCodes[error.code]}}</dd>
-          </div>
-          @if (error.msg) {
-            <div>
-              <dt i18n="@@executionErrorMessageLabel">Message</dt>
-              <dd class="monospace">{{error.msg}}</dd>
-            </div>
-          }
-          @if (error.detail) {
-            <div>
-              <dt i18n="@@executionErrorDetailLabel">Details</dt>
-              <dd class="monospace error-text">{{error.detail}}</dd>
-            </div>
-          }
-        </dl>
-      </section>
-    }
   </div>
 </section>

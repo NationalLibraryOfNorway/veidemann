@@ -3,14 +3,9 @@
   min-width: 0;
 }
 
-app-detail-header {
-  padding: 16px 16px 0;
-}
-
 .crawl-log-content {
-  display: grid;
+  width: 100%;
   min-width: 0;
-  gap: 24px;
 }
 
 table.report-table {
@@ -35,37 +30,8 @@ table.report-table {
   word-break: break-word;
 }
 
-.error-details {
-  display: grid;
-  margin: 0;
-  gap: 16px;
-}
-
-.error-details dt {
-  margin-bottom: 4px;
-  color: var(--mat-sys-on-error-container);
-  font: var(--mat-sys-label-medium);
-}
-
-.error-details dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.error-text {
-  white-space: pre-wrap;
-}
-
-.error-callout {
-  margin: 0 16px 16px;
-}
-
-@media (min-width: 840px) {
-  app-detail-header {
-    padding: 32px 32px 0;
-  }
-
-  .error-callout {
-    margin: 0 32px 32px;
-  }
+.identifier-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

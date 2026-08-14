@@ -185,20 +185,59 @@ describe('PageLogStatusComponent', () => {
     expect(hostFixture.nativeElement.querySelector('.detail-header .projected-helper')).not.toBeNull();
   });
 
-  it('opens a metadata dialog with resource error details', () => {
+  it('opens a metadata dialog with every resource and error field', () => {
     const dialog = component['dialog'];
     const open = vi.spyOn(dialog, 'open').mockReturnValue({} as never);
-    const resource = new Resource({uri: 'https://example.org', statusCode: 500});
+    const resource = new Resource({
+      uri: 'https://example.org',
+      fromCache: false,
+      renderable: true,
+      resourceType: 'Document',
+      mimeType: 'text/html',
+      statusCode: 500,
+      discoveryPath: 'L',
+      warcId: 'warc-1',
+      referrer: 'https://referrer.example.org',
+      method: 'GET',
+    });
     resource.error.code = 7;
     resource.error.msg = 'Failed';
 
     component.showMetadata(resource);
 
     expect(open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      data: expect.arrayContaining([expect.objectContaining({label: 'Error', value: '7: Failed'})]),
+      data: [
+        {label: 'URI', value: 'https://example.org'},
+        {label: 'From cache', value: 'No'},
+        {label: 'Renderable', value: 'Yes'},
+        {label: 'Resource type', value: 'Document'},
+        {label: 'MIME type', value: 'text/html'},
+        {label: 'Status code', value: '500'},
+        {label: 'Discovery path', value: 'L'},
+        {label: 'WARC ID', value: 'warc-1'},
+        {label: 'Referrer', value: 'https://referrer.example.org'},
+        {label: 'Error code', value: '7'},
+        {label: 'Error message', value: 'Failed'},
+        {label: 'Error details', value: 'Not available'},
+        {label: 'Method', value: 'GET'},
+      ],
       width: '42rem',
       maxWidth: '95vw',
     }));
+  });
+
+  it('keeps all metadata rows for an empty resource', () => {
+    const open = vi.spyOn(component['dialog'], 'open').mockReturnValue({} as never);
+
+    component.showMetadata(new Resource());
+
+    const data = open.mock.calls[0][1].data as {label: string; value: string}[];
+    expect(data).toHaveLength(13);
+    expect(data).toContainEqual({label: 'From cache', value: 'No'});
+    expect(data).toContainEqual({label: 'Renderable', value: 'No'});
+    expect(data).toContainEqual({label: 'URI', value: 'Not available'});
+    expect(data).toContainEqual({label: 'Status code', value: 'Not available'});
+    expect(data).toContainEqual({label: 'Error code', value: 'Not available'});
   });
 
   it('uses a fixed-layout responsive resource table with a complete details action', () => {
@@ -223,6 +262,7 @@ describe('PageLogStatusComponent', () => {
     expect(getComputedStyle(uriValue).width).toBe('fit-content');
     expect(getComputedStyle(uriValue).maxWidth).toBe('100%');
     expect(detailsButton).not.toBeNull();
+    expect(detailsButton.querySelector('mat-icon')?.textContent.trim()).toBe('description');
   });
 
   it('opens the matching crawl-log detail from the resource row without hijacking URI or metadata clicks', () => {

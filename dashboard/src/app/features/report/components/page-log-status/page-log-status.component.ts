@@ -247,27 +247,39 @@ export class PageLogStatusComponent implements OnChanges {
 
   showMetadata(resource: Resource): void {
     const metadata: ResourceMetadata[] = [
-      [$localize`:@@resourceMetadataUri:URI`, resource.uri],
-      [$localize`:@@resourceMetadataStatusCode:Status code`, resource.statusCode],
-      [$localize`:@@resourceMetadataMimeType:MIME type`, resource.mimeType],
-      [$localize`:@@resourceMetadataResourceType:Resource type`, resource.resourceType],
-      [$localize`:@@resourceMetadataDiscoveryPath:Discovery path`, resource.discoveryPath],
-      [$localize`:@@resourceMetadataFromCache:From cache`, resource.fromCache],
-      [$localize`:@@resourceMetadataRenderable:Renderable`, resource.renderable],
-      [$localize`:@@resourceMetadataWarcId:WARC ID`, resource.warcId],
-      [$localize`:@@resourceMetadataReferrer:Referrer`, resource.referrer],
-      [$localize`:@@resourceMetadataMethod:Method`, resource.method],
-      [$localize`:@@resourceMetadataError:Error`, this.hasError(resource)
-        ? [resource.error.code, resource.error.msg, resource.error.detail].filter(Boolean).join(': ')
-        : ''],
-    ].filter(([, value]) => value !== '' && value !== null && value !== undefined)
-      .map(([label, value]) => ({label: String(label), value: String(value)}));
+      this.metadata($localize`:@@resourceMetadataUri:URI`, resource.uri),
+      this.metadata($localize`:@@resourceMetadataFromCache:From cache`, this.booleanLabel(resource.fromCache)),
+      this.metadata($localize`:@@resourceMetadataRenderable:Renderable`, this.booleanLabel(resource.renderable)),
+      this.metadata($localize`:@@resourceMetadataResourceType:Resource type`, resource.resourceType),
+      this.metadata($localize`:@@resourceMetadataMimeType:MIME type`, resource.mimeType),
+      this.metadata($localize`:@@resourceMetadataStatusCode:Status code`, resource.statusCode || null),
+      this.metadata($localize`:@@resourceMetadataDiscoveryPath:Discovery path`, resource.discoveryPath),
+      this.metadata($localize`:@@resourceMetadataWarcId:WARC ID`, resource.warcId),
+      this.metadata($localize`:@@resourceMetadataReferrer:Referrer`, resource.referrer),
+      this.metadata($localize`:@@resourceMetadataErrorCode:Error code`, resource.error?.code || null),
+      this.metadata($localize`:@@resourceMetadataErrorMessage:Error message`, resource.error?.msg),
+      this.metadata($localize`:@@resourceMetadataErrorDetails:Error details`, resource.error?.detail),
+      this.metadata($localize`:@@resourceMetadataMethod:Method`, resource.method),
+    ];
     this.dialog.open(ResourceMetadataDialogComponent, {
       data: metadata,
       autoFocus: 'dialog',
       width: '42rem',
       maxWidth: '95vw',
     });
+  }
+
+  private metadata(label: string, value: string | number | null | undefined): ResourceMetadata {
+    return {
+      label,
+      value: value === '' || value === null || value === undefined
+        ? $localize`:@@commonNotAvailable:Not available`
+        : String(value),
+    };
+  }
+
+  private booleanLabel(value: boolean): string {
+    return value ? $localize`:@@commonYes:Yes` : $localize`:@@commonNo:No`;
   }
 
   onResourceRowClick(resource: Resource, event: Event): void {

@@ -81,6 +81,12 @@
         <target>Timestamp</target>
       </segment>
     </unit>
+    <unit id="crawlLogReportWarcId">
+      <segment state="final">
+        <source>WARC ID</source>
+        <target>WARC ID</target>
+      </segment>
+    </unit>
     <unit id="crawlLogReportWarcRefersTo">
       <segment state="initial">
         <source>WARC refers to</source>
@@ -2403,12 +2409,6 @@
         <target>Crawl log details</target>
       </segment>
     </unit>
-    <unit id="crawlLogIdentifiersLabel">
-      <segment state="final">
-        <source>Crawl log identifiers</source>
-        <target>Crawllogg-identifikatorer</target>
-      </segment>
-    </unit>
     <unit id="crawlLogMethodFilterLabel">
       <segment state="initial">
         <source>Filter crawl logs by method</source>
@@ -2425,6 +2425,12 @@
       <segment state="initial">
         <source>IP address</source>
         <target>IP address</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportJobExecutionId">
+      <segment state="final">
+        <source>Job execution ID</source>
+        <target>Jobbkjørings-ID</target>
       </segment>
     </unit>
     <unit id="crawlLogReportListContentTypeHeaderCell">
@@ -2475,12 +2481,6 @@
         <target>Size</target>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusCardTitle">
-      <segment state="initial">
-        <source>Crawl log</source>
-        <target>Crawl log</target>
-      </segment>
-    </unit>
     <unit id="crawlLogReportBlockDigest">
       <segment state="initial">
         <source>Block digest</source>
@@ -2503,6 +2503,30 @@
       <segment state="initial">
         <source>Discovery path</source>
         <target>Discovery path</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportErrorCode">
+      <segment state="final">
+        <source>Error code</source>
+        <target>Feilkode</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportErrorDetails">
+      <segment state="final">
+        <source>Error details</source>
+        <target>Feildetaljer</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportErrorMessage">
+      <segment state="final">
+        <source>Error message</source>
+        <target>Feilmelding</target>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportExecutionId">
+      <segment state="final">
+        <source>Crawl execution ID</source>
+        <target>Crawl-kjørings-ID</target>
       </segment>
     </unit>
     <unit id="crawlLogReportFetchTime">
@@ -3717,10 +3741,22 @@
         <target>Discovery path</target>
       </segment>
     </unit>
-    <unit id="resourceMetadataError">
-      <segment state="initial">
-        <source>Error</source>
-        <target>Error</target>
+    <unit id="resourceMetadataErrorCode">
+      <segment state="final">
+        <source>Error code</source>
+        <target>Feilkode</target>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataErrorDetails">
+      <segment state="final">
+        <source>Error details</source>
+        <target>Feildetaljer</target>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataErrorMessage">
+      <segment state="final">
+        <source>Error message</source>
+        <target>Feilmelding</target>
       </segment>
     </unit>
     <unit id="resourceMetadataFromCache">

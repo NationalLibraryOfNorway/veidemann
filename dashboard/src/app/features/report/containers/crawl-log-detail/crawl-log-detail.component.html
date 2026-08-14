@@ -1,12 +1,7 @@
 @if (item$ | async; as crawlLog) {
   <div class="detail-page">
     <div class="detail-content detail-content-flush">
-      <app-crawl-log-status [crawlLog]="crawlLog">
-        <app-detail-overflow detailHeaderHelpers label="Crawl log actions"
-          i18n-label="@@crawlLogActionsMenuLabel">
-          <app-crawl-log-shortcuts presentation="menu" [crawlLog]="crawlLog"></app-crawl-log-shortcuts>
-        </app-detail-overflow>
-      </app-crawl-log-status>
+      <app-crawl-log-status [crawlLog]="crawlLog"></app-crawl-log-status>
     </div>
   </div>
 }

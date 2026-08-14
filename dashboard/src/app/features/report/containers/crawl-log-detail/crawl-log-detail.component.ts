@@ -4,10 +4,8 @@ import {Observable} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 import {CrawlLog} from '../../../../shared/models';
 import {CrawlLogStatusComponent} from '../../components';
-import {CrawlLogShortcutsComponent} from '../../components/crawl-log-shortcuts/crawl-log-shortcuts.component';
 import {DetailDirective} from '../../directives';
 import {CrawlLogService} from '../../services';
-import {DetailOverflowComponent} from '../../../../shared/components';
 
 @Component({
   selector: 'app-crawl-log-detail',
@@ -17,8 +15,6 @@ import {DetailOverflowComponent} from '../../../../shared/components';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    DetailOverflowComponent,
-    CrawlLogShortcutsComponent,
     CrawlLogStatusComponent,
   ]
 })

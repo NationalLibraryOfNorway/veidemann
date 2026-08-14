@@ -70,6 +70,11 @@
         <source>Timestamp</source>
       </segment>
     </unit>
+    <unit id="crawlLogReportWarcId">
+      <segment>
+        <source>WARC ID</source>
+      </segment>
+    </unit>
     <unit id="crawlLogReportWarcRefersTo">
       <segment>
         <source>WARC refers to</source>
@@ -2055,11 +2060,6 @@
         <source>Crawl log details</source>
       </segment>
     </unit>
-    <unit id="crawlLogIdentifiersLabel">
-      <segment>
-        <source>Crawl log identifiers</source>
-      </segment>
-    </unit>
     <unit id="crawlLogMethodFilterLabel">
       <segment>
         <source>Filter crawl logs by method</source>
@@ -2073,6 +2073,11 @@
     <unit id="crawlLogReportIpAddress">
       <segment>
         <source>IP address</source>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportJobExecutionId">
+      <segment>
+        <source>Job execution ID</source>
       </segment>
     </unit>
     <unit id="crawlLogReportListContentTypeHeaderCell">
@@ -2115,11 +2120,6 @@
         <source>Size</source>
       </segment>
     </unit>
-    <unit id="crawlLogReportStatusCardTitle">
-      <segment>
-        <source>Crawl log</source>
-      </segment>
-    </unit>
     <unit id="crawlLogReportBlockDigest">
       <segment>
         <source>Block digest</source>
@@ -2138,6 +2138,26 @@
     <unit id="crawlLogReportDiscoveryPath">
       <segment>
         <source>Discovery path</source>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportErrorCode">
+      <segment>
+        <source>Error code</source>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportErrorDetails">
+      <segment>
+        <source>Error details</source>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportErrorMessage">
+      <segment>
+        <source>Error message</source>
+      </segment>
+    </unit>
+    <unit id="crawlLogReportExecutionId">
+      <segment>
+        <source>Crawl execution ID</source>
       </segment>
     </unit>
     <unit id="crawlLogReportFetchTime">
@@ -3200,9 +3220,19 @@
         <source>Discovery path</source>
       </segment>
     </unit>
-    <unit id="resourceMetadataError">
+    <unit id="resourceMetadataErrorCode">
       <segment>
-        <source>Error</source>
+        <source>Error code</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataErrorDetails">
+      <segment>
+        <source>Error details</source>
+      </segment>
+    </unit>
+    <unit id="resourceMetadataErrorMessage">
+      <segment>
+        <source>Error message</source>
       </segment>
     </unit>
     <unit id="resourceMetadataFromCache">
