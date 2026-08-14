@@ -13,6 +13,7 @@
 #   ./module-tags.sh --changed-since origin/main
 #   ./module-tags.sh --tag --bump patch my-service
 #   ./module-tags.sh --tag --version 0.3.0 my-service
+#   ./module-tags.sh --tag --commit HEAD controller frontier
 #
 set -Eeuo pipefail
 
@@ -22,6 +23,8 @@ CREATE_TAGS=false
 BUMP_KIND="patch"
 EXPLICIT_VERSION=""
 CHANGED_SINCE=""
+COMMIT_REF=""
+TARGET_COMMIT=""
 MODULE_ROOT="."
 TAG_REMOTE=""
 declare -a REQUESTED_MODULES=()
@@ -50,6 +53,9 @@ Options:
   --changed-since REF       Only include modules changed after REF.
                             Example: origin/main
 
+  --commit REF              Use REF as the tag target instead of each module's
+                            latest change. Requires explicitly named modules.
+
   --tag                     Create annotated tags.
                             Without this option, the script is read-only.
 
@@ -74,6 +80,7 @@ Examples:
   ${SCRIPT_NAME} --changed-since origin/main
   ${SCRIPT_NAME} --tag --bump minor my-service
   ${SCRIPT_NAME} --tag --version 1.0.0 my-service
+  ${SCRIPT_NAME} --tag --commit HEAD controller frontier
   ${SCRIPT_NAME} --tag --push origin my-service
 EOF
 }
@@ -289,6 +296,12 @@ parse_arguments() {
                 CHANGED_SINCE="$2"
                 shift 2
                 ;;
+            --commit)
+                (($# >= 2)) || die "--commit requires a Git ref"
+                [[ -n "$2" ]] || die "--commit requires a non-empty Git ref"
+                COMMIT_REF="$2"
+                shift 2
+                ;;
             --tag)
                 CREATE_TAGS=true
                 shift
@@ -353,6 +366,15 @@ main() {
             die "Unknown Git ref: $CHANGED_SINCE"
     fi
 
+    if [[ -n "$COMMIT_REF" ]]; then
+        ((${#REQUESTED_MODULES[@]} > 0)) ||
+            die "--commit requires at least one explicitly named module"
+        TARGET_COMMIT="$(git rev-parse --verify --quiet --end-of-options "${COMMIT_REF}^{commit}")" ||
+            die "Unknown Git ref: $COMMIT_REF"
+        git merge-base --is-ancestor "$TARGET_COMMIT" HEAD ||
+            die "Commit is not reachable from HEAD: $COMMIT_REF"
+    fi
+
     if [[ -n "$EXPLICIT_VERSION" && ${#REQUESTED_MODULES[@]} -ne 1 ]]; then
         die "--version requires exactly one explicitly named module"
     fi
@@ -413,7 +435,13 @@ main() {
             continue
         fi
 
-        commit="$(latest_module_commit "$module_path")"
+        if [[ -n "$TARGET_COMMIT" ]]; then
+            commit="$TARGET_COMMIT"
+            git cat-file -e "${commit}:${module_path#./}" 2>/dev/null ||
+                die "Module path '$module_path' does not exist at --commit $COMMIT_REF"
+        else
+            commit="$(latest_module_commit "$module_path")"
+        fi
 
         # The directory may exist locally without ever having been committed.
         if [[ -z "$commit" ]]; then
@@ -438,8 +466,20 @@ main() {
         if [[ -n "$previous_tag" ]]; then
             previous_tag_commit="$(module_tag_commit "$previous_tag")"
 
-            if [[ "$previous_tag_commit" == "$commit" ]]; then
+            if [[ -n "$TARGET_COMMIT" ]]; then
+                git merge-base --is-ancestor "$previous_tag_commit" "$commit" ||
+                    die "Target commit for $module is older than previous tag $previous_tag"
+
+                if [[ "$previous_tag_commit" == "$commit" ]]; then
+                    is_current=true
+                fi
+            elif git diff --quiet "$previous_tag_commit" HEAD -- "$module_path"; then
+                # An explicit tag may point at a later commit that changed shared
+                # files but not this module directory.
                 is_current=true
+            else
+                git merge-base --is-ancestor "$previous_tag_commit" "$commit" ||
+                    die "Latest change for $module is older than previous tag $previous_tag"
             fi
         fi
 

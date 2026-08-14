@@ -388,7 +388,22 @@ The `--push` option implies `--tag`, so the following command is equivalent:
 
 The script creates the next patch tag locally and pushes it to `origin`.
 
-### 9. Create and push multiple tags one-by-one
+### 9. Tag modules at an explicit commit
+
+Use `--commit` when a release-relevant change is outside the module directory,
+such as a dependency update in `gradle/libs.versions.toml`:
+
+```bash
+./module-tags.sh --tag --commit HEAD controller frontier
+```
+
+The ref must resolve to a commit reachable from `HEAD`, contain each selected
+module, and not predate its previous tag. Explicit module names are required so
+the same override is not accidentally applied to every module. Without
+`--commit`, each tag continues to target the latest commit that changed its
+module directory.
+
+### 10. Create and push multiple tags one-by-one
 
 ```bash
 ./module-tags.sh --push origin my-service billing notifications
@@ -415,7 +430,7 @@ The script waits for each Git push command to complete before pushing the next t
 
 Repository or workflow concurrency settings may still cancel or supersede workflow runs even when the tags are pushed separately.
 
-### 10. Tag all modules changed since the main branch
+### 11. Tag all modules changed since the main branch
 
 ```bash
 git fetch origin main
@@ -432,7 +447,7 @@ This mode:
 
 This is the most automated release mode and is suitable for releasing several changed modules after a reviewed merge.
 
-### 11. Use a separate module root
+### 12. Use a separate module root
 
 For repositories where modules are stored under a common directory:
 
@@ -460,7 +475,9 @@ Selected modules are specified relative to the module root:
 
 ## Tag commit behavior
 
-A module tag points to the latest commit that changed that module directory, not necessarily to the current `HEAD`.
+By default, a module tag points to the latest commit that changed that module
+directory, not necessarily to the current `HEAD`. The `--commit REF` option
+overrides that target for the explicitly selected modules.
 
 For example:
 
@@ -474,7 +491,11 @@ If commit `B` is the latest commit that touched `my-service`, the module tag poi
 
 Checking out the tag checks out the entire repository as it existed at commit `B`. It does not combine the module directory from commit `B` with unrelated files from a later commit.
 
-This behavior is important when a module depends on shared files outside its own directory. Changes to those shared files will not count as module changes unless their paths are included in the module's tagging logic.
+This behavior is important when a module depends on shared files outside its own
+directory. Changes to those shared files do not count as module changes, so use
+`--commit` to target the shared-file change when releasing affected modules.
+On later runs without `--commit`, the module is reported as current until its
+directory differs from the explicitly targeted tag.
 
 ## Push failure behavior
 
