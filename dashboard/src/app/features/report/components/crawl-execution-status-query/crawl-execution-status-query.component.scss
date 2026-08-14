@@ -1,3 +1,7 @@
+@use '../../../../../stateful-filter-button' as stateful-filter-button;
+
+@include stateful-filter-button.styles();
+
 .report-active-filter-chips {
   flex: 0 0 100%;
   min-width: 0;

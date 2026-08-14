@@ -3,6 +3,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {DateFnsAdapter, MAT_DATE_FNS_FORMATS} from '@angular/material-date-fns-adapter';
 import {DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE} from '@angular/material/core';
+import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatDateRangeInputHarness} from '@angular/material/datepicker/testing';
 import {enUS} from 'date-fns/locale';
@@ -82,7 +83,7 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(labels.filter((_, index) => selected[index])).toEqual(['FETCHING', 'FINISHED']);
   });
 
-  it('places the has-error icon button after the state group and before polling', () => {
+  it('places the compact has-error button after the state group and before polling', async () => {
     const statusControls = fixture.nativeElement.querySelector('.report-status-controls-row') as HTMLElement;
     const stateFieldset = statusControls.children[0] as HTMLFieldSetElement;
     const hasError = statusControls.children[1] as HTMLButtonElement;
@@ -98,6 +99,11 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(hasError.getAttribute('mattooltip')).toBe('Has error');
     expect(hasError.getAttribute('aria-pressed')).toBe('false');
     expect(hasError.classList).toContain('stateful-filter-button');
+    expect(hasError.classList).toContain('compact-icon-button');
+    const hasErrorHarness = await loader.getHarness(MatButtonHarness.with({selector: '.has-error-filter'}));
+    expect(await hasErrorHarness.getAppearance()).toBe('text');
+    expect(getComputedStyle(hasError.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 0');
     expect(statusControls.children[2].tagName).toBe('APP-POLLING-REFRESH-BUTTON');
     expect(fixture.nativeElement.querySelectorAll('mat-select')).toHaveLength(1);
   });
@@ -149,6 +155,7 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     let emitted: Partial<CrawlExecutionStatusQuery> | undefined;
     fixture.componentInstance.queryChange.subscribe(query => emitted = query);
     const hasError = fixture.nativeElement.querySelector('.has-error-filter') as HTMLButtonElement;
+    const inactiveColor = getComputedStyle(hasError).color;
 
     hasError.click();
     fixture.detectChanges();
@@ -156,6 +163,9 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(emitted?.hasError).toBe(true);
     expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
     expect(hasError.getAttribute('aria-pressed')).toBe('true');
+    expect(getComputedStyle(hasError).color).not.toBe(inactiveColor);
+    expect(getComputedStyle(hasError.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 1');
 
     hasError.click();
     fixture.detectChanges();
@@ -163,6 +173,9 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(emitted?.hasError).toBe(false);
     expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
     expect(hasError.getAttribute('aria-pressed')).toBe('false');
+    expect(getComputedStyle(hasError).color).toBe(inactiveColor);
+    expect(getComputedStyle(hasError.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 0');
   });
 
   it('initializes the has-error button from the route query', () => {

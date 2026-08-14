@@ -1,0 +1,23 @@
+@mixin styles() {
+  .compact-icon-button {
+    width: 40px;
+    min-width: 40px;
+    padding-inline: 8px;
+  }
+
+  .compact-icon-button mat-icon {
+    margin-inline: 0;
+  }
+
+  .stateful-filter-button mat-icon {
+    font-variation-settings: 'FILL' 0;
+  }
+
+  .stateful-filter-button[aria-pressed='true'] {
+    color: var(--mat-sys-primary);
+  }
+
+  .stateful-filter-button[aria-pressed='true'] mat-icon {
+    font-variation-settings: 'FILL' 1;
+  }
+}

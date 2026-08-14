@@ -28,7 +28,7 @@ import {PollingRefreshButtonComponent} from '../../../../shared/components';
 @Component({
   selector: 'app-crawl-execution-status-query',
   templateUrl: './crawl-execution-status-query.component.html',
-  styleUrls: ['./crawl-execution-status-query.component.css'],
+  styleUrls: ['./crawl-execution-status-query.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [

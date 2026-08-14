@@ -211,7 +211,7 @@ describe('ConfigListComponent', () => {
     expect(Math.abs(horizontalCenter(count) - horizontalCenter(header))).toBeLessThanOrEqual(1);
   });
 
-  it('renders the order control before deselectable state icon buttons', () => {
+  it('renders evenly spaced state filters with the compact order-button appearance', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -238,6 +238,9 @@ describe('ConfigListComponent', () => {
     expect(Math.abs(horizontalCenter(orderIcon) - horizontalCenter(rowIcon))).toBeLessThanOrEqual(1);
 
     const [deactivated, active] = [...stateFilter.querySelectorAll('button')] as HTMLButtonElement[];
+    const [deactivatedHarness, activeHarness] = await loader.getAllHarnesses(MatButtonHarness.with({
+      selector: '.state-filter .stateful-filter-button',
+    }));
     expect(deactivated.querySelector('mat-icon')?.textContent.trim()).toBe('toggle_off');
     expect(deactivated.getAttribute('aria-label')).toBe('Deactivated');
     expect(deactivated.getAttribute('mattooltip')).toBe('Deactivated');
@@ -248,6 +251,24 @@ describe('ConfigListComponent', () => {
     expect(active.getAttribute('aria-pressed')).toBe('false');
     expect(deactivated.classList).toContain('stateful-filter-button');
     expect(active.classList).toContain('stateful-filter-button');
+    expect(deactivated.classList).toContain('compact-icon-button');
+    expect(active.classList).toContain('compact-icon-button');
+    expect(await deactivatedHarness.getAppearance()).toBe('text');
+    expect(await activeHarness.getAppearance()).toBe('text');
+    expect(getComputedStyle(deactivated).color).toBe(getComputedStyle(orderControl).color);
+    expect(getComputedStyle(active).color).toBe(getComputedStyle(orderControl).color);
+    expect(getComputedStyle(deactivated.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 0');
+    expect(getComputedStyle(active.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 0');
+    const orderToDeactivated = Math.abs(horizontalCenter(orderIcon) - horizontalCenter(
+      deactivated.querySelector('mat-icon') as HTMLElement
+    ));
+    const deactivatedToActive = Math.abs(horizontalCenter(
+      deactivated.querySelector('mat-icon') as HTMLElement
+    ) - horizontalCenter(active.querySelector('mat-icon') as HTMLElement));
+    expect(orderToDeactivated).toBeCloseTo(deactivatedToActive, 1);
+    const inactiveColor = getComputedStyle(active).color;
 
     active.click();
     expect(states.at(-1)).toBe(false);
@@ -255,6 +276,9 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
     expect(active.getAttribute('aria-pressed')).toBe('true');
     expect(deactivated.getAttribute('aria-pressed')).toBe('false');
+    expect(getComputedStyle(active.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 1');
+    expect(getComputedStyle(active).color).not.toBe(inactiveColor);
 
     deactivated.click();
     expect(states.at(-1)).toBe(true);
@@ -262,9 +286,19 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
     expect(active.getAttribute('aria-pressed')).toBe('false');
     expect(deactivated.getAttribute('aria-pressed')).toBe('true');
+    expect(getComputedStyle(active.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 0');
+    expect(getComputedStyle(deactivated.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 1');
 
     deactivated.click();
     expect(states.at(-1)).toBeNull();
+    fixture.componentRef.setInput('disabledFilter', null);
+    fixture.detectChanges();
+    expect(deactivated.getAttribute('aria-pressed')).toBe('false');
+    expect(getComputedStyle(deactivated).color).toBe(inactiveColor);
+    expect(getComputedStyle(deactivated.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
+      .toContain('"FILL" 0');
   });
 
   it('offers every supported order and emits the corresponding sort', async () => {

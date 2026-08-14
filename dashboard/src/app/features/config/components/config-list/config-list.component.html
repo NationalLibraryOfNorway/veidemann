@@ -28,6 +28,7 @@
               @if (showOrderControl) {
                 <button mat-button type="button" class="order-control"
                   [class.order-control-icon-only]="!orderValue"
+                  [class.compact-icon-button]="!orderValue"
                   data-testid="configuration-order"
                   aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
                   matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
@@ -56,7 +57,7 @@
                 <span class="state-filter" role="group"
                   aria-label="Filter configurations by state"
                   i18n-aria-label="@@configurationListStateFilterAriaLabel">
-                  <button mat-icon-button type="button" class="stateful-filter-button"
+                  <button mat-button type="button" class="stateful-filter-button compact-icon-button"
                     [attr.aria-pressed]="disabledFilter === true"
                     aria-label="Deactivated"
                     i18n-aria-label="@@configurationListDeactivatedState"
@@ -65,7 +66,7 @@
                     (click)="toggleDisabledFilter(true)">
                     <mat-icon>toggle_off</mat-icon>
                   </button>
-                  <button mat-icon-button type="button" class="stateful-filter-button"
+                  <button mat-button type="button" class="stateful-filter-button compact-icon-button"
                     [attr.aria-pressed]="disabledFilter === false"
                     aria-label="Active"
                     i18n-aria-label="@@configurationListActiveState"

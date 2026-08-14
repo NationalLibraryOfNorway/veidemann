@@ -1,6 +1,8 @@
 @use './theme' as theme;
+@use './stateful-filter-button' as stateful-filter-button;
 
 @include theme.veidemann-theme();
+@include stateful-filter-button.styles();
 
 html, body, app-root {
   margin: 0;
@@ -198,18 +200,6 @@ mat-card-header.card-header-with-helpers {
 .report-status-controls-row > .stateful-filter-button,
 .report-status-controls-row > app-polling-refresh-button {
   flex: 0 0 auto;
-}
-
-.stateful-filter-button mat-icon {
-  font-variation-settings: 'FILL' 0;
-}
-
-.stateful-filter-button[aria-pressed='true'] {
-  color: var(--mat-sys-primary);
-}
-
-.stateful-filter-button[aria-pressed='true'] mat-icon {
-  font-variation-settings: 'FILL' 1;
 }
 
 .filled-icon-button mat-icon {

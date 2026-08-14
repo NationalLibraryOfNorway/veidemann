@@ -1,3 +1,7 @@
+@use '../../../../../stateful-filter-button' as stateful-filter-button;
+
+@include stateful-filter-button.styles();
+
 .container {
   min-height: 0;
   height: 100%;
@@ -118,7 +122,7 @@
   min-width: 0;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 0;
 }
 
 .list-header-leading > .list-header-controls:first-child {
@@ -129,21 +133,13 @@
   display: flex;
   min-width: 0;
   align-items: center;
+  gap: 0;
 }
 
 .order-control {
   max-width: 264px;
   min-width: 0;
   padding-inline: 8px;
-}
-
-.order-control.order-control-icon-only {
-  width: 40px;
-  padding-inline: 8px;
-}
-
-.order-control-icon-only mat-icon {
-  margin-inline: 0;
 }
 
 .order-label {
