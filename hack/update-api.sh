@@ -9,10 +9,12 @@ readonly DEFAULT_WAIT_TIMEOUT_SECONDS=600
 
 bump_kind=''
 explicit_version=''
+explicit_commit=''
 remote="$DEFAULT_REMOTE"
 wait_timeout_seconds=$DEFAULT_WAIT_TIMEOUT_SECONDS
 dry_run=false
 release_version=''
+api_tag_commit=''
 
 declare -a module_names=()
 declare -A module_dirs=()
@@ -37,6 +39,7 @@ intermediate Go modules.
 Options:
   --bump TYPE              Bump the API by patch, minor, or major.
   --version VERSION        Release or resume an exact API version.
+  --commit REF             Commit to tag. Default: latest change under api/.
   --remote REMOTE          Git remote to push. Default: $DEFAULT_REMOTE
   --wait-timeout SECONDS   Proxy wait per module. Default: $DEFAULT_WAIT_TIMEOUT_SECONDS
   --dry-run                Show the release graph and commands without changes.
@@ -44,6 +47,7 @@ Options:
 
 Examples:
   $(basename "$0") --bump minor
+  $(basename "$0") --bump minor --commit 0123456789abcdef
   $(basename "$0") --version v1.4.0
   $(basename "$0") --bump patch --remote origin --wait-timeout 900
   $(basename "$0") --bump minor --dry-run
@@ -60,9 +64,13 @@ on_exit() {
 
     if ((status != 0)) && [[ -n "$release_version" ]] && ! "$dry_run"; then
         printf '\nRelease stopped after version selection. After resolving the error, resume with:\n' >&2
-        printf '  %q --version %q --remote %q --wait-timeout %q\n' \
+        printf '  %q --version %q' \
             "$repo_root/hack/update-api.sh" \
-            "$release_version" \
+            "$release_version" >&2
+        if [[ -n "$explicit_commit" ]]; then
+            printf ' --commit %q' "$explicit_commit" >&2
+        fi
+        printf ' --remote %q --wait-timeout %q\n' \
             "$remote" \
             "$wait_timeout_seconds" >&2
     fi
@@ -135,6 +143,13 @@ while (($# > 0)); do
             (($# >= 2)) || die "--version requires vX.Y.Z"
             [[ -z "$explicit_version" ]] || die "--version was specified more than once"
             explicit_version="$(normalize_version "$2")"
+            shift 2
+            ;;
+        --commit)
+            (($# >= 2)) || die "--commit requires a commit or ref"
+            [[ -z "$explicit_commit" ]] || die "--commit was specified more than once"
+            [[ -n "$2" ]] || die "--commit requires a non-empty commit or ref"
+            explicit_commit="$2"
             shift 2
             ;;
         --remote)
@@ -333,7 +348,8 @@ preflight() {
 }
 
 select_api_version() {
-    local previous_tag previous_version proposed_tag existing_tag
+    local previous_tag previous_version proposed_tag existing_tag target_description
+    local requested_commit
 
     previous_tag="$(latest_stable_tag api)"
     [[ -n "$previous_tag" ]] || die "no stable api/vX.Y.Z tag found"
@@ -354,18 +370,46 @@ select_api_version() {
             die "$proposed_tag is not reachable from HEAD"
         git diff --quiet "${proposed_tag}^{commit}" HEAD -- api ||
             die "current API contents differ from existing $proposed_tag"
+        api_tag_commit="$(git rev-parse "${proposed_tag}^{commit}")"
+        if [[ -n "$explicit_commit" ]]; then
+            requested_commit="$(git rev-parse --verify --quiet --end-of-options \
+                "${explicit_commit}^{commit}")" ||
+                die "cannot resolve --commit ref: $explicit_commit"
+            [[ "$requested_commit" == "$api_tag_commit" ]] ||
+                die "--commit $explicit_commit does not match existing tag $proposed_tag"
+        fi
+        target_description="existing tag $proposed_tag"
         existing_tag=true
     else
         existing_tag=false
         previous_version="$(module_version_from_tag api "$previous_tag")"
         version_greater_than "$release_version" "$previous_version" ||
             die "$release_version must be newer than $previous_version"
-        git diff --quiet "${previous_tag}^{commit}" HEAD -- api &&
+
+        if [[ -n "$explicit_commit" ]]; then
+            api_tag_commit="$(git rev-parse --verify --quiet --end-of-options \
+                "${explicit_commit}^{commit}")" ||
+                die "cannot resolve --commit ref: $explicit_commit"
+            target_description="--commit $explicit_commit"
+        else
+            api_tag_commit="$(git log -1 --format='%H' HEAD -- api)"
+            [[ -n "$api_tag_commit" ]] || die "no commit found for api/"
+            target_description='latest change under api/'
+        fi
+
+        git merge-base --is-ancestor "$api_tag_commit" HEAD ||
+            die "API tag commit is not reachable from HEAD: $api_tag_commit"
+        git merge-base --is-ancestor "${previous_tag}^{commit}" "$api_tag_commit" ||
+            die "API tag commit predates the latest API tag: $previous_tag"
+        git diff --quiet "$api_tag_commit" HEAD -- api ||
+            die "API contents at tag commit differ from HEAD: $api_tag_commit"
+        git diff --quiet "${previous_tag}^{commit}" "$api_tag_commit" -- api &&
             die "no API changes since $previous_tag"
     fi
 
     printf 'API version: %s (%s)\n' "$release_version" \
         "$([[ "$existing_tag" == true ]] && printf 'resume' || printf 'new release')"
+    printf 'API tag commit: %s (%s)\n' "${api_tag_commit:0:12}" "$target_description"
 }
 
 verify_generated_api() {
@@ -427,7 +471,7 @@ publish_api() {
 
     if ! git -C "$repo_root" rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
         run git -C "$repo_root" tag --annotate "$tag" \
-            --message "Release API version ${release_version#v}" HEAD
+            --message "Release API version ${release_version#v}" "$api_tag_commit"
     fi
     summary_tags+=("$tag")
     push_stage "$tag"
@@ -748,7 +792,7 @@ main() {
         if ! git -C "$repo_root" rev-parse --verify --quiet \
             "refs/tags/api/$release_version" >/dev/null; then
             run git -C "$repo_root" tag --annotate "api/$release_version" \
-                --message "Release API version ${release_version#v}" HEAD
+                --message "Release API version ${release_version#v}" "$api_tag_commit"
         fi
         run git -C "$repo_root" push --atomic "$remote" \
             "HEAD:refs/heads/$branch" "refs/tags/api/$release_version:refs/tags/api/$release_version"

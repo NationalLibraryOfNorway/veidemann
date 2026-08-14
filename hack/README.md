@@ -30,7 +30,21 @@ their consumers:
 
 Use `patch`, `minor`, or `major` for the API bump. The bump applies only to the
 API; intermediate libraries such as `log-service` and `recorderproxy` receive
-patch releases. Preview the dependency graph and commands without fetching,
+patch releases. A new `api/vX.Y.Z` tag points to the latest commit that changed
+the `api/` directory, which may be earlier than `HEAD`. Override that target
+with an explicit commit or ref when necessary:
+
+```bash
+./hack/update-api.sh --bump minor --commit 91f4eab
+```
+
+The selected commit must be reachable from `HEAD`, must not predate the latest
+API tag, and must contain the same `api/` contents as `HEAD`. This keeps API
+generation and tests on the current branch representative of the module being
+published. When resuming a release whose API tag already exists, the existing
+tag target is reused; an explicit `--commit` must resolve to that same commit.
+
+Preview the dependency graph and commands without fetching,
 generating, committing, tagging, or pushing with:
 
 ```bash
