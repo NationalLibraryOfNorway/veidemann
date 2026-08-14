@@ -142,10 +142,6 @@ export class CrawlLogComponent {
     }).catch(error => this.errorHandler.handleError(error));
   }
 
-  onExecutionFilterRemove(): void {
-    this.onQueryChange({...this.query(), executionId: ''});
-  }
-
   onRowClick(row: CrawlLog): void {
     this.router.navigate([row.id], {relativeTo: this.route})
       .catch(error => this.errorHandler.handleError(error));

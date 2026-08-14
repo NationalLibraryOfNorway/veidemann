@@ -194,4 +194,13 @@ describe('CrawlExecutionShortcutHelpersComponent', () => {
     ]);
     expect(fixture.nativeElement.querySelector('mat-chip-set')).toBeNull();
   });
+
+  it('allows list contexts to omit Copy ID without affecting menu destinations', () => {
+    fixture.componentRef.setInput('presentation', 'menu');
+    fixture.componentRef.setInput('showCopyId', false);
+    render();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Copy ID');
+    expect(fixture.nativeElement.querySelectorAll('a[mat-menu-item]')).toHaveLength(5);
+  });
 });

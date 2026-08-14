@@ -96,10 +96,6 @@ export class PageLogComponent {
     }).catch(error => this.errorHandler.handleError(error));
   }
 
-  onExecutionFilterRemove(): void {
-    this.onQueryChange({...this.query(), executionId: ''});
-  }
-
   private applySort(active: string, direction: SortDirection): void {
     if (!active || !direction) {
       this.dataSource.setComparator(null);

@@ -1,5 +1,5 @@
 <dl class="execution-lifecycle"
-  [class.execution-lifecycle--with-context]="contextLabel"
+  [class.execution-lifecycle--with-context]="contextLabel || additionalContextLabel"
   [class.execution-lifecycle--metrics]="presentation === 'metrics'">
   <div>
     <dt i18n="@@executionStartedLabel">Started</dt>
@@ -31,6 +31,18 @@
       <dd>
         @if (contextValue.trim()) {
           {{contextValue}}
+        } @else {
+          <span i18n="@@commonNotAvailable">Not available</span>
+        }
+      </dd>
+    </div>
+  }
+  @if (additionalContextLabel) {
+    <div>
+      <dt>{{additionalContextLabel}}</dt>
+      <dd>
+        @if (additionalContextValue.trim()) {
+          {{additionalContextValue}}
         } @else {
           <span i18n="@@commonNotAvailable">Not available</span>
         }

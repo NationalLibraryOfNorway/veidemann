@@ -18,6 +18,8 @@ export class ExecutionMetadataComponent {
   @Input() endTime = '';
   @Input() contextLabel = '';
   @Input() contextValue = '';
+  @Input() additionalContextLabel = '';
+  @Input() additionalContextValue = '';
 
   get showDesiredStateInLifecycle(): boolean {
     return this.hasDistinctDesiredState

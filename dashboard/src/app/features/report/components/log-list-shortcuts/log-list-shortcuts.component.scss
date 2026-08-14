@@ -2,11 +2,9 @@
   display: contents;
 }
 
-.log-context-filter {
-  grid-row-start: 2;
+.log-context-metadata {
+  grid-row-start: 1;
   grid-column-start: 1;
-  grid-column-end: -1;
-  justify-self: start;
   min-width: 0;
 }
 
@@ -14,11 +12,4 @@ app-detail-overflow {
   grid-row-start: 1;
   grid-column-start: 2;
   align-self: start;
-}
-
-.filter-chip-label {
-  overflow: hidden;
-  max-width: min(32rem, 60vw);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

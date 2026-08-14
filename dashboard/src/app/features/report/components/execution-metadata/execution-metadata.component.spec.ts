@@ -67,6 +67,21 @@ describe('ExecutionMetadataComponent', () => {
     expect(getComputedStyle(lifecycle).paddingBottom).toBe('20px');
   });
 
+  it('appends an additional context value as a fourth metadata column', () => {
+    fixture.componentRef.setInput('presentation', 'metrics');
+    fixture.componentRef.setInput('contextLabel', 'Crawl job');
+    fixture.componentRef.setInput('contextValue', 'Daily crawl');
+    fixture.componentRef.setInput('additionalContextLabel', 'Seed');
+    fixture.componentRef.setInput('additionalContextValue', 'https://example.com');
+    const metadata = render({startTime: '2026-08-10T10:19:00.000Z'});
+    const terms = [...metadata.querySelectorAll('dt')].map(term => term.textContent?.trim());
+    const values = [...metadata.querySelectorAll('dd')].map(value => value.textContent?.trim());
+
+    expect(terms).toEqual(['Started', 'Running', 'Crawl job', 'Seed']);
+    expect(values[2]).toBe('Daily crawl');
+    expect(values[3]).toBe('https://example.com');
+  });
+
   it.each([
     ['Finished', 'terminal'],
     ['Failed', 'terminal'],

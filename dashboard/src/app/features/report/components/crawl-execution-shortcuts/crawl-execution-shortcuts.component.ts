@@ -97,6 +97,7 @@ export class CrawlExecutionShortcutHelpersComponent {
   @Input() showCrawlJob = true;
   @Input() showSeed = true;
   @Input() showPlayback = false;
+  @Input() showCopyId = true;
   @Input() presentation: 'chips' | 'menu' = 'chips';
 
   readonly playbackUrl$ = this.crawlExecutionStatus$.pipe(

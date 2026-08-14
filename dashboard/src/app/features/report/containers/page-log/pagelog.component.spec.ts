@@ -38,7 +38,7 @@ describe('PageLogComponent', () => {
     expect(fixture.nativeElement.querySelector('app-pagelog-list').textContent)
       .toContain('https://example.org');
 
-    component.onExecutionFilterRemove();
+    component.onQueryChange({...component.query(), executionId: ''});
 
     expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({
       queryParamsHandling: 'merge',

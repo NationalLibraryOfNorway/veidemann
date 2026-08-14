@@ -2490,21 +2490,6 @@
         <source>Filter latest crawl jobs by state</source>
       </segment>
     </unit>
-    <unit id="logListExecutionFilterFallbackChip">
-      <segment>
-        <source>Crawl execution: <ph id="0" equiv="INTERPOLATION" disp="{{context.executionId}}"/></source>
-      </segment>
-    </unit>
-    <unit id="logListExecutionFilterTooltip">
-      <segment>
-        <source>Crawl execution ID: <ph id="0" equiv="EXECUTION_ID" disp="id"/></source>
-      </segment>
-    </unit>
-    <unit id="logListRemoveExecutionFilterLabel">
-      <segment>
-        <source>Remove crawl execution <ph id="0" equiv="EXECUTION_ID" disp="id"/> filter</source>
-      </segment>
-    </unit>
     <unit id="dashboardCrawlJobsTitle">
       <segment>
         <source>Jobs</source>

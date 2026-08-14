@@ -1,32 +1,25 @@
-@if (context$ | async; as context) {
-  <mat-chip-set class="log-context-filter" aria-label="Active report filters"
-    i18n-aria-label="@@activeReportFiltersLabel">
-    <mat-chip [matTooltip]="executionFilterTooltip(context.executionId)">
-      <mat-icon matChipAvatar aria-hidden="true">{{context.seedLabel ? 'link' : 'hdr_weak'}}</mat-icon>
-      <span class="filter-chip-label">
-        @if (context.seedLabel) {
-          {{context.seedLabel}}
-        } @else {
-          <span i18n="@@logListExecutionFilterFallbackChip">Crawl execution: {{context.executionId}}</span>
-        }
-      </span>
-      <button matChipRemove type="button"
-        [attr.aria-label]="removeExecutionFilterLabel(context.executionId)"
-        (click)="removeExecutionFilter.emit()">
-        <mat-icon>cancel</mat-icon>
-      </button>
-    </mat-chip>
-  </mat-chip-set>
+@if (status$ | async; as status) {
+  @let jobName = status.jobId | getJobNamePipe | async;
+  @let seedName = status.seedId | getSeedNamePipe | async;
+  <app-execution-metadata class="log-context-metadata" presentation="metrics"
+    [state]="statePresentation(status.state)"
+    [desiredState]="statePresentation(status.desiredState)"
+    [startTime]="status.startTime"
+    [endTime]="status.endTime"
+    contextLabel="Crawl job" i18n-contextLabel="@@configKindCrawlJob"
+    [contextValue]="jobName || status.jobId"
+    additionalContextLabel="Seed" i18n-additionalContextLabel="@@configKindSeed"
+    [additionalContextValue]="seedName?.label || status.seedId">
+  </app-execution-metadata>
 
-  @if (context.status; as status) {
-    <app-detail-overflow [label]="actionsMenuLabel">
-      <app-crawl-execution-shortcut-helpers
-        presentation="menu"
-        [crawlExecutionStatus]="status"
-        [showPageLog]="logKind === 'crawllog'"
-        [showCrawlLog]="false"
-        [showCrawlExecution]="true">
-      </app-crawl-execution-shortcut-helpers>
-    </app-detail-overflow>
-  }
+  <app-detail-overflow [label]="actionsMenuLabel">
+    <app-crawl-execution-shortcut-helpers
+      presentation="menu"
+      [crawlExecutionStatus]="status"
+      [showPageLog]="logKind === 'crawllog'"
+      [showCrawlLog]="false"
+      [showCrawlExecution]="true"
+      [showCopyId]="false">
+    </app-crawl-execution-shortcut-helpers>
+  </app-detail-overflow>
 }
