@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: robots
-          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.12.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.12.3
           ports:
             - name: grpc
               containerPort: 8090
