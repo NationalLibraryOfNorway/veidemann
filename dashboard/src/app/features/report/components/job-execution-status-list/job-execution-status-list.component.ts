@@ -6,6 +6,7 @@ import {JobNamePipe} from '../../pipe';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates, isValidDate} from '../../../../shared/func';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {jobExecutionStatePresentation} from '../../func';
 import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/report-list-base';
 
 @Component({
@@ -37,8 +38,9 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
   override displayedColumns: string[] = [
     'jobId',
     'state',
-    'desiredState',
     'queueSize',
+    'documentsCrawled',
+    'bytesCrawled',
     'startTime',
     'endTime',
     'duration',
@@ -51,6 +53,17 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
       return '';
     }
     return durationBetweenDates(row.startTime, row.endTime);
+  }
+
+  endTimeFallback(row: JobExecutionStatus): string {
+    const state = jobExecutionStatePresentation(row.state);
+    const desiredState = jobExecutionStatePresentation(row.desiredState);
+    if (state.lifecycle === 'active') {
+      return desiredState.lifecycle !== 'undefined' && desiredState.label !== state.label
+        ? desiredState.label
+        : '';
+    }
+    return $localize`:@@commonNotAvailable:Not available`;
   }
 
   queueCount(row: JobExecutionStatus): number | null {

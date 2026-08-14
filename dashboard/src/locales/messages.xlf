@@ -1460,6 +1460,11 @@
         <source>State</source>
       </segment>
     </unit>
+    <unit id="crawlExecutionReportListBytesCrawledHeaderCell">
+      <segment>
+        <source>Bytes </source>
+      </segment>
+    </unit>
     <unit id="crawlExecutionReportListCrawljobHeaderCell">
       <segment>
         <source>Job </source>
@@ -1470,14 +1475,9 @@
         <source>Created </source>
       </segment>
     </unit>
-    <unit id="crawlExecutionReportListDesiredStateHeaderCell">
-      <segment>
-        <source>Desired state </source>
-      </segment>
-    </unit>
     <unit id="crawlExecutionREportListDocumentsCrawledHeaderCell">
       <segment>
-        <source>Documents crawled </source>
+        <source>Documents </source>
       </segment>
     </unit>
     <unit id="crawlExecutionReportListEndTimeHeaderCell">
@@ -1882,7 +1882,7 @@
     </unit>
     <unit id="crawlJobExecutionReportListBytesCrawledHeaderCell">
       <segment>
-        <source>Bytes crawled </source>
+        <source>Bytes </source>
       </segment>
     </unit>
     <unit id="crawlJobExecutionReportListCrawljobHeaderCell">
@@ -1890,14 +1890,9 @@
         <source>Job </source>
       </segment>
     </unit>
-    <unit id="crawlJobExecutionReportListDesiredStateHeaderCell">
-      <segment>
-        <source>Desired state </source>
-      </segment>
-    </unit>
     <unit id="crawlJobExecutionReportListDocumentsCrawledHeaderCell">
       <segment>
-        <source>Documents crawled </source>
+        <source>Documents </source>
       </segment>
     </unit>
     <unit id="crawlJobExecutionReportListDurationHeaderCell">

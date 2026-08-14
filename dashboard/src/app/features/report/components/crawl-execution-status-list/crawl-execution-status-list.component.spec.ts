@@ -94,6 +94,84 @@ describe('CrawlExecutionStatusListComponent', () => {
     expect(getComputedStyle(scroll).padding).toBe('0px');
   });
 
+  it('renders execution metrics and errors in the shared column order', async () => {
+    const row = new CrawlExecutionStatus({
+      id: 'crawl-execution-1',
+      seedId: 'seed-1',
+      jobId: 'job-1',
+      state: CrawlExecutionState.FINISHED,
+      documentsCrawled: 1234,
+      bytesCrawled: 1500,
+    });
+    const dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(row),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.componentRef.setInput('dataSource', dataSource);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.displayedColumns).toEqual([
+      'seedId',
+      'jobId',
+      'state',
+      'queueSize',
+      'documentsCrawled',
+      'bytesCrawled',
+      'errorCode',
+      'startTime',
+      'endTime',
+      'action',
+    ]);
+    const headers = [...fixture.nativeElement.querySelectorAll('th')]
+      .map((header: HTMLElement) => header.textContent.trim());
+    expect(headers).toEqual([
+      'Seed', 'Job', 'State', 'Queue', 'Documents', 'Bytes', 'Error', 'Started', 'Ended', '',
+    ]);
+    expect(fixture.nativeElement.querySelector('.mat-column-desiredState')).toBeNull();
+    expect(fixture.nativeElement.querySelector('td.mat-column-documentsCrawled').textContent.trim())
+      .toBe('1,234');
+    expect(fixture.nativeElement.querySelector('td.mat-column-bytesCrawled').textContent.trim())
+      .toBe('1.5 kB');
+  });
+
+  it('uses desired state or missing-value text when an end timestamp is absent', async () => {
+    const rows = [
+      new CrawlExecutionStatus({
+        id: 'requested',
+        state: CrawlExecutionState.FETCHING,
+        desiredState: CrawlExecutionState.ABORTED_TIMEOUT,
+      }),
+      new CrawlExecutionStatus({
+        id: 'active',
+        state: CrawlExecutionState.FETCHING,
+      }),
+      new CrawlExecutionStatus({
+        id: 'terminal',
+        state: CrawlExecutionState.FAILED,
+      }),
+      new CrawlExecutionStatus({
+        id: 'undefined',
+        state: CrawlExecutionState.UNDEFINED,
+      }),
+    ];
+    const dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(...rows),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.componentRef.setInput('dataSource', dataSource);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const endCells = [...fixture.nativeElement.querySelectorAll('td.mat-column-endTime')]
+      .map((cell: HTMLElement) => cell.textContent.trim());
+    expect(endCells).toEqual(['Aborted after timeout', '', 'Not available', 'Not available']);
+  });
+
   it('renders the seed as plain row content and keeps row navigation', async () => {
     const row = new CrawlExecutionStatus({
       id: 'crawl-execution-1',

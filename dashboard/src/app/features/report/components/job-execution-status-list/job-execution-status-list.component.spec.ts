@@ -68,13 +68,15 @@ describe('JobExecutionStatusListComponent', () => {
     expect(clicked).toEqual([row, row]);
   });
 
-  it('renders desired state separately and appends duration as the final data column', async () => {
+  it('renders execution metrics in the shared column order and appends duration', async () => {
     const row = new JobExecutionStatus({
       id: 'execution-1',
       state: JobExecutionState.RUNNING,
       desiredState: JobExecutionState.ABORTED_MANUAL,
       startTime: '2026-08-11T10:00:00.000Z',
       endTime: '2026-08-11T11:02:00.000Z',
+      documentsCrawled: 1234,
+      bytesCrawled: 1500,
     });
     const dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -89,17 +91,62 @@ describe('JobExecutionStatusListComponent', () => {
     expect(component.displayedColumns).toEqual([
       'jobId',
       'state',
-      'desiredState',
       'queueSize',
+      'documentsCrawled',
+      'bytesCrawled',
       'startTime',
       'endTime',
       'duration',
       'action',
     ]);
-    expect(fixture.nativeElement.querySelector('.desired-state-badge')).toBeNull();
-    expect(fixture.nativeElement.querySelector('td.mat-column-desiredState').textContent.trim())
-      .toBe('ABORTED_MANUAL');
+    const headers = [...fixture.nativeElement.querySelectorAll('th')]
+      .map((header: HTMLElement) => header.textContent.trim());
+    expect(headers).toEqual([
+      'Job', 'State', 'Queue', 'Documents', 'Bytes', 'Start', 'End', 'Duration', '',
+    ]);
+    expect(fixture.nativeElement.querySelector('.mat-column-desiredState')).toBeNull();
+    expect(fixture.nativeElement.querySelector('td.mat-column-documentsCrawled').textContent.trim())
+      .toBe('1,234');
+    expect(fixture.nativeElement.querySelector('td.mat-column-bytesCrawled').textContent.trim())
+      .toBe('1.5 kB');
+    expect(fixture.nativeElement.querySelector('td.mat-column-endTime').textContent.trim())
+      .not.toContain('Aborted manually');
     expect(fixture.nativeElement.querySelector('td.mat-column-duration').textContent.trim())
       .toBe('1hours:2min');
+  });
+
+  it('uses desired state or missing-value text when an end timestamp is absent', async () => {
+    const rows = [
+      new JobExecutionStatus({
+        id: 'requested',
+        state: JobExecutionState.RUNNING,
+        desiredState: JobExecutionState.ABORTED_MANUAL,
+      }),
+      new JobExecutionStatus({
+        id: 'active',
+        state: JobExecutionState.RUNNING,
+      }),
+      new JobExecutionStatus({
+        id: 'terminal',
+        state: JobExecutionState.FAILED,
+      }),
+      new JobExecutionStatus({
+        id: 'undefined',
+        state: JobExecutionState.UNDEFINED,
+      }),
+    ];
+    const dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(...rows),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.componentRef.setInput('dataSource', dataSource);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const endCells = [...fixture.nativeElement.querySelectorAll('td.mat-column-endTime')]
+      .map((cell: HTMLElement) => cell.textContent.trim());
+    expect(endCells).toEqual(['Aborted manually', '', 'Not available', 'Not available']);
   });
 });

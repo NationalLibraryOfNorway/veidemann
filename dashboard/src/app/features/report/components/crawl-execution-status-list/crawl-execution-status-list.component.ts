@@ -5,7 +5,9 @@ import {
   CrawlExecutionStatus
 } from '../../../../shared/models';
 import {JobNamePipe, SeedNamePipe} from '../../pipe';
-import {DatePipe} from '@angular/common';
+import {DatePipe, DecimalPipe} from '@angular/common';
+import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
+import {crawlExecutionStatePresentation} from '../../func';
 import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/report-list-base';
 
 @Component({
@@ -16,6 +18,8 @@ import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/repor
   standalone: true,
   imports: [
     DatePipe,
+    DecimalPipe,
+    FileSizePipe,
     JobNamePipe,
     SeedNamePipe,
     ...REPORT_LIST_IMPORTS,
@@ -32,7 +36,29 @@ export class CrawlExecutionStatusListComponent extends ReportListBaseComponent<C
 
   @Input() queueCounts: ReadonlyMap<string, number> = new Map();
 
-  override displayedColumns: string[] = ['seedId', 'jobId', 'state', 'desiredState', 'queueSize', 'errorCode', 'documentsCrawled', 'startTime', 'endTime', 'action'];
+  override displayedColumns: string[] = [
+    'seedId',
+    'jobId',
+    'state',
+    'queueSize',
+    'documentsCrawled',
+    'bytesCrawled',
+    'errorCode',
+    'startTime',
+    'endTime',
+    'action',
+  ];
+
+  endTimeFallback(row: CrawlExecutionStatus): string {
+    const state = crawlExecutionStatePresentation(row.state);
+    const desiredState = crawlExecutionStatePresentation(row.desiredState);
+    if (state.lifecycle === 'active') {
+      return desiredState.lifecycle !== 'undefined' && desiredState.label !== state.label
+        ? desiredState.label
+        : '';
+    }
+    return $localize`:@@commonNotAvailable:Not available`;
+  }
 
   queueCount(row: CrawlExecutionStatus): number | null {
     if (CrawlExecutionStatus.DONE_STATES.includes(row.state)) {

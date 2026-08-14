@@ -1713,6 +1713,12 @@
         <target>State</target>
       </segment>
     </unit>
+    <unit id="crawlExecutionReportListBytesCrawledHeaderCell">
+      <segment state="final">
+        <source>Bytes </source>
+        <target>Byte </target>
+      </segment>
+    </unit>
     <unit id="crawlExecutionReportListCrawljobHeaderCell">
       <segment state="initial">
         <source>Job </source>
@@ -1725,16 +1731,10 @@
         <target>Created </target>
       </segment>
     </unit>
-    <unit id="crawlExecutionReportListDesiredStateHeaderCell">
-      <segment state="initial">
-        <source>Desired state </source>
-        <target>Desired state </target>
-      </segment>
-    </unit>
     <unit id="crawlExecutionREportListDocumentsCrawledHeaderCell">
-      <segment state="initial">
-        <source>Documents crawled </source>
-        <target>Documents crawled </target>
+      <segment state="final">
+        <source>Documents </source>
+        <target>Dokumenter </target>
       </segment>
     </unit>
     <unit id="crawlExecutionReportListEndTimeHeaderCell">
@@ -2200,9 +2200,9 @@
       </segment>
     </unit>
     <unit id="crawlJobExecutionReportListBytesCrawledHeaderCell">
-      <segment state="initial">
-        <source>Bytes crawled </source>
-        <target>Bytes crawled </target>
+      <segment state="final">
+        <source>Bytes </source>
+        <target>Byte </target>
       </segment>
     </unit>
     <unit id="crawlJobExecutionReportListCrawljobHeaderCell">
@@ -2211,16 +2211,10 @@
         <target>Job </target>
       </segment>
     </unit>
-    <unit id="crawlJobExecutionReportListDesiredStateHeaderCell">
-      <segment state="initial">
-        <source>Desired state </source>
-        <target>Desired state </target>
-      </segment>
-    </unit>
     <unit id="crawlJobExecutionReportListDocumentsCrawledHeaderCell">
-      <segment state="initial">
-        <source>Documents crawled </source>
-        <target>Documents crawled </target>
+      <segment state="final">
+        <source>Documents </source>
+        <target>Dokumenter </target>
       </segment>
     </unit>
     <unit id="crawlJobExecutionReportListDurationHeaderCell">

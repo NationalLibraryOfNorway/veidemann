@@ -74,10 +74,9 @@ describe('RunningCrawlsComponent', () => {
     expect(headers).toEqual([
       'Job',
       'State',
-      'Desired state',
       'Queue',
-      'Documents crawled',
-      'Bytes crawled',
+      'Documents',
+      'Bytes',
       'Start',
       'End',
       'Duration',
@@ -111,9 +110,8 @@ describe('RunningCrawlsComponent', () => {
     const itemRow = fixture.nativeElement.querySelector('.item-row') as HTMLElement;
     expect(itemRow.textContent).toContain('Daily crawl');
     expect(itemRow.textContent).toContain('FINISHED');
-    expect(itemRow.querySelector('.desired-state-badge')).toBeNull();
     expect(itemRow.querySelector('.mat-column-state')?.textContent.trim()).toBe('FINISHED');
-    expect(itemRow.querySelector('.mat-column-desiredState')?.textContent.trim()).toBe('ABORTED_MANUAL');
+    expect(itemRow.querySelector('.mat-column-desiredState')).toBeNull();
     expect(itemRow.querySelector('.mat-column-queueSize')?.textContent.trim()).toBe('0');
     expect(itemRow.textContent).toContain('1,234');
     expect(itemRow.querySelector('.mat-column-bytesCrawled')?.textContent.trim()).toBe('1.5 kB');
