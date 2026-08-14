@@ -9,7 +9,7 @@ import {toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 import {compareListValues, Sort} from '../../../../shared/func';
 import {ListDataSource, ListItem, PageLog} from '../../../../shared/models';
-import {LogListShortcutsComponent, PageLogListComponent} from '../../components';
+import {PageLogListComponent} from '../../components';
 import {PageLogQueryComponent} from '../../components/page-log-query/page-log-query.component';
 import {equalPageLogQuery, pageLogQueryFromParamMap} from '../../func';
 import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
@@ -17,10 +17,8 @@ import {PageLogQuery, PageLogService} from '../../services/pagelog.service';
 @Component({
   selector: 'app-pagelog',
   templateUrl: './pagelog.component.html',
-  styleUrls: ['./pagelog.component.css'],
   imports: [
     AsyncPipe,
-    LogListShortcutsComponent,
     MatProgressBar,
     PageLogQueryComponent,
     PageLogListComponent,

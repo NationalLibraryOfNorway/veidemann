@@ -41,74 +41,51 @@ describe('CrawlLogComponent', () => {
     await fixture.whenStable();
   });
 
-  it('places filtered-log actions at the top right of the filter toolbar', () => {
+  it('renders the list without a filter toolbar or execution actions menu', () => {
     fixture.detectChanges();
-    const header = fixture.nativeElement.querySelector('.report-filter-header') as HTMLElement;
-    const controls = header.querySelector('app-crawl-log-query') as HTMLElement;
-    const shortcuts = header.querySelector('app-log-list-shortcuts') as HTMLElement;
-
-    expect(header.firstElementChild).toBe(controls);
-    expect(header.lastElementChild).toBe(shortcuts);
-    expect(getComputedStyle(header).display).toBe('grid');
-    expect(getComputedStyle(controls).gridColumnStart).toBe('1');
-    expect(getComputedStyle(shortcuts).display).toBe('contents');
+    expect(component.dataSource.snapshot).toHaveLength(5);
+    expect(fixture.nativeElement.querySelector('app-crawl-log-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.crawl-log-facets')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.report-filter-toolbar')).toBeNull();
+    const executionQuery = fixture.nativeElement.querySelector('app-crawl-log-query') as HTMLElement;
+    expect(executionQuery).not.toBeNull();
+    expect((executionQuery.querySelector('mat-form-field') as HTMLElement).hidden).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-log-list-shortcuts')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
   });
 
-  it('clears the execution filter and unsupported legacy log parameters without changing sort', () => {
+  it('keeps execution-ID query changes wired to the route', () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-    component.onQueryChange({...component.query(), executionId: ''});
+    component.onQueryChange({...component.query(), executionId: 'execution-2'});
 
     expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({
       queryParamsHandling: 'merge',
       queryParams: expect.objectContaining({
         p: null,
         s: null,
-        execution_id: null,
+        execution_id: 'execution-2',
         job_execution_id: null,
       }),
     }));
-    expect(navigate.mock.calls[0][1]?.queryParams?.['sort']).toBeUndefined();
   });
 
-  it('offers unique normalized content types from loaded rows and filters by type', async () => {
+  it('preserves the visible MIME type, HTTP status, and method facets', () => {
     fixture.detectChanges();
-    const chips = [...fixture.nativeElement.querySelectorAll('.report-filter-toolbar > .facet-filter mat-chip-option')]
-      .map((chip: Element) => chip.textContent?.trim());
-    expect(chips).toEqual(['image/png', 'text/html', 'text/plain']);
-    expect(component.dataSource.snapshot.map(row => row.id))
-      .toEqual(['html', 'html-duplicate', 'plain', 'image', 'missing']);
-
-    component.onContentTypeFilterChange(['text/html']);
-    await fixture.whenStable();
-    expect(component.dataSource.snapshot.map(row => row.id)).toEqual(['html', 'html-duplicate']);
-    expect(component.loadedContentTypes()).toEqual(['image/png', 'text/html', 'text/plain']);
-
-    component.onContentTypeFilterChange(['text/plain', 'image/png']);
-    await fixture.whenStable();
-    expect(component.dataSource.snapshot.map(row => row.id)).toEqual(['plain', 'image']);
-
-    component.onContentTypeFilterChange([]);
-    await fixture.whenStable();
-    expect(component.dataSource.snapshot.map(row => row.id))
-      .toEqual(['html', 'html-duplicate', 'plain', 'image', 'missing']);
-  });
-
-  it('shows status families, exact codes, and methods from loaded logs only', () => {
-    fixture.detectChanges();
+    const contentTypeChips = [...fixture.nativeElement.querySelectorAll(
+      '.crawl-log-facets > .facet-filter mat-chip-option'
+    )].map((chip: Element) => chip.textContent?.trim());
     const statusChips = [...fixture.nativeElement.querySelectorAll('app-http-status-filter mat-chip-option')]
       .map((chip: Element) => chip.textContent?.trim());
     const methodChips = [...fixture.nativeElement.querySelectorAll('.method-filter mat-chip-option')]
       .map((chip: Element) => chip.textContent?.trim());
 
-    expect(component.loadedStatusFamilies()).toEqual([2, 3, 4, 5]);
-    expect(component.loadedStatusCodes()).toEqual([200, 302, 404, 500]);
+    expect(contentTypeChips).toEqual(['image/png', 'text/html', 'text/plain']);
     expect(statusChips).toEqual(['2xx', '3xx', '4xx', '5xx', '200', '302', '404', '500']);
-    expect(component.loadedMethods()).toEqual(['GET', 'HEAD', 'POST']);
     expect(methodChips).toEqual(['GET', 'HEAD', 'POST']);
   });
 
-  it('combines MIME type, method, and HTTP status filters without loading more', async () => {
+  it('combines the preserved client facets without loading more', async () => {
     component.onStatusFamilyFilterChange([2, 3]);
     await fixture.whenStable();
     expect(component.dataSource.snapshot.map(row => row.id)).toEqual(['html', 'plain']);
@@ -119,22 +96,14 @@ describe('CrawlLogComponent', () => {
     expect(component.dataSource.snapshot.map(row => row.id)).toEqual(['html-duplicate']);
 
     component.onExactStatusFilterChange([]);
-    component.onStatusFamilyFilterChange([2, 3]);
     component.onMethodFilterChange(['HEAD']);
+    component.onContentTypeFilterChange(['text/plain']);
     await fixture.whenStable();
     expect(component.dataSource.snapshot.map(row => row.id)).toEqual(['plain']);
-
-    component.onContentTypeFilterChange(['text/plain']);
-    component.onExactStatusFilterChange([]);
-    component.onStatusFamilyFilterChange([4]);
-    await fixture.whenStable();
-    expect(component.dataSource.snapshot).toEqual([]);
     expect(component.hasClientFilters()).toBe(true);
 
     component.onContentTypeFilterChange([]);
     component.onMethodFilterChange([]);
-    component.onStatusFamilyFilterChange([]);
-    component.onExactStatusFilterChange([]);
     await fixture.whenStable();
     expect(component.dataSource.snapshot).toHaveLength(5);
     expect(component.hasClientFilters()).toBe(false);

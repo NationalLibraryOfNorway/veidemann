@@ -1,4 +1,14 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ErrorHandler, Signal, inject, signal} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ErrorHandler,
+  inject,
+  Signal,
+  signal,
+} from '@angular/core';
 import {AsyncPipe} from '@angular/common';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {SortDirection} from '@angular/material/sort';
@@ -15,7 +25,6 @@ import {
   HttpStatusFamily,
   HttpStatusFilterComponent,
   httpStatusFamily,
-  LogListShortcutsComponent,
   uniqueHttpStatusCodes,
 } from '../../components';
 import {CrawlLogQueryComponent} from '../../components/crawl-log-query/crawl-log-query.component';
@@ -33,7 +42,6 @@ import {CrawlLogQuery, CrawlLogService} from '../../services';
     CrawlLogListComponent,
     CrawlLogQueryComponent,
     HttpStatusFilterComponent,
-    LogListShortcutsComponent,
     MatChipsModule,
     MatProgressBarModule,
   ]

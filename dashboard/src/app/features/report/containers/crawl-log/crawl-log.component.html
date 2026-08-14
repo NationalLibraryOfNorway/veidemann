@@ -2,64 +2,58 @@
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
-    @if (query(); as query) {
-      <div class="report-filter-toolbar" aria-label="Report filters" i18n-aria-label="@@reportFiltersLabel">
-        <div class="report-filter-header">
-          <app-crawl-log-query class="report-filter-controls"
-            [query]="query" (queryChange)="onQueryChange($event)"></app-crawl-log-query>
-          <app-log-list-shortcuts
-            [executionId]="query.executionId"
-            logKind="crawllog">
-          </app-log-list-shortcuts>
-        </div>
-        <fieldset class="facet-filter">
-          <legend i18n="@@crawlLogContentTypeFilterLegend">MIME type</legend>
-          <mat-chip-listbox multiple
-            aria-label="Filter crawl logs by MIME type"
-            i18n-aria-label="@@crawlLogContentTypeFilterLabel"
-            [value]="selectedContentTypes()"
-            (change)="onContentTypeFilterChange($event.value)">
-            @for (contentType of loadedContentTypes(); track contentType) {
-              <mat-chip-option [value]="contentType">{{contentType}}</mat-chip-option>
-            }
-          </mat-chip-listbox>
-        </fieldset>
-        <div class="facet-filter-row">
-          @if (loadedStatusFamilies().length) {
-            <app-http-status-filter
-              [families]="loadedStatusFamilies()"
-              [value]="selectedStatusFamilies()"
-              [statusCodes]="loadedStatusCodes()"
-              [exactValue]="selectedStatusCodes()"
-              (valueChange)="onStatusFamilyFilterChange($event)"
-              (exactValueChange)="onExactStatusFilterChange($event)">
-            </app-http-status-filter>
+    <app-crawl-log-query
+      [query]="query()"
+      (queryChange)="onQueryChange($event)">
+    </app-crawl-log-query>
+    <div class="crawl-log-facets">
+      <fieldset class="facet-filter">
+        <legend i18n="@@crawlLogContentTypeFilterLegend">MIME type</legend>
+        <mat-chip-listbox multiple
+          aria-label="Filter crawl logs by MIME type"
+          i18n-aria-label="@@crawlLogContentTypeFilterLabel"
+          [value]="selectedContentTypes()"
+          (change)="onContentTypeFilterChange($event.value)">
+          @for (contentType of loadedContentTypes(); track contentType) {
+            <mat-chip-option [value]="contentType">{{contentType}}</mat-chip-option>
           }
-          @if (loadedMethods().length) {
-            <fieldset class="facet-filter method-filter">
-              <legend i18n="@@crawlLogMethodFilterLegend">Method</legend>
-              <mat-chip-listbox multiple
-                aria-label="Filter crawl logs by method"
-                i18n-aria-label="@@crawlLogMethodFilterLabel"
-                [value]="selectedMethods()"
-                (change)="onMethodFilterChange($event.value)">
-                @for (method of loadedMethods(); track method) {
-                  <mat-chip-option [value]="method">{{method}}</mat-chip-option>
-                }
-              </mat-chip-listbox>
-            </fieldset>
-          }
-        </div>
+        </mat-chip-listbox>
+      </fieldset>
+      <div class="facet-filter-row">
+        @if (loadedStatusFamilies().length) {
+          <app-http-status-filter
+            [families]="loadedStatusFamilies()"
+            [value]="selectedStatusFamilies()"
+            [statusCodes]="loadedStatusCodes()"
+            [exactValue]="selectedStatusCodes()"
+            (valueChange)="onStatusFamilyFilterChange($event)"
+            (exactValueChange)="onExactStatusFilterChange($event)">
+          </app-http-status-filter>
+        }
+        @if (loadedMethods().length) {
+          <fieldset class="facet-filter method-filter">
+            <legend i18n="@@crawlLogMethodFilterLegend">Method</legend>
+            <mat-chip-listbox multiple
+              aria-label="Filter crawl logs by method"
+              i18n-aria-label="@@crawlLogMethodFilterLabel"
+              [value]="selectedMethods()"
+              (change)="onMethodFilterChange($event.value)">
+              @for (method of loadedMethods(); track method) {
+                <mat-chip-option [value]="method">{{method}}</mat-chip-option>
+              }
+            </mat-chip-listbox>
+          </fieldset>
+        }
       </div>
-      <div class="report-result-content flex-fill">
-        <app-crawl-log-list
-          [dataSource]="dataSource"
-          [sortDirection]="sortDirection()"
-          [sortActive]="sortActive()"
-          [loadMoreDisabled]="hasClientFilters()"
-          (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)" class="flex-fill">
-        </app-crawl-log-list>
-      </div>
-    }
+    </div>
+    <div class="report-result-content flex-fill">
+      <app-crawl-log-list
+        [dataSource]="dataSource"
+        [sortDirection]="sortDirection()"
+        [sortActive]="sortActive()"
+        [loadMoreDisabled]="hasClientFilters()"
+        (rowClick)="onRowClick($event)"
+        (sort)="onSort($event)" class="flex-fill">
+      </app-crawl-log-list>
+    </div>
 </div>

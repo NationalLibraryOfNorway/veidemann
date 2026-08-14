@@ -2,26 +2,17 @@
     @if (loading$ | async) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }
-    @if (query(); as query) {
-      <div class="report-filter-toolbar" aria-label="Report filters" i18n-aria-label="@@reportFiltersLabel">
-        <div class="report-filter-header">
-          <app-page-log-query class="report-filter-controls"
-            [query]="query"
-            (queryChange)="onQueryChange($event)"></app-page-log-query>
-          <app-log-list-shortcuts
-            [executionId]="query.executionId"
-            logKind="pagelog">
-          </app-log-list-shortcuts>
-        </div>
-      </div>
-      <div class="report-result-content flex-fill">
-        <app-pagelog-list
-          [dataSource]="dataSource"
-          [sortDirection]="sortDirection()"
-          [sortActive]="sortActive()"
-          (rowClick)="onRowClick($event)"
-          (sort)="onSort($event)" class="flex-fill">
-        </app-pagelog-list>
-      </div>
-    }
+    <app-page-log-query
+      [query]="query()"
+      (queryChange)="onQueryChange($event)">
+    </app-page-log-query>
+    <div class="report-result-content flex-fill">
+      <app-pagelog-list
+        [dataSource]="dataSource"
+        [sortDirection]="sortDirection()"
+        [sortActive]="sortActive()"
+        (rowClick)="onRowClick($event)"
+        (sort)="onSort($event)" class="flex-fill">
+      </app-pagelog-list>
+    </div>
 </div>
