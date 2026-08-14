@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/recorderproxy
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.4.0
+	github.com/NationalLibraryOfNorway/veidemann/api v1.5.0
 	github.com/getlantern/errors v1.0.4
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7

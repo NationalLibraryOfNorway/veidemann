@@ -1,5 +1,5 @@
-github.com/NationalLibraryOfNorway/veidemann/api v1.4.0 h1:0jq3sOX+mq5sREbo49FmaZL4nlwVHqlUY2nWazLPcYQ=
-github.com/NationalLibraryOfNorway/veidemann/api v1.4.0/go.mod h1:Jyk1oo8IIraLX5vHkOXcEp+zavnk99WgFhrJBhmfu1s=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.0 h1:taJctfC7sy+TD1Gy7kjEtFsh51qKt6W53Pqwvip+jZI=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.0/go.mod h1:Jyk1oo8IIraLX5vHkOXcEp+zavnk99WgFhrJBhmfu1s=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bits-and-blooms/bitset v1.24.2/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
