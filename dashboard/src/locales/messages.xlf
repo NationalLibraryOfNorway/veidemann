@@ -2507,7 +2507,7 @@
     </unit>
     <unit id="mainMenuConfiguration">
       <segment>
-        <source>Config</source>
+        <source>Configuration</source>
       </segment>
     </unit>
     <unit id="configurationListLabelsAriaLabel">
@@ -2712,7 +2712,7 @@
     </unit>
     <unit id="configurationOverviewLink">
       <segment>
-        <source>Configurations overview</source>
+        <source>Configuration overview</source>
       </segment>
     </unit>
     <unit id="mainMenuHome">

@@ -129,7 +129,7 @@
              [routerLinkActiveOptions]="{exact: true}" #configOverviewLink="routerLinkActive"
              [activated]="configOverviewLink.isActive"
              (click)="!expandedNavigation() && closePrimaryDrawer()">
-            <span matListItemTitle i18n="@@configurationOverviewLink">Configurations overview</span>
+            <span matListItemTitle i18n="@@configurationOverviewLink">Configuration overview</span>
           </a>
           @for (destination of configDestinations; track destination.route) {
             @if (canNavigate(destination)) {

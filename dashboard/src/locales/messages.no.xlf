@@ -2939,8 +2939,8 @@
     </unit>
     <unit id="mainMenuConfiguration">
       <segment state="initial">
-        <source>Config</source>
-        <target>Config</target>
+        <source>Configuration</source>
+        <target>Configuration</target>
       </segment>
     </unit>
     <unit id="configurationListLabelsAriaLabel">
@@ -3185,8 +3185,8 @@
     </unit>
     <unit id="configurationOverviewLink">
       <segment state="initial">
-        <source>Configurations overview</source>
-        <target>Configurations overview</target>
+        <source>Configuration overview</source>
+        <target>Configuration overview</target>
       </segment>
     </unit>
     <unit id="mainMenuHome">

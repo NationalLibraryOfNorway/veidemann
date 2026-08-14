@@ -102,7 +102,7 @@ export class AppComponent implements OnInit {
     {
       route: '/config',
       icon: 'settings',
-      label: $localize`:@@mainMenuConfiguration:Config`,
+      label: $localize`:@@mainMenuConfiguration:Configuration`,
       section: 'config',
       permissionSubject: 'configs',
     },

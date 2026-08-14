@@ -122,7 +122,7 @@ describe('AppComponent navigation', () => {
       fixture.nativeElement.querySelectorAll('.drawer-section-trigger')
     ) as HTMLButtonElement[];
     expect(sectionTriggers).toHaveLength(1);
-    expect(sectionTriggers[0].textContent.trim()).toContain('Config');
+    expect(sectionTriggers[0].textContent.trim()).toContain('Configuration');
     expect(sectionTriggers[0].getAttribute('type')).toBe('button');
   });
 
@@ -380,12 +380,15 @@ describe('AppComponent navigation', () => {
       fixture.nativeElement.querySelectorAll('.drawer-section-trigger')
     ) as HTMLButtonElement[];
     const configurationButton = drawerTriggers.find(
-      element => element.textContent?.includes('Config')
+      element => element.textContent?.includes('Configuration')
     ) as HTMLButtonElement;
     configurationButton.click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config"]')).not.toBeNull();
+    const overviewLink = fixture.nativeElement.querySelector(
+      '.primary-navigation a[href="/config"]'
+    ) as HTMLAnchorElement;
+    expect(overviewLink.textContent.trim()).toBe('Configuration overview');
     expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).not.toBeNull();
 
     const backButton = fixture.nativeElement.querySelector('.drawer-back') as HTMLButtonElement;
@@ -413,7 +416,7 @@ describe('AppComponent navigation', () => {
       expect(trigger.querySelector('mat-icon.mat-mdc-list-item-icon')).not.toBeNull();
     }
 
-    sectionTriggers.find(trigger => trigger.textContent?.includes('Config'))?.click();
+    sectionTriggers.find(trigger => trigger.textContent?.includes('Configuration'))?.click();
     fixture.detectChanges();
     const seedLink = fixture.nativeElement.querySelector(
       '.primary-navigation a[href="/config/seed"]'
@@ -590,7 +593,7 @@ describe('AppComponent navigation', () => {
     expect(drawerText).not.toContain('Crawljob schedule');
     expect(drawerText).not.toContain('LOGIN');
     expect(drawerText).not.toContain('Log out');
-    expect(drawerText).toContain('Config');
+    expect(drawerText).toContain('Configuration');
     expect(drawerText).toContain('Reports');
     expect(fixture.nativeElement.querySelector('.rail-actions [aria-label="Log out"]')).not.toBeNull();
   });
@@ -611,7 +614,7 @@ describe('AppComponent navigation', () => {
     ) as HTMLElement[];
     expect(drawerItems.map(item => item.textContent.trim())).toEqual([
       expect.stringContaining('Home'),
-      expect.stringContaining('Config'),
+      expect.stringContaining('Configuration'),
       expect.stringContaining('Reports'),
       expect.stringContaining('Crawljob schedule'),
       expect.stringContaining('Log out'),
