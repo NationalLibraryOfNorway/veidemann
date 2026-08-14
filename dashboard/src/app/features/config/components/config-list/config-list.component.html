@@ -53,14 +53,28 @@
                 </mat-menu>
               }
               @if (showStateFilter) {
-                <mat-chip-listbox class="state-filter"
-                  [value]="disabledFilter"
+                <span class="state-filter" role="group"
                   aria-label="Filter configurations by state"
-                  i18n-aria-label="@@configurationListStateFilterAriaLabel"
-                  (change)="onDisabledFilterChange($event.value)">
-                  <mat-chip-option [value]="false" i18n="@@configurationListActiveState">ACTIVE</mat-chip-option>
-                  <mat-chip-option [value]="true" i18n="@@configurationListDeactivatedState">DEACTIVATED</mat-chip-option>
-                </mat-chip-listbox>
+                  i18n-aria-label="@@configurationListStateFilterAriaLabel">
+                  <button mat-icon-button type="button" class="stateful-filter-button"
+                    [attr.aria-pressed]="disabledFilter === true"
+                    aria-label="Deactivated"
+                    i18n-aria-label="@@configurationListDeactivatedState"
+                    matTooltip="Deactivated"
+                    i18n-matTooltip="@@configurationListDeactivatedState"
+                    (click)="toggleDisabledFilter(true)">
+                    <mat-icon>toggle_off</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" class="stateful-filter-button"
+                    [attr.aria-pressed]="disabledFilter === false"
+                    aria-label="Active"
+                    i18n-aria-label="@@configurationListActiveState"
+                    matTooltip="Active"
+                    i18n-matTooltip="@@configurationListActiveState"
+                    (click)="toggleDisabledFilter(false)">
+                    <mat-icon>toggle_on</mat-icon>
+                  </button>
+                </span>
               }
             </span>
           }

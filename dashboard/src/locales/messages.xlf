@@ -1405,11 +1405,6 @@
         <source>Remove seed <ph id="0" equiv="SEED_ID" disp="id"/> filter</source>
       </segment>
     </unit>
-    <unit id="crawlExecutionReportFailedFilterLabel">
-      <segment>
-        <source>Has error filter</source>
-      </segment>
-    </unit>
     <unit id="crawlExecutionReportFilterCrawlJobLabel">
       <segment>
         <source> CrawlJob </source>
@@ -1427,7 +1422,7 @@
     </unit>
     <unit id="crawlExecutionReportFilterHasErrorLabel">
       <segment>
-        <source>HAS ERROR</source>
+        <source>Has error</source>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterJobExecutionIdLabel">
@@ -2537,12 +2532,12 @@
     </unit>
     <unit id="configurationListActiveState">
       <segment>
-        <source>ACTIVE</source>
+        <source>Active</source>
       </segment>
     </unit>
     <unit id="configurationListDeactivatedState">
       <segment>
-        <source>DEACTIVATED</source>
+        <source>Deactivated</source>
       </segment>
     </unit>
     <unit id="configurationListOrderByLabel">

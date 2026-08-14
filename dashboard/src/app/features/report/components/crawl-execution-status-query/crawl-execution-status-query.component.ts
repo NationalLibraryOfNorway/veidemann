@@ -99,6 +99,11 @@ export class CrawlExecutionStatusQueryComponent extends StartTimeDateRangeQueryC
     this.form.controls[controlName].setValue('');
   }
 
+  toggleHasError(): void {
+    const control = this.form.controls['hasError'];
+    control.setValue(!control.value);
+  }
+
   jobExecutionFilterTooltip(id: string): string {
     return $localize`:@@crawlExecutionJobExecutionFilterTooltip:Job execution ID: ${id}:JOB_EXECUTION_ID:`;
   }

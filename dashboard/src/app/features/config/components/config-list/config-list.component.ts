@@ -61,8 +61,8 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
       ?? this.orderOptions[0].label;
   }
 
-  onDisabledFilterChange(value: boolean | null | undefined): void {
-    this.disabledFilterChange.emit(value ?? null);
+  toggleDisabledFilter(value: boolean): void {
+    this.disabledFilterChange.emit(this.disabledFilter === value ? null : value);
   }
 
   onOrderChange(value: string): void {

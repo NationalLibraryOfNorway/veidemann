@@ -4,7 +4,6 @@ import {DestroyRef, ElementRef} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
-import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ConfigListComponent} from './config-list.component';
@@ -212,7 +211,7 @@ describe('ConfigListComponent', () => {
     expect(Math.abs(horizontalCenter(count) - horizontalCenter(header))).toBeLessThanOrEqual(1);
   });
 
-  it('renders the order control before deselectable uppercase state chips', async () => {
+  it('renders the order control before deselectable state icon buttons', () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -238,16 +237,33 @@ describe('ConfigListComponent', () => {
     const rowIcon = fixture.nativeElement.querySelector('.selection-entry-control mat-icon') as HTMLElement;
     expect(Math.abs(horizontalCenter(orderIcon) - horizontalCenter(rowIcon))).toBeLessThanOrEqual(1);
 
-    const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '.state-filter'}));
-    const [active, deactivated] = await listbox.getChips();
-    expect(await listbox.isMultiple()).toBe(false);
-    expect(await Promise.all([active.getText(), deactivated.getText()])).toEqual(['ACTIVE', 'DEACTIVATED']);
+    const [deactivated, active] = [...stateFilter.querySelectorAll('button')] as HTMLButtonElement[];
+    expect(deactivated.querySelector('mat-icon')?.textContent.trim()).toBe('toggle_off');
+    expect(deactivated.getAttribute('aria-label')).toBe('Deactivated');
+    expect(deactivated.getAttribute('mattooltip')).toBe('Deactivated');
+    expect(deactivated.getAttribute('aria-pressed')).toBe('false');
+    expect(active.querySelector('mat-icon')?.textContent.trim()).toBe('toggle_on');
+    expect(active.getAttribute('aria-label')).toBe('Active');
+    expect(active.getAttribute('mattooltip')).toBe('Active');
+    expect(active.getAttribute('aria-pressed')).toBe('false');
+    expect(deactivated.classList).toContain('stateful-filter-button');
+    expect(active.classList).toContain('stateful-filter-button');
 
-    await active.select();
+    active.click();
     expect(states.at(-1)).toBe(false);
-    await deactivated.select();
+    fixture.componentRef.setInput('disabledFilter', false);
+    fixture.detectChanges();
+    expect(active.getAttribute('aria-pressed')).toBe('true');
+    expect(deactivated.getAttribute('aria-pressed')).toBe('false');
+
+    deactivated.click();
     expect(states.at(-1)).toBe(true);
-    await deactivated.toggle();
+    fixture.componentRef.setInput('disabledFilter', true);
+    fixture.detectChanges();
+    expect(active.getAttribute('aria-pressed')).toBe('false');
+    expect(deactivated.getAttribute('aria-pressed')).toBe('true');
+
+    deactivated.click();
     expect(states.at(-1)).toBeNull();
   });
 
@@ -349,15 +365,14 @@ describe('ConfigListComponent', () => {
     expect(getComputedStyle(controls).marginInlineStart).toBe('24px');
     expect(order.textContent).toContain('Name: A–Z');
 
-    const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '.state-filter'}));
-    const [, deactivated] = await listbox.getChips();
-    expect(await deactivated.isSelected()).toBe(true);
+    const [deactivated] = [...states.querySelectorAll('button')] as HTMLButtonElement[];
+    expect(deactivated.getAttribute('aria-pressed')).toBe('true');
 
     component.onDeselectAll();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
     expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
-    expect(await deactivated.isSelected()).toBe(true);
+    expect(deactivated.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('automatically selects appended rows while loaded-row selection is active', async () => {

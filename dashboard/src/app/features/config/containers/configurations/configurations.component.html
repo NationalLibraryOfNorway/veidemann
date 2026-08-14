@@ -39,7 +39,7 @@
                 (labelClick)="onFilterByLabel($event)"
                 (rowClick)="onRowClick($event)" class="flex-fill">
                 @if (kind===Kind.SEED && !isAllSelected) {
-                  <button mat-icon-button
+                  <button mat-icon-button class="filled-icon-button"
                     aria-label="Start crawl for selected seeds"
                     (click)="onRunCrawlSelected(selectedConfigs)">
                     <mat-icon matTooltip="Start crawl of selected seeds"
@@ -48,7 +48,7 @@
                   </button>
                 }
                 @if (!isAllSelected && (can('update', Kind[kind]))) {
-                  <button mat-icon-button
+                  <button mat-icon-button class="filled-icon-button"
                     aria-label="Edit selected configurations"
                     (click)="onEditSelected()">
                     <mat-icon matTooltip="Edit selected configurations"
@@ -57,7 +57,7 @@
                   </button>
                 }
                 @if (isAllSelected && (can('updateAll', Kind[kind]))) {
-                  <button mat-icon-button
+                  <button mat-icon-button class="filled-icon-button"
                     aria-label="Edit all matching configurations"
                     (click)="onEditSelected()">
                     <mat-icon matTooltip="Edit all configurations in database"
@@ -66,7 +66,7 @@
                   </button>
                 }
                 @if (!isAllSelected && (can('delete', Kind[kind]))) {
-                  <button mat-icon-button
+                  <button mat-icon-button class="filled-icon-button"
                     aria-label="Delete selected configurations"
                     (click)="onDeleteSelectedConfigs()">
                     <mat-icon matTooltip="Delete selected configurations"

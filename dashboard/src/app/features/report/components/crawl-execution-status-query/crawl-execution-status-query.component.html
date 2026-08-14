@@ -92,11 +92,6 @@
   }
 
   <div class="report-status-controls-row">
-    <mat-chip-listbox formControlName="hasError" aria-label="Has error filter"
-      i18n-aria-label="@@crawlExecutionReportFailedFilterLabel">
-      <mat-chip-option [value]="true" i18n="@@crawlExecutionReportFilterHasErrorLabel">HAS ERROR</mat-chip-option>
-    </mat-chip-listbox>
-
     <fieldset class="report-status-filter">
       <legend id="crawl-execution-state-filter-label" i18n="@@crawlExecutionReportFilterStateLabel">State</legend>
       <div class="report-status-filter-row">
@@ -108,6 +103,16 @@
         </mat-chip-listbox>
       </div>
     </fieldset>
+
+    <button mat-icon-button type="button" class="stateful-filter-button has-error-filter"
+      [attr.aria-pressed]="!!form.controls['hasError'].value"
+      aria-label="Has error"
+      i18n-aria-label="@@crawlExecutionReportFilterHasErrorLabel"
+      matTooltip="Has error"
+      i18n-matTooltip="@@crawlExecutionReportFilterHasErrorLabel"
+      (click)="toggleHasError()">
+      <mat-icon>error</mat-icon>
+    </button>
 
     <app-polling-refresh-button (refresh)="refresh.emit()"></app-polling-refresh-button>
   </div>

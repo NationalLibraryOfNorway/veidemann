@@ -82,20 +82,22 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(labels.filter((_, index) => selected[index])).toEqual(['FETCHING', 'FINISHED']);
   });
 
-  it('places the has-error filter before the state group and polling control', () => {
+  it('places the has-error icon button after the state group and before polling', () => {
     const statusControls = fixture.nativeElement.querySelector('.report-status-controls-row') as HTMLElement;
-    const filterChips = fixture.nativeElement.querySelectorAll(
-      'mat-chip-listbox:not([formcontrolname="stateList"]) mat-chip-option'
-    ) as NodeListOf<HTMLElement>;
-    const stateFieldset = statusControls.children[1] as HTMLFieldSetElement;
+    const stateFieldset = statusControls.children[0] as HTMLFieldSetElement;
+    const hasError = statusControls.children[1] as HTMLButtonElement;
 
     expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull();
-    expect([...filterChips].map(chip => chip.textContent.trim())).toEqual(['HAS ERROR']);
+    expect(fixture.nativeElement.querySelector('[formcontrolname="hasError"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[formcontrolname="watch"]')).toBeNull();
-    expect(statusControls.children[0].getAttribute('formcontrolname')).toBe('hasError');
     expect(stateFieldset.classList).toContain('report-status-filter');
     expect(stateFieldset.querySelector('legend')?.textContent.trim()).toBe('State');
-    expect(stateFieldset.querySelector('[formcontrolname="hasError"]')).toBeNull();
+    expect(hasError.classList).toContain('has-error-filter');
+    expect(hasError.querySelector('mat-icon')?.textContent.trim()).toBe('error');
+    expect(hasError.getAttribute('aria-label')).toBe('Has error');
+    expect(hasError.getAttribute('mattooltip')).toBe('Has error');
+    expect(hasError.getAttribute('aria-pressed')).toBe('false');
+    expect(hasError.classList).toContain('stateful-filter-button');
     expect(statusControls.children[2].tagName).toBe('APP-POLLING-REFRESH-BUTTON');
     expect(fixture.nativeElement.querySelectorAll('mat-select')).toHaveLength(1);
   });
@@ -143,18 +145,42 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
   });
 
-  it('emits the has-error filter without changing the selected states', async () => {
+  it('toggles the has-error filter without changing the selected states', () => {
     let emitted: Partial<CrawlExecutionStatusQuery> | undefined;
     fixture.componentInstance.queryChange.subscribe(query => emitted = query);
-    const listbox = await loader.getHarness(MatChipListboxHarness.with({
-      selector: '[formControlName="hasError"]',
-    }));
-    const [hasErrorChip] = await listbox.getChips();
+    const hasError = fixture.nativeElement.querySelector('.has-error-filter') as HTMLButtonElement;
 
-    await hasErrorChip.select();
+    hasError.click();
+    fixture.detectChanges();
 
     expect(emitted?.hasError).toBe(true);
     expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
+    expect(hasError.getAttribute('aria-pressed')).toBe('true');
+
+    hasError.click();
+    fixture.detectChanges();
+
+    expect(emitted?.hasError).toBe(false);
+    expect(emitted?.stateList).toEqual([CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED]);
+    expect(hasError.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('initializes the has-error button from the route query', () => {
+    fixture.componentRef.setInput('query', {
+      stateList: [CrawlExecutionState.FETCHING, CrawlExecutionState.FINISHED],
+      jobId: 'job-1',
+      jobExecutionId: 'execution-1',
+      seedId: 'seed-1',
+      startTimeFrom: '',
+      startTimeTo: '',
+      hasError: true,
+      active: '',
+      direction: '',
+    } satisfies CrawlExecutionStatusQuery);
+    fixture.detectChanges();
+
+    const hasError = fixture.nativeElement.querySelector('.has-error-filter') as HTMLButtonElement;
+    expect(hasError.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('places the state filters after the other controls', () => {

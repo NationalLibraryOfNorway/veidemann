@@ -1647,12 +1647,6 @@
         <target>Fjern filteret for startadresse <ph id="0" equiv="SEED_ID" disp="id"/></target>
       </segment>
     </unit>
-    <unit id="crawlExecutionReportFailedFilterLabel">
-      <segment state="final">
-        <source>Has error filter</source>
-        <target>Filter for feil</target>
-      </segment>
-    </unit>
     <unit id="crawlExecutionReportFilterCrawlJobLabel">
       <segment state="initial">
         <source> CrawlJob </source>
@@ -1673,8 +1667,8 @@
     </unit>
     <unit id="crawlExecutionReportFilterHasErrorLabel">
       <segment state="final">
-        <source>HAS ERROR</source>
-        <target>HAR FEIL</target>
+        <source>Has error</source>
+        <target>Har feil</target>
       </segment>
     </unit>
     <unit id="crawlExecutionReportFilterJobExecutionIdLabel">
@@ -2974,15 +2968,15 @@
       </segment>
     </unit>
     <unit id="configurationListActiveState">
-      <segment state="initial">
-        <source>ACTIVE</source>
-        <target>AKTIV</target>
+      <segment state="final">
+        <source>Active</source>
+        <target>Aktiv</target>
       </segment>
     </unit>
     <unit id="configurationListDeactivatedState">
-      <segment state="initial">
-        <source>DEACTIVATED</source>
-        <target>DEAKTIVERT</target>
+      <segment state="final">
+        <source>Deactivated</source>
+        <target>Deaktivert</target>
       </segment>
     </unit>
     <unit id="configurationListOrderByLabel">

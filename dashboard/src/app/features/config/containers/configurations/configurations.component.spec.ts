@@ -550,7 +550,12 @@ describe('ConfigurationsComponent query loading', () => {
     await fixture.whenStable();
 
     expect(component['selectedConfigs']).toEqual([seed]);
-    expect(fixture.nativeElement.querySelector('[aria-label="Start crawl for selected seeds"]')).not.toBeNull();
+    const bulkAction = fixture.nativeElement.querySelector(
+      '[aria-label="Start crawl for selected seeds"]'
+    ) as HTMLButtonElement;
+    expect(bulkAction).not.toBeNull();
+    expect(bulkAction.classList).toContain('filled-icon-button');
+    expect(bulkAction.querySelector('mat-icon')?.textContent.trim()).toBe('play_arrow');
   });
 
   it('renders the create action as a FAB outside the filter toolbar', async () => {
