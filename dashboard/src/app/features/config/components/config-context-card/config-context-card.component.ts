@@ -34,7 +34,6 @@ export class ConfigContextCardComponent {
   @Input() relationSource: ConfigRelationSource = 'direct';
   @Input() configObject: ConfigObject | null = null;
   @Input() unavailable = false;
-  readonly notSetLabel = $localize`:@@commonNotSet:Not set`;
   get title(): string {
     return this.configObject?.meta?.name || this.configRef.id;
   }

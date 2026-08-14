@@ -58,6 +58,10 @@ class ConfigContextCardGroupsHostComponent {
 describe('ConfigContextCardComponent', () => {
   let fixture: ComponentFixture<ConfigContextCardComponent>;
 
+  const findFact = (label: string): HTMLElement | undefined =>
+    [...fixture.nativeElement.querySelectorAll('.context-facts > div')]
+      .find((fact: HTMLElement) => fact.querySelector('dt')?.textContent.trim() === label) as HTMLElement | undefined;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
@@ -100,6 +104,49 @@ describe('ConfigContextCardComponent', () => {
     expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();
     expect(fixture.nativeElement.querySelector('.context-detail-link').getAttribute('href'))
       .toBe('/config/schedule/schedule-1');
+    expect(findFact('Valid from')).toBeUndefined();
+    expect(findFact('Valid to')).toBeUndefined();
+  });
+
+  it('centers facts in a wrapping horizontal row', () => {
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: 'collection-1',
+      kind: Kind.COLLECTION,
+    }));
+    fixture.detectChanges();
+
+    const factsStyle = getComputedStyle(fixture.nativeElement.querySelector('.context-facts'));
+    expect(factsStyle.display).toBe('flex');
+    expect(factsStyle.justifyContent).toBe('center');
+    expect(factsStyle.flexWrap).toBe('wrap');
+    expect(factsStyle.textAlign).toBe('center');
+  });
+
+  it('hides an empty fact list when every crawl-job limit is zero', () => {
+    fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'}));
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: 'job-1',
+      kind: Kind.CRAWLJOB,
+      crawlJob: new CrawlJob(),
+    }));
+    fixture.detectChanges();
+
+    const facts = fixture.nativeElement.querySelector('.context-facts') as HTMLElement;
+    expect(facts.querySelectorAll(':scope > div').length).toBe(0);
+    expect(getComputedStyle(facts).display).toBe('none');
+  });
+
+  it('shows nonzero numeric facts and hides zero numeric facts before formatting', () => {
+    fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'}));
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: 'job-1',
+      kind: Kind.CRAWLJOB,
+      crawlJob: new CrawlJob({limits: {maxDurationS: 60, maxBytes: 0}}),
+    }));
+    fixture.detectChanges();
+
+    expect(findFact('Maximum duration')?.querySelector('dd')?.textContent.trim()).toBe('1min');
+    expect(findFact('Maximum size')).toBeUndefined();
   });
 
   it('identifies an unavailable related configuration without hiding it', () => {
@@ -159,7 +206,7 @@ describe('ConfigContextCardComponent', () => {
     expect(fixture.nativeElement.querySelector('details')).toBeNull();
   });
 
-  it('shows Not set when a browser script has no URL expressions', () => {
+  it('hides empty browser-script URL expressions while retaining its enum default', () => {
     fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.BROWSERSCRIPT, id: 'script-1'}));
     fixture.componentRef.setInput('configObject', new ConfigObject({
       id: 'script-1',
@@ -168,10 +215,62 @@ describe('ConfigContextCardComponent', () => {
     }));
     fixture.detectChanges();
 
-    const regexpFact = [...fixture.nativeElement.querySelectorAll('.context-facts > div')]
-      .find((fact: HTMLElement) => fact.querySelector('dt')?.textContent.trim() === 'URL regular expressions');
-    expect(regexpFact?.querySelector('dd')?.textContent.trim()).toBe('Not set');
+    expect(findFact('Script type')?.querySelector('dd')?.textContent.trim()).toBe('UNDEFINED');
+    expect(findFact('URL regular expressions')).toBeUndefined();
     expect(fixture.nativeElement.querySelector('.regexp-list')).toBeNull();
+  });
+
+  it('hides an all-zero viewport but preserves a partially configured viewport', () => {
+    const browserConfig = new ConfigObject({id: 'browser-1', kind: Kind.BROWSERCONFIG});
+    fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.BROWSERCONFIG, id: 'browser-1'}));
+    fixture.componentRef.setInput('configObject', browserConfig);
+    fixture.detectChanges();
+
+    expect(findFact('User agent')).toBeUndefined();
+    expect(findFact('Viewport')).toBeUndefined();
+    expect(findFact('Page-load timeout')).toBeUndefined();
+    expect(findFact('Maximum inactivity')).toBeUndefined();
+
+    browserConfig.browserConfig.windowWidth = 1920;
+    fixture.componentRef.setInput('configObject', new ConfigObject(browserConfig));
+    fixture.detectChanges();
+
+    expect(findFact('Viewport')?.querySelector('dd')?.textContent.trim()).toBe('1920 × 0');
+  });
+
+  it('retains boolean and enum defaults while hiding other zero facts', () => {
+    const crawlConfig = new ConfigObject({id: 'crawl-config-1', kind: Kind.CRAWLCONFIG});
+    crawlConfig.crawlConfig.extra.createScreenshot = false;
+    fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.CRAWLCONFIG, id: 'crawl-config-1'}));
+    fixture.componentRef.setInput('configObject', crawlConfig);
+    fixture.detectChanges();
+
+    expect(findFact('Minimum DNS TTL')).toBeUndefined();
+    expect(findFact('Priority weight')).toBeUndefined();
+    expect(findFact('Screenshots')?.querySelector('dd')?.textContent.trim()).toBe('Disabled');
+
+    fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.POLITENESSCONFIG, id: 'politeness-1'}));
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: 'politeness-1',
+      kind: Kind.POLITENESSCONFIG,
+    }));
+    fixture.detectChanges();
+
+    expect(findFact('Robots policy')?.querySelector('dd')?.textContent.trim()).toBe('OBEY_ROBOTS');
+    expect(findFact('Minimum validity')).toBeUndefined();
+    expect(findFact('Hostname mode')?.querySelector('dd')?.textContent.trim()).toBe('No');
+
+    fixture.componentRef.setInput('configRef', new ConfigRef({kind: Kind.COLLECTION, id: 'collection-1'}));
+    fixture.componentRef.setInput('configObject', new ConfigObject({
+      id: 'collection-1',
+      kind: Kind.COLLECTION,
+    }));
+    fixture.detectChanges();
+
+    expect(findFact('Deduplication')?.querySelector('dd')?.textContent.trim()).toBe('NONE');
+    expect(findFact('Rotation')?.querySelector('dd')?.textContent.trim()).toBe('NONE');
+    expect(findFact('File size')).toBeUndefined();
+    expect(findFact('Compression')?.querySelector('dd')?.textContent.trim()).toBe('Disabled');
   });
 
   it('projects relationships after facts and actions', () => {

@@ -37,59 +37,81 @@
     <dl class="context-facts">
       @switch (configObject.kind) {
         @case (Kind.CRAWLJOB) {
-          <div><dt i18n="@@configFactMaximumDuration">Maximum duration</dt>
-            <dd>{{duration(configObject.crawlJob.limits.maxDurationS, 's')}}</dd></div>
-          <div><dt i18n="@@configFactMaximumSize">Maximum size</dt>
-            <dd>{{configObject.crawlJob.limits.maxBytes | filesize}}</dd></div>
+          @if (configObject.crawlJob.limits.maxDurationS) {
+            <div><dt i18n="@@configFactMaximumDuration">Maximum duration</dt>
+              <dd>{{duration(configObject.crawlJob.limits.maxDurationS, 's')}}</dd></div>
+          }
+          @if (configObject.crawlJob.limits.maxBytes) {
+            <div><dt i18n="@@configFactMaximumSize">Maximum size</dt>
+              <dd>{{configObject.crawlJob.limits.maxBytes | filesize}}</dd></div>
+          }
         }
         @case (Kind.CRAWLSCHEDULECONFIG) {
-          <div><dt i18n="@@configFactCronExpression">CRON expression</dt>
-            <dd class="monospace">{{configObject.crawlScheduleConfig.cronExpression || notSetLabel}}</dd></div>
-          <div><dt i18n="@@configFactValidFrom">Valid from</dt>
-            <dd>{{configObject.crawlScheduleConfig.validFrom || notSetLabel}}</dd></div>
-          <div><dt i18n="@@configFactValidTo">Valid to</dt>
-            <dd>{{configObject.crawlScheduleConfig.validTo || notSetLabel}}</dd></div>
+          @if (configObject.crawlScheduleConfig.cronExpression) {
+            <div><dt i18n="@@configFactCronExpression">CRON expression</dt>
+              <dd class="monospace">{{configObject.crawlScheduleConfig.cronExpression}}</dd></div>
+          }
+          @if (configObject.crawlScheduleConfig.validFrom) {
+            <div><dt i18n="@@configFactValidFrom">Valid from</dt>
+              <dd>{{configObject.crawlScheduleConfig.validFrom}}</dd></div>
+          }
+          @if (configObject.crawlScheduleConfig.validTo) {
+            <div><dt i18n="@@configFactValidTo">Valid to</dt>
+              <dd>{{configObject.crawlScheduleConfig.validTo}}</dd></div>
+          }
         }
         @case (Kind.CRAWLCONFIG) {
-          <div><dt i18n="@@configFactMinimumDnsTtl">Minimum DNS TTL</dt>
-            <dd>{{duration(configObject.crawlConfig.minimumDnsTtlS, 's')}}</dd></div>
-          <div><dt i18n="@@configFactPriorityWeight">Priority weight</dt>
-            <dd>{{configObject.crawlConfig.priorityWeight}}</dd></div>
+          @if (configObject.crawlConfig.minimumDnsTtlS) {
+            <div><dt i18n="@@configFactMinimumDnsTtl">Minimum DNS TTL</dt>
+              <dd>{{duration(configObject.crawlConfig.minimumDnsTtlS, 's')}}</dd></div>
+          }
+          @if (configObject.crawlConfig.priorityWeight) {
+            <div><dt i18n="@@configFactPriorityWeight">Priority weight</dt>
+              <dd>{{configObject.crawlConfig.priorityWeight}}</dd></div>
+          }
           <div><dt i18n="@@configFactScreenshots">Screenshots</dt>
             <dd>{{enabledLabel(configObject.crawlConfig.extra.createScreenshot)}}</dd></div>
         }
         @case (Kind.BROWSERCONFIG) {
-          <div class="fact-wide"><dt i18n="@@configContextUserAgent">User agent</dt>
-            <dd>{{configObject.browserConfig.userAgent || notSetLabel}}</dd></div>
-          <div><dt i18n="@@configContextWindow">Viewport</dt>
-            <dd>{{configObject.browserConfig.windowWidth}} × {{configObject.browserConfig.windowHeight}}</dd></div>
-          <div><dt i18n="@@configContextPageLoadTimeout">Page-load timeout</dt>
-            <dd>{{duration(configObject.browserConfig.pageLoadTimeoutMs, 'ms')}}</dd></div>
-          <div><dt i18n="@@configContextInactivity">Maximum inactivity</dt>
-            <dd>{{duration(configObject.browserConfig.maxInactivityTimeMs, 'ms')}}</dd></div>
+          @if (configObject.browserConfig.userAgent) {
+            <div class="fact-wide"><dt i18n="@@configContextUserAgent">User agent</dt>
+              <dd>{{configObject.browserConfig.userAgent}}</dd></div>
+          }
+          @if (configObject.browserConfig.windowWidth || configObject.browserConfig.windowHeight) {
+            <div><dt i18n="@@configContextWindow">Viewport</dt>
+              <dd>{{configObject.browserConfig.windowWidth}} × {{configObject.browserConfig.windowHeight}}</dd></div>
+          }
+          @if (configObject.browserConfig.pageLoadTimeoutMs) {
+            <div><dt i18n="@@configContextPageLoadTimeout">Page-load timeout</dt>
+              <dd>{{duration(configObject.browserConfig.pageLoadTimeoutMs, 'ms')}}</dd></div>
+          }
+          @if (configObject.browserConfig.maxInactivityTimeMs) {
+            <div><dt i18n="@@configContextInactivity">Maximum inactivity</dt>
+              <dd>{{duration(configObject.browserConfig.maxInactivityTimeMs, 'ms')}}</dd></div>
+          }
         }
         @case (Kind.BROWSERSCRIPT) {
           <div><dt i18n="@@configContextScriptType">Script type</dt>
             <dd>{{BrowserScriptType[configObject.browserScript.browserScriptType]}}</dd></div>
-          <div class="fact-wide"><dt i18n="@@configContextUrlRegexps">URL regular expressions</dt>
-            <dd>
-              @if (configObject.browserScript.urlRegexpList.length) {
+          @if (configObject.browserScript.urlRegexpList.length) {
+            <div class="fact-wide"><dt i18n="@@configContextUrlRegexps">URL regular expressions</dt>
+              <dd>
                 <ul class="regexp-list">
                   @for (regexp of configObject.browserScript.urlRegexpList; track $index) {
                     <li><code>{{regexp}}</code></li>
                   }
                 </ul>
-              } @else {
-                {{notSetLabel}}
-              }
-            </dd>
-          </div>
+              </dd>
+            </div>
+          }
         }
         @case (Kind.POLITENESSCONFIG) {
           <div><dt i18n="@@configContextRobotsPolicy">Robots policy</dt>
             <dd>{{RobotsPolicy[configObject.politenessConfig.robotsPolicy]}}</dd></div>
-          <div><dt i18n="@@configContextRobotsValidity">Minimum validity</dt>
-            <dd>{{duration(configObject.politenessConfig.minimumRobotsValidityDurationS, 's')}}</dd></div>
+          @if (configObject.politenessConfig.minimumRobotsValidityDurationS) {
+            <div><dt i18n="@@configContextRobotsValidity">Minimum validity</dt>
+              <dd>{{duration(configObject.politenessConfig.minimumRobotsValidityDurationS, 's')}}</dd></div>
+          }
           <div><dt i18n="@@configContextUseHostname">Hostname mode</dt>
             <dd>{{yesNoLabel(configObject.politenessConfig.useHostname)}}</dd></div>
         }
@@ -98,8 +120,10 @@
             <dd>{{RotationPolicy[configObject.collection.collectionDedupPolicy]}}</dd></div>
           <div><dt i18n="@@configContextFileRotation">Rotation</dt>
             <dd>{{RotationPolicy[configObject.collection.fileRotationPolicy]}}</dd></div>
-          <div><dt i18n="@@configContextFileSize">File size</dt>
-            <dd>{{configObject.collection.fileSize | filesize}}</dd></div>
+          @if (configObject.collection.fileSize) {
+            <div><dt i18n="@@configContextFileSize">File size</dt>
+              <dd>{{configObject.collection.fileSize | filesize}}</dd></div>
+          }
           <div><dt i18n="@@configContextCompression">Compression</dt>
             <dd>{{enabledLabel(configObject.collection.compress)}}</dd></div>
         }
