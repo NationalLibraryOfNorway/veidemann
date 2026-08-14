@@ -17,7 +17,7 @@ public class UriUpdateScript extends RedisJob<Void> {
         this.uriUpdateScript = new LuaScript("uri_update.lua");
     }
 
-    public void run(JedisContext ctx,
+    public void run(RedisContext ctx,
             QueuedUriWrapper qUri,
             Timestamp oldEarliestFetchTimestamp) {
         execute(ctx, jedis -> {

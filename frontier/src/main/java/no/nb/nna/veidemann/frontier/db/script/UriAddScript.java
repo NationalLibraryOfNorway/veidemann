@@ -21,7 +21,7 @@ public class UriAddScript extends RedisJob<Boolean> {
     /**
      * Add URI to queue.
      */
-    public void run(JedisContext ctx, QueuedUri qUri) {
+    public void run(RedisContext ctx, QueuedUri qUri) {
         execute(ctx, jedis -> {
             String chgId = qUri.getCrawlHostGroupId();
 

@@ -33,7 +33,7 @@ public class ChgReleaseScript extends RedisJob<Long> {
      * In that case the CHG
      * is already removed from busy queue and the Lua script handles that.
      */
-    public Long run(JedisContext ctx,
+    public Long run(RedisContext ctx,
             String crawlHostGroupId,
             String sessionToken,
             long nextFetchDelayMs,

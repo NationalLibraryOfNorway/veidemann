@@ -4,7 +4,6 @@ import static com.rethinkdb.RethinkDB.r;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.presentation.StandardRepresentation;
@@ -39,9 +38,8 @@ import no.nb.nna.veidemann.frontier.worker.RobotsServiceClient;
 import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
 import redis.clients.jedis.ConnectionPoolConfig;
 import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.providers.PooledConnectionProvider;
+import redis.clients.jedis.RedisClient;
+import redis.clients.jedis.UnifiedJedis;
 
 public class AbstractIntegrationTest {
     private static Network network = Network.newNetwork();
@@ -111,8 +109,7 @@ public class AbstractIntegrationTest {
     ScopeServiceClient scopeServiceClient;
     OutOfScopeHandlerClient outOfScopeHandlerClient;
     LogServiceClient logServiceClient;
-    public Supplier<Jedis> jedisSupplier;
-    public AutoCloseable jedisResource;
+    public UnifiedJedis redisClient;
     public RedisData redisData;
     public RethinkDbData rethinkDbData;
     public MockTracer tracer;
@@ -193,17 +190,16 @@ public class AbstractIntegrationTest {
         poolConfig.setMaxIdle(32);
         poolConfig.setMinIdle(2);
 
-        PooledConnectionProvider pooledProvider = new PooledConnectionProvider(
-            new HostAndPort(settings.getRedisHost(), settings.getRedisPort()),
-            DefaultJedisClientConfig.builder().build(),
-            poolConfig);
-        jedisResource = pooledProvider;
-        jedisSupplier = () -> new Jedis(pooledProvider.getConnection());
+        redisClient = RedisClient.builder()
+                .hostAndPort(settings.getRedisHost(), settings.getRedisPort())
+                .clientConfig(DefaultJedisClientConfig.builder().build())
+                .poolConfig(poolConfig)
+                .build();
 
         rethinkDbData = new RethinkDbData(conn);
-        redisData = new RedisData(jedisSupplier::get);
+        redisData = new RedisData(redisClient);
 
-        frontier = new Frontier(tracer, settings, jedisSupplier, robotsServiceClient, dnsServiceClient,
+        frontier = new Frontier(tracer, settings, redisClient, robotsServiceClient, dnsServiceClient,
             scopeServiceClient,
             outOfScopeHandlerClient, logServiceClient,
             DbService.getInstance().getFrontierAdapter(),
@@ -212,7 +208,7 @@ public class AbstractIntegrationTest {
         apiServer = new FrontierApiServer(settings.getApiPort(), settings.getTerminationGracePeriodSeconds(), frontier);
         apiServer.start();
 
-        crawlRunner = new CrawlRunner(settings, rethinkDbData, jedisSupplier);
+        crawlRunner = new CrawlRunner(settings, rethinkDbData, redisClient);
     }
 
     @AfterEach
@@ -244,10 +240,8 @@ public class AbstractIntegrationTest {
         conn.exec(r.table(Tables.SEEDS.name).delete());
         conn.exec(r.table(Tables.CRAWL_ENTITIES.name).delete());
 
-        try (Jedis jedis = jedisSupplier.get()) {
-            jedis.flushAll();
-        }
-        jedisResource.close();
+        redisClient.flushAll();
+        redisClient.close();
 
         if (queueWorker != null) {
             queueWorker.close();

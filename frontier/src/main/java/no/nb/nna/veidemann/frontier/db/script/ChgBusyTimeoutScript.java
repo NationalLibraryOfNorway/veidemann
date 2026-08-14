@@ -25,7 +25,7 @@ public class ChgBusyTimeoutScript extends RedisJob<List<String>> {
      *
      * @return list of CHG IDs moved from busy to ready
      */
-    public List<String> run(JedisContext ctx) {
+    public List<String> run(RedisContext ctx) {
         return execute(ctx, jedis -> {
             List<String> keys = ImmutableList.of(CHG_BUSY_KEY, SESSION_TO_CHG_KEY);
             List<String> args = ImmutableList.of(String.valueOf(System.currentTimeMillis()));

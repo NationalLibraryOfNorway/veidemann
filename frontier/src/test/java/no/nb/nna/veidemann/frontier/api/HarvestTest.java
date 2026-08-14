@@ -27,7 +27,7 @@ import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.RunningCrawl;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.SeedAndExecutions;
 import no.nb.nna.veidemann.frontier.testutil.HarvesterMock;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 
 @Testcontainers
 @Tag("integration")
@@ -906,13 +906,12 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
         // Abort the first execution as soon as one seed is completed
         await().pollDelay(10, TimeUnit.MILLISECONDS).pollInterval(10, TimeUnit.MILLISECONDS).atMost(30, TimeUnit.SECONDS)
                 .until(() -> {
-                    try (Jedis jedis = jedisSupplier.get()) {
-                        Map<String, String> f = jedis.hgetAll(CrawlQueueManager.JOB_EXECUTION_PREFIX + crawl.getStatus().getId());
-                        if (!f.getOrDefault("FINISHED", "0").equals("0")) {
-                            return true;
-                        }
-                        return false;
+                    Map<String, String> f = redisClient.hgetAll(
+                            CrawlQueueManager.JOB_EXECUTION_PREFIX + crawl.getStatus().getId());
+                    if (!f.getOrDefault("FINISHED", "0").equals("0")) {
+                        return true;
                     }
+                    return false;
                 });
         DbService.getInstance().getExecutionsAdapter().setJobExecutionStateAborted(crawl.getStatus().getId());
 

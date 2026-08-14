@@ -48,7 +48,7 @@ public class NextUriScript extends RedisJob<NextUriScriptResult> {
         }
     }
 
-    public NextUriScriptResult run(JedisContext ctx, CrawlHostGroup crawlHostGroup) {
+    public NextUriScriptResult run(RedisContext ctx, CrawlHostGroup crawlHostGroup) {
         return execute(ctx, jedis -> {
             String chgId = crawlHostGroup.getId();
             String key = UCHG + chgId;

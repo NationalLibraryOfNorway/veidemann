@@ -15,7 +15,7 @@ public class ChgUpdateScript extends RedisJob<Void> {
         super("chgUpdate");
     }
 
-    public void run(JedisContext ctx, CrawlHostGroup crawlHostGroup) {
+    public void run(RedisContext ctx, CrawlHostGroup crawlHostGroup) {
         execute(ctx, jedis -> {
             String chgKey = CrawlQueueManager.CHG_PREFIX + crawlHostGroup.getId();
             Map<String, String> encoded = CrawlHostGroupCodec.encodeMap(crawlHostGroup);

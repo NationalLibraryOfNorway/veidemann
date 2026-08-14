@@ -33,7 +33,7 @@ public class ChgNextScript extends RedisJob<CrawlHostGroup> {
         return this;
     }
 
-    public CrawlHostGroup run(JedisContext ctx, long busyTimeout) {
+    public CrawlHostGroup run(RedisContext ctx, long busyTimeout) {
         return execute(ctx, jedis -> {
             List<String> res = jedis.blpop(waitForReadyTimeout, CHG_READY_KEY);
             if (res == null) {

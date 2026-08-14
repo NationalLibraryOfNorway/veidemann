@@ -17,7 +17,7 @@ public class ChgQueueCountScript extends RedisJob<Long> {
         this.chgQueueCountScript = new LuaScript("chg_queue_count.lua");
     }
 
-    public Long run(JedisContext ctx, CrawlHostGroup chg) {
+    public Long run(RedisContext ctx, CrawlHostGroup chg) {
         return execute(ctx, jedis -> {
             String chgId = chg.getId();
             String chgKey = CHG_PREFIX + chgId;

@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,14 +43,14 @@ import no.nb.nna.veidemann.frontier.db.script.JobExecutionGetScript;
 import no.nb.nna.veidemann.frontier.db.script.JobExecutionUpdateScript;
 import no.nb.nna.veidemann.frontier.db.script.NextUriScript;
 import no.nb.nna.veidemann.frontier.db.script.NextUriScript.NextUriScriptResult;
-import no.nb.nna.veidemann.frontier.db.script.RedisJob.JedisContext;
+import no.nb.nna.veidemann.frontier.db.script.RedisJob.RedisContext;
 import no.nb.nna.veidemann.frontier.db.script.UriAddScript;
 import no.nb.nna.veidemann.frontier.db.script.UriRemoveScript;
 import no.nb.nna.veidemann.frontier.db.script.UriUpdateScript;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 import no.nb.nna.veidemann.frontier.worker.PreFetchHandler;
 import no.nb.nna.veidemann.frontier.worker.QueuedUriWrapper;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 import redis.clients.jedis.resps.Tuple;
@@ -81,7 +80,7 @@ public class CrawlQueueManager implements AutoCloseable {
     public static final long RESCHEDULE_DELAY = 1000;
 
     private final FrontierAdapter frontierAdapter;
-    private final Supplier<Jedis> jedisSupplier;
+    private final UnifiedJedis redisClient;
     final UriAddScript uriAddScript;
     final UriRemoveScript uriRemoveScript;
     final UriUpdateScript uriUpdateScript;
@@ -105,10 +104,10 @@ public class CrawlQueueManager implements AutoCloseable {
     // must be volatile, accessed from TimeoutSupplier worker threads
     private volatile boolean shouldRun = true;
 
-    public CrawlQueueManager(Frontier frontier, FrontierAdapter frontierAdapter, Supplier<Jedis> jedisSupplier) {
+    public CrawlQueueManager(Frontier frontier, FrontierAdapter frontierAdapter, UnifiedJedis redisClient) {
         this.frontier = frontier;
         this.frontierAdapter = frontierAdapter;
-        this.jedisSupplier = jedisSupplier;
+        this.redisClient = redisClient;
         uriAddScript = new UriAddScript();
         uriRemoveScript = new UriRemoveScript();
         uriUpdateScript = new UriUpdateScript();
@@ -123,9 +122,9 @@ public class CrawlQueueManager implements AutoCloseable {
         chgBusyTimeoutScript = new ChgBusyTimeoutScript();
         jobExecutionGetScript = new JobExecutionGetScript();
         jobExecutionUpdateScript = new JobExecutionUpdateScript();
-        jobExecutionQueueCounter = new JobExecutionQueueCounter(jedisSupplier);
+        jobExecutionQueueCounter = new JobExecutionQueueCounter(redisClient);
 
-        this.crawlQueueWorker = new CrawlQueueWorker(frontier, jedisSupplier);
+        this.crawlQueueWorker = new CrawlQueueWorker(frontier, redisClient);
 
         // Prefetch queue: capacity 64, 15s timeout, 6 worker threads
         this.nextFetchSupplier = new TimeoutSupplier<>(
@@ -161,22 +160,19 @@ public class CrawlQueueManager implements AutoCloseable {
                         .build();
             }
             // Ensure that the URI we are about to add is not present in remove queue.
-            try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-                ctx.getJedis().lrem(REMOVE_URI_QUEUE_KEY, 0, qUri.getId());
-            }
+            RedisContext ctx = RedisContext.forClient(redisClient);
+            ctx.getClient().lrem(REMOVE_URI_QUEUE_KEY, 0, qUri.getId());
 
-                qUri = frontierAdapter.saveQueuedUri(qUri);
+            qUri = frontierAdapter.saveQueuedUri(qUri);
 
-            try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-                uriAddScript.run(ctx, qUri);
-                chgAddScript.run(
-                        ctx,
-                        qUri.getCrawlHostGroupId(),
-                        qUri.getExecutionId(),
-                        qUri.getJobExecutionId(),
-                        qUri.getEarliestFetchTimeStamp(),
-                        frontier.getSettings().getBusyTimeout().toMillis());
-            }
+            uriAddScript.run(ctx, qUri);
+            chgAddScript.run(
+                    ctx,
+                    qUri.getCrawlHostGroupId(),
+                    qUri.getExecutionId(),
+                    qUri.getJobExecutionId(),
+                    qUri.getEarliestFetchTimeStamp(),
+                    frontier.getSettings().getBusyTimeout().toMillis());
 
             return qUri;
         } catch (DbException e) {
@@ -301,70 +297,62 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     private QueuedUri getNextQueuedUriToFetch() throws DbException {
-        try (JedisContext jedisContext = JedisContext.forSupplier(jedisSupplier)) {
-            CrawlHostGroup chg = getNextReadyCrawlHostGroup(jedisContext);
-            if (chg == null) {
-                return null;
-            }
-
-            String chgId = chg.getId();
-            LOG.trace("Found Crawl Host Group ({})", chgId);
-
-            FutureOptional<QueuedUri> foqu = getNextFetchableQueuedUriForCrawlHostGroup(jedisContext, chg);
-
-            if (foqu.isPresent()) {
-                QueuedUri u = foqu.get();
-                LOG.debug("Found Queued URI: {}, crawlHostGroup: {}", u.getUri(), u.getCrawlHostGroupId());
-                return u;
-            } else if (foqu.isMaybeInFuture()) {
-                LOG.trace("Queued URI might be available at: {}", foqu.getWhen());
-
-                long delay = (RESCHEDULE_DELAY + foqu.getDelayMs()) / 2;
-                releaseCrawlHostGroup(jedisContext, chgId, chg.getSessionToken(), delay, false);
-            } else {
-                LOG.warn("No Queued URI found for CHG {}, waiting {}ms before retry", chgId, RESCHEDULE_DELAY);
-                releaseCrawlHostGroup(jedisContext, chgId, chg.getSessionToken(), RESCHEDULE_DELAY, false);
-            }
-
+        RedisContext ctx = redisContext();
+        CrawlHostGroup chg = getNextReadyCrawlHostGroup(ctx);
+        if (chg == null) {
             return null;
         }
+
+        String chgId = chg.getId();
+        LOG.trace("Found Crawl Host Group ({})", chgId);
+
+        FutureOptional<QueuedUri> foqu = getNextFetchableQueuedUriForCrawlHostGroup(ctx, chg);
+
+        if (foqu.isPresent()) {
+            QueuedUri u = foqu.get();
+            LOG.debug("Found Queued URI: {}, crawlHostGroup: {}", u.getUri(), u.getCrawlHostGroupId());
+            return u;
+        } else if (foqu.isMaybeInFuture()) {
+            LOG.trace("Queued URI might be available at: {}", foqu.getWhen());
+
+            long delay = (RESCHEDULE_DELAY + foqu.getDelayMs()) / 2;
+            releaseCrawlHostGroup(ctx, chgId, chg.getSessionToken(), delay, false);
+        } else {
+            LOG.warn("No Queued URI found for CHG {}, waiting {}ms before retry", chgId, RESCHEDULE_DELAY);
+            releaseCrawlHostGroup(ctx, chgId, chg.getSessionToken(), RESCHEDULE_DELAY, false);
+        }
+
+        return null;
     }
 
     public void updateCrawlHostGroup(CrawlHostGroup chg) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            chgUpdateScript.run(ctx, chg);
-        }
+        chgUpdateScript.run(redisContext(), chg);
     }
 
     public CrawlHostGroup getCrawlHostGroup(String chgId) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            return chgGetScript.run(ctx, chgId);
-        }
+        return chgGetScript.run(redisContext(), chgId);
     }
 
     public CrawlHostGroup getCrawlHostGroupForSessionToken(String sessionToken) {
         if (sessionToken == null || sessionToken.isBlank()) {
             return null;
         }
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            String chgId = ctx.getJedis().hget(SESSION_TO_CHG_KEY, sessionToken);
-            if (chgId == null) {
-                return null;
-            }
-            return chgGetScript.run(ctx, chgId);
+        RedisContext ctx = redisContext();
+        String chgId = ctx.getClient().hget(SESSION_TO_CHG_KEY, sessionToken);
+        if (chgId == null) {
+            return null;
         }
+        return chgGetScript.run(ctx, chgId);
     }
 
     public long deleteQueuedUrisForExecution(String executionId) throws DbException {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            return deleteQueuedUrisForExecution(ctx, executionId);
-        }
+        return deleteQueuedUrisForExecution(redisContext(), executionId);
     }
 
-    public long deleteQueuedUrisForExecution(JedisContext ctx, String executionId) throws DbException {
+    public long deleteQueuedUrisForExecution(RedisContext ctx, String executionId) throws DbException {
         long deleted = 0;
         ScanParams scanParams = new ScanParams().match(UEID + "*:" + executionId);
-        ScanResult<String> queues = ctx.getJedis().scan("0", scanParams);
+        ScanResult<String> queues = ctx.getClient().scan("0", scanParams);
         while (true) {
             for (String queue : queues.getResult()) {
                 String[] queueParts = queue.split(":");
@@ -372,7 +360,7 @@ public class CrawlQueueManager implements AutoCloseable {
 
                 ScanResult<Tuple> uris = new ScanResult<>("0", null);
                 do {
-                    uris = ctx.getJedis().zscan(queue, uris.getCursor());
+                    uris = ctx.getClient().zscan(queue, uris.getCursor());
                     for (Tuple uri : uris.getResult()) {
                         String[] uriParts = uri.getElement().split(":", 3);
                         String uriId = uriParts[2];
@@ -386,7 +374,7 @@ public class CrawlQueueManager implements AutoCloseable {
             if (queues.isCompleteIteration()) {
                 break;
             }
-            queues = ctx.getJedis().scan(queues.getCursor(), scanParams);
+            queues = ctx.getClient().scan(queues.getCursor(), scanParams);
         }
         return deleted;
     }
@@ -403,9 +391,7 @@ public class CrawlQueueManager implements AutoCloseable {
     public boolean uriNotIncludedInQueue(QueuedUriWrapper qu) {
         String jobExecutionId = qu.getJobExecutionId();
         String uriHash = uriHash(qu.getIncludedCheckUri());
-        try (Jedis jedis = jedisSupplier.get()) {
-            return jedis.sadd(URI_ALREADY_INCLUDED_PREFIX + jobExecutionId, uriHash) == 1;
-        }
+        return redisClient.sadd(URI_ALREADY_INCLUDED_PREFIX + jobExecutionId, uriHash) == 1;
     }
 
     /**
@@ -414,11 +400,9 @@ public class CrawlQueueManager implements AutoCloseable {
      * @param jobExecutionId job execution id
      */
     public void removeRedisJobExecution(String jobExecutionId) {
-        try (Jedis jedis = jedisSupplier.get()) {
-            jedis.del(URI_ALREADY_INCLUDED_PREFIX + jobExecutionId);
-            jedis.del(JOB_EXECUTION_PREFIX + jobExecutionId);
-            jedis.hdel(JOB_EXECUTION_ID_COUNT_KEY, jobExecutionId);
-        }
+        redisClient.del(URI_ALREADY_INCLUDED_PREFIX + jobExecutionId);
+        redisClient.del(JOB_EXECUTION_PREFIX + jobExecutionId);
+        redisClient.hdel(JOB_EXECUTION_ID_COUNT_KEY, jobExecutionId);
     }
 
     public static String uriHash(String uri) {
@@ -426,7 +410,7 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     FutureOptional<QueuedUri> getNextFetchableQueuedUriForCrawlHostGroup(
-            JedisContext ctx,
+            RedisContext ctx,
             CrawlHostGroup crawlHostGroup) throws DbException {
 
         NextUriScriptResult res = nextUriScript.run(ctx, crawlHostGroup);
@@ -450,18 +434,16 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     public long countByCrawlExecution(String executionId) {
-        try (Jedis jedis = jedisSupplier.get()) {
-            String c = jedis.hget(CRAWL_EXECUTION_ID_COUNT_KEY, executionId);
-            if (c == null) {
-                return 0L;
-            }
-            Long parsed = Longs.tryParse(c);
-            if (parsed == null) {
-                LOG.warn("Invalid crawl execution count '{}' for executionId {}", c, executionId);
-                return 0L;
-            }
-            return parsed;
+        String c = redisClient.hget(CRAWL_EXECUTION_ID_COUNT_KEY, executionId);
+        if (c == null) {
+            return 0L;
         }
+        Long parsed = Longs.tryParse(c);
+        if (parsed == null) {
+            LOG.warn("Invalid crawl execution count '{}' for executionId {}", c, executionId);
+            return 0L;
+        }
+        return parsed;
     }
 
     public Map<String, Long> countByCrawlExecutions(List<String> executionIds) {
@@ -470,20 +452,18 @@ public class CrawlQueueManager implements AutoCloseable {
             return counts;
         }
 
-        try (Jedis jedis = jedisSupplier.get()) {
-            List<String> values = jedis.hmget(CRAWL_EXECUTION_ID_COUNT_KEY, executionIds.toArray(String[]::new));
-            for (int index = 0; index < executionIds.size(); index++) {
-                String executionId = executionIds.get(index);
-                String value = values.get(index);
-                Long parsed = value == null ? null : Longs.tryParse(value);
-                if (parsed == null) {
-                    if (value != null) {
-                        LOG.warn("Invalid crawl execution count '{}' for executionId {}", value, executionId);
-                    }
-                    parsed = 0L;
+        List<String> values = redisClient.hmget(CRAWL_EXECUTION_ID_COUNT_KEY, executionIds.toArray(String[]::new));
+        for (int index = 0; index < executionIds.size(); index++) {
+            String executionId = executionIds.get(index);
+            String value = values.get(index);
+            Long parsed = value == null ? null : Longs.tryParse(value);
+            if (parsed == null) {
+                if (value != null) {
+                    LOG.warn("Invalid crawl execution count '{}' for executionId {}", value, executionId);
                 }
-                counts.put(executionId, parsed);
+                parsed = 0L;
             }
+            counts.put(executionId, parsed);
         }
         return counts;
     }
@@ -493,40 +473,32 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     public long countByCrawlHostGroup(CrawlHostGroup chg) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            return countChgScript.run(ctx, chg);
-        }
+        return countChgScript.run(redisContext(), chg);
     }
 
     public long queueCountTotal() {
-        try (Jedis jedis = jedisSupplier.get()) {
-            String c = jedis.get(QUEUE_COUNT_TOTAL_KEY);
-            if (c == null) {
-                return 0L;
-            }
-            Long parsed = Longs.tryParse(c);
-            if (parsed == null) {
-                LOG.warn("Invalid total queue count '{}'", c);
-                return 0L;
-            }
-            return parsed;
+        String c = redisClient.get(QUEUE_COUNT_TOTAL_KEY);
+        if (c == null) {
+            return 0L;
         }
+        Long parsed = Longs.tryParse(c);
+        if (parsed == null) {
+            LOG.warn("Invalid total queue count '{}'", c);
+            return 0L;
+        }
+        return parsed;
     }
 
     public long busyCrawlHostGroupCount() {
-        try (Jedis jedis = jedisSupplier.get()) {
-            return jedis.zcard(CHG_BUSY_KEY);
-        }
+        return redisClient.zcard(CHG_BUSY_KEY);
     }
 
     public void updateQueuedUri(QueuedUriWrapper queuedUriWrapper, Timestamp oldEarliestFetchTimestamp) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            uriUpdateScript.run(ctx, queuedUriWrapper, oldEarliestFetchTimestamp);
-        }
+        uriUpdateScript.run(redisContext(), queuedUriWrapper, oldEarliestFetchTimestamp);
     }
 
     private long removeQUri(
-            JedisContext ctx,
+            RedisContext ctx,
             String id,
             String chgId,
             String eid,
@@ -566,30 +538,26 @@ public class CrawlQueueManager implements AutoCloseable {
             LOG.trace("remUri: {}, Trace: {}", qUri.getId(), stack);
         }
 
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            long numRemoved = uriRemoveScript.run(
-                    ctx,
-                    qUri.getId(),
-                    chgId,
-                    qUri.getExecutionId(),
-                    qUri.getSequence(),
-                    qUri.getEarliestFetchTimeStamp().getSeconds(),
-                    deleteUri);
-            if (numRemoved != 1) {
-                LOG.error("Queued uri id '{}' to be removed from Redis was not found", qUri.getId());
-            }
+        long numRemoved = uriRemoveScript.run(
+                redisContext(),
+                qUri.getId(),
+                chgId,
+                qUri.getExecutionId(),
+                qUri.getSequence(),
+                qUri.getEarliestFetchTimeStamp().getSeconds(),
+                deleteUri);
+        if (numRemoved != 1) {
+            LOG.error("Queued uri id '{}' to be removed from Redis was not found", qUri.getId());
         }
         return true;
     }
 
     public Long getBusyTimeout(String crawlHostGroupId) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            Double timeout = ctx.getJedis().zscore(CHG_BUSY_KEY, crawlHostGroupId);
-            if (timeout == null) {
-                return null;
-            }
-            return timeout.longValue();
+        Double timeout = redisClient.zscore(CHG_BUSY_KEY, crawlHostGroupId);
+        if (timeout == null) {
+            return null;
         }
+        return timeout.longValue();
     }
 
     /**
@@ -603,17 +571,15 @@ public class CrawlQueueManager implements AutoCloseable {
      * @return true if CHG was busy
      */
     public boolean updateBusyTimeout(String crawlHostGroupId, String sessionToken, Long timeoutMs) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            return updateBusyTimeout(ctx, crawlHostGroupId, sessionToken, timeoutMs);
-        }
+        return updateBusyTimeout(redisContext(), crawlHostGroupId, sessionToken, timeoutMs);
     }
 
-    public boolean updateBusyTimeout(JedisContext ctx, String crawlHostGroupId, String sessionToken, Long timeoutMs) {
+    public boolean updateBusyTimeout(RedisContext ctx, String crawlHostGroupId, String sessionToken, Long timeoutMs) {
         Long resp = chgUpdateBusyTimeoutScript.run(ctx, crawlHostGroupId, sessionToken, timeoutMs);
         return resp != null;
     }
 
-    private CrawlHostGroup getNextReadyCrawlHostGroup(JedisContext jedisContext) {
+    private CrawlHostGroup getNextReadyCrawlHostGroup(RedisContext jedisContext) {
         try {
             long busyTimeout = frontier.getSettings().getBusyTimeout().toMillis();
             return getNextChgScript.run(jedisContext, busyTimeout);
@@ -624,17 +590,13 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     public void releaseCrawlHostGroup(CrawlHostGroup crawlHostGroup, long nextFetchDelayMs, boolean isTimeout) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            releaseCrawlHostGroup(ctx, crawlHostGroup.getId(), crawlHostGroup.getSessionToken(), nextFetchDelayMs,
-                    isTimeout);
-        }
+        releaseCrawlHostGroup(redisContext(), crawlHostGroup.getId(), crawlHostGroup.getSessionToken(),
+                nextFetchDelayMs, isTimeout);
     }
 
     public void releaseCrawlHostGroup(String crawlHostGroupId, long nextFetchDelayMs) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            LOG.debug("Releasing CrawlHostGroup: {}, with no sessionToken", crawlHostGroupId);
-            releaseCrawlHostGroup(ctx, crawlHostGroupId, "", nextFetchDelayMs, false);
-        }
+        LOG.debug("Releasing CrawlHostGroup: {}, with no sessionToken", crawlHostGroupId);
+        releaseCrawlHostGroup(redisContext(), crawlHostGroupId, "", nextFetchDelayMs, false);
     }
 
     /**
@@ -648,7 +610,7 @@ public class CrawlQueueManager implements AutoCloseable {
      * account.
      */
     public void releaseCrawlHostGroup(
-            JedisContext ctx,
+            RedisContext ctx,
             String crawlHostGroupId,
             String sessionToken,
             long nextFetchDelayMs,
@@ -658,27 +620,21 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     public void scheduleCrawlExecutionTimeout(String ceid, OffsetDateTime timeout) {
-        try (Jedis jedis = jedisSupplier.get()) {
-            jedis.zadd(
-                    CRAWL_EXECUTION_RUNNING_KEY,
-                    timeout.toInstant().toEpochMilli(),
-                    ceid);
-        }
+        redisClient.zadd(
+                CRAWL_EXECUTION_RUNNING_KEY,
+                timeout.toInstant().toEpochMilli(),
+                ceid);
     }
 
     public void removeCrawlExecutionFromTimeoutSchedule(String executionId) {
-        try (Jedis jedis = jedisSupplier.get()) {
-            jedis.zrem(CRAWL_EXECUTION_RUNNING_KEY, executionId);
-        }
+        redisClient.zrem(CRAWL_EXECUTION_RUNNING_KEY, executionId);
     }
 
     public JobExecutionStatus getTempJobExecutionStatus(String jobExecutionId) {
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            return getTempJobExecutionStatus(ctx, jobExecutionId);
-        }
+        return getTempJobExecutionStatus(redisContext(), jobExecutionId);
     }
 
-    public JobExecutionStatus getTempJobExecutionStatus(JedisContext ctx, String jobExecutionId) {
+    public JobExecutionStatus getTempJobExecutionStatus(RedisContext ctx, String jobExecutionId) {
         return jobExecutionGetScript.run(ctx, jobExecutionId);
     }
 
@@ -695,9 +651,11 @@ public class CrawlQueueManager implements AutoCloseable {
             State newState,
             CrawlExecutionStatusChangeOrBuilder change) {
 
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            return jobExecutionUpdateScript.run(ctx, jobExecutionId, oldState, newState, change);
-        }
+        return jobExecutionUpdateScript.run(redisContext(), jobExecutionId, oldState, newState, change);
+    }
+
+    private RedisContext redisContext() {
+        return RedisContext.forClient(redisClient);
     }
 
     public void pause(boolean pause) {

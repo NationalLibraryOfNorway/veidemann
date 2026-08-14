@@ -14,7 +14,7 @@ public class ChgUpdateBusyTimeoutScript extends RedisJob<Long> {
         this.chgUpdateBusyTimeoutScript = new LuaScript("chg_update_busy_timeout.lua");
     }
 
-    public Long run(JedisContext ctx, String crawlHostGroupId, String sessionToken, Long timeoutTimeMs) {
+    public Long run(RedisContext ctx, String crawlHostGroupId, String sessionToken, Long timeoutTimeMs) {
         String chgKey = CrawlQueueManager.CHG_PREFIX + crawlHostGroupId;
 
         return execute(ctx, jedis -> {

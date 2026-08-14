@@ -3,12 +3,11 @@ package no.nb.nna.veidemann.frontier.db.script;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisDataException;
 
@@ -19,23 +18,29 @@ public class RedisJob<R> {
     private final AtomicLong runTimeNanos = new AtomicLong();
     private final AtomicLong invocations = new AtomicLong();
     private final int maxAttempts;
+    private final Sleeper sleeper;
 
     public RedisJob(String name) {
         this(name, 10);
     }
 
     public RedisJob(String name, int maxAttempts) {
-        this.name = Objects.requireNonNull(name, "name");
-        this.maxAttempts = maxAttempts;
+        this(name, maxAttempts, Thread::sleep);
     }
 
-    protected R execute(JedisContext ctx, Function<Jedis, R> job) {
+    RedisJob(String name, int maxAttempts, Sleeper sleeper) {
+        this.name = Objects.requireNonNull(name, "name");
+        this.maxAttempts = maxAttempts;
+        this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
+    }
+
+    protected R execute(RedisContext ctx, Function<UnifiedJedis, R> job) {
         int attempts = 0;
 
         while (true) {
             try {
                 long start = System.nanoTime();
-                R result = job.apply(ctx.getJedis());
+                R result = job.apply(ctx.getClient());
 
                 if (LOG.isDebugEnabled()) {
                     long total = runTimeNanos.addAndGet(System.nanoTime() - start);
@@ -52,7 +57,6 @@ public class RedisJob<R> {
                 // master.
                 if (isReadOnly(ex)) {
                     attempts++;
-                    ctx.invalidate(); // <-- key: drop connection, borrow fresh next time
 
                     if (attempts > maxAttempts) {
                         LOG.error("Redis is READONLY. Giving up after {} attempts", attempts, ex);
@@ -61,14 +65,13 @@ public class RedisJob<R> {
 
                     LOG.warn("Redis is READONLY (attempt {}/{}). Will retry in one second",
                             attempts, maxAttempts, ex);
-                    sleepUninterruptibly(1000, ex);
+                    sleepBeforeRetry(1000, ex);
                     continue;
                 }
                 throw ex;
 
             } catch (JedisConnectionException ex) {
                 attempts++;
-                ctx.invalidate(); // also drop broken connection
 
                 if (attempts > maxAttempts) {
                     LOG.error("Failed connecting to Redis. Giving up after {} attempts", attempts, ex);
@@ -76,7 +79,7 @@ public class RedisJob<R> {
                 }
                 LOG.warn("Failed connecting to Redis (attempt {}/{}). Will retry in one second",
                         attempts, maxAttempts, ex);
-                sleepUninterruptibly(1000, ex);
+                sleepBeforeRetry(1000, ex);
             }
         }
     }
@@ -86,52 +89,34 @@ public class RedisJob<R> {
         return msg != null && msg.startsWith("READONLY");
     }
 
-    private static void sleepUninterruptibly(long millis, Exception root) {
+    private void sleepBeforeRetry(long millis, RuntimeException root) {
         try {
-            Thread.sleep(millis);
+            sleeper.sleep(millis);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             root.addSuppressed(ie);
-            // Preserve your current behavior: bubble up original exception
-            if (root instanceof RuntimeException re)
-                throw re;
-            throw new RuntimeException(root);
+            throw root;
         }
     }
 
-    public static class JedisContext implements AutoCloseable {
-        private final Supplier<Jedis> jedisSupplier;
-        private Jedis jedis;
+    @FunctionalInterface
+    interface Sleeper {
+        void sleep(long millis) throws InterruptedException;
+    }
 
-        private JedisContext(Supplier<Jedis> jedisSupplier) {
-            this.jedisSupplier = Objects.requireNonNull(jedisSupplier, "jedisSupplier");
+    public static class RedisContext {
+        private final UnifiedJedis client;
+
+        private RedisContext(UnifiedJedis client) {
+            this.client = Objects.requireNonNull(client, "client");
         }
 
-        public static JedisContext forSupplier(Supplier<Jedis> jedisSupplier) {
-            return new JedisContext(jedisSupplier);
+        public static RedisContext forClient(UnifiedJedis client) {
+            return new RedisContext(client);
         }
 
-        public Jedis getJedis() {
-            if (jedis == null) {
-                jedis = jedisSupplier.get();
-            }
-            return jedis;
-        }
-
-        /** Close current connection so next getJedis() borrows a fresh one. */
-        public void invalidate() {
-            if (jedis != null) {
-                try {
-                    jedis.close();
-                } finally {
-                    jedis = null;
-                }
-            }
-        }
-
-        @Override
-        public void close() {
-            invalidate();
+        public UnifiedJedis getClient() {
+            return client;
         }
     }
 }

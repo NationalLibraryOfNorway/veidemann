@@ -21,7 +21,7 @@ public class UriRemoveScript extends RedisJob<Long> {
         this.uriRemoveScript = new LuaScript("uri_remove.lua");
     }
 
-    public long run(JedisContext ctx,
+    public long run(RedisContext ctx,
             String uriId,
             String chgId,
             String eid,

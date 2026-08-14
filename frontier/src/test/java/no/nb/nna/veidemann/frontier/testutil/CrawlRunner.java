@@ -68,9 +68,7 @@ import no.nb.nna.veidemann.db.RethinkDbConnection;
 import no.nb.nna.veidemann.db.Tables;
 import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 import no.nb.nna.veidemann.frontier.settings.Settings;
-import redis.clients.jedis.Jedis;
-
-import java.util.function.Supplier;
+import redis.clients.jedis.UnifiedJedis;
 
 public class CrawlRunner implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(CrawlRunner.class);
@@ -81,10 +79,10 @@ public class CrawlRunner implements AutoCloseable {
     private final ManagedChannel frontierChannel;
     private final FrontierGrpc.FrontierBlockingStub frontierStub;
     private final RethinkDbData rethinkDbData;
-    private final Supplier<Jedis> jedisSupplier;
+    private final UnifiedJedis redisClient;
     private final ExecutorService submitSeedExecutor = Executors.newFixedThreadPool(8);
 
-    public CrawlRunner(Settings settings, RethinkDbData rethinkDbData, Supplier<Jedis> jedisSupplier) {
+    public CrawlRunner(Settings settings, RethinkDbData rethinkDbData, UnifiedJedis redisClient) {
         DbService dbService = DbService.getInstance();
         this.configAdapter = dbService.getConfigAdapter();
         this.executionsAdapter = dbService.getExecutionsAdapter();
@@ -96,7 +94,7 @@ public class CrawlRunner implements AutoCloseable {
                 .build();
         this.frontierStub = FrontierGrpc.newBlockingStub(frontierChannel).withWaitForReady();
         this.rethinkDbData = rethinkDbData;
-            this.jedisSupplier = jedisSupplier;
+        this.redisClient = redisClient;
     }
 
     public ConfigObject genJob(String name) throws DbException {
@@ -273,78 +271,76 @@ public class CrawlRunner implements AutoCloseable {
                 .pollInterval(1, TimeUnit.SECONDS)
                 .atMost(timeout, unit)
                 .until(() -> {
-                    try (Jedis jedis = jedisSupplier.get()) {
-                        Set<String> chgKeys = jedis.keys("chg*");
-                        if (chgKeys.isEmpty()) {
-                            emptyChgKeysCount.incrementAndGet();
-                        }
-
-                        List<RunningCrawl> statuses = Arrays.stream(runningCrawls)
-                                .map(j -> {
-                                    try {
-                                        j.jes = executionsAdapter.getJobExecutionStatus(j.jes.getId());
-                                        return j;
-                                    } catch (DbException ex) {
-                                        throw new RuntimeException(ex);
-                                    }
-                                })
-                                .filter(j -> j.jes.getState() == State.RUNNING)
-                                .peek(j -> {
-                                    if (LOG.isTraceEnabled()) {
-                                        LOG.trace(
-                                                "Job '{}' {}, Executions: CREATED={}, FETCHING={}, SLEEPING={}, "
-                                                        + "FINISHED={}, ABORTED_TIMEOUT={}, ABORTED_SIZE={}, "
-                                                        + "ABORTED_MANUAL={}, FAILED={}",
-                                                j.jobName, j.jes.getState(),
-                                                j.jes.getExecutionsStateMap().getOrDefault("CREATED", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("FETCHING", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("SLEEPING", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("FINISHED", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("ABORTED_TIMEOUT", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("ABORTED_SIZE", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("ABORTED_MANUAL", 0),
-                                                j.jes.getExecutionsStateMap().getOrDefault("FAILED", 0));
-                                    }
-                                })
-                                .collect(Collectors.toList());
-
-                        boolean allDone = statuses.stream().allMatch(j -> j.jes.getState() != State.RUNNING);
-
-                        if (allDone
-                                && rethinkDbData.getQueuedUris().isEmpty()
-                                && jedis.keys("*").size() <= 1) {
-                            return true;
-                        }
-
-                        if (statuses.stream().anyMatch(j -> j.jes.getState() == State.RUNNING)) {
-                            Description desc = new Description() {
-                                @Override
-                                public String value() {
-                                    StringBuilder sb = new StringBuilder();
-                                    try (Jedis jedisInner = jedisSupplier.get()) {
-                                        sb.append(String.format(
-                                                "Crawl is not finished, but redis chg keys are missing.%n"
-                                                        + "Remaining REDIS keys: %s%nQueue count total: %s",
-                                                jedisInner.keys("*"),
-                                                jedisInner.get("QCT")));
-                                        try (Result<?> c = conn.exec("db-getQueuedUris", r.table(Tables.URI_QUEUE.name))) {
-                                            c.forEach(v -> sb.append("\nURI in RethinkDB queue: ").append(v));
-                                        }
-                                    } catch (DbConnectionException | DbQueryException ex) {
-                                        LOG.error("Error querying queue state", ex);
-                                    }
-                                    return sb.toString();
-                                }
-                            };
-                            assertThat(emptyChgKeysCount)
-                                    .as(desc)
-                                    .withFailMessage("")
-                                    .hasValueLessThan(3);
-                        }
-
-                        LOG.debug("Still running: {}", statuses.size());
-                        return false;
+                    Set<String> chgKeys = redisClient.keys("chg*");
+                    if (chgKeys.isEmpty()) {
+                        emptyChgKeysCount.incrementAndGet();
                     }
+
+                    List<RunningCrawl> statuses = Arrays.stream(runningCrawls)
+                            .map(j -> {
+                                try {
+                                    j.jes = executionsAdapter.getJobExecutionStatus(j.jes.getId());
+                                    return j;
+                                } catch (DbException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            })
+                            .filter(j -> j.jes.getState() == State.RUNNING)
+                            .peek(j -> {
+                                if (LOG.isTraceEnabled()) {
+                                    LOG.trace(
+                                            "Job '{}' {}, Executions: CREATED={}, FETCHING={}, SLEEPING={}, "
+                                                    + "FINISHED={}, ABORTED_TIMEOUT={}, ABORTED_SIZE={}, "
+                                                    + "ABORTED_MANUAL={}, FAILED={}",
+                                            j.jobName, j.jes.getState(),
+                                            j.jes.getExecutionsStateMap().getOrDefault("CREATED", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("FETCHING", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("SLEEPING", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("FINISHED", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("ABORTED_TIMEOUT", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("ABORTED_SIZE", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("ABORTED_MANUAL", 0),
+                                            j.jes.getExecutionsStateMap().getOrDefault("FAILED", 0));
+                                }
+                            })
+                            .collect(Collectors.toList());
+
+                    boolean allDone = statuses.stream().allMatch(j -> j.jes.getState() != State.RUNNING);
+
+                    if (allDone
+                            && rethinkDbData.getQueuedUris().isEmpty()
+                            && redisClient.keys("*").size() <= 1) {
+                        return true;
+                    }
+
+                    if (statuses.stream().anyMatch(j -> j.jes.getState() == State.RUNNING)) {
+                        Description desc = new Description() {
+                            @Override
+                            public String value() {
+                                StringBuilder sb = new StringBuilder();
+                                try {
+                                    sb.append(String.format(
+                                            "Crawl is not finished, but redis chg keys are missing.%n"
+                                                    + "Remaining REDIS keys: %s%nQueue count total: %s",
+                                            redisClient.keys("*"),
+                                            redisClient.get("QCT")));
+                                    try (Result<?> c = conn.exec("db-getQueuedUris", r.table(Tables.URI_QUEUE.name))) {
+                                        c.forEach(v -> sb.append("\nURI in RethinkDB queue: ").append(v));
+                                    }
+                                } catch (DbConnectionException | DbQueryException ex) {
+                                    LOG.error("Error querying queue state", ex);
+                                }
+                                return sb.toString();
+                            }
+                        };
+                        assertThat(emptyChgKeysCount)
+                                .as(desc)
+                                .withFailMessage("")
+                                .hasValueLessThan(3);
+                    }
+
+                    LOG.debug("Still running: {}", statuses.size());
+                    return false;
                 });
 
         // Kept signature; could be used by callers later.

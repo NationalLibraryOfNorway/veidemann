@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.exceptions.JedisNoScriptException;
 
 public class LuaScript {
@@ -37,28 +37,28 @@ public class LuaScript {
         }
     }
 
-    Object runString(Jedis jedis, List<String> keys, List<String> args) {
-        return evalWithRetry(jedis, keys, args, false);
+    Object runString(UnifiedJedis client, List<String> keys, List<String> args) {
+        return evalWithRetry(client, keys, args, false);
     }
 
-    Object runBytes(Jedis jedis, List<byte[]> keys, List<byte[]> args) {
-        return evalWithRetry(jedis, keys, args, true);
+    Object runBytes(UnifiedJedis client, List<byte[]> keys, List<byte[]> args) {
+        return evalWithRetry(client, keys, args, true);
     }
 
     @SuppressWarnings("unchecked")
-    private Object evalWithRetry(Jedis jedis, List<?> keys, List<?> args, boolean binary) {
+    private Object evalWithRetry(UnifiedJedis client, List<?> keys, List<?> args, boolean binary) {
         if (sha == null) {
-            sha = jedis.scriptLoad(script);
+            sha = client.scriptLoad(script);
         }
         try {
             Object result;
             if (binary) {
-                result = jedis.evalsha(
+                result = client.evalsha(
                         sha.getBytes(StandardCharsets.UTF_8),
                         (List<byte[]>) keys,
                         (List<byte[]>) args);
             } else {
-                result = jedis.evalsha(
+                result = client.evalsha(
                         sha,
                         (List<String>) keys,
                         (List<String>) args);
@@ -67,15 +67,15 @@ public class LuaScript {
             return result;
         } catch (JedisNoScriptException ex) {
             // Script cache flushed – reload and retry once
-            sha = jedis.scriptLoad(script);
+            sha = client.scriptLoad(script);
             Object result;
             if (binary) {
-                result = jedis.evalsha(
+                result = client.evalsha(
                         sha.getBytes(StandardCharsets.UTF_8),
                         (List<byte[]>) keys,
                         (List<byte[]>) args);
             } else {
-                result = jedis.evalsha(
+                result = client.evalsha(
                         sha,
                         (List<String>) keys,
                         (List<String>) args);

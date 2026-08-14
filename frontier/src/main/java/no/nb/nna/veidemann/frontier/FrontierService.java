@@ -18,7 +18,6 @@ package no.nb.nna.veidemann.frontier;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +39,9 @@ import no.nb.nna.veidemann.frontier.worker.ScopeServiceClient;
 import redis.clients.jedis.ConnectionPoolConfig;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.providers.PooledConnectionProvider;
-import redis.clients.jedis.providers.SentineledConnectionProvider;
+import redis.clients.jedis.RedisClient;
+import redis.clients.jedis.RedisSentinelClient;
+import redis.clients.jedis.UnifiedJedis;
 
 /**
  * Class for launching the service.
@@ -57,7 +56,7 @@ public class FrontierService implements AutoCloseable {
 
     // Resources that need closing
     private DbService db;
-    private AutoCloseable redisResource;
+    private UnifiedJedis redisClient;
     private RobotsServiceClient robotsServiceClient;
     private DnsServiceClient dnsServiceClient;
     private ScopeServiceClient scopeServiceClient;
@@ -89,8 +88,6 @@ public class FrontierService implements AutoCloseable {
         poolConfig.setMaxIdle(16);
         poolConfig.setMinIdle(2);
 
-        Supplier<Jedis> jedisSupplier;
-
         if (settings.getRedisSentinelMasterName() != null &&
                 !settings.getRedisSentinelMasterName().isBlank()) {
 
@@ -104,20 +101,22 @@ public class FrontierService implements AutoCloseable {
                     .database(0)
                     .build();
 
-            var sentinelCfg = clientConfigBuilder().build();
+            // Sentinel control connections still use the legacy protocol path internally.
+            // Application commands use the RESP3-capable master configuration above.
+            var sentinelCfg = clientConfigBuilder()
+                    .serverDefaultProtocol()
+                    .build();
 
             Set<HostAndPort> sentinels = Set.of(
                     new HostAndPort(settings.getRedisHost(), settings.getRedisPort()));
 
-                SentineledConnectionProvider sentinelProvider = new SentineledConnectionProvider(
-                    settings.getRedisSentinelMasterName(),
-                    masterCfg,
-                    poolConfig,
-                    sentinels,
-                    sentinelCfg);
-
-                redisResource = sentinelProvider;
-                jedisSupplier = () -> new Jedis(sentinelProvider.getConnection());
+            redisClient = RedisSentinelClient.builder()
+                    .masterName(settings.getRedisSentinelMasterName())
+                    .sentinels(sentinels)
+                    .clientConfig(masterCfg)
+                    .sentinelClientConfig(sentinelCfg)
+                    .poolConfig(poolConfig)
+                    .build();
 
         } else {
 
@@ -125,15 +124,13 @@ public class FrontierService implements AutoCloseable {
             LOG.info("Using standalone Redis at {}:{}",
                     settings.getRedisHost(), settings.getRedisPort());
 
-                PooledConnectionProvider pooledProvider = new PooledConnectionProvider(
-                    new HostAndPort(settings.getRedisHost(), settings.getRedisPort()),
-                    clientConfigBuilder()
-                        .database(0)
-                        .build(),
-                    poolConfig);
-
-                redisResource = pooledProvider;
-                jedisSupplier = () -> new Jedis(pooledProvider.getConnection());
+            redisClient = RedisClient.builder()
+                    .hostAndPort(settings.getRedisHost(), settings.getRedisPort())
+                    .clientConfig(clientConfigBuilder()
+                            .database(0)
+                            .build())
+                    .poolConfig(poolConfig)
+                    .build();
         }
 
         robotsServiceClient = new RobotsServiceClient(
@@ -155,7 +152,7 @@ public class FrontierService implements AutoCloseable {
         frontier = new Frontier(
                 tracer,
                 settings,
-                jedisSupplier,
+                redisClient,
                 robotsServiceClient,
                 dnsServiceClient,
                 scopeServiceClient,
@@ -242,11 +239,11 @@ public class FrontierService implements AutoCloseable {
                 LOG.warn("Error closing robotsServiceClient", e);
             }
         }
-        if (redisResource != null) {
+        if (redisClient != null) {
             try {
-                redisResource.close();
+                redisClient.close();
             } catch (Exception e) {
-                LOG.warn("Error closing Redis pool", e);
+                LOG.warn("Error closing Redis client", e);
             }
         }
         if (db != null) {

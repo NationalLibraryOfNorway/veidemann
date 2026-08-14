@@ -13,7 +13,7 @@ public class JobExecutionGetScript extends RedisJob<JobExecutionStatus> {
         super("jobExecutionGetScript");
     }
 
-    public JobExecutionStatus run(JedisContext ctx, String jobExecutionId) {
+    public JobExecutionStatus run(RedisContext ctx, String jobExecutionId) {
         return execute(ctx, jedis -> {
             String key = JOB_EXECUTION_PREFIX + jobExecutionId;
 

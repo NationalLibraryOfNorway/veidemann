@@ -12,7 +12,7 @@ public class ChgDelayedQueueScript extends RedisJob<Long> {
         this.chgDelayedQueueScript = new LuaScript("chg_delayed_queue.lua");
     }
 
-    public Long run(JedisContext ctx, String fromQueue, String toQueue) {
+    public Long run(RedisContext ctx, String fromQueue, String toQueue) {
         return execute(ctx, jedis -> {
             List<String> keys = ImmutableList.of(fromQueue, toQueue);
             List<String> args = ImmutableList.of(String.valueOf(System.currentTimeMillis()));

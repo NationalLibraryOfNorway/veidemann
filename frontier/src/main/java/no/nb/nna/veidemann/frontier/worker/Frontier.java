@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 
 /**
  *
@@ -94,11 +93,11 @@ public class Frontier implements AutoCloseable {
 
     private final ForkJoinPool asyncFunctionsThreadPool;
 
-    private final Supplier<Jedis> jedisSupplier;
+    private final UnifiedJedis redisClient;
 
     public Frontier(Tracer tracer,
             Settings settings,
-            Supplier<Jedis> jedisSupplier,
+            UnifiedJedis redisClient,
             RobotsServiceClient robotsServiceClient,
             DnsServiceClient dnsServiceClient,
             ScopeServiceClient scopeServiceClient,
@@ -109,7 +108,7 @@ public class Frontier implements AutoCloseable {
             ExecutionsAdapter executionsAdapter) {
         this.tracer = tracer;
         this.settings = settings;
-        this.jedisSupplier = jedisSupplier;
+        this.redisClient = redisClient;
         this.robotsServiceClient = robotsServiceClient;
         this.dnsServiceClient = dnsServiceClient;
         this.scopeServiceClient = scopeServiceClient;
@@ -142,7 +141,7 @@ public class Frontier implements AutoCloseable {
                 60,
                 TimeUnit.SECONDS);
 
-        this.crawlQueueManager = new CrawlQueueManager(this, frontierAdapter, jedisSupplier);
+        this.crawlQueueManager = new CrawlQueueManager(this, frontierAdapter, redisClient);
         this.scriptParameterResolver = new ScriptParameterResolver(this);
     }
 
@@ -493,8 +492,8 @@ public class Frontier implements AutoCloseable {
      * @return the serving status of the Frontier
      */
     public ServingStatus checkHealth() {
-        try (Jedis jedis = jedisSupplier.get()) {
-            if (!"PONG".equals(jedis.ping())) {
+        try {
+            if (!"PONG".equals(redisClient.ping())) {
                 LOG.warn("Redis health check failed: unexpected PING response");
                 return ServingStatus.NOT_SERVING;
             }

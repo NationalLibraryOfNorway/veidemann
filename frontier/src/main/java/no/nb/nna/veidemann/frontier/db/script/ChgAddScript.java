@@ -27,7 +27,7 @@ public class ChgAddScript extends RedisJob<Long> {
      * @param busyTimeout if CHG is set to busy, this is the timeout
      * @return number of URIs in queue for this CrawlHostGroup
      */
-    public long run(JedisContext ctx,
+    public long run(RedisContext ctx,
             String chgId,
             String crawlExecutionId,
             String jobExecutionId,

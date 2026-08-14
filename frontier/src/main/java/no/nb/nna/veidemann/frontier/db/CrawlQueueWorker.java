@@ -5,7 +5,6 @@ import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_TIMEOUT_KEY;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,21 +15,21 @@ import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlHostGroup;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.db.DbException;
-import no.nb.nna.veidemann.frontier.db.script.RedisJob.JedisContext;
+import no.nb.nna.veidemann.frontier.db.script.RedisJob.RedisContext;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 import no.nb.nna.veidemann.frontier.worker.PostFetchHandler;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 
 public class CrawlQueueWorker implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(CrawlQueueWorker.class);
 
     private final Frontier frontier;
-    private final Supplier<Jedis> jedisSupplier;
+    private final UnifiedJedis redisClient;
     private final ScheduledExecutorService executor;
 
-    public CrawlQueueWorker(Frontier frontier, Supplier<Jedis> jedisSupplier) {
+    public CrawlQueueWorker(Frontier frontier, UnifiedJedis redisClient) {
         this.frontier = frontier;
-        this.jedisSupplier = jedisSupplier;
+        this.redisClient = redisClient;
         this.executor = Executors.newScheduledThreadPool(
                 2,
                 new ThreadFactoryBuilder()
@@ -47,8 +46,9 @@ public class CrawlQueueWorker implements AutoCloseable {
     private void runFetchTimeoutWorker() {
         Error err = ExtraStatusCodes.RUNTIME_EXCEPTION.toFetchError("Timeout waiting for Harvester");
 
-        try (JedisContext ctx = JedisContext.forSupplier(jedisSupplier)) {
-            var jedis = ctx.getJedis();
+        try {
+            RedisContext ctx = RedisContext.forClient(redisClient);
+            var jedis = ctx.getClient();
             String chgId;
             while ((chgId = jedis.lpop(CHG_TIMEOUT_KEY)) != null) {
                 processTimedOutChg(ctx, chgId, err);
@@ -58,7 +58,7 @@ public class CrawlQueueWorker implements AutoCloseable {
         }
     }
 
-    private void processTimedOutChg(JedisContext ctx, String chgId, Error err) {
+    private void processTimedOutChg(RedisContext ctx, String chgId, Error err) {
         PostFetchHandler postFetchHandler = null;
         try {
             CrawlHostGroup chg = frontier.getCrawlQueueManager().getCrawlHostGroup(chgId);
@@ -108,4 +108,3 @@ public class CrawlQueueWorker implements AutoCloseable {
         LOG.debug("CrawlQueueWorker closed");
     }
 }
-

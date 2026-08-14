@@ -15,7 +15,7 @@ public class ChgGetScript extends RedisJob<CrawlHostGroup> {
         super("chgGetScript");
     }
 
-    public CrawlHostGroup run(JedisContext ctx, String crawlHostGroupId) {
+    public CrawlHostGroup run(RedisContext ctx, String crawlHostGroupId) {
         return execute(ctx, jedis -> {
             String key = CrawlQueueManager.CHG_PREFIX + crawlHostGroupId;
             Map<String, String> encoded = jedis.hgetAll(key);

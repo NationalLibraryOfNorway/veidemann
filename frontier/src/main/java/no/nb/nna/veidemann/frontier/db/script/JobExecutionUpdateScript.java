@@ -17,7 +17,7 @@ public class JobExecutionUpdateScript extends RedisJob<Boolean> {
         this.jobExecutionUpdate = new LuaScript("jobexecution_update.lua");
     }
 
-    public Boolean run(JedisContext ctx,
+    public Boolean run(RedisContext ctx,
             String jobExecutionId,
             State oldState,
             State newState,
