@@ -5,12 +5,15 @@
       <mat-icon matPrefix aria-hidden="true">search</mat-icon>
       <input matInput
         #search
+        [disabled]="disabled"
         [value]="term"
         [matAutocomplete]="labelAutocomplete"
+        [matAutocompleteDisabled]="disabled"
         (input)="onSearchTermChange(search.value)"
         (keyup.enter)="onSearch(term)">
       @if (term) {
         <button mat-icon-button matSuffix type="button"
+          [disabled]="disabled"
           data-testid="clear-search"
           aria-label="Clear search" i18n-aria-label="@@configQueryClearSearchLabel"
           (click)="clearSearch()">
@@ -20,6 +23,7 @@
       @if (showLabelSearchHelpers) {
         <span matSuffix class="search-helper-actions">
           <button mat-icon-button type="button"
+            [disabled]="disabled"
             data-testid="label-search-helper"
             aria-label="Insert label search" i18n-aria-label="@@configQueryLabelSearchHelperLabel"
             matTooltip="Insert label search" i18n-matTooltip="@@configQueryLabelSearchHelperLabel"
@@ -27,6 +31,7 @@
             <mat-icon>label</mat-icon>
           </button>
           <button mat-icon-button type="button"
+            [disabled]="disabled"
             data-testid="emoji-search-helper"
             aria-label="Choose label emoji" i18n-aria-label="@@configQueryEmojiSearchHelperLabel"
             matTooltip="Choose label emoji" i18n-matTooltip="@@configQueryEmojiSearchHelperLabel"

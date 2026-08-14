@@ -1,4 +1,4 @@
-@if (!railNavigation()) {
+@if (isLoggedIn && !railNavigation()) {
 <mat-toolbar class="main-toolbar mat-typography">
   <button class="toolbar-leading" mat-icon-button type="button" (click)="togglePrimaryDrawer()"
           [attr.aria-label]="compactDrawerOpen() ? closeNavigationLabel : openNavigationLabel"
@@ -16,16 +16,17 @@
 </mat-toolbar>
 }
 
-@if (railNavigation()) {
+@if (isLoggedIn && railNavigation()) {
 <aside class="navigation-rail mat-typography">
-  @if (!expandedNavigation()) {
-    <button class="rail-menu" mat-icon-button type="button" (click)="togglePrimaryDrawer()"
-            [matTooltip]="compactDrawerOpen() ? closeNavigationLabel : openNavigationLabel"
-            [attr.aria-label]="compactDrawerOpen() ? closeNavigationLabel : openNavigationLabel"
-            [attr.aria-expanded]="compactDrawerOpen()" aria-controls="primary-navigation-drawer">
-      <mat-icon>{{compactDrawerOpen() ? 'menu_open' : 'menu'}}</mat-icon>
-    </button>
-  }
+  <button class="rail-menu" mat-icon-button type="button" (click)="togglePrimaryDrawer()"
+          [disabled]="expandedNavigation() && !activeSection()"
+          [matTooltip]="navigationMenuLabel()"
+          [attr.aria-label]="navigationMenuLabel()"
+          [attr.aria-expanded]="expandedNavigation() ? null : compactDrawerOpen()"
+          [attr.aria-pressed]="expandedNavigation() ? mainNavigationVisible() : null"
+          aria-controls="primary-navigation-drawer">
+    <mat-icon>{{(expandedNavigation() ? mainNavigationVisible() : compactDrawerOpen()) ? 'menu_open' : 'menu'}}</mat-icon>
+  </button>
 
   <nav class="rail-destinations" aria-label="Primary navigation"
        i18n-aria-label="@@primaryNavigationLabel">
@@ -65,27 +66,19 @@
         <mat-icon>calendar_month</mat-icon>
       </button>
     }
-    @if (!isLoggedIn) {
-      <button class="rail-action" mat-icon-button (click)="onLogin()"
-              matTooltip="LOGIN" i18n-matTooltip="@@mainToolbarLoginButton"
-              aria-label="LOGIN" i18n-aria-label="@@mainToolbarLoginButton">
-        <mat-icon>account_box</mat-icon>
-      </button>
-    }
-    @if (isLoggedIn) {
-      <button class="rail-action" mat-icon-button matTooltip="{{name}}" (click)="onLogout()"
-              aria-label="Log out" i18n-aria-label="@@mainToolbarLogoutButton">
-        <mat-icon>logout</mat-icon>
-      </button>
-    }
+    <button class="rail-action" mat-icon-button matTooltip="{{name}}" (click)="onLogout()"
+            aria-label="Log out" i18n-aria-label="@@mainToolbarLogoutButton">
+      <mat-icon>logout</mat-icon>
+    </button>
   </div>
 </aside>
 }
 
 <mat-sidenav-container class="app-shell mat-typography">
+  @if (isLoggedIn) {
     <mat-sidenav id="primary-navigation-drawer" class="primary-drawer"
       [mode]="expandedNavigation() ? 'side' : 'over'"
-      [opened]="expandedNavigation() ? activeSection() !== null : compactDrawerOpen()"
+      [opened]="expandedNavigation() ? true : compactDrawerOpen()"
       [disableClose]="expandedNavigation()" (closedStart)="closePrimaryDrawer()">
       <mat-nav-list class="primary-navigation" aria-label="Primary navigation"
                     i18n-aria-label="@@primaryNavigationLabel">
@@ -118,18 +111,10 @@
                 <span matListItemTitle i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
               </button>
             }
-            @if (!isLoggedIn) {
-              <button mat-list-item type="button" (click)="onLogin(); closePrimaryDrawer()">
-                <mat-icon matListItemIcon>account_box</mat-icon>
-                <span matListItemTitle i18n="@@mainToolbarLoginButton">LOGIN</span>
-              </button>
-            }
-            @if (isLoggedIn) {
-              <button mat-list-item type="button" (click)="onLogout(); closePrimaryDrawer()">
-                <mat-icon matListItemIcon>logout</mat-icon>
-                <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>
-              </button>
-            }
+            <button mat-list-item type="button" (click)="onLogout(); closePrimaryDrawer()">
+              <mat-icon matListItemIcon>logout</mat-icon>
+              <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>
+            </button>
           }
         }
 
@@ -182,6 +167,7 @@
         }
       </mat-nav-list>
     </mat-sidenav>
+  }
 
     <mat-sidenav-content class="app-content">
       @if (isNavigating()) {

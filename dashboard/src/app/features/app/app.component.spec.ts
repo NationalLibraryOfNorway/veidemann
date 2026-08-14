@@ -73,7 +73,7 @@ describe('AppComponent navigation', () => {
         {
           provide: AuthService,
           useValue: {
-            isLoggedIn: false,
+            isLoggedIn: true,
             requestedUri: '',
             name: '',
             login: vi.fn(),
@@ -124,6 +124,25 @@ describe('AppComponent navigation', () => {
     expect(sectionTriggers).toHaveLength(1);
     expect(sectionTriggers[0].textContent.trim()).toContain('Config');
     expect(sectionTriggers[0].getAttribute('type')).toBe('button');
+  });
+
+  it('hides all navigation chrome while signed out at every width', () => {
+    const authService = TestBed.inject(AuthService) as unknown as {isLoggedIn: boolean};
+    authService.isLoggedIn = false;
+    fixture.destroy();
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.main-toolbar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.navigation-rail')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#primary-navigation-drawer')).toBeNull();
+
+    setNavigationWidth(true, true);
+
+    expect(fixture.nativeElement.querySelector('.main-toolbar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.navigation-rail')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#primary-navigation-drawer')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-sidenav-content.app-content')).not.toBeNull();
   });
 
   it('renders section chevrons as icons inside trailing metadata', () => {
@@ -472,7 +491,9 @@ describe('AppComponent navigation', () => {
     )).not.toBeNull();
   });
 
-  it('shows persistent section navigation in the expanded layout', async () => {
+  it('switches the persistent drawer between section and main navigation', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'CRAWLENTITY', 'SEED', 'report', 'jobexecution'].includes(subject));
     setNavigationWidth(true, true);
     await router.navigateByUrl('/config');
     fixture.detectChanges();
@@ -483,10 +504,56 @@ describe('AppComponent navigation', () => {
     expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.drawer-back')).toBeNull();
     expect(fixture.nativeElement.querySelector('.main-toolbar')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.rail-menu')).toBeNull();
+    const menuButton = fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement;
+    expect(menuButton).not.toBeNull();
+    expect(menuButton.disabled).toBe(false);
+    expect(menuButton.getAttribute('aria-label')).toBe('Show main navigation');
+    expect(menuButton.getAttribute('aria-pressed')).toBe('false');
+    expect(menuButton.getAttribute('aria-expanded')).toBeNull();
+    expect(menuButton.querySelector('mat-icon')?.textContent.trim()).toBe('menu');
+
+    menuButton.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.drawer-section-trigger')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).toBeNull();
+    expect(menuButton.getAttribute('aria-label')).toBe('Show section navigation');
+    expect(menuButton.getAttribute('aria-pressed')).toBe('true');
+    expect(menuButton.querySelector('mat-icon')?.textContent.trim()).toBe('menu_open');
+
+    menuButton.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).not.toBeNull();
+
+    menuButton.click();
+    fixture.detectChanges();
+    await router.navigateByUrl('/report/jobexecution');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector(
+      '.primary-navigation a[href="/report/jobexecution"]'
+    )).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.primary-navigation a[href="/config/seed"]')).toBeNull();
+    expect(menuButton.getAttribute('aria-label')).toBe('Show main navigation');
     const homeLinks = fixture.nativeElement.querySelectorAll('.navigation-rail a[href="/"]');
     expect(homeLinks.length).toBe(1);
     expect(homeLinks[0].querySelector('.grouse-icon')).not.toBeNull();
+  });
+
+  it('keeps the wide rail menu visible with main navigation on home', async () => {
+    can.mockImplementation((_action: string, subject: string) =>
+      ['configs', 'CRAWLENTITY', 'SEED', 'report', 'jobexecution'].includes(subject));
+    setNavigationWidth(true, true);
+    await router.navigateByUrl('/');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const menuButton = fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement;
+    expect(menuButton).not.toBeNull();
+    expect(menuButton.disabled).toBe(true);
+    expect(menuButton.getAttribute('aria-label')).toBe('Main navigation');
+    expect(menuButton.getAttribute('aria-pressed')).toBe('true');
+    expect(fixture.nativeElement.querySelector('mat-sidenav.mat-drawer-opened')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.drawer-section-trigger')).toHaveLength(2);
   });
 
   it('gives every rail action an icon and accessible label', () => {
@@ -518,25 +585,13 @@ describe('AppComponent navigation', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    let drawerText = (fixture.nativeElement.querySelector('.primary-navigation') as HTMLElement).textContent;
+    const drawerText = (fixture.nativeElement.querySelector('.primary-navigation') as HTMLElement).textContent;
     expect(drawerText).not.toContain('Home');
     expect(drawerText).not.toContain('Crawljob schedule');
     expect(drawerText).not.toContain('LOGIN');
     expect(drawerText).not.toContain('Log out');
     expect(drawerText).toContain('Config');
     expect(drawerText).toContain('Reports');
-
-    const authService = TestBed.inject(AuthService) as unknown as {isLoggedIn: boolean};
-    authService.isLoggedIn = true;
-    fixture.destroy();
-    fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.rail-menu') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    drawerText = (fixture.nativeElement.querySelector('.primary-navigation') as HTMLElement).textContent;
-    expect(drawerText).not.toContain('Log out');
     expect(fixture.nativeElement.querySelector('.rail-actions [aria-label="Log out"]')).not.toBeNull();
   });
 
@@ -559,10 +614,10 @@ describe('AppComponent navigation', () => {
       expect.stringContaining('Config'),
       expect.stringContaining('Reports'),
       expect.stringContaining('Crawljob schedule'),
-      expect.stringContaining('LOGIN'),
+      expect.stringContaining('Log out'),
     ]);
     expect(drawerItems.at(-2)?.querySelector('mat-icon')?.textContent).toContain('calendar_month');
-    expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('account_box');
+    expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
     expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
     expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);
   });

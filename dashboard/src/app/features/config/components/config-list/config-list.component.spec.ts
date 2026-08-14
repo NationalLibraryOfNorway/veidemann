@@ -222,8 +222,8 @@ describe('ConfigListComponent', () => {
     component.showOrderControl = true;
     component.configKind = Kind.SEED;
     component.length = 0;
-    const states: (boolean | null)[] = [];
-    component.disabledFilterChange.subscribe(value => states.push(value));
+    const stateChanges: (boolean | null)[] = [];
+    component.disabledFilterChange.subscribe(value => stateChanges.push(value));
     fixture.detectChanges();
 
     const headerControls = fixture.nativeElement.querySelector('.list-header-controls') as HTMLElement;
@@ -270,7 +270,7 @@ describe('ConfigListComponent', () => {
     const inactiveColor = getComputedStyle(active).color;
 
     active.click();
-    expect(states.at(-1)).toBe(false);
+    expect(stateChanges.at(-1)).toBe(false);
     fixture.componentRef.setInput('disabledFilter', false);
     fixture.detectChanges();
     expect(active.getAttribute('aria-pressed')).toBe('true');
@@ -280,7 +280,7 @@ describe('ConfigListComponent', () => {
     expect(getComputedStyle(active).color).not.toBe(inactiveColor);
 
     deactivated.click();
-    expect(states.at(-1)).toBe(true);
+    expect(stateChanges.at(-1)).toBe(true);
     fixture.componentRef.setInput('disabledFilter', true);
     fixture.detectChanges();
     expect(active.getAttribute('aria-pressed')).toBe('false');
@@ -291,7 +291,7 @@ describe('ConfigListComponent', () => {
       .toContain('"FILL" 1');
 
     deactivated.click();
-    expect(states.at(-1)).toBeNull();
+    expect(stateChanges.at(-1)).toBeNull();
     fixture.componentRef.setInput('disabledFilter', null);
     fixture.detectChanges();
     expect(deactivated.getAttribute('aria-pressed')).toBe('false');
@@ -389,6 +389,10 @@ describe('ConfigListComponent', () => {
     component.sortDirection = 'asc';
     component.length = 1;
     component.onCheckboxToggle(row);
+    const sorts: {active: string; direction: string}[] = [];
+    const stateChanges: (boolean | null)[] = [];
+    component.sort.subscribe(value => sorts.push(value));
+    component.disabledFilterChange.subscribe(value => stateChanges.push(value));
     fixture.detectChanges();
 
     expect(component.isSelectionMode()).toBe(true);
@@ -405,15 +409,24 @@ describe('ConfigListComponent', () => {
     expect(order.compareDocumentPosition(states) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(getComputedStyle(controls).marginInlineStart).toBe('24px');
     expect(order.textContent).toContain('Name: A–Z');
+    expect((order as HTMLButtonElement).disabled).toBe(true);
 
-    const [deactivated] = [...states.querySelectorAll('button')] as HTMLButtonElement[];
+    const [deactivated, active] = [...states.querySelectorAll('button')] as HTMLButtonElement[];
     expect(deactivated.getAttribute('aria-pressed')).toBe('true');
+    expect(deactivated.disabled).toBe(true);
+    expect(active.disabled).toBe(true);
+    component.onOrderChange('lastModified:desc');
+    component.toggleDisabledFilter(false);
+    expect(sorts).toEqual([]);
+    expect(stateChanges).toEqual([]);
 
     component.onDeselectAll();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
     expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
     expect(deactivated.getAttribute('aria-pressed')).toBe('true');
+    expect((fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement).disabled).toBe(false);
+    expect((fixture.nativeElement.querySelector('.stateful-filter-button') as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('automatically selects appended rows while loaded-row selection is active', async () => {

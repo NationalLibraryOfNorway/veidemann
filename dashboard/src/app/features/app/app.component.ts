@@ -19,7 +19,7 @@ import {
   RouterOutlet
 } from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
-import {filter, map, startWith} from 'rxjs/operators';
+import {filter, map, startWith, tap} from 'rxjs/operators';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 
@@ -89,6 +89,9 @@ export class AppComponent implements OnInit {
   protected readonly can: AbilityServiceSignal<MongoAbility>['can'];
   readonly openNavigationLabel = $localize`:@@primaryNavigationOpenLabel:Open navigation`;
   readonly closeNavigationLabel = $localize`:@@primaryNavigationCloseLabel:Close navigation`;
+  readonly showMainNavigationLabel = $localize`:@@primaryNavigationShowMainLabel:Show main navigation`;
+  readonly showSectionNavigationLabel = $localize`:@@primaryNavigationShowSectionLabel:Show section navigation`;
+  readonly mainNavigationLabel = $localize`:@@primaryNavigationMainLabel:Main navigation`;
 
   readonly primaryDestinations: readonly PrimaryDestination[] = [
     {
@@ -194,7 +197,10 @@ export class AppComponent implements OnInit {
   readonly activeSection: Signal<NavigationSection | null>;
   readonly compactDrawerOpen = signal(false);
   readonly drawerLevel = signal<DrawerLevel>('main');
+  readonly expandedDrawerLevel = signal<DrawerLevel | null>(null);
   readonly visibleDrawerLevel: Signal<DrawerLevel>;
+  readonly navigationMenuLabel: Signal<string>;
+  readonly mainNavigationVisible: Signal<boolean>;
   readonly isNavigating: Signal<boolean>;
 
   constructor() {
@@ -217,14 +223,25 @@ export class AppComponent implements OnInit {
       filter(event => event instanceof NavigationEnd),
       map(() => this.router.url),
       startWith(this.router.url),
+      tap(() => this.expandedDrawerLevel.set(null)),
     ), {requireSync: true});
     const currentPath = computed(() => currentUrl().split(/[?#]/, 1)[0]);
     this.activeSection = computed(() => currentPath() === '/config' || currentPath().startsWith('/config/')
       ? 'config'
       : currentPath() === '/report' || currentPath().startsWith('/report/') ? 'report' : null);
     this.visibleDrawerLevel = computed(() => this.expandedNavigation()
-      ? this.activeSection() ?? 'main'
+      ? this.expandedDrawerLevel() ?? this.activeSection() ?? 'main'
       : this.drawerLevel());
+    this.mainNavigationVisible = computed(() => this.visibleDrawerLevel() === 'main');
+    this.navigationMenuLabel = computed(() => {
+      if (!this.expandedNavigation()) {
+        return this.compactDrawerOpen() ? this.closeNavigationLabel : this.openNavigationLabel;
+      }
+      if (!this.activeSection()) {
+        return this.mainNavigationLabel;
+      }
+      return this.mainNavigationVisible() ? this.showSectionNavigationLabel : this.showMainNavigationLabel;
+    });
     this.isNavigating = computed(() => this.router.currentNavigation() !== null);
   }
 
@@ -265,6 +282,11 @@ export class AppComponent implements OnInit {
   }
 
   togglePrimaryDrawer(): void {
+    if (this.expandedNavigation()) {
+      const contextualLevel = this.activeSection() ?? 'main';
+      this.expandedDrawerLevel.set(this.mainNavigationVisible() ? contextualLevel : 'main');
+      return;
+    }
     const open = !this.compactDrawerOpen();
     if (open) {
       this.drawerLevel.set(this.activeSection() ?? 'main');
@@ -274,10 +296,15 @@ export class AppComponent implements OnInit {
 
   closePrimaryDrawer(): void {
     this.compactDrawerOpen.set(false);
+    this.expandedDrawerLevel.set(null);
   }
 
   showDrawerLevel(level: DrawerLevel): void {
-    this.drawerLevel.set(level);
+    if (this.expandedNavigation()) {
+      this.expandedDrawerLevel.set(level);
+    } else {
+      this.drawerLevel.set(level);
+    }
   }
 
   onLogin() {

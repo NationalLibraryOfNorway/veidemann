@@ -106,6 +106,23 @@ describe('ActiveFilterChipsComponent', () => {
     expect(removed).toEqual(expect.objectContaining({key: 'scriptIdList', value: 'script-1'}));
   });
 
+  it('disables filter chips and prevents their removal', () => {
+    let removed: ActiveConfigFilterChip | undefined;
+    fixture.componentInstance.removeFilter.subscribe(chip => removed = chip);
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+
+    const chips = [...fixture.nativeElement.querySelectorAll('mat-chip')] as HTMLElement[];
+    const removeButtons = [
+      ...fixture.nativeElement.querySelectorAll('button[matChipRemove]'),
+    ] as HTMLButtonElement[];
+    expect(chips.every(chip => chip.classList.contains('mat-mdc-chip-disabled'))).toBe(true);
+    expect(removeButtons.every(button => button.disabled)).toBe(true);
+
+    fixture.componentInstance.onRemoveFilter(fixture.componentInstance.chips[0]);
+    expect(removed).toBeUndefined();
+  });
+
   it('orders an ordinary or key-only label first and gives it the label icon', async () => {
     fixture.componentRef.setInput('query', {...query, term: 'example label:owner:archive'});
     fixture.detectChanges();

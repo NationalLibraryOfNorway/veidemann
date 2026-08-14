@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, OnDestroy, Signal, inject} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, OnDestroy, Signal, signal, inject} from '@angular/core';
 import {ActivatedRoute, NavigationStart, Params, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
 
@@ -118,6 +118,7 @@ export class ConfigurationsComponent implements OnDestroy {
 
   // checked (selected by checkbox) configObjects
   protected selectedConfigs: ConfigObject[];
+  readonly selectionMode = signal(false);
 
   isAllSelected = false;
 
@@ -333,6 +334,9 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onQueryChange(value: Partial<ConfigQuery>): void {
+    if (this.selectionMode()) {
+      return;
+    }
     const queryParams = {
       p: null,
       s: null,
@@ -359,6 +363,9 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onFilterByLabel(label: Label): void {
+    if (this.selectionMode()) {
+      return;
+    }
     this.onQueryChange({
       ...this.query(),
       term: `label:${label.key}:${label.value}`,
@@ -366,6 +373,9 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onRemoveFilter(chip: ActiveConfigFilterChip): void {
+    if (this.selectionMode()) {
+      return;
+    }
     const query: ConfigQuery = {
       ...this.query(),
       crawlJobIdList: [...this.query().crawlJobIdList],
@@ -389,6 +399,9 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onSort(sort: Sort) {
+    if (this.selectionMode()) {
+      return;
+    }
     this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
@@ -397,6 +410,9 @@ export class ConfigurationsComponent implements OnDestroy {
   }
 
   onDisabledFilterChange(disabled: boolean | null): void {
+    if (this.selectionMode()) {
+      return;
+    }
     this.onQueryChange({...this.query(), disabled});
   }
 
@@ -412,6 +428,7 @@ export class ConfigurationsComponent implements OnDestroy {
   onSelectedChange(configs: ConfigObject[]) {
     this.isAllSelected = false;
     this.selectedConfigs = configs;
+    this.selectionMode.set(configs.length > 0);
   }
 
   onFilterByEntityRef(configObject: ConfigObject) {

@@ -35,6 +35,7 @@ export class ActiveFilterChipsComponent implements OnChanges {
   @Input({required: true}) query: ConfigQuery;
   @Input() options: ConfigOptions | null = null;
   @Input() entity: ConfigObject | null = null;
+  @Input() disabled = false;
   @Output() readonly removeFilter = new EventEmitter<ActiveConfigFilterChip>();
 
   chips: ActiveConfigFilterChip[] = [];
@@ -98,5 +99,11 @@ export class ActiveFilterChipsComponent implements OnChanges {
       return $localize`:@@activeConfigRemoveEntityFilterLabel:Remove entity ${chip.value}:ENTITY_ID: filter`;
     }
     return $localize`:@@activeConfigRemoveFilterLabel:Remove ${chip.label} filter`;
+  }
+
+  onRemoveFilter(chip: ActiveConfigFilterChip): void {
+    if (!this.disabled) {
+      this.removeFilter.emit(chip);
+    }
   }
 }

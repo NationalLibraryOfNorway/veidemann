@@ -560,8 +560,66 @@ describe('ConfigurationsComponent query loading', () => {
     const stateButton = fixture.nativeElement.querySelector('.stateful-filter-button') as HTMLButtonElement;
     expect(orderButton.getBoundingClientRect().width).toBe(bulkAction.getBoundingClientRect().width);
     expect(stateButton.getBoundingClientRect().width).toBe(bulkAction.getBoundingClientRect().width);
-    expect(getComputedStyle(orderButton).color).toBe(getComputedStyle(bulkAction).color);
-    expect(getComputedStyle(stateButton).color).toBe(getComputedStyle(bulkAction).color);
+    expect(orderButton.disabled).toBe(true);
+    expect(stateButton.disabled).toBe(true);
+    expect(bulkAction.disabled).toBe(false);
+  });
+
+  it('leaves only selection and bulk operations enabled in selection mode', async () => {
+    const browserConfig = new ConfigObject({id: 'browser-1', kind: Kind.BROWSERCONFIG});
+    can.mockReturnValue(true);
+    queryParams.next(convertToParamMap({script_id: 'script-1'}));
+    await fixture.whenStable();
+    search.mockReturnValueOnce(of(browserConfig));
+    kindParams.next(convertToParamMap({kind: 'browserconfig'}));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const list = fixture.debugElement.query(By.directive(ConfigListComponent)).componentInstance as ConfigListComponent;
+    list.onCheckboxToggle(browserConfig);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const searchInput = fixture.nativeElement.querySelector('.search-form input') as HTMLInputElement;
+    const kindFilter = fixture.nativeElement.querySelector(
+      '[formcontrolname="scriptIdList"]'
+    ) as HTMLElement;
+    const removeFilter = fixture.nativeElement.querySelector(
+      'app-active-filter-chips button[matChipRemove]'
+    ) as HTMLButtonElement;
+    const orderButton = fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement;
+    const create = fixture.nativeElement.querySelector('.create-fab') as HTMLButtonElement;
+    const masterCheckbox = fixture.nativeElement.querySelector(
+      '.master-selection-control input'
+    ) as HTMLInputElement;
+    const bulkEdit = fixture.nativeElement.querySelector(
+      '[aria-label="Edit selected configurations"]'
+    ) as HTMLButtonElement;
+
+    expect(component.selectionMode()).toBe(true);
+    expect(searchInput.disabled).toBe(true);
+    expect(kindFilter.getAttribute('aria-disabled')).toBe('true');
+    expect(removeFilter.disabled).toBe(true);
+    expect(orderButton.disabled).toBe(true);
+    expect(create.disabled).toBe(true);
+    expect(masterCheckbox.disabled).toBe(false);
+    expect(bulkEdit.disabled).toBe(false);
+
+    navigate.mockClear();
+    component.onSort({active: 'name', direction: 'asc'});
+    component.onDisabledFilterChange(true);
+    component.onRemoveFilter({key: 'scriptIdList', value: 'script-1', label: 'script-1'});
+    component.onQueryChange({...component.query(), term: 'blocked'});
+    expect(navigate).not.toHaveBeenCalled();
+
+    list.onDeselectAll();
+    fixture.detectChanges();
+    expect(component.selectionMode()).toBe(false);
+    expect(searchInput.disabled).toBe(false);
+    expect(kindFilter.getAttribute('aria-disabled')).toBe('false');
+    expect(removeFilter.disabled).toBe(false);
+    expect((fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement).disabled).toBe(false);
+    expect(create.disabled).toBe(false);
   });
 
   it('renders the create action as a FAB outside the filter toolbar', async () => {

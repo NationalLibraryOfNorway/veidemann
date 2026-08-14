@@ -3543,10 +3543,28 @@
         <target>Primary navigation</target>
       </segment>
     </unit>
+    <unit id="primaryNavigationMainLabel">
+      <segment state="final">
+        <source>Main navigation</source>
+        <target>Hovednavigasjon</target>
+      </segment>
+    </unit>
     <unit id="primaryNavigationOpenLabel">
       <segment state="initial">
         <source>Open navigation</source>
         <target>Open navigation</target>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationShowMainLabel">
+      <segment state="final">
+        <source>Show main navigation</source>
+        <target>Vis hovednavigasjon</target>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationShowSectionLabel">
+      <segment state="final">
+        <source>Show section navigation</source>
+        <target>Vis seksjonsnavigasjon</target>
       </segment>
     </unit>
     <unit id="railNavigationCrawlJobs">

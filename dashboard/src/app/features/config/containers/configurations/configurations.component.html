@@ -8,12 +8,14 @@
           <app-config-query class="filter-controls"
             [options]="options$ | async"
             [query]="query()"
+            [disabled]="selectionMode()"
             (queryChange)="onQueryChange($event)"></app-config-query>
         </div>
         <app-active-filter-chips
           [query]="query()"
           [options]="options$ | async"
           [entity]="entity()"
+          [disabled]="selectionMode()"
           (removeFilter)="onRemoveFilter($event)">
         </app-active-filter-chips>
         @let total = totalLength();
@@ -367,6 +369,7 @@
         </div>
         @if (can('create', Kind[kind]) && showCreateButton()) {
           <button class="create-fab" mat-fab type="button"
+            [disabled]="selectionMode()"
             (click)="onCreateConfigWithDialog()"
             aria-label="Create a new configuration"
             i18n-aria-label="@@configurationSideBarMenuAddConfigButtonTooltip"

@@ -1,7 +1,7 @@
 @if (chips.length) {
   <mat-chip-set class="filter-chips" aria-label="Active filters" i18n-aria-label="@@activeConfigFiltersLabel">
     @for (chip of chips; track chip.key + ':' + chip.value) {
-      <mat-chip [matTooltip]="chip.tooltip || ''">
+      <mat-chip [disabled]="disabled" [matTooltip]="chip.tooltip || ''">
         @if (chip.icon) {
           <mat-icon matChipAvatar aria-hidden="true">{{chip.icon}}</mat-icon>
         }
@@ -15,8 +15,9 @@
           {{chip.label}}
         }
         <button matChipRemove type="button"
+          [disabled]="disabled"
           [attr.aria-label]="removeFilterLabel(chip)"
-          (click)="removeFilter.emit(chip)">
+          (click)="onRemoveFilter(chip)">
           <mat-icon>cancel</mat-icon>
         </button>
       </mat-chip>

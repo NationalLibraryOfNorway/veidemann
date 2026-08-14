@@ -28,6 +28,7 @@
               @if (showOrderControl) {
                 @if (orderValue) {
                   <button mat-button type="button" class="order-control"
+                    [disabled]="isSelectionMode()"
                     data-testid="configuration-order"
                     aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
                     matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
@@ -40,6 +41,7 @@
                   </button>
                 } @else {
                   <button mat-icon-button type="button" class="order-control order-control-icon-only"
+                    [disabled]="isSelectionMode()"
                     data-testid="configuration-order"
                     aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
                     matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
@@ -50,7 +52,7 @@
                 <mat-menu #orderMenu="matMenu">
                   @for (option of orderOptions; track option.value) {
                     <button mat-menu-item type="button"
-                      [disabled]="option.value === orderValue"
+                      [disabled]="isSelectionMode() || option.value === orderValue"
                       (click)="onOrderChange(option.value)">
                       {{ option.label }}
                     </button>
@@ -62,6 +64,7 @@
                   aria-label="Filter configurations by state"
                   i18n-aria-label="@@configurationListStateFilterAriaLabel">
                   <button mat-icon-button type="button" class="stateful-filter-button"
+                    [disabled]="isSelectionMode()"
                     [attr.aria-pressed]="disabledFilter === true"
                     aria-label="Deactivated"
                     i18n-aria-label="@@configurationListDeactivatedState"
@@ -71,6 +74,7 @@
                     <mat-icon>toggle_off</mat-icon>
                   </button>
                   <button mat-icon-button type="button" class="stateful-filter-button"
+                    [disabled]="isSelectionMode()"
                     [attr.aria-pressed]="disabledFilter === false"
                     aria-label="Active"
                     i18n-aria-label="@@configurationListActiveState"

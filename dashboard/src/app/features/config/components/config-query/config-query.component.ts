@@ -1,4 +1,4 @@
-import { AfterViewInit,ChangeDetectionStrategy,ChangeDetectorRef,Component,ElementRef,inject,Input,OnChanges,ViewChild } from '@angular/core';
+import { AfterViewInit,ChangeDetectionStrategy,ChangeDetectorRef,Component,ElementRef,inject,Input,OnChanges,SimpleChanges,ViewChild } from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
 
 import {MatAutocompleteModule, MatAutocompleteSelectedEvent, MatAutocompleteTrigger} from '@angular/material/autocomplete';
@@ -57,6 +57,9 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
   @Input()
   options: ConfigOptions;
 
+  @Input()
+  disabled = false;
+
   get filterBrowserScriptTypes(): BrowserScriptType[] {
     return (this.options?.browserScriptTypes ?? [])
       .filter(type => type !== BrowserScriptType.UNDEFINED);
@@ -110,6 +113,18 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
     }
   }
 
+  override ngOnChanges(changes: SimpleChanges): void {
+    super.ngOnChanges(changes);
+    if (changes['disabled']) {
+      if (this.disabled) {
+        this.form.disable({emitEvent: false});
+        this.labelAutocompleteTrigger?.closePanel();
+      } else {
+        this.form.enable({emitEvent: false});
+      }
+    }
+  }
+
   override onQuery(query: ConfigQuery) {
     const term = Object.prototype.hasOwnProperty.call(query, 'term')
       ? query.term
@@ -126,28 +141,43 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
   }
 
   onSearch(term: string) {
+    if (this.disabled) {
+      return;
+    }
     this.term = term;
     const serializedTerm = serializeConfigSearchTerm(term, this.appliedLabelSearch);
     this.onQuery({...this.form.value, term: serializedTerm});
   }
 
   clearSearch(): void {
+    if (this.disabled) {
+      return;
+    }
     this.term = '';
     this.onSearch('');
     this.searchElement?.nativeElement.focus();
   }
 
   insertLabelSearch(): void {
+    if (this.disabled) {
+      return;
+    }
     this.insertSearchTerm('label:');
     this.activateLabelAutocomplete();
   }
 
   onSearchTermChange(term: string): void {
+    if (this.disabled) {
+      return;
+    }
     this.term = term;
     this.activateLabelAutocomplete();
   }
 
   onLabelKeySelected(event: MatAutocompleteSelectedEvent): void {
+    if (this.disabled) {
+      return;
+    }
     const marker = 'label:';
     const markerIndex = this.term.indexOf(marker);
     if (markerIndex < 0) {
@@ -159,6 +189,9 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
   }
 
   async chooseLabelEmoji(): Promise<void> {
+    if (this.disabled) {
+      return;
+    }
     const {EmojiPickerDialogComponent} = await import('../../../../shared/components/emoji-picker/emoji-picker-dialog.component');
     this.dialog.open<InstanceType<typeof EmojiPickerDialogComponent>, void, string>(EmojiPickerDialogComponent, {
       width: '552px',
@@ -209,6 +242,10 @@ export class ConfigQueryComponent extends QueryComponent<ConfigQuery> implements
   }
 
   private activateLabelAutocomplete(): void {
+    if (this.disabled) {
+      this.labelAutocompleteTrigger?.closePanel();
+      return;
+    }
     const kind = this.query?.kind;
     if (!kind || kind === Kind.ROLEMAPPING || this.labelKeyFragment(this.term) === null) {
       this.labelAutocompleteTrigger?.closePanel();

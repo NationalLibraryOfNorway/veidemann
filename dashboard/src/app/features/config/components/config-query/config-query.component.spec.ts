@@ -4,6 +4,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatChipListboxHarness} from '@angular/material/chips/testing';
 import {MatDialog} from '@angular/material/dialog';
+import {MatSelectHarness} from '@angular/material/select/testing';
 import {of} from 'rxjs';
 
 import {ConfigQuery} from '../../../../shared/func';
@@ -129,6 +130,48 @@ describe('ConfigQueryComponent', () => {
       .closest('mat-form-field') as HTMLElement;
     expect(entityField.hidden).toBe(true);
     expect(getComputedStyle(entityField).display).toBe('none');
+  });
+
+  it('disables search and every kind-specific filter without changing the query', async () => {
+    const emitted: Partial<ConfigQuery>[] = [];
+    fixture.componentInstance.queryChange.subscribe(value => emitted.push(value));
+    fixture.componentRef.setInput('query', {...query, term: 'existing search'});
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const search = fixture.nativeElement.querySelector('.search-form input') as HTMLInputElement;
+    const clear = fixture.nativeElement.querySelector('[data-testid="clear-search"]') as HTMLButtonElement;
+    expect(search.disabled).toBe(true);
+    expect(search.value).toBe('existing search');
+    expect(clear.disabled).toBe(true);
+    expect(Object.values(fixture.componentInstance.form.controls).every(control => control.disabled)).toBe(true);
+    expect(emitted).toEqual([]);
+
+    fixture.componentRef.setInput('query', {...query, kind: Kind.CRAWLJOB});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const selects = await loader.getAllHarnesses(MatSelectHarness);
+    const helpers = [
+      ...fixture.nativeElement.querySelectorAll('.search-helper-actions button'),
+    ] as HTMLButtonElement[];
+    expect(selects).toHaveLength(2);
+    expect(await Promise.all(selects.map(select => select.isDisabled()))).toEqual([true, true]);
+    expect(helpers).toHaveLength(2);
+    expect(helpers.every(button => button.disabled)).toBe(true);
+
+    fixture.componentRef.setInput('query', {...query, kind: Kind.BROWSERSCRIPT});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const listbox = await loader.getHarness(MatChipListboxHarness.with({selector: '[formControlName="browserScriptType"]'}));
+    expect(await listbox.isDisabled()).toBe(true);
+
+    fixture.componentRef.setInput('disabled', false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(search.disabled).toBe(false);
+    expect(Object.values(fixture.componentInstance.form.controls).every(control => control.enabled)).toBe(true);
+    expect(emitted).toEqual([]);
   });
 
   it('keeps selected CrawlJobs in the query control without rendering filter chips', async () => {

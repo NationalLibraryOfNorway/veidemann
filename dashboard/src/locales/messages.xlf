@@ -3055,9 +3055,24 @@
         <source>Primary navigation</source>
       </segment>
     </unit>
+    <unit id="primaryNavigationMainLabel">
+      <segment>
+        <source>Main navigation</source>
+      </segment>
+    </unit>
     <unit id="primaryNavigationOpenLabel">
       <segment>
         <source>Open navigation</source>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationShowMainLabel">
+      <segment>
+        <source>Show main navigation</source>
+      </segment>
+    </unit>
+    <unit id="primaryNavigationShowSectionLabel">
+      <segment>
+        <source>Show section navigation</source>
       </segment>
     </unit>
     <unit id="railNavigationCrawlJobs">

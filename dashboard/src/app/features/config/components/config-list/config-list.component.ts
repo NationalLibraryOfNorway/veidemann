@@ -62,10 +62,16 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   }
 
   toggleDisabledFilter(value: boolean): void {
+    if (this.isSelectionMode()) {
+      return;
+    }
     this.disabledFilterChange.emit(this.disabledFilter === value ? null : value);
   }
 
   onOrderChange(value: string): void {
+    if (this.isSelectionMode()) {
+      return;
+    }
     const [active = '', direction = ''] = value.split(':');
     this.sort.emit({active, direction: direction as SortDirection});
   }
