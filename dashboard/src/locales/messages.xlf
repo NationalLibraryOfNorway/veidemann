@@ -2370,11 +2370,6 @@
         <source>Entity</source>
       </segment>
     </unit>
-    <unit id="entityDetailsSeedStateFilterLabel">
-      <segment>
-        <source>Filter seeds by state</source>
-      </segment>
-    </unit>
     <unit id="entityDetailsSeedsTitle">
       <segment>
         <source>Seeds</source>

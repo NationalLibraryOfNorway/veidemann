@@ -1,6 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {MatChipOptionHarness} from '@angular/material/chips/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {provideRouter} from '@angular/router';
 import {EMPTY, of} from 'rxjs';
@@ -133,33 +134,52 @@ describe('EntitySeedContextComponent', () => {
     expect(navigationIcons).toEqual(['hdr_weak', 'link', 'link']);
   });
 
-  it('emits seed state changes', async () => {
+  it('uses the shared order and state controls', async () => {
     const changes: (boolean | null)[] = [];
+    const sorts: {active: string; direction: string}[] = [];
     component.seedStatusChange.subscribe(value => changes.push(value));
-    const stateChips = await TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(
-      MatChipOptionHarness.with({ancestor: '.seed-list-heading'}),
-    );
+    component.seedSortChange.subscribe(value => sorts.push(value));
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const buttons = await loader.getAllHarnesses(MatButtonHarness.with({ancestor: '.list-header-controls'}));
 
-    await stateChips[1].select();
+    expect([...fixture.nativeElement.querySelectorAll('.list-header-controls button mat-icon')]
+      .map((icon: HTMLElement) => icon.textContent.trim())).toEqual([
+      'sort',
+      'toggle_off',
+      'toggle_on',
+    ]);
 
-    expect(changes).toEqual([true]);
+    await buttons[1].click();
+    await buttons[2].click();
+    expect(changes).toEqual([true, false]);
+
+    const menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
+    await menu.open();
+    await menu.clickItem({text: 'Name: A–Z'});
+
+    expect(sorts).toEqual([{active: 'name', direction: 'asc'}]);
   });
 
-  it('puts the create seed action before the title and emits the entity', () => {
+  it('renders a related-context heading and right-aligns the create action in the controls row', () => {
     const created: ConfigObject[] = [];
     component.createSeed.subscribe(value => created.push(value));
-    const titleActions = fixture.nativeElement.querySelector('.seed-title-actions') as HTMLElement;
-    const headingRow = fixture.nativeElement.querySelector('.seed-list-heading') as HTMLElement;
-    const button = titleActions.querySelector('button.create-seed-fab') as HTMLButtonElement;
-    const title = titleActions.querySelector('h2') as HTMLElement;
-    const stateFilters = headingRow.querySelector('mat-chip-listbox') as HTMLElement;
+    const title = fixture.nativeElement.querySelector('h3#entity-seeds-title') as HTMLElement;
+    const seedList = fixture.nativeElement.querySelector('.seed-list') as HTMLElement;
+    const headingRow = fixture.nativeElement.querySelector('.list-header-row') as HTMLElement;
+    const controls = headingRow.querySelector('.list-header-controls') as HTMLElement;
+    const trailing = headingRow.querySelector('.header-trailing') as HTMLElement;
+    const button = trailing.querySelector('button.create-seed-fab') as HTMLButtonElement;
 
-    expect(button.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('h2#entity-seeds-title')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-chip-listbox')).toBeNull();
     expect(getComputedStyle(button).boxShadow).toBe('none');
     expect(title.textContent.trim()).toBe('Seeds');
-    expect(getComputedStyle(titleActions).alignItems).toBe('center');
-    expect(getComputedStyle(headingRow).alignItems).toBe('center');
-    expect(stateFilters).not.toBeNull();
+    expect(getComputedStyle(seedList).borderTopWidth).toBe('1px');
+    expect(getComputedStyle(seedList).borderTopStyle).toBe('solid');
+    expect(controls.compareDocumentPosition(trailing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(trailing).justifyContent).toBe('flex-end');
+    expect(Math.abs(controls.getBoundingClientRect().top - button.getBoundingClientRect().top))
+      .toBeLessThanOrEqual(4);
     button.click();
     expect(created).toEqual([entity]);
   });

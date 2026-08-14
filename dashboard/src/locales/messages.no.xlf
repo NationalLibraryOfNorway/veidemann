@@ -2781,12 +2781,6 @@
         <target>Entity</target>
       </segment>
     </unit>
-    <unit id="entityDetailsSeedStateFilterLabel">
-      <segment state="initial">
-        <source>Filter seeds by state</source>
-        <target>Filter seeds by state</target>
-      </segment>
-    </unit>
     <unit id="entityDetailsSeedsTitle">
       <segment state="initial">
         <source>Seeds</source>

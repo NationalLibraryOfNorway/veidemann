@@ -556,6 +556,12 @@ describe('ConfigurationsComponent query loading', () => {
     expect(bulkAction).not.toBeNull();
     expect(bulkAction.classList).toContain('filled-icon-button');
     expect(bulkAction.querySelector('mat-icon')?.textContent.trim()).toBe('play_arrow');
+    const orderButton = fixture.nativeElement.querySelector('.order-control-icon-only') as HTMLButtonElement;
+    const stateButton = fixture.nativeElement.querySelector('.stateful-filter-button') as HTMLButtonElement;
+    expect(orderButton.getBoundingClientRect().width).toBe(bulkAction.getBoundingClientRect().width);
+    expect(stateButton.getBoundingClientRect().width).toBe(bulkAction.getBoundingClientRect().width);
+    expect(getComputedStyle(orderButton).color).toBe(getComputedStyle(bulkAction).color);
+    expect(getComputedStyle(stateButton).color).toBe(getComputedStyle(bulkAction).color);
   });
 
   it('renders the create action as a FAB outside the filter toolbar', async () => {

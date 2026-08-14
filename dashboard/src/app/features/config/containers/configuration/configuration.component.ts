@@ -1,6 +1,7 @@
 import {ChangeDetectionStrategy, Component, computed, DestroyRef, ErrorHandler, OnDestroy, Signal, signal, inject} from '@angular/core';
 import {ActivatedRoute, NavigationStart, Router, RouterLink} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
+import {Sort} from '@angular/material/sort';
 
 import {combineLatest, EMPTY, forkJoin, merge, Observable, of, Subject} from 'rxjs';
 import {catchError, filter, map, shareReplay, switchMap, take, takeUntil, tap} from 'rxjs/operators';
@@ -155,6 +156,7 @@ export class ConfigurationComponent implements OnDestroy {
   private configObject: Subject<ConfigObject>;
   configObject$: Observable<ConfigObject>;
   readonly entitySeedDisabled = signal<boolean | null>(null);
+  readonly entitySeedSort = signal<Sort>({active: '', direction: ''});
   entitySeedDataSource: ListDataSource<ConfigObject, ConfigQuery>;
   relatedConfigs$: Observable<RelatedConfigContext[]>;
   readonly relatedConfigContexts: Signal<RelatedConfigContext[]>;
@@ -196,9 +198,10 @@ export class ConfigurationComponent implements OnDestroy {
     const entitySeedQuery$ = combineLatest([
       toObservable(configRef),
       toObservable(this.entitySeedDisabled),
+      toObservable(this.entitySeedSort),
       toObservable(this.canReadSeeds),
     ]).pipe(
-      map(([ref, disabled, canReadSeeds]) => this.entitySeedQuery(ref, disabled, canReadSeeds)),
+      map(([ref, disabled, sort, canReadSeeds]) => this.entitySeedQuery(ref, disabled, sort, canReadSeeds)),
     );
     this.entitySeedDataSource = ListDataSource.fromQuery({
       query$: entitySeedQuery$,
@@ -304,6 +307,10 @@ export class ConfigurationComponent implements OnDestroy {
     this.entitySeedDisabled.set(disabled);
   }
 
+  onEntitySeedSortChange(sort: Sort): void {
+    this.entitySeedSort.set(sort);
+  }
+
   onOpenEntitySeed(seed: ConfigObject): void {
     this.router.navigate(['/config', 'seed', seed.id])
       .catch(error => this.errorHandler.handleError(error));
@@ -316,6 +323,7 @@ export class ConfigurationComponent implements OnDestroy {
   private entitySeedQuery(
     configRef: ConfigRef,
     disabled: boolean | null,
+    sort: Sort,
     canReadSeeds: boolean,
   ): ConfigQuery {
     const isReadableEntity = configRef?.kind === Kind.CRAWLENTITY
@@ -336,8 +344,8 @@ export class ConfigurationComponent implements OnDestroy {
       crawlJobIdList: [],
       scriptIdList: [],
       term: null,
-      active: '',
-      direction: '',
+      active: sort.active,
+      direction: sort.direction,
     };
   }
 

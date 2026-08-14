@@ -227,7 +227,7 @@ describe('ConfigurationComponent route loading', () => {
       .resolves.toEqual([expect.objectContaining({id: 'seed-after-auth'})]);
   });
 
-  it('reloads the bounded entity seed list when its state chip changes', async () => {
+  it('reloads the bounded entity seed list when its state filter changes', async () => {
     search.mockClear();
 
     fixture.componentInstance.onEntitySeedStatusChange(true);
@@ -237,6 +237,25 @@ describe('ConfigurationComponent route loading', () => {
       expect.objectContaining({kind: Kind.SEED, entityId: 'entity-1', disabled: true}),
       {offset: 0, pageSize: 100},
     );
+  });
+
+  it('reloads entity seeds through the API when their order changes without changing the route', async () => {
+    search.mockClear();
+    navigate.mockClear();
+
+    fixture.componentInstance.onEntitySeedSortChange({active: 'lastModified', direction: 'desc'});
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        kind: Kind.SEED,
+        entityId: 'entity-1',
+        active: 'lastModified',
+        direction: 'desc',
+      }),
+      {offset: 0, pageSize: 100},
+    );
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('reloads seed details after a successful entity move', async () => {

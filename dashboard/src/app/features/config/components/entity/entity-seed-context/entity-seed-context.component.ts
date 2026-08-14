@@ -1,8 +1,8 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
 import {MatIcon} from '@angular/material/icon';
 import {MatMenuModule} from '@angular/material/menu';
+import {Sort, SortDirection} from '@angular/material/sort';
 import {MatTooltip} from '@angular/material/tooltip';
 import {Params, RouterLink} from '@angular/router';
 
@@ -22,7 +22,6 @@ import {configKindIcon} from '../../../func/config-kind-icon';
     ConfigListComponent,
     FilterDirective,
     MatButtonModule,
-    MatChipsModule,
     MatIcon,
     MatMenuModule,
     MatTooltip,
@@ -39,8 +38,11 @@ export class EntitySeedContextComponent {
   @Input({required: true}) entity: ConfigObject;
   @Input({required: true}) seedDataSource: ListDataSource<ConfigObject, ConfigQuery>;
   @Input() seedStatus: boolean | null = null;
+  @Input() seedSortActive = '';
+  @Input() seedSortDirection: SortDirection = '';
 
   @Output() seedStatusChange = new EventEmitter<boolean | null>();
+  @Output() seedSortChange = new EventEmitter<Sort>();
   @Output() createSeed = new EventEmitter<ConfigObject>();
   @Output() openSeed = new EventEmitter<ConfigObject>();
   @Output() editSeed = new EventEmitter<ConfigObject>();

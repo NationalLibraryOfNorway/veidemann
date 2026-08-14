@@ -26,23 +26,27 @@
           @if (showStateFilter || showOrderControl) {
             <span class="list-header-controls">
               @if (showOrderControl) {
-                <button mat-button type="button" class="order-control"
-                  [class.order-control-icon-only]="!orderValue"
-                  [class.compact-icon-button]="!orderValue"
-                  data-testid="configuration-order"
-                  aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
-                  matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
-                  [matMenuTriggerFor]="orderMenu" #orderMenuTrigger="matMenuTrigger">
-                  <mat-icon>sort</mat-icon>
-                  @if (orderValue) {
+                @if (orderValue) {
+                  <button mat-button type="button" class="order-control"
+                    data-testid="configuration-order"
+                    aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
+                    matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
+                    [matMenuTriggerFor]="orderMenu" #orderMenuTrigger="matMenuTrigger">
+                    <mat-icon>sort</mat-icon>
                     <span class="order-label">{{ orderLabel }}</span>
-                  }
-                  @if (orderValue) {
                     <mat-icon iconPositionEnd class="order-menu-indicator" aria-hidden="true">
                       {{ orderMenuTrigger.menuOpen ? 'arrow_drop_up' : 'arrow_drop_down' }}
                     </mat-icon>
-                  }
-                </button>
+                  </button>
+                } @else {
+                  <button mat-icon-button type="button" class="order-control order-control-icon-only"
+                    data-testid="configuration-order"
+                    aria-label="Order by" i18n-aria-label="@@configurationListOrderByLabel"
+                    matTooltip="Order by" i18n-matTooltip="@@configurationListOrderByLabel"
+                    [matMenuTriggerFor]="orderMenu">
+                    <mat-icon>sort</mat-icon>
+                  </button>
+                }
                 <mat-menu #orderMenu="matMenu">
                   @for (option of orderOptions; track option.value) {
                     <button mat-menu-item type="button"
@@ -57,7 +61,7 @@
                 <span class="state-filter" role="group"
                   aria-label="Filter configurations by state"
                   i18n-aria-label="@@configurationListStateFilterAriaLabel">
-                  <button mat-button type="button" class="stateful-filter-button compact-icon-button"
+                  <button mat-icon-button type="button" class="stateful-filter-button"
                     [attr.aria-pressed]="disabledFilter === true"
                     aria-label="Deactivated"
                     i18n-aria-label="@@configurationListDeactivatedState"
@@ -66,7 +70,7 @@
                     (click)="toggleDisabledFilter(true)">
                     <mat-icon>toggle_off</mat-icon>
                   </button>
-                  <button mat-button type="button" class="stateful-filter-button compact-icon-button"
+                  <button mat-icon-button type="button" class="stateful-filter-button"
                     [attr.aria-pressed]="disabledFilter === false"
                     aria-label="Active"
                     i18n-aria-label="@@configurationListActiveState"
@@ -133,7 +137,9 @@
             {{ loadedLength() | number }} of {{ total | number }} {{ configTypePluralLabel() }}
           </span>
         }
-        <span class="header-balance" aria-hidden="true"></span>
+        <span class="header-trailing">
+          <ng-content select="[listHeaderAction]"></ng-content>
+        </span>
       </div>
     </mat-list>
   }

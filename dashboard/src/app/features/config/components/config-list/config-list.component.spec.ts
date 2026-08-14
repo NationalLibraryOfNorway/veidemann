@@ -211,7 +211,7 @@ describe('ConfigListComponent', () => {
     expect(Math.abs(horizontalCenter(count) - horizontalCenter(header))).toBeLessThanOrEqual(1);
   });
 
-  it('renders evenly spaced state filters with the compact order-button appearance', async () => {
+  it('renders evenly spaced state filters with standard icon-button appearance', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -234,8 +234,6 @@ describe('ConfigListComponent', () => {
     expect(orderControl.compareDocumentPosition(stateFilter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(headerControls.compareDocumentPosition(resultCount) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const orderIcon = orderControl.querySelector('mat-icon') as HTMLElement;
-    const rowIcon = fixture.nativeElement.querySelector('.selection-entry-control mat-icon') as HTMLElement;
-    expect(Math.abs(horizontalCenter(orderIcon) - horizontalCenter(rowIcon))).toBeLessThanOrEqual(1);
 
     const [deactivated, active] = [...stateFilter.querySelectorAll('button')] as HTMLButtonElement[];
     const [deactivatedHarness, activeHarness] = await loader.getAllHarnesses(MatButtonHarness.with({
@@ -251,10 +249,11 @@ describe('ConfigListComponent', () => {
     expect(active.getAttribute('aria-pressed')).toBe('false');
     expect(deactivated.classList).toContain('stateful-filter-button');
     expect(active.classList).toContain('stateful-filter-button');
-    expect(deactivated.classList).toContain('compact-icon-button');
-    expect(active.classList).toContain('compact-icon-button');
-    expect(await deactivatedHarness.getAppearance()).toBe('text');
-    expect(await activeHarness.getAppearance()).toBe('text');
+    expect(deactivated.classList).toContain('mat-mdc-icon-button');
+    expect(active.classList).toContain('mat-mdc-icon-button');
+    expect(await deactivatedHarness.getVariant()).toBe('icon');
+    expect(await activeHarness.getVariant()).toBe('icon');
+    expect(active.querySelector('.mat-mdc-button-persistent-ripple')).not.toBeNull();
     expect(getComputedStyle(deactivated).color).toBe(getComputedStyle(orderControl).color);
     expect(getComputedStyle(active).color).toBe(getComputedStyle(orderControl).color);
     expect(getComputedStyle(deactivated.querySelector('mat-icon') as HTMLElement).fontVariationSettings)
@@ -310,19 +309,21 @@ describe('ConfigListComponent', () => {
 
     const button = await loader.getHarness(MatButtonHarness.with({
       selector: '[data-testid="configuration-order"]',
-      appearance: 'text',
+      variant: 'icon',
       iconName: 'sort',
     }));
-    expect(await button.getAppearance()).toBe('text');
+    expect(await button.getVariant()).toBe('icon');
     const orderButton = fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement;
     expect(orderButton.tagName).toBe('BUTTON');
     expect(orderButton.classList).toContain('order-control-icon-only');
+    expect(orderButton.classList).toContain('mat-mdc-icon-button');
+    expect(orderButton.querySelector('.mat-mdc-button-persistent-ripple')).not.toBeNull();
     expect(orderButton.querySelector('.order-label')).toBeNull();
     expect(orderButton.querySelector('.order-menu-indicator')).toBeNull();
     expect(fixture.nativeElement.querySelector('.list-header-controls mat-form-field')).toBeNull();
     expect(fixture.nativeElement.querySelector('.list-header-controls mat-select')).toBeNull();
 
-    const menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
+    let menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
     await menu.open();
     const options = await menu.getItems();
     expect(await Promise.all(options.map(option => option.getText()))).toEqual([
@@ -339,30 +340,36 @@ describe('ConfigListComponent', () => {
     fixture.componentRef.setInput('sortActive', 'name');
     fixture.componentRef.setInput('sortDirection', 'asc');
     fixture.detectChanges();
-    expect(orderButton.classList).not.toContain('order-control-icon-only');
-    const orderLabel = orderButton.querySelector('.order-label') as HTMLElement;
-    const orderIndicator = orderButton.querySelector('.order-menu-indicator') as HTMLElement;
+    const selectedOrderButton = fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement;
+    expect(selectedOrderButton.classList).not.toContain('order-control-icon-only');
+    expect(selectedOrderButton.classList).not.toContain('mat-mdc-icon-button');
+    const orderLabel = selectedOrderButton.querySelector('.order-label') as HTMLElement;
+    const orderIndicator = selectedOrderButton.querySelector('.order-menu-indicator') as HTMLElement;
     expect(orderLabel.textContent?.trim()).toBe('Name: A–Z');
     expect(orderLabel.compareDocumentPosition(orderIndicator) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
+    menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
     await menu.open();
     await menu.clickItem({text: 'Name: Z–A'});
     expect(sorts.at(-1)).toEqual({active: 'name', direction: 'desc'});
     fixture.componentRef.setInput('sortDirection', 'desc');
     fixture.detectChanges();
 
+    menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
     await menu.open();
     await menu.clickItem({text: 'Last modified: newest first'});
     expect(sorts.at(-1)).toEqual({active: 'lastModified', direction: 'desc'});
     fixture.componentRef.setInput('sortActive', 'lastModified');
     fixture.detectChanges();
 
+    menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
     await menu.open();
     await menu.clickItem({text: 'Last modified: oldest first'});
     expect(sorts.at(-1)).toEqual({active: 'lastModified', direction: 'asc'});
     fixture.componentRef.setInput('sortDirection', 'asc');
     fixture.detectChanges();
 
+    menu = await loader.getHarness(MatMenuHarness.with({triggerIconName: 'sort'}));
     await menu.open();
     await menu.clickItem({text: 'Default order'});
     expect(sorts.at(-1)).toEqual({active: '', direction: ''});

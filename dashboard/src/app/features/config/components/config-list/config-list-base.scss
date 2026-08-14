@@ -44,11 +44,7 @@
 }
 
 .list-header-row:not(.has-summary) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.list-header-row:not(.has-summary) .header-balance {
-  display: none;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .list-header-leading {
@@ -56,6 +52,10 @@
   min-width: 0;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.list-header-row:not(.has-summary) .list-header-leading {
+  flex-wrap: nowrap;
 }
 
 .selection-leading,
@@ -118,11 +118,11 @@
 
 .list-header-controls {
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   min-width: 0;
   align-items: center;
   justify-content: flex-start;
-  gap: 0;
+  gap: 4px;
 }
 
 .list-header-leading > .list-header-controls:first-child {
@@ -131,15 +131,22 @@
 
 .state-filter {
   display: flex;
+  flex: 0 0 auto;
   min-width: 0;
   align-items: center;
-  gap: 0;
+  gap: 4px;
 }
 
 .order-control {
+  flex: 0 1 auto;
   max-width: 264px;
   min-width: 0;
   padding-inline: 8px;
+}
+
+.order-control-icon-only {
+  flex: 0 0 auto;
+  padding-inline: 0;
 }
 
 .order-label {
@@ -151,6 +158,13 @@
 .order-menu-indicator {
   flex: 0 0 auto;
   margin-inline-end: -4px;
+}
+
+.header-trailing {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 mat-list {
@@ -267,7 +281,7 @@ mat-list .item-row.row-checked {
     align-content: center;
   }
 
-  .list-header-controls {
+  .list-header-row.has-summary .list-header-controls {
     flex-wrap: wrap;
   }
 
@@ -279,7 +293,7 @@ mat-list .item-row.row-checked {
     padding-inline: 4px;
   }
 
-  .header-balance {
+  .list-header-row.has-summary .header-trailing:empty {
     display: none;
   }
 
