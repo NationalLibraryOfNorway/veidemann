@@ -27,9 +27,9 @@ import (
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/getlantern/mitm"
 	"github.com/getlantern/proxy/v3/filters"
 
 	"net"
@@ -43,6 +43,42 @@ const (
 
 var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 
+const defaultFinalizationTimeout = 30 * time.Second
+
+type recorderProxyOptions struct {
+	mitmIdentity        *proxy.MITMIdentity
+	finalizationTimeout time.Duration
+}
+
+// Option configures a RecorderProxy.
+type Option func(*recorderProxyOptions)
+
+func WithMITMIdentity(identity *proxy.MITMIdentity) Option {
+	return func(opts *recorderProxyOptions) { opts.mitmIdentity = identity }
+}
+
+func WithFinalizationTimeout(timeout time.Duration) Option {
+	return func(opts *recorderProxyOptions) { opts.finalizationTimeout = timeout }
+}
+
+var (
+	defaultIdentityOnce sync.Once
+	defaultIdentity     *proxy.MITMIdentity
+	defaultIdentityErr  error
+)
+
+func inMemoryMITMIdentity() (*proxy.MITMIdentity, error) {
+	defaultIdentityOnce.Do(func() {
+		certPEM, keyPEM, err := mitmcert.Generate(time.Now())
+		if err != nil {
+			defaultIdentityErr = err
+			return
+		}
+		defaultIdentity, defaultIdentityErr = proxy.ParseMITMIdentity(certPEM, keyPEM)
+	})
+	return defaultIdentity, defaultIdentityErr
+}
+
 type RecorderProxy struct {
 	proxy.Proxy
 	id                int32
@@ -55,7 +91,22 @@ type RecorderProxy struct {
 	once              sync.Once
 }
 
-func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAddr string) *RecorderProxy {
+func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAddr string, options ...Option) *RecorderProxy {
+	opts := recorderProxyOptions{finalizationTimeout: defaultFinalizationTimeout}
+	for _, option := range options {
+		option(&opts)
+	}
+	if opts.mitmIdentity == nil {
+		var err error
+		opts.mitmIdentity, err = inMemoryMITMIdentity()
+		if err != nil {
+			panic(fmt.Sprintf("failed to create default MITM identity: %v", err))
+		}
+	}
+	if opts.finalizationTimeout <= 0 {
+		opts.finalizationTimeout = defaultFinalizationTimeout
+	}
+
 	r := &RecorderProxy{
 		id:        int32(id),
 		conn:      conn,
@@ -67,8 +118,9 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 
 		// Initializes request and connection metadata.
 		&ContextInitFilter{
-			conn:    conn,
-			proxyId: int32(id),
+			conn:                conn,
+			proxyId:             int32(id),
+			finalizationTimeout: opts.finalizationTimeout,
 		},
 
 		// Must wrap DNS, recorder, and transport filters.
@@ -95,12 +147,8 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 		ShouldMITM: func(req *http.Request, upstreamAddr string) bool {
 			return true
 		},
-		MITMOpts: &mitm.Opts{
-			Domains:         []string{"*"},
-			ClientTLSConfig: acceptAllCerts,
-			ServerTLSConfig: acceptAllCerts,
-			Organization:    "Veidemann Recorder Proxy",
-			CertFile:        "/tmp/rpcert.pem",
+		InitMITM: func() (proxy.MITMInterceptor, error) {
+			return proxy.NewFixedMITMInterceptor(opts.mitmIdentity, acceptAllCerts)
 		},
 		OnError: func(cs *filters.ConnectionState, req *http.Request, phase proxy.ErrorPhase, err error) *http.Response {
 			phasedErr := err
@@ -154,12 +202,16 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 			return fmt.Errorf("failed to accept connection: %w", err)
 		}
 
-		ctx, cancel := context.WithCancel(rpcontext.RecordProxyDataAware(context.Background()))
+		connectionCtx, cancel := context.WithCancel(context.Background())
+		ctx := rpcontext.RecordProxyDataAware(connectionCtx)
 
 		wrappedConn := WrapConn(conn, "down", false)
 		wrappedConn.baseCtx, wrappedConn.cancelFunc = ctx, cancel
+		activeConnections.Inc()
 
 		go func() {
+			defer activeConnections.Dec()
+			defer cancel()
 			err := proxy.Handle(ctx, wrappedConn, wrappedConn)
 			if err != nil {
 				logger.LogWithComponent("PROXY").WithError(err).Error("Error handling request")

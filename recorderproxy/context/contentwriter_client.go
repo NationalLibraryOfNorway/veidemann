@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -33,6 +34,7 @@ type CwcSession struct {
 	done            bool
 	canceled        bool
 	m               sync.Mutex
+	sendMu          sync.Mutex
 	cwcCtx          context.Context
 	ctxCancel       context.CancelFunc
 	sendSeq         uint64
@@ -115,6 +117,17 @@ func (rc *RecordContext) logDuplicateProtocolHeader(recNum int32, seq uint64, he
 }
 
 func (rc *RecordContext) sendWriteRequest(cwc *CwcSession, sendType string, recNum int32, payload []byte, request *contentwriterV1.WriteRequest) error {
+	cwc.sendMu.Lock()
+	defer cwc.sendMu.Unlock()
+	if sendType != "meta" && sendType != "cancel" {
+		cwc.m.Lock()
+		terminal := cwc.done
+		cwc.m.Unlock()
+		if terminal {
+			return nil
+		}
+	}
+
 	seq, inFlight := cwc.beginSend()
 	defer cwc.endSend()
 
@@ -132,14 +145,43 @@ func (rc *RecordContext) sendWriteRequest(cwc *CwcSession, sendType string, recN
 }
 
 func (rc *RecordContext) getCwcSession() (*CwcSession, error) {
-	if rc.cwc != nil {
-		return rc.cwc, nil
-	}
+	return rc.getCwcSessionForTerminal(false)
+}
 
+func (rc *RecordContext) getCwcSessionForTerminal(terminal bool) (*CwcSession, error) {
 	l := LogWithContext(rc.ctx, "PROXY:CWC")
 
-	rc.mutex.Lock()
-	defer rc.mutex.Unlock()
+	for {
+		rc.mutex.Lock()
+		if rc.cwc != nil {
+			cwc := rc.cwc
+			rc.mutex.Unlock()
+			return cwc, nil
+		}
+		if rc.cwcErr != nil {
+			err := rc.cwcErr
+			rc.mutex.Unlock()
+			return nil, err
+		}
+		if rc.cwcCreating {
+			ready := rc.cwcReady
+			rc.mutex.Unlock()
+			<-ready
+			continue
+		}
+		if rc.done && !terminal {
+			err := rc.terminalErr
+			if err == nil {
+				err = AlreadyCompleted
+			}
+			rc.mutex.Unlock()
+			return nil, err
+		}
+		rc.cwcCreating = true
+		rc.cwcReady = make(chan struct{})
+		rc.mutex.Unlock()
+		break
+	}
 
 	cwcCtx, cancel := context.WithCancel(context.Background())
 
@@ -148,75 +190,30 @@ func (rc *RecordContext) getCwcSession() (*CwcSession, error) {
 		l.WithError(err).Warn("Error connecting to ContentWriter")
 		err = errors.WrapInternalError(err, errors.RuntimeException, "Error connecting to ContentWriter", err.Error())
 		cancel()
-		return nil, err
 	}
 
-	c := &CwcSession{
-		ContentWriter_WriteClient: cwc,
-		cwcCtx:                    cwcCtx,
-		ctxCancel:                 cancel,
-		protocolHeaders:           make(map[int32][]byte, 2),
-	}
-	rc.cwc = c
-
-	go func() {
-		<-rc.ctx.Done()
-		defer rc.closeSession()
-		c.m.Lock()
-		defer c.m.Unlock()
-		if !c.done {
-			c.done = true
-			l.Info("ContentWriter client session canceled by client")
-			err := rc.sendWriteRequest(c, "cancel", -1, nil, &contentwriterV1.WriteRequest{
-				Value: &contentwriterV1.WriteRequest_Cancel{Cancel: "Veidemann recorder proxy lost connection to client"},
-			})
-			if err != nil {
-				l.WithError(err).Warn("Error writing to ContentWriter")
-			}
-			_, err = c.CloseAndRecv()
-			if err != nil {
-				l.WithError(err).Warn("Error closing from ContentWriter")
-			}
+	var c *CwcSession
+	if err == nil {
+		c = &CwcSession{
+			ContentWriter_WriteClient: cwc,
+			cwcCtx:                    cwcCtx,
+			ctxCancel:                 cancel,
+			protocolHeaders:           make(map[int32][]byte, 2),
 		}
-		cancel()
-	}()
+	}
 
-	return c, nil
+	rc.mutex.Lock()
+	rc.cwc = c
+	rc.cwcErr = err
+	rc.cwcCreating = false
+	close(rc.cwcReady)
+	rc.mutex.Unlock()
+
+	return c, err
 }
 
 func (rc *RecordContext) CancelContentWriter(msg string) error {
-	defer rc.closeSession()
-
-	if rc.cwc == nil {
-		// No ContentWriter session to cancel
-		return nil
-	}
-
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
-
-	cwc, err := rc.getCwcSession()
-	if cwc != nil {
-		cwc.canceled = true
-	}
-	if err != nil {
-		return err
-	}
-
-	cwc.m.Lock()
-	defer cwc.m.Unlock()
-	if !cwc.done {
-		cwc.done = true
-		defer cwc.ctxCancel()
-
-		err = rc.sendWriteRequest(cwc, "cancel", -1, nil, &contentwriterV1.WriteRequest{Value: &contentwriterV1.WriteRequest_Cancel{Cancel: msg}})
-		if err != nil {
-			l.WithError(err).Info("Error sending ContentWriter cancel")
-		}
-		_, err := cwc.CloseAndRecv()
-		if err != nil {
-			l.WithError(err).Info("Error sending ContentWriter cancel")
-		}
-	}
+	_, err := rc.terminateContentWriter(false, msg)
 	return err
 }
 
@@ -228,7 +225,10 @@ func (rc *RecordContext) SendProtocolHeader(recNum int32, p []byte) error {
 		return err
 	}
 
-	if cwc.canceled {
+	cwc.m.Lock()
+	canceled := cwc.canceled || cwc.done
+	cwc.m.Unlock()
+	if canceled {
 		return nil
 	}
 
@@ -256,7 +256,10 @@ func (rc *RecordContext) SendPayload(recNum int32, p []byte) error {
 		return err
 	}
 
-	if cwc.canceled {
+	cwc.m.Lock()
+	canceled := cwc.canceled || cwc.done
+	cwc.m.Unlock()
+	if canceled {
 		return nil
 	}
 
@@ -277,37 +280,83 @@ func (rc *RecordContext) SendPayload(recNum int32, p []byte) error {
 }
 
 func (rc *RecordContext) SendMeta() (reply *contentwriterV1.WriteReply, err error) {
+	return rc.terminateContentWriter(true, "")
+}
+
+func (rc *RecordContext) terminateContentWriter(sendMeta bool, cancelMessage string) (*contentwriterV1.WriteReply, error) {
 	l := LogWithContext(rc.ctx, "PROXY:CWC")
 
-	cwc, err := rc.getCwcSession()
-	if err != nil {
-		return nil, err
-	}
-
-	if cwc.canceled {
-		return nil, nil
+	var cwc *CwcSession
+	var err error
+	if sendMeta {
+		cwc, err = rc.getCwcSessionForTerminal(true)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		for {
+			rc.mutex.Lock()
+			if !rc.cwcCreating {
+				cwc = rc.cwc
+				err = rc.cwcErr
+				rc.mutex.Unlock()
+				break
+			}
+			ready := rc.cwcReady
+			rc.mutex.Unlock()
+			<-ready
+		}
+		if cwc == nil {
+			return nil, err
+		}
 	}
 
 	cwc.m.Lock()
-	defer cwc.m.Unlock()
-	if !cwc.done {
-		cwc.done = true
-		defer cwc.ctxCancel()
+	if cwc.done {
+		cwc.m.Unlock()
+		return nil, nil
+	}
+	cwc.done = true
+	cwc.canceled = !sendMeta
+	cwc.m.Unlock()
 
-		metaRequest := &contentwriterV1.WriteRequest{
-			Value: rc.Meta,
+	timedOut := atomic.Bool{}
+	timer := time.AfterFunc(rc.finalizationTimeout, func() {
+		timedOut.Store(true)
+		cwc.ctxCancel()
+	})
+	defer func() {
+		if !timer.Stop() || timedOut.Load() {
+			contentWriterTerminalTimeouts.Inc()
 		}
+		cwc.ctxCancel()
+	}()
 
-		err = rc.sendWriteRequest(cwc, "meta", -1, nil, metaRequest)
-		if err != nil {
-			l.WithError(err).Info("Error sending ContentWriter meta")
-			return nil, err
-		}
-
-		reply, err = cwc.CloseAndRecv()
-		if err != nil {
-			l.WithError(err).Info("Error receiving ContentWriter meta response")
+	var terminalRequest *contentwriterV1.WriteRequest
+	if sendMeta {
+		terminalRequest = &contentwriterV1.WriteRequest{Value: rc.Meta}
+	} else {
+		terminalRequest = &contentwriterV1.WriteRequest{
+			Value: &contentwriterV1.WriteRequest_Cancel{Cancel: cancelMessage},
 		}
 	}
-	return
+
+	if sendErr := rc.sendWriteRequest(cwc, map[bool]string{true: "meta", false: "cancel"}[sendMeta], -1, nil, terminalRequest); sendErr != nil {
+		err = sendErr
+		l.WithError(sendErr).Info("Error sending terminal ContentWriter request")
+	}
+
+	cwc.sendMu.Lock()
+	reply, closeErr := cwc.CloseAndRecv()
+	cwc.sendMu.Unlock()
+	if closeErr != nil {
+		l.WithError(closeErr).Info("Error closing ContentWriter stream")
+		if err == nil {
+			err = closeErr
+		}
+	}
+	if timedOut.Load() {
+		return reply, fmt.Errorf("ContentWriter terminal operation timed out after %s: %w", rc.finalizationTimeout, context.DeadlineExceeded)
+	}
+	return reply, err
 }

@@ -28,7 +28,6 @@ func handleRequestError(
 	}
 
 	e := rc.SendRequestError(ctx, reqErr)
-	_ = rc.CancelContentWriter(rperrors.Detail(e))
 
 	resp, nextCS := errorResponse(cs, req, e)
 	if resp != nil {

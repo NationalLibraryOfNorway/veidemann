@@ -44,7 +44,7 @@ Do not reorder filters as cleanup without proving HTTP, HTTPS, error, cancellati
 
 - `main.go`, `options.go`: process startup, flags/environment, gRPC connections, and the pool of listeners. Proxy `i` listens on base port plus `i`.
 - `recorderproxy/`: recorder-specific filters, dialing, request/response recording, error classification, and listener lifecycle.
-- `proxycompat/`: locally owned compatibility layer around `github.com/getlantern/proxy/v3` and `github.com/getlantern/mitm`. It owns CONNECT acknowledgement, MITM, tunneled HTTP recursion, and phase-aware connection errors.
+- `proxycompat/`: locally owned compatibility layer around `github.com/getlantern/proxy/v3`, including the fixed-certificate MITM interceptor. It owns CONNECT acknowledgement, MITM, tunneled HTTP recursion, and phase-aware connection errors.
 - `context/`: connection/request state plus BrowserController and ContentWriter client lifecycles. This package is recorderproxy state, not ordinary immutable Go context values.
 - `errors/`: canonical recorder error codes and `ProxyError` constructors.
 - `serviceconnections/`: long-lived gRPC connections to BrowserController, DnsResolver, and ContentWriter.
@@ -84,7 +84,7 @@ An upstream TCP, upstream-proxy CONNECT, or upstream TLS failure must not be hid
 The current model is deliberate:
 
 - `Dial` returns the real error.
-- For TCP dial and upstream-proxy CONNECT failures, `proxycompat.unavailableUpstreamConn` adapts the failure to getlantern/mitm's eager `net.Conn` API. It owns no socket, buffer, or goroutine, and every I/O operation returns the original error. It is not a simulated successful connection.
+- For TCP dial and upstream-proxy CONNECT failures, `proxycompat.unavailableUpstreamConn` adapts the failure to the interceptor's eager `net.Conn` API. It owns no socket, buffer, or goroutine, and every I/O operation returns the original error. It is not a simulated successful connection.
 - For an upstream TLS failure, MITM returns the failure together with the usable downstream TLS connection.
 - MITM completes the downstream/browser TLS handshake when possible.
 - Once the inner HTTPS request is available, proxycompat sends it through the normal filter chain with a deterministic failed transport carrying the original phased error.

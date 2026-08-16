@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -31,8 +32,9 @@ import (
 
 // ContextInitFilter is a filter which initializes the context with sessions to external services.
 type ContextInitFilter struct {
-	conn    *serviceconnections.Connections
-	proxyId int32
+	conn                *serviceconnections.Connections
+	proxyId             int32
+	finalizationTimeout time.Duration
 }
 
 func requestAuthority(req *http.Request) (string, string) {
@@ -172,7 +174,7 @@ func (f *ContextInitFilter) apply(cs *filters.ConnectionState, req *http.Request
 
 	req = req.WithContext(requestCtx)
 
-	rc := rpcontext.NewRecordContext()
+	rc := rpcontext.NewRecordContext(f.finalizationTimeout)
 	rpcontext.SetRecordContext(requestCtx, rc)
 	rc.Init(f.proxyId, f.conn, req, uri)
 

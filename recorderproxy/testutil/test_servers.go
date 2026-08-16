@@ -26,6 +26,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 )
 
 // HttpServers contains test servers for HTTP and HTTPS
@@ -45,6 +47,7 @@ func replaceIpWithHostname(server *httptest.Server) *httptest.Server {
 
 func NewHttpServer(mux *http.ServeMux) (server *httptest.Server) {
 	server = httptest.NewUnstartedServer(mux)
+	server.Config.WriteTimeout = 800 * time.Millisecond
 	var err error
 	server.Listener, err = net.Listen("tcp4", ":0")
 	if err != nil {
@@ -56,7 +59,28 @@ func NewHttpServer(mux *http.ServeMux) (server *httptest.Server) {
 }
 
 func NewHttpsServer(mux *http.ServeMux) (server *httptest.Server) {
+	return newHttpsServer(mux, false)
+}
+
+func NewBrokenHttpsServer(mux *http.ServeMux) (server *httptest.Server) {
+	return newHttpsServer(mux, true)
+}
+
+func newHttpsServer(mux *http.ServeMux, brokenCertificate bool) (server *httptest.Server) {
 	server = httptest.NewUnstartedServer(mux)
+	server.Config.WriteTimeout = 800 * time.Millisecond
+	if brokenCertificate {
+		certPEM, keyPEM, err := mitmcert.Generate(time.Now())
+		if err != nil {
+			panic(err)
+		}
+		certificate, err := tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			panic(err)
+		}
+		certificate.PrivateKey = nil
+		server.TLS = &tls.Config{Certificates: []tls.Certificate{certificate}}
+	}
 	var err error
 	server.Listener, err = net.Listen("tcp4", ":0")
 	if err != nil {
@@ -122,12 +146,8 @@ func NewHttpServers(t testing.TB) *HttpServers {
 	s := &HttpServers{
 		SrvHttp:           NewHttpServer(httpMux),
 		SrvHttps:          NewHttpsServer(httpsMux),
-		SrvHttpsBrokenTLS: NewHttpsServer(httpsMux),
+		SrvHttpsBrokenTLS: NewBrokenHttpsServer(httpsMux),
 	}
-
-	s.SrvHttp.Config.WriteTimeout = 800 * time.Millisecond
-	s.SrvHttps.Config.WriteTimeout = 800 * time.Millisecond
-	s.SrvHttpsBrokenTLS.TLS.Certificates = []tls.Certificate{{}}
 
 	t.Logf("HTTP server url:           %v\n", s.SrvHttp.URL)
 	t.Logf("HTTPS server url:          %v\n", s.SrvHttps.URL)

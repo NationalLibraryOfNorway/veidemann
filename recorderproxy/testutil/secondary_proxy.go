@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
-	"github.com/getlantern/mitm"
 	"github.com/getlantern/proxy/v3/filters"
 )
 
@@ -39,7 +39,14 @@ var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
 
 func NewSecondaryProxy(t testing.TB, s *HttpServers) (net.Listener, string) {
 
-	var downstreamConn net.Conn
+	certPEM, keyPEM, err := mitmcert.Generate(time.Now())
+	if err != nil {
+		t.Fatalf("generate secondary proxy MITM identity: %v", err)
+	}
+	identity, err := proxy.ParseMITMIdentity(certPEM, keyPEM)
+	if err != nil {
+		t.Fatalf("parse secondary proxy MITM identity: %v", err)
+	}
 
 	opts := &proxy.Opts{
 		OnError: func(cs *filters.ConnectionState, req *http.Request, phase proxy.ErrorPhase, err error) (resp *http.Response) {
@@ -58,7 +65,7 @@ func NewSecondaryProxy(t testing.TB, s *HttpServers) (net.Listener, string) {
 				resp.Header.Set("X-Squid-Error", "ERR_CONNECT_FAIL 111")
 
 			case strings.Contains(errStr, "first record does not look like a TLS handshake"):
-				downstreamConn.Write([]byte("HTTP/"))
+				_, _ = cs.Downstream().Write([]byte("HTTP/"))
 
 			case eofRegex.MatchString(errStr), strings.Contains(errStr, "tls: bad record MAC"):
 				resp, _, _ = filters.Fail(cs, req, http.StatusBadGateway, errors.New("ERR_ZERO_SIZE_OBJECT 0"))
@@ -82,12 +89,8 @@ func NewSecondaryProxy(t testing.TB, s *HttpServers) (net.Listener, string) {
 		ShouldMITM: func(req *http.Request, upstreamAddr string) bool {
 			return true
 		},
-		MITMOpts: &mitm.Opts{
-			Domains:         []string{"*"},
-			ClientTLSConfig: acceptAllCerts,
-			ServerTLSConfig: acceptAllCerts,
-			Organization:    "Veidemann Recorder Proxy",
-			CertFile:        "/tmp/rpcert.pem",
+		InitMITM: func() (proxy.MITMInterceptor, error) {
+			return proxy.NewFixedMITMInterceptor(identity, acceptAllCerts)
 		},
 		Dial: func(context context.Context, isConnect bool, network, addr string) (conn net.Conn, err error) {
 			timeout := 30 * time.Second
@@ -110,8 +113,7 @@ func NewSecondaryProxy(t testing.TB, s *HttpServers) (net.Listener, string) {
 		defer ln.Close()
 
 		for {
-			var err error
-			downstreamConn, err = ln.Accept()
+			downstreamConn, err := ln.Accept()
 			if err != nil {
 				if !errors.Is(err, net.ErrClosed) {
 					t.Logf("Secondary proxy: unable to accept: %v", err)
@@ -120,12 +122,12 @@ func NewSecondaryProxy(t testing.TB, s *HttpServers) (net.Listener, string) {
 			}
 			downstreamConn = &badCertConn{Conn: downstreamConn, s: s, t: t}
 
-			go func() {
+			go func(downstreamConn net.Conn) {
 				err := p.Handle(context.Background(), downstreamConn, downstreamConn)
 				if err != nil {
 					t.Logf("Secondary proxy: error handling request: %v", err)
 				}
-			}()
+			}(downstreamConn)
 		}
 	}()
 

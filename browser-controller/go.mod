@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.0
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.3
-	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.5
+	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.6
 	github.com/chromedp/cdproto v0.0.0-20260719223732-95f6af754cfe
 	github.com/chromedp/chromedp v0.16.0
 	github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68
@@ -45,17 +45,11 @@ require (
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
-	github.com/getlantern/byteexec v0.0.0-20220903142956-e6ed20032cfd // indirect
 	github.com/getlantern/context v0.0.0-20220418194847-3d5e7a086201 // indirect
-	github.com/getlantern/elevate v0.0.0-20220903142053-479ab992b264 // indirect
 	github.com/getlantern/errors v1.0.4 // indirect
-	github.com/getlantern/filepersist v0.0.0-20210901195658-ed29a1cb0b7c // indirect
-	github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 // indirect
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65 // indirect
 	github.com/getlantern/hex v0.0.0-20220104173244-ad7e4b9194dc // indirect
 	github.com/getlantern/hidden v0.0.0-20220104173330-f221c5a24770 // indirect
-	github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b // indirect
-	github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7 // indirect
 	github.com/getlantern/netx v0.0.0-20251021221514-279deb2cfd40 // indirect
 	github.com/getlantern/ops v0.0.0-20231025133620-f368ab734534 // indirect
 	github.com/getlantern/preconn v1.0.0 // indirect

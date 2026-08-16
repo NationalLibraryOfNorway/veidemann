@@ -410,12 +410,12 @@ func TestRecorderProxy(t *testing.T) {
 			statusCode, got, err := get(tt.url, client, tt.clientTimeout)
 			t.Logf("GET url=%v status=%v got=%v error=%v", tt.url, statusCode, string(got), err)
 
-			if grpcServices.DoneBC != nil {
-				<-grpcServices.DoneBC
-			}
-			if grpcServices.DoneCW != nil {
-				<-grpcServices.DoneCW
-			}
+			grpcServices.WaitForRequestCounts(
+				len(tt.wantGrpcRequests.DnsResolverRequests),
+				len(tt.wantGrpcRequests.BrowserControllerRequests),
+				len(tt.wantGrpcRequests.ContentWriterRequests),
+				time.Second,
+			)
 
 			if (err != nil) != tt.wantClient.err {
 				t.Errorf(
@@ -670,12 +670,12 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			statusCode, got, err := get(tt.url, client, tt.clientTimeout)
 			t.Logf("GET url=%v status=%v got=%v error=%v", tt.url, statusCode, string(got), err)
 
-			if grpcServices.DoneBC != nil {
-				<-grpcServices.DoneBC
-			}
-			if grpcServices.DoneCW != nil {
-				<-grpcServices.DoneCW
-			}
+			grpcServices.WaitForRequestCounts(
+				len(tt.wantGrpcRequests.DnsResolverRequests),
+				len(tt.wantGrpcRequests.BrowserControllerRequests),
+				len(tt.wantGrpcRequests.ContentWriterRequests),
+				time.Second,
+			)
 
 			if (err != nil) != tt.wantClient.err {
 				t.Errorf(
@@ -747,12 +747,12 @@ func TestRecorderProxyHarvestHeadersBypassBrowserControllerRegister(t *testing.T
 	grpcServices.Clear()
 
 	statusCode, got, err := getWithHeaders(tt.url, client, headers, 0)
-	if grpcServices.DoneBC != nil {
-		<-grpcServices.DoneBC
-	}
-	if grpcServices.DoneCW != nil {
-		<-grpcServices.DoneCW
-	}
+	grpcServices.WaitForRequestCounts(
+		len(tt.wantGrpcRequests.DnsResolverRequests),
+		len(tt.wantGrpcRequests.BrowserControllerRequests),
+		len(tt.wantGrpcRequests.ContentWriterRequests),
+		time.Second,
+	)
 
 	if err != nil {
 		t.Fatalf("Client get() error = %v", err)
@@ -1348,7 +1348,9 @@ func (tt *test) generateBlockedByRobotsTxtRequests() {
 func (tt *test) generateContentWriterErrorRequests() {
 	u, _ := tt.parseUrlAndPort()
 
-	alreadyConnected := strings.HasPrefix(tt.name, "https:")
+	// A terminal ContentWriter error closes the current downstream connection,
+	// so HTTPS must establish a fresh CONNECT tunnel.
+	alreadyConnected := false
 	targetURI := tt.url
 	ipAddress := expectedIP(tt.url)
 

@@ -23,10 +23,10 @@ import (
 	"hash"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -91,8 +91,10 @@ func WrapResponseBody(
 	}
 
 	rc.Meta.Meta.RecordMeta[b.recNum] = b.recordMeta
-	rc.CrawlLog.StatusCode = statusCode
-	rc.CrawlLog.ContentType = contentType
+	rc.UpdateCrawlLog(func(cl *logV1.CrawlLog) {
+		cl.StatusCode = statusCode
+		cl.ContentType = contentType
+	})
 
 	_, _ = b.blockDigest.Write(prolog)
 
@@ -114,7 +116,7 @@ func ensureResponseRecordContext(rc *rpcontext.RecordContext) error {
 	if rc.Uri == nil {
 		return fmt.Errorf("record context uri is nil")
 	}
-	if rc.CrawlLog == nil {
+	if !rc.HasCrawlLog() {
 		return fmt.Errorf("record context crawl log is nil")
 	}
 	if rc.Meta == nil || rc.Meta.Meta == nil {
@@ -192,7 +194,6 @@ func (b *wrappedResponseBody) Close() error {
 			b.ctx,
 			errors.Error(errors.CanceledByBrowser, "CANCELED_BY_BROWSER", cancelMsg),
 		)
-		_ = b.recordContext.CancelContentWriter(cancelMsg)
 	}
 
 	if err != nil {
@@ -292,15 +293,14 @@ func (b *wrappedResponseBody) finishRecord() error {
 }
 
 func (b *wrappedResponseBody) finishCachedRecord() error {
-	cl := b.recordContext.CrawlLog
-	cl.Size = b.size
+	b.recordContext.UpdateCrawlLog(func(cl *logV1.CrawlLog) {
+		cl.Size = b.size
+	})
 
-	if err := b.recordContext.SaveCrawlLog(); err != nil {
+	if err := b.recordContext.FinalizeCachedResponse("OK: Loaded from cache"); err != nil {
 		b.log.WithError(err).Error("Error saving cached crawllog")
 		return err
 	}
-
-	_ = b.recordContext.CancelContentWriter("OK: Loaded from cache")
 	return nil
 }
 
@@ -324,45 +324,11 @@ func finishStoredResponseRecord(
 	size int64,
 	blockDigest string,
 ) error {
-	cwReply, err := rc.SendMeta()
-	if err != nil {
-		return rc.SendResponseError(
-			ctx,
-			errors.Wrap(
-				err,
-				errors.RuntimeException,
-				"Error writing to content writer",
-				err.Error(),
-			),
-		)
-	}
-
-	if cwReply == nil {
-		return nil
-	}
-	if cwReply.Meta == nil {
-		return fmt.Errorf("content writer reply meta is nil")
-	}
-
-	meta, ok := cwReply.Meta.RecordMeta[recNum]
-	if !ok || meta == nil {
-		return fmt.Errorf("content writer reply missing record metadata for record %d", recNum)
-	}
-
-	cl := rc.CrawlLog
-	cl.CollectionFinalName = meta.CollectionFinalName
-	cl.WarcId = meta.WarcId
-	cl.StorageRef = meta.StorageRef
-	cl.WarcRefersTo = meta.RevisitReferenceId
-	cl.Size = size
-	cl.RecordType = strings.ToLower(meta.Type.String())
-	cl.BlockDigest = blockDigest
-	cl.PayloadDigest = meta.PayloadDigest
-
-	if err := rc.SaveCrawlLog(); err != nil {
+	if err := rc.FinalizeStoredResponse(recNum, size, blockDigest); err != nil {
 		rpcontext.LogWithRecordContext(rc, "BODY:resp").
 			WithError(err).
 			Error("Error saving crawllog")
+		return err
 	}
 
 	return nil

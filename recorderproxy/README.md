@@ -104,7 +104,7 @@ The immediate CONNECT 200 is intentional. Chromium must be allowed to start its 
 
 If upstream TCP dialing, upstream-proxy CONNECT, or upstream TLS fails, recorderproxy preserves the original phased failure while allowing the downstream TLS handshake to complete. The inner HTTPS request then enters the same filter chain with a failed transport. This creates the normal request-scoped record, terminates BrowserController and ContentWriter consistently, and returns a canonical HTTPS error response such as 503 to Chromium.
 
-For failures that occur before MITM has an upstream connection, the small `unavailableUpstreamConn` in `proxycompat` adapts the failure to getlantern/mitm's eager `net.Conn` API. It owns no socket, buffer, or goroutine and returns the preserved failure from all I/O. It must not be treated as a successful or fake upstream connection. Upstream TLS failures arrive from MITM itself and reuse the successfully established downstream TLS connection.
+For failures that occur before MITM has an upstream connection, the small `unavailableUpstreamConn` in `proxycompat` adapts the failure to the interceptor's eager `net.Conn` API. It owns no socket, buffer, or goroutine and returns the preserved failure from all I/O. It must not be treated as a successful or fake upstream connection. Upstream TLS failures arrive from the fixed interceptor itself and reuse the successfully established downstream TLS connection.
 
 If no downstream TLS connection or inner HTTP request exists, recorderproxy logs the phased connection failure and closes without manufacturing a crawl resource. It must never write a plaintext HTTP error after CONNECT 200.
 
@@ -184,6 +184,21 @@ second endpoint on the harvester Service. The **Go Runtime / Profiling Signals**
 Grafana dashboard can select recorderproxy by choosing the harvester job and the
 instance whose address ends in `:9302`. The same dashboard works with any target
 that exports the standard `client_golang` metrics.
+
+The proxy also exports `recorderproxy_active_connections`,
+`recorderproxy_open_sessions`, and
+`recorderproxy_contentwriter_terminal_timeouts_total` for lifecycle and
+finalization monitoring.
+
+## Fixed MITM Identity
+
+Runtime proxying requires a matching leaf certificate and private key through
+`--mitm-cert-file`/`MITM_CERT_FILE` and
+`--mitm-key-file`/`MITM_KEY_FILE`. The identity is validated before listeners
+open and is shared by every listener without generating hostname certificates.
+The container includes `/generate-mitm-cert` for creating the pod-scoped leaf
+used by the Kubernetes harvester deployment. ContentWriter terminal operations
+are bounded by `--finalization-timeout`, which defaults to 30 seconds.
 
 Prometheus metrics show trends such as live heap, process RSS, allocation rate,
 GC frequency, goroutines, CPU, and file descriptors. Prometheus does not store

@@ -47,7 +47,6 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/cdproto/serviceworker"
 	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
@@ -70,7 +69,6 @@ var defaultChromiumLaunchArgs = []string{
 	"--disable-features=AutofillServerCommunication,OptimizationHints,MediaRouter,Translate,InterestFeedContentSuggestions",
 	"--disable-gaia-services",
 	"--disable-sync",
-	"--ignore-certificate-errors",
 	"--metrics-recording-only",
 	"--no-default-browser-check",
 	"--no-first-run",
@@ -90,26 +88,26 @@ type defaultViewPort struct {
 }
 
 type launch struct {
-	Headless            bool            `json:"headless"`
-	Args                []string        `json:"args"`
-	AcceptInsecureCerts bool            `json:"acceptInsecureCerts,omitempty"`
-	DefaultViewport     defaultViewPort `json:"defaultViewport,omitzero"`
+	Headless        bool            `json:"headless"`
+	Args            []string        `json:"args"`
+	DefaultViewport defaultViewPort `json:"defaultViewport,omitzero"`
 }
 
 type Session struct {
-	ctx                 context.Context
-	requestRegistry     *requests.Registry
-	requestRegistryOnce sync.Once
-	configAdapter       database.ConfigAdapter
-	screenShotWriter    screenshotwriter.ScreenshotWriter
-	logWriter           logwriter.LogWriter
-	logger              *slog.Logger
-	browserHost         string
-	proxyHost           string
-	browserWsEndpoint   string
-	UserAgent           string
-	browserVersion      string
-	rootTargetID        target.ID
+	ctx                     context.Context
+	requestRegistry         *requests.Registry
+	requestRegistryOnce     sync.Once
+	configAdapter           database.ConfigAdapter
+	screenShotWriter        screenshotwriter.ScreenshotWriter
+	logWriter               logwriter.LogWriter
+	logger                  *slog.Logger
+	browserHost             string
+	proxyHost               string
+	recorderCertificateSPKI string
+	browserWsEndpoint       string
+	UserAgent               string
+	browserVersion          string
+	rootTargetID            target.ID
 
 	RequestedUrl       *frontierV1.QueuedUri
 	CrawlConfig        *configV1.CrawlConfig
@@ -299,17 +297,20 @@ func (sess *Session) compileBrowserWebsocketEndpoint() (string, error) {
 	args := append([]string{}, defaultChromiumLaunchArgs...)
 
 	if sess.proxyHost != "" {
+		if sess.recorderCertificateSPKI == "" {
+			return "", fmt.Errorf("recorder certificate SPKI is required when proxying is enabled")
+		}
 		proxy := "http://" + sess.proxyHost + ":" + strconv.Itoa(sess.proxyPort+sess.Id)
 		args = append(args,
 			"--proxy-server="+proxy,
 			"--proxy-bypass-list=<-loopback>",
+			"--ignore-certificate-errors-spki-list="+sess.recorderCertificateSPKI,
 		)
 	}
 
 	launch := launch{
-		Headless:            true,
-		Args:                args,
-		AcceptInsecureCerts: true,
+		Headless: true,
+		Args:     args,
 	}
 
 	b, err := json.Marshal(launch)
@@ -418,7 +419,6 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.
 
 	// run task list
 	if err := chromedp.Run(sess.ctx,
-		security.SetIgnoreCertificateErrors(true),
 		network.SetCacheDisabled(true),
 		serviceworker.Enable(),
 		chromedp.Emulate(deviceInfo),

@@ -25,8 +25,9 @@ func parseFlags() (Options, error) {
 	flags.String("browser-controller-host", "localhost", "Browser controller host")
 	flags.String("browser-controller-port", "7779", "Browser controller port")
 	flags.Duration("timeout", 10*time.Minute, "Timeout used for connecting to GRPC services")
-	flags.String("ca", "", "Path to CA certificate used for signing client connections")
-	flags.String("ca-key", "", "Path to private key for CA certificate used for signing client connections")
+	flags.String("mitm-cert-file", "", "Path to the fixed MITM server certificate")
+	flags.String("mitm-key-file", "", "Path to the fixed MITM private key")
+	flags.Duration("finalization-timeout", 30*time.Second, "Maximum time for ContentWriter terminal operations")
 	flags.String("cache-host", "", "Cache host")
 	flags.String("cache-port", "", "Cache port")
 	flags.String("metrics-interface", "", "interface for exposing Prometheus metrics. Empty means all interfaces")
@@ -142,10 +143,14 @@ func (o Options) CachePort() string {
 	return o.v.GetString("cache-port")
 }
 
-func (o Options) CA() string {
-	return o.v.GetString("ca")
+func (o Options) MITMCertFile() string {
+	return o.v.GetString("mitm-cert-file")
 }
 
-func (o Options) CAKey() string {
-	return o.v.GetString("ca-key")
+func (o Options) MITMKeyFile() string {
+	return o.v.GetString("mitm-key-file")
+}
+
+func (o Options) FinalizationTimeout() time.Duration {
+	return o.v.GetDuration("finalization-timeout")
 }

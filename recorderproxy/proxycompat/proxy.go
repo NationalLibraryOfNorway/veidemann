@@ -6,11 +6,9 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/mitm"
 	"github.com/getlantern/proxy/v3/filters"
 )
 
@@ -57,7 +55,6 @@ type Opts struct {
 
 	Dial       DialFunc
 	ShouldMITM func(req *http.Request, upstreamAddr string) bool
-	MITMOpts   *mitm.Opts
 	InitMITM   func() (MITMInterceptor, error)
 }
 
@@ -67,8 +64,7 @@ type MITMInterceptor interface {
 
 type proxy struct {
 	*Opts
-	mitmIC      MITMInterceptor
-	mitmDomains []*regexp.Regexp
+	mitmIC MITMInterceptor
 }
 
 func New(opts *Opts) Proxy {
@@ -92,10 +88,7 @@ func New(opts *Opts) Proxy {
 		opts.BufferSource = newBufferSource()
 	}
 
-	p := &proxy{
-		Opts:        opts,
-		mitmDomains: make([]*regexp.Regexp, 0),
-	}
+	p := &proxy{Opts: opts}
 	p.applyCONNECTDefaults()
 
 	if opts.InitMITM != nil {
@@ -104,16 +97,6 @@ func New(opts *Opts) Proxy {
 			log.Errorf("Unable to configure MITM: %v", err)
 		} else {
 			p.mitmIC = mitmIC
-			if opts.MITMOpts != nil {
-				for _, domain := range opts.MITMOpts.Domains {
-					re, err := domainToRegex(domain)
-					if err != nil {
-						log.Errorf("Unable to convert domain %v to regex: %v", domain, err)
-						continue
-					}
-					p.mitmDomains = append(p.mitmDomains, re)
-				}
-			}
 		}
 	}
 
@@ -121,49 +104,9 @@ func New(opts *Opts) Proxy {
 }
 
 func (proxy *proxy) applyCONNECTDefaults() {
-	if proxy.InitMITM == nil && proxy.MITMOpts != nil {
-		proxy.InitMITM = proxy.defaultInitMITM
-	}
 	if proxy.ShouldMITM == nil {
-		proxy.ShouldMITM = proxy.defaultShouldMITM
-	} else {
-		orig := proxy.ShouldMITM
-		proxy.ShouldMITM = func(req *http.Request, upstreamAddr string) bool {
-			if !orig(req, upstreamAddr) {
-				return false
-			}
-			return proxy.defaultShouldMITM(req, upstreamAddr)
-		}
+		proxy.ShouldMITM = func(*http.Request, string) bool { return false }
 	}
-}
-
-func (proxy *proxy) defaultShouldMITM(req *http.Request, upstreamAddr string) bool {
-	if proxy.mitmIC == nil {
-		return false
-	}
-	host, _, err := net.SplitHostPort(upstreamAddr)
-	if err != nil {
-		return false
-	}
-	for _, mitmDomain := range proxy.mitmDomains {
-		if mitmDomain.MatchString(host) {
-			return true
-		}
-	}
-	return false
-}
-
-func (proxy *proxy) defaultInitMITM() (MITMInterceptor, error) {
-	i, err := mitm.Configure(proxy.MITMOpts)
-	return &defaultMITMInterceptor{Interceptor: i}, err
-}
-
-type defaultMITMInterceptor struct {
-	*mitm.Interceptor
-}
-
-func (i *defaultMITMInterceptor) MITM(downstream net.Conn, upstream net.Conn) (newDown net.Conn, newUp net.Conn, success bool, err error) {
-	return i.Interceptor.MITM(downstream, upstream)
 }
 
 func (opts *Opts) addIdleKeepAlive(header http.Header) {

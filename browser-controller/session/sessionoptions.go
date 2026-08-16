@@ -67,6 +67,12 @@ func WithProxyPort(port int) Option {
 	})
 }
 
+func WithRecorderCertificateSPKI(spki string) Option {
+	return newFuncOption(func(s *Session) {
+		s.recorderCertificateSPKI = spki
+	})
+}
+
 func WithConfigAdapter(configAdapter database.ConfigAdapter) Option {
 	return newFuncOption(func(s *Session) {
 		s.configAdapter = configAdapter

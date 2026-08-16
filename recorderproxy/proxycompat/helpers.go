@@ -2,8 +2,6 @@ package proxycompat
 
 import (
 	"net"
-	"regexp"
-	"strings"
 	"sync"
 )
 
@@ -61,14 +59,4 @@ func wrapConn(conn net.Conn, wrapped net.Conn) net.Conn {
 		return conn
 	}
 	return &wrappedConn{Conn: conn, wrapped: wrapped}
-}
-
-func domainToRegex(domain string) (*regexp.Regexp, error) {
-	parts := strings.Split(domain, ".")
-	for i, part := range parts {
-		if part == "*" {
-			parts[i] = `[^.]+`
-		}
-	}
-	return regexp.Compile("^" + strings.Join(parts, `\.`))
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -84,7 +85,9 @@ func (r requestRecorder) prepareMeta() {
 		},
 	}
 
-	r.rc.CrawlLog.RequestedUri = r.rc.Uri.String()
+	r.rc.UpdateCrawlLog(func(cl *logV1.CrawlLog) {
+		cl.RequestedUri = r.rc.Uri.String()
+	})
 }
 
 func requestProlog(req *http.Request) ([]byte, error) {

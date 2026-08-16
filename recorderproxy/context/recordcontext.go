@@ -28,6 +28,7 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -37,6 +38,8 @@ import (
 // see http://golang.org/src/pkg/sync/atomic/doc.go#L41
 var sess int64
 var closedSess int64
+
+const defaultFinalizationTimeout = 30 * time.Second
 
 func OpenSessions() int64 {
 	return sess - closedSess
@@ -70,15 +73,29 @@ type RecordContext struct {
 	HasExplicitHarvestHeaders bool
 	done                      bool
 	mutex                     sync.Mutex
+	crawlLogMutex             sync.RWMutex
+	terminalDone              chan struct{}
+	terminalErr               error
+	finalizationTimeout       time.Duration
+	lifecycleCancel           context.CancelFunc
+	cwcCreating               bool
+	cwcReady                  chan struct{}
+	cwcErr                    error
 	InitDone                  bool
 	ProxyId                   int32
 	log                       *logger.Logger
 }
 
 // NewRecordContext creates a new RecordContext
-func NewRecordContext() *RecordContext {
+func NewRecordContext(finalizationTimeout ...time.Duration) *RecordContext {
+	timeout := defaultFinalizationTimeout
+	if len(finalizationTimeout) > 0 && finalizationTimeout[0] > 0 {
+		timeout = finalizationTimeout[0]
+	}
 	rc := &RecordContext{
-		session: atomic.AddInt64(&sess, 1),
+		session:             atomic.AddInt64(&sess, 1),
+		terminalDone:        make(chan struct{}),
+		finalizationTimeout: timeout,
 	}
 
 	return rc
@@ -87,6 +104,8 @@ func NewRecordContext() *RecordContext {
 func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connections, req *http.Request, uri *url.URL) *RecordContext {
 	rc.conn = conn
 	rc.ctx = req.Context()
+	lifecycleCtx, lifecycleCancel := context.WithCancel(context.Background())
+	rc.lifecycleCancel = lifecycleCancel
 	rc.ProxyId = proxyId
 	rc.Method = req.Method
 	rc.Uri = uri
@@ -127,6 +146,20 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 	})
 
 	rc.log.Infof("New session")
+
+	go func() {
+		select {
+		case <-rc.ctx.Done():
+			cancelErr := rperrors.Error(
+				rperrors.CanceledByBrowser,
+				"CANCELED_BY_BROWSER",
+				"Veidemann recorder proxy lost connection to client",
+			)
+			_ = rc.finalizeError(cancelErr, "Veidemann recorder proxy lost connection to client")
+		case <-lifecycleCtx.Done():
+		}
+	}()
+
 	return rc
 }
 
@@ -150,6 +183,9 @@ func (rc *RecordContext) closeSession() {
 	atomic.AddInt64(&closedSess, 1)
 	if rc.CloseFunc != nil {
 		rc.CloseFunc()
+	}
+	if rc.lifecycleCancel != nil {
+		rc.lifecycleCancel()
 	}
 }
 

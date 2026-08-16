@@ -91,12 +91,6 @@ func getWithProxy(ctx context.Context, url string, grpcServices *testutil.GrpcSe
 	clientTimeout := 5000 * time.Second
 
 	statusCode, got, err := get(url, client, clientTimeout)
-	if grpcServices.DoneBC != nil {
-		<-grpcServices.DoneBC
-	}
-	if grpcServices.DoneCW != nil {
-		<-grpcServices.DoneCW
-	}
 
 	logger.LogWithComponent("CLIENT").Infof("Status: %v", statusCode)
 

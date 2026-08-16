@@ -27,7 +27,6 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
 )
@@ -478,7 +477,6 @@ func (sess *Session) childTargetActions(targetType string) []chromedp.Action {
 	if targetType != "shared_worker" && targetType != "service_worker" {
 		actions = append(actions,
 			page.Enable(),
-			security.SetIgnoreCertificateErrors(true),
 		)
 	}
 

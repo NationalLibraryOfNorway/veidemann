@@ -26,6 +26,7 @@ import (
 	"sync"
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
@@ -86,8 +87,10 @@ func WrapRequestBody(
 	}
 
 	rc.Meta.Meta.RecordMeta[b.recNum] = b.recordMeta
-	rc.CrawlLog.StatusCode = -1
-	rc.CrawlLog.ContentType = contentType
+	rc.UpdateCrawlLog(func(cl *logV1.CrawlLog) {
+		cl.StatusCode = -1
+		cl.ContentType = contentType
+	})
 
 	_, _ = b.blockDigest.Write(prolog)
 
@@ -105,7 +108,7 @@ func ensureRequestRecordContext(rc *rpcontext.RecordContext) error {
 	if rc.Uri == nil {
 		return fmt.Errorf("record context uri is nil")
 	}
-	if rc.CrawlLog == nil {
+	if !rc.HasCrawlLog() {
 		return fmt.Errorf("record context crawl log is nil")
 	}
 	if rc.Meta == nil || rc.Meta.Meta == nil {

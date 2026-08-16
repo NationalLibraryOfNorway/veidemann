@@ -24,6 +24,7 @@ func parseFlags() (Options, error) {
 
 	flags.String("proxy-host", "localhost", "Recorder proxy host")
 	flags.Int("proxy-port", 9900, "Recorder proxy port")
+	flags.String("recorder-cert-file", "", "Recorder proxy public certificate used to scope Chromium TLS interception")
 
 	flags.String("content-writer-host", "veidemann-contentwriter", "Content writer host")
 	flags.Int("content-writer-port", 8082, "Content writer port")
@@ -110,6 +111,10 @@ func (o Options) ProxyHost() string {
 
 func (o Options) ProxyPort() int {
 	return o.v.GetInt("proxy-port")
+}
+
+func (o Options) RecorderCertFile() string {
+	return o.v.GetString("recorder-cert-file")
 }
 
 func (o Options) ContentWriterHost() string {

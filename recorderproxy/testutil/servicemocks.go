@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
@@ -50,17 +51,16 @@ type GrpcServiceMock struct {
 	contentwriterV1.UnimplementedContentWriterServer
 	browsercontrollerV2.UnimplementedBrowserControllerServer
 
-	dnsOpts               *serviceconnections.ConnectionOptions
-	contentWriterOpts     *serviceconnections.ConnectionOptions
-	browserControllerOpts *serviceconnections.ConnectionOptions
-	lis                   *bufconn.Listener
-	mu                    sync.Mutex
-	Requests              Requests
-	DoneBC                chan bool
-	DoneCW                chan bool
-	contextDialer         grpc.DialOption
-	Server                *grpc.Server
-	ClientConn            *serviceconnections.Connections
+	dnsOpts                *serviceconnections.ConnectionOptions
+	contentWriterOpts      *serviceconnections.ConnectionOptions
+	browserControllerOpts  *serviceconnections.ConnectionOptions
+	lis                    *bufconn.Listener
+	mu                     sync.Mutex
+	Requests               Requests
+	contextDialer          grpc.DialOption
+	Server                 *grpc.Server
+	ClientConn             *serviceconnections.Connections
+	ContentWriterWriteFunc func(contentwriterV1.ContentWriter_WriteServer) error
 }
 
 // ConnectionOption configures how we parse a URL.
@@ -99,6 +99,12 @@ func WithExternalContentWriter(option *serviceconnections.ConnectionOptions) Moc
 func WithExternalDns(option *serviceconnections.ConnectionOptions) MockOption {
 	return newFuncMockOption(func(c *GrpcServiceMock) {
 		c.dnsOpts = option
+	})
+}
+
+func WithContentWriterWriteFunc(writeFunc func(contentwriterV1.ContentWriter_WriteServer) error) MockOption {
+	return newFuncMockOption(func(c *GrpcServiceMock) {
+		c.ContentWriterWriteFunc = writeFunc
 	})
 }
 
@@ -182,7 +188,27 @@ func (s *GrpcServiceMock) Close() {
 }
 
 func (s *GrpcServiceMock) Clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.Requests = Requests{}
+}
+
+func (s *GrpcServiceMock) WaitForRequestCounts(dns, browserController, contentWriter int, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for {
+		s.mu.Lock()
+		ready := len(s.Requests.DnsResolverRequests) >= dns &&
+			len(s.Requests.BrowserControllerRequests) >= browserController &&
+			len(s.Requests.ContentWriterRequests) >= contentWriter
+		s.mu.Unlock()
+		if ready {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(time.Millisecond)
+	}
 }
 
 func (s *GrpcServiceMock) bufDialer(context.Context, string) (net.Conn, error) {
@@ -262,6 +288,9 @@ func (s *GrpcServiceMock) Resolve(ctx context.Context, in *dnsresolverV1.Resolve
 
 // Implements ContentWriterService
 func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer) error {
+	if s.ContentWriterWriteFunc != nil {
+		return s.ContentWriterWriteFunc(server)
+	}
 	records := map[int32]*contentwriterV1.WriteResponseMeta_RecordMeta{}
 	data := make(map[int32][]byte)
 	size := make(map[int32]int64)
@@ -283,15 +312,6 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 		}
 		if err != nil {
 			return err
-		}
-
-		if s.DoneCW == nil {
-			s.DoneCW = make(chan bool, 200)
-			go func() {
-				<-server.Context().Done()
-				s.DoneCW <- true
-				s.DoneCW = nil
-			}()
 		}
 
 		s.addCwRequest(request)

@@ -19,11 +19,14 @@ package context
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
@@ -38,6 +41,28 @@ func cloneCrawlLog(crawlLog *logV1.CrawlLog) *logV1.CrawlLog {
 		return nil
 	}
 	return proto.Clone(crawlLog).(*logV1.CrawlLog)
+}
+
+// UpdateCrawlLog serializes mutations with terminal snapshotting.
+func (rc *RecordContext) UpdateCrawlLog(update func(*logV1.CrawlLog)) {
+	rc.crawlLogMutex.Lock()
+	defer rc.crawlLogMutex.Unlock()
+	if rc.CrawlLog != nil {
+		update(rc.CrawlLog)
+	}
+}
+
+// CrawlLogSnapshot returns an independent snapshot for terminal processing.
+func (rc *RecordContext) CrawlLogSnapshot() *logV1.CrawlLog {
+	rc.crawlLogMutex.RLock()
+	defer rc.crawlLogMutex.RUnlock()
+	return cloneCrawlLog(rc.CrawlLog)
+}
+
+func (rc *RecordContext) HasCrawlLog() bool {
+	rc.crawlLogMutex.RLock()
+	defer rc.crawlLogMutex.RUnlock()
+	return rc.CrawlLog != nil
 }
 
 func registerResource(_ context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
@@ -81,33 +106,169 @@ func (rc *RecordContext) shouldSkipBrowserControllerComplete(cl *logV1.CrawlLog)
 }
 
 func (rc *RecordContext) finalizeCrawlLog(cl *logV1.CrawlLog) error {
+	_, err := rc.coordinateTerminal(terminalRequest{crawlLog: cl})
+	return err
+}
+
+type terminalRequest struct {
+	crawlLog       *logV1.CrawlLog
+	originalErr    error
+	cancelMessage  string
+	sendMeta       bool
+	responseRecNum int32
+	responseSize   int64
+	blockDigest    string
+}
+
+func (rc *RecordContext) coordinateTerminal(terminal terminalRequest) (bool, error) {
 	rc.mutex.Lock()
 	if rc.done {
+		done := rc.terminalDone
 		rc.mutex.Unlock()
-		return AlreadyCompleted
+		<-done
+		return false, AlreadyCompleted
 	}
 	rc.done = true
 	rc.mutex.Unlock()
-	defer rc.closeSession()
+
+	var terminalErr error
+	defer func() {
+		rc.mutex.Lock()
+		rc.terminalErr = terminalErr
+		rc.mutex.Unlock()
+		rc.closeSession()
+		close(rc.terminalDone)
+	}()
+
+	cl := cloneCrawlLog(terminal.crawlLog)
+	if cl == nil {
+		cl = rc.CrawlLogSnapshot()
+	}
+	if cl == nil {
+		cl = &logV1.CrawlLog{}
+	}
+
+	if terminal.sendMeta {
+		reply, err := rc.terminateContentWriter(true, "")
+		if err == nil {
+			err = applyContentWriterReply(cl, reply, terminal.responseRecNum, terminal.responseSize, terminal.blockDigest)
+		}
+		if err != nil {
+			terminalErr = rperrors.WrapInternalError(
+				err,
+				rperrors.RuntimeException,
+				"Error writing to content writer",
+				err.Error(),
+			)
+		}
+	} else if terminal.cancelMessage != "" {
+		_, err := rc.terminateContentWriter(false, terminal.cancelMessage)
+		if err != nil {
+			LogWithContext(rc.ctx, "PROXY:CWC").WithError(err).Warn("ContentWriter cancellation failed")
+			if terminal.originalErr == nil {
+				terminalErr = rperrors.WrapInternalError(
+					err,
+					rperrors.RuntimeException,
+					"Error canceling content writer",
+					err.Error(),
+				)
+			}
+		}
+	}
+
+	authoritativeErr := terminal.originalErr
+	if authoritativeErr == nil {
+		authoritativeErr = terminalErr
+	}
+	if authoritativeErr != nil {
+		cl.StatusCode = int32(rperrors.Code(authoritativeErr))
+		cl.RecordType = constants.RecordResponse
+		cl.ContentType = ""
+		cl.Error = rperrors.AsCommonsError(authoritativeErr)
+	}
 
 	cl.FetchTimeMs = time.Since(rc.FetchTimesTamp).Nanoseconds() / 1000000
 	cl.IpAddress = rc.IpAddress
-	if rc.shouldSkipBrowserControllerComplete(cl) {
-		return nil
+	if !rc.shouldSkipBrowserControllerComplete(cl) {
+		request := &browsercontrollerV2.CompleteResourceRequest{
+			ProxyId:   rc.ProxyId,
+			RequestId: rc.RequestId,
+			CrawlLog:  cl,
+			Cached:    rc.FoundInCache,
+		}
+
+		if err := completeResource(rc.ctx, rc.conn, request); err != nil {
+			if terminalErr == nil {
+				terminalErr = err
+			} else {
+				LogWithContext(rc.ctx, "PROXY:BCC").WithError(err).Warn("BrowserController completion failed after terminal error")
+			}
+		}
 	}
 
-	request := &browsercontrollerV2.CompleteResourceRequest{
-		ProxyId:   rc.ProxyId,
-		RequestId: rc.RequestId,
-		CrawlLog:  cl,
-		Cached:    rc.FoundInCache,
+	if terminal.originalErr != nil {
+		return true, terminal.originalErr
+	}
+	return true, terminalErr
+}
+
+func applyContentWriterReply(cl *logV1.CrawlLog, reply *contentwriterV1.WriteReply, recNum int32, size int64, blockDigest string) error {
+	if reply == nil || reply.GetMeta() == nil {
+		return fmt.Errorf("content writer reply meta is nil")
+	}
+	meta, ok := reply.GetMeta().RecordMeta[recNum]
+	if !ok || meta == nil {
+		return fmt.Errorf("content writer reply missing record metadata for record %d", recNum)
 	}
 
-	return completeResource(rc.ctx, rc.conn, request)
+	cl.CollectionFinalName = meta.CollectionFinalName
+	cl.WarcId = meta.WarcId
+	cl.StorageRef = meta.StorageRef
+	cl.WarcRefersTo = meta.RevisitReferenceId
+	cl.Size = size
+	cl.RecordType = strings.ToLower(meta.Type.String())
+	cl.BlockDigest = blockDigest
+	cl.PayloadDigest = meta.PayloadDigest
+	return nil
 }
 
 func (rc *RecordContext) SaveCrawlLog() error {
-	return rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog))
+	return rc.finalizeCrawlLog(rc.CrawlLogSnapshot())
+}
+
+// FinalizeStoredResponse terminates ContentWriter, validates its reply, and
+// completes BrowserController as one idempotent operation.
+func (rc *RecordContext) FinalizeStoredResponse(recNum int32, size int64, blockDigest string) error {
+	_, err := rc.coordinateTerminal(terminalRequest{
+		crawlLog:       rc.CrawlLogSnapshot(),
+		sendMeta:       true,
+		responseRecNum: recNum,
+		responseSize:   size,
+		blockDigest:    blockDigest,
+	})
+	return err
+}
+
+// FinalizeCachedResponse cancels the unused writer stream before completing
+// BrowserController.
+func (rc *RecordContext) FinalizeCachedResponse(cancelMessage string) error {
+	_, err := rc.coordinateTerminal(terminalRequest{
+		crawlLog:      rc.CrawlLogSnapshot(),
+		cancelMessage: cancelMessage,
+	})
+	return err
+}
+
+func (rc *RecordContext) finalizeError(originalErr error, cancelMessage string) error {
+	_, err := rc.coordinateTerminal(terminalRequest{
+		crawlLog:      rc.CrawlLogSnapshot(),
+		originalErr:   originalErr,
+		cancelMessage: cancelMessage,
+	})
+	if errors.Is(err, AlreadyCompleted) {
+		return originalErr
+	}
+	return err
 }
 
 func (rc *RecordContext) SendRequestError(ctx context.Context, reqErr error) error {
@@ -117,14 +278,7 @@ func (rc *RecordContext) SendRequestError(ctx context.Context, reqErr error) err
 		l.Panic("BUG: SendRequestError with nil error")
 	}
 
-	rc.CrawlLog.StatusCode = int32(rperrors.Code(reqErr))
-	rc.CrawlLog.RecordType = constants.RecordResponse
-	rc.CrawlLog.Error = rperrors.AsCommonsError(reqErr)
-
-	if err := rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog)); err != nil && !errors.Is(err, AlreadyCompleted) {
-		return err
-	}
-	return reqErr
+	return rc.finalizeError(reqErr, rperrors.Detail(reqErr))
 }
 
 func (rc *RecordContext) SendResponseError(ctx context.Context, respErr error) error {
@@ -134,15 +288,7 @@ func (rc *RecordContext) SendResponseError(ctx context.Context, respErr error) e
 		l.Panic("BUG: SendResponseError with nil error")
 	}
 
-	rc.CrawlLog.StatusCode = int32(rperrors.Code(respErr))
-	rc.CrawlLog.RecordType = constants.RecordResponse
-	rc.CrawlLog.ContentType = ""
-	rc.CrawlLog.Error = rperrors.AsCommonsError(respErr)
-
-	if err := rc.finalizeCrawlLog(cloneCrawlLog(rc.CrawlLog)); err != nil && !errors.Is(err, AlreadyCompleted) {
-		return err
-	}
-	return respErr
+	return rc.finalizeError(respErr, rperrors.Detail(respErr))
 }
 
 func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
@@ -182,8 +328,10 @@ func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
 		rc.CrawlExecutionId = result.Registered.CrawlExecutionId
 		rc.JobExecutionId = result.Registered.JobExecutionId
 		rc.CollectionRef = result.Registered.CollectionRef
-		rc.CrawlLog.JobExecutionId = rc.JobExecutionId
-		rc.CrawlLog.ExecutionId = rc.CrawlExecutionId
+		rc.UpdateCrawlLog(func(cl *logV1.CrawlLog) {
+			cl.JobExecutionId = rc.JobExecutionId
+			cl.ExecutionId = rc.CrawlExecutionId
+		})
 		return nil
 	default:
 		return rperrors.Error(rperrors.RuntimeException, "INVALID_BROWSER_CONTROLLER_REPLY", "Browser controller returned an invalid register reply")

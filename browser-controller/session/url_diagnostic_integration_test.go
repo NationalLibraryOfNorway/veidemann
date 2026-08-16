@@ -36,7 +36,6 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/device"
 )
@@ -304,7 +303,6 @@ func runURLDiagnosticMode(t *testing.T, parent context.Context, host string, por
 		return nil
 	}))
 	err = chromedp.Run(browserCtx,
-		security.SetIgnoreCertificateErrors(true),
 		network.Enable(),
 		page.Enable(),
 		runtime.Enable(),

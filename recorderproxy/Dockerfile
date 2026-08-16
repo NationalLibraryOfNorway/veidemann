@@ -11,11 +11,13 @@ RUN go mod download
 #   -s disable symbol table
 #   -w disable DWARF generation
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o proxy .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o generate-mitm-cert ./cmd/generate-mitm-cert
 
 
 FROM gcr.io/distroless/base-debian12
 
 COPY --from=build /build/recorderproxy/proxy /
+COPY --from=build /build/recorderproxy/generate-mitm-cert /
 
 EXPOSE 8080/tcp
 

@@ -18,6 +18,10 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -88,6 +92,14 @@ func run() error {
 	)
 
 	slog.Info(name, "version", version, "commit", commit, "date", date)
+
+	recorderCertificateSPKI := ""
+	if opts.ProxyHost() != "" {
+		recorderCertificateSPKI, err = loadRecorderCertificateSPKI(opts.RecorderCertFile(), time.Now())
+		if err != nil {
+			return fmt.Errorf("failed to configure recorder certificate trust: %w", err)
+		}
+	}
 
 	closer := initTracer(name)
 	if closer != nil {
@@ -185,6 +197,7 @@ func run() error {
 		session.WithBrowserPort(opts.BrowserPort()),
 		session.WithProxyHost(opts.ProxyHost()),
 		session.WithProxyPort(opts.ProxyPort()),
+		session.WithRecorderCertificateSPKI(recorderCertificateSPKI),
 		session.WithConfigAdapter(configAdapter),
 	)
 	defer sessions.Close()
@@ -266,6 +279,44 @@ func run() error {
 	_ = telemetryServer.Shutdown(shutdownCtx)
 
 	return g.Wait()
+}
+
+func loadRecorderCertificateSPKI(path string, now time.Time) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("recorder certificate file is required when proxying is enabled")
+	}
+	certPEM, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read recorder certificate: %w", err)
+	}
+	block, _ := pem.Decode(certPEM)
+	if block == nil || block.Type != "CERTIFICATE" {
+		return "", fmt.Errorf("recorder certificate file does not contain a PEM certificate")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("parse recorder certificate: %w", err)
+	}
+	if now.Before(cert.NotBefore) || now.After(cert.NotAfter) {
+		return "", fmt.Errorf("recorder certificate is not currently valid")
+	}
+	if cert.IsCA {
+		return "", fmt.Errorf("recorder certificate must be a server leaf, not a CA")
+	}
+	if len(cert.ExtKeyUsage) > 0 {
+		serverAuth := false
+		for _, usage := range cert.ExtKeyUsage {
+			if usage == x509.ExtKeyUsageAny || usage == x509.ExtKeyUsageServerAuth {
+				serverAuth = true
+				break
+			}
+		}
+		if !serverAuth {
+			return "", fmt.Errorf("recorder certificate is not valid for TLS server authentication")
+		}
+	}
+	digest := sha256.Sum256(cert.RawSubjectPublicKeyInfo)
+	return base64.StdEncoding.EncodeToString(digest[:]), nil
 }
 
 func initLogger(w io.Writer, level string, source bool) {

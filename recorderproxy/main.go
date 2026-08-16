@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/spf13/pflag"
@@ -53,10 +54,10 @@ func run() error {
 
 	slog.Info(name, "version", version, "commit", commit, "date", date)
 
-	//err := recorderproxy.SetCA(viper.GetString("ca"), viper.GetString("ca-key"))
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	mitmIdentity, err := proxycompat.LoadMITMIdentity(opts.MITMCertFile(), opts.MITMKeyFile())
+	if err != nil {
+		return fmt.Errorf("failed to load MITM identity: %w", err)
+	}
 
 	contentWriterOpts := serviceconnections.NewConnectionOptions(
 		"ContentWriter",
@@ -119,7 +120,13 @@ func run() error {
 	var startedProxies []*recorderproxy.RecorderProxy
 
 	for i := range proxyCount {
-		r := recorderproxy.NewRecorderProxy(i, conn, cacheAddr)
+		r := recorderproxy.NewRecorderProxy(
+			i,
+			conn,
+			cacheAddr,
+			recorderproxy.WithMITMIdentity(mitmIdentity),
+			recorderproxy.WithFinalizationTimeout(opts.FinalizationTimeout()),
+		)
 
 		ln, err := r.Listen(iface, firstPort)
 		if err != nil {
@@ -145,7 +152,8 @@ func run() error {
 	<-ctx.Done()
 	slog.Info("Server shutting down")
 
-	shutdownCtx := context.TODO()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer shutdownCancel()
 
 	for i, r := range startedProxies {
 		err = r.Shutdown(shutdownCtx)

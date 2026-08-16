@@ -10,6 +10,14 @@ Need to use the context of the monorepo root when building the container:
 
     go test ./...
 
+## Recorder certificate trust
+
+When `--proxy-host`/`PROXY_HOST` is configured, browser-controller also requires
+`--recorder-cert-file`/`RECORDER_CERT_FILE`. It reads the recorderproxy leaf at
+startup and scopes Chromium's certificate exception to that public key. Startup
+fails if the certificate is missing, expired, a CA, or unsuitable for TLS
+server authentication.
+
 ## Browser scripts
 
 Runtime-invoked browser scripts may return either their final JSON value or a Promise resolving to that value.
