@@ -27,8 +27,8 @@ import (
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	proxyengine "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 )
 
 func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, addr string) (net.Conn, error) {
@@ -60,7 +60,7 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 
 	if isConnect && proxy.nextProxy != "" {
 		if err := proxy.sendConnectToNextProxy(ctx, conn, log); err != nil {
-			return conn, proxycompat.NewPhaseError(proxycompat.PhaseUpstreamProxyConnect, err)
+			return conn, proxyengine.NewPhaseError(proxyengine.PhaseUpstreamProxyConnect, err)
 		}
 	}
 

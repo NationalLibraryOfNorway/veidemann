@@ -26,12 +26,12 @@ import (
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/getlantern/proxy/v3/filters"
 )
 
-// ContextInitFilter is a filter which initializes the context with sessions to external services.
-type ContextInitFilter struct {
+// contextInitFilter initializes the context with sessions to external services.
+type contextInitFilter struct {
 	conn                *serviceconnections.Connections
 	proxyId             int32
 	finalizationTimeout time.Duration
@@ -58,7 +58,7 @@ func requestAuthority(req *http.Request) (string, string) {
 	return req.Host, ""
 }
 
-func requestBaseURI(ctx context.Context, cs *filters.ConnectionState, req *http.Request) *url.URL {
+func requestBaseURI(ctx context.Context, cs *proxy.State, req *http.Request) *url.URL {
 	if req == nil {
 		return nil
 	}
@@ -100,7 +100,7 @@ func requestBaseURI(ctx context.Context, cs *filters.ConnectionState, req *http.
 	return &url.URL{Scheme: scheme, Host: authority}
 }
 
-func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *contextInitFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	if req.Method == http.MethodConnect {
 		return f.applyConnect(cs, req, next)
 	} else {
@@ -108,7 +108,7 @@ func (f *ContextInitFilter) Apply(cs *filters.ConnectionState, req *http.Request
 	}
 }
 
-func (f *ContextInitFilter) applyConnect(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *contextInitFilter) applyConnect(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
 
 	host, port, hostPort := connectAuthority(req)
@@ -141,7 +141,7 @@ func (f *ContextInitFilter) applyConnect(cs *filters.ConnectionState, req *http.
 	return next(cs, req)
 }
 
-func (f *ContextInitFilter) apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *contextInitFilter) apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
 
 	connectionCtx := ctx

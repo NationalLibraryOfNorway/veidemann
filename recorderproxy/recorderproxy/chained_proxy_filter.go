@@ -21,15 +21,15 @@ import (
 	"net/url"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
-// ChainedProxyFilter is a filter which rewrites request to support chained proxies.
-type ChainedProxyFilter struct {
+// chainedProxyFilter rewrites requests to support chained proxies.
+type chainedProxyFilter struct {
 	proxy *RecorderProxy
 }
 
-func (f *ChainedProxyFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *chainedProxyFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
 	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:chain")
 

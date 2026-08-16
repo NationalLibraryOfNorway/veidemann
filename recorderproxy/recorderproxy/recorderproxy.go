@@ -18,7 +18,6 @@ package recorderproxy
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"strconv"
@@ -26,11 +25,10 @@ import (
 	"sync/atomic"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
-	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-	"github.com/getlantern/proxy/v3/filters"
 
 	"net"
 	"net/http"
@@ -41,19 +39,17 @@ const (
 	CRLF = "\r\n"
 )
 
-var acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
-
 const defaultFinalizationTimeout = 30 * time.Second
 
 type recorderProxyOptions struct {
-	mitmIdentity        *proxy.MITMIdentity
+	mitmIdentity        *mitmcert.Identity
 	finalizationTimeout time.Duration
 }
 
 // Option configures a RecorderProxy.
 type Option func(*recorderProxyOptions)
 
-func WithMITMIdentity(identity *proxy.MITMIdentity) Option {
+func WithMITMIdentity(identity *mitmcert.Identity) Option {
 	return func(opts *recorderProxyOptions) { opts.mitmIdentity = identity }
 }
 
@@ -63,24 +59,24 @@ func WithFinalizationTimeout(timeout time.Duration) Option {
 
 var (
 	defaultIdentityOnce sync.Once
-	defaultIdentity     *proxy.MITMIdentity
+	defaultIdentity     *mitmcert.Identity
 	defaultIdentityErr  error
 )
 
-func inMemoryMITMIdentity() (*proxy.MITMIdentity, error) {
+func inMemoryMITMIdentity() (*mitmcert.Identity, error) {
 	defaultIdentityOnce.Do(func() {
 		certPEM, keyPEM, err := mitmcert.Generate(time.Now())
 		if err != nil {
 			defaultIdentityErr = err
 			return
 		}
-		defaultIdentity, defaultIdentityErr = proxy.ParseMITMIdentity(certPEM, keyPEM)
+		defaultIdentity, defaultIdentityErr = mitmcert.ParseIdentity(certPEM, keyPEM)
 	})
 	return defaultIdentity, defaultIdentityErr
 }
 
 type RecorderProxy struct {
-	proxy.Proxy
+	handler           *proxy.Handler
 	id                int32
 	conn              *serviceconnections.Connections
 	ConnectionTimeout time.Duration
@@ -113,44 +109,35 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 		nextProxy: nextProxyAddr,
 	}
 
-	filterChain := filters.Join(
-		&NonproxyFilter{},
+	filterChain := proxy.Join(
+		&nonproxyFilter{},
 
 		// Initializes request and connection metadata.
-		&ContextInitFilter{
+		&contextInitFilter{
 			conn:                conn,
 			proxyId:             int32(id),
 			finalizationTimeout: opts.finalizationTimeout,
 		},
 
 		// Must wrap DNS, recorder, and transport filters.
-		&ErrorHandlerFilter{},
+		&errorHandlerFilter{},
 
-		&DnsLookupFilter{
-			DnsResolverClient: conn.DnsResolverClient(),
+		&dnsLookupFilter{
+			dnsResolverClient: conn.DnsResolverClient(),
 		},
 
-		&RecorderFilter{
-			proxyId:           int32(id),
-			DnsResolverClient: conn.DnsResolverClient(),
-			hasNextProxy:      nextProxyAddr != "",
-		},
+		&recorderFilter{},
 	)
 
 	if nextProxyAddr != "" {
-		filterChain = filterChain.Append(&ChainedProxyFilter{proxy: r})
+		filterChain = filterChain.Append(&chainedProxyFilter{proxy: r})
 	}
 
-	proxyOpts := &proxy.Opts{
-		Dial:   r.Dial,
-		Filter: filterChain,
-		ShouldMITM: func(req *http.Request, upstreamAddr string) bool {
-			return true
-		},
-		InitMITM: func() (proxy.MITMInterceptor, error) {
-			return proxy.NewFixedMITMInterceptor(opts.mitmIdentity, acceptAllCerts)
-		},
-		OnError: func(cs *filters.ConnectionState, req *http.Request, phase proxy.ErrorPhase, err error) *http.Response {
+	handler, err := proxy.New(proxy.Config{
+		Dial:     r.Dial,
+		Filter:   filterChain,
+		Identity: opts.mitmIdentity,
+		OnError: func(cs *proxy.State, req *http.Request, phase proxy.ErrorPhase, err error) *http.Response {
 			phasedErr := err
 			if proxy.Phase(phasedErr) == "" {
 				phasedErr = proxy.NewPhaseError(phase, err)
@@ -165,14 +152,15 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 			if phase != proxy.PhaseFilter && phase != proxy.PhaseReadRequest {
 				return nil
 			}
-			res, _, _ := filters.Fail(cs, req, 500, err)
+			res, _, _ := proxy.Fail(cs, req, 500, err)
 			return res
 		},
-		OKWaitsForUpstream:  false,
-		OKSendsServerTiming: false,
+		WaitForUpstream: false,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to configure proxy engine: %v", err))
 	}
-
-	r.Proxy = proxy.New(proxyOpts)
+	r.handler = handler
 
 	return r
 }
@@ -212,7 +200,7 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 		go func() {
 			defer activeConnections.Dec()
 			defer cancel()
-			err := proxy.Handle(ctx, wrappedConn, wrappedConn)
+			err := proxy.handler.Handle(ctx, wrappedConn, wrappedConn)
 			if err != nil {
 				logger.LogWithComponent("PROXY").WithError(err).Error("Error handling request")
 			}

@@ -20,19 +20,13 @@ import (
 	"context"
 	"net/http"
 
-	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
-// RecorderFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.
-type RecorderFilter struct {
-	proxyId           int32
-	DnsResolverClient dnsresolverV1.DnsResolverClient
-	hasNextProxy      bool
-}
+type recorderFilter struct{}
 
-func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *recorderFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
 
 	if req.Method == http.MethodConnect {
@@ -59,7 +53,7 @@ func (f *RecorderFilter) Apply(cs *filters.ConnectionState, req *http.Request, n
 	return
 }
 
-func (f *RecorderFilter) filterRequest(
+func (f *recorderFilter) filterRequest(
 	ctx context.Context,
 	req *http.Request,
 	rc *rpcontext.RecordContext,
@@ -67,7 +61,7 @@ func (f *RecorderFilter) filterRequest(
 	return newRequestRecorder(ctx, rc).Wrap(req)
 }
 
-func (f *RecorderFilter) filterResponse(
+func (f *recorderFilter) filterResponse(
 	ctx context.Context,
 	respOrig *http.Response,
 	rc *rpcontext.RecordContext,

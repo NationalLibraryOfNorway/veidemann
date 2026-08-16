@@ -4,14 +4,14 @@
 
 `recorderproxy` is the HTTP/HTTPS capture proxy used by Veidemann to fetch traffic, record request and response material, and coordinate side effects with BrowserController, DNS resolver, and ContentWriter.
 
-At the current stage, the proxy is built on the newer `github.com/getlantern/proxy/v3` request loop, but it no longer relies on upstream for CONNECT/MITM handling. Upstream removed the old built-in MITM constructor path, so this module now carries a small local compatibility layer in `proxycompat` that restores:
+The proxy protocol loop is a small, purpose-built engine in `internal/proxy`. It owns only the behavior recorderproxy uses:
 
 - CONNECT handling
 - TLS MITM interception
 - tunneling back into HTTP request processing after downstream interception succeeds, including preserved upstream failures
-- request-aware upstream connection reuse
+- HTTP keep-alive and chained-proxy transport
 
-That local compatibility layer is not just plumbing. It is now part of recorderproxy's behavior surface and must be treated as owned code.
+The internal engine is part of recorderproxy's behavior surface and must be treated as owned operational code.
 
 ## Main Pieces
 
@@ -21,7 +21,8 @@ That local compatibility layer is not just plumbing. It is now part of recorderp
 - `recorderproxy/recorder_filter.go`: wraps request and response bodies so they stream through ContentWriter while crawl-log state is built up.
 - `recorderproxy/error_handler_filter.go`: normalizes transport and proxy-layer failures into recorderproxy error codes and short-circuit responses.
 - `recorderproxy/chained_proxy_filter.go`: rewrites non-CONNECT requests into absolute-form requests when a second proxy is configured.
-- `proxycompat`: local compatibility layer over newer getlantern proxy/v3 behavior, especially for CONNECT and MITM.
+- `internal/proxy`: owned request loop, filter chain, CONNECT handling, fixed-certificate MITM, tunneling, and phased errors.
+- `mitmcert`: generation, loading, and validation of the immutable interception identity.
 
 ## Filter Order
 
@@ -33,7 +34,7 @@ The runtime filter chain is assembled in this order:
 4. `DnsLookupFilter`
 5. `RecorderFilter`
 6. `ChainedProxyFilter` when `nextProxy` is configured
-7. proxycompat's upstream transport
+7. the internal proxy transport
 
 The important consequences are that recorderproxy state exists before error handling, DNS lookup, and body wrapping; `ErrorHandlerFilter` wraps failures from the rest of the request path; and chained-proxy rewriting happens after recorder logic has identified the real target URI.
 
@@ -85,10 +86,10 @@ Browser/client
 RecorderProxy
 	|
 	|  ContextInitFilter registers CONNECT with BrowserController
-	|  proxycompat immediately returns CONNECT 200
-	|  proxycompat establishes upstream TCP and MITMs TLS locally
+	|  internal proxy engine immediately returns CONNECT 200
+	|  internal proxy engine establishes upstream TCP and MITMs TLS locally
 	v
-Tunneled HTTP request loop inside proxycompat
+Tunneled HTTP request loop inside internal/proxy
 	|
 	|  GET /... over decrypted MITM connection
 	v
@@ -100,11 +101,11 @@ Origin server
 
 The CONNECT request itself is not the recorded fetch. It is the setup step that gives recorderproxy enough state to process the tunneled HTTPS request that follows.
 
-The immediate CONNECT 200 is intentional. Chromium must be allowed to start its side of TLS even when upstream setup will fail. Proxycompat is the sole owner of this acknowledgement; recorder filters must not send a second CONNECT response.
+The immediate CONNECT 200 is intentional. Chromium must be allowed to start its side of TLS even when upstream setup will fail. The internal engine is the sole owner of this acknowledgement; recorder filters must not send a second CONNECT response.
 
 If upstream TCP dialing, upstream-proxy CONNECT, or upstream TLS fails, recorderproxy preserves the original phased failure while allowing the downstream TLS handshake to complete. The inner HTTPS request then enters the same filter chain with a failed transport. This creates the normal request-scoped record, terminates BrowserController and ContentWriter consistently, and returns a canonical HTTPS error response such as 503 to Chromium.
 
-For failures that occur before MITM has an upstream connection, the small `unavailableUpstreamConn` in `proxycompat` adapts the failure to the interceptor's eager `net.Conn` API. It owns no socket, buffer, or goroutine and returns the preserved failure from all I/O. It must not be treated as a successful or fake upstream connection. Upstream TLS failures arrive from the fixed interceptor itself and reuse the successfully established downstream TLS connection.
+For failures that occur before an upstream connection exists, the engine completes downstream TLS when possible and passes the original phased failure into the tunneled HTTP transport. Upstream TLS failures use the same request path and reuse the successfully established downstream TLS connection.
 
 If no downstream TLS connection or inner HTTP request exists, recorderproxy logs the phased connection failure and closes without manufacturing a crawl resource. It must never write a plaintext HTTP error after CONNECT 200.
 
@@ -151,26 +152,25 @@ Recorderproxy still performs local MITM after the tunnel is established, so the 
 - `RecorderFilter` creates request and response wrappers that stream protocol headers, payload chunks, and final metadata to ContentWriter.
 - `wrappedResponseBody.Close()` is where recorderproxy detects that the browser/client disappeared before response EOF and converts that into a cancel path.
 
-The recent migration made this especially important because newer getlantern request handling reuses connection state aggressively. Recorderproxy now has to distinguish clearly between:
+The owned request loop makes it especially important to distinguish clearly between:
 
 - connection-scoped state that survives across requests on the same downstream connection
 - request-scoped state that must remain attached to the specific tunneled request being recorded
 
-## Implications Of The Local CONNECT/MITM Layer
+## Implications Of The Internal Proxy Engine
 
-Adding CONNECT/MITM support back on top of newer `proxy/v3` has a few concrete implications:
+Owning the CONNECT/MITM loop has a few concrete implications:
 
-- Recorderproxy now owns behavior that used to be hidden inside upstream getlantern proxy releases.
-- Bugs in CONNECT setup, TLS wrapping, and tunneled HTTP recursion are now local recorderproxy bugs, not just dependency quirks.
+- Bugs in CONNECT setup, TLS wrapping, and tunneled HTTP recursion are recorderproxy bugs.
 - MITM wrappers must preserve access to the recorderproxy base context when connections are rewrapped.
 - Response writes for MITM and tunneled traffic must go directly to the downstream connection. Buffering that write path can hide client disconnects until too late and break cancel semantics.
 - Chained-proxy behavior has to be maintained explicitly: recorderproxy must rewrite requests into absolute form for the second proxy while still recording the original target URI.
 
-In practice, `proxycompat` should be treated as part of recorderproxy's core logic, not as a throwaway shim.
+In practice, `internal/proxy` is part of recorderproxy's core logic, not a general-purpose proxy library.
 
 ## Error Handling
 
-Operational errors carry an explicit `proxycompat.ErrorPhase` and retain their original cause. Recorder-specific classification happens once in `recorderproxy/errors.go`, producing a canonical code, message, detail, phase, and connection/resource scope.
+Operational errors carry an explicit `proxy.ErrorPhase` and retain their original cause. Recorder-specific classification happens once in `recorderproxy/errors.go`, producing a canonical code, message, detail, phase, and connection/resource scope.
 
 With a request-scoped `RecordContext`, the terminal path completes BrowserController at most once, terminates ContentWriter at most once, and returns a canonical HTTP response when the protocol still permits it. Without a `RecordContext`, the proxy logs and closes rather than inventing a resource result.
 
@@ -247,7 +247,7 @@ profiling off after the investigation.
 This directory is an independent Go module. Run tests from here:
 
 ```sh
-go test ./proxycompat ./recorderproxy -count=1
+go test ./internal/proxy ./mitmcert ./recorderproxy -count=1
 go test ./... -count=1
 ```
 

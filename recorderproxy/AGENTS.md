@@ -20,7 +20,7 @@ This is an independent Go module. Run Go commands from this directory.
 
 ## Start Here
 
-The main assembly point is `recorderproxy/recorderproxy.go`. Read it before changing request flow. It constructs the filter chain and configures the local `proxycompat` CONNECT/MITM loop.
+The main assembly point is `recorderproxy/recorderproxy.go`. Read it before changing request flow. It constructs the filter chain and configures the owned `internal/proxy` CONNECT/MITM loop.
 
 The effective filter order, outermost to innermost, is:
 
@@ -30,7 +30,7 @@ The effective filter order, outermost to innermost, is:
 4. `DnsLookupFilter`
 5. `RecorderFilter`
 6. `ChainedProxyFilter`, when a next proxy is configured
-7. the proxycompat transport
+7. the internal proxy transport
 
 Order is behavior. In particular:
 
@@ -44,7 +44,8 @@ Do not reorder filters as cleanup without proving HTTP, HTTPS, error, cancellati
 
 - `main.go`, `options.go`: process startup, flags/environment, gRPC connections, and the pool of listeners. Proxy `i` listens on base port plus `i`.
 - `recorderproxy/`: recorder-specific filters, dialing, request/response recording, error classification, and listener lifecycle.
-- `proxycompat/`: locally owned compatibility layer around `github.com/getlantern/proxy/v3`, including the fixed-certificate MITM interceptor. It owns CONNECT acknowledgement, MITM, tunneled HTTP recursion, and phase-aware connection errors.
+- `internal/proxy/`: purpose-built request loop, minimal filter chain, CONNECT acknowledgement, fixed-certificate MITM, tunneled HTTP recursion, networking adapters, and phase-aware errors.
+- `mitmcert/`: generation, loading, and validation for the immutable interception identity shared by listeners.
 - `context/`: connection/request state plus BrowserController and ContentWriter client lifecycles. This package is recorderproxy state, not ordinary immutable Go context values.
 - `errors/`: canonical recorder error codes and `ProxyError` constructors.
 - `serviceconnections/`: long-lived gRPC connections to BrowserController, DnsResolver, and ContentWriter.
@@ -71,8 +72,8 @@ CONNECT is setup, not the recorded HTTPS resource.
 The intended flow is:
 
 1. `ContextInitFilter` registers the browser's CONNECT with BrowserController and stores connection metadata.
-2. With `OKWaitsForUpstream: false`, proxycompat returns CONNECT 200 immediately. This prevents Chromium from blocking on upstream setup. Proxycompat is the sole owner of this acknowledgement.
-3. Proxycompat dials the origin or next proxy and performs local MITM.
+2. With `WaitForUpstream: false`, the internal engine returns CONNECT 200 immediately. This prevents Chromium from blocking on upstream setup. The engine is the sole owner of this acknowledgement.
+3. The engine dials the origin or next proxy and performs local MITM.
 4. The decrypted inner request, such as `GET /`, re-enters the normal filter chain and gets its own `RecordContext`.
 
 Do not add another CONNECT 200 in `RecorderFilter` or recorder-specific error handling.
@@ -84,10 +85,10 @@ An upstream TCP, upstream-proxy CONNECT, or upstream TLS failure must not be hid
 The current model is deliberate:
 
 - `Dial` returns the real error.
-- For TCP dial and upstream-proxy CONNECT failures, `proxycompat.unavailableUpstreamConn` adapts the failure to the interceptor's eager `net.Conn` API. It owns no socket, buffer, or goroutine, and every I/O operation returns the original error. It is not a simulated successful connection.
+- For TCP dial and upstream-proxy CONNECT failures, the engine preserves the original phased failure while completing downstream TLS when possible.
 - For an upstream TLS failure, MITM returns the failure together with the usable downstream TLS connection.
 - MITM completes the downstream/browser TLS handshake when possible.
-- Once the inner HTTPS request is available, proxycompat sends it through the normal filter chain with a deterministic failed transport carrying the original phased error.
+- Once the inner HTTPS request is available, the engine sends it through the normal filter chain with a deterministic failed transport carrying the original phased error.
 - The normal request path then registers the resource, starts/terminates ContentWriter consistently, completes BrowserController once, and returns a TLS-wrapped canonical error response to Chromium.
 
 If downstream TLS or inner-request parsing fails before a `RecordContext` exists, log the phased connection failure and close. Do not invent a crawl resource.
@@ -96,7 +97,7 @@ Never write a plaintext HTTP error after CONNECT 200; Chromium is speaking TLS a
 
 ## Error Model
 
-`proxycompat.ErrorPhase` identifies where an operational error occurred. Current phases cover request reading/filtering, upstream dial, upstream-proxy CONNECT, downstream and upstream TLS, inner HTTP parsing, HTTP round trip, response writing, and raw tunneling.
+`internal/proxy.ErrorPhase` identifies where an operational error occurred. Current phases cover request reading/filtering, upstream dial, upstream-proxy CONNECT, downstream and upstream TLS, inner HTTP parsing, HTTP round trip, response writing, and raw tunneling.
 
 `recorderproxy.RecorderFailure` is the canonical internal classification and contains:
 
@@ -157,7 +158,7 @@ Recorderproxy MITMs every CONNECT (`ShouldMITM` returns true). Chromium must tru
 Use the narrowest package first, then the whole module:
 
 ```sh
-go test ./proxycompat ./recorderproxy -count=1
+go test ./internal/proxy ./mitmcert ./recorderproxy -count=1
 go test ./... -count=1
 ```
 
@@ -165,7 +166,7 @@ Some integration tests bind local TCP listeners. In restricted environments they
 
 Important coverage lives in:
 
-- `proxycompat/errors_test.go`: phase/cause preservation and the unavailable-upstream adapter.
+- `internal/proxy/`: phase/cause preservation, identity sharing, request-loop, and networking behavior.
 - `recorderproxy/errors_test.go`: canonical classification.
 - `recorderproxy/recorderproxy_test.go`: HTTP/HTTPS behavior plus BrowserController, DnsResolver, and ContentWriter interactions.
 - `recorderproxy/dial_test.go`: dial timeout behavior.
@@ -184,7 +185,7 @@ The large integration test intentionally checks full RPC sequences. A changed ex
 
 ## Change Guidelines
 
-- Keep `proxycompat` small, explicit, and dependency-focused. Recorder policy belongs in `recorderproxy/`; protocol-loop mechanics belong in `proxycompat/`.
+- Keep `internal/proxy` small and purpose-built. Recorder policy belongs in `recorderproxy/`; protocol-loop mechanics belong in `internal/proxy/`.
 - Preserve error causes and phases at package boundaries.
 - Keep terminal operations idempotent.
 - Do not create goroutines or in-memory connections just to turn an upstream error into later control flow.

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/spf13/pflag"
@@ -54,7 +54,7 @@ func run() error {
 
 	slog.Info(name, "version", version, "commit", commit, "date", date)
 
-	mitmIdentity, err := proxycompat.LoadMITMIdentity(opts.MITMCertFile(), opts.MITMKeyFile())
+	mitmIdentity, err := mitmcert.LoadIdentity(opts.MITMCertFile(), opts.MITMKeyFile())
 	if err != nil {
 		return fmt.Errorf("failed to load MITM identity: %w", err)
 	}

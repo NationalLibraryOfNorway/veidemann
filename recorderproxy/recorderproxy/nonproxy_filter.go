@@ -20,21 +20,21 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
 var errNonProxyRequest = errors.New("this is a proxy server and does not respond to non-proxy requests")
 
-// NonproxyFilter is a filter which returns an error if the proxy is accessed as if it where a web server and not a proxy.
-type NonproxyFilter struct{}
+// nonproxyFilter rejects requests that address the proxy as an origin server.
+type nonproxyFilter struct{}
 
-func (f *NonproxyFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *nonproxyFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	if req.Method == http.MethodConnect {
 		return next(cs, req)
 	}
 
 	if !req.URL.IsAbs() && !cs.IsMITMing() {
-		resp, nextCS, _ := filters.Fail(
+		resp, nextCS, _ := proxy.Fail(
 			cs,
 			req,
 			http.StatusBadRequest,

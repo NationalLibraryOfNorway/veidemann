@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
 func TestClassifyFailure(t *testing.T) {
@@ -18,74 +18,74 @@ func TestClassifyFailure(t *testing.T) {
 		code    rperrors.ErrorCode
 		message string
 		detail  string
-		phase   proxycompat.ErrorPhase
+		phase   proxy.ErrorPhase
 	}{
 		{
 			name:    "wrapped dial refusal",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseConnectDial, fmt.Errorf("dial tcp: %w", stderrors.New("connection refused"))),
+			err:     proxy.NewPhaseError(proxy.PhaseConnectDial, fmt.Errorf("dial tcp: %w", stderrors.New("connection refused"))),
 			code:    rperrors.ConnectFailed,
 			message: "CONNECT_FAILED",
 			detail:  "connection refused",
-			phase:   proxycompat.PhaseConnectDial,
+			phase:   proxy.PhaseConnectDial,
 		},
 		{
 			name:    "deadline",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseHTTPRoundTrip, context.DeadlineExceeded),
+			err:     proxy.NewPhaseError(proxy.PhaseHTTPRoundTrip, context.DeadlineExceeded),
 			code:    rperrors.HttpTimeout,
 			message: "HTTP_TIMEOUT",
 			detail:  "context deadline exceeded",
-			phase:   proxycompat.PhaseHTTPRoundTrip,
+			phase:   proxy.PhaseHTTPRoundTrip,
 		},
 		{
 			name:    "dns",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseConnectDial, &net.DNSError{Err: "no such host", Name: "missing.example"}),
+			err:     proxy.NewPhaseError(proxy.PhaseConnectDial, &net.DNSError{Err: "no such host", Name: "missing.example"}),
 			code:    rperrors.DomainLookupFailed,
 			message: "DOMAIN_LOOKUP_FAILED",
 			detail:  "lookup missing.example: no such host",
-			phase:   proxycompat.PhaseConnectDial,
+			phase:   proxy.PhaseConnectDial,
 		},
 		{
 			name:    "round trip EOF",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseHTTPRoundTrip, stderrors.New("EOF")),
+			err:     proxy.NewPhaseError(proxy.PhaseHTTPRoundTrip, stderrors.New("EOF")),
 			code:    rperrors.EmptyResponse,
 			message: "EMPTY_RESPONSE",
 			detail:  "Empty reply from server",
-			phase:   proxycompat.PhaseHTTPRoundTrip,
+			phase:   proxy.PhaseHTTPRoundTrip,
 		},
 		{
 			name:    "upstream TLS",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseUpstreamTLS, stderrors.New("tls: handshake failure")),
+			err:     proxy.NewPhaseError(proxy.PhaseUpstreamTLS, stderrors.New("tls: handshake failure")),
 			code:    rperrors.ConnectFailed,
 			message: "CONNECT_FAILED",
 			detail:  "tls: handshake failure",
-			phase:   proxycompat.PhaseUpstreamTLS,
+			phase:   proxy.PhaseUpstreamTLS,
 		},
 		{
 			name:    "upstream TLS invalid record",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseUpstreamTLS, stderrors.New("tls: first record does not look like a TLS handshake")),
+			err:     proxy.NewPhaseError(proxy.PhaseUpstreamTLS, stderrors.New("tls: first record does not look like a TLS handshake")),
 			code:    rperrors.ConnectFailed,
 			message: "CONNECT_FAILED",
 			detail:  "tls: handshake failure",
-			phase:   proxycompat.PhaseUpstreamTLS,
+			phase:   proxy.PhaseUpstreamTLS,
 		},
 		{
 			name: "typed squid refusal",
-			err: proxycompat.NewPhaseError(
-				proxycompat.PhaseUpstreamProxyConnect,
+			err: proxy.NewPhaseError(
+				proxy.PhaseUpstreamProxyConnect,
 				rperrors.Error(rperrors.ConnectFailed, "CONNECT_FAILED", "connect: connection refused"),
 			),
 			code:    rperrors.ConnectFailed,
 			message: "CONNECT_FAILED",
 			detail:  "connection refused",
-			phase:   proxycompat.PhaseUpstreamProxyConnect,
+			phase:   proxy.PhaseUpstreamProxyConnect,
 		},
 		{
 			name:    "untyped squid header",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseUpstreamProxyConnect, stderrors.New("X-Squid-Error: ERR_CONNECT_FAIL 111")),
+			err:     proxy.NewPhaseError(proxy.PhaseUpstreamProxyConnect, stderrors.New("X-Squid-Error: ERR_CONNECT_FAIL 111")),
 			code:    rperrors.ConnectFailed,
 			message: "CONNECT_FAILED",
 			detail:  "X-Squid-Error: ERR_CONNECT_FAIL 111",
-			phase:   proxycompat.PhaseUpstreamProxyConnect,
+			phase:   proxy.PhaseUpstreamProxyConnect,
 		},
 		{
 			name:    "browser cancellation",
@@ -96,11 +96,11 @@ func TestClassifyFailure(t *testing.T) {
 		},
 		{
 			name:    "unknown",
-			err:     proxycompat.NewPhaseError(proxycompat.PhaseHTTPRoundTrip, stderrors.New("tls: bad record MAC")),
+			err:     proxy.NewPhaseError(proxy.PhaseHTTPRoundTrip, stderrors.New("tls: bad record MAC")),
 			code:    rperrors.RuntimeException,
 			message: "UNKNOWN_ERROR",
 			detail:  "tls: bad record MAC",
-			phase:   proxycompat.PhaseHTTPRoundTrip,
+			phase:   proxy.PhaseHTTPRoundTrip,
 		},
 	}
 

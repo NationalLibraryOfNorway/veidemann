@@ -6,8 +6,7 @@ import (
 	"net/http"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/getlantern/netx"
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
 type proxyContextCarrier interface {
@@ -20,18 +19,22 @@ func proxyContextFromConn(conn net.Conn) context.Context {
 	}
 
 	var baseCtx context.Context
-	netx.WalkWrapped(conn, func(candidate net.Conn) bool {
+	for candidate := conn; candidate != nil; {
 		carrier, ok := candidate.(proxyContextCarrier)
-		if !ok {
-			return true
+		if ok {
+			baseCtx = carrier.ProxyContext()
+			break
 		}
-		baseCtx = carrier.ProxyContext()
-		return false
-	})
+		wrapped, ok := candidate.(interface{ Wrapped() net.Conn })
+		if !ok || wrapped.Wrapped() == candidate {
+			break
+		}
+		candidate = wrapped.Wrapped()
+	}
 	return baseCtx
 }
 
-func filterContext(cs *filters.ConnectionState, req *http.Request) context.Context {
+func filterContext(cs *proxy.State, req *http.Request) context.Context {
 	if req != nil {
 		requestCtx := req.Context()
 		if rpcontext.HasStateHandle(requestCtx) {

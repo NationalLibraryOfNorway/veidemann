@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/proxycompat"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
 type FailureScope string
@@ -24,7 +24,7 @@ type RecorderFailure struct {
 	Code    rperrors.ErrorCode
 	Message string
 	Detail  string
-	Phase   proxycompat.ErrorPhase
+	Phase   proxy.ErrorPhase
 	Scope   FailureScope
 	Cause   error
 }
@@ -41,7 +41,7 @@ func (f RecorderFailure) asError() error {
 }
 
 func classifyFailure(err error, scope FailureScope) RecorderFailure {
-	phase := proxycompat.Phase(err)
+	phase := proxy.Phase(err)
 
 	var proxyErr *rperrors.ProxyError
 	if errors.As(err, &proxyErr) {
@@ -69,7 +69,7 @@ func classifyFailure(err error, scope FailureScope) RecorderFailure {
 		code = rperrors.DomainLookupFailed
 
 	case containsAny(detail, "empty reply from server", "server closed idle connection", "unexpected eof") ||
-		(detail == "EOF" && phase == proxycompat.PhaseHTTPRoundTrip):
+		(detail == "EOF" && phase == proxy.PhaseHTTPRoundTrip):
 		code = rperrors.EmptyResponse
 		detail = "Empty reply from server"
 
@@ -93,13 +93,13 @@ func classifyFailure(err error, scope FailureScope) RecorderFailure {
 	}
 }
 
-func isConnectPhase(phase proxycompat.ErrorPhase) bool {
+func isConnectPhase(phase proxy.ErrorPhase) bool {
 	switch phase {
-	case proxycompat.PhaseConnectDial,
-		proxycompat.PhaseUpstreamProxyConnect,
-		proxycompat.PhaseDownstreamTLS,
-		proxycompat.PhaseUpstreamTLS,
-		proxycompat.PhaseTunnel:
+	case proxy.PhaseConnectDial,
+		proxy.PhaseUpstreamProxyConnect,
+		proxy.PhaseDownstreamTLS,
+		proxy.PhaseUpstreamTLS,
+		proxy.PhaseTunnel:
 		return true
 	default:
 		return false

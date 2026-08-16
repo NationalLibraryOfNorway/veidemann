@@ -25,16 +25,15 @@ import (
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 	"google.golang.org/grpc/status"
 )
 
-// DnsLookupFilter
-type DnsLookupFilter struct {
-	DnsResolverClient dnsresolverV1.DnsResolverClient
+type dnsLookupFilter struct {
+	dnsResolverClient dnsresolverV1.DnsResolverClient
 }
 
-func (f *DnsLookupFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *dnsLookupFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
 	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:dns")
 
@@ -51,7 +50,7 @@ func (f *DnsLookupFilter) Apply(cs *filters.ConnectionState, req *http.Request, 
 	return
 }
 
-func (f *DnsLookupFilter) resolve(ctx context.Context, host, port string) (err error) {
+func (f *dnsLookupFilter) resolve(ctx context.Context, host, port string) (err error) {
 	var p = 0
 	if port != "" {
 		p, err = strconv.Atoi(port)
@@ -67,7 +66,7 @@ func (f *DnsLookupFilter) resolve(ctx context.Context, host, port string) (err e
 		Port:          int32(p),
 	}
 
-	dnsResp, err := f.DnsResolverClient.Resolve(ctx, dnsReq)
+	dnsResp, err := f.dnsResolverClient.Resolve(ctx, dnsReq)
 	s := status.Convert(err)
 	if err != nil {
 		err = errors.Wrap(err, errors.DomainLookupFailed, fmt.Sprintf("Got 'no such host' from DNS for host: %s, port: %s", host, port), s.Message())

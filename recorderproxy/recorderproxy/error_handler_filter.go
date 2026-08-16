@@ -20,13 +20,13 @@ import (
 	"net/http"
 
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
-// ErrorHandlerFilter converts downstream failures into canonical recorder responses.
-type ErrorHandlerFilter struct{}
+// errorHandlerFilter converts downstream failures into canonical recorder responses.
+type errorHandlerFilter struct{}
 
-func (f *ErrorHandlerFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (resp *http.Response, nextCS *filters.ConnectionState, err error) {
+func (f *errorHandlerFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
 	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:err")
 

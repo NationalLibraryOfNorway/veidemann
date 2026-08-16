@@ -7,16 +7,16 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/getlantern/proxy/v3/filters"
+	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 )
 
 // handleRequestError creates a short circuit response for requests that fail before or in request handling.
 // Only CrawlLog is sent, nothing is written to content writer.
 func handleRequestError(
-	cs *filters.ConnectionState,
+	cs *proxy.State,
 	req *http.Request,
 	reqErr error,
-) (*http.Response, *filters.ConnectionState, error) {
+) (*http.Response, *proxy.State, error) {
 	ctx := filterContext(cs, req)
 	l := rpcontext.LogWithContextAndRequest(ctx, req, "REQH")
 	l.WithError(reqErr).Debug("handling request error")
@@ -39,12 +39,12 @@ func handleRequestError(
 }
 
 func Deny(
-	cs *filters.ConnectionState,
+	cs *proxy.State,
 	req *http.Request,
 	status int,
 	msg string,
-) (*http.Response, *filters.ConnectionState, error) {
-	resp, nextCS, _ := filters.Fail(cs, req, status, errors.New(msg))
+) (*http.Response, *proxy.State, error) {
+	resp, nextCS, _ := proxy.Fail(cs, req, status, errors.New(msg))
 	if resp != nil {
 		resp.Close = true
 	}
@@ -52,10 +52,10 @@ func Deny(
 }
 
 func denyResponse(
-	cs *filters.ConnectionState,
+	cs *proxy.State,
 	req *http.Request,
 	err error,
-) (*http.Response, *filters.ConnectionState, error) {
+) (*http.Response, *proxy.State, error) {
 	resp, nextCS := errorResponse(cs, req, err)
 	if resp != nil {
 		resp.Close = true
@@ -64,8 +64,8 @@ func denyResponse(
 }
 
 // errorResponse creates a response from an error and populates Veidemann specific headers
-func errorResponse(cs *filters.ConnectionState, req *http.Request, err error) (*http.Response, *filters.ConnectionState) {
-	resp, nextCS, _ := filters.Fail(cs, req, rperrors.HttpStatusCode(err), err)
+func errorResponse(cs *proxy.State, req *http.Request, err error) (*http.Response, *proxy.State) {
+	resp, nextCS, _ := proxy.Fail(cs, req, rperrors.HttpStatusCode(err), err)
 	if resp != nil {
 		resp.Header.Add(constants.HeaderProxyErrorCode, rperrors.Code(err).String())
 		resp.Header.Add(constants.HeaderProxyError, rperrors.Message(err))
