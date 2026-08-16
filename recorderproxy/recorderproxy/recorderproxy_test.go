@@ -41,6 +41,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
@@ -700,6 +701,72 @@ func TestRecorderProxyThroughProxy(t *testing.T) {
 			compareBC(t, "BrowserController", tt, tt.wantGrpcRequests.BrowserControllerRequests, grpcServices.Requests.BrowserControllerRequests)
 			compareCW(t, "ContentWriter", tt.wantGrpcRequests.ContentWriterRequests, grpcServices.Requests.ContentWriterRequests)
 		})
+	}
+}
+
+func TestRecorderProxyThroughProxyEmptySNIUsesRecorderCertificate(t *testing.T) {
+	s := testutil.NewHttpServers(t)
+	defer s.Close()
+
+	grpcServices := testutil.NewGrpcServiceMock()
+	defer grpcServices.Close()
+
+	nextProxy, nextProxyAddr := testutil.NewSecondaryProxy(t, s)
+	defer nextProxy.Close()
+
+	certPEM, keyPEM, err := mitmcert.Generate(time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := mitmcert.ParseIdentity(certPEM, keyPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client, recorderProxy, err := localRecorderProxy(
+		t,
+		grpcServices.ClientConn,
+		nextProxyAddr,
+		recorderproxy.WithMITMIdentity(identity),
+	)
+	if err != nil {
+		t.Fatalf("Failed to initialize local recorder proxy: %v", err)
+	}
+	defer client.CloseIdleConnections()
+	defer recorderProxy.Shutdown(context.TODO())
+
+	transport := client.Transport.(*http.Transport)
+	transport.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
+		VerifyConnection: func(state tls.ConnectionState) error {
+			if len(state.PeerCertificates) == 0 {
+				return fmt.Errorf("server returned no certificate")
+			}
+			if !reflect.DeepEqual(
+				state.PeerCertificates[0].RawSubjectPublicKeyInfo,
+				identity.Certificate().RawSubjectPublicKeyInfo,
+			) {
+				return fmt.Errorf("server returned a certificate other than recorderproxy's identity")
+			}
+			return nil
+		},
+	}
+
+	target, err := url.Parse(s.SrvHttps.URL + "/b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	target.Host = net.JoinHostPort("127.0.0.1", target.Port())
+
+	statusCode, body, err := get(target.String(), client, 0)
+	if err != nil {
+		t.Fatalf("GET through chained proxy: %v", err)
+	}
+	if statusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", statusCode, http.StatusOK)
+	}
+	if !strings.HasPrefix(string(body), "content from https server") {
+		t.Fatalf("response body = %q", body)
 	}
 }
 
@@ -1757,13 +1824,18 @@ func printRequest(req interface{}) string {
 }
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
-func localRecorderProxy(t testing.TB, conn *serviceconnections.Connections, nextProxyAddr string) (*http.Client, *recorderproxy.RecorderProxy, error) {
+func localRecorderProxy(
+	t testing.TB,
+	conn *serviceconnections.Connections,
+	nextProxyAddr string,
+	options ...recorderproxy.Option,
+) (*http.Client, *recorderproxy.RecorderProxy, error) {
 	t.Helper()
 
 	host := "localhost"
 	port := 0
 
-	proxy := recorderproxy.NewRecorderProxy(0, conn, nextProxyAddr)
+	proxy := recorderproxy.NewRecorderProxy(0, conn, nextProxyAddr, options...)
 
 	ln, err := proxy.Listen(host, port)
 	if err != nil {

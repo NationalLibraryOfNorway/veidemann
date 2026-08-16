@@ -49,7 +49,11 @@ func TestHandlerUsesOneCertificateForEverySNI(t *testing.T) {
 			t.Fatal("handler returned a different certificate")
 		}
 	}
-	if _, err := handler.serverTLSConfig.GetCertificate(&tls.ClientHelloInfo{}); err == nil {
-		t.Fatal("empty SNI was accepted")
+	certificate, err := handler.serverTLSConfig.GetCertificate(&tls.ClientHelloInfo{})
+	if err != nil {
+		t.Fatalf("empty SNI was rejected: %v", err)
+	}
+	if certificate != first {
+		t.Fatal("empty SNI returned a different certificate")
 	}
 }

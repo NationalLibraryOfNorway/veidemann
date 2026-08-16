@@ -38,7 +38,12 @@ The runtime filter chain is assembled in this order:
 
 The important consequences are that recorderproxy state exists before error handling, DNS lookup, and body wrapping; `ErrorHandlerFilter` wraps failures from the rest of the request path; and chained-proxy rewriting happens after recorder logic has identified the real target URI.
 
-## Flow Without A Second Proxy
+## Direct Transport Internals
+
+The recorderproxy executable requires both `--cache-host`/`CACHE_HOST` and
+`--cache-port`/`CACHE_PORT`; Squid is part of the supported runtime topology.
+`NewRecorderProxy` retains an empty-`nextProxy` path for focused integration
+tests, but that path is not a supported deployment mode.
 
 Basic HTTP flow:
 
@@ -109,9 +114,9 @@ For failures that occur before an upstream connection exists, the engine complet
 
 If no downstream TLS connection or inner HTTP request exists, recorderproxy logs the phased connection failure and closes without manufacturing a crawl resource. It must never write a plaintext HTTP error after CONNECT 200.
 
-## Flow With A Second Proxy
+## Runtime Flow With Squid
 
-When `nextProxy` is configured, recorderproxy still owns request state, DNS bookkeeping, ContentWriter streaming, cancellation behavior, and BrowserController interaction. The second proxy only becomes the upstream transport hop.
+Recorderproxy still owns request state, DNS bookkeeping, ContentWriter streaming, cancellation behavior, and BrowserController interaction. Squid only becomes the upstream transport hop.
 
 ```text
 Browser/client
@@ -196,6 +201,10 @@ Runtime proxying requires a matching leaf certificate and private key through
 `--mitm-cert-file`/`MITM_CERT_FILE` and
 `--mitm-key-file`/`MITM_KEY_FILE`. The identity is validated before listeners
 open and is shared by every listener without generating hostname certificates.
+The same identity is presented when a TLS ClientHello omits SNI. BrowserController
+limits Chromium's certificate exception to this leaf's SPKI, while recorderproxy
+intentionally does not verify the certificate presented by its upstream Squid
+connection.
 The container includes `/generate-mitm-cert` for creating the pod-scoped leaf
 used by the Kubernetes harvester deployment. ContentWriter terminal operations
 are bounded by `--finalization-timeout`, which defaults to 30 seconds.

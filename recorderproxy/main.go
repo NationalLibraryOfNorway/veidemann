@@ -47,6 +47,11 @@ func run() error {
 		return nil
 	}
 
+	cacheAddr, err := cacheAddress(opts.CacheHost(), opts.CachePort())
+	if err != nil {
+		return err
+	}
+
 	err = logger.InitLog(opts.LogLevel(), opts.LogFormatter(), opts.LogMethod())
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
@@ -88,7 +93,6 @@ func run() error {
 		return fmt.Errorf("failed to connect to services: %w", err)
 	}
 
-	cacheAddr := opts.CacheHost() + ":" + opts.CachePort()
 	slog.Info("Using cache", "address", cacheAddr)
 
 	metricsAddr := net.JoinHostPort(opts.MetricsInterface(), strconv.Itoa(opts.MetricsPort()))
@@ -163,6 +167,13 @@ func run() error {
 	}
 
 	return nil
+}
+
+func cacheAddress(host, port string) (string, error) {
+	if host == "" || port == "" {
+		return "", errors.New("both cache-host and cache-port are required")
+	}
+	return net.JoinHostPort(host, port), nil
 }
 
 func serveHTTP(name string, server *http.Server, listener net.Listener) {

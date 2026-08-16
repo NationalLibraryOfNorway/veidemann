@@ -59,10 +59,7 @@ func New(config Config) (*Handler, error) {
 	h := &Handler{config: config}
 	h.serverTLSConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,
-		GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			if hello.ServerName == "" {
-				return nil, errors.New("no ServerName provided")
-			}
+		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 			return certificate, nil
 		},
 	}

@@ -140,7 +140,13 @@ No protobuf or service API change should be needed for ordinary recorderproxy er
 
 ## Chained Proxy Behavior
 
-The runtime calls the configured next proxy the cache in flags (`cache-host` and `cache-port`). When configured:
+The executable requires the cache flags (`cache-host` and `cache-port`) and uses
+Squid as its next proxy. The constructor's empty-next-proxy path exists for
+focused integration tests and is not a supported deployment mode. Do not expose
+it operationally without making direct dialing use the IP returned by
+DnsResolver and proving the full HTTP/HTTPS lifecycle.
+
+With Squid configured:
 
 - `Dial` connects to the next proxy instead of the origin.
 - HTTPS sends an explicit upstream CONNECT before local MITM.
@@ -151,7 +157,13 @@ Squid's `X-Squid-Error` is an untyped protocol boundary. Normalize it once into 
 
 ## Certificates And TLS
 
-Recorderproxy MITMs every CONNECT (`ShouldMITM` returns true). Chromium must trust or ignore the generated interception certificate. The compatibility layer currently uses `/tmp/rpcert.pem` and intentionally skips verification of upstream certificates. The `--ca` and `--ca-key` options exist, but startup does not currently apply them; do not document them as active without implementing and testing that path.
+Recorderproxy loads one fixed server leaf and private key through
+`--mitm-cert-file`/`MITM_CERT_FILE` and
+`--mitm-key-file`/`MITM_KEY_FILE`. Every listener presents that identity for
+MITM, including when the client omits SNI. BrowserController scopes Chromium's
+certificate exception to the leaf's SPKI. Recorderproxy intentionally skips
+verification of upstream TLS certificates, including Squid's bumped
+certificate.
 
 ## Tests And Validation
 

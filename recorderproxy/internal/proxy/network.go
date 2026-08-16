@@ -89,6 +89,8 @@ type copyResult struct {
 	err       error
 }
 
+const tunnelDrainTimeout = time.Second
+
 func bidirectionalCopy(upstream, downstream net.Conn) (writeErr, readErr error) {
 	results := make(chan copyResult, 2)
 	var once sync.Once
@@ -114,9 +116,9 @@ func bidirectionalCopy(upstream, downstream net.Conn) (writeErr, readErr error) 
 				closeWrite(downstream)
 				closeRead(upstream)
 			}
-			now := time.Now()
-			_ = upstream.SetDeadline(now)
-			_ = downstream.SetDeadline(now)
+			deadline := time.Now().Add(tunnelDrainTimeout)
+			_ = upstream.SetDeadline(deadline)
+			_ = downstream.SetDeadline(deadline)
 		})
 	}
 	return writeErr, readErr
