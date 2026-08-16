@@ -5,19 +5,19 @@ two roles in Kubernetes:
 
 | Squid role | Kubernetes workload | Responsibility |
 | --- | --- | --- |
-| Child/balancer | `Deployment/cache`, selected by `Service/cache-balancer` | Accept harvester proxy connections and use CARP to select a parent. It does not cache objects locally. |
+| Child/balancer | `Deployment/cache`, selected by `Service/cache-balancer` | Accept recorderproxy connections and use CARP to select a parent. It does not cache objects locally. |
 | Parent/cache | `StatefulSet/cache`, selected by `Service/cache` | Perform TLS bump, normalize Store-IDs, and cache fetched objects in its own memory and disk store. |
 
 “Parent” and “child” are the terminology used by
 [Squid cache hierarchies](https://wiki.squid-cache.org/Features/CacheHierarchy).
 The `cache_peer ... parent` declarations make the balancer the child side of
-those peer relationships. A harvester is a client of that child proxy; it is
-not itself a cache child.
+those peer relationships. Recorderproxy is the only client of that child
+proxy; it is not itself a cache child.
 
 ## Request flow
 
 ```text
-Harvester
+recorderproxy
   │  CACHE_HOST=cache-balancer, CACHE_PORT=3128
   ▼
 Service/cache-balancer
@@ -65,19 +65,55 @@ sizing is enabled, the entrypoint measures the filesystem mounted at
 `/var/spool/squid/cache` and writes the resulting `cache_dir` directive to
 `/etc/squid/conf.d/95-cache-dir.conf` before Squid configuration is rendered.
 
-The parent sets `maximum_object_size 16 MB` as its only explicit cache-policy
-tuning. Larger responses are still delivered to the crawler, but are not
-retained. With no custom `refresh_pattern`, Squid uses its conservative
-defaults and honors origin freshness, validation, `private`, and `no-store`
-instructions. This prioritizes TLS certificate generation and keeps crawling
-standards compliant while retaining ordinary reusable web resources to reduce
-repeat origin traffic.
+The parent sets `maximum_object_size 16 MB`, so larger responses are still
+delivered to the crawler but are not retained. It also writes out Squid's three
+default `refresh_pattern` values and adds only `ignore-reload`. Chromium's local
+cache remains disabled so recorderproxy observes every request, while Squid may
+serve a fresh cached response despite the controlled client sending
+`Cache-Control: no-cache` or `Pragma: no-cache`.
+
+Writing all three patterns preserves Squid's normal FTP, CGI/query-string, and
+catch-all freshness calculations; defining any explicit pattern disables the
+implicit default list. `ignore-reload` does not make stale responses fresh or
+override origin `private`, `no-store`, expiry, or validation requirements.
+Store-ID keys remain scoped by job execution, so this exception does not enable
+reuse across different `veidemann_jeid` values.
+
+## Static parent TLS certificate
+
+Every parent presents the same static, non-CA server certificate for every
+bumped HTTPS origin. TLS bump remains enabled because Squid needs the decrypted
+HTTP request and response to apply Store-ID normalization and caching, but
+Squid does not generate per-origin certificates. It does not configure or run
+the `security_file_certgen` helper, and there is no generated-certificate
+memory cache or `ssl_db`.
+
+Recorderproxy deliberately keeps the original origin SNI while connecting
+through Squid and does not verify the upstream proxy certificate. It therefore
+accepts this hostname-mismatched static leaf. Do not install this certificate
+in Chromium or reuse it as recorderproxy's own MITM certificate. Any future
+cache client that verifies hostnames needs a separate trust design.
+
+Only parent pods mount the cert-manager-managed `cache-server-tls` Secret at
+`/tls-certificates`; child pods have no TLS Secret dependency. Before becoming
+ready, `confighandler` verifies that the parent certificate and private key are
+readable, match, are currently valid, describe a non-CA certificate, and permit
+TLS server authentication. Invalid material prevents initial parent startup.
+
+At runtime, `confighandler` fingerprints both mounted files every five seconds.
+After a valid change, it parses the full Squid configuration and queues
+`squid -k reconfigure`, subject to the existing 30-second minimum reconfigure
+interval. New connections receive the renewed certificate after successful
+reconfiguration; the expected maximum detection and rate-limit delay is 35
+seconds. Existing TLS sessions can continue using the old certificate. A
+transiently mismatched Secret update or failed reconfiguration leaves the
+running configuration active and is retried.
 
 ## Why run more than one child?
 
 Multiple child/balancer replicas provide two main benefits:
 
-- **Availability:** `Service/cache-balancer` can send new harvester connections
+- **Availability:** `Service/cache-balancer` can send new recorderproxy connections
   to another child when a child pod is not ready.
 - **Connection capacity:** accepting proxy connections, parsing requests, and
   forwarding traffic are spread across more Squid processes and nodes.
@@ -120,8 +156,8 @@ The rendered dev overlay currently contains:
 - One child/balancer replica behind `Service/cache-balancer`.
 - One parent/cache replica behind `Service/cache`.
 - EndpointSlice discovery permissions for the child’s ServiceAccount.
-- A cert-manager-generated CA mounted at `/ca-certificates` for parent TLS
-  bumping.
+- A cert-manager-generated static server leaf mounted at `/tls-certificates`
+  in parent pods only.
 - An AUFS cache sized to 80% of a `250 MiB` generic ephemeral PVC mounted below
   `/var/spool`.
 - A Squid exporter on port `9301` in both tiers.
@@ -172,7 +208,9 @@ to avoid overcommitting physical storage.
 | `CACHE_DIR_SIZE_PERCENT` | Parent | Integer percentage from 1 through 90 used to size the AUFS cache from the filesystem mounted at `/var/spool/squid/cache`. |
 | `CACHE_DIR_SIZE_MB` | Parent | Explicit positive cache size in MiB. This is an alternative to percentage-based sizing. |
 | `CACHE_DIR_L1` / `CACHE_DIR_L2` | Parent | AUFS directory fan-out. Defaults to `16` and `256`. |
-| `/ca-certificates/tls.crt` and `tls.key` | Parent | Signing CA used for TLS bumping. |
+| `--tls-cert-file` | Parent | TLS certificate path. Defaults to `/tls-certificates/tls.crt`. |
+| `--tls-key-file` | Parent | TLS private-key path. Defaults to `/tls-certificates/tls.key`. |
+| `/tls-certificates/tls.crt` and `tls.key` | Parent | Static non-CA certificate and matching private key used for TLS bumping. |
 | `/etc/squid/conf.d/*.conf` | Both roles | Deployment-specific Squid configuration fragments. |
 
 The image owns `/etc/squid/squid.conf` and the role templates. Deployment
@@ -196,7 +234,8 @@ custom logfile daemon are used.
 ## Helpers
 
 - `confighandler` renders the role configuration, validates changes, discovers
-  parent endpoints in child mode, and triggers safe Squid reconfiguration.
+  parent endpoints in child mode, validates parent TLS material, and triggers
+  safe Squid reconfiguration.
 - `storeid` combines the crawl job identifier and request URL into a stable
   Store-ID so crawl requests for the same job and URL share a cache key.
 
@@ -206,3 +245,21 @@ Run the helper tests from the Go module:
 cd cache/helpers
 go test ./...
 ```
+
+## Certificate rollout and legacy CA cleanup
+
+Use a staged rollout so existing pods that still generate certificates retain
+their signing CA until replacement:
+
+1. Apply the `cache-server` Certificate and wait for `cache-server-tls` to be
+   Ready.
+2. Deploy the new image and parent StatefulSet mount while retaining the legacy
+   `cache-ca` Certificate and `cache` Secret. In production, allow the ordered
+   three-replica StatefulSet rollout to replace and verify one parent at a
+   time.
+3. Verify HTTP and HTTPS MISS/HIT behavior, Store-ID processing, unrelated
+   HTTPS origins receiving the same leaf, broken-origin handling, and live
+   certificate rotation in staging and production.
+4. Remove the legacy `cache-ca` Certificate only after every parent uses
+   `cache-server-tls`. If cert-manager leaves it behind, explicitly delete only
+   the old `cache` Secret.

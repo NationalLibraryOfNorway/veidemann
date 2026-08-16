@@ -16,15 +16,6 @@ spec:
                 resources:
                   requests:
                     storage: 250Mi
-        - name: ca-certificates
-          secret:
-            items:
-              - key: tls.crt
-                path: tls.crt
-              - key: tls.key
-                path: tls.key
-            optional: false
-            secretName: cache
       containers:
         - name: cache
           env:
@@ -35,7 +26,5 @@ spec:
             - name: CACHE_DIR_L2
               value: "16"
           volumeMounts:
-            - name: ca-certificates
-              mountPath: "/ca-certificates"
             - name: cache
               mountPath: /var/spool

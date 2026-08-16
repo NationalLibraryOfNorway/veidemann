@@ -11,11 +11,7 @@ readonly SQUID_ACCESS_LOG_PIPE=${SQUID_RUNTIME_DIR}/access.pipe
 readonly SQUID_CACHE_LOG_PIPE=${SQUID_RUNTIME_DIR}/cache.pipe
 readonly SQUID_PID_FILE=/run/squid.pid
 readonly SQUID_ALT_PID_FILE=${SQUID_RUNTIME_DIR}/squid.pid
-readonly SSL_DB=${SQUID_SPOOL_DIR}/ssl_db
-readonly SSL_DB_SIZE=64MB
 readonly READY_FILE=${SQUID_RUNTIME_DIR}/confighandler.ready
-readonly CA_CERT=/ca-certificates/tls.crt
-readonly CA_FINGERPRINT_FILE=${SQUID_SPOOL_DIR}/ssl_db.ca.sha256
 
 CONF_PID=""
 SQUID_PID=""
@@ -206,44 +202,8 @@ configure_disk_cache
 
 rm -f "${READY_FILE}"
 
-if [[ ! -r ${CA_CERT} ]]; then
-    log "CA certificate is missing or unreadable: ${CA_CERT}"
-    exit 1
-fi
-
-current_ca_fingerprint=$(sha256sum "${CA_CERT}" | awk '{print $1}')
-
-stored_ca_fingerprint=""
-if [[ -f ${CA_FINGERPRINT_FILE} ]]; then
-    read -r stored_ca_fingerprint <"${CA_FINGERPRINT_FILE}" || true
-fi
-
-ssl_db_needs_init=0
-
-if [[ ! -d ${SSL_DB} ]]; then
-    ssl_db_needs_init=1
-elif [[ -z $(find "${SSL_DB}" -mindepth 1 -print -quit 2>/dev/null) ]]; then
-    ssl_db_needs_init=1
-elif [[ ${current_ca_fingerprint} != "${stored_ca_fingerprint}" ]]; then
-    log "Signing CA changed; rebuilding ssl_db"
-    ssl_db_needs_init=1
-fi
-
-if ((ssl_db_needs_init)); then
-    rm -rf "${SSL_DB}"
-
-    /usr/lib/squid/security_file_certgen \
-        -c \
-        -s "${SSL_DB}" \
-        -M "${SSL_DB_SIZE}" >&2
-
-    printf '%s\n' "${current_ca_fingerprint}" >"${CA_FINGERPRINT_FILE}"
-fi
-
-chown -R proxy:proxy "${SSL_DB}"
-chown proxy:proxy "${CA_FINGERPRINT_FILE}"
-chmod 0644 "${CA_FINGERPRINT_FILE}"
-
+# confighandler owns role-aware TLS preflight and does not signal readiness
+# until the selected role's complete configuration is valid.
 confighandler "$@" --ready-file "${READY_FILE}" &
 CONF_PID=$!
 

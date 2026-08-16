@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -20,16 +24,20 @@ import (
 
 func main() {
 	var (
-		isBalancer bool
-		configPath string
-		readyFile  string
-		interval   time.Duration
-		minReconf  time.Duration
+		isBalancer  bool
+		configPath  string
+		readyFile   string
+		tlsCertFile string
+		tlsKeyFile  string
+		interval    time.Duration
+		minReconf   time.Duration
 	)
 
 	flag.BoolVar(&isBalancer, "b", false, "Configure squid as balancer")
 	flag.StringVar(&configPath, "config", "/etc/squid/conf.d/90-role.conf", "Output config path")
 	flag.StringVar(&readyFile, "ready-file", "/run/confighandler.ready", "Write this file after initial successful render (empty disables)")
+	flag.StringVar(&tlsCertFile, "tls-cert-file", "/tls-certificates/tls.crt", "Parent TLS certificate path")
+	flag.StringVar(&tlsKeyFile, "tls-key-file", "/tls-certificates/tls.key", "Parent TLS private key path")
 	flag.DurationVar(&interval, "interval", 5*time.Second, "Rewrite check interval")
 	flag.DurationVar(&minReconf, "min-reconfigure-interval", 30*time.Second, "Minimum interval between squid reconfigure calls")
 	flag.Parse()
@@ -45,8 +53,12 @@ func main() {
 	defer stop()
 
 	r := &rewriter{
-		balancer:   isBalancer,
-		configPath: configPath,
+		balancer:    isBalancer,
+		configPath:  configPath,
+		tlsCertFile: tlsCertFile,
+		tlsKeyFile:  tlsKeyFile,
+		runner:      execSquidRunner{},
+		now:         time.Now,
 	}
 
 	if r.balancer {
@@ -129,7 +141,7 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 				continue
 			}
 
-			out, err := reconfigureSquid()
+			out, err := r.runner.reconfigure()
 			if err != nil {
 				log.Error(
 					"Squid reconfigure failed",
@@ -153,12 +165,18 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 }
 
 type rewriter struct {
-	lastParents    string
-	lastDnsServers string
-	discovery      *discovery.Discovery
-	balancer       bool
-	templatePath   string
-	configPath     string
+	lastParents        string
+	lastDnsServers     string
+	lastTLSFingerprint string
+	discovery          *discovery.Discovery
+	getParentsFunc     func() (string, error)
+	balancer           bool
+	templatePath       string
+	configPath         string
+	tlsCertFile        string
+	tlsKeyFile         string
+	runner             squidRunner
+	now                func() time.Time
 }
 
 func (r *rewriter) rewriteConfig() (bool, error) {
@@ -179,7 +197,22 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 		parents = p
 	}
 
-	if parents == r.lastParents && dnsServers == r.lastDnsServers {
+	tlsFingerprint := ""
+	if !r.balancer {
+		var err error
+		tlsFingerprint, err = validateTLSFiles(
+			r.tlsCertFile,
+			r.tlsKeyFile,
+			r.now(),
+		)
+		if err != nil {
+			return false, fmt.Errorf("validate parent TLS material: %w", err)
+		}
+	}
+
+	if parents == r.lastParents &&
+		dnsServers == r.lastDnsServers &&
+		tlsFingerprint == r.lastTLSFingerprint {
 		return false, nil
 	}
 
@@ -193,6 +226,9 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 
 	if r.balancer {
 		conf = strings.ReplaceAll(conf, "${PARENTS}", parents)
+	} else {
+		conf = strings.ReplaceAll(conf, "${TLS_CERT_FILE}", r.tlsCertFile)
+		conf = strings.ReplaceAll(conf, "${TLS_KEY_FILE}", r.tlsKeyFile)
 	}
 
 	previous, readErr := os.ReadFile(r.configPath)
@@ -214,7 +250,7 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 		)
 	}
 
-	validationOutput, err := validateSquidConfig()
+	validationOutput, err := r.runner.validateConfig()
 	if err != nil {
 		if previousExists {
 			if restoreErr := writeFileAtomic(
@@ -252,10 +288,15 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 
 	r.lastParents = parents
 	r.lastDnsServers = dnsServers
+	r.lastTLSFingerprint = tlsFingerprint
 	return true, nil
 }
 
 func (r *rewriter) getParents() (string, error) {
+	if r.getParentsFunc != nil {
+		return r.getParentsFunc()
+	}
+
 	parents, err := r.discovery.GetParents()
 	if err != nil {
 		return "", err
@@ -291,6 +332,17 @@ func (r *rewriter) getDnsServersString() string {
 	return strings.Join(ips, " ")
 }
 
+type squidRunner interface {
+	validateConfig() (string, error)
+	reconfigure() (string, error)
+}
+
+type execSquidRunner struct{}
+
+func (execSquidRunner) validateConfig() (string, error) {
+	return validateSquidConfig()
+}
+
 func validateSquidConfig() (string, error) {
 	out, err := exec.Command(
 		"squid",
@@ -303,12 +355,83 @@ func validateSquidConfig() (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
+func (execSquidRunner) reconfigure() (string, error) {
+	return reconfigureSquid()
+}
+
 func reconfigureSquid() (string, error) {
 	out, err := exec.Command("squid", "-k", "reconfigure").CombinedOutput()
 	if len(out) > 0 {
 		return string(out), err
 	}
 	return "", err
+}
+
+func validateTLSFiles(certFile, keyFile string, now time.Time) (string, error) {
+	certPEM, err := os.ReadFile(certFile)
+	if err != nil {
+		return "", fmt.Errorf("read certificate (%s): %w", certFile, err)
+	}
+	if len(certPEM) == 0 {
+		return "", fmt.Errorf("certificate (%s) is empty", certFile)
+	}
+
+	keyPEM, err := os.ReadFile(keyFile)
+	if err != nil {
+		return "", fmt.Errorf("read private key (%s): %w", keyFile, err)
+	}
+	if len(keyPEM) == 0 {
+		return "", fmt.Errorf("private key (%s) is empty", keyFile)
+	}
+
+	if err := validateTLSMaterial(certPEM, keyPEM, now); err != nil {
+		return "", err
+	}
+
+	certFingerprint := sha256.Sum256(certPEM)
+	keyFingerprint := sha256.Sum256(keyPEM)
+	return hex.EncodeToString(certFingerprint[:]) + ":" +
+		hex.EncodeToString(keyFingerprint[:]), nil
+}
+
+func validateTLSMaterial(certPEM, keyPEM []byte, now time.Time) error {
+	pair, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return fmt.Errorf("load certificate/key pair: %w", err)
+	}
+	if len(pair.Certificate) == 0 {
+		return fmt.Errorf("certificate file contains no certificates")
+	}
+
+	cert, err := x509.ParseCertificate(pair.Certificate[0])
+	if err != nil {
+		return fmt.Errorf("parse leaf certificate: %w", err)
+	}
+	if now.Before(cert.NotBefore) {
+		return fmt.Errorf("certificate is not valid before %s", cert.NotBefore.Format(time.RFC3339))
+	}
+	if now.After(cert.NotAfter) {
+		return fmt.Errorf("certificate expired at %s", cert.NotAfter.Format(time.RFC3339))
+	}
+	if cert.IsCA {
+		return fmt.Errorf("certificate must not be a CA")
+	}
+
+	serverAuth := false
+	for _, usage := range cert.ExtKeyUsage {
+		if usage == x509.ExtKeyUsageServerAuth || usage == x509.ExtKeyUsageAny {
+			serverAuth = true
+			break
+		}
+	}
+	if !serverAuth {
+		return fmt.Errorf("certificate does not permit TLS server authentication")
+	}
+	if cert.KeyUsage != 0 && cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+		return fmt.Errorf("certificate does not permit digital signatures")
+	}
+
+	return nil
 }
 
 func writeFileAtomic(path string, data []byte, perm os.FileMode) error {

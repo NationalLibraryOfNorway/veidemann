@@ -3,20 +3,18 @@ negative_dns_ttl 1 second
 positive_dns_ttl 7 days
 
 # ----------------------------------------------------------------------
-# Chromium -> Squid
+# recorderproxy -> Squid
 # Controlled client, TLS 1.3 only.
 # ----------------------------------------------------------------------
 # SSL-Bump (see https://wiki.squid-cache.org/ConfigExamples/Intercept/SslBumpExplicit)
+# Squid 7.6 requires a size unit even when disabling the dynamic cache.
 
 http_port 3128 ssl-bump \
- tls-cert=/ca-certificates/tls.crt \
- tls-key=/ca-certificates/tls.key \
- generate-host-certificates=on \
- dynamic_cert_mem_cache_size=32MB \
+ tls-cert=${TLS_CERT_FILE} \
+ tls-key=${TLS_KEY_FILE} \
+ generate-host-certificates=off \
+ dynamic_cert_mem_cache_size=0KB \
  options=NO_SSLv3,NO_TLSv1,NO_TLSv1_1,NO_TLSv1_2
-
-
-sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 64MB
 
 acl step1 at_step SslBump1
 ssl_bump peek step1
@@ -35,6 +33,13 @@ sslproxy_cert_error allow all
 # Cache ordinary web resources, but do not let large media and downloads
 # displace smaller objects that are more likely to be reused during a crawl.
 maximum_object_size 16 MB
+
+# Chromium's local cache is disabled so recorderproxy observes every request.
+# Ignore that controlled client's reload/no-cache directive, while continuing
+# to honor origin freshness and cacheability directives.
+refresh_pattern ^ftp:              1440 20% 10080 ignore-reload
+refresh_pattern -i (/cgi-bin/|\?)     0  0%     0 ignore-reload
+refresh_pattern .                      0 20%  4320 ignore-reload
 
 # Parent peers use no-digest; do not build an unused local cache digest.
 digest_generation off

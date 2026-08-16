@@ -35,7 +35,7 @@ spec:
               value: dns-resolver
           volumeMounts:
             - name: cache-certificate
-              mountPath: "/ca-certificates"
+              mountPath: "/tls-certificates"
               readOnly: true
         - name: cache-exporter
           image: docker.io/boynux/squid-exporter:v1.13.0
@@ -50,4 +50,4 @@ spec:
         - name: cache-certificate
           secret:
             optional: false
-            secretName: cache
+            secretName: cache-server-tls

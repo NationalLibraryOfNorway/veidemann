@@ -9,18 +9,6 @@ COPY helpers ./
 RUN CGO_ENABLED=0 go install ./...
 
 
-FROM docker.io/alpine:3.24 AS generate-certificates
-
-RUN apk add --no-cache gnutls-utils
-
-COPY cert.cfg /
-RUN certtool --generate-privkey --outfile tls.key \
-    && certtool --generate-self-signed \
-        --load-privkey tls.key \
-        --template cert.cfg \
-        --outfile tls.crt
-
-
 FROM docker.io/debian:sid-slim
 
 ARG SQUID_VERSION=7.6-2
@@ -50,7 +38,7 @@ RUN set -eux; \
     /usr/sbin/squid --version; \
     rm -rf /var/lib/apt/lists/*
 
-# Persist cache/spool (ssl_db + cache dirs live here)
+# Persist Squid object-cache state.
 VOLUME /var/spool/squid
 
 # Helpers
@@ -58,13 +46,6 @@ COPY --from=build-helpers \
     /go/bin/confighandler \
     /go/bin/storeid \
     /usr/local/sbin/
-
-# TLS material (default self-signed; allow users to mount their own)
-RUN mkdir -p /ca-certificates
-COPY --from=generate-certificates --chown=proxy:proxy \
-    /tls.key \
-    /tls.crt \
-    /ca-certificates/
 
 # Squid config + entrypoint
 COPY --chmod=0755 entrypoint.sh /usr/local/bin/entrypoint.sh
