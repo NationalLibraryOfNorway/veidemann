@@ -9,12 +9,9 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 )
 
-func resourceFailureLogLevel(req *requests.Request, resourceType string) slog.Level {
-	if req != nil {
-		resourceType = req.ResourceType
-	}
-
-	if (&requests.Request{GotNew: true, ResourceType: resourceType}).BlocksPageCompletion() {
+func resourceFailureLogLevel(resourceType string) slog.Level {
+	req := requests.Request{GotNew: true, ResourceType: resourceType}
+	if req.BlocksPageCompletion() {
 		return slog.LevelWarn
 	}
 	return slog.LevelDebug

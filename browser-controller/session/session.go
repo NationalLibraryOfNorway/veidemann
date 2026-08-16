@@ -97,18 +97,19 @@ type launch struct {
 }
 
 type Session struct {
-	ctx               context.Context
-	Requests          *requests.Registry
-	configAdapter     database.ConfigAdapter
-	screenShotWriter  screenshotwriter.ScreenshotWriter
-	logWriter         logwriter.LogWriter
-	logger            *slog.Logger
-	browserHost       string
-	proxyHost         string
-	browserWsEndpoint string
-	UserAgent         string
-	browserVersion    string
-	rootTargetID      target.ID
+	ctx                 context.Context
+	requestRegistry     *requests.Registry
+	requestRegistryOnce sync.Once
+	configAdapter       database.ConfigAdapter
+	screenShotWriter    screenshotwriter.ScreenshotWriter
+	logWriter           logwriter.LogWriter
+	logger              *slog.Logger
+	browserHost         string
+	proxyHost           string
+	browserWsEndpoint   string
+	UserAgent           string
+	browserVersion      string
+	rootTargetID        target.ID
 
 	RequestedUrl       *frontierV1.QueuedUri
 	CrawlConfig        *configV1.CrawlConfig
@@ -168,7 +169,88 @@ func (sess *Session) loggerOrDefault() *slog.Logger {
 	return sess.logger
 }
 
-func (sess *Session) SignalCompletionActivity() error {
+func (sess *Session) registry() *requests.Registry {
+	sess.requestRegistryOnce.Do(func() {
+		sess.requestRegistry = requests.NewRegistry(sess.loggerOrDefault())
+	})
+	return sess.requestRegistry
+}
+
+func (sess *Session) ObserveRequest(req requests.Request) requests.ObservationResult {
+	return sess.registry().Observe(req)
+}
+
+func (sess *Session) RequestSnapshot(id string) (requests.Request, bool) {
+	return sess.registry().Snapshot(id)
+}
+
+func (sess *Session) markRequestComplete(id string) requests.MutationResult {
+	return sess.registry().MarkComplete(id)
+}
+
+func (sess *Session) removeRequest(id string) requests.MutationResult {
+	return sess.registry().Remove(id)
+}
+
+func (sess *Session) RegisterResource(id string) (bool, error) {
+	result := sess.registry().MarkNew(id)
+	if !result.Found {
+		return false, nil
+	}
+	if result.Request.BlocksPageCompletion() {
+		return true, sess.signalCompletionActivity()
+	}
+	return true, nil
+}
+
+func (sess *Session) RejectResource(id string) (bool, error) {
+	result := sess.registry().MarkComplete(id)
+	if !result.Found {
+		return false, nil
+	}
+	return true, sess.signalCompletionActivity()
+}
+
+func (sess *Session) CompleteOptionsResource(uri string) (bool, error) {
+	result := sess.registry().MarkFirstUnregisteredCompleteByURL(uri)
+	if !result.Found {
+		return false, nil
+	}
+	if result.Request.BlocksPageCompletion() {
+		return true, sess.signalCompletionActivity()
+	}
+	return true, nil
+}
+
+type ResourceCompletionResult struct {
+	Found           bool
+	InitialCacheHit bool
+}
+
+func (sess *Session) RecordResourceCompletion(id string, crawlLog *logV1.CrawlLog, cached bool) (ResourceCompletionResult, error) {
+	mutation := sess.registry().Complete(id, crawlLog, cached)
+	result := ResourceCompletionResult{
+		Found:           mutation.Found,
+		InitialCacheHit: mutation.Found && mutation.Initial && cached,
+	}
+	if !mutation.Found {
+		return result, nil
+	}
+
+	if result.InitialCacheHit {
+		sess.loggerOrDefault().Warn("Aborting fetch because cached request is same as initial request")
+		if err := sess.abortFetch(); err != nil {
+			sess.loggerOrDefault().Warn("Failed to abort fetch", "error", err)
+		}
+	}
+
+	if mutation.Request.BlocksPageCompletion() {
+		return result, sess.signalCompletionActivity()
+	}
+	return result, nil
+}
+
+func (sess *Session) signalCompletionActivity() error {
 	if sess.ctx != nil {
 		select {
 		case <-sess.ctx.Done():
@@ -179,13 +261,6 @@ func (sess *Session) SignalCompletionActivity() error {
 
 	signalCompletionActivity(sess.completionActivity)
 	return nil
-}
-
-func (sess *Session) SignalRequestActivity(req *requests.Request) error {
-	if req == nil || !req.BlocksPageCompletion() {
-		return nil
-	}
-	return sess.SignalCompletionActivity()
 }
 
 func (sess *Session) startAcceptingRequests() {
@@ -321,7 +396,7 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.
 	sess.loadCancel = loadCancel
 
 	sess.frameLoads = newFrameLoadTracker()
-	sess.Requests = requests.NewRegistry(log)
+	sess.registry()
 	sess.completionActivity = make(chan struct{}, 1)
 
 	sess.initListeners(cdpCtx)
@@ -397,10 +472,8 @@ func (sess *Session) navigate(loadCtx context.Context) error {
 }
 
 func (sess *Session) classifyNavigationError(err error) error {
-	initialRequest := sess.Requests.InitialRequest()
-
 	switch {
-	case errors.Is(err, context.Canceled) && initialRequest != nil && initialRequest.FromCache:
+	case errors.Is(err, context.Canceled) && sess.registry().InitialFromCache():
 		return cacheHitFetchError(sess.RequestedUrl.Uri)
 	case errors.Is(err, context.DeadlineExceeded):
 		return pageloadTimeoutError(sess.RequestedUrl.Uri, "navigation")
@@ -416,7 +489,8 @@ func (sess *Session) waitForInitialPageLoad(loadCtx context.Context) (error, boo
 	if waitErr == nil {
 		return nil, false
 	}
-	fetchErr, returnNow := classifyFrameWaitError(sess.Requests.InitialRequest(), sess.RequestedUrl.Uri, waitErr)
+	initialFromCache := sess.registry().InitialFromCache()
+	fetchErr, returnNow := classifyFrameWaitError(initialFromCache, sess.RequestedUrl.Uri, waitErr)
 	if fetchErr == nil {
 		return nil, false
 	}
@@ -523,7 +597,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		}
 	}
 
-	rootSnapshot := sess.Requests.RootRequestSnapshot()
+	rootSnapshot := sess.registry().RootRequestSnapshot()
 
 	if sess.CrawlConfig.GetExtra().CreateScreenshot {
 		screenshotCtx, cancelScreenshot := context.WithTimeout(
@@ -547,7 +621,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 		log.Warn("Cancel CDP context", "error", err)
 	}
 
-	responses := sess.Requests.FinalizeResponses(sess.RequestedUrl)
+	responses := sess.registry().FinalizeResponses(sess.RequestedUrl)
 	initialRequest := responses.InitialRequest
 	if initialRequest == nil {
 		return nil, errors.New("missing initial request")
@@ -823,7 +897,7 @@ func (sess *Session) extractOutlinks(rootRequest *requests.Request) []string {
 	return extractedUrls
 }
 
-func (sess *Session) AbortFetch() error {
+func (sess *Session) abortFetch() error {
 	if sess.frameLoads != nil {
 		sess.frameLoads.Cancel(errInitialRequestCached)
 	}
@@ -841,9 +915,7 @@ func (sess *Session) waitForNetworkIdle(ctx context.Context, maxIdleTime time.Du
 }
 
 func (sess *Session) waitForSettledNetworkAndRequests(ctx context.Context, maxIdleTime time.Duration) error {
-	if sess.Requests == nil {
-		return errors.New("request registry is not initialized")
-	}
+	registry := sess.registry()
 
 	return waitForSettled(
 		ctx,
@@ -852,7 +924,7 @@ func (sess *Session) waitForSettledNetworkAndRequests(ctx context.Context, maxId
 		func(ctx context.Context) error {
 			return sess.waitForNetworkIdle(ctx, maxIdleTime)
 		},
-		sess.Requests.MatchCrawlLogs,
+		registry.MatchCrawlLogs,
 	)
 }
 
@@ -897,10 +969,10 @@ func pageloadTimeoutError(uri, phase string) error {
 	return bcerrors.New(-5004, "Runtime exceeded", detail)
 }
 
-func classifyFrameWaitError(initialRequest *requests.Request, uri string, waitErr error) (error, bool) {
+func classifyFrameWaitError(initialFromCache bool, uri string, waitErr error) (error, bool) {
 	switch {
 	case errors.Is(waitErr, errInitialRequestCached):
-		if initialRequest != nil && initialRequest.FromCache {
+		if initialFromCache {
 			return cacheHitFetchError(uri), true
 		}
 		return waitErr, true

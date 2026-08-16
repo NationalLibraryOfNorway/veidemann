@@ -13,9 +13,7 @@ import (
 )
 
 func TestNetworkRequestRegistrationIgnoresBrowserLocalURLs(t *testing.T) {
-	registry := requests.NewRegistry(nil)
 	sess := &Session{
-		Requests:       registry,
 		networkTracker: newNetworkActivityTracker(),
 	}
 	sess.startAcceptingRequests()
@@ -27,15 +25,13 @@ func TestNetworkRequestRegistrationIgnoresBrowserLocalURLs(t *testing.T) {
 		Type:      network.ResourceTypeImage,
 	}, 1)
 
-	if got := registry.InitialRequest(); got != nil {
-		t.Fatalf("browser-local request was registered: %#v", got)
+	if _, found := sess.RequestSnapshot("local-1"); found {
+		t.Fatal("browser-local request was registered")
 	}
 }
 
 func TestNetworkRequestRegistrationPreservesCanonicalMerge(t *testing.T) {
-	registry := requests.NewRegistry(nil)
 	sess := &Session{
-		Requests:       registry,
 		networkTracker: newNetworkActivityTracker(),
 	}
 	sess.startAcceptingRequests()
@@ -47,11 +43,11 @@ func TestNetworkRequestRegistrationPreservesCanonicalMerge(t *testing.T) {
 		Type:      network.ResourceTypeImage,
 	}, 1)
 
-	fromNetwork := registry.InitialRequest()
-	if fromNetwork == nil {
+	fromNetwork, found := sess.RequestSnapshot("network-1")
+	if !found {
 		t.Fatal("network request was not registered")
 	}
-	fromFetch, added := registry.GetOrAddRequest(&requests.Request{
+	fromFetch := sess.ObserveRequest(requests.Request{
 		ID:             "network-1",
 		FetchRequestID: "interception-1",
 		NetworkID:      "network-1",
@@ -59,14 +55,14 @@ func TestNetworkRequestRegistrationPreservesCanonicalMerge(t *testing.T) {
 		Method:         "GET",
 		ResourceType:   "Image",
 	})
-	if added {
+	if fromFetch.Added {
 		t.Fatal("Fetch observation created a duplicate registry entry")
 	}
-	if fromFetch != fromNetwork {
-		t.Fatal("Fetch observation did not merge with the canonical Network request")
+	if fromFetch.Request.ID != fromNetwork.ID {
+		t.Fatal("Fetch observation did not resolve to the canonical Network request")
 	}
-	if fromFetch.FetchRequestID != "interception-1" {
-		t.Fatalf("FetchRequestID = %q, want interception-1", fromFetch.FetchRequestID)
+	if fromFetch.Request.FetchRequestID != "interception-1" {
+		t.Fatalf("FetchRequestID = %q, want interception-1", fromFetch.Request.FetchRequestID)
 	}
 }
 
@@ -84,8 +80,8 @@ func TestRequestFromFetchPausedIdentifiesBrowserLocalURL(t *testing.T) {
 }
 
 func TestLoadingFailedThenRecorderCompletionKeepsRecorderCrawlLog(t *testing.T) {
-	registry := requests.NewRegistry(nil)
-	req, added := registry.GetOrAddRequest(&requests.Request{
+	sess := &Session{networkTracker: newNetworkActivityTracker()}
+	observed := sess.ObserveRequest(requests.Request{
 		ID:           "request-1",
 		NetworkID:    "request-1",
 		URL:          "https://example.com/",
@@ -93,35 +89,34 @@ func TestLoadingFailedThenRecorderCompletionKeepsRecorderCrawlLog(t *testing.T) 
 		ResourceType: "Document",
 		GotNew:       true,
 	})
-	if !added {
+	if !observed.Added {
 		t.Fatal("initial request was not added")
 	}
-
-	sess := &Session{
-		Requests:       registry,
-		networkTracker: newNetworkActivityTracker(),
-	}
 	sess.onNetworkEventLoadingFailed(t.Context(), &network.EventLoadingFailed{
-		RequestID: network.RequestID(req.ID),
+		RequestID: network.RequestID(observed.Request.ID),
 		Type:      network.ResourceTypeDocument,
 		ErrorText: "net::ERR_CONNECTION_REFUSED",
 	}, 1)
 
-	if !req.GotComplete {
+	afterFailure, found := sess.RequestSnapshot(observed.Request.ID)
+	if !found || !afterFailure.GotComplete {
 		t.Fatal("loadingFailed did not complete the initial request")
 	}
-	if req.CrawlLog != nil {
-		t.Fatalf("loadingFailed fabricated a crawl log: %#v", req.CrawlLog)
+	if afterFailure.CrawlLog != nil {
+		t.Fatalf("loadingFailed fabricated a crawl log: %#v", afterFailure.CrawlLog)
 	}
 
-	recorderLog := &logV1.CrawlLog{RequestedUri: req.URL, StatusCode: -2}
-	registry.CompleteRequest(req.ID, recorderLog, false)
-
-	if req.CrawlLog != recorderLog {
-		t.Fatalf("recorder crawl log was not retained: got %#v, want %#v", req.CrawlLog, recorderLog)
+	recorderLog := &logV1.CrawlLog{RequestedUri: observed.Request.URL, StatusCode: -2}
+	if _, err := sess.RecordResourceCompletion(observed.Request.ID, recorderLog, false); err != nil {
+		t.Fatal(err)
 	}
-	if registry.InitialRequest() != req || !registry.InitialRequest().GotComplete {
-		t.Fatal("initial request was not complete after recorder completion")
+
+	afterRecorder, found := sess.RequestSnapshot(observed.Request.ID)
+	if !found || afterRecorder.CrawlLog == nil || afterRecorder.CrawlLog.GetStatusCode() != -2 {
+		t.Fatalf("recorder crawl log was not retained: got %#v", afterRecorder.CrawlLog)
+	}
+	if afterRecorder.CrawlLog == recorderLog {
+		t.Fatal("recorder crawl log was not cloned")
 	}
 }
 
@@ -205,8 +200,8 @@ func TestShouldTrackFrameLifecycle(t *testing.T) {
 }
 
 func TestRollbackPausedRequestRemovesAddedNonInitialRequest(t *testing.T) {
-	registry := requests.NewRegistry(nil)
-	_, added := registry.GetOrAddRequest(&requests.Request{
+	sess := &Session{}
+	initial := sess.ObserveRequest(requests.Request{
 		Method:         "GET",
 		URL:            "https://www.nb.no/",
 		ID:             "240.1",
@@ -214,10 +209,10 @@ func TestRollbackPausedRequestRemovesAddedNonInitialRequest(t *testing.T) {
 		NetworkID:      "240.1",
 		ResourceType:   "Document",
 	})
-	if !added {
+	if !initial.Added {
 		t.Fatal("initial request was not added")
 	}
-	orphan, added := registry.GetOrAddRequest(&requests.Request{
+	orphan := sess.ObserveRequest(requests.Request{
 		Method:         "GET",
 		URL:            "https://www.nb.no/image.jpg",
 		ID:             "240.2",
@@ -225,24 +220,23 @@ func TestRollbackPausedRequestRemovesAddedNonInitialRequest(t *testing.T) {
 		NetworkID:      "240.2",
 		ResourceType:   "Image",
 	})
-	if !added {
+	if !orphan.Added {
 		t.Fatal("orphan request was not added")
 	}
 
-	sess := &Session{Requests: registry}
-	sess.rollbackPausedRequest(orphan, true)
+	sess.rollbackPausedRequest(orphan.Request.ID, true)
 
-	if registry.RemoveRequest(orphan) {
+	if _, found := sess.RequestSnapshot(orphan.Request.ID); found {
 		t.Fatal("orphan request was not removed")
 	}
-	if got := registry.InitialRequest(); got == nil || got.ID == orphan.ID {
+	if got, found := sess.RequestSnapshot(initial.Request.ID); !found || got.ID == orphan.Request.ID {
 		t.Fatalf("unexpected initial request after rollback: %#v", got)
 	}
 }
 
 func TestRollbackPausedRequestRemovesAddedInitialRequest(t *testing.T) {
-	registry := requests.NewRegistry(nil)
-	initial, added := registry.GetOrAddRequest(&requests.Request{
+	sess := &Session{}
+	initial := sess.ObserveRequest(requests.Request{
 		Method:         "GET",
 		URL:            "https://www.nb.no/",
 		ID:             "241.1",
@@ -250,14 +244,13 @@ func TestRollbackPausedRequestRemovesAddedInitialRequest(t *testing.T) {
 		NetworkID:      "241.1",
 		ResourceType:   "Document",
 	})
-	if !added {
+	if !initial.Added {
 		t.Fatal("initial request was not added")
 	}
 
-	sess := &Session{Requests: registry}
-	sess.rollbackPausedRequest(initial, added)
+	sess.rollbackPausedRequest(initial.Request.ID, initial.Added)
 
-	if got := registry.InitialRequest(); got != nil {
+	if got, found := sess.RequestSnapshot(initial.Request.ID); found {
 		t.Fatalf("request remained after rollback: %#v", got)
 	}
 }

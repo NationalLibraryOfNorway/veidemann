@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"unicode/utf8"
 
@@ -102,10 +103,10 @@ func attrsByName(attrs []any) map[string]any {
 	return result
 }
 
-func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
+func TestObserveDeduplicatesByID(t *testing.T) {
 	registry := NewRegistry(nil)
 
-	first, added := registry.GetOrAddRequest(&Request{
+	first := registry.Observe(Request{
 		ID:             "238.39",
 		FetchRequestID: "interception-job-1.0",
 		NetworkID:      "238.39",
@@ -113,11 +114,11 @@ func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
 		URL:            "https://example.com/a.js",
 		ResourceType:   "Script",
 	})
-	if !added {
+	if !first.Added {
 		t.Fatal("first request was not added")
 	}
 
-	second, added := registry.GetOrAddRequest(&Request{
+	second := registry.Observe(Request{
 		ID:             "238.39",
 		FetchRequestID: "interception-job-2.0",
 		NetworkID:      "238.39",
@@ -125,11 +126,11 @@ func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
 		URL:            "https://example.com/a.js",
 		ResourceType:   "Script",
 	})
-	if added {
+	if second.Added {
 		t.Fatal("duplicate network ID was added as a new request")
 	}
-	if second != first {
-		t.Fatal("duplicate network ID did not reuse the original request")
+	if second.Request.ID != first.Request.ID {
+		t.Fatal("duplicate network ID did not resolve to the canonical request")
 	}
 
 	if count := len(registry.requests); count != 1 {
@@ -151,8 +152,8 @@ func TestRootRequestSnapshotResolvesRedirectRoot(t *testing.T) {
 		Redirected:      true,
 		RedirectFromURL: initial.URL,
 	}
-	registry.AddRequest(initial)
-	registry.AddRequest(redirect)
+	registry.Observe(*initial)
+	registry.Observe(*redirect)
 
 	root := registry.RootRequestSnapshot()
 
@@ -189,8 +190,8 @@ func TestFinalizeResponsesReturnsIndependentSnapshot(t *testing.T) {
 		ResourceType: "Script",
 		GotNew:       true,
 	}
-	registry.AddRequest(initial)
-	registry.AddRequest(late)
+	registry.Observe(*initial)
+	registry.Observe(*late)
 
 	snapshot := registry.FinalizeResponses(&frontierV1.QueuedUri{DiscoveryPath: "L"})
 	if snapshot.InitialRequest == initial || snapshot.RootRequest == initial {
@@ -207,7 +208,7 @@ func TestFinalizeResponsesReturnsIndependentSnapshot(t *testing.T) {
 	}
 
 	lateLog := &logV1.CrawlLog{WarcId: "warc-2", Size: 20}
-	registry.CompleteRequest(late.ID, lateLog, false)
+	registry.Complete(late.ID, lateLog, false)
 	initialLog.Size = 99
 	if snapshot.Requests[1].CrawlLog != nil {
 		t.Fatal("late completion mutated the finalized snapshot")
@@ -224,7 +225,7 @@ func TestFinalizeResponsesReturnsIndependentSnapshot(t *testing.T) {
 
 func TestMatchCrawlLogsIgnoresNonBlockingPingRequests(t *testing.T) {
 	registry := NewRegistry(nil)
-	registry.AddRequest(&Request{
+	registry.Observe(Request{
 		ID:             "238.39",
 		FetchRequestID: "interception-job-1.0",
 		Method:         "POST",
@@ -251,7 +252,7 @@ func TestMatchCrawlLogsIgnoresNonBlockingBackgroundRequests(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			registry := NewRegistry(nil)
-			registry.AddRequest(&Request{
+			registry.Observe(Request{
 				ID:             "211.11",
 				FetchRequestID: "interception-job-1.0",
 				Method:         "GET",
@@ -266,40 +267,230 @@ func TestMatchCrawlLogsIgnoresNonBlockingBackgroundRequests(t *testing.T) {
 	}
 }
 
-func TestRemoveRequestRemovesTrackedRequest(t *testing.T) {
+func TestRemoveRemovesTrackedRequest(t *testing.T) {
 	registry := NewRegistry(nil)
-	kept, added := registry.GetOrAddRequest(&Request{
+	kept := registry.Observe(Request{
 		ID:             "240.1",
 		FetchRequestID: "interception-job-1.0",
 		Method:         "GET",
 		URL:            "https://example.com/",
 		ResourceType:   "Document",
 	})
-	if !added {
+	if !kept.Added {
 		t.Fatal("initial request was not added")
 	}
-	removed, added := registry.GetOrAddRequest(&Request{
+	removed := registry.Observe(Request{
 		ID:             "240.2",
 		FetchRequestID: "interception-job-2.0",
 		Method:         "GET",
 		URL:            "https://example.com/image.png",
 		ResourceType:   "Image",
 	})
-	if !added {
+	if !removed.Added {
 		t.Fatal("second request was not added")
 	}
 
-	if !registry.RemoveRequest(removed) {
+	if result := registry.Remove(removed.Request.ID); !result.Found {
 		t.Fatal("expected request removal to succeed")
 	}
 
 	if count := len(registry.requests); count != 1 {
 		t.Fatalf("request count = %d, want 1", count)
 	}
-	if registry.requests[0] != kept {
+	if registry.requests[0].ID != kept.Request.ID {
 		t.Fatalf("unexpected request left in registry: %#v", registry.requests[0])
 	}
 }
+
+func TestRegistryInputsAndResultsAreDetached(t *testing.T) {
+	registry := NewRegistry(nil)
+	parent := &Request{ID: "caller-parent", URL: "https://caller.example/"}
+	inputLog := &logV1.CrawlLog{WarcId: "warc-input", Size: 10}
+	input := Request{
+		ID:             "request-1",
+		URL:            "https://example.com/",
+		ResourceType:   "Document",
+		CrawlLog:       inputLog,
+		RedirectParent: parent,
+	}
+
+	observed := registry.Observe(input)
+	input.URL = "https://mutated.example/"
+	inputLog.Size = 99
+	parent.URL = "https://mutated-parent.example/"
+	observed.Request.URL = "https://mutated-result.example/"
+	observed.Request.CrawlLog.Size = 98
+
+	snapshot, found := registry.Snapshot("request-1")
+	if !found {
+		t.Fatal("observed request was not found")
+	}
+	if snapshot.URL != "https://example.com/" || snapshot.CrawlLog.GetSize() != 10 {
+		t.Fatalf("registry retained caller mutations: %#v", snapshot)
+	}
+	if snapshot.RedirectParent != nil {
+		t.Fatal("registry retained a caller-provided redirect parent")
+	}
+
+	markedNew := registry.MarkNew(input.ID)
+	if !markedNew.Found || !markedNew.Initial {
+		t.Fatalf("mark-new result = %#v, want initial request", markedNew)
+	}
+	markedNew.Request.CrawlLog.Size = 97
+	markedComplete := registry.MarkComplete(input.ID)
+	if !markedComplete.Found || !markedComplete.Initial {
+		t.Fatalf("mark-complete result = %#v, want initial request", markedComplete)
+	}
+	markedComplete.Request.CrawlLog.Size = 96
+
+	completionLog := &logV1.CrawlLog{WarcId: "warc-complete", Size: 20}
+	completed := registry.Complete(input.ID, completionLog, true)
+	if !completed.Found || !completed.Initial {
+		t.Fatalf("complete result = %#v, want initial request", completed)
+	}
+	completionLog.Size = 95
+	completed.Request.CrawlLog.Size = 94
+
+	snapshot, found = registry.Snapshot(input.ID)
+	if !found || !snapshot.GotNew || !snapshot.GotComplete || !snapshot.FromCache {
+		t.Fatalf("request mutation was not retained: %#v", snapshot)
+	}
+	if snapshot.CrawlLog.GetSize() != 20 || snapshot.CrawlLog == completionLog {
+		t.Fatal("completion crawl log was not detached")
+	}
+	snapshot.CrawlLog.Size = 93
+	unchanged, _ := registry.Snapshot(input.ID)
+	if unchanged.CrawlLog.GetSize() != 20 {
+		t.Fatal("mutating a snapshot changed registry state")
+	}
+	if !registry.InitialFromCache() {
+		t.Fatal("initial cache state was not retained")
+	}
+
+	options := registry.Observe(Request{ID: "options-1", URL: "https://example.com/options"})
+	urlResult := registry.MarkFirstUnregisteredCompleteByURL(options.Request.URL)
+	if !urlResult.Found || urlResult.Initial || !urlResult.Request.GotComplete {
+		t.Fatal("URL completion did not find the unregistered request")
+	}
+	urlResult.Request.URL = "https://mutated-result.example/options"
+	optionsSnapshot, _ := registry.Snapshot(options.Request.ID)
+	if optionsSnapshot.URL != options.Request.URL {
+		t.Fatal("mutating URL completion result changed registry state")
+	}
+
+	removed := registry.Remove(options.Request.ID)
+	if !removed.Found || removed.Initial {
+		t.Fatal("request removal did not return the removed request")
+	}
+	removed.Request.URL = "https://mutated-removed.example/"
+	if _, found := registry.Snapshot(options.Request.ID); found {
+		t.Fatal("removed request remained in the registry")
+	}
+}
+
+func TestFinalizedRedirectGraphIsDetached(t *testing.T) {
+	registry := NewRegistry(nil)
+	registry.Observe(Request{
+		ID:           "initial",
+		URL:          "https://example.com/old",
+		ResourceType: "Document",
+		GotNew:       true,
+		CrawlLog:     &logV1.CrawlLog{WarcId: "warc-old"},
+	})
+	registry.Observe(Request{
+		ID:              "redirect",
+		URL:             "https://example.com/new",
+		ResourceType:    "Document",
+		GotNew:          true,
+		Redirected:      true,
+		RedirectFromURL: "https://example.com/old",
+		CrawlLog:        &logV1.CrawlLog{WarcId: "warc-new"},
+	})
+
+	first := registry.FinalizeResponses(&frontierV1.QueuedUri{DiscoveryPath: "L"})
+	redirect := first.Requests[1]
+	if redirect.RedirectParent != first.Requests[0] {
+		t.Fatal("finalized redirect parent was not linked within the snapshot")
+	}
+	redirect.RedirectParent.URL = "https://mutated-parent.example/"
+	redirect.CrawlLog.WarcId = "mutated-warc"
+
+	second := registry.FinalizeResponses(&frontierV1.QueuedUri{DiscoveryPath: "L"})
+	if second.Requests[0].URL != "https://example.com/old" {
+		t.Fatal("mutating a redirect parent changed registry state")
+	}
+	if second.Requests[1].CrawlLog.GetWarcId() != "warc-new" {
+		t.Fatal("mutating a finalized crawl log changed registry state")
+	}
+	if second.Requests[1].RedirectParent != second.Requests[0] {
+		t.Fatal("second finalized redirect graph is not self-contained")
+	}
+}
+
+func TestRegistryConcurrentDetachedAccess(t *testing.T) {
+	registry := NewRegistry(nil)
+	for i := 0; i < 8; i++ {
+		registry.Observe(Request{
+			ID:           fmt.Sprintf("request-%d", i),
+			URL:          fmt.Sprintf("https://example.com/%d", i),
+			ResourceType: "Image",
+			GotNew:       true,
+		})
+	}
+
+	var wg sync.WaitGroup
+	for worker := 0; worker < 6; worker++ {
+		wg.Add(1)
+		go func(worker int) {
+			defer wg.Done()
+			for i := 0; i < 200; i++ {
+				id := fmt.Sprintf("request-%d", i%8)
+				switch worker {
+				case 0:
+					result := registry.Observe(Request{ID: id, FetchRequestID: fmt.Sprintf("fetch-%d", i)})
+					result.Request.URL = "mutated observation"
+				case 1:
+					result := registry.MarkNew(id)
+					result.Request.URL = "mutated mark"
+				case 2:
+					result := registry.Complete(id, &logV1.CrawlLog{WarcId: fmt.Sprintf("warc-%d", i)}, false)
+					if result.Request.CrawlLog != nil {
+						result.Request.CrawlLog.WarcId = "mutated completion"
+					}
+				case 3:
+					snapshot, found := registry.Snapshot(id)
+					if found {
+						snapshot.URL = "mutated snapshot"
+						if snapshot.CrawlLog != nil {
+							snapshot.CrawlLog.WarcId = "mutated snapshot log"
+						}
+					}
+				case 4:
+					snapshot := registry.FinalizeResponses(&frontierV1.QueuedUri{DiscoveryPath: "L"})
+					if len(snapshot.Requests) > 0 {
+						snapshot.Requests[0].URL = "mutated finalization"
+					}
+				case 5:
+					root := registry.RootRequestSnapshot()
+					if root != nil {
+						root.URL = "mutated root"
+					}
+				}
+			}
+		}(worker)
+	}
+	wg.Wait()
+
+	if len(registry.requests) != 8 {
+		t.Fatalf("request count = %d, want 8", len(registry.requests))
+	}
+	for _, req := range registry.requests {
+		if strings.HasPrefix(req.URL, "mutated") {
+			t.Fatalf("returned value mutation reached registry state: %#v", req)
+		}
+	}
+}
+
 func TestRequestBlocksPageCompletion(t *testing.T) {
 	tests := []struct {
 		name         string

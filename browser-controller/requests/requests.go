@@ -37,6 +37,17 @@ type ResponseSnapshot struct {
 	IgnoredCount    int
 }
 
+type ObservationResult struct {
+	Request Request
+	Added   bool
+}
+
+type MutationResult struct {
+	Request Request
+	Found   bool
+	Initial bool
+}
+
 type Registry struct {
 	log *slog.Logger
 
@@ -47,21 +58,11 @@ type Registry struct {
 	lastMatchLog string
 }
 
-// TODO(follow-up): GetOrAddRequest, GetByUrl, InitialRequest, GotNew,
-// GotComplete, and CompleteRequest return live *Request values after releasing
-// mu. CDP listeners and resource RPC goroutines can then read or mutate the same
-// fields, including CrawlLog, without the registry lock. Move mutations and
-// predicates behind operation-specific methods and return immutable snapshots.
-
-func (r *Registry) InitialRequest() *Request {
+func (r *Registry) InitialFromCache() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if len(r.requests) == 0 {
-		return nil
-	}
-
-	return r.requests[0]
+	return len(r.requests) > 0 && r.requests[0].FromCache
 }
 
 func (r *Registry) RootRequestSnapshot() *Request {
@@ -81,19 +82,8 @@ func NewRegistry(logger *slog.Logger) *Registry {
 	}
 }
 
-func (r *Registry) AddRequest(req *Request) {
-	if req == nil || req.ID == "" {
-		panic("request must have canonical ID")
-	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.requests = append(r.requests, req)
-	r.byID[req.ID] = req
-}
-
-func (r *Registry) GetOrAddRequest(req *Request) (*Request, bool) {
-	if req == nil || req.ID == "" {
+func (r *Registry) Observe(req Request) ObservationResult {
+	if req.ID == "" {
 		panic("request must have canonical ID")
 	}
 
@@ -101,31 +91,31 @@ func (r *Registry) GetOrAddRequest(req *Request) (*Request, bool) {
 	defer r.mu.Unlock()
 
 	if existing, ok := r.byID[req.ID]; ok {
-		mergeRequest(existing, req)
-		return existing, false
+		incoming := cloneRequest(&req)
+		mergeRequest(existing, incoming)
+		return ObservationResult{Request: *cloneRequest(existing)}
 	}
 
-	r.requests = append(r.requests, req)
-	r.byID[req.ID] = req
-	return req, true
+	owned := cloneRequest(&req)
+	r.requests = append(r.requests, owned)
+	r.byID[owned.ID] = owned
+	return ObservationResult{Request: *cloneRequest(owned), Added: true}
 }
 
-func (r *Registry) RemoveRequest(req *Request) bool {
-	if req == nil {
-		return false
-	}
-
+func (r *Registry) Remove(id string) MutationResult {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, ok := r.byID[req.ID]; !ok {
-		return false
+	req, ok := r.byID[id]
+	if !ok {
+		return MutationResult{}
 	}
+	result := r.mutationResultLocked(req)
 
-	delete(r.byID, req.ID)
+	delete(r.byID, id)
 	n := -1
 	for i, c := range r.requests {
-		if c.ID == req.ID {
+		if c.ID == id {
 			n = i
 			break
 		}
@@ -134,37 +124,50 @@ func (r *Registry) RemoveRequest(req *Request) bool {
 		r.requests[n] = r.requests[len(r.requests)-1]
 		r.requests = r.requests[:len(r.requests)-1]
 	}
-	return true
+	return result
 }
 
-func (r *Registry) GetByUrl(url string, onlyNew bool) *Request {
+func (r *Registry) Snapshot(id string) (Request, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for _, req := range r.requests {
-		if req.URL == url {
-			if !onlyNew || !req.GotNew {
-				return req
-			}
-		}
+	req := r.byID[id]
+	if req == nil {
+		return Request{}, false
 	}
-	return nil
+	return *cloneRequest(req), true
 }
 
-func (r *Registry) GotNew(id string) *Request {
-	return r.mark(id, func(req *Request) {
+func (r *Registry) MarkNew(id string) MutationResult {
+	return r.mutate(id, func(req *Request) {
 		req.GotNew = true
 	})
 }
 
-func (r *Registry) GotComplete(id string) *Request {
-	return r.mark(id, func(req *Request) {
+func (r *Registry) MarkComplete(id string) MutationResult {
+	return r.mutate(id, func(req *Request) {
 		req.GotComplete = true
 	})
 }
 
-func (r *Registry) CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request {
-	return r.mark(id, func(req *Request) {
-		req.CrawlLog = crawlLog
+func (r *Registry) MarkFirstUnregisteredCompleteByURL(url string) MutationResult {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, req := range r.requests {
+		if req.URL == url && !req.GotNew {
+			req.GotComplete = true
+			return r.mutationResultLocked(req)
+		}
+	}
+	return MutationResult{}
+}
+
+func (r *Registry) Complete(id string, crawlLog *logV1.CrawlLog, cached bool) MutationResult {
+	return r.mutate(id, func(req *Request) {
+		if crawlLog == nil {
+			req.CrawlLog = nil
+		} else {
+			req.CrawlLog = proto.Clone(crawlLog).(*logV1.CrawlLog)
+		}
 		req.GotComplete = true
 
 		if cached {
@@ -173,9 +176,9 @@ func (r *Registry) CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached b
 	})
 }
 
-func (r *Registry) mark(id string, fn func(*Request)) *Request {
+func (r *Registry) mutate(id string, fn func(*Request)) MutationResult {
 	if id == "" {
-		return nil
+		return MutationResult{}
 	}
 
 	r.mu.Lock()
@@ -183,12 +186,19 @@ func (r *Registry) mark(id string, fn func(*Request)) *Request {
 
 	req := r.byID[id]
 	if req == nil {
-		return nil
+		return MutationResult{}
 	}
 
 	fn(req)
+	return r.mutationResultLocked(req)
+}
 
-	return req
+func (r *Registry) mutationResultLocked(req *Request) MutationResult {
+	return MutationResult{
+		Request: *cloneRequest(req),
+		Found:   true,
+		Initial: len(r.requests) > 0 && r.requests[0] == req,
+	}
 }
 
 func (r *Registry) MatchCrawlLogs() bool {

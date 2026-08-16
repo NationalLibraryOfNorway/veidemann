@@ -46,9 +46,8 @@ func (l *mutableSessionLookup) setActive(id int, sess *session.Session) {
 	l.sessions[id] = sess
 }
 
-func serverSession(t *testing.T, id int, executionID string) (*session.Session, *requests.Registry) {
+func serverSession(t *testing.T, id int, executionID string) *session.Session {
 	t.Helper()
-	registry := requests.NewRegistry(nil)
 	return &session.Session{
 		Id: id,
 		RequestedUrl: &frontierV1.QueuedUri{
@@ -56,8 +55,7 @@ func serverSession(t *testing.T, id int, executionID string) (*session.Session, 
 			JobExecutionId: "job-1",
 		},
 		CrawlConfig: &configV1.CrawlConfig{},
-		Requests:    registry,
-	}, registry
+	}
 }
 
 func TestRegisterResourceCancelsReleasedSession(t *testing.T) {
@@ -150,7 +148,7 @@ func TestResourceRPCsTreatInvalidProxyIDsAsUnavailable(t *testing.T) {
 }
 
 func TestRegisterResourceSupportsActiveConnectWithoutExecutionID(t *testing.T) {
-	active, _ := serverSession(t, 1, "active")
+	active := serverSession(t, 1, "active")
 	server := NewApiServer(newMutableSessionLookup(active), nil, nil)
 
 	reply, err := server.RegisterResource(context.Background(), &browsercontrollerV2.RegisterResourceRequest{
@@ -167,9 +165,9 @@ func TestRegisterResourceSupportsActiveConnectWithoutExecutionID(t *testing.T) {
 }
 
 func TestRegisterResourceSupportsActiveOptions(t *testing.T) {
-	active, registry := serverSession(t, 1, "active")
+	active := serverSession(t, 1, "active")
 	request := &requests.Request{ID: "options-1", URL: "https://example.com/"}
-	registry.AddRequest(request)
+	active.ObserveRequest(*request)
 	server := NewApiServer(newMutableSessionLookup(active), nil, nil)
 
 	reply, err := server.RegisterResource(context.Background(), &browsercontrollerV2.RegisterResourceRequest{
@@ -183,15 +181,19 @@ func TestRegisterResourceSupportsActiveOptions(t *testing.T) {
 	if reply.GetRegistered() == nil {
 		t.Fatalf("reply = %v, want registered", reply)
 	}
-	if !request.GotComplete {
+	snapshot, found := active.RequestSnapshot(request.ID)
+	if !found || !snapshot.GotComplete {
 		t.Fatal("OPTIONS request was not marked complete")
+	}
+	if request.GotComplete {
+		t.Fatal("OPTIONS completion mutated the caller-owned fixture")
 	}
 }
 
 func TestRegisterResourceAcceptsMatchingExecution(t *testing.T) {
-	active, registry := serverSession(t, 1, "active")
+	active := serverSession(t, 1, "active")
 	request := &requests.Request{ID: "network-1", URL: "https://example.com/", ResourceType: "Other"}
-	registry.AddRequest(request)
+	active.ObserveRequest(*request)
 	server := NewApiServer(newMutableSessionLookup(active), &testutil.RobotsEvaluatorMock{}, nil)
 
 	reply, err := server.RegisterResource(context.Background(), &browsercontrollerV2.RegisterResourceRequest{
@@ -207,13 +209,17 @@ func TestRegisterResourceAcceptsMatchingExecution(t *testing.T) {
 	if reply.GetRegistered() == nil {
 		t.Fatalf("reply = %v, want registered", reply)
 	}
-	if !request.GotNew {
+	snapshot, found := active.RequestSnapshot(request.ID)
+	if !found || !snapshot.GotNew {
 		t.Fatal("request was not marked new")
+	}
+	if request.GotNew {
+		t.Fatal("registration mutated the caller-owned fixture")
 	}
 }
 
 func TestRegisterResourceRejectsStaleExecution(t *testing.T) {
-	active, _ := serverSession(t, 1, "active")
+	active := serverSession(t, 1, "active")
 	server := NewApiServer(newMutableSessionLookup(active), nil, nil)
 	reply, err := server.RegisterResource(context.Background(), &browsercontrollerV2.RegisterResourceRequest{
 		ProxyId:          int32(active.Id),
@@ -231,9 +237,9 @@ func TestRegisterResourceRejectsStaleExecution(t *testing.T) {
 }
 
 func TestCompleteResourceRejectsStaleExecution(t *testing.T) {
-	active, registry := serverSession(t, 1, "active")
+	active := serverSession(t, 1, "active")
 	request := &requests.Request{ID: "network-1", URL: "https://example.com/"}
-	registry.AddRequest(request)
+	active.ObserveRequest(*request)
 
 	server := NewApiServer(newMutableSessionLookup(active), nil, nil)
 	_, err := server.CompleteResource(context.Background(), &browsercontrollerV2.CompleteResourceRequest{
@@ -249,15 +255,19 @@ func TestCompleteResourceRejectsStaleExecution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if request.CrawlLog != nil {
+	snapshot, found := active.RequestSnapshot(request.ID)
+	if !found {
+		t.Fatal("active request was not found after stale completion")
+	}
+	if snapshot.CrawlLog != nil {
 		t.Fatal("stale completion mutated the active session")
 	}
 }
 
 func TestCompleteResourceAcceptsMatchingExecution(t *testing.T) {
-	active, registry := serverSession(t, 1, "active")
+	active := serverSession(t, 1, "active")
 	request := &requests.Request{ID: "network-1", URL: "https://example.com/"}
-	registry.AddRequest(request)
+	active.ObserveRequest(*request)
 	server := NewApiServer(newMutableSessionLookup(active), nil, nil)
 
 	crawlLog := &logV1.CrawlLog{ExecutionId: "active", StatusCode: 200}
@@ -268,18 +278,22 @@ func TestCompleteResourceAcceptsMatchingExecution(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if request.CrawlLog != crawlLog {
-		t.Fatal("matching completion did not update the request")
+	snapshot, found := active.RequestSnapshot(request.ID)
+	if !found || snapshot.CrawlLog == nil || snapshot.CrawlLog.GetStatusCode() != 200 {
+		t.Fatal("matching completion did not update the session snapshot")
+	}
+	if request.CrawlLog != nil || snapshot.CrawlLog == crawlLog {
+		t.Fatal("matching completion aliased caller-owned state")
 	}
 }
 
 func TestRegisterResourceRevalidatesSessionAfterRobotsEvaluation(t *testing.T) {
-	oldSession, oldRegistry := serverSession(t, 1, "old")
+	oldSession := serverSession(t, 1, "old")
 	oldRequest := &requests.Request{ID: "network-1", URL: "https://example.com/", ResourceType: "Other"}
-	oldRegistry.AddRequest(oldRequest)
-	newSession, newRegistry := serverSession(t, 1, "new")
+	oldSession.ObserveRequest(*oldRequest)
+	newSession := serverSession(t, 1, "new")
 	newRequest := &requests.Request{ID: oldRequest.ID, URL: oldRequest.URL, ResourceType: "Other"}
-	newRegistry.AddRequest(newRequest)
+	newSession.ObserveRequest(*newRequest)
 
 	lookup := newMutableSessionLookup(oldSession)
 	entered := make(chan struct{})
@@ -327,7 +341,12 @@ func TestRegisterResourceRevalidatesSessionAfterRobotsEvaluation(t *testing.T) {
 	if got.reply.GetCancel() != cancelledByBrowserController {
 		t.Fatalf("cancel reason = %q, want %q", got.reply.GetCancel(), cancelledByBrowserController)
 	}
-	if oldRequest.GotNew || newRequest.GotNew {
-		t.Fatalf("registration mutated a session: old=%v new=%v", oldRequest.GotNew, newRequest.GotNew)
+	oldSnapshot, oldFound := oldSession.RequestSnapshot(oldRequest.ID)
+	newSnapshot, newFound := newSession.RequestSnapshot(newRequest.ID)
+	if !oldFound || !newFound {
+		t.Fatalf("request snapshots not found: old=%v new=%v", oldFound, newFound)
+	}
+	if oldSnapshot.GotNew || newSnapshot.GotNew {
+		t.Fatalf("registration mutated a session: old=%v new=%v", oldSnapshot.GotNew, newSnapshot.GotNew)
 	}
 }

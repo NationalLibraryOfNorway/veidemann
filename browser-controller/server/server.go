@@ -122,12 +122,8 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 
 		case http.MethodOptions:
 			normalizedURL := url.Normalize(request.Uri)
-			req := sess.Requests.GetByUrl(normalizedURL, true)
-			if req != nil {
-				req = sess.Requests.GotComplete(req.ID)
-				if err := sess.SignalRequestActivity(req); err != nil {
-					return nil, err
-				}
+			if _, err := sess.CompleteOptionsResource(normalizedURL); err != nil {
+				return nil, err
 			}
 			return reply, nil
 
@@ -142,23 +138,19 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 		return canceledRegistrationReply(), nil
 	}
 	if !isAllowedByRobots {
-		req := sess.Requests.GotComplete(request.GetRequestId())
-		if req != nil {
-			if err := sess.SignalCompletionActivity(); err != nil {
-				return nil, err
-			}
+		if _, err := sess.RejectResource(request.GetRequestId()); err != nil {
+			return nil, err
 		}
 		return &browsercontrollerV2.RegisterResourceReply{
 			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: blockedByRobots},
 		}, nil
 	}
 
-	req := sess.Requests.GotNew(request.GetRequestId())
-	if req != nil {
-		if err := sess.SignalRequestActivity(req); err != nil {
-			return nil, err
-		}
-	} else {
+	found, err := sess.RegisterResource(request.GetRequestId())
+	if err != nil {
+		return nil, err
+	}
+	if !found {
 		log.Warn("No request found in registry")
 	}
 
@@ -207,8 +199,11 @@ func (a *ApiServer) CompleteResource(ctx context.Context, request *browsercontro
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
 	}
 
-	req := sess.Requests.CompleteRequest(request.GetRequestId(), request.GetCrawlLog(), request.GetCached())
-	if req == nil {
+	completion, err := sess.RecordResourceCompletion(request.GetRequestId(), request.GetCrawlLog(), request.GetCached())
+	if err != nil {
+		return nil, err
+	}
+	if !completion.Found {
 		switch request.GetCrawlLog().GetMethod() {
 		case http.MethodOptions, http.MethodConnect:
 			log.Warn("Completed connect request")
@@ -217,19 +212,6 @@ func (a *ApiServer) CompleteResource(ctx context.Context, request *browsercontro
 			log.Warn("Request not found in registry")
 		}
 		return &browsercontrollerV2.CompleteResourceReply{}, nil
-	}
-
-	if request.GetCached() {
-		if initialRequest := sess.Requests.InitialRequest(); initialRequest != nil && initialRequest.ID == req.ID {
-			log.Warn("Aborting fetch because cached request is same as initial request")
-			if err := sess.AbortFetch(); err != nil {
-				log.Warn("Failed to abort fetch")
-			}
-		}
-	}
-
-	if err := sess.SignalRequestActivity(req); err != nil {
-		return nil, err
 	}
 
 	return &browsercontrollerV2.CompleteResourceReply{}, nil

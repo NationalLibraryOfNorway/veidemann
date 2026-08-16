@@ -124,8 +124,8 @@ func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *netw
 		return
 	}
 
-	_, added := sess.Requests.GetOrAddRequest(requestFromNetworkWillBeSent(ev))
-	if added {
+	observation := sess.ObserveRequest(requestFromNetworkWillBeSent(ev))
+	if observation.Added {
 		sess.networkTracker.noteRequestStart(ev)
 	}
 }
@@ -135,7 +135,7 @@ func (sess *Session) onNetworkEventLoadingFinished(_ context.Context, ev *networ
 
 	id := string(ev.RequestID)
 
-	_ = sess.Requests.GotComplete(id)
+	_ = sess.markRequestComplete(id)
 }
 
 func (sess *Session) onNetworkEventDataReceived(_ context.Context, ev *network.EventDataReceived, _ int64) {
@@ -157,12 +157,14 @@ func (sess *Session) onNetworkEventLoadingFailed(_ context.Context, ev *network.
 	id := string(ev.RequestID)
 
 	// TODO should it be completed when failed ?
-	req := sess.Requests.GotComplete(id)
-	if req != nil {
-		loggedURL, urlLength := requests.BoundedURLForLog(req.URL)
+	result := sess.markRequestComplete(id)
+	resourceType := ev.Type.String()
+	if result.Found {
+		loggedURL, urlLength := requests.BoundedURLForLog(result.Request.URL)
 		log = log.With("url", loggedURL, "urlLength", urlLength)
+		resourceType = result.Request.ResourceType
 	}
-	log.Log(context.Background(), resourceFailureLogLevel(req, ev.Type.String()), "Loading failed")
+	log.Log(context.Background(), resourceFailureLogLevel(resourceType), "Loading failed")
 }
 
 func (sess *Session) onPageEventFrameStartedLoading(ctx context.Context, ev *page.EventFrameStartedLoading, listenerID int64) {
@@ -265,7 +267,7 @@ func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.
 		return
 	}
 	if ev.TargetInfo.Type == "worker" {
-		err := sess.SignalCompletionActivity()
+		err := sess.signalCompletionActivity()
 		if err != nil {
 			log.Error("Failed to notify session of new target", "error", err)
 		}
@@ -277,7 +279,7 @@ func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.
 	}
 
 	sess.initChildTarget(ctx, ev.TargetInfo.TargetID, ev.TargetInfo.Type)
-	err := sess.SignalCompletionActivity()
+	err := sess.signalCompletionActivity()
 	if err != nil {
 		log.Error("Failed to notify session of new target", "error", err)
 	}
@@ -306,7 +308,7 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 
 	isResponseStage := ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != ""
 	if isResponseStage {
-		if err := sess.continuePausedRequest(ctx, ev, nil); err != nil {
+		if err := sess.continuePausedRequest(ctx, ev, ""); err != nil {
 			log.Warn("Failed to continue paused request",
 				"statusCode", ev.ResponseStatusCode,
 				"errorReason", ev.ResponseErrorReason,
@@ -323,17 +325,22 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 	)
 
 	browserLocal := url.IsBrowserLocal(ev.Request.URL)
-	var req *requests.Request
-	added := false
+	var observation requests.ObservationResult
+	observed := false
 	if !browserLocal {
-		req, added = sess.Requests.GetOrAddRequest(requestFromFetchPaused(ev))
+		observation = sess.ObserveRequest(requestFromFetchPaused(ev))
+		observed = true
 	}
 
-	if err := sess.continuePausedRequest(ctx, ev, req); err != nil {
-		rolledBack := sess.rollbackPausedRequest(req, added)
+	canonicalID := ""
+	if observed {
+		canonicalID = observation.Request.ID
+	}
+	if err := sess.continuePausedRequest(ctx, ev, canonicalID); err != nil {
+		rolledBack := sess.rollbackPausedRequest(canonicalID, observation.Added)
 		log.Warn("Rolled back paused request after continue failure",
 			"rolledBack", rolledBack,
-			"added", added,
+			"added", observation.Added,
 			"error", err)
 
 		sess.networkTracker.noteRequestDone(ev.NetworkID)
@@ -349,18 +356,20 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 		return
 	}
 
-	if req != nil {
-		if err := sess.SignalRequestActivity(req); err != nil {
-			log.Error("Failed to notify session after request continuation",
-				"id", req.ID,
-				"fetchRequestID", req.FetchRequestID,
-				"networkID", req.NetworkID,
-				"error", err)
+	if observed {
+		if observation.Request.BlocksPageCompletion() {
+			if err := sess.signalCompletionActivity(); err != nil {
+				log.Error("Failed to notify session after request continuation",
+					"id", observation.Request.ID,
+					"fetchRequestID", observation.Request.FetchRequestID,
+					"networkID", observation.Request.NetworkID,
+					"error", err)
+			}
 		}
 		return
 	}
 
-	if err := sess.SignalCompletionActivity(); err != nil {
+	if err := sess.signalCompletionActivity(); err != nil {
 		log.Error("Failed to notify session after request continuation",
 			"error", err)
 	}
@@ -369,7 +378,7 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 func (sess *Session) continuePausedRequest(
 	ctx context.Context,
 	ev *fetch.EventRequestPaused,
-	req *requests.Request,
+	canonicalID string,
 ) error {
 	continueRequest := fetch.ContinueRequest(ev.RequestID)
 
@@ -379,7 +388,7 @@ func (sess *Session) continuePausedRequest(
 		WithURL(ev.Request.URL).
 		WithMethod(ev.Request.Method)
 
-	headers := buildFetchHeaders(ev, req)
+	headers := buildFetchHeaders(ev, canonicalID)
 	if len(headers) > 0 {
 		continueRequest = continueRequest.WithHeaders(headers)
 	}
@@ -387,10 +396,10 @@ func (sess *Session) continuePausedRequest(
 	return chromedp.Run(ctx, continueRequest)
 }
 
-func buildFetchHeaders(ev *fetch.EventRequestPaused, req *requests.Request) []*fetch.HeaderEntry {
+func buildFetchHeaders(ev *fetch.EventRequestPaused, canonicalID string) []*fetch.HeaderEntry {
 	headerCount := len(ev.Request.Headers)
 
-	if req != nil && req.ID != "" {
+	if canonicalID != "" {
 		headerCount++
 	}
 
@@ -407,10 +416,10 @@ func buildFetchHeaders(ev *fetch.EventRequestPaused, req *requests.Request) []*f
 		})
 	}
 
-	if req != nil && req.ID != "" {
+	if canonicalID != "" {
 		headers = append(headers, &fetch.HeaderEntry{
 			Name:  "veidemann_reqid",
-			Value: req.ID,
+			Value: canonicalID,
 		})
 	}
 
@@ -515,17 +524,18 @@ func isInvalidInterceptionIDError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Invalid InterceptionId")
 }
 
-func (sess *Session) rollbackPausedRequest(req *requests.Request, added bool) bool {
-	if !added || req == nil || sess.Requests == nil {
+func (sess *Session) rollbackPausedRequest(id string, added bool) bool {
+	if !added || id == "" {
 		return false
 	}
 
-	if !sess.Requests.RemoveRequest(req) {
+	result := sess.removeRequest(id)
+	if !result.Found {
 		return false
 	}
 
-	if req.BlocksPageCompletion() {
-		_ = sess.SignalCompletionActivity()
+	if result.Request.BlocksPageCompletion() {
+		_ = sess.signalCompletionActivity()
 	}
 
 	return true
@@ -546,10 +556,10 @@ func logicalIDFromFetchPaused(ev *fetch.EventRequestPaused) string {
 	return id
 }
 
-func requestFromFetchPaused(ev *fetch.EventRequestPaused) *requests.Request {
+func requestFromFetchPaused(ev *fetch.EventRequestPaused) requests.Request {
 	id := logicalIDFromFetchPaused(ev)
 
-	return &requests.Request{
+	return requests.Request{
 		ID:             id,
 		FetchRequestID: string(ev.RequestID),
 		NetworkID:      string(ev.NetworkID),
@@ -563,10 +573,10 @@ func logicalIDFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) string {
 	return string(ev.RequestID)
 }
 
-func requestFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) *requests.Request {
+func requestFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) requests.Request {
 	id := logicalIDFromNetworkWillBeSent(ev)
 
-	req := &requests.Request{
+	req := requests.Request{
 		ID:           id,
 		NetworkID:    id,
 		URL:          url.Normalize(ev.Request.URL),

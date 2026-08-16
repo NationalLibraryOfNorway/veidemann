@@ -7,15 +7,11 @@ import (
 	"testing"
 	"time"
 
-	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	bcerrors "github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 )
 
 func TestClassifyFrameWaitErrorReturnsTimeoutWithInitialCrawlLog(t *testing.T) {
-	initialRequest := &requests.Request{CrawlLog: &logV1.CrawlLog{}}
-
-	err, returnNow := classifyFrameWaitError(initialRequest, "https://example.com", context.DeadlineExceeded)
+	err, returnNow := classifyFrameWaitError(false, "https://example.com", context.DeadlineExceeded)
 	if returnNow {
 		t.Fatal("frame timeout should not short-circuit browser-side finalization")
 	}
@@ -33,9 +29,7 @@ func TestClassifyFrameWaitErrorReturnsTimeoutWithInitialCrawlLog(t *testing.T) {
 }
 
 func TestClassifyFrameWaitErrorReturnsCacheHitImmediately(t *testing.T) {
-	initialRequest := &requests.Request{FromCache: true}
-
-	err, returnNow := classifyFrameWaitError(initialRequest, "https://example.com", errInitialRequestCached)
+	err, returnNow := classifyFrameWaitError(true, "https://example.com", errInitialRequestCached)
 	if !returnNow {
 		t.Fatal("cache hit cancellation should return immediately")
 	}
@@ -77,7 +71,7 @@ func TestClassifyCompletionWaitErrorReturnsTimeout(t *testing.T) {
 }
 
 func TestClassifyFrameWaitErrorPreservesCancellation(t *testing.T) {
-	err, returnNow := classifyFrameWaitError(nil, "https://example.com", context.Canceled)
+	err, returnNow := classifyFrameWaitError(false, "https://example.com", context.Canceled)
 	if !returnNow {
 		t.Fatal("context cancellation should stop fetch processing")
 	}

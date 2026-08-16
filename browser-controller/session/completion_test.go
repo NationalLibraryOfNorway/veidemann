@@ -19,9 +19,12 @@ package session
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 )
 
@@ -52,7 +55,7 @@ func TestSessionSignalCompletionActivityPreservesContextError(t *testing.T) {
 		completionActivity: make(chan struct{}, 1),
 	}
 
-	if err := sess.SignalCompletionActivity(); !errors.Is(err, context.Canceled) {
+	if err := sess.signalCompletionActivity(); !errors.Is(err, context.Canceled) {
 		t.Fatalf("SignalCompletionActivity() error = %v, want %v", err, context.Canceled)
 	}
 	select {
@@ -62,10 +65,12 @@ func TestSessionSignalCompletionActivityPreservesContextError(t *testing.T) {
 	}
 }
 
-func TestSessionSignalRequestActivityOnlySignalsBlockingRequests(t *testing.T) {
+func TestSessionRegisterResourceOnlySignalsBlockingRequests(t *testing.T) {
 	sess := &Session{completionActivity: make(chan struct{}, 1)}
+	sess.ObserveRequest(requests.Request{ID: "xhr", ResourceType: "XHR"})
+	sess.ObserveRequest(requests.Request{ID: "document", ResourceType: "Document"})
 
-	if err := sess.SignalRequestActivity(&requests.Request{GotNew: true, ResourceType: "XHR"}); err != nil {
+	if _, err := sess.RegisterResource("xhr"); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -74,7 +79,7 @@ func TestSessionSignalRequestActivityOnlySignalsBlockingRequests(t *testing.T) {
 	default:
 	}
 
-	if err := sess.SignalRequestActivity(&requests.Request{GotNew: true, ResourceType: "Document"}); err != nil {
+	if _, err := sess.RegisterResource("document"); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -82,6 +87,162 @@ func TestSessionSignalRequestActivityOnlySignalsBlockingRequests(t *testing.T) {
 	default:
 		t.Fatal("blocking request did not signal completion activity")
 	}
+}
+
+func TestSessionRejectResourceSignalsEveryFoundRequest(t *testing.T) {
+	sess := &Session{completionActivity: make(chan struct{}, 1)}
+	sess.ObserveRequest(requests.Request{ID: "xhr", ResourceType: "XHR"})
+
+	found, err := sess.RejectResource("xhr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("rejected request was not found")
+	}
+	select {
+	case <-sess.completionActivity:
+	default:
+		t.Fatal("robots rejection did not signal completion activity")
+	}
+}
+
+func TestSessionRecordInitialCacheHitAbortsBeforeCompletionActivity(t *testing.T) {
+	abortStarted := make(chan struct{})
+	releaseAbort := make(chan struct{})
+	released := false
+	defer func() {
+		if !released {
+			close(releaseAbort)
+		}
+	}()
+
+	sess := &Session{
+		completionActivity: make(chan struct{}, 1),
+		frameLoads:         newFrameLoadTracker(),
+		loadCancel: func() {
+			close(abortStarted)
+			<-releaseAbort
+		},
+	}
+	sess.frameLoads.Start("root")
+	sess.ObserveRequest(requests.Request{
+		ID:           "document",
+		ResourceType: "Document",
+		GotNew:       true,
+	})
+
+	type completionResult struct {
+		result ResourceCompletionResult
+		err    error
+	}
+	resultCh := make(chan completionResult, 1)
+	go func() {
+		result, err := sess.RecordResourceCompletion("document", &logV1.CrawlLog{WarcId: "warc-1"}, true)
+		resultCh <- completionResult{result: result, err: err}
+	}()
+
+	select {
+	case <-abortStarted:
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+
+	select {
+	case <-sess.completionActivity:
+		t.Fatal("completion activity was signaled before abort finished")
+	default:
+	}
+	if waitErr := sess.frameLoads.Wait(t.Context()); !errors.Is(waitErr, errInitialRequestCached) {
+		t.Fatalf("frame load state during abort = %v, want %v", waitErr, errInitialRequestCached)
+	}
+
+	close(releaseAbort)
+	released = true
+	var completion completionResult
+	select {
+	case completion = <-resultCh:
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+	if completion.err != nil {
+		t.Fatal(completion.err)
+	}
+	if !completion.result.Found || !completion.result.InitialCacheHit {
+		t.Fatalf("completion result = %#v, want initial cache hit", completion.result)
+	}
+	select {
+	case <-sess.completionActivity:
+	default:
+		t.Fatal("blocking cached completion did not signal activity after abort")
+	}
+}
+
+func TestSessionRecordCompletionClonesCrawlLog(t *testing.T) {
+	sess := &Session{completionActivity: make(chan struct{}, 1)}
+	sess.ObserveRequest(requests.Request{ID: "xhr", ResourceType: "XHR", GotNew: true})
+	crawlLog := &logV1.CrawlLog{WarcId: "warc-1", Size: 10}
+
+	result, err := sess.RecordResourceCompletion("xhr", crawlLog, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Found || result.InitialCacheHit {
+		t.Fatalf("completion result = %#v", result)
+	}
+	crawlLog.Size = 99
+
+	snapshot, found := sess.RequestSnapshot("xhr")
+	if !found || snapshot.CrawlLog.GetSize() != 10 || snapshot.CrawlLog == crawlLog {
+		t.Fatalf("session retained caller-owned crawl log: %#v", snapshot.CrawlLog)
+	}
+	select {
+	case <-sess.completionActivity:
+		t.Fatal("non-blocking completion signaled activity")
+	default:
+	}
+}
+
+func TestSessionCompleteOptionsSelectsFirstUnregisteredURLMatch(t *testing.T) {
+	sess := &Session{completionActivity: make(chan struct{}, 1)}
+	const uri = "https://example.com/options"
+	sess.ObserveRequest(requests.Request{ID: "registered", URL: uri, ResourceType: "Document", GotNew: true})
+	sess.ObserveRequest(requests.Request{ID: "options", URL: uri, ResourceType: "Document"})
+
+	found, err := sess.CompleteOptionsResource(uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("OPTIONS request was not found")
+	}
+	registered, _ := sess.RequestSnapshot("registered")
+	options, _ := sess.RequestSnapshot("options")
+	if registered.GotComplete || !options.GotComplete {
+		t.Fatalf("unexpected URL match: registered=%#v options=%#v", registered, options)
+	}
+	select {
+	case <-sess.completionActivity:
+		t.Fatal("unregistered OPTIONS completion signaled blocking activity")
+	default:
+	}
+}
+
+func TestSessionInitializesRequestRegistryOnceConcurrently(t *testing.T) {
+	sess := &Session{}
+	var wg sync.WaitGroup
+	for i := 0; i < 32; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			id := fmt.Sprintf("request-%d", i)
+			sess.ObserveRequest(requests.Request{ID: id, ResourceType: "Image"})
+			if snapshot, found := sess.RequestSnapshot(id); !found || snapshot.ID != id {
+				t.Errorf("request snapshot = %#v, found=%v", snapshot, found)
+			}
+		}(i)
+	}
+	wg.Wait()
 }
 
 func TestWaitForCompletionActivity(t *testing.T) {
