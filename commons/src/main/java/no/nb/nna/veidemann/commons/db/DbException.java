@@ -20,6 +20,7 @@ package no.nb.nna.veidemann.commons.db;
  * Parent exception for all database related exceptions.
  */
 public abstract class DbException extends Exception {
+    private static final long serialVersionUID = 1L;
 
     public DbException() {
     }

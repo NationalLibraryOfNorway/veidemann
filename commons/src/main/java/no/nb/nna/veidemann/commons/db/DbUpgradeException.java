@@ -20,6 +20,7 @@ package no.nb.nna.veidemann.commons.db;
  * Exception thrown when failing a database upgrade.
  */
 public class DbUpgradeException extends DbException {
+    private static final long serialVersionUID = 1L;
 
     public DbUpgradeException() {
     }

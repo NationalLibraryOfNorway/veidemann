@@ -27,7 +27,6 @@ import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.RunningCrawl;
 import no.nb.nna.veidemann.frontier.testutil.CrawlRunner.SeedAndExecutions;
 import no.nb.nna.veidemann.frontier.testutil.HarvesterMock;
-import redis.clients.jedis.UnifiedJedis;
 
 @Testcontainers
 @Tag("integration")

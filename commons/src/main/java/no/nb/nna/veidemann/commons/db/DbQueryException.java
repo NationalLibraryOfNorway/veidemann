@@ -20,6 +20,7 @@ package no.nb.nna.veidemann.commons.db;
  * Exception thrown when a database query fails.
  */
 public class DbQueryException extends DbException {
+    private static final long serialVersionUID = 1L;
 
     public DbQueryException() {
     }
