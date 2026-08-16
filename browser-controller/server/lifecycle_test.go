@@ -14,7 +14,6 @@ import (
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/testutil"
 )
 
@@ -47,9 +46,9 @@ func (l *mutableSessionLookup) setActive(id int, sess *session.Session) {
 	l.sessions[id] = sess
 }
 
-func serverSession(t *testing.T, id int, executionID string) (*session.Session, requests.RequestRegistry) {
+func serverSession(t *testing.T, id int, executionID string) (*session.Session, *requests.Registry) {
 	t.Helper()
-	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	registry := requests.NewRegistry(nil)
 	return &session.Session{
 		Id: id,
 		RequestedUrl: &frontierV1.QueuedUri{

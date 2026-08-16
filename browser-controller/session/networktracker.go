@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	browserurl "github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
 	"github.com/chromedp/cdproto/network"
 )
@@ -130,7 +129,7 @@ func (t *networkActivityTracker) waitForIdle(ctx context.Context, idleTime time.
 	waitStart := time.Now()
 
 	for {
-		if err := contextWaitError(ctx.Err()); err != nil {
+		if err := ctx.Err(); err != nil {
 			return err
 		}
 
@@ -153,7 +152,7 @@ func (t *networkActivityTracker) waitForIdle(ctx context.Context, idleTime time.
 		select {
 		case <-ctx.Done():
 			waitTimer.Stop()
-			return contextWaitError(ctx.Err())
+			return ctx.Err()
 		case <-updates:
 			waitTimer.Stop()
 		case <-waitTimer.C:
@@ -166,18 +165,5 @@ func (t *networkActivityTracker) notify() {
 	select {
 	case t.updates <- struct{}{}:
 	default:
-	}
-}
-
-func contextWaitError(err error) error {
-	switch err {
-	case nil:
-		return nil
-	case context.DeadlineExceeded:
-		return syncx.ErrExceededMaxTime
-	case context.Canceled:
-		return syncx.ErrCancelled
-	default:
-		return err
 	}
 }

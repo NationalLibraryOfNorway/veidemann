@@ -1,7 +1,6 @@
 package requests
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -10,7 +9,6 @@ import (
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 )
 
 func TestBoundedURLForLog(t *testing.T) {
@@ -105,7 +103,7 @@ func attrsByName(attrs []any) map[string]any {
 }
 
 func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
-	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	registry := NewRegistry(nil)
 
 	first, added := registry.GetOrAddRequest(&Request{
 		ID:             "238.39",
@@ -134,17 +132,13 @@ func TestGetOrAddRequestDeduplicatesByID(t *testing.T) {
 		t.Fatal("duplicate network ID did not reuse the original request")
 	}
 
-	count := 0
-	registry.Walk(func(*Request) {
-		count++
-	})
-	if count != 1 {
+	if count := len(registry.requests); count != 1 {
 		t.Fatalf("request count = %d, want 1", count)
 	}
 }
 
 func TestRootRequestSnapshotResolvesRedirectRoot(t *testing.T) {
-	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	registry := NewRegistry(nil)
 	initial := &Request{
 		ID:           "network-1",
 		URL:          "https://example.com/old",
@@ -177,7 +171,7 @@ func TestRootRequestSnapshotResolvesRedirectRoot(t *testing.T) {
 }
 
 func TestFinalizeResponsesReturnsIndependentSnapshot(t *testing.T) {
-	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	registry := NewRegistry(nil)
 	initialLog := &logV1.CrawlLog{WarcId: "warc-1", Size: 10}
 	initial := &Request{
 		ID:           "network-1",
@@ -229,7 +223,7 @@ func TestFinalizeResponsesReturnsIndependentSnapshot(t *testing.T) {
 }
 
 func TestMatchCrawlLogsIgnoresNonBlockingPingRequests(t *testing.T) {
-	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	registry := NewRegistry(nil)
 	registry.AddRequest(&Request{
 		ID:             "238.39",
 		FetchRequestID: "interception-job-1.0",
@@ -256,7 +250,7 @@ func TestMatchCrawlLogsIgnoresNonBlockingBackgroundRequests(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+			registry := NewRegistry(nil)
 			registry.AddRequest(&Request{
 				ID:             "211.11",
 				FetchRequestID: "interception-job-1.0",
@@ -273,7 +267,7 @@ func TestMatchCrawlLogsIgnoresNonBlockingBackgroundRequests(t *testing.T) {
 }
 
 func TestRemoveRequestRemovesTrackedRequest(t *testing.T) {
-	registry := NewRegistry(syncx.NewWaitGroup(context.Background()))
+	registry := NewRegistry(nil)
 	kept, added := registry.GetOrAddRequest(&Request{
 		ID:             "240.1",
 		FetchRequestID: "interception-job-1.0",
@@ -299,15 +293,11 @@ func TestRemoveRequestRemovesTrackedRequest(t *testing.T) {
 		t.Fatal("expected request removal to succeed")
 	}
 
-	count := 0
-	registry.Walk(func(req *Request) {
-		count++
-		if req != kept {
-			t.Fatalf("unexpected request left in registry: %#v", req)
-		}
-	})
-	if count != 1 {
+	if count := len(registry.requests); count != 1 {
 		t.Fatalf("request count = %d, want 1", count)
+	}
+	if registry.requests[0] != kept {
+		t.Fatalf("unexpected request left in registry: %#v", registry.requests[0])
 	}
 }
 func TestRequestBlocksPageCompletion(t *testing.T) {

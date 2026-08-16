@@ -187,7 +187,7 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 	// wait is executed depending on value returned from script (WaitForData)
 	wait := func() {
 		waitStart := time.Now()
-		waitErr := sess.waitForNetworkIdle(ctx, time.Duration(sess.browserConfig.MaxInactivityTimeMs))
+		waitErr := sess.waitForNetworkIdle(ctx, durationFromMilliseconds(sess.browserConfig.MaxInactivityTimeMs))
 		if waitErr != nil {
 			log.Debug("Timed out while waiting for network activity to settle", "error", waitErr)
 			return

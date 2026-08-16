@@ -6,7 +6,6 @@ import (
 
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestNetworkRequestRegistrationIgnoresBrowserLocalURLs(t *testing.T) {
-	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	registry := requests.NewRegistry(nil)
 	sess := &Session{
 		Requests:       registry,
 		networkTracker: newNetworkActivityTracker(),
@@ -28,13 +27,13 @@ func TestNetworkRequestRegistrationIgnoresBrowserLocalURLs(t *testing.T) {
 		Type:      network.ResourceTypeImage,
 	}, 1)
 
-	if got := registry.GetByID("local-1"); got != nil {
+	if got := registry.InitialRequest(); got != nil {
 		t.Fatalf("browser-local request was registered: %#v", got)
 	}
 }
 
 func TestNetworkRequestRegistrationPreservesCanonicalMerge(t *testing.T) {
-	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	registry := requests.NewRegistry(nil)
 	sess := &Session{
 		Requests:       registry,
 		networkTracker: newNetworkActivityTracker(),
@@ -48,7 +47,7 @@ func TestNetworkRequestRegistrationPreservesCanonicalMerge(t *testing.T) {
 		Type:      network.ResourceTypeImage,
 	}, 1)
 
-	fromNetwork := registry.GetByID("network-1")
+	fromNetwork := registry.InitialRequest()
 	if fromNetwork == nil {
 		t.Fatal("network request was not registered")
 	}
@@ -85,7 +84,7 @@ func TestRequestFromFetchPausedIdentifiesBrowserLocalURL(t *testing.T) {
 }
 
 func TestLoadingFailedThenRecorderCompletionKeepsRecorderCrawlLog(t *testing.T) {
-	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	registry := requests.NewRegistry(nil)
 	req, added := registry.GetOrAddRequest(&requests.Request{
 		ID:           "request-1",
 		NetworkID:    "request-1",
@@ -206,7 +205,7 @@ func TestShouldTrackFrameLifecycle(t *testing.T) {
 }
 
 func TestRollbackPausedRequestRemovesAddedNonInitialRequest(t *testing.T) {
-	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+	registry := requests.NewRegistry(nil)
 	_, added := registry.GetOrAddRequest(&requests.Request{
 		Method:         "GET",
 		URL:            "https://www.nb.no/",
@@ -233,20 +232,16 @@ func TestRollbackPausedRequestRemovesAddedNonInitialRequest(t *testing.T) {
 	sess := &Session{Requests: registry}
 	sess.rollbackPausedRequest(orphan, true)
 
-	count := 0
-	registry.Walk(func(req *requests.Request) {
-		count++
-		if req == orphan {
-			t.Fatal("orphan request was not removed")
-		}
-	})
-	if count != 1 {
-		t.Fatalf("request count = %d, want 1", count)
+	if registry.RemoveRequest(orphan) {
+		t.Fatal("orphan request was not removed")
+	}
+	if got := registry.InitialRequest(); got == nil || got.ID == orphan.ID {
+		t.Fatalf("unexpected initial request after rollback: %#v", got)
 	}
 }
 
-func TestRollbackPausedRequestKeepsInitialRequest(t *testing.T) {
-	registry := requests.NewRegistry(syncx.NewWaitGroup(t.Context()))
+func TestRollbackPausedRequestRemovesAddedInitialRequest(t *testing.T) {
+	registry := requests.NewRegistry(nil)
 	initial, added := registry.GetOrAddRequest(&requests.Request{
 		Method:         "GET",
 		URL:            "https://www.nb.no/",
@@ -262,15 +257,7 @@ func TestRollbackPausedRequestKeepsInitialRequest(t *testing.T) {
 	sess := &Session{Requests: registry}
 	sess.rollbackPausedRequest(initial, added)
 
-	count := 0
-	registry.Walk(func(req *requests.Request) {
-		count++
-		if req != initial {
-			t.Fatalf("unexpected request left in registry: %#v", req)
-		}
-	})
-	// TODO shall we rollback initial requests or not
-	if count != 0 {
-		t.Fatalf("request count = %d, want 1", count)
+	if got := registry.InitialRequest(); got != nil {
+		t.Fatalf("request remained after rollback: %#v", got)
 	}
 }

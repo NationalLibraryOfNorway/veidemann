@@ -24,7 +24,6 @@ import (
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,27 +37,8 @@ type ResponseSnapshot struct {
 	IgnoredCount    int
 }
 
-type RequestRegistry interface {
-	NotifyLoadStart()
-	NotifyLoadFinished()
-	AddRequest(req *Request)
-	GetOrAddRequest(req *Request) (*Request, bool)
-	RemoveRequest(req *Request) bool
-	GetByID(id string) *Request
-	GetByUrl(url string, onlyNew bool) *Request
-	MatchCrawlLogs() bool
-	GotNew(id string) *Request
-	GotComplete(id string) *Request
-	CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request
-	Walk(w func(*Request))
-	InitialRequest() *Request
-	RootRequestSnapshot() *Request
-	FinalizeResponses(requestedUrl *frontierV1.QueuedUri) *ResponseSnapshot
-}
-
-type requestRegistry struct {
-	done *syncx.WaitGroup
-	log  *slog.Logger
+type Registry struct {
+	log *slog.Logger
 
 	mu       sync.Mutex
 	requests []*Request
@@ -67,7 +47,13 @@ type requestRegistry struct {
 	lastMatchLog string
 }
 
-func (r *requestRegistry) InitialRequest() *Request {
+// TODO(follow-up): GetOrAddRequest, GetByUrl, InitialRequest, GotNew,
+// GotComplete, and CompleteRequest return live *Request values after releasing
+// mu. CDP listeners and resource RPC goroutines can then read or mutate the same
+// fields, including CrawlLog, without the registry lock. Move mutations and
+// predicates behind operation-specific methods and return immutable snapshots.
+
+func (r *Registry) InitialRequest() *Request {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -78,34 +64,24 @@ func (r *requestRegistry) InitialRequest() *Request {
 	return r.requests[0]
 }
 
-func (r *requestRegistry) RootRequestSnapshot() *Request {
+func (r *Registry) RootRequestSnapshot() *Request {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	return cloneRequest(resolveRootRequest(r.requests, false))
 }
 
-func NewRegistry(done *syncx.WaitGroup, loggers ...*slog.Logger) RequestRegistry {
-	logger := slog.Default()
-	if len(loggers) > 0 && loggers[0] != nil {
-		logger = loggers[0]
+func NewRegistry(logger *slog.Logger) *Registry {
+	if logger == nil {
+		logger = slog.Default()
 	}
-	return &requestRegistry{
-		done: done,
+	return &Registry{
 		log:  logger,
 		byID: make(map[string]*Request),
 	}
 }
 
-func (r *requestRegistry) NotifyLoadStart() {
-	r.done.Add(1)
-}
-
-func (r *requestRegistry) NotifyLoadFinished() {
-	r.done.Done()
-}
-
-func (r *requestRegistry) AddRequest(req *Request) {
+func (r *Registry) AddRequest(req *Request) {
 	if req == nil || req.ID == "" {
 		panic("request must have canonical ID")
 	}
@@ -116,18 +92,7 @@ func (r *requestRegistry) AddRequest(req *Request) {
 	r.byID[req.ID] = req
 }
 
-func (r *requestRegistry) GetByID(id string) *Request {
-	if id == "" {
-		return nil
-	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	return r.byID[id]
-}
-
-func (r *requestRegistry) GetOrAddRequest(req *Request) (*Request, bool) {
+func (r *Registry) GetOrAddRequest(req *Request) (*Request, bool) {
 	if req == nil || req.ID == "" {
 		panic("request must have canonical ID")
 	}
@@ -145,7 +110,7 @@ func (r *requestRegistry) GetOrAddRequest(req *Request) (*Request, bool) {
 	return req, true
 }
 
-func (r *requestRegistry) RemoveRequest(req *Request) bool {
+func (r *Registry) RemoveRequest(req *Request) bool {
 	if req == nil {
 		return false
 	}
@@ -172,7 +137,7 @@ func (r *requestRegistry) RemoveRequest(req *Request) bool {
 	return true
 }
 
-func (r *requestRegistry) GetByUrl(url string, onlyNew bool) *Request {
+func (r *Registry) GetByUrl(url string, onlyNew bool) *Request {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, req := range r.requests {
@@ -185,19 +150,19 @@ func (r *requestRegistry) GetByUrl(url string, onlyNew bool) *Request {
 	return nil
 }
 
-func (r *requestRegistry) GotNew(id string) *Request {
+func (r *Registry) GotNew(id string) *Request {
 	return r.mark(id, func(req *Request) {
 		req.GotNew = true
 	})
 }
 
-func (r *requestRegistry) GotComplete(id string) *Request {
+func (r *Registry) GotComplete(id string) *Request {
 	return r.mark(id, func(req *Request) {
 		req.GotComplete = true
 	})
 }
 
-func (r *requestRegistry) CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request {
+func (r *Registry) CompleteRequest(id string, crawlLog *logV1.CrawlLog, cached bool) *Request {
 	return r.mark(id, func(req *Request) {
 		req.CrawlLog = crawlLog
 		req.GotComplete = true
@@ -208,7 +173,7 @@ func (r *requestRegistry) CompleteRequest(id string, crawlLog *logV1.CrawlLog, c
 	})
 }
 
-func (r *requestRegistry) mark(id string, fn func(*Request)) *Request {
+func (r *Registry) mark(id string, fn func(*Request)) *Request {
 	if id == "" {
 		return nil
 	}
@@ -226,7 +191,7 @@ func (r *requestRegistry) mark(id string, fn func(*Request)) *Request {
 	return req
 }
 
-func (r *requestRegistry) MatchCrawlLogs() bool {
+func (r *Registry) MatchCrawlLogs() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -247,15 +212,7 @@ func (r *requestRegistry) MatchCrawlLogs() bool {
 	return snapshot.unresolvedCount == 0
 }
 
-func (r *requestRegistry) Walk(w func(*Request)) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, req := range r.requests {
-		w(req)
-	}
-}
-
-func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) *ResponseSnapshot {
+func (r *Registry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) *ResponseSnapshot {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -299,7 +256,7 @@ func (r *requestRegistry) FinalizeResponses(requestedUrl *frontierV1.QueuedUri) 
 	return snapshot
 }
 
-func (r *requestRegistry) snapshotLocked() *ResponseSnapshot {
+func (r *Registry) snapshotLocked() *ResponseSnapshot {
 	snapshot := &ResponseSnapshot{}
 	if len(r.requests) == 0 {
 		return snapshot

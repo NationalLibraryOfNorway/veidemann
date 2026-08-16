@@ -10,13 +10,12 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	bcerrors "github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 )
 
 func TestClassifyFrameWaitErrorReturnsTimeoutWithInitialCrawlLog(t *testing.T) {
 	initialRequest := &requests.Request{CrawlLog: &logV1.CrawlLog{}}
 
-	err, returnNow := classifyFrameWaitError(initialRequest, "https://example.com", syncx.ErrExceededMaxTime)
+	err, returnNow := classifyFrameWaitError(initialRequest, "https://example.com", context.DeadlineExceeded)
 	if returnNow {
 		t.Fatal("frame timeout should not short-circuit browser-side finalization")
 	}
@@ -36,7 +35,7 @@ func TestClassifyFrameWaitErrorReturnsTimeoutWithInitialCrawlLog(t *testing.T) {
 func TestClassifyFrameWaitErrorReturnsCacheHitImmediately(t *testing.T) {
 	initialRequest := &requests.Request{FromCache: true}
 
-	err, returnNow := classifyFrameWaitError(initialRequest, "https://example.com", syncx.ErrCancelled)
+	err, returnNow := classifyFrameWaitError(initialRequest, "https://example.com", errInitialRequestCached)
 	if !returnNow {
 		t.Fatal("cache hit cancellation should return immediately")
 	}
@@ -55,8 +54,8 @@ func TestClassifyCompletionWaitErrorReturnsTimeout(t *testing.T) {
 		name    string
 		waitErr error
 	}{
-		{name: "idle timeout", waitErr: syncx.ErrIdleTimeout},
-		{name: "max time", waitErr: syncx.ErrExceededMaxTime},
+		{name: "idle timeout", waitErr: errCompletionIdleTimeout},
+		{name: "load deadline", waitErr: context.DeadlineExceeded},
 	}
 
 	for _, tc := range tests {
@@ -74,6 +73,23 @@ func TestClassifyCompletionWaitErrorReturnsTimeout(t *testing.T) {
 				t.Fatalf("unexpected error detail: %q", commonsErr.Detail)
 			}
 		})
+	}
+}
+
+func TestClassifyFrameWaitErrorPreservesCancellation(t *testing.T) {
+	err, returnNow := classifyFrameWaitError(nil, "https://example.com", context.Canceled)
+	if !returnNow {
+		t.Fatal("context cancellation should stop fetch processing")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("frame wait error = %v, want %v", err, context.Canceled)
+	}
+}
+
+func TestClassifyCompletionWaitErrorPreservesCancellation(t *testing.T) {
+	err := classifyCompletionWaitError("https://example.com", context.Canceled)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("completion wait error = %v, want %v", err, context.Canceled)
 	}
 }
 
@@ -97,38 +113,10 @@ func TestNetworkSettleIdleTime(t *testing.T) {
 	}
 }
 
-func TestWaitForCompletionIfActive(t *testing.T) {
-	t.Run("active context waits", func(t *testing.T) {
-		wantErr := errors.New("wait failed")
-		called := false
-		err := waitForCompletionIfActive(t.Context(), func() error {
-			called = true
-			return wantErr
-		})
-		if !called {
-			t.Fatal("completion wait was not called")
-		}
-		if !errors.Is(err, wantErr) {
-			t.Fatalf("completion wait error = %v, want %v", err, wantErr)
-		}
-	})
-
-	t.Run("expired context skips wait", func(t *testing.T) {
-		loadCtx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		called := false
-		err := waitForCompletionIfActive(loadCtx, func() error {
-			called = true
-			return errors.New("must not be returned")
-		})
-		if called {
-			t.Fatal("completion wait was called with expired context")
-		}
-		if err != nil {
-			t.Fatalf("completion wait error = %v, want nil", err)
-		}
-	})
+func TestDurationFromMilliseconds(t *testing.T) {
+	if got := durationFromMilliseconds(3_000); got != 3*time.Second {
+		t.Fatalf("durationFromMilliseconds(3000) = %v, want %v", got, 3*time.Second)
+	}
 }
 
 func TestScreenshotParentContext(t *testing.T) {

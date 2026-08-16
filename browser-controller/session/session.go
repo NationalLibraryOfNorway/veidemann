@@ -23,11 +23,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 	"math"
 	"net/url"
 	"runtime/debug"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,7 +41,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
@@ -58,8 +55,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -103,7 +98,7 @@ type launch struct {
 
 type Session struct {
 	ctx               context.Context
-	Requests          requests.RequestRegistry
+	Requests          *requests.Registry
 	configAdapter     database.ConfigAdapter
 	screenShotWriter  screenshotwriter.ScreenshotWriter
 	logWriter         logwriter.LogWriter
@@ -115,21 +110,18 @@ type Session struct {
 	browserVersion    string
 	rootTargetID      target.ID
 
-	RequestedUrl     *frontierV1.QueuedUri
-	CrawlConfig      *configV1.CrawlConfig
-	browserConfig    *configV1.BrowserConfig
-	PolitenessConfig *configV1.ConfigObject
-	frameWg          *syncx.WaitGroup
-	loadCancel       func()
-	networkTracker   *networkActivityTracker
-	timer            *syncx.CompletionTimer
-	scripts          *sessionScripts
+	RequestedUrl       *frontierV1.QueuedUri
+	CrawlConfig        *configV1.CrawlConfig
+	browserConfig      *configV1.BrowserConfig
+	PolitenessConfig   *configV1.ConfigObject
+	frameLoads         *frameLoadTracker
+	loadCancel         func()
+	networkTracker     *networkActivityTracker
+	completionActivity chan struct{}
+	scripts            *sessionScripts
 
-	initializedTargets map[target.ID]struct{}
-	loadingFrames      map[string]struct{}
-
+	initializedTargets   map[target.ID]struct{}
 	initializedTargetsMu sync.Mutex
-	loadingFramesMu      sync.Mutex
 
 	listenerSeq atomic.Int64
 
@@ -140,6 +132,8 @@ type Session struct {
 
 	acceptRequests atomic.Int32
 }
+
+var errInitialRequestCached = errors.New("initial request served from cache")
 
 func newDefaultSession(opts ...Option) *Session {
 	s := &Session{
@@ -165,35 +159,33 @@ func newSession(sessionId int, opts ...Option) *Session {
 }
 
 func (sess *Session) loggerOrDefault() *slog.Logger {
-	if sess == nil || sess.logger == nil {
+	if sess == nil {
+		return slog.Default()
+	}
+	if sess.logger == nil {
 		sess.logger = slog.Default()
 	}
 	return sess.logger
 }
 
-func (sess *Session) Notify(reqId string) error {
-	log := sess.logger
-
-	if reqId == "" {
-		log.Warn("Received notify with empty request ID")
-		return nil
-	}
-	select {
-	case <-sess.ctx.Done():
-		return status.Errorf(codes.Canceled, "Session is canceled")
-	default:
-		if sess.timer != nil {
-			sess.timer.Notify()
+func (sess *Session) SignalCompletionActivity() error {
+	if sess.ctx != nil {
+		select {
+		case <-sess.ctx.Done():
+			return sess.ctx.Err()
+		default:
 		}
-		return nil
 	}
+
+	signalCompletionActivity(sess.completionActivity)
+	return nil
 }
 
-func (sess *Session) NotifyRequest(req *requests.Request) error {
+func (sess *Session) SignalRequestActivity(req *requests.Request) error {
 	if req == nil || !req.BlocksPageCompletion() {
 		return nil
 	}
-	return sess.Notify(req.ID)
+	return sess.SignalCompletionActivity()
 }
 
 func (sess *Session) startAcceptingRequests() {
@@ -288,13 +280,13 @@ func (sess *Session) loadFetchConfig(ctx context.Context, phs *frontierV1.PageHa
 	}
 	sess.browserWsEndpoint = browserWsEndpoint
 
-	maxTotalTime := time.Duration(sess.browserConfig.PageLoadTimeoutMs) * time.Millisecond
-	maxIdleTime := time.Duration(sess.browserConfig.MaxInactivityTimeMs) * time.Millisecond
+	maxTotalTime := durationFromMilliseconds(sess.browserConfig.PageLoadTimeoutMs)
+	maxIdleTime := durationFromMilliseconds(sess.browserConfig.MaxInactivityTimeMs)
 
 	return maxTotalTime, maxIdleTime, nil
 }
 
-func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxIdleTime time.Duration) (context.Context, context.Context, func(), error) {
+func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.Duration) (context.Context, context.Context, func(), error) {
 	log := sess.loggerOrDefault()
 
 	allocatorContext, allocatorCancel := chromedp.NewRemoteAllocator(ctx, sess.browserWsEndpoint, chromedp.NoModifyURL)
@@ -328,11 +320,11 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime, maxI
 	loadCtx, loadCancel := context.WithTimeout(sess.ctx, maxTotalTime)
 	sess.loadCancel = loadCancel
 
-	sess.frameWg = syncx.NewWaitGroup(loadCtx)
-	sess.Requests = requests.NewRegistry(sess.frameWg, log)
+	sess.frameLoads = newFrameLoadTracker()
+	sess.Requests = requests.NewRegistry(log)
+	sess.completionActivity = make(chan struct{}, 1)
 
 	sess.initListeners(cdpCtx)
-	sess.timer = syncx.NewCompletionTimer(maxIdleTime, maxTotalTime, sess.Requests.MatchCrawlLogs)
 
 	browserWidth := int64(sess.browserConfig.WindowWidth)
 	browserHeight := int64(sess.browserConfig.WindowHeight)
@@ -417,10 +409,10 @@ func (sess *Session) classifyNavigationError(err error) error {
 	}
 }
 
-func (sess *Session) waitForInitialPageLoad() (error, bool) {
+func (sess *Session) waitForInitialPageLoad(loadCtx context.Context) (error, bool) {
 	log := sess.loggerOrDefault()
 
-	waitErr := sess.frameWg.Wait()
+	waitErr := sess.frameLoads.Wait(loadCtx)
 	if waitErr == nil {
 		return nil, false
 	}
@@ -433,7 +425,7 @@ func (sess *Session) waitForInitialPageLoad() (error, bool) {
 		return fetchErr, true
 	}
 
-	if loadingFrames := sess.loadingFrameSnapshot(); len(loadingFrames) > 0 {
+	if loadingFrames := sess.frameLoads.Snapshot(); len(loadingFrames) > 0 {
 		log.Warn("Frames still marked as loading at timeout", "loadingFrames", loadingFrames)
 	} else {
 		log.Warn("No frames remained marked as loading at timeout")
@@ -484,7 +476,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	log.Info("Start fetch", "maxIdleTime", fmt.Sprintf("%.2fs", maxIdleTime.Seconds()), "maxTotalTime", fmt.Sprintf("%.2fs", maxTotalTime.Seconds()))
 	fetchStart := time.Now()
 
-	cdpCtx, loadCtx, cleanup, err := sess.startBrowserSession(ctx, maxTotalTime, maxIdleTime)
+	cdpCtx, loadCtx, cleanup, err := sess.startBrowserSession(ctx, maxTotalTime)
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +494,7 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 
 	var fetchErr error
 
-	if err, returnNow := sess.waitForInitialPageLoad(); returnNow {
+	if err, returnNow := sess.waitForInitialPageLoad(loadCtx); returnNow {
 		return nil, err
 	} else if err != nil {
 		fetchErr = err
@@ -513,19 +505,13 @@ func (sess *Session) Fetch(ctx context.Context, phs *frontierV1.PageHarvestSpec)
 	// Wait for the browser to go idle and for tracked requests to receive crawl logs.
 	// A frame timeout consumes the load context deadline, so there is no useful
 	// completion work left to do in that case.
-	err = waitForCompletionIfActive(loadCtx, func() error {
-		return sess.waitForSettledNetworkAndRequests(loadCtx, maxIdleTime)
-	})
-	if err != nil {
-		log.Warn("Timed out while waiting for outstanding requests", "error", err)
-		waitErr := classifyCompletionWaitError(sess.RequestedUrl.Uri, err)
-		if waitErr != nil {
-			if fetchErr == nil {
-				fetchErr = waitErr
-			} else {
-				fetchErr = errors.Join(fetchErr, waitErr)
-			}
-		}
+	var completionErr error
+	if loadCtx.Err() == nil {
+		completionErr = sess.waitForSettledNetworkAndRequests(loadCtx, maxIdleTime)
+	}
+	if completionErr != nil {
+		log.Warn("Timed out while waiting for outstanding requests", "error", completionErr)
+		fetchErr = classifyCompletionWaitError(sess.RequestedUrl.Uri, completionErr)
 	}
 
 	if fetchErr != nil {
@@ -838,8 +824,15 @@ func (sess *Session) extractOutlinks(rootRequest *requests.Request) []string {
 }
 
 func (sess *Session) AbortFetch() error {
-	defer sess.loadCancel()
-	defer sess.frameWg.Cancel()
+	if sess.frameLoads != nil {
+		sess.frameLoads.Cancel(errInitialRequestCached)
+	}
+	if sess.loadCancel != nil {
+		defer sess.loadCancel()
+	}
+	if sess.ctx == nil {
+		return nil
+	}
 	return chromedp.Run(sess.ctx, page.StopLoading())
 }
 
@@ -848,100 +841,19 @@ func (sess *Session) waitForNetworkIdle(ctx context.Context, maxIdleTime time.Du
 }
 
 func (sess *Session) waitForSettledNetworkAndRequests(ctx context.Context, maxIdleTime time.Duration) error {
-	for {
-		if err := sess.waitForNetworkIdle(ctx, maxIdleTime); err != nil {
-			return err
-		}
-		if sess.Requests == nil || sess.Requests.MatchCrawlLogs() {
-			return nil
-		}
-		if sess.timer == nil {
-			return nil
-		}
-
-		err := sess.timer.WaitForCompletion()
-		sess.timer.Reset()
-		switch err {
-		case nil, syncx.ErrIdleTimeout:
-			continue
-		default:
-			return err
-		}
-	}
-}
-
-func (sess *Session) noteFrameLoadStart(frameID string) (alreadyLoading, tracked bool) {
-	if frameID == "" {
-		return false, false
+	if sess.Requests == nil {
+		return errors.New("request registry is not initialized")
 	}
 
-	sess.loadingFramesMu.Lock()
-	defer sess.loadingFramesMu.Unlock()
-
-	if sess.loadingFrames == nil {
-		sess.loadingFrames = make(map[string]struct{})
-	}
-
-	if _, alreadyLoading = sess.loadingFrames[frameID]; alreadyLoading {
-		return true, true
-	}
-
-	sess.loadingFrames[frameID] = struct{}{}
-	return false, true
-}
-
-func (sess *Session) noteFrameLoadFinished(frameID string) (tracked bool) {
-	if frameID == "" {
-		return false
-	}
-
-	sess.loadingFramesMu.Lock()
-	defer sess.loadingFramesMu.Unlock()
-
-	_, tracked = sess.loadingFrames[frameID]
-	if !tracked {
-		return false
-	}
-
-	delete(sess.loadingFrames, frameID)
-	return true
-}
-
-func (sess *Session) noteFrameLoadDetached(frameID string) (tracked bool) {
-	if frameID == "" {
-		return false
-	}
-
-	sess.loadingFramesMu.Lock()
-	defer sess.loadingFramesMu.Unlock()
-
-	_, tracked = sess.loadingFrames[frameID]
-	if !tracked {
-		return false
-	}
-
-	delete(sess.loadingFrames, frameID)
-	return true
-}
-
-func (sess *Session) loadingFrameSnapshot() []string {
-	sess.loadingFramesMu.Lock()
-	defer sess.loadingFramesMu.Unlock()
-
-	if len(sess.loadingFrames) == 0 {
-		return nil
-	}
-
-	snapshot := slices.Collect(maps.Keys(sess.loadingFrames))
-	slices.Sort(snapshot)
-	return snapshot
-}
-
-func waitForCompletionIfActive(loadCtx context.Context, wait func() error) error {
-	if loadCtx == nil || loadCtx.Err() != nil {
-		return nil
-	}
-	return wait()
+	return waitForSettled(
+		ctx,
+		maxIdleTime,
+		sess.completionActivity,
+		func(ctx context.Context) error {
+			return sess.waitForNetworkIdle(ctx, maxIdleTime)
+		},
+		sess.Requests.MatchCrawlLogs,
+	)
 }
 
 func screenshotParentContext(cdpCtx, loadCtx context.Context, fetchErr error) context.Context {
@@ -986,24 +898,27 @@ func pageloadTimeoutError(uri, phase string) error {
 }
 
 func classifyFrameWaitError(initialRequest *requests.Request, uri string, waitErr error) (error, bool) {
-	switch waitErr {
-	case syncx.ErrCancelled:
+	switch {
+	case errors.Is(waitErr, errInitialRequestCached):
 		if initialRequest != nil && initialRequest.FromCache {
 			return cacheHitFetchError(uri), true
 		}
-	case syncx.ErrExceededMaxTime:
+		return waitErr, true
+	case errors.Is(waitErr, context.DeadlineExceeded):
 		return pageloadTimeoutError(uri, "frames to finish loading"), false
+	case waitErr != nil:
+		return waitErr, true
 	}
 
 	return nil, false
 }
 
 func classifyCompletionWaitError(uri string, waitErr error) error {
-	switch waitErr {
-	case syncx.ErrIdleTimeout, syncx.ErrExceededMaxTime:
+	switch {
+	case errors.Is(waitErr, errCompletionIdleTimeout), errors.Is(waitErr, context.DeadlineExceeded):
 		return pageloadTimeoutError(uri, "outstanding requests to complete")
 	default:
-		return nil
+		return waitErr
 	}
 }
 
@@ -1012,4 +927,8 @@ func networkSettleIdleTime(maxIdleTime time.Duration) time.Duration {
 		return time.Second
 	}
 	return maxIdleTime
+}
+
+func durationFromMilliseconds(milliseconds int64) time.Duration {
+	return time.Duration(milliseconds) * time.Millisecond
 }

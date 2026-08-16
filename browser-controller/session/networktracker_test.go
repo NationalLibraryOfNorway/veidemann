@@ -2,10 +2,10 @@ package session
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/syncx"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
 )
@@ -201,7 +201,7 @@ func TestNetworkActivityTrackerWaitForIdleExtendsOnObservedRequestWithoutID(t *t
 	}
 }
 
-func TestNetworkActivityTrackerWaitForIdleReturnsExceededMaxTime(t *testing.T) {
+func TestNetworkActivityTrackerWaitForIdleReturnsContextDeadline(t *testing.T) {
 	tracker := newNetworkActivityTracker()
 	tracker.noteRequestStart(&network.EventRequestWillBeSent{
 		RequestID: network.RequestID("req-1"),
@@ -230,7 +230,7 @@ func TestNetworkActivityTrackerWaitForIdleReturnsExceededMaxTime(t *testing.T) {
 
 	err := tracker.waitForIdle(ctx, 20*time.Millisecond)
 	<-stopped
-	if err != syncx.ErrExceededMaxTime {
-		t.Fatalf("waitForIdle() error = %v, want %v", err, syncx.ErrExceededMaxTime)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("waitForIdle() error = %v, want %v", err, context.DeadlineExceeded)
 	}
 }

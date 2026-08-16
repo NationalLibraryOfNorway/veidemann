@@ -125,7 +125,7 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 			req := sess.Requests.GetByUrl(normalizedURL, true)
 			if req != nil {
 				req = sess.Requests.GotComplete(req.ID)
-				if err := sess.NotifyRequest(req); err != nil {
+				if err := sess.SignalRequestActivity(req); err != nil {
 					return nil, err
 				}
 			}
@@ -144,7 +144,7 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 	if !isAllowedByRobots {
 		req := sess.Requests.GotComplete(request.GetRequestId())
 		if req != nil {
-			if err := sess.Notify(request.GetRequestId()); err != nil {
+			if err := sess.SignalCompletionActivity(); err != nil {
 				return nil, err
 			}
 		}
@@ -155,7 +155,7 @@ func (a *ApiServer) RegisterResource(ctx context.Context, request *browsercontro
 
 	req := sess.Requests.GotNew(request.GetRequestId())
 	if req != nil {
-		if err := sess.NotifyRequest(req); err != nil {
+		if err := sess.SignalRequestActivity(req); err != nil {
 			return nil, err
 		}
 	} else {
@@ -228,7 +228,7 @@ func (a *ApiServer) CompleteResource(ctx context.Context, request *browsercontro
 		}
 	}
 
-	if err := sess.NotifyRequest(req); err != nil {
+	if err := sess.SignalRequestActivity(req); err != nil {
 		return nil, err
 	}
 

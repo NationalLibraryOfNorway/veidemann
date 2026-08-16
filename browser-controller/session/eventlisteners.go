@@ -169,26 +169,19 @@ func (sess *Session) onPageEventFrameStartedLoading(ctx context.Context, ev *pag
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	alreadyLoading, tracked := sess.noteFrameLoadStart(string(ev.FrameID))
-	counted := tracked && !alreadyLoading
+	tracked := sess.frameLoads.Start(string(ev.FrameID))
 	sess.loggerOrDefault().Debug("Tracked frame started loading",
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
-		"tracked", tracked,
-		"alreadyLoading", alreadyLoading,
-		"counted", counted)
-	if counted {
-		sess.Requests.NotifyLoadStart()
-	}
+		"tracked", tracked)
 }
 
 func (sess *Session) onPageEventFrameStoppedLoading(ctx context.Context, ev *page.EventFrameStoppedLoading, listenerID int64) {
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	tracked := sess.noteFrameLoadFinished(string(ev.FrameID))
-	counted := tracked
+	tracked := sess.frameLoads.Finish(string(ev.FrameID))
 	message := "Tracked frame stopped loading"
 	if !tracked {
 		message = "Tracked frame stopped loading without prior start"
@@ -197,11 +190,7 @@ func (sess *Session) onPageEventFrameStoppedLoading(ctx context.Context, ev *pag
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
-		"tracked", tracked,
-		"counted", counted)
-	if counted {
-		sess.Requests.NotifyLoadFinished()
-	}
+		"tracked", tracked)
 }
 
 func (sess *Session) onPageEventFrameDetached(ctx context.Context, ev *page.EventFrameDetached, listenerID int64) {
@@ -211,16 +200,13 @@ func (sess *Session) onPageEventFrameDetached(ctx context.Context, ev *page.Even
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	tracked := sess.noteFrameLoadDetached(string(ev.FrameID))
+	tracked := sess.frameLoads.Finish(string(ev.FrameID))
 	log.Debug("Tracked frame detached",
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
 		"reason", string(ev.Reason),
 		"tracked", tracked)
-	if tracked {
-		sess.Requests.NotifyLoadFinished()
-	}
 }
 
 func (sess *Session) onPageEventFrameSubtreeWillBeDetached(ctx context.Context, ev *page.EventFrameSubtreeWillBeDetached, listenerID int64) {
@@ -230,15 +216,12 @@ func (sess *Session) onPageEventFrameSubtreeWillBeDetached(ctx context.Context, 
 	if !sess.shouldTrackFrameLifecycle(ctx) {
 		return
 	}
-	tracked := sess.noteFrameLoadDetached(string(ev.FrameID))
+	tracked := sess.frameLoads.Finish(string(ev.FrameID))
 	log.Debug("Tracked frame subtree will be detached",
 		"listenerId", listenerID,
 		"targetId", targetIDFromContext(ctx),
 		"frameId", string(ev.FrameID),
 		"tracked", tracked)
-	if tracked {
-		sess.Requests.NotifyLoadFinished()
-	}
 }
 
 func (sess *Session) onPageEventFileChooserOpened(_ context.Context, ev *page.EventFileChooserOpened, listenerID int64) {
@@ -282,7 +265,7 @@ func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.
 		return
 	}
 	if ev.TargetInfo.Type == "worker" {
-		err := sess.Notify(ev.TargetInfo.TargetID.String())
+		err := sess.SignalCompletionActivity()
 		if err != nil {
 			log.Error("Failed to notify session of new target", "error", err)
 		}
@@ -294,7 +277,7 @@ func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.
 	}
 
 	sess.initChildTarget(ctx, ev.TargetInfo.TargetID, ev.TargetInfo.Type)
-	err := sess.Notify(ev.TargetInfo.TargetID.String())
+	err := sess.SignalCompletionActivity()
 	if err != nil {
 		log.Error("Failed to notify session of new target", "error", err)
 	}
@@ -367,7 +350,7 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 	}
 
 	if req != nil {
-		if err := sess.NotifyRequest(req); err != nil {
+		if err := sess.SignalRequestActivity(req); err != nil {
 			log.Error("Failed to notify session after request continuation",
 				"id", req.ID,
 				"fetchRequestID", req.FetchRequestID,
@@ -377,7 +360,7 @@ func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.Ev
 		return
 	}
 
-	if err := sess.Notify(id); err != nil {
+	if err := sess.SignalCompletionActivity(); err != nil {
 		log.Error("Failed to notify session after request continuation",
 			"error", err)
 	}
@@ -541,8 +524,8 @@ func (sess *Session) rollbackPausedRequest(req *requests.Request, added bool) bo
 		return false
 	}
 
-	if req.BlocksPageCompletion() && sess.timer != nil {
-		_ = sess.Notify(req.ID)
+	if req.BlocksPageCompletion() {
+		_ = sess.SignalCompletionActivity()
 	}
 
 	return true
