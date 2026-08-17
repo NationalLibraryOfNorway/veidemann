@@ -95,6 +95,7 @@ public class ControllerServiceTest {
 
     private ConfigAdapter configAdapterMock;
     private ExecutionsAdapter executionsAdapterMock;
+    private FrontierClient frontierClientMock;
     private List<CrawlSeedRequest> frontierInvocations;
 
     private DbService db;
@@ -114,7 +115,7 @@ public class ControllerServiceTest {
         when(dbProviderMock.getDbQueryAdapter()).thenReturn(mock(DbQueryAdapter.class));
 
         db = DbService.configure(dbProviderMock);
-        FrontierClient frontierClientMock = mock(FrontierClient.class);
+        frontierClientMock = mock(FrontierClient.class);
         JobExecutionUtil.addFrontierClient("url", frontierClientMock);
         frontierInvocations = Collections.synchronizedList(new ArrayList<>());
         when(frontierClientMock.crawlSeed(any(), any(), any(), any()))
@@ -225,20 +226,26 @@ public class ControllerServiceTest {
                 .thenReturn(new ArrayChangeFeed<>(script2, script3));
         when(configAdapterMock.listConfigObjects(ListRequest.newBuilder()
                 .setKind(Kind.seed)
-                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder().addJobRef(jobConfig1Ref)))
-                .setQueryMask(FieldMask.newBuilder().addPaths("seed.jobRef"))
+                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder()
+                        .addJobRef(jobConfig1Ref).setDisabled(false)))
+                .setQueryMask(FieldMask.newBuilder()
+                        .addPaths("seed.jobRef").addPaths("seed.disabled"))
                 .build()))
                 .thenReturn(new ArrayChangeFeed<>(seed1, seed2));
         when(configAdapterMock.listConfigObjects(ListRequest.newBuilder()
                 .setKind(Kind.seed)
-                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder().addJobRef(jobConfig2Ref)))
-                .setQueryMask(FieldMask.newBuilder().addPaths("seed.jobRef"))
+                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder()
+                        .addJobRef(jobConfig2Ref).setDisabled(false)))
+                .setQueryMask(FieldMask.newBuilder()
+                        .addPaths("seed.jobRef").addPaths("seed.disabled"))
                 .build()))
                 .thenReturn(new ArrayChangeFeed<>());
         when(configAdapterMock.listConfigObjects(ListRequest.newBuilder()
                 .setKind(Kind.seed)
-                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder().addJobRef(jobConfig3Ref)))
-                .setQueryMask(FieldMask.newBuilder().addPaths("seed.jobRef"))
+                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder()
+                        .addJobRef(jobConfig3Ref).setDisabled(false)))
+                .setQueryMask(FieldMask.newBuilder()
+                        .addPaths("seed.jobRef").addPaths("seed.disabled"))
                 .build()))
                 .thenReturn(new ArrayChangeFeed<>(seed1));
 
@@ -379,6 +386,112 @@ public class ControllerServiceTest {
 
         verify(executionsAdapterMock, times(1)).createJobExecutionStatus("job1");
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job2");
+        verify(executionsAdapterMock, never()).setJobExecutionStateFailedIfEmpty(anyString(), any());
+    }
+
+    @Test
+    void runCrawlWithSeedNotAssociatedWithJob() throws DbException, InterruptedException {
+        startControllerWithoutAuthentication();
+        JobExecutionStartedListener jobExecutionStarted = new JobExecutionStartedListener();
+        inProcessServer.addJobExecutionListener(jobExecutionStarted);
+
+        RunCrawlReply reply = controllerClient.runCrawl(RunCrawlRequest.newBuilder()
+                .setJobId("job2")
+                .setSeedId("seed1")
+                .build());
+
+        assertThat(reply.getJobExecutionId()).isEqualTo("job2Execution1");
+        assertThat(jobExecutionStarted.waitForStarted(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(frontierInvocations).hasSize(1);
+        assertThat(frontierInvocations.get(0).getJob().getId()).isEqualTo("job2");
+        assertThat(frontierInvocations.get(0).getSeed().getId()).isEqualTo("seed1");
+    }
+
+    @Test
+    void runCrawlRejectsDisabledJobBeforeCreatingJobExecution() throws DbException {
+        ConfigRef jobRef = ConfigRef.newBuilder().setKind(Kind.crawlJob).setId("job1").build();
+        ConfigObject disabledJob = configAdapterMock.getConfigObject(jobRef).toBuilder()
+                .setCrawlJob(configAdapterMock.getConfigObject(jobRef).getCrawlJob().toBuilder().setDisabled(true))
+                .build();
+        when(configAdapterMock.getConfigObject(jobRef)).thenReturn(disabledJob);
+        startControllerWithoutAuthentication();
+
+        assertThatThrownBy(() -> controllerClient.runCrawl(RunCrawlRequest.newBuilder()
+                .setJobId("job1")
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .extracting(t -> ((StatusRuntimeException) t).getStatus().getCode())
+                .isEqualTo(Status.FAILED_PRECONDITION.getCode());
+
+        verify(executionsAdapterMock, never()).createJobExecutionStatus(anyString());
+        assertThat(frontierInvocations).isEmpty();
+    }
+
+    @Test
+    void runCrawlRejectsDisabledSeedBeforeCreatingJobExecution() throws DbException {
+        ConfigRef seedRef = ConfigRef.newBuilder().setKind(Kind.seed).setId("seed1").build();
+        ConfigObject seed = configAdapterMock.getConfigObject(seedRef);
+        ConfigObject disabledSeed = seed.toBuilder()
+                .setSeed(seed.getSeed().toBuilder().setDisabled(true))
+                .build();
+        when(configAdapterMock.getConfigObject(seedRef)).thenReturn(disabledSeed);
+        startControllerWithoutAuthentication();
+
+        assertThatThrownBy(() -> controllerClient.runCrawl(RunCrawlRequest.newBuilder()
+                .setJobId("job1")
+                .setSeedId("seed1")
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .extracting(t -> ((StatusRuntimeException) t).getStatus().getCode())
+                .isEqualTo(Status.FAILED_PRECONDITION.getCode());
+
+        verify(executionsAdapterMock, never()).createJobExecutionStatus(anyString());
+        assertThat(frontierInvocations).isEmpty();
+    }
+
+    @Test
+    void runCrawlMarksNewJobExecutionFailedWhenFrontierRejectsExplicitSeed() throws DbException {
+        when(frontierClientMock.crawlSeed(any(), any(), any(), any()))
+                .thenThrow(Status.UNAVAILABLE.asRuntimeException());
+        startControllerWithoutAuthentication();
+
+        assertThatThrownBy(() -> controllerClient.runCrawl(RunCrawlRequest.newBuilder()
+                .setJobId("job1")
+                .setSeedId("seed1")
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .extracting(t -> ((StatusRuntimeException) t).getStatus().getCode())
+                .isEqualTo(Status.UNAVAILABLE.getCode());
+
+        verify(executionsAdapterMock).setJobExecutionStateFailedIfEmpty(
+                eq("job1Execution1"), argThat(error -> error.getDetail().contains("job execution")));
+    }
+
+    @Test
+    void rejectedExplicitSeedDoesNotFailExistingJobExecution() throws DbException {
+        JobExecutionStatus runningJobExecution = JobExecutionStatus.newBuilder()
+                .setId("runningJobExecution")
+                .setJobId("job1")
+                .setState(JobExecutionStatus.State.RUNNING)
+                .build();
+        when(executionsAdapterMock.listJobExecutionStatus(any()))
+                .thenReturn(new ArrayChangeFeed<>(runningJobExecution));
+        when(executionsAdapterMock.listCrawlExecutionStatus(any()))
+                .thenReturn(new ArrayChangeFeed<>());
+        when(frontierClientMock.crawlSeed(any(), any(), any(), any()))
+                .thenThrow(Status.UNAVAILABLE.asRuntimeException());
+        startControllerWithoutAuthentication();
+
+        assertThatThrownBy(() -> controllerClient.runCrawl(RunCrawlRequest.newBuilder()
+                .setJobId("job1")
+                .setSeedId("seed1")
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .extracting(t -> ((StatusRuntimeException) t).getStatus().getCode())
+                .isEqualTo(Status.UNAVAILABLE.getCode());
+
+        verify(executionsAdapterMock, never()).createJobExecutionStatus(anyString());
+        verify(executionsAdapterMock, never()).setJobExecutionStateFailedIfEmpty(anyString(), any());
     }
 
     @Test
@@ -410,6 +523,24 @@ public class ControllerServiceTest {
 
         verify(executionsAdapterMock, times(1)).createJobExecutionStatus("job1");
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job2");
+    }
+
+    @Test
+    void runCrawlMarksProvisionalJobExecutionFailedWhenFrontierRejectsAllSeeds() throws DbException {
+        when(frontierClientMock.crawlSeed(any(), any(), any(), any()))
+                .thenThrow(Status.UNAVAILABLE.asRuntimeException());
+        startControllerWithoutAuthentication();
+        JobExecutionStartedListener jobExecutionStarted = new JobExecutionStartedListener();
+        inProcessServer.addJobExecutionListener(jobExecutionStarted);
+
+        RunCrawlReply reply = controllerClient.runCrawl(RunCrawlRequest.newBuilder()
+                .setJobId("job1")
+                .build());
+
+        assertThat(reply.getJobExecutionId()).isEqualTo("job1Execution1");
+        verify(executionsAdapterMock, timeout(5000)).setJobExecutionStateFailedIfEmpty(
+                eq("job1Execution1"), argThat(error -> error.getDetail().contains("job execution")));
+        assertThat(jobExecutionStarted.waitForStarted(200, TimeUnit.MILLISECONDS)).isFalse();
     }
 
     @Test
@@ -464,6 +595,15 @@ public class ControllerServiceTest {
 
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job1");
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job2");
+    }
+
+    private void startControllerWithoutAuthentication() throws DbException {
+        Settings settings = Settings.load();
+        settings.setSkipAuthentication(true);
+        ControllerApiServerMock server = new ControllerApiServerMock(
+                settings, null, inProcessServerBuilder, null);
+        server.start();
+        inProcessServer = server;
     }
 
     private class ControllerApiServerMock extends ControllerApiServer {

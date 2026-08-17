@@ -15,6 +15,7 @@
  */
 package no.nb.nna.veidemann.commons.db;
 
+import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.report.v1.CrawlExecutionsListRequest;
@@ -33,6 +34,15 @@ public interface ExecutionsAdapter {
      * @param jobExecutionId id of the job execution to update
      */
     JobExecutionStatus setJobExecutionStateAborted(String jobExecutionId) throws DbException;
+
+    /**
+     * Set an unfinished job execution to FAILED if it has no crawl executions.
+     *
+     * @param jobExecutionId id of the job execution to update
+     * @param error          description of why the job execution failed
+     * @return the current job execution status, whether updated or unchanged
+     */
+    JobExecutionStatus setJobExecutionStateFailedIfEmpty(String jobExecutionId, Error error) throws DbException;
 
     /**
      * Update the state for all CrawlExecutions of a Job Execution to ABORTED_TIMEOUT.
@@ -54,7 +64,7 @@ public interface ExecutionsAdapter {
      * Only ABORTED_MANUAL, ABORTED_SIZE or ABORTED_TIMEOUT are allowed.
      * The frontier should detect this and abort the crawl.
      *
-     * @param crawlExecutionId id of the execution to update
+     * @param crawlExecutionId id of the crawl execution to update
      * @param state            the state to set. Must be one of ABORTED_MANUAL, ABORTED_SIZE, ABORTED_TIMEOUT
      * @throws IllegalArgumentException if an illegal state is submitted
      */

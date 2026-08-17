@@ -17,10 +17,10 @@ package no.nb.nna.veidemann.controller;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.protobuf.Empty;
-import io.grpc.Status;
 import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
 import no.nb.nna.veidemann.api.config.v1.ConfigRef;
 import no.nb.nna.veidemann.api.config.v1.Kind;
@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import static no.nb.nna.veidemann.controller.JobExecutionUtil.calculateTimeout;
 import static no.nb.nna.veidemann.controller.JobExecutionUtil.crawlSeed;
@@ -90,6 +89,12 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
                     .build();
 
             ConfigObject job = db.getConfigObject(jobRequest);
+            if (job.getCrawlJob().getDisabled()) {
+                responseObserver.onError(Status.FAILED_PRECONDITION
+                        .withDescription("Crawl job '" + job.getMeta().getName() + "' is disabled")
+                        .asRuntimeException());
+                return;
+            }
             LOG.info("Job '{}' starting", job.getMeta().getName());
 
             JobExecutionStatus jobExecutionStatus = null;
@@ -98,44 +103,84 @@ public class ControllerService extends ControllerGrpc.ControllerImplBase {
             jobExecutionStatus = JobExecutionUtil.getRunningJobExecutionStatusForJob(job);
             if (jobExecutionStatus != null) {
                 addToRunningJob = true;
-                LOG.info("Adding seeds to running job execution'{}'", jobExecutionStatus.getId());
+                LOG.info("Adding seeds to running job execution '{}'", jobExecutionStatus.getId());
             }
 
             OffsetDateTime timeout = calculateTimeout(job);
 
             if (!request.getSeedId().isEmpty()) {
                 // Start only the requested seed for the job
-                jobExecutionStatus = JobExecutionUtil.createJobExecutionStatusIfNotExist(job, jobExecutionStatus);
-                for (JobExecutionListener l : jobExecutionListeners) {
-                    l.onJobStarting(jobExecutionStatus.getId());
-                }
                 ConfigObject seed = db.getConfigObject(ConfigRef.newBuilder()
                         .setKind(Kind.seed)
                         .setId(request.getSeedId())
                         .build());
-                Map<String, Annotation> jobAnnotations = JobExecutionUtil.GetScriptAnnotationsForJob(job);
-                crawlSeed(null, job, seed, jobExecutionStatus, jobAnnotations, timeout, addToRunningJob);
-                for (JobExecutionListener l : jobExecutionListeners) {
-                    l.onJobStarted(jobExecutionStatus.getId());
+                if (seed.getSeed().getDisabled()) {
+                    responseObserver.onError(Status.FAILED_PRECONDITION
+                            .withDescription("Seed '" + seed.getMeta().getName() + "' is disabled")
+                            .asRuntimeException());
+                    return;
+                }
+                if (!JobExecutionUtil.hasFrontierClient(seed)) {
+                    responseObserver.onError(Status.UNAVAILABLE
+                            .withDescription("No Frontier client is configured for seed '"
+                                    + seed.getMeta().getName() + "'")
+                            .asRuntimeException());
+                    return;
+                }
+                if (addToRunningJob && JobExecutionUtil.isSeedInJobExecution(seed, jobExecutionStatus)) {
+                    sendRunCrawlReply(jobExecutionStatus, responseObserver);
+                    return;
+                }
+
+                JobExecutionUtil.GetScriptAnnotationsForJob(job);
+                boolean createdJobExecution = jobExecutionStatus == null;
+                jobExecutionStatus = JobExecutionUtil.createJobExecutionStatusIfNotExist(job, jobExecutionStatus);
+                for (JobExecutionListener listener : jobExecutionListeners) {
+                    listener.onJobStarting(jobExecutionStatus.getId());
+                }
+                if (!crawlSeed(null, job, seed, jobExecutionStatus, timeout, false)) {
+                    if (createdJobExecution) {
+                        JobExecutionUtil.setJobExecutionStateFailedIfEmpty(
+                                jobExecutionStatus, 1L, "Frontier rejected the seed submission");
+                    }
+                    responseObserver.onError(Status.UNAVAILABLE
+                            .withDescription("Frontier did not create a crawl execution for seed '"
+                                    + seed.getMeta().getName() + "'")
+                            .asRuntimeException());
+                    return;
+                }
+                for (JobExecutionListener listener : jobExecutionListeners) {
+                    listener.onJobStarted(jobExecutionStatus.getId());
                 }
             } else {
                 // Start all seeds for the job
                 jobExecutionStatus = JobExecutionUtil.submitSeeds(job, jobExecutionStatus, timeout, addToRunningJob, jobExecutionListeners);
                 if (jobExecutionStatus == null) {
-                    Status status = Status.FAILED_PRECONDITION.withDescription("No seeds associated with job " + job.getMeta().getName());
+                    Status status = Status.FAILED_PRECONDITION.withDescription(
+                            "No enabled seeds are associated with crawl job '" + job.getMeta().getName() + "'");
                     responseObserver.onError(status.asException());
                     return;
                 }
             }
 
-            RunCrawlReply reply = RunCrawlReply.newBuilder().setJobExecutionId(jobExecutionStatus.getId()).build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            sendRunCrawlReply(jobExecutionStatus, responseObserver);
+        } catch (StatusRuntimeException ex) {
+            LOG.warn("Could not start crawl: {}", ex.getStatus());
+            responseObserver.onError(ex);
         } catch (Exception ex) {
             LOG.error(ex.getMessage(), ex);
             Status status = Status.UNKNOWN.withDescription(ex.toString());
             responseObserver.onError(status.asException());
         }
+    }
+
+    private static void sendRunCrawlReply(
+            JobExecutionStatus jobExecutionStatus, StreamObserver<RunCrawlReply> responseObserver) {
+        RunCrawlReply reply = RunCrawlReply.newBuilder()
+                .setJobExecutionId(jobExecutionStatus.getId())
+                .build();
+        responseObserver.onNext(reply);
+        responseObserver.onCompleted();
     }
 
     @Override

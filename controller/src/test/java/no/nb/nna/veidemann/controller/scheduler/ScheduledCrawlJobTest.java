@@ -152,20 +152,26 @@ class ScheduledCrawlJobTest {
                 .thenReturn(new ArrayChangeFeed<>());
         when(configAdapterMock.listConfigObjects(ListRequest.newBuilder()
                 .setKind(Kind.seed)
-                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder().addJobRef(jobConfig1Ref)))
-                .setQueryMask(FieldMask.newBuilder().addPaths("seed.jobRef"))
+                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder()
+                        .addJobRef(jobConfig1Ref).setDisabled(false)))
+                .setQueryMask(FieldMask.newBuilder()
+                        .addPaths("seed.jobRef").addPaths("seed.disabled"))
                 .build()))
                 .thenReturn(new ArrayChangeFeed<>(seed1, seed2));
         when(configAdapterMock.listConfigObjects(ListRequest.newBuilder()
                 .setKind(Kind.seed)
-                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder().addJobRef(jobConfig2Ref)))
-                .setQueryMask(FieldMask.newBuilder().addPaths("seed.jobRef"))
+                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder()
+                        .addJobRef(jobConfig2Ref).setDisabled(false)))
+                .setQueryMask(FieldMask.newBuilder()
+                        .addPaths("seed.jobRef").addPaths("seed.disabled"))
                 .build()))
                 .thenReturn(new ArrayChangeFeed<>());
         when(configAdapterMock.listConfigObjects(ListRequest.newBuilder()
                 .setKind(Kind.seed)
-                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder().addJobRef(jobConfig3Ref)))
-                .setQueryMask(FieldMask.newBuilder().addPaths("seed.jobRef"))
+                .setQueryTemplate(ConfigObject.newBuilder().setSeed(Seed.newBuilder()
+                        .addJobRef(jobConfig3Ref).setDisabled(false)))
+                .setQueryMask(FieldMask.newBuilder()
+                        .addPaths("seed.jobRef").addPaths("seed.disabled"))
                 .build()))
                 .thenReturn(new ArrayChangeFeed<>(seed1));
 
@@ -235,6 +241,22 @@ class ScheduledCrawlJobTest {
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job1");
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job2");
         verify(executionsAdapterMock, times(0)).createJobExecutionStatus("job3");
+    }
+
+    @Test
+    void scheduledCrawlReloadsJobAndSkipsItWhenDisabled() throws DbException {
+        ConfigRef jobRef = ConfigRef.newBuilder().setKind(Kind.crawlJob).setId("job1").build();
+        ConfigObject enabledJob = configAdapterMock.getConfigObject(jobRef);
+        ScheduledCrawlJob scheduledCrawlJob = new ScheduledCrawlJob(enabledJob);
+        ConfigObject disabledJob = enabledJob.toBuilder()
+                .setCrawlJob(enabledJob.getCrawlJob().toBuilder().setDisabled(true))
+                .build();
+        when(configAdapterMock.getConfigObject(jobRef)).thenReturn(disabledJob);
+
+        scheduledCrawlJob.execute(null);
+
+        assertThat(frontierInvocations).isEmpty();
+        verify(executionsAdapterMock, never()).createJobExecutionStatus(anyString());
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.commons.v1.FieldMask;
 import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
@@ -39,16 +40,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static no.nb.nna.veidemann.commons.util.ApiTools.buildLabel;
 
@@ -56,12 +60,14 @@ public class JobExecutionUtil {
     private static final Logger LOG = LoggerFactory.getLogger(JobExecutionUtil.class);
 
     public final static String SEED_TYPE_LABEL_KEY = "v7n_seed-type";
+    private static final int MAX_OUTSTANDING_SEED_SUBMISSIONS = 5000;
+    private static final long COMPLETION_POLL_MILLIS = 100L;
     private final static Map<String, FrontierClient> frontierClients = new HashMap<>();
 
     private final static ExecutorService exe = Executors.newFixedThreadPool(16);
     private final static ExecutorService submitSeedExecutor =
             new ThreadPoolExecutor(4, 16, 10L, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(5000), new CallerRunsPolicy());
+                    new LinkedBlockingQueue<>(MAX_OUTSTANDING_SEED_SUBMISSIONS), new CallerRunsPolicy());
 
     private JobExecutionUtil() {
     }
@@ -93,128 +99,342 @@ public class JobExecutionUtil {
         }
     }
 
-    public static boolean crawlSeed(CompletionService<CrawlExecutionId> submitSeedCompletionService, ConfigObject job, ConfigObject seed, JobExecutionStatus jobExecutionStatus,
-                                    Map<String, Annotation> jobAnnotations, OffsetDateTime timeout, boolean addToRunningJob) {
-        if (!seed.getSeed().getDisabled()) {
-
-            if (addToRunningJob) {
-                CrawlExecutionsListRequest.Builder req = CrawlExecutionsListRequest.newBuilder();
-                req.getQueryTemplateBuilder()
-                        .setSeedId(seed.getId())
-                        .setJobExecutionId(jobExecutionStatus.getId());
-                req.getQueryMaskBuilder()
-                        .addPaths("seedId")
-                        .addPaths("jobExecutionId");
-                try {
-                    if (DbService.getInstance().getExecutionsAdapter().listCrawlExecutionStatus(req.build()).stream().findAny().isPresent()) {
-                        LOG.debug("Seed '{}' is already crawling for jobExecution {}", seed.getMeta().getName(), jobExecutionStatus.getId());
-                        return false;
-                    }
-                } catch (DbException e) {
-                    LOG.warn("Error crawling seed '{}'", seed.getMeta().getName(), e);
-                    return false;
-                }
-            }
-
-            LOG.debug("Start harvest of: {}", seed.getMeta().getName());
-
-            String type = ApiTools.getFirstLabelWithKey(seed.getMeta(), SEED_TYPE_LABEL_KEY)
-                    .orElse(buildLabel(SEED_TYPE_LABEL_KEY, "url")).getValue().toLowerCase();
-
-            FrontierClient frontierClient = frontierClients.get(type);
-
-            if (frontierClient != null) {
-                if (submitSeedCompletionService == null) {
-                    try {
-                        frontierClient.crawlSeed(job, seed, jobExecutionStatus, timeout);
-                        return true;
-                    } catch (Exception e) {
-                        LOG.warn("Unable to submit seed '{}' for crawling", seed.getMeta().getName(), e);
-                        return false;
-                    }
-                } else {
-                    submitSeedCompletionService.submit(() -> frontierClient.crawlSeed(job, seed, jobExecutionStatus, timeout));
-                    return true;
-                }
-            } else {
-                LOG.warn("No frontier defined for seed type {}", type);
-                return false;
-            }
+    public static boolean crawlSeed(CompletionService<CrawlExecutionId> submitSeedCompletionService,
+                                    ConfigObject job, ConfigObject seed,
+                                    JobExecutionStatus jobExecutionStatus,
+                                    OffsetDateTime timeout, boolean addToRunningJob) {
+        if (seed.getSeed().getDisabled()) {
+            LOG.debug("Seed '{}' is disabled", seed.getMeta().getName());
+            return false;
         }
-        LOG.debug("Seed '{}' is disabled", seed.getMeta().getName());
+
+        if (addToRunningJob && isSeedInJobExecution(seed, jobExecutionStatus)) {
+            LOG.debug("Seed '{}' already has a crawl execution in job execution '{}'",
+                    seed.getMeta().getName(), jobExecutionStatus.getId());
+            return false;
+        }
+
+        FrontierClient frontierClient = getFrontierClient(seed);
+        if (frontierClient == null) {
+            LOG.warn("No Frontier client is configured for seed '{}'", seed.getMeta().getName());
+            return false;
+        }
+
+        LOG.debug("Submitting seed '{}' for job execution '{}'", seed.getMeta().getName(), jobExecutionStatus.getId());
+        if (submitSeedCompletionService != null) {
+            submitSeedCompletionService.submit(() -> frontierClient.crawlSeed(job, seed, jobExecutionStatus, timeout));
+            return true;
+        }
+
+        try {
+            CrawlExecutionId crawlExecutionId = frontierClient.crawlSeed(job, seed, jobExecutionStatus, timeout);
+            return isAccepted(crawlExecutionId, seed);
+        } catch (Exception e) {
+            LOG.warn("Frontier rejected seed '{}' for job execution '{}'",
+                    seed.getMeta().getName(), jobExecutionStatus.getId(), e);
+            return false;
+        }
+    }
+
+    public static JobExecutionStatus submitSeeds(ConfigObject job, JobExecutionStatus jobExecutionStatus,
+                                                 OffsetDateTime timeout, boolean addToRunningJob,
+                                                 List<JobExecutionListener> jobExecutionListeners) {
+        SettableFuture<JobExecutionStatus> jobExecutionStatusFuture = SettableFuture.create();
+
+        ListRequest.Builder seedRequest = ListRequest.newBuilder().setKind(Kind.seed);
+        seedRequest.getQueryMaskBuilder()
+                .addPaths(Kind.seed.name() + ".jobRef")
+                .addPaths(Kind.seed.name() + ".disabled");
+        seedRequest.getQueryTemplateBuilder().getSeedBuilder()
+                .addJobRefBuilder().setKind(Kind.crawlJob).setId(job.getId());
+        seedRequest.getQueryTemplateBuilder().getSeedBuilder().setDisabled(false);
+
+        exe.submit(() -> produceSeedSubmissions(
+                job,
+                jobExecutionStatus,
+                timeout,
+                addToRunningJob,
+                jobExecutionListeners,
+                seedRequest.build(),
+                jobExecutionStatusFuture));
+
+        try {
+            return jobExecutionStatusFuture.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Status.CANCELLED.withCause(e).asRuntimeException();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw Status.UNKNOWN.withCause(e.getCause()).asRuntimeException();
+        }
+    }
+
+    private static void produceSeedSubmissions(
+            ConfigObject job,
+            JobExecutionStatus existingJobExecutionStatus,
+            OffsetDateTime timeout,
+            boolean addToRunningJob,
+            List<JobExecutionListener> jobExecutionListeners,
+            ListRequest seedRequest,
+            SettableFuture<JobExecutionStatus> jobExecutionStatusFuture) {
+        AtomicLong submitted = new AtomicLong();
+        AtomicLong processed = new AtomicLong();
+        AtomicLong accepted = new AtomicLong();
+        AtomicBoolean producerDone = new AtomicBoolean();
+        AtomicBoolean jobExecutionStartedNotified = new AtomicBoolean();
+        AtomicReference<String> lastFailure = new AtomicReference<>();
+        Semaphore outstandingSubmissions = new Semaphore(MAX_OUTSTANDING_SEED_SUBMISSIONS);
+        CompletionService<CrawlExecutionId> completionService =
+                new ExecutorCompletionService<>(submitSeedExecutor, new LinkedBlockingQueue<>());
+
+        boolean createdJobExecution = existingJobExecutionStatus == null;
+        JobExecutionStatus currentJobExecutionStatus = existingJobExecutionStatus;
+        boolean completionMonitorStarted = false;
+        boolean jobExecutionStartingNotified = false;
+        long enabledSeeds = 0L;
+        long locallyRejectedSeeds = 0L;
+        long duplicateSeeds = 0L;
+
+        try (ChangeFeed<ConfigObject> seeds = DbService.getInstance().getConfigAdapter()
+                .listConfigObjects(seedRequest)) {
+            Iterator<ConfigObject> iterator = seeds.stream().iterator();
+
+            while (iterator.hasNext()) {
+                ConfigObject seed = iterator.next();
+                enabledSeeds++;
+
+                FrontierClient frontierClient = getFrontierClient(seed);
+                if (frontierClient == null) {
+                    locallyRejectedSeeds++;
+                    lastFailure.set("No Frontier client is configured for seed '" + seed.getMeta().getName() + "'");
+                    continue;
+                }
+
+                if (currentJobExecutionStatus != null && addToRunningJob
+                        && isSeedInJobExecution(seed, currentJobExecutionStatus)) {
+                    duplicateSeeds++;
+                    continue;
+                }
+
+                // Preserve the existing validation of job script references, but do it only
+                // after finding the first seed which can actually be submitted.
+                if (!completionMonitorStarted) {
+                    JobExecutionUtil.GetScriptAnnotationsForJob(job);
+                    if (currentJobExecutionStatus == null) {
+                        currentJobExecutionStatus = createJobExecutionStatusIfNotExist(job, null);
+                    }
+                    JobExecutionStatus monitoredJobExecutionStatus = currentJobExecutionStatus;
+                    exe.execute(() -> monitorSeedSubmissions(
+                            job,
+                            monitoredJobExecutionStatus,
+                            createdJobExecution,
+                            completionService,
+                            outstandingSubmissions,
+                            submitted,
+                            processed,
+                            accepted,
+                            producerDone,
+                            jobExecutionStartedNotified,
+                            lastFailure,
+                            jobExecutionListeners));
+                    completionMonitorStarted = true;
+                }
+
+                JobExecutionStatus activeJobExecutionStatus = currentJobExecutionStatus;
+                if (activeJobExecutionStatus == null) {
+                    throw new IllegalStateException("Job execution status was not initialized");
+                }
+
+                if (!jobExecutionStartingNotified) {
+                    for (JobExecutionListener listener : jobExecutionListeners) {
+                        listener.onJobStarting(activeJobExecutionStatus.getId());
+                    }
+                    jobExecutionStartingNotified = true;
+                }
+
+                outstandingSubmissions.acquire();
+                submitted.incrementAndGet();
+                try {
+                    completionService.submit(() -> frontierClient.crawlSeed(
+                            job, seed, activeJobExecutionStatus, timeout));
+                    // Bulk RunCrawl acknowledges local submission and returns this provisional
+                    // job execution ID without waiting for every Frontier call.
+                    jobExecutionStatusFuture.set(activeJobExecutionStatus);
+                } catch (RuntimeException e) {
+                    submitted.decrementAndGet();
+                    outstandingSubmissions.release();
+                    locallyRejectedSeeds++;
+                    lastFailure.set(e.toString());
+                }
+            }
+
+            if (submitted.get() == 0L && !jobExecutionStatusFuture.isDone()) {
+                if (duplicateSeeds > 0L && currentJobExecutionStatus != null) {
+                    jobExecutionStatusFuture.set(currentJobExecutionStatus);
+                } else if (enabledSeeds > 0L) {
+                    jobExecutionStatusFuture.setException(Status.UNAVAILABLE
+                            .withDescription("No Frontier client is configured for the enabled seeds in job '"
+                                    + job.getMeta().getName() + "'")
+                            .asRuntimeException());
+                } else {
+                    jobExecutionStatusFuture.set(null);
+                    LOG.info("No enabled seeds are associated with job '{}'", job.getMeta().getName());
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            lastFailure.set(e.toString());
+            jobExecutionStatusFuture.setException(Status.CANCELLED
+                    .withDescription("Interrupted while submitting seeds for a job execution")
+                    .withCause(e)
+                    .asRuntimeException());
+        } catch (Exception e) {
+            lastFailure.set(e.toString());
+            jobExecutionStatusFuture.setException(e);
+        } finally {
+            producerDone.set(true);
+            LOG.info("{} enabled seeds considered for job '{}'; {} submitted, {} locally rejected",
+                    enabledSeeds, job.getMeta().getName(), submitted.get(), locallyRejectedSeeds);
+        }
+    }
+
+    private static void monitorSeedSubmissions(
+            ConfigObject job,
+            JobExecutionStatus jobExecutionStatus,
+            boolean createdJobExecution,
+            CompletionService<CrawlExecutionId> completionService,
+            Semaphore outstandingSubmissions,
+            AtomicLong submitted,
+            AtomicLong processed,
+            AtomicLong accepted,
+            AtomicBoolean producerDone,
+            AtomicBoolean jobExecutionStartedNotified,
+            AtomicReference<String> lastFailure,
+            List<JobExecutionListener> jobExecutionListeners) {
+        try {
+            while (!producerDone.get() || processed.get() < submitted.get()) {
+                Future<CrawlExecutionId> future = completionService.poll(
+                        COMPLETION_POLL_MILLIS, TimeUnit.MILLISECONDS);
+                if (future == null) {
+                    continue;
+                }
+
+                processed.incrementAndGet();
+                try {
+                    CrawlExecutionId crawlExecutionId = future.get();
+                    if (isAccepted(crawlExecutionId, null)) {
+                        accepted.incrementAndGet();
+                        LOG.trace("Crawl execution '{}' created for job execution '{}'",
+                                crawlExecutionId.getId(), jobExecutionStatus.getId());
+                    } else {
+                        lastFailure.set("Frontier returned an empty crawl execution ID");
+                    }
+                } catch (ExecutionException e) {
+                    lastFailure.set(e.getCause() == null ? e.toString() : e.getCause().toString());
+                    LOG.info("Frontier rejected a seed submission for job execution '{}': {}",
+                            jobExecutionStatus.getId(), lastFailure.get());
+                } finally {
+                    outstandingSubmissions.release();
+                }
+            }
+
+            LOG.info("Frontier rejected {} of {} seed submissions for job '{}' and job execution '{}'",
+                    submitted.get() - accepted.get(), submitted.get(),
+                    job.getMeta().getName(), jobExecutionStatus.getId());
+
+            if (accepted.get() == 0L && createdJobExecution) {
+                JobExecutionStatus currentStatus = setJobExecutionStateFailedIfEmpty(
+                        jobExecutionStatus, submitted.get(), lastFailure.get());
+                if (currentStatus != null && currentStatus.getState() == JobExecutionStatus.State.RUNNING) {
+                    // A crawl execution exists even though its Frontier response was lost.
+                    notifyJobExecutionStarted(
+                            jobExecutionStatus, jobExecutionStartedNotified, jobExecutionListeners);
+                }
+            } else if (accepted.get() > 0L) {
+                notifyJobExecutionStarted(
+                        jobExecutionStatus, jobExecutionStartedNotified, jobExecutionListeners);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.warn("Interrupted while monitoring seed submissions for job execution '{}'",
+                    jobExecutionStatus.getId(), e);
+        } catch (DbException e) {
+            LOG.error("Failed to update empty job execution '{}'", jobExecutionStatus.getId(), e);
+        }
+    }
+
+    public static JobExecutionStatus setJobExecutionStateFailedIfEmpty(
+            JobExecutionStatus jobExecutionStatus, long submitted, String lastFailure) throws DbException {
+        String detail = "No crawl execution was created for job execution '" + jobExecutionStatus.getId()
+                + "' after " + submitted + " seed submission(s).";
+        if (lastFailure != null && !lastFailure.isBlank()) {
+            detail += " Last failure: " + truncate(lastFailure, 512);
+        }
+
+        Error error = Error.newBuilder()
+                .setCode(Status.Code.UNAVAILABLE.value())
+                .setMsg("Frontier accepted no seed submissions")
+                .setDetail(detail)
+                .build();
+        return DbService.getInstance().getExecutionsAdapter()
+                .setJobExecutionStateFailedIfEmpty(jobExecutionStatus.getId(), error);
+    }
+
+    static boolean hasFrontierClient(ConfigObject seed) {
+        return getFrontierClient(seed) != null;
+    }
+
+    private static FrontierClient getFrontierClient(ConfigObject seed) {
+        String type = ApiTools.getFirstLabelWithKey(seed.getMeta(), SEED_TYPE_LABEL_KEY)
+                .orElse(buildLabel(SEED_TYPE_LABEL_KEY, "url"))
+                .getValue()
+                .toLowerCase();
+        return frontierClients.get(type);
+    }
+
+    public static boolean isSeedInJobExecution(ConfigObject seed, JobExecutionStatus jobExecutionStatus) {
+        CrawlExecutionsListRequest.Builder request = CrawlExecutionsListRequest.newBuilder();
+        request.getQueryTemplateBuilder()
+                .setSeedId(seed.getId())
+                .setJobExecutionId(jobExecutionStatus.getId());
+        request.getQueryMaskBuilder()
+                .addPaths("seedId")
+                .addPaths("jobExecutionId");
+        try (ChangeFeed<?> crawlExecutions = DbService.getInstance().getExecutionsAdapter()
+                .listCrawlExecutionStatus(request.build())) {
+            return crawlExecutions.stream().findAny().isPresent();
+        } catch (DbException e) {
+            LOG.warn("Could not check whether seed '{}' already has a crawl execution in job execution '{}'",
+                    seed.getMeta().getName(), jobExecutionStatus.getId(), e);
+            return false;
+        }
+    }
+
+    private static boolean isAccepted(CrawlExecutionId crawlExecutionId, ConfigObject seed) {
+        if (crawlExecutionId != null && !crawlExecutionId.getId().isEmpty()) {
+            return true;
+        }
+        if (seed != null) {
+            LOG.warn("Frontier returned an empty crawl execution ID for seed '{}'", seed.getMeta().getName());
+        }
         return false;
     }
 
-    public static JobExecutionStatus submitSeeds(ConfigObject job, JobExecutionStatus jobExecutionStatus, OffsetDateTime timeout,
-                                                 boolean addToRunningJob, List<JobExecutionListener> jobExecutionListeners) {
-        SettableFuture<JobExecutionStatus> jesFuture = SettableFuture.create();
-
-        ListRequest.Builder seedRequest = ListRequest.newBuilder()
-                .setKind(Kind.seed);
-        seedRequest.getQueryMaskBuilder().addPaths(Kind.seed.name() + ".jobRef");
-        seedRequest.getQueryTemplateBuilder().getSeedBuilder().addJobRefBuilder().setKind(Kind.crawlJob).setId(job.getId());
-
-        exe.submit(() -> {
-            AtomicLong count = new AtomicLong(0L);
-            AtomicLong rejected = new AtomicLong(0L);
-            AtomicBoolean done = new AtomicBoolean(false);
-
-            try (ChangeFeed<ConfigObject> seeds = DbService.getInstance().getConfigAdapter().listConfigObjects(seedRequest.build())) {
-                Iterator<ConfigObject> it = seeds.stream().iterator();
-                if (it.hasNext()) {
-                    Map<String, Annotation> jobAnnotations = JobExecutionUtil.GetScriptAnnotationsForJob(job);
-
-                    JobExecutionStatus jes = createJobExecutionStatusIfNotExist(job, jobExecutionStatus);
-                    jesFuture.set(jes);
-
-                    CompletionService<CrawlExecutionId> completionService = new ExecutorCompletionService<>(submitSeedExecutor, new LinkedBlockingQueue<>());
-                    exe.execute(() -> {
-                        for (JobExecutionListener l : jobExecutionListeners) {
-                            l.onJobStarting(jes.getId());
-                        }
-
-                        AtomicLong failed = new AtomicLong(0L);
-                        AtomicLong processed = new AtomicLong(0);
-                        while (done.get() == false || processed.get() < count.get()) {
-                            CrawlExecutionId ceid = null;
-                            try {
-                                Future<CrawlExecutionId> f = completionService.take();
-                                processed.incrementAndGet();
-                                ceid = f.get();
-                                LOG.trace("Crawl Execution '{}' created", ceid.getId());
-                            } catch (Exception e) {
-                                failed.incrementAndGet();
-                                LOG.info("Error starting crawl of seed: " + e.getMessage(), e);
-                            }
-                        }
-                        LOG.info("{} seeds of {} for job '{}' rejected by frontier", failed.get(), count.get(), job.getMeta().getName());
-                        for (JobExecutionListener l : jobExecutionListeners) {
-                            l.onJobStarted(jes.getId());
-                        }
-                    });
-
-                    it.forEachRemaining(seed -> {
-                        if (crawlSeed(completionService, job, seed, jes, jobAnnotations, timeout, addToRunningJob)) {
-                            count.incrementAndGet();
-                        } else {
-                            rejected.incrementAndGet();
-                        }
-                    });
-                    done.set(true);
-                    LOG.info("{} seeds for job '{}' submitted, {} seeds rejected", count.get(), job.getMeta().getName(), rejected.get());
-                } else {
-                    jesFuture.set(null);
-                    LOG.info("No seeds for job '{}'", job.getMeta().getName());
-                }
-            } catch (DbException e) {
-                throw new RuntimeException(e);
+    private static void notifyJobExecutionStarted(
+            JobExecutionStatus jobExecutionStatus,
+            AtomicBoolean jobExecutionStartedNotified,
+            List<JobExecutionListener> jobExecutionListeners) {
+        if (jobExecutionStartedNotified.compareAndSet(false, true)) {
+            for (JobExecutionListener listener : jobExecutionListeners) {
+                listener.onJobStarted(jobExecutionStatus.getId());
             }
-        });
-        try {
-            return jesFuture.get();
-        } catch (Exception e) {
-            return null;
         }
+    }
+
+    private static String truncate(String value, int maxLength) {
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     /**

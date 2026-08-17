@@ -21,6 +21,7 @@ import com.google.protobuf.util.Timestamps;
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.ast.Insert;
 import com.rethinkdb.gen.ast.Update;
+import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatusChange;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
@@ -259,5 +260,30 @@ public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTe
 
         jList = executionsAdapter.listJobExecutionStatus(JobExecutionsListRequest.newBuilder().setStartTimeTo(ProtoUtils.getNowTs()).build());
         assertThat(jList.stream()).hasSize(2).containsExactlyInAnyOrder(jes1, jes2);
+    }
+
+    @Test
+    public void failJobExecutionOnlyWhenItHasNoCrawlExecutions() throws DbException {
+        Error error = Error.newBuilder()
+                .setCode(14)
+                .setMsg("Frontier accepted no seed submissions")
+                .setDetail("No crawl execution was created for the job execution")
+                .build();
+
+        JobExecutionStatus emptyJobExecution = executionsAdapter.createJobExecutionStatus("emptyJob");
+        JobExecutionStatus failedJobExecution = executionsAdapter.setJobExecutionStateFailedIfEmpty(
+                emptyJobExecution.getId(), error);
+
+        assertThat(failedJobExecution.getState()).isEqualTo(State.FAILED);
+        assertThat(failedJobExecution.hasEndTime()).isTrue();
+        assertThat(failedJobExecution.getError()).isEqualTo(error);
+
+        JobExecutionStatus nonEmptyJobExecution = executionsAdapter.createJobExecutionStatus("nonEmptyJob");
+        createCrawlExecutionStatus("nonEmptyJob", nonEmptyJobExecution.getId(), "seedId");
+        JobExecutionStatus unchangedJobExecution = executionsAdapter.setJobExecutionStateFailedIfEmpty(
+                nonEmptyJobExecution.getId(), error);
+
+        assertThat(unchangedJobExecution.getState()).isEqualTo(State.RUNNING);
+        assertThat(unchangedJobExecution.hasEndTime()).isFalse();
     }
 }

@@ -17,6 +17,7 @@
 package no.nb.nna.veidemann.db;
 
 import com.rethinkdb.RethinkDB;
+import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.report.v1.CrawlExecutionsListRequest;
@@ -94,8 +95,8 @@ public class RethinkDbExecutionsAdapter implements ExecutionsAdapter {
         };
         }
 
-        @Override
-        public JobExecutionStatus setJobExecutionStateAborted(String jobExecutionId) throws DbException {
+    @Override
+    public JobExecutionStatus setJobExecutionStateAborted(String jobExecutionId) throws DbException {
         JobExecutionStatus result = conn.executeUpdate("db-setJobExecutionStateAborted",
             r.table(Tables.JOB_EXECUTIONS.name)
                 .get(jobExecutionId)
@@ -125,6 +126,33 @@ public class RethinkDbExecutionsAdapter implements ExecutionsAdapter {
         }
 
         return result;
+    }
+
+    @Override
+    public JobExecutionStatus setJobExecutionStateFailedIfEmpty(String jobExecutionId, Error error) throws DbException {
+        Map<String, Object> errorMap = ProtoUtils.protoToRethink(error);
+
+        return conn.executeUpdate("db-setJobExecutionStateFailedIfEmpty",
+            r.table(Tables.JOB_EXECUTIONS.name)
+                .get(jobExecutionId)
+                .update(doc -> r.branch(
+                    doc.hasFields("endTime")
+                        .or(doc.g("state").default_(JobExecutionStatus.State.UNDEFINED.name())
+                            .ne(JobExecutionStatus.State.RUNNING.name()))
+                        .or(r.table(Tables.EXECUTIONS.name)
+                            .between(
+                                r.array(jobExecutionId, r.minval()),
+                                r.array(jobExecutionId, r.maxval()))
+                            .optArg("index", "jobExecutionId_seedId")
+                            .isEmpty()
+                            .not()),
+                    r.hashMap(),
+                    r.hashMap("state", JobExecutionStatus.State.FAILED.name())
+                        .with("endTime", r.now())
+                        .with("error", errorMap))
+                )
+                .optArg("non_atomic", true),
+            JobExecutionStatus.class);
     }
 
     @Override

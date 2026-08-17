@@ -18,8 +18,11 @@ package no.nb.nna.veidemann.controller.scheduler;
 import it.sauronsoftware.cron4j.Task;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 import no.nb.nna.veidemann.api.config.v1.ConfigObject;
+import no.nb.nna.veidemann.api.config.v1.ConfigRef;
+import no.nb.nna.veidemann.api.config.v1.Kind;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.commons.db.DbException;
+import no.nb.nna.veidemann.commons.db.DbService;
 import no.nb.nna.veidemann.controller.JobExecutionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,18 +40,26 @@ public class ScheduledCrawlJob extends Task {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScheduledCrawlJob.class);
 
-    final ConfigObject job;
+    final ConfigRef jobRef;
 
     static final Lock lock = new ReentrantLock();
 
     public ScheduledCrawlJob(ConfigObject job) {
-        this.job = job;
+        this.jobRef = ConfigRef.newBuilder()
+                .setKind(Kind.crawlJob)
+                .setId(job.getId())
+                .build();
     }
 
     @Override
     public void execute(TaskExecutionContext context) throws RuntimeException {
         lock.lock();
         try {
+            ConfigObject job = DbService.getInstance().getConfigAdapter().getConfigObject(jobRef);
+            if (job.getCrawlJob().getDisabled()) {
+                LOG.info("Scheduled crawl job '{}' is disabled; skipping start", job.getMeta().getName());
+                return;
+            }
             JobExecutionStatus jobExecutionStatus = JobExecutionUtil.getRunningJobExecutionStatusForJob(job);
             if (jobExecutionStatus == null) {
                 LOG.debug("Job '{}' starting", job.getMeta().getName());
@@ -57,7 +68,7 @@ public class ScheduledCrawlJob extends Task {
                 LOG.info("The job '{}' is already running. Job execution: '{}'", job.getMeta().getName(), jobExecutionStatus.getId());
             }
         } catch (DbException e) {
-            LOG.warn("Could not start scheduled job '{}'.", job.getMeta().getName());
+            LOG.warn("Could not start scheduled crawl job '{}'.", jobRef.getId(), e);
         } finally {
             lock.unlock();
         }
