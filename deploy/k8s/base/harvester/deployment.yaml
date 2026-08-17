@@ -29,10 +29,25 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 1Gi
-      terminationGracePeriodSeconds: 30
+        - name: recorder-mitm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+      terminationGracePeriodSeconds: 45
+      initContainers:
+        - name: generate-recorder-mitm-cert
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.6
+          command:
+            - /generate-mitm-cert
+          args:
+            - --cert-file=/var/run/recorderproxy/tls.crt
+            - --key-file=/var/run/recorderproxy/tls.key
+          volumeMounts:
+            - name: recorder-mitm
+              mountPath: /var/run/recorderproxy
       containers:
         - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.2
           ports:
             - containerPort: 9999
               protocol: TCP
@@ -72,6 +87,8 @@ spec:
               value: localhost
             - name: PROXY_PORT
               value: "9900"
+            - name: RECORDER_CERT_FILE
+              value: /var/run/recorderproxy/tls.crt
             - name: FRONTIER_HOST
               value: frontier
             - name: FRONTIER_PORT
@@ -98,8 +115,13 @@ spec:
               value: "0.1"
             - name: LOG_LEVEL
               value: INFO
+          volumeMounts:
+            - name: recorder-mitm
+              mountPath: /var/run/recorderproxy/tls.crt
+              subPath: tls.crt
+              readOnly: true
         - name: recorderproxy
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.5
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.6
           ports:
             - containerPort: 9900
               name: proxy
@@ -132,10 +154,18 @@ spec:
               value: "9302"
             - name: PROFILING_ENABLED
               value: "false"
+            - name: MITM_CERT_FILE
+              value: /var/run/recorderproxy/tls.crt
+            - name: MITM_KEY_FILE
+              value: /var/run/recorderproxy/tls.key
             - name: JAEGER_SERVICE_NAME
               value: harvester-proxy
             - name: LOG_LEVEL
               value: WARN
+          volumeMounts:
+            - name: recorder-mitm
+              mountPath: /var/run/recorderproxy
+              readOnly: true
         - name: browser
           image: ghcr.io/browserless/chromium:v2.55.2
           ports:
