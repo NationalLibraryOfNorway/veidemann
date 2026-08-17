@@ -38,7 +38,7 @@ RUN set -eux; \
     /usr/sbin/squid --version; \
     rm -rf /var/lib/apt/lists/*
 
-# Persist Squid object-cache state.
+# Persist Squid object-cache and generated-certificate state.
 VOLUME /var/spool/squid
 
 # Helpers

@@ -79,35 +79,27 @@ override origin `private`, `no-store`, expiry, or validation requirements.
 Store-ID keys remain scoped by job execution, so this exception does not enable
 reuse across different `veidemann_jeid` values.
 
-## Static parent TLS certificate
+## Dynamic parent TLS certificates
 
-Every parent presents the same static, non-CA server certificate for every
-bumped HTTPS origin. TLS bump remains enabled because Squid needs the decrypted
-HTTP request and response to apply Store-ID normalization and caching, but
-Squid does not generate per-origin certificates. It does not configure or run
-the `security_file_certgen` helper, and there is no generated-certificate
-memory cache or `ssl_db`.
+TLS bump requires Squid to terminate each client TLS connection so it can apply
+Store-ID normalization and caching to the decrypted HTTP exchange. Parent pods
+mount the cert-manager-managed signing CA Secret named `cache` at
+`/ca-certificates`. Squid uses that CA to generate a certificate matching each
+requested origin through `security_file_certgen`; generated certificates use a
+32 MiB memory cache and a 64 MiB database under `/var/spool/squid/ssl_db`.
 
-Recorderproxy deliberately keeps the original origin SNI while connecting
-through Squid and does not verify the upstream proxy certificate. It therefore
-accepts this hostname-mismatched static leaf. Do not install this certificate
-in Chromium or reuse it as recorderproxy's own MITM certificate. Any future
-cache client that verifies hostnames needs a separate trust design.
+Before becoming ready, `confighandler` verifies that the CA certificate and
+private key are readable, match, are currently valid, and permit certificate
+signing. The entrypoint initializes the generated-certificate database and
+stores the CA fingerprint alongside it. If the fingerprint differs at the next
+startup, the database is rebuilt before Squid starts.
 
-Only parent pods mount the cert-manager-managed `cache-server-tls` Secret at
-`/tls-certificates`; child pods have no TLS Secret dependency. Before becoming
-ready, `confighandler` verifies that the parent certificate and private key are
-readable, match, are currently valid, describe a non-CA certificate, and permit
-TLS server authentication. Invalid material prevents initial parent startup.
-
-At runtime, `confighandler` fingerprints both mounted files every five seconds.
-After a valid change, it parses the full Squid configuration and queues
-`squid -k reconfigure`, subject to the existing 30-second minimum reconfigure
-interval. New connections receive the renewed certificate after successful
-reconfiguration; the expected maximum detection and rate-limit delay is 35
-seconds. Existing TLS sessions can continue using the old certificate. A
-transiently mismatched Secret update or failed reconfiguration leaves the
-running configuration active and is retried.
+At runtime, `confighandler` fingerprints the mounted CA files every five
+seconds. A valid CA rotation causes the helper and container to exit so
+Kubernetes restarts the parent; startup then rebuilds the generated-certificate
+database. Transiently incomplete or invalid Secret updates are retried without
+disturbing the running Squid process. Child/balancer pods neither mount the CA
+nor initialize generated-certificate state.
 
 ## Why run more than one child?
 
@@ -156,8 +148,8 @@ The rendered dev overlay currently contains:
 - One child/balancer replica behind `Service/cache-balancer`.
 - One parent/cache replica behind `Service/cache`.
 - EndpointSlice discovery permissions for the child’s ServiceAccount.
-- A cert-manager-generated static server leaf mounted at `/tls-certificates`
-  in parent pods only.
+- A cert-manager-generated signing CA mounted at `/ca-certificates` in parent
+  pods only.
 - An AUFS cache sized to 80% of a `250 MiB` generic ephemeral PVC mounted below
   `/var/spool`.
 - A Squid exporter on port `9301` in both tiers.
@@ -208,9 +200,9 @@ to avoid overcommitting physical storage.
 | `CACHE_DIR_SIZE_PERCENT` | Parent | Integer percentage from 1 through 90 used to size the AUFS cache from the filesystem mounted at `/var/spool/squid/cache`. |
 | `CACHE_DIR_SIZE_MB` | Parent | Explicit positive cache size in MiB. This is an alternative to percentage-based sizing. |
 | `CACHE_DIR_L1` / `CACHE_DIR_L2` | Parent | AUFS directory fan-out. Defaults to `16` and `256`. |
-| `--tls-cert-file` | Parent | TLS certificate path. Defaults to `/tls-certificates/tls.crt`. |
-| `--tls-key-file` | Parent | TLS private-key path. Defaults to `/tls-certificates/tls.key`. |
-| `/tls-certificates/tls.crt` and `tls.key` | Parent | Static non-CA certificate and matching private key used for TLS bumping. |
+| `--tls-cert-file` | Parent | TLS signing CA certificate path. Defaults to `/ca-certificates/tls.crt`. |
+| `--tls-key-file` | Parent | TLS signing CA private-key path. Defaults to `/ca-certificates/tls.key`. |
+| `/ca-certificates/tls.crt` and `tls.key` | Parent | CA certificate and matching private key used to generate per-origin TLS certificates. |
 | `/etc/squid/conf.d/*.conf` | Both roles | Deployment-specific Squid configuration fragments. |
 
 The image owns `/etc/squid/squid.conf` and the role templates. Deployment
@@ -234,8 +226,9 @@ custom logfile daemon are used.
 ## Helpers
 
 - `confighandler` renders the role configuration, validates changes, discovers
-  parent endpoints in child mode, validates parent TLS material, and triggers
-  safe Squid reconfiguration.
+  parent endpoints in child mode, validates parent CA material, triggers safe
+  Squid reconfiguration for ordinary changes, and requests a container restart
+  when the signing CA rotates.
 - `storeid` combines the crawl job identifier and request URL into a stable
   Store-ID so crawl requests for the same job and URL share a cache key.
 
@@ -246,20 +239,11 @@ cd cache/helpers
 go test ./...
 ```
 
-## Certificate rollout and legacy CA cleanup
+## Certificate rollout
 
-Use a staged rollout so existing pods that still generate certificates retain
-their signing CA until replacement:
-
-1. Apply the `cache-server` Certificate and wait for `cache-server-tls` to be
-   Ready.
-2. Deploy the new image and parent StatefulSet mount while retaining the legacy
-   `cache-ca` Certificate and `cache` Secret. In production, allow the ordered
-   three-replica StatefulSet rollout to replace and verify one parent at a
-   time.
-3. Verify HTTP and HTTPS MISS/HIT behavior, Store-ID processing, unrelated
-   HTTPS origins receiving the same leaf, broken-origin handling, and live
-   certificate rotation in staging and production.
-4. Remove the legacy `cache-ca` Certificate only after every parent uses
-   `cache-server-tls`. If cert-manager leaves it behind, explicitly delete only
-   the old `cache` Secret.
+Apply the `cache-ca` Certificate and wait for its `cache` Secret to be Ready
+before rolling out the parent StatefulSet. In production, allow the ordered
+rollout to replace and verify one parent at a time. Validate HTTPS MISS/HIT
+behavior and confirm the generated peer certificate matches the requested
+origin. The obsolete `cache-server` Certificate and `cache-server-tls` Secret
+are not used by this configuration and may be removed after rollback.

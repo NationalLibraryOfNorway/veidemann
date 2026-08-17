@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -22,6 +23,8 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/cache/helpers/iputil"
 )
 
+var errSigningCAChanged = errors.New("TLS signing CA changed; restart required to rebuild generated certificates")
+
 func main() {
 	var (
 		isBalancer  bool
@@ -36,8 +39,8 @@ func main() {
 	flag.BoolVar(&isBalancer, "b", false, "Configure squid as balancer")
 	flag.StringVar(&configPath, "config", "/etc/squid/conf.d/90-role.conf", "Output config path")
 	flag.StringVar(&readyFile, "ready-file", "/run/confighandler.ready", "Write this file after initial successful render (empty disables)")
-	flag.StringVar(&tlsCertFile, "tls-cert-file", "/tls-certificates/tls.crt", "Parent TLS certificate path")
-	flag.StringVar(&tlsKeyFile, "tls-key-file", "/tls-certificates/tls.key", "Parent TLS private key path")
+	flag.StringVar(&tlsCertFile, "tls-cert-file", "/ca-certificates/tls.crt", "Parent TLS signing CA certificate path")
+	flag.StringVar(&tlsKeyFile, "tls-key-file", "/ca-certificates/tls.key", "Parent TLS signing CA private key path")
 	flag.DurationVar(&interval, "interval", 5*time.Second, "Rewrite check interval")
 	flag.DurationVar(&minReconf, "min-reconfigure-interval", 30*time.Second, "Minimum interval between squid reconfigure calls")
 	flag.Parse()
@@ -118,10 +121,15 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 			return ctx.Err()
 
 		case <-t.C:
+			previousTLSFingerprint := r.lastTLSFingerprint
 			changed, err := r.rewriteConfig()
 			if err != nil {
 				log.Error("Rewrite failed", "error", err)
 				continue
+			}
+			if previousTLSFingerprint != "" &&
+				r.lastTLSFingerprint != previousTLSFingerprint {
+				return errSigningCAChanged
 			}
 
 			if changed {
@@ -413,22 +421,11 @@ func validateTLSMaterial(certPEM, keyPEM []byte, now time.Time) error {
 	if now.After(cert.NotAfter) {
 		return fmt.Errorf("certificate expired at %s", cert.NotAfter.Format(time.RFC3339))
 	}
-	if cert.IsCA {
-		return fmt.Errorf("certificate must not be a CA")
+	if !cert.IsCA {
+		return fmt.Errorf("certificate must be a CA")
 	}
-
-	serverAuth := false
-	for _, usage := range cert.ExtKeyUsage {
-		if usage == x509.ExtKeyUsageServerAuth || usage == x509.ExtKeyUsageAny {
-			serverAuth = true
-			break
-		}
-	}
-	if !serverAuth {
-		return fmt.Errorf("certificate does not permit TLS server authentication")
-	}
-	if cert.KeyUsage != 0 && cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
-		return fmt.Errorf("certificate does not permit digital signatures")
+	if cert.KeyUsage != 0 && cert.KeyUsage&x509.KeyUsageCertSign == 0 {
+		return fmt.Errorf("certificate does not permit certificate signing")
 	}
 
 	return nil

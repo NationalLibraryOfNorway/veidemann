@@ -65,8 +65,8 @@ func validCertificate(t *testing.T) ([]byte, []byte) {
 	return newCertificate(t, certificateOptions{
 		notBefore: now.Add(-time.Hour),
 		notAfter:  now.Add(time.Hour),
-		extUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		keyUsage:  x509.KeyUsageDigitalSignature,
+		isCA:      true,
+		keyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 	})
 }
 
@@ -113,24 +113,17 @@ func TestValidateTLSFilesRejectsInvalidMaterial(t *testing.T) {
 		extUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		keyUsage:  x509.KeyUsageDigitalSignature,
 	})
-	caCert, caKey := newCertificate(t, certificateOptions{
+	leafCert, leafKey := newCertificate(t, certificateOptions{
 		notBefore: now.Add(-time.Hour),
 		notAfter:  now.Add(time.Hour),
-		isCA:      true,
 		extUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		keyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-	})
-	clientCert, clientKey := newCertificate(t, certificateOptions{
-		notBefore: now.Add(-time.Hour),
-		notAfter:  now.Add(time.Hour),
-		extUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		keyUsage:  x509.KeyUsageDigitalSignature,
 	})
 	noSigningCert, noSigningKey := newCertificate(t, certificateOptions{
 		notBefore: now.Add(-time.Hour),
 		notAfter:  now.Add(time.Hour),
-		extUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		keyUsage:  x509.KeyUsageKeyEncipherment,
+		isCA:      true,
+		keyUsage:  x509.KeyUsageDigitalSignature,
 	})
 
 	tests := []struct {
@@ -148,9 +141,8 @@ func TestValidateTLSFilesRejectsInvalidMaterial(t *testing.T) {
 		{name: "mismatched", certPEM: validCert, keyPEM: otherKey, want: "private key does not match"},
 		{name: "expired", certPEM: expiredCert, keyPEM: expiredKey, want: "expired"},
 		{name: "not yet valid", certPEM: futureCert, keyPEM: futureKey, want: "not valid before"},
-		{name: "CA", certPEM: caCert, keyPEM: caKey, want: "must not be a CA"},
-		{name: "client only", certPEM: clientCert, keyPEM: clientKey, want: "server authentication"},
-		{name: "cannot sign", certPEM: noSigningCert, keyPEM: noSigningKey, want: "digital signatures"},
+		{name: "leaf", certPEM: leafCert, keyPEM: leafKey, want: "must be a CA"},
+		{name: "cannot sign", certPEM: noSigningCert, keyPEM: noSigningKey, want: "certificate signing"},
 	}
 
 	for _, tt := range tests {
@@ -369,12 +361,12 @@ func TestRewriteRetriesSquidValidationFailure(t *testing.T) {
 	}
 }
 
-func TestRunReconfiguresOnceForChangedTLSFingerprint(t *testing.T) {
+func TestRunRestartsForChangedTLSFingerprint(t *testing.T) {
 	runner := &fakeSquidRunner{reconfigureCallCh: make(chan time.Time, 4)}
 	r, dir := newTestRewriter(t, runner)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	done := make(chan error, 1)
-	start := time.Now()
 	go func() {
 		done <- run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), r, 5*time.Millisecond, 30*time.Millisecond, "")
 	}()
@@ -384,22 +376,16 @@ func TestRunReconfiguresOnceForChangedTLSFingerprint(t *testing.T) {
 	writePair(t, dir, certPEM, keyPEM)
 
 	select {
-	case callTime := <-runner.reconfigureCallCh:
-		if callTime.Sub(start) < 25*time.Millisecond {
-			t.Fatalf("reconfigure happened after %s, before minimum interval", callTime.Sub(start))
+	case err := <-done:
+		if !errors.Is(err, errSigningCAChanged) {
+			t.Fatalf("run() error = %v, want errSigningCAChanged", err)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for reconfigure")
+		t.Fatal("timed out waiting for signing CA restart")
 	}
-	time.Sleep(50 * time.Millisecond)
 	_, reconfigureCalls := runner.counts()
-	if reconfigureCalls != 1 {
-		t.Fatalf("reconfigure calls = %d, want 1", reconfigureCalls)
-	}
-
-	cancel()
-	if err := <-done; !errors.Is(err, context.Canceled) {
-		t.Fatalf("run() error = %v, want context canceled", err)
+	if reconfigureCalls != 0 {
+		t.Fatalf("reconfigure calls = %d, want 0", reconfigureCalls)
 	}
 }
 
@@ -408,7 +394,7 @@ func TestRunRetriesFailedReconfiguration(t *testing.T) {
 		reconfigureErrors: []error{errors.New("first attempt failed")},
 		reconfigureCallCh: make(chan time.Time, 4),
 	}
-	r, dir := newTestRewriter(t, runner)
+	r, _ := newTestRewriter(t, runner)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
@@ -416,8 +402,7 @@ func TestRunRetriesFailedReconfiguration(t *testing.T) {
 	}()
 
 	waitForValidation(t, runner, 1)
-	certPEM, keyPEM := validCertificate(t)
-	writePair(t, dir, certPEM, keyPEM)
+	t.Setenv("DNS_SERVERS", "192.0.2.54")
 	for range 2 {
 		select {
 		case <-runner.reconfigureCallCh:
@@ -457,14 +442,18 @@ func TestRunRetriesInvalidChangedTLSMaterial(t *testing.T) {
 	certPEM, keyPEM := validCertificate(t)
 	writePair(t, dir, certPEM, keyPEM)
 	select {
-	case <-runner.reconfigureCallCh:
+	case err := <-done:
+		if !errors.Is(err, errSigningCAChanged) {
+			t.Fatalf("run() error = %v, want errSigningCAChanged", err)
+		}
 	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for reconfigure after valid material appeared")
+		t.Fatal("timed out waiting for signing CA restart")
+	}
+	_, reconfigureCalls = runner.counts()
+	if reconfigureCalls != 0 {
+		t.Fatalf("reconfigure calls = %d, want 0", reconfigureCalls)
 	}
 	cancel()
-	if err := <-done; !errors.Is(err, context.Canceled) {
-		t.Fatalf("run() error = %v, want context canceled", err)
-	}
 }
 
 func TestRoleTemplatesHaveExpectedTLSDependencies(t *testing.T) {
@@ -476,17 +465,14 @@ func TestRoleTemplatesHaveExpectedTLSDependencies(t *testing.T) {
 	for _, want := range []string{
 		"tls-cert=${TLS_CERT_FILE}",
 		"tls-key=${TLS_KEY_FILE}",
-		"generate-host-certificates=off",
-		"dynamic_cert_mem_cache_size=0KB",
+		"generate-host-certificates=on",
+		"dynamic_cert_mem_cache_size=32MB",
+		"sslcrtd_program",
 	} {
 		if !strings.Contains(parentConfig, want) {
 			t.Errorf("parent template missing %q", want)
 		}
 	}
-	if strings.Contains(parentConfig, "sslcrtd_program") {
-		t.Error("parent template still contains sslcrtd_program")
-	}
-
 	child, err := os.ReadFile("../../../squid-balancer.conf.template")
 	if err != nil {
 		t.Fatal(err)
