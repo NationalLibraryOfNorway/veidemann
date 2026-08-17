@@ -20,7 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -84,7 +86,7 @@ type RecorderProxy struct {
 	mu                sync.Mutex
 	ln                net.Listener
 	shuttingDown      bool
-	once              sync.Once
+	lifecycle         *lifecycleTracker
 }
 
 func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAddr string, options ...Option) *RecorderProxy {
@@ -107,6 +109,7 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 		id:        int32(id),
 		conn:      conn,
 		nextProxy: nextProxyAddr,
+		lifecycle: newLifecycleTracker(),
 	}
 
 	filterChain := proxy.Join(
@@ -117,6 +120,7 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 			conn:                conn,
 			proxyId:             int32(id),
 			finalizationTimeout: opts.finalizationTimeout,
+			lifecycle:           r.lifecycle,
 		},
 
 		// Must wrap DNS, recorder, and transport filters.
@@ -195,13 +199,18 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 
 		wrappedConn := WrapConn(conn, "down", false)
 		wrappedConn.baseCtx, wrappedConn.cancelFunc = ctx, cancel
+		if !proxy.lifecycle.addConnection(wrappedConn) {
+			_ = wrappedConn.Close()
+			continue
+		}
 		activeConnections.Inc()
 
 		go func() {
 			defer activeConnections.Dec()
+			defer proxy.lifecycle.removeConnection(wrappedConn)
 			defer cancel()
 			err := proxy.handler.Handle(ctx, wrappedConn, wrappedConn)
-			if err != nil {
+			if err != nil && !isExpectedDisconnect(err) {
 				logger.LogWithComponent("PROXY").WithError(err).Error("Error handling request")
 			}
 		}()
@@ -209,6 +218,9 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 }
 
 func (proxy *RecorderProxy) Shutdown(ctx context.Context) error {
+	connections := proxy.lifecycle.closeAndSnapshotConnections()
+	var shutdownErr error
+
 	proxy.mu.Lock()
 
 	proxy.shuttingDown = true
@@ -219,40 +231,21 @@ func (proxy *RecorderProxy) Shutdown(ctx context.Context) error {
 
 	if ln != nil {
 		if err := ln.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-			return err
+			shutdownErr = err
 		}
 	}
 
-	return proxy.waitOpenSessions(ctx)
+	for _, conn := range connections {
+		_ = conn.Close()
+	}
+
+	return errors.Join(shutdownErr, proxy.lifecycle.wait(ctx))
 }
 
 func (proxy *RecorderProxy) isShuttingDown() bool {
 	proxy.mu.Lock()
 	defer proxy.mu.Unlock()
 	return proxy.shuttingDown
-}
-
-func (proxy *RecorderProxy) waitOpenSessions(ctx context.Context) error {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	var prev int64 = -1
-
-	for {
-		openSessions := rpcontext.OpenSessions()
-		if openSessions == 0 {
-			return nil
-		}
-		if openSessions != prev {
-			logger.LogWithComponent("PROXY").Infof("Waiting for %d sessions to complete", openSessions)
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
 }
 
 type wrappedConnection struct {
@@ -294,6 +287,9 @@ func (conn *wrappedConnection) Close() (err error) {
 
 func (conn *wrappedConnection) Read(b []byte) (n int, err error) {
 	n, err = conn.Conn.Read(b)
+	if isExpectedDisconnect(err) && conn.cancelFunc != nil {
+		conn.cancelFunc()
+	}
 	l := logger.LogWithComponent("CONN:" + conn.t)
 	if err != nil {
 		l = l.WithError(err)
@@ -308,6 +304,9 @@ func (conn *wrappedConnection) Read(b []byte) (n int, err error) {
 
 func (conn *wrappedConnection) Write(b []byte) (n int, err error) {
 	n, err = conn.Conn.Write(b)
+	if isExpectedDisconnect(err) && conn.cancelFunc != nil {
+		conn.cancelFunc()
+	}
 	l := logger.LogWithComponent("CONN:" + conn.t)
 	if err != nil {
 		l = l.WithError(err)
@@ -318,6 +317,22 @@ func (conn *wrappedConnection) Write(b []byte) (n int, err error) {
 		l.WithField("bytes", n).Debug("Connection write")
 	}
 	return
+}
+
+func isExpectedDisconnect(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) ||
+		errors.Is(err, io.ErrClosedPipe) || errors.Is(err, context.Canceled) {
+		return true
+	}
+	text := strings.ToLower(err.Error())
+	return strings.HasSuffix(text, "eof") ||
+		strings.Contains(text, "use of closed network connection") ||
+		strings.Contains(text, "broken pipe") ||
+		strings.Contains(text, "closed pipe") ||
+		strings.Contains(text, "connection reset by peer")
 }
 
 func WrapConn(conn net.Conn, label string, dirOut bool) *wrappedConnection {

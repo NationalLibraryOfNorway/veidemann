@@ -65,8 +65,8 @@ func (rc *RecordContext) HasCrawlLog() bool {
 	return rc.CrawlLog != nil
 }
 
-func registerResource(_ context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
-	rpcCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func registerResource(ctx context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
+	rpcCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	reply, err := conn.BrowserControllerClient().RegisterResource(rpcCtx, request)

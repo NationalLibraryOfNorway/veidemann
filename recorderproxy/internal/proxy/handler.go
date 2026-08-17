@@ -95,6 +95,7 @@ func (h *Handler) handle(ctx context.Context, input io.Reader, downstream, upstr
 		}
 		return nil
 	}
+	req = req.WithContext(ctx)
 	if remote := downstream.RemoteAddr(); remote != nil {
 		req.RemoteAddr = remote.String()
 	}
@@ -212,6 +213,9 @@ func (h *Handler) processRequests(ctx context.Context, state *State, remote stri
 		}
 		if resp != nil {
 			if writeErr := h.writeResponse(downstream, req, resp); writeErr != nil {
+				if isExpectedDisconnect(writeErr) {
+					return nil
+				}
 				h.config.OnError(state, req, PhaseResponseWrite, writeErr)
 				return NewPhaseError(PhaseResponseWrite, fmt.Errorf("unable to write response to downstream: %w", writeErr))
 			}
@@ -237,6 +241,7 @@ func (h *Handler) processRequests(ctx context.Context, state *State, remote stri
 			}
 			return nil
 		}
+		req = req.WithContext(ctx)
 		req.RemoteAddr = remote
 	}
 }
@@ -244,8 +249,33 @@ func (h *Handler) processRequests(ctx context.Context, state *State, remote stri
 func (h *Handler) proceedWithConnect(ctx context.Context, upstreamAddr string, upstream, downstream net.Conn) error {
 	var upstreamFailure error
 	if upstream == nil {
+		setupCtx, cancelSetup := context.WithCancelCause(ctx)
+		prefetch := startConnectPrefetch(downstream, maxTLSReplaySize, cancelSetup)
+
 		var err error
-		upstream, err = h.config.Dial(ctx, true, "tcp", upstreamAddr)
+		upstream, err = h.config.Dial(setupCtx, true, "tcp", upstreamAddr)
+		var prefetchErr error
+		downstream, prefetchErr = prefetch.stop()
+		setupCause := context.Cause(setupCtx)
+		cancelSetup(nil)
+
+		if prefetchErr != nil {
+			if isExpectedDisconnect(prefetchErr) || errors.Is(prefetchErr, context.Canceled) {
+				if upstream != nil {
+					_ = upstream.Close()
+				}
+				return nil
+			}
+			failure := NewPhaseError(PhaseDownstreamTLS, fmt.Errorf("CONNECT prefetch failed: %w", prefetchErr))
+			h.config.OnError(newState(nil, nil, downstream), nil, PhaseDownstreamTLS, failure)
+			if upstream != nil {
+				_ = upstream.Close()
+			}
+			return failure
+		}
+		if err != nil && setupCause != nil && isExpectedDisconnect(setupCause) {
+			return nil
+		}
 		if err != nil {
 			phase := Phase(err)
 			if phase == "" {
@@ -270,6 +300,9 @@ func (h *Handler) proceedWithConnect(ctx context.Context, upstreamAddr string, u
 				return NewPhaseError(PhaseTunnel, fmt.Errorf("unable to replay TLS input upstream: %w", copyErr))
 			}
 			return h.tunnel(upstream, downstream)
+		}
+		if isExpectedDisconnect(err) || errors.Is(err, context.Canceled) {
+			return nil
 		}
 		failure := NewPhaseError(PhaseDownstreamTLS, fmt.Errorf("unable to MITM connection: %w", err))
 		h.config.OnError(newState(nil, nil, downstream), nil, PhaseDownstreamTLS, failure)
@@ -421,19 +454,23 @@ func copyHeadersForForwarding(dst, src http.Header) {
 	dst.Del("Proxy-Connection")
 }
 
+func isExpectedDisconnect(err error) bool {
+	if err == nil || errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) ||
+		errors.Is(err, io.ErrClosedPipe) || errors.Is(err, context.Canceled) {
+		return true
+	}
+	text := strings.ToLower(err.Error())
+	return strings.HasSuffix(text, "eof") ||
+		strings.Contains(text, "use of closed network connection") ||
+		strings.Contains(text, "broken pipe") ||
+		strings.Contains(text, "closed pipe") ||
+		strings.Contains(text, "connection reset by peer")
+}
+
 func isUnexpected(err error) bool {
-	if err == nil || errors.Is(err, io.EOF) {
+	if isExpectedDisconnect(err) {
 		return false
 	}
 	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
-		return false
-	}
-	text := err.Error()
-	return !strings.HasSuffix(text, "EOF") &&
-		!strings.Contains(text, "i/o timeout") &&
-		!strings.Contains(text, "use of closed network connection") &&
-		!strings.Contains(text, "broken pipe") &&
-		!strings.Contains(text, "closed pipe") &&
-		!strings.Contains(text, "connection reset by peer")
+	return !(errors.As(err, &netErr) && netErr.Timeout())
 }

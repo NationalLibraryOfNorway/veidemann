@@ -1,11 +1,93 @@
 package proxy
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net"
 	"testing"
 	"time"
 )
+
+func TestConnectPrefetchReplaysBufferedInput(t *testing.T) {
+	client, server := net.Pipe()
+	t.Cleanup(func() { _ = client.Close() })
+	t.Cleanup(func() { _ = server.Close() })
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	prefetch := startConnectPrefetch(server, maxTLSReplaySize, cancel)
+	written := make(chan error, 1)
+	go func() {
+		_, err := client.Write([]byte("client hello"))
+		written <- err
+	}()
+	if err := <-written; err != nil {
+		t.Fatal(err)
+	}
+
+	replayed, err := prefetch.stop()
+	if err != nil {
+		t.Fatalf("stop() error = %v", err)
+	}
+	got := make([]byte, len("client hello"))
+	if _, err := io.ReadFull(replayed, got); err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "client hello" {
+		t.Fatalf("replayed input = %q", got)
+	}
+	if cause := context.Cause(ctx); cause != nil {
+		t.Fatalf("prefetch cancellation cause = %v", cause)
+	}
+}
+
+func TestConnectPrefetchPeerCloseCancelsSetup(t *testing.T) {
+	client, server := net.Pipe()
+	t.Cleanup(func() { _ = server.Close() })
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	prefetch := startConnectPrefetch(server, maxTLSReplaySize, cancel)
+	if err := client.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(3 * time.Second):
+		t.Fatal("prefetch did not cancel setup")
+	}
+	_, err := prefetch.stop()
+	if !errors.Is(err, io.EOF) {
+		t.Fatalf("stop() error = %v, want EOF", err)
+	}
+}
+
+func TestConnectPrefetchRejectsReplayOverflow(t *testing.T) {
+	client, server := net.Pipe()
+	t.Cleanup(func() { _ = client.Close() })
+	t.Cleanup(func() { _ = server.Close() })
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	prefetch := startConnectPrefetch(server, 4, cancel)
+	written := make(chan error, 1)
+	go func() {
+		_, err := client.Write([]byte("12345"))
+		written <- err
+	}()
+	if err := <-written; err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(3 * time.Second):
+		t.Fatal("overflow did not cancel setup")
+	}
+	_, err := prefetch.stop()
+	if !errors.Is(err, errReplayOverflow) {
+		t.Fatalf("stop() error = %v, want replay overflow", err)
+	}
+}
 
 func TestBidirectionalCopyDrainsResponseAfterClientHalfClose(t *testing.T) {
 	downstreamClient, downstreamProxy := tcpPair(t)

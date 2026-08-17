@@ -208,6 +208,11 @@ connection.
 The container includes `/generate-mitm-cert` for creating the pod-scoped leaf
 used by the Kubernetes harvester deployment. ContentWriter terminal operations
 are bounded by `--finalization-timeout`, which defaults to 30 seconds.
+Recorderproxy shutdown cancels and closes every accepted connection, then waits
+for its own connection handlers and terminal record operations. When overriding
+`--finalization-timeout`, keep the pod termination grace period longer than the
+configured timeout plus shutdown overhead (recorderproxy adds five seconds to
+its shutdown budget, and the base pod grace adds further margin).
 
 Prometheus metrics show trends such as live heap, process RSS, allocation rate,
 GC frequency, goroutines, CPU, and file descriptors. Prometheus does not store

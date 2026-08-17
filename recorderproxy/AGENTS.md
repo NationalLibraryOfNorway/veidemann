@@ -76,6 +76,12 @@ The intended flow is:
 3. The engine dials the origin or next proxy and performs local MITM.
 4. The decrypted inner request, such as `GET /`, re-enters the normal filter chain and gets its own `RecordContext`.
 
+While upstream CONNECT setup is pending, one bounded reader owns the downstream
+connection and buffers at most 128 KiB for replay. A browser disconnect cancels
+the upstream dial or Squid exchange. That reader must be stopped and joined,
+and its temporary deadline cleared, before TLS or raw-tunnel code takes read
+ownership.
+
 Do not add another CONNECT 200 in `RecorderFilter` or recorder-specific error handling.
 
 ### Failed Upstream During CONNECT
@@ -125,6 +131,12 @@ Keep these scopes distinct:
 
 - connection metadata established by CONNECT and reused by the tunneled request;
 - request metadata and `RecordContext`, which must be fresh per inner HTTP request.
+
+Parsed requests inherit the accepted connection's cancellation. Terminal
+BrowserController completion and ContentWriter shutdown deliberately use their
+own bounded contexts so they can finish after browser cancellation. Shutdown
+ownership is per `RecorderProxy`; the process-wide open-session count is a
+metric, not a synchronization primitive.
 
 Crawler headers include the Chromium request ID, crawl execution ID, job execution ID, and collection ID. `RecordContext.Init` captures them and removes them before forwarding upstream. The request ID is how BrowserController correlates recorderproxy's later `CompleteResource` with Chromium's request.
 

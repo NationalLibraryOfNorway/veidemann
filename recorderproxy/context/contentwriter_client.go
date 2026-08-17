@@ -37,10 +37,15 @@ type CwcSession struct {
 	sendMu          sync.Mutex
 	cwcCtx          context.Context
 	ctxCancel       context.CancelFunc
+	cancelOnce      sync.Once
 	sendSeq         uint64
 	sendInFlight    int32
 	sendStateMu     sync.Mutex
 	protocolHeaders map[int32][]byte
+}
+
+func (cwc *CwcSession) cancelContext() {
+	cwc.cancelOnce.Do(cwc.ctxCancel)
 }
 
 func headerDigest(data []byte) string {
@@ -183,23 +188,10 @@ func (rc *RecordContext) getCwcSessionForTerminal(terminal bool) (*CwcSession, e
 		break
 	}
 
-	cwcCtx, cancel := context.WithCancel(context.Background())
-
-	cwc, err := rc.conn.ContentWriterClient().Write(cwcCtx)
+	c, err := rc.openCwcSession()
 	if err != nil {
 		l.WithError(err).Warn("Error connecting to ContentWriter")
 		err = errors.WrapInternalError(err, errors.RuntimeException, "Error connecting to ContentWriter", err.Error())
-		cancel()
-	}
-
-	var c *CwcSession
-	if err == nil {
-		c = &CwcSession{
-			ContentWriter_WriteClient: cwc,
-			cwcCtx:                    cwcCtx,
-			ctxCancel:                 cancel,
-			protocolHeaders:           make(map[int32][]byte, 2),
-		}
 	}
 
 	rc.mutex.Lock()
@@ -210,6 +202,24 @@ func (rc *RecordContext) getCwcSessionForTerminal(terminal bool) (*CwcSession, e
 	rc.mutex.Unlock()
 
 	return c, err
+}
+
+func (rc *RecordContext) openCwcSession() (*CwcSession, error) {
+	cwcCtx, cancel := context.WithCancel(context.Background())
+	cwc, err := rc.conn.ContentWriterClient().Write(cwcCtx)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+
+	// Ownership of cancel transfers to the successful session. Every terminal
+	// path calls cancelContext after CloseAndRecv or when its timeout expires.
+	return &CwcSession{
+		ContentWriter_WriteClient: cwc,
+		cwcCtx:                    cwcCtx,
+		ctxCancel:                 cancel,
+		protocolHeaders:           make(map[int32][]byte, 2),
+	}, nil
 }
 
 func (rc *RecordContext) CancelContentWriter(msg string) error {
@@ -323,13 +333,13 @@ func (rc *RecordContext) terminateContentWriter(sendMeta bool, cancelMessage str
 	timedOut := atomic.Bool{}
 	timer := time.AfterFunc(rc.finalizationTimeout, func() {
 		timedOut.Store(true)
-		cwc.ctxCancel()
+		cwc.cancelContext()
 	})
 	defer func() {
 		if !timer.Stop() || timedOut.Load() {
 			contentWriterTerminalTimeouts.Inc()
 		}
-		cwc.ctxCancel()
+		cwc.cancelContext()
 	}()
 
 	var terminalRequest *contentwriterV1.WriteRequest

@@ -19,6 +19,7 @@ package recorderproxy
 import (
 	"bufio"
 	"context"
+	stderrors "errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -35,15 +36,29 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 	log := rpcontext.LogWithContext(ctx, "Dialer")
 	log.Debugf("dial upstream %v, is connect request: %v", addr, isConnect)
 
-	timeout := dialTimeout(ctx, 30*time.Second)
-
 	dialAddr := addr
 	if proxy.nextProxy != "" {
 		dialAddr = proxy.nextProxy
 	}
 
-	conn, err := net.DialTimeout(network, dialAddr, timeout)
+	dialCtx := ctx
+	if _, ok := dialCtx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		dialCtx, cancel = context.WithTimeout(dialCtx, 30*time.Second)
+		defer cancel()
+	}
+
+	var dialer net.Dialer
+	conn, err := dialer.DialContext(dialCtx, network, dialAddr)
 	if err != nil {
+		if cause := context.Cause(dialCtx); cause != nil {
+			if stderrors.Is(cause, context.Canceled) {
+				log.WithError(cause).Debug("Upstream dial canceled")
+			} else {
+				log.WithError(cause).Errorf("Failed to dial %v", dialAddr)
+			}
+			return nil, cause
+		}
 		if proxy.nextProxy != "" {
 			log.Errorf("could not dial next proxy at %v: %v", proxy.nextProxy, err)
 			return nil, err
@@ -60,28 +75,29 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 
 	if isConnect && proxy.nextProxy != "" {
 		if err := proxy.sendConnectToNextProxy(ctx, conn, log); err != nil {
-			return conn, proxyengine.NewPhaseError(proxyengine.PhaseUpstreamProxyConnect, err)
+			_ = conn.Close()
+			return nil, proxyengine.NewPhaseError(proxyengine.PhaseUpstreamProxyConnect, err)
 		}
 	}
 
 	return conn, nil
 }
 
-func dialTimeout(ctx context.Context, fallback time.Duration) time.Duration {
-	deadline, ok := ctx.Deadline()
-	if !ok {
-		return fallback
-	}
+func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net.Conn, log *logger.Logger) (err error) {
+	cancelDone := make(chan struct{})
+	stopClose := context.AfterFunc(ctx, func() {
+		_ = conn.Close()
+		close(cancelDone)
+	})
+	defer func() {
+		if !stopClose() {
+			<-cancelDone
+			if cause := context.Cause(ctx); cause != nil {
+				err = cause
+			}
+		}
+	}()
 
-	timeout := time.Until(deadline)
-	if timeout <= 0 {
-		return 0
-	}
-
-	return timeout
-}
-
-func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net.Conn, log *logger.Logger) error {
 	wrappedCtx := rpcontext.WrapIfNecessary(ctx)
 	uri := rpcontext.GetUri(wrappedCtx)
 
@@ -89,13 +105,17 @@ func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net
 	log.Debugf("sending CONNECT for host %v to upstream proxy", req.URL)
 
 	if err := req.Write(conn); err != nil {
-		log.WithError(err).Warn("error while writing CONNECT request to upstream proxy")
+		if context.Cause(ctx) == nil {
+			log.WithError(err).Warn("error while writing CONNECT request to upstream proxy")
+		}
 		return err
 	}
 
 	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
-		log.WithError(err).Warn("error while reading CONNECT response from upstream proxy")
+		if context.Cause(ctx) == nil {
+			log.WithError(err).Warn("error while reading CONNECT response from upstream proxy")
+		}
 		return err
 	}
 	defer func() {

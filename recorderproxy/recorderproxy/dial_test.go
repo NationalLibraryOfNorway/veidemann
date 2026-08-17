@@ -17,9 +17,19 @@
 package recorderproxy
 
 import (
+	"bufio"
 	"bytes"
+	"context"
+	"errors"
+	"net"
+	"net/http"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
+
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 )
 
 func TestNewConnectReqWrite(t *testing.T) {
@@ -38,5 +48,39 @@ func TestNewConnectReqWrite(t *testing.T) {
 
 	if !strings.Contains(got, "Host: example.com:443\r\n") {
 		t.Fatalf("missing Host header:\n%s", got)
+	}
+}
+
+func TestSendConnectToNextProxyCancellationClosesConnection(t *testing.T) {
+	client, server := net.Pipe()
+	t.Cleanup(func() { _ = client.Close() })
+	t.Cleanup(func() { _ = server.Close() })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = rpcontext.RecordProxyDataAware(ctx)
+	rpcontext.SetUri(ctx, &url.URL{Scheme: "https", Host: "example.com"})
+
+	requestRead := make(chan error, 1)
+	go func() {
+		_, err := http.ReadRequest(bufio.NewReader(server))
+		requestRead <- err
+	}()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- (&RecorderProxy{}).sendConnectToNextProxy(ctx, client, logger.LogWithComponent("TEST"))
+	}()
+	if err := <-requestRead; err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("sendConnectToNextProxy() error = %v, want context canceled", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("CONNECT response read was not canceled")
 	}
 }

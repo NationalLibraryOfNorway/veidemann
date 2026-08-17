@@ -2,11 +2,13 @@ package proxy
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -42,6 +44,80 @@ func (c *readerConn) Wrapped() net.Conn          { return c.Conn }
 
 func connWithBufferedReader(conn net.Conn, reader *bufio.Reader) net.Conn {
 	return &readerConn{Conn: conn, reader: reader}
+}
+
+type prefetchResult struct {
+	data []byte
+	err  error
+}
+
+// connectPrefetch owns downstream reads while upstream CONNECT setup is in
+// progress. It must be stopped and joined before another reader takes over.
+type connectPrefetch struct {
+	conn     net.Conn
+	limit    int
+	cancel   context.CancelCauseFunc
+	done     chan prefetchResult
+	stopping atomic.Bool
+}
+
+func startConnectPrefetch(conn net.Conn, limit int, cancel context.CancelCauseFunc) *connectPrefetch {
+	p := &connectPrefetch{
+		conn:   conn,
+		limit:  limit,
+		cancel: cancel,
+		done:   make(chan prefetchResult, 1),
+	}
+	go p.read()
+	return p
+}
+
+func (p *connectPrefetch) read() {
+	data := make([]byte, 0, min(p.limit, 32<<10))
+	buf := make([]byte, 32<<10)
+	for {
+		n, err := p.conn.Read(buf)
+		if n > 0 {
+			if len(data)+n > p.limit {
+				err = fmt.Errorf("%w: limit %d bytes", errReplayOverflow, p.limit)
+				p.cancel(err)
+				p.done <- prefetchResult{data: data, err: err}
+				return
+			}
+			data = append(data, buf[:n]...)
+		}
+		if err != nil {
+			var netErr net.Error
+			if p.stopping.Load() && errors.As(err, &netErr) && netErr.Timeout() {
+				err = nil
+			} else {
+				p.cancel(err)
+			}
+			p.done <- prefetchResult{data: data, err: err}
+			return
+		}
+	}
+}
+
+func (p *connectPrefetch) stop() (net.Conn, error) {
+	p.stopping.Store(true)
+	if err := p.conn.SetReadDeadline(time.Now()); err != nil {
+		_ = p.conn.Close()
+		result := <-p.done
+		return nil, errors.Join(fmt.Errorf("unable to stop CONNECT prefetch: %w", err), result.err)
+	}
+
+	result := <-p.done
+	if err := p.conn.SetReadDeadline(time.Time{}); err != nil {
+		_ = p.conn.Close()
+		return nil, errors.Join(fmt.Errorf("unable to clear CONNECT prefetch deadline: %w", err), result.err)
+	}
+
+	replayed := &readerConn{
+		Conn:   p.conn,
+		reader: io.MultiReader(bytesReader(result.data), p.conn),
+	}
+	return replayed, result.err
 }
 
 var errReplayOverflow = errors.New("recorded input exceeds replay limit")

@@ -35,6 +35,7 @@ type contextInitFilter struct {
 	conn                *serviceconnections.Connections
 	proxyId             int32
 	finalizationTimeout time.Duration
+	lifecycle           *lifecycleTracker
 }
 
 func requestAuthority(req *http.Request) (string, string) {
@@ -125,6 +126,9 @@ func (f *contextInitFilter) applyConnect(cs *proxy.State, req *http.Request, nex
 	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:ctx")
 
 	if err := rpcontext.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri); err != nil {
+		if context.Cause(ctx) != nil {
+			return nil, cs, nil
+		}
 		if rperrors.IsBrowserControllerCancel(err) {
 			l.WithError(err).Info("CONNECT denied by browser controller")
 			return Deny(cs, req, http.StatusForbidden, "Cancelled by browser controller")
@@ -175,10 +179,20 @@ func (f *contextInitFilter) apply(cs *proxy.State, req *http.Request, next proxy
 	req = req.WithContext(requestCtx)
 
 	rc := rpcontext.NewRecordContext(f.finalizationTimeout)
+	f.lifecycle.addRecord(rc)
 	rpcontext.SetRecordContext(requestCtx, rc)
 	rc.Init(f.proxyId, f.conn, req, uri)
 
 	if e := rc.RegisterNewRequest(requestCtx); e != nil {
+		if context.Cause(requestCtx) != nil {
+			cancelErr := rperrors.Error(
+				rperrors.CanceledByBrowser,
+				"CANCELED_BY_BROWSER",
+				"Veidemann recorder proxy lost connection to client",
+			)
+			_ = rc.SendRequestError(requestCtx, cancelErr)
+			return nil, cs, nil
+		}
 		if rperrors.IsBrowserControllerCancel(e) {
 			l.WithError(e).Info("Request denied by browser controller")
 			return Deny(cs, req, http.StatusForbidden, "Cancelled by browser controller")

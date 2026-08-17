@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -156,17 +157,26 @@ func run() error {
 	<-ctx.Done()
 	slog.Info("Server shutting down")
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 25*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), opts.FinalizationTimeout()+5*time.Second)
 	defer shutdownCancel()
 
-	for i, r := range startedProxies {
-		err = r.Shutdown(shutdownCtx)
-		if err != nil {
-			slog.Error("Error closing recorder proxy", "error", err, "id", i)
-		}
-	}
+	shutdownRecorderProxies(shutdownCtx, startedProxies)
 
 	return nil
+}
+
+func shutdownRecorderProxies(ctx context.Context, proxies []*recorderproxy.RecorderProxy) {
+	var wg sync.WaitGroup
+	for i, proxy := range proxies {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := proxy.Shutdown(ctx); err != nil {
+				slog.Error("Error closing recorder proxy", "error", err, "id", i)
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func cacheAddress(host, port string) (string, error) {
