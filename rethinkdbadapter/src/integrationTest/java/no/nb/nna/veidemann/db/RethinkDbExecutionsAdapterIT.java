@@ -22,6 +22,7 @@ import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.ast.Insert;
 import com.rethinkdb.gen.ast.Update;
 import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus;
+import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatusChange;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus.State;
 import no.nb.nna.veidemann.api.report.v1.CrawlExecutionsListRequest;
@@ -29,6 +30,7 @@ import no.nb.nna.veidemann.api.report.v1.JobExecutionsListRequest;
 import no.nb.nna.veidemann.commons.db.ChangeFeed;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbService;
+import no.nb.nna.veidemann.commons.db.FrontierAdapter;
 import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTest {
     public RethinkDbConnection conn;
     public RethinkDbExecutionsAdapter executionsAdapter;
+    public FrontierAdapter frontierAdapter;
 
     static RethinkDB r = RethinkDB.r;
 
@@ -53,6 +56,7 @@ public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTe
         dbService.getDbInitializer().initialize();
 
         executionsAdapter = (RethinkDbExecutionsAdapter) dbService.getExecutionsAdapter();
+        frontierAdapter = dbService.getFrontierAdapter();
         conn = ((RethinkDbInitializer) dbService.getDbInitializer()).getDbConnection();
     }
 
@@ -184,6 +188,41 @@ public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTe
         assertThat(feed.stream())
                 .hasSize(2)
                 .allMatch(e -> e.getSeedId().equals("seedId3"));
+    }
+
+    @Test
+    public void reachingDesiredStateClearsDesiredState() throws DbException {
+        CrawlExecutionStatus status = createCrawlExecutionStatus("jobId", "jobExecutionId", "seedId");
+        executionsAdapter.setCrawlExecutionStateAborted(
+                status.getId(),
+                CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+
+        CrawlExecutionsListRequest.Builder requestedAbort = CrawlExecutionsListRequest.newBuilder();
+        requestedAbort.addState(CrawlExecutionStatus.State.CREATED);
+        requestedAbort.getQueryTemplateBuilder()
+                .setDesiredState(CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+        requestedAbort.getQueryMaskBuilder().addPaths("desiredState");
+        try (ChangeFeed<CrawlExecutionStatus> matches = executionsAdapter
+                .listCrawlExecutionStatus(requestedAbort.build())) {
+            assertThat(matches.stream()).extracting(match -> match.getId()).containsExactly(status.getId());
+        }
+
+        CrawlExecutionStatus updated = frontierAdapter.updateCrawlExecutionStatus(
+                CrawlExecutionStatusChange.newBuilder()
+                        .setId(status.getId())
+                        .setState(CrawlExecutionStatus.State.ABORTED_TIMEOUT)
+                        .setEndTime(ProtoUtils.getNowTs())
+                        .build())
+                .current();
+
+        assertThat(updated.getState()).isEqualTo(CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+        assertThat(updated.getDesiredState()).isEqualTo(CrawlExecutionStatus.State.UNDEFINED);
+        Map<String, Object> raw = conn.exec(r.table(Tables.EXECUTIONS.name).get(status.getId()));
+        assertThat(raw).doesNotContainKey("desiredState");
+        try (ChangeFeed<CrawlExecutionStatus> matches = executionsAdapter
+                .listCrawlExecutionStatus(requestedAbort.build())) {
+            assertThat(matches.stream()).isEmpty();
+        }
     }
 
     @Test

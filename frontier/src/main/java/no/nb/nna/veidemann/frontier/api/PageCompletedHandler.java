@@ -49,6 +49,20 @@ public class PageCompletedHandler implements StreamObserver<PageHarvest> {
         }
     }
 
+    private void finalizeBeforeError() {
+        if (postFetchHandler == null) {
+            return;
+        }
+        try {
+            postFetchHandler.postFetchFinally(true);
+        } catch (Exception e) {
+            // The durable Redis lease remains queued if persistence failed, and the
+            // timeout worker can retry it. Still make the best effort to release the
+            // crawl-host group immediately.
+            LOG.error("Failed to finalize page work before closing the stream", e);
+        }
+    }
+
     @Override
     public void onNext(PageHarvest value) {
         if (postFetchHandler == null) {
@@ -73,6 +87,7 @@ public class PageCompletedHandler implements StreamObserver<PageHarvest> {
                     postFetchHandler.postFetchSuccess(value.getMetrics());
                 } catch (Exception e) {
                     LOG.warn("Failed to execute postFetchSuccess: {}", e.toString(), e);
+                    finalizeBeforeError();
                     sendError();
                 }
                 break;
@@ -82,6 +97,7 @@ public class PageCompletedHandler implements StreamObserver<PageHarvest> {
                     postFetchHandler.queueOutlink(value.getOutlink());
                 } catch (Exception e) {
                     LOG.warn("Could not queue outlink '{}'", value.getOutlink().getUri(), e);
+                    finalizeBeforeError();
                     sendError();
                 }
                 break;
@@ -91,6 +107,7 @@ public class PageCompletedHandler implements StreamObserver<PageHarvest> {
                     postFetchHandler.postFetchFailure(value.getError());
                 } catch (Exception e) {
                     LOG.warn("Failed to execute postFetchFailure: {}", e.toString(), e);
+                    finalizeBeforeError();
                     sendError();
                 }
                 break;
@@ -119,9 +136,10 @@ public class PageCompletedHandler implements StreamObserver<PageHarvest> {
                 Error error = ExtraStatusCodes.RUNTIME_EXCEPTION
                         .toFetchError("Browser controller failed: " + t.toString());
                 postFetchHandler.postFetchFailure(error);
-                postFetchHandler.postFetchFinally(true);
             } catch (Exception e) {
-                LOG.error("Failed to execute postFetchFinally after error: {}", e.toString(), e);
+                LOG.error("Failed to record fetch failure after stream error: {}", e.toString(), e);
+            } finally {
+                finalizeBeforeError();
             }
         } finally {
             ctx.setObserverCompleted();

@@ -182,6 +182,34 @@ public class RethinkDbExecutionsAdapter implements ExecutionsAdapter {
     }
 
     @Override
+    public ChangeFeed<CrawlExecutionStatus> watchCrawlExecutionAbortRequests() throws DbException {
+        DbResultSet<Map<String, Object>> cursor = conn.executeSequence(
+                "db-watchCrawlExecutionAbortRequests",
+                r.table(Tables.EXECUTIONS.name)
+                        .getAll("CREATED", "FETCHING", "SLEEPING")
+                        .optArg("index", "state")
+                        .filter(row -> row.g("desiredState").default_("")
+                                .match("ABORTED_MANUAL|ABORTED_TIMEOUT|ABORTED_SIZE"))
+                        .changes()
+                        .optArg("include_initial", true));
+        return new ChangeFeedBase<CrawlExecutionStatus>(cursor) {
+            @Override
+            @SuppressWarnings("unchecked")
+            protected Function<Map<String, Object>, CrawlExecutionStatus> mapper() {
+                return value -> {
+                    Map<String, Object> document = value;
+                    if (value.containsKey("new_val")) {
+                        document = (Map<String, Object>) value.get("new_val");
+                    }
+                    return document == null
+                            ? null
+                            : ProtoUtils.rethinkToProto(document, CrawlExecutionStatus.class);
+                };
+            }
+        };
+    }
+
+    @Override
     public CrawlExecutionStatus setCrawlExecutionStateAborted(String crawlExecutionId, CrawlExecutionStatus.State state)
             throws DbException {
         switch (state) {

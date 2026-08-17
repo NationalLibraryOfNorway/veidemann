@@ -45,6 +45,9 @@ public interface ExecutionsAdapter {
 
     ChangeFeed<CrawlExecutionStatus> listCrawlExecutionStatus(CrawlExecutionsListRequest request) throws DbException;
 
+    /** Watch active crawl executions which have an abort command pending. */
+    ChangeFeed<CrawlExecutionStatus> watchCrawlExecutionAbortRequests() throws DbException;
+
     /**
      * Update the state for a Crawl Execution to the submitted abortion state.
      * <p>

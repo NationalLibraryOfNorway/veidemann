@@ -11,6 +11,7 @@ import no.nb.nna.veidemann.api.frontier.v1.JobExecutionStatus;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.CrawlExecutionStatusUpdate;
 import no.nb.nna.veidemann.commons.db.DbException;
+import no.nb.nna.veidemann.commons.db.DbResultSet;
 import no.nb.nna.veidemann.commons.db.FrontierAdapter;
 
 import java.util.List;
@@ -101,7 +102,7 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
                 rMap.with("error", ProtoUtils.protoToRethink(change.getError()));
             }
 
-            return doc.merge(rMap)
+            var updated = doc.merge(rMap)
                     .merge(d -> r.branch(
                             doc.g("state").match("FINISHED|ABORTED_TIMEOUT|ABORTED_SIZE|ABORTED_MANUAL|FAILED|DIED"),
                             r.hashMap("state", doc.g("state")).with("endTime",
@@ -119,8 +120,42 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
                     .merge(d -> r.branch(doc.hasFields("startTime").not().and(d.g("state").match("FETCHING")),
                             r.hashMap("startTime", r.now()),
                             r.hashMap()));
+
+            // Return an update patch, not the complete merged document. In particular,
+            // r.literal() must be a direct value in the patch: removing a field from a
+            // document and then passing that document to update() only merges the
+            // omission back into the old row.
+            MapObject<Object, Object> patch = r.hashMap();
+            patch.putAll(rMap);
+            if (change.getState() != CrawlExecutionStatus.State.UNDEFINED) {
+                patch.with("state", updated.g("state"));
+                if (change.getState() == CrawlExecutionStatus.State.FETCHING
+                        || change.getState().name().matches(
+                                "FINISHED|ABORTED_TIMEOUT|ABORTED_SIZE|ABORTED_MANUAL|FAILED|DIED")) {
+                    patch.with("startTime", updated.g("startTime"));
+                }
+            }
+            if (change.hasEndTime()) {
+                patch.with("endTime", updated.g("endTime"));
+            }
+
+            // desiredState is a command, not a second copy of the actual state.
+            // Clear it atomically when the guarded transition reaches that state.
+            // Abort states are the complete desiredState command vocabulary. The
+            // reconciler only requests the value it read from desiredState, so this
+            // guarded terminal transition is exactly the point where the command is
+            // consumed. RethinkDB requires literal() to be a direct update-object
+            // value; placing it under a branch is rejected as a nested literal.
+            if (change.getState() == CrawlExecutionStatus.State.ABORTED_MANUAL
+                    || change.getState() == CrawlExecutionStatus.State.ABORTED_TIMEOUT
+                    || change.getState() == CrawlExecutionStatus.State.ABORTED_SIZE) {
+                patch.with("desiredState", r.literal());
+            }
+            return patch;
         };
 
+        // literal() structurally removes desiredState while retaining update semantics
+        // for the frequent counter-only path.
         Update qry = r.table(Tables.EXECUTIONS.name)
                 .get(change.getId())
                 .update(updateFunc)
@@ -150,12 +185,53 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
     }
 
     @Override
+    public JobExecutionStatus getJobExecutionAggregate(String jobExecutionId) throws DbException {
+        JobExecutionStatus.Builder aggregate = JobExecutionStatus.newBuilder().setId(jobExecutionId);
+        try (DbResultSet<Map<String, Object>> rows = conn.executeSequence(
+                "db-getJobExecutionAggregate",
+                r.table(Tables.EXECUTIONS.name)
+                        .between(
+                                r.array(jobExecutionId, r.minval()),
+                                r.array(jobExecutionId, r.maxval()))
+                        .optArg("index", "jobExecutionId_seedId"))) {
+            rows.stream()
+                    .map(row -> ProtoUtils.rethinkToProto(row, CrawlExecutionStatus.class))
+                    .forEach(execution -> {
+                        aggregate.putExecutionsState(
+                                execution.getState().name(),
+                                aggregate.getExecutionsStateOrDefault(execution.getState().name(), 0) + 1);
+                        aggregate.setDocumentsCrawled(
+                                aggregate.getDocumentsCrawled() + execution.getDocumentsCrawled());
+                        aggregate.setBytesCrawled(
+                                aggregate.getBytesCrawled() + execution.getBytesCrawled());
+                        aggregate.setUrisCrawled(
+                                aggregate.getUrisCrawled() + execution.getUrisCrawled());
+                        aggregate.setDocumentsFailed(
+                                aggregate.getDocumentsFailed() + execution.getDocumentsFailed());
+                        aggregate.setDocumentsOutOfScope(
+                                aggregate.getDocumentsOutOfScope() + execution.getDocumentsOutOfScope());
+                        aggregate.setDocumentsRetried(
+                                aggregate.getDocumentsRetried() + execution.getDocumentsRetried());
+                        aggregate.setDocumentsDenied(
+                                aggregate.getDocumentsDenied() + execution.getDocumentsDenied());
+                    });
+        }
+        return aggregate.build();
+    }
+
+    @Override
     public void saveJobExecutionStatus(JobExecutionStatus status) throws DbException {
+        Map<String, Object> update = ProtoUtils.protoToRethink(status);
         conn.executeObject(
                 "db-saveJobExecutionStatus",
                 r.table(Tables.JOB_EXECUTIONS.name)
                         .get(status.getId())
-                        .update(ProtoUtils.protoToRethink(status)));
+                        .update(doc -> r.branch(
+                                doc.hasFields("endTime"),
+                                r.expr(update)
+                                        .merge(r.hashMap("state", doc.g("state")))
+                                        .merge(r.hashMap("endTime", doc.g("endTime"))),
+                                update)));
     }
 
     @Override
@@ -178,7 +254,11 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
                 "db-saveQueuedUri",
                 r.table(Tables.URI_QUEUE.name)
                         .get(queuedUri.getId())
-                        .update(rMap)
+                        // The Redis queue lease gives one worker exclusive ownership of
+                        // this URI. Replace is intentional: proto3 default values are
+                        // absent from rMap, and update() would therefore fail to clear
+                        // values such as unresolved=true after DNS succeeds.
+                        .replace(rMap)
                         .optArg("durability", "soft")
                         .optArg("return_changes", "always"));
         return extractQueuedUri(response);

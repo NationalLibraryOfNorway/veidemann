@@ -71,6 +71,20 @@ class QueryOptimizerForCrawlExecutionsTest {
         expected = r.table("executions").getAll("CREATED").optArg("index", "state");
         assertThat(new RethinkAstDecompiler(q)).isEqualTo(new RethinkAstDecompiler(expected));
 
+        // Abort reconciliation starts from the small active-state index and filters
+        // desiredState; it must not require a desiredState index over all history.
+        req = CrawlExecutionsListRequest.newBuilder()
+                .addState(State.CREATED)
+                .addState(State.SLEEPING)
+                .setPageSize(100);
+        req.getQueryTemplateBuilder().setDesiredState(State.ABORTED_TIMEOUT);
+        req.getQueryMaskBuilder().addPaths("desiredState");
+        q = new ListCrawlExecutionQueryBuilder(req.build()).getListQuery();
+        expected = r.table("executions").getAll("CREATED", "SLEEPING").optArg("index", "state")
+                .filter(p1 -> p1.g("desiredState").default_("UNDEFINED").eq("ABORTED_TIMEOUT"))
+                .skip(0).limit(100);
+        assertThat(new RethinkAstDecompiler(q)).isEqualTo(new RethinkAstDecompiler(expected));
+
         // Test list by state and id
         req = CrawlExecutionsListRequest.newBuilder()
                 .addState(State.CREATED)

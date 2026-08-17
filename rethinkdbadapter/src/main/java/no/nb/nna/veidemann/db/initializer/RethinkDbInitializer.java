@@ -49,6 +49,7 @@ public class RethinkDbInitializer implements DbInitializer {
         if (!(boolean) conn.exec(r.dbList().contains(dbName))) {
             LOG.info("Creating database: " + dbName);
             new CreateNewDb(dbName, conn).run();
+            new CrawlExecutionDesiredStateMigration(conn).run();
             LOG.info("Populating database with default data");
             new PopulateDbWithDefaultData().run();
             LOG.info("DB initialized");
@@ -63,6 +64,7 @@ public class RethinkDbInitializer implements DbInitializer {
 
         LOG.info("Database found and is current version: {}", version);
         new CreateNewDb(dbName, conn).run();
+        new CrawlExecutionDesiredStateMigration(conn).run();
         LOG.info("DB initialized");
     }
 

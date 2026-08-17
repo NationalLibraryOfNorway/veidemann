@@ -4,6 +4,7 @@ import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_WAIT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_JOB_EXECUTION_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_FINALIZE_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.QUEUE_COUNT_TOTAL_KEY;
 
@@ -44,7 +45,8 @@ public class ChgAddScript extends RedisJob<Long> {
                     CRAWL_EXECUTION_ID_COUNT_KEY,
                     JOB_EXECUTION_ID_COUNT_KEY,
                     CRAWL_EXECUTION_JOB_EXECUTION_KEY,
-                    QUEUE_COUNT_TOTAL_KEY);
+                    QUEUE_COUNT_TOTAL_KEY,
+                    CRAWL_EXECUTION_FINALIZE_KEY);
 
             List<String> chgArgs = ImmutableList.of(
                     readyTimeString,

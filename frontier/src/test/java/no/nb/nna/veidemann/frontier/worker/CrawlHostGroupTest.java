@@ -24,7 +24,9 @@ import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbConnectionException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.db.ProtoUtils;
+import no.nb.nna.veidemann.frontier.db.QueueLease;
 import no.nb.nna.veidemann.frontier.db.script.ChgAddScript;
+import no.nb.nna.veidemann.frontier.db.script.ChgCleanupIfEmptyScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgDelayedQueueScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgGetScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgNextScript;
@@ -37,6 +39,7 @@ import no.nb.nna.veidemann.frontier.db.script.JobExecutionUpdateScript;
 import no.nb.nna.veidemann.frontier.db.script.NextUriScript;
 import no.nb.nna.veidemann.frontier.db.script.RedisJob.RedisContext;
 import no.nb.nna.veidemann.frontier.db.script.UriAddScript;
+import no.nb.nna.veidemann.frontier.db.script.UriMoveScript;
 import no.nb.nna.veidemann.frontier.db.script.UriRemoveScript;
 import no.nb.nna.veidemann.frontier.testutil.RedisData;
 import no.nb.nna.veidemann.frontier.testutil.SkipUntilFilter;
@@ -59,7 +62,15 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_READY_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_BUSY_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_WAIT_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_FINALIZE_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_ID_COUNT_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.QUEUE_COUNT_TOTAL_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.SESSION_TO_CHG_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.UEID;
 import static no.nb.nna.veidemann.frontier.testutil.FrontierAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -251,6 +262,200 @@ public class CrawlHostGroupTest {
             assertThat(redisData).hasQueueTotalCount(0);
             assertThat(redisData).jobExecutionQueueCounts().hasNumberOfElements(0);
         }
+    }
+
+    @Test
+    public void uriMoveIsAtomicIdempotentAndDoesNotChangeExecutionCounts() {
+        RedisContext ctx = RedisContext.forClient(redisClient);
+        Timestamp fetchTime = ProtoUtils.getNowTs();
+        QueuedUri source = QueuedUri.newBuilder()
+                .setId("uriId")
+                .setCrawlHostGroupId("temporaryGroup")
+                .setExecutionId("crawlExecutionId")
+                .setJobExecutionId("jobExecutionId")
+                .setSequence(1)
+                .setEarliestFetchTimeStamp(fetchTime)
+                .setPriorityWeight(1)
+                .build();
+        QueuedUri target = source.toBuilder()
+                .setCrawlHostGroupId("resolvedGroup")
+                .setUnresolved(false)
+                .build();
+
+        new UriAddScript().run(ctx, source);
+        new ChgAddScript().run(ctx,
+                source.getCrawlHostGroupId(),
+                source.getExecutionId(),
+                source.getJobExecutionId(),
+                fetchTime,
+                1000);
+
+        UriMoveScript move = new UriMoveScript();
+        assertThat(move.run(ctx, QueueLease.from(source), target)).isEqualTo(1);
+        assertThat(move.run(ctx, QueueLease.from(source), target)).isZero();
+
+        assertThat(redisClient.get(QUEUE_COUNT_TOTAL_KEY)).isEqualTo("1");
+        assertThat(redisClient.hget(CRAWL_EXECUTION_ID_COUNT_KEY, source.getExecutionId())).isEqualTo("1");
+        assertThat(redisClient.hget(JOB_EXECUTION_ID_COUNT_KEY, source.getJobExecutionId())).isEqualTo("1");
+        assertThat(redisClient.exists(UEID + source.getCrawlHostGroupId() + ":" + source.getExecutionId()))
+                .isFalse();
+        assertThat(redisClient.zcard(UEID + target.getCrawlHostGroupId() + ":" + target.getExecutionId()))
+                .isOne();
+        assertThat(redisClient.hget(CHG_PREFIX + source.getCrawlHostGroupId(), "qc")).isEqualTo("0");
+        assertThat(redisClient.hget(CHG_PREFIX + target.getCrawlHostGroupId(), "qc")).isEqualTo("1");
+        assertThat(redisClient.zscore(CHG_WAIT_KEY, target.getCrawlHostGroupId())).isNotNull();
+    }
+
+    @Test
+    public void finalUriRemovalSignalsFinalizationAndNewWorkCancelsStaleSignal() {
+        RedisContext ctx = RedisContext.forClient(redisClient);
+        Timestamp fetchTime = ProtoUtils.getNowTs();
+        QueuedUri queuedUri = QueuedUri.newBuilder()
+                .setId("uriId")
+                .setCrawlHostGroupId("crawlHostGroupId")
+                .setExecutionId("crawlExecutionId")
+                .setJobExecutionId("jobExecutionId")
+                .setSequence(1)
+                .setEarliestFetchTimeStamp(fetchTime)
+                .setPriorityWeight(1)
+                .setDiscoveryPath("parent")
+                .build();
+
+        UriAddScript addUri = new UriAddScript();
+        ChgAddScript addGroup = new ChgAddScript();
+        addUri.run(ctx, queuedUri);
+        addGroup.run(ctx, queuedUri.getCrawlHostGroupId(), queuedUri.getExecutionId(),
+                queuedUri.getJobExecutionId(), fetchTime, 1000);
+        assertThat(new UriRemoveScript().run(ctx,
+                queuedUri.getId(), queuedUri.getCrawlHostGroupId(), queuedUri.getExecutionId(),
+                queuedUri.getSequence(), fetchTime.getSeconds(), false)).isOne();
+        assertThat(redisClient.zscore(CRAWL_EXECUTION_FINALIZE_KEY, queuedUri.getExecutionId())).isNotNull();
+
+        QueuedUri replacement = queuedUri.toBuilder().setId("replacementUri").build();
+        addUri.run(ctx, replacement);
+        addGroup.run(ctx, replacement.getCrawlHostGroupId(), replacement.getExecutionId(),
+                replacement.getJobExecutionId(), fetchTime, 1000);
+        assertThat(redisClient.zscore(CRAWL_EXECUTION_FINALIZE_KEY, queuedUri.getExecutionId())).isNull();
+        assertThat(redisClient.hget(CRAWL_EXECUTION_ID_COUNT_KEY, queuedUri.getExecutionId())).isEqualTo("1");
+    }
+
+    @Test
+    public void abortCleanupPreservesActiveFetchAndPrunesEmptyHostGroup() {
+        RedisContext ctx = RedisContext.forClient(redisClient);
+        Timestamp fetchTime = ProtoUtils.getNowTs();
+        QueuedUri queuedUri = QueuedUri.newBuilder()
+                .setId("uriId")
+                .setCrawlHostGroupId("crawlHostGroupId")
+                .setExecutionId("crawlExecutionId")
+                .setJobExecutionId("jobExecutionId")
+                .setSequence(1)
+                .setEarliestFetchTimeStamp(fetchTime)
+                .setPriorityWeight(1)
+                .setDiscoveryPath("parent")
+                .build();
+
+        new UriAddScript().run(ctx, queuedUri);
+        new ChgAddScript().run(ctx,
+                queuedUri.getCrawlHostGroupId(),
+                queuedUri.getExecutionId(),
+                queuedUri.getJobExecutionId(),
+                fetchTime,
+                1000);
+        redisClient.zadd(CHG_BUSY_KEY, System.currentTimeMillis() + 1000, queuedUri.getCrawlHostGroupId());
+        redisClient.hset(CHG_PREFIX + queuedUri.getCrawlHostGroupId(), "st", "session");
+        redisClient.hset(SESSION_TO_CHG_KEY, "session", queuedUri.getCrawlHostGroupId());
+
+        UriRemoveScript uriRemove = new UriRemoveScript();
+        // The CHG is reserved before prefetch has stored its current URI.
+        long preserved = uriRemove.run(
+                ctx,
+                queuedUri.getId(),
+                queuedUri.getCrawlHostGroupId(),
+                queuedUri.getExecutionId(),
+                queuedUri.getSequence(),
+                fetchTime.getSeconds(),
+                true,
+                true);
+        assertThat(preserved).isEqualTo(-1);
+        assertThat(redisData).hasQueueTotalCount(1)
+                .crawlExecutionQueueCounts().hasQueueCount(queuedUri.getExecutionId(), 1);
+
+        redisClient.hset(CHG_PREFIX + queuedUri.getCrawlHostGroupId(), "u", queuedUri.getId());
+        preserved = uriRemove.run(
+                ctx,
+                queuedUri.getId(),
+                queuedUri.getCrawlHostGroupId(),
+                queuedUri.getExecutionId(),
+                queuedUri.getSequence(),
+                fetchTime.getSeconds(),
+                true,
+                true);
+        assertThat(preserved).isEqualTo(-1);
+
+        long removed = uriRemove.run(
+                ctx,
+                queuedUri.getId(),
+                queuedUri.getCrawlHostGroupId(),
+                queuedUri.getExecutionId(),
+                queuedUri.getSequence(),
+                fetchTime.getSeconds(),
+                true,
+                false);
+        assertThat(removed).isEqualTo(1);
+        assertThat(new ChgCleanupIfEmptyScript().run(ctx, queuedUri.getCrawlHostGroupId())).isTrue();
+        assertThat(redisData).hasQueueTotalCount(0).crawlHostGroups().hasNumberOfElements(0);
+        assertThat(redisData).waitQueue().hasNumberOfElements(0);
+        assertThat(redisData).busyQueue().hasNumberOfElements(0);
+        assertThat(redisData).sessionTokens().hasNumberOfElements(0);
+    }
+
+    @Test
+    public void abortCleanupKeepsSharedHostGroupScheduled() {
+        RedisContext ctx = RedisContext.forClient(redisClient);
+        Timestamp fetchTime = ProtoUtils.getNowTs();
+        QueuedUri first = QueuedUri.newBuilder()
+                .setId("firstUri")
+                .setCrawlHostGroupId("sharedHostGroup")
+                .setExecutionId("abortedExecution")
+                .setJobExecutionId("jobExecution")
+                .setSequence(1)
+                .setEarliestFetchTimeStamp(fetchTime)
+                .setPriorityWeight(1)
+                .setDiscoveryPath("parent")
+                .build();
+        QueuedUri second = first.toBuilder()
+                .setId("secondUri")
+                .setExecutionId("runningExecution")
+                .build();
+
+        UriAddScript uriAdd = new UriAddScript();
+        ChgAddScript chgAdd = new ChgAddScript();
+        uriAdd.run(ctx, first);
+        chgAdd.run(ctx, first.getCrawlHostGroupId(), first.getExecutionId(),
+                first.getJobExecutionId(), fetchTime, 1000);
+        uriAdd.run(ctx, second);
+        chgAdd.run(ctx, second.getCrawlHostGroupId(), second.getExecutionId(),
+                second.getJobExecutionId(), fetchTime, 1000);
+
+        long removed = new UriRemoveScript().run(
+                ctx,
+                first.getId(),
+                first.getCrawlHostGroupId(),
+                first.getExecutionId(),
+                first.getSequence(),
+                fetchTime.getSeconds(),
+                true,
+                true);
+        assertThat(removed).isEqualTo(1);
+        assertThat(new ChgCleanupIfEmptyScript().run(ctx, first.getCrawlHostGroupId())).isFalse();
+
+        assertThat(redisData).hasQueueTotalCount(1)
+                .crawlHostGroups().hasNumberOfElements(1)
+                .id(first.getCrawlHostGroupId()).hasQueueCount(1);
+        assertThat(redisData).crawlExecutionQueueCounts()
+                .hasNumberOfElements(1)
+                .hasQueueCount(second.getExecutionId(), 1);
+        assertThat(redisData).waitQueue().hasNumberOfElements(1);
     }
 
     @Test

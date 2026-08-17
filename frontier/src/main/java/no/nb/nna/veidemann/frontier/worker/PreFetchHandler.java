@@ -30,8 +30,10 @@ import no.nb.nna.veidemann.api.frontier.v1.CrawlExecutionStatus.State;
 import no.nb.nna.veidemann.api.frontier.v1.PageHarvestSpec;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbException;
+import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
+import no.nb.nna.veidemann.frontier.db.QueueLease;
+import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionOutcome;
 
 public class PreFetchHandler {
 
@@ -40,9 +42,19 @@ public class PreFetchHandler {
     private final StatusWrapper status;
     private final Frontier frontier;
     private final QueuedUriWrapper qUri;
+    private final QueueLease lease;
 
     public PreFetchHandler(QueuedUri uri, Frontier frontier) throws DbException {
+        this(QueueLease.from(uri), frontier);
+    }
+
+    public PreFetchHandler(QueueLease lease, Frontier frontier) throws DbException {
         this.frontier = frontier;
+        this.lease = lease;
+        QueuedUri uri = frontier.getCrawlQueueManager().getQueuedUri(lease.uriId());
+        if (uri == null) {
+            throw new DbQueryException("Queued URI no longer exists: " + lease.uriId());
+        }
         this.status = StatusWrapper.getStatusWrapper(frontier, uri.getExecutionId());
 
         ConfigObject collectionConfig = frontier.getConfig(
@@ -83,35 +95,41 @@ public class PreFetchHandler {
         MDC.put("eid", qUri.getExecutionId());
         MDC.put("uri", qUri.getUri());
         try {
-            if (!qUri.getCrawlHostGroup().getSessionToken().isEmpty()) {
+            var sourceGroup = qUri.getCrawlHostGroup();
+            if (!sourceGroup.getSessionToken().isEmpty()) {
                 throw new IllegalStateException("Fetching in progress from another harvester");
             }
 
             if (!Preconditions.crawlExecutionOk(frontier, status)) {
-                LOG.debug("DENIED");
-                frontier.getCrawlQueueManager().removeQUri(qUri);
-                CrawlExecutionHelpers.postFetchFinally(frontier, status, qUri, 0);
+                LOG.debug("COMPLETE");
+                UriWorkFinalizer.finish(frontier, status, qUri, lease,
+                        PreconditionOutcome.COMPLETE, sourceGroup, 0, false);
                 return false;
             }
 
-            String curCrawlHostGroupId = qUri.getCrawlHostGroupId();
-            PreconditionState check = Preconditions
+            PreconditionOutcome check = Preconditions
                     .checkPreconditions(frontier, status.getCrawlConfig(), status, qUri)
                     .get();
 
             switch (check) {
-                case DENIED:
-                    LOG.debug("DENIED");
-                    status.saveStatus();
-                    CrawlExecutionHelpers.postFetchFinally(frontier, status, qUri, 0);
+                case COMPLETE:
+                    LOG.debug("COMPLETE");
+                    UriWorkFinalizer.finish(frontier, status, qUri, lease,
+                            check, sourceGroup, 0, false);
                     return false;
                 case RETRY:
                     LOG.debug("RETRY");
-                    status.saveStatus();
-                    frontier.getCrawlQueueManager().releaseCrawlHostGroup(curCrawlHostGroupId, 0);
+                    UriWorkFinalizer.finish(frontier, status, qUri, lease,
+                            check, sourceGroup, 0, false);
                     return false;
-                case OK:
-                    LOG.debug("OK");
+                case MOVE:
+                    LOG.debug("MOVE");
+                    qUri.setPriorityWeight(status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
+                    UriWorkFinalizer.finish(frontier, status, qUri, lease,
+                            check, sourceGroup, 0, false);
+                    return false;
+                case FETCH:
+                    LOG.debug("FETCH");
                     qUri.setPriorityWeight(
                             status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
                     status.saveStatus();
@@ -134,6 +152,9 @@ public class PreFetchHandler {
     }
 
     public PageHarvestSpec getHarvestSpec() throws DbException {
+        if (!CrawlExecutionHelpers.isExecutionActive(frontier, status.getId())) {
+            throw new CrawlExecutionNotActiveException(status.getId());
+        }
         qUri.setFetchStartTimeStamp(ProtoUtils.getNowTs());
         qUri.generateSessionToken();
         frontier.getCrawlQueueManager().updateCrawlHostGroup(qUri.getCrawlHostGroup());

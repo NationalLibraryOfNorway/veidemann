@@ -67,6 +67,7 @@ import no.nb.nna.veidemann.commons.util.ApiTools;
 import no.nb.nna.veidemann.db.RethinkDbConnection;
 import no.nb.nna.veidemann.db.Tables;
 import no.nb.nna.veidemann.db.initializer.RethinkDbInitializer;
+import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.settings.Settings;
 import redis.clients.jedis.UnifiedJedis;
 
@@ -272,7 +273,13 @@ public class CrawlRunner implements AutoCloseable {
                 .atMost(timeout, unit)
                 .until(() -> {
                     Set<String> chgKeys = redisClient.keys("chg*");
-                    if (chgKeys.isEmpty()) {
+                    // URI removal can empty the host-group queues before the durable
+                    // execution coordinator has persisted all terminal transitions.
+                    // CEFINALIZE is therefore live work, not evidence of a stuck job.
+                    boolean finalizationPending = redisClient.zcard(
+                            CrawlQueueManager.CRAWL_EXECUTION_FINALIZE_KEY) > 0
+                            || redisClient.zcard(CrawlQueueManager.JOB_EXECUTION_FINALIZE_KEY) > 0;
+                    if (chgKeys.isEmpty() && !finalizationPending) {
                         emptyChgKeysCount.incrementAndGet();
                     }
 

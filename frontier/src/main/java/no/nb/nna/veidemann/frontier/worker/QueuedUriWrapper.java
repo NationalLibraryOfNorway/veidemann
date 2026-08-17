@@ -201,6 +201,7 @@ public class QueuedUriWrapper {
     }
 
     public boolean addUriToQueue() throws DbException {
+        ensureExecutionActive();
         if (frontier.getCrawlQueueManager().uriNotIncludedInQueue(this)) {
             return forceAddUriToQueue();
         }
@@ -216,6 +217,7 @@ public class QueuedUriWrapper {
      * @throws DbException
      */
     public boolean forceAddUriToQueue() throws DbException {
+        ensureExecutionActive();
         if (!shouldInclude()) {
             return false;
         }
@@ -255,6 +257,12 @@ public class QueuedUriWrapper {
         oldEarliestFetchTimestamp = null;
 
         return true;
+    }
+
+    private void ensureExecutionActive() throws DbException {
+        if (!CrawlExecutionHelpers.isExecutionActive(frontier, getExecutionId())) {
+            throw new CrawlExecutionNotActiveException(getExecutionId());
+        }
     }
 
     public String getHost() {

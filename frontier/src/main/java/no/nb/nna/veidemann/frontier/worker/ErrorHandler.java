@@ -22,10 +22,10 @@ import org.slf4j.MDC;
 import no.nb.nna.veidemann.api.commons.v1.Error;
 import no.nb.nna.veidemann.commons.ExtraStatusCodes;
 import no.nb.nna.veidemann.commons.db.DbException;
-import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
+import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionOutcome;
 
 /**
- * Centralised handling of fetch failures: decides RETRY vs DENIED and updates
+ * Centralised handling of fetch failures: decides RETRY vs COMPLETE and updates
  * counters / log data.
  */
 public class ErrorHandler {
@@ -39,9 +39,9 @@ public class ErrorHandler {
      * @param status   Crawl execution status wrapper
      * @param qUri     The queued URI wrapper
      * @param error    The Error causing the failure
-     * @return RETRY or DENIED
+     * @return RETRY or COMPLETE
      */
-    public static PreconditionState fetchFailure(Frontier frontier,
+    public static PreconditionOutcome fetchFailure(Frontier frontier,
             StatusWrapper status,
             QueuedUriWrapper qUri,
             Error error) throws DbException {
@@ -53,7 +53,7 @@ public class ErrorHandler {
      * This is used for a seed denied before it has entered the queue: the seed
      * creation path records the failure when it finalizes the crawl execution.
      */
-    static PreconditionState fetchFailure(Frontier frontier,
+    static PreconditionOutcome fetchFailure(Frontier frontier,
             StatusWrapper status,
             QueuedUriWrapper qUri,
             Error error,
@@ -80,7 +80,7 @@ public class ErrorHandler {
                     if (updateCounters) {
                         status.incrementDocumentsFailed();
                     }
-                    return PreconditionState.DENIED;
+                    return PreconditionOutcome.COMPLETE;
                 } else {
                     LOG.info("Failed fetch of {} ({} {}) at attempt #{}, retrying in {} seconds",
                             qUri.getUri(), error.getCode(), error.getMsg(), qUri.getRetries(),
@@ -94,7 +94,7 @@ public class ErrorHandler {
                     if (updateCounters) {
                         status.incrementDocumentsRetried();
                     }
-                    return PreconditionState.RETRY;
+                    return PreconditionOutcome.RETRY;
                 }
             } else {
                 LOG.info(
@@ -103,7 +103,7 @@ public class ErrorHandler {
                 if (updateCounters) {
                     status.incrementDocumentsFailed();
                 }
-                return PreconditionState.DENIED;
+                return PreconditionOutcome.COMPLETE;
             }
         } finally {
             MDC.remove("eid");

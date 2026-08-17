@@ -4,6 +4,7 @@ import static com.rethinkdb.RethinkDB.r;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.presentation.StandardRepresentation;
@@ -82,7 +83,9 @@ public class AbstractIntegrationTest {
             @SuppressWarnings("resource")
     @Container
     public GenericContainer<?> queueWorker = new GenericContainer<>(
-            DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.2.0"))
+            // Keep the integration contract aligned with the version deployed by
+            // deploy/k8s/base/frontier-queue-workers.
+            DockerImageName.parse("ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.5.3"))
             .withNetwork(network)
             .dependsOn(dbInitializer, redis)
             .withEnv("DB_HOST", "db")
@@ -97,7 +100,7 @@ public class AbstractIntegrationTest {
     public Settings settings;
     RethinkDbConnection conn;
     FrontierApiServer apiServer;
-    Frontier frontier;
+    protected Frontier frontier;
     public DnsResolverMock dnsResolverMock;
     public RobotsEvaluatorMock robotsEvaluatorMock;
     public OutOfScopeHandlerMock outOfScopeHandlerMock;
@@ -199,16 +202,31 @@ public class AbstractIntegrationTest {
         rethinkDbData = new RethinkDbData(conn);
         redisData = new RedisData(redisClient);
 
-        frontier = new Frontier(tracer, settings, redisClient, robotsServiceClient, dnsServiceClient,
-            scopeServiceClient,
-            outOfScopeHandlerClient, logServiceClient,
-            DbService.getInstance().getFrontierAdapter(),
-            DbService.getInstance().getConfigAdapter(),
-            DbService.getInstance().getExecutionsAdapter());
+        startFrontier();
         apiServer = new FrontierApiServer(settings.getApiPort(), settings.getTerminationGracePeriodSeconds(), frontier);
         apiServer.start();
 
         crawlRunner = new CrawlRunner(settings, rethinkDbData, redisClient);
+    }
+
+    protected void stopFrontier() {
+        if (frontier != null) {
+            frontier.close();
+            frontier = null;
+        }
+    }
+
+    protected void startFrontier() {
+        frontier = new Frontier(tracer, settings, redisClient, robotsServiceClient, dnsServiceClient,
+                scopeServiceClient,
+                outOfScopeHandlerClient, logServiceClient,
+                DbService.getInstance().getFrontierAdapter(),
+                DbService.getInstance().getConfigAdapter(),
+                DbService.getInstance().getExecutionsAdapter());
+    }
+
+    protected Map<String, Object> rawCrawlExecution(String executionId) throws Exception {
+        return conn.exec(r.table(Tables.EXECUTIONS.name).get(executionId));
     }
 
     @AfterEach

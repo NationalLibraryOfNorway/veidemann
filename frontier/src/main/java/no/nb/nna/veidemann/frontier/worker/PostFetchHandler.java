@@ -40,7 +40,8 @@ import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbException;
 import no.nb.nna.veidemann.commons.db.DbQueryException;
 import no.nb.nna.veidemann.db.ProtoUtils;
-import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
+import no.nb.nna.veidemann.frontier.db.QueueLease;
+import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionOutcome;
 
 /**
  *
@@ -54,6 +55,8 @@ public class PostFetchHandler {
     final ConfigObject collectionConfig;
     final CrawlLimitsConfig limits;
     final QueuedUriWrapper qUri;
+    final QueueLease lease;
+    final CrawlHostGroup sourceGroup;
     final Collection<Annotation> scriptParameters;
 
     private long delayMs = 0L;
@@ -61,6 +64,7 @@ public class PostFetchHandler {
 
     private final AtomicBoolean done = new AtomicBoolean();
     private final AtomicBoolean finalized = new AtomicBoolean();
+    private PreconditionOutcome outcome = PreconditionOutcome.RETRY;
 
     private final List<QueuedUri> outlinkQueue = new ArrayList<>();
 
@@ -113,6 +117,8 @@ public class PostFetchHandler {
                         queuedUri,
                         collectionConfig.getMeta().getName())
                 .clearError();
+        this.lease = QueueLease.from(queuedUri);
+        this.sourceGroup = chg;
 
         this.frontier = frontier;
         this.limits = status.getCrawlJobConfig().getCrawlJob().getLimits();
@@ -138,11 +144,10 @@ public class PostFetchHandler {
             MDC.put("eid", qUri.getExecutionId());
             MDC.put("uri", qUri.getUri());
             try {
-                frontier.getCrawlQueueManager().removeQUri(qUri);
                 status.incrementDocumentsCrawled()
                         .incrementBytesCrawled(metrics.getBytesDownloaded())
-                        .incrementUrisCrawled(metrics.getUriCount())
-                        .saveStatus();
+                        .incrementUrisCrawled(metrics.getUriCount());
+                outcome = PreconditionOutcome.COMPLETE;
             } finally {
                 MDC.remove("eid");
                 MDC.remove("uri");
@@ -155,18 +160,7 @@ public class PostFetchHandler {
             MDC.put("eid", qUri.getExecutionId());
             MDC.put("uri", qUri.getUri());
             try {
-                PreconditionState state = ErrorHandler.fetchFailure(frontier, status, qUri, error);
-                status.saveStatus();
-                switch (state) {
-                    case DENIED:
-                        frontier.getCrawlQueueManager().removeQUri(qUri);
-                        break;
-                    case RETRY:
-                        qUri.save();
-                        break;
-                    default:
-                        LOG.warn("Unknown precondition state after fetch failure: {}", state);
-                }
+                outcome = ErrorHandler.fetchFailure(frontier, status, qUri, error);
             } finally {
                 MDC.remove("eid");
                 MDC.remove("uri");
@@ -174,11 +168,11 @@ public class PostFetchHandler {
         }
     }
 
-    public void postFetchFinally() {
+    public void postFetchFinally() throws DbException {
         postFetchFinally(false);
     }
 
-    public void postFetchFinally(boolean isTimeout) {
+    public void postFetchFinally(boolean isTimeout) throws DbException {
         if (!finalized.compareAndSet(false, true)) {
             return;
         }
@@ -223,10 +217,13 @@ public class PostFetchHandler {
                 LOG.error(e.toString(), e);
             }
 
-            CrawlExecutionHelpers.postFetchFinally(
+            UriWorkFinalizer.finish(
                     frontier,
                     status,
                     qUri,
+                    lease,
+                    outcome,
+                    sourceGroup,
                     getDelay(TimeUnit.MILLISECONDS),
                     isTimeout);
         } finally {

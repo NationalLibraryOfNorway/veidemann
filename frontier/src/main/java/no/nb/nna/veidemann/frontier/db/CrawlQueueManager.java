@@ -2,11 +2,12 @@ package no.nb.nna.veidemann.frontier.db;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ import no.nb.nna.veidemann.commons.db.FutureOptional;
 import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.frontier.db.script.ChgAddScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgBusyTimeoutScript;
+import no.nb.nna.veidemann.frontier.db.script.ChgCleanupIfEmptyScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgGetScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgNextScript;
 import no.nb.nna.veidemann.frontier.db.script.ChgQueueCountScript;
@@ -45,8 +47,11 @@ import no.nb.nna.veidemann.frontier.db.script.NextUriScript;
 import no.nb.nna.veidemann.frontier.db.script.NextUriScript.NextUriScriptResult;
 import no.nb.nna.veidemann.frontier.db.script.RedisJob.RedisContext;
 import no.nb.nna.veidemann.frontier.db.script.UriAddScript;
+import no.nb.nna.veidemann.frontier.db.script.UriMoveScript;
 import no.nb.nna.veidemann.frontier.db.script.UriRemoveScript;
 import no.nb.nna.veidemann.frontier.db.script.UriUpdateScript;
+import no.nb.nna.veidemann.frontier.worker.CrawlExecutionHelpers;
+import no.nb.nna.veidemann.frontier.worker.CrawlExecutionNotActiveException;
 import no.nb.nna.veidemann.frontier.worker.Frontier;
 import no.nb.nna.veidemann.frontier.worker.PreFetchHandler;
 import no.nb.nna.veidemann.frontier.worker.QueuedUriWrapper;
@@ -64,6 +69,8 @@ public class CrawlQueueManager implements AutoCloseable {
     public static final String SESSION_TO_CHG_KEY = "chg_session{chg}";
     public static final String CRAWL_EXECUTION_RUNNING_KEY = "ceid_running";
     public static final String CRAWL_EXECUTION_TIMEOUT_KEY = "ceid_timeout"; // unused, but kept for compat
+    public static final String CRAWL_EXECUTION_FINALIZE_KEY = "CEFINALIZE";
+    public static final String JOB_EXECUTION_FINALIZE_KEY = "JEFINALIZE";
     private static final Logger LOG = LoggerFactory.getLogger(CrawlQueueManager.class);
 
     public static final String UEID = "UEID:";
@@ -83,6 +90,7 @@ public class CrawlQueueManager implements AutoCloseable {
     private final UnifiedJedis redisClient;
     final UriAddScript uriAddScript;
     final UriRemoveScript uriRemoveScript;
+    final UriMoveScript uriMoveScript;
     final UriUpdateScript uriUpdateScript;
     final NextUriScript nextUriScript;
     final ChgAddScript chgAddScript;
@@ -93,12 +101,14 @@ public class CrawlQueueManager implements AutoCloseable {
     final ChgUpdateScript chgUpdateScript;
     final ChgGetScript chgGetScript;
     final ChgBusyTimeoutScript chgBusyTimeoutScript;
+    final ChgCleanupIfEmptyScript chgCleanupIfEmptyScript;
     final JobExecutionGetScript jobExecutionGetScript;
     final JobExecutionUpdateScript jobExecutionUpdateScript;
     final JobExecutionQueueCounter jobExecutionQueueCounter;
 
     private final Frontier frontier;
     private final CrawlQueueWorker crawlQueueWorker;
+    private final CrawlExecutionReconciler executionReconciler;
     private final TimeoutSupplier<PreFetchHandler> nextFetchSupplier;
 
     // must be volatile, accessed from TimeoutSupplier worker threads
@@ -110,6 +120,7 @@ public class CrawlQueueManager implements AutoCloseable {
         this.redisClient = redisClient;
         uriAddScript = new UriAddScript();
         uriRemoveScript = new UriRemoveScript();
+        uriMoveScript = new UriMoveScript();
         uriUpdateScript = new UriUpdateScript();
         nextUriScript = new NextUriScript();
         chgAddScript = new ChgAddScript();
@@ -120,6 +131,7 @@ public class CrawlQueueManager implements AutoCloseable {
         chgUpdateScript = new ChgUpdateScript();
         chgGetScript = new ChgGetScript();
         chgBusyTimeoutScript = new ChgBusyTimeoutScript();
+        chgCleanupIfEmptyScript = new ChgCleanupIfEmptyScript();
         jobExecutionGetScript = new JobExecutionGetScript();
         jobExecutionUpdateScript = new JobExecutionUpdateScript();
         jobExecutionQueueCounter = new JobExecutionQueueCounter(redisClient);
@@ -142,6 +154,7 @@ public class CrawlQueueManager implements AutoCloseable {
                     // conservative: release CHG, no direct URI manipulation here
                     releaseCrawlHostGroup(chgId, RESCHEDULE_DELAY);
                 });
+        this.executionReconciler = new CrawlExecutionReconciler(frontier, redisClient);
     }
 
     public QueuedUri addToCrawlHostGroup(QueuedUri qUri) throws DbException {
@@ -174,7 +187,16 @@ public class CrawlQueueManager implements AutoCloseable {
                     qUri.getEarliestFetchTimeStamp(),
                     frontier.getSettings().getBusyTimeout().toMillis());
 
+            // Close the window where desiredState changes while the URI is being
+            // persisted. The reconciler repairs the remaining process-crash window
+            // from the Redis execution counters.
+            if (!CrawlExecutionHelpers.isExecutionActive(frontier, qUri.getExecutionId())) {
+                throw new CrawlExecutionNotActiveException(qUri.getExecutionId());
+            }
+
             return qUri;
+        } catch (CrawlExecutionNotActiveException e) {
+            throw e;
         } catch (DbException e) {
             // domain-level DB errors: log and propagate as-is
             LOG.warn("Failed to add URI {} to CrawlHostGroup {}", qUri.getUri(), qUri.getCrawlHostGroupId(), e);
@@ -226,6 +248,14 @@ public class CrawlQueueManager implements AutoCloseable {
             }
 
             return spec;
+        } catch (CrawlExecutionNotActiveException e) {
+            LOG.debug("Discarding prefetched URI because its crawl execution is no longer active");
+            try {
+                releaseCrawlHostGroup(handler.getQueuedUri().getCrawlHostGroupId(), 0);
+            } catch (RuntimeException releaseError) {
+                LOG.debug("Prefetched crawl-host group was already released during abort cleanup");
+            }
+            return null;
         } catch (DbException e) {
             LOG.warn("Failed to build PageHarvestSpec for queued URI", e);
             return null;
@@ -249,15 +279,15 @@ public class CrawlQueueManager implements AutoCloseable {
                 .start();
 
         try (Scope scope = frontier.getTracer().scopeManager().activate(span)) {
-            QueuedUri u;
+            QueueLease lease;
             try {
-                u = getNextQueuedUriToFetch(); // may throw DbException
+                lease = getNextQueuedUriToFetch(); // may throw DbException
             } catch (DbException e) {
                 LOG.warn("Prefetch DB error while getting next URI to fetch", e);
                 return null;
             }
 
-            if (u == null) {
+            if (lease == null) {
                 // No work right now; avoid tight spin in supplier threads
                 try {
                     Thread.sleep(10);
@@ -269,12 +299,12 @@ public class CrawlQueueManager implements AutoCloseable {
 
             PreFetchHandler handler;
             try {
-                handler = new PreFetchHandler(u, frontier);
+                handler = new PreFetchHandler(lease, frontier);
             } catch (DbException e) {
-                LOG.warn("Failed to construct PreFetchHandler for URI {}", u.getUri(), e);
+                LOG.warn("Failed to construct PreFetchHandler for URI {}", lease.uriId(), e);
                 return null;
             } catch (RuntimeException e) {
-                LOG.error("Bug constructing PreFetchHandler for URI {}", u.getUri(), e);
+                LOG.error("Bug constructing PreFetchHandler for URI {}", lease.uriId(), e);
                 return null;
             }
 
@@ -296,7 +326,7 @@ public class CrawlQueueManager implements AutoCloseable {
         }
     }
 
-    private QueuedUri getNextQueuedUriToFetch() throws DbException {
+    private QueueLease getNextQueuedUriToFetch() throws DbException {
         RedisContext ctx = redisContext();
         CrawlHostGroup chg = getNextReadyCrawlHostGroup(ctx);
         if (chg == null) {
@@ -306,12 +336,12 @@ public class CrawlQueueManager implements AutoCloseable {
         String chgId = chg.getId();
         LOG.trace("Found Crawl Host Group ({})", chgId);
 
-        FutureOptional<QueuedUri> foqu = getNextFetchableQueuedUriForCrawlHostGroup(ctx, chg);
+        FutureOptional<QueueLease> foqu = getNextFetchableQueuedUriForCrawlHostGroup(ctx, chg);
 
         if (foqu.isPresent()) {
-            QueuedUri u = foqu.get();
-            LOG.debug("Found Queued URI: {}, crawlHostGroup: {}", u.getUri(), u.getCrawlHostGroupId());
-            return u;
+            QueueLease lease = foqu.get();
+            LOG.debug("Found Queued URI: {}, crawlHostGroup: {}", lease.uriId(), lease.crawlHostGroupId());
+            return lease;
         } else if (foqu.isMaybeInFuture()) {
             LOG.trace("Queued URI might be available at: {}", foqu.getWhen());
 
@@ -346,17 +376,30 @@ public class CrawlQueueManager implements AutoCloseable {
     }
 
     public long deleteQueuedUrisForExecution(String executionId) throws DbException {
-        return deleteQueuedUrisForExecution(redisContext(), executionId);
+        return deleteQueuedUrisForExecution(redisContext(), executionId, false).deleted();
     }
 
     public long deleteQueuedUrisForExecution(RedisContext ctx, String executionId) throws DbException {
+        return deleteQueuedUrisForExecution(ctx, executionId, false).deleted();
+    }
+
+    public QueueCleanupResult deletePendingUrisForExecution(String executionId) throws DbException {
+        return deleteQueuedUrisForExecution(redisContext(), executionId, true);
+    }
+
+    private QueueCleanupResult deleteQueuedUrisForExecution(
+            RedisContext ctx,
+            String executionId,
+            boolean preserveActiveFetch) throws DbException {
         long deleted = 0;
+        long preserved = 0;
+        Set<String> affectedChgIds = new LinkedHashSet<>();
         ScanParams scanParams = new ScanParams().match(UEID + "*:" + executionId);
         ScanResult<String> queues = ctx.getClient().scan("0", scanParams);
         while (true) {
             for (String queue : queues.getResult()) {
-                String[] queueParts = queue.split(":");
-                String chgp = queueParts[1] + ":" + queueParts[2];
+                String chgId = crawlHostGroupIdFromExecutionQueue(queue, executionId);
+                affectedChgIds.add(chgId);
 
                 ScanResult<Tuple> uris = new ScanResult<>("0", null);
                 do {
@@ -367,7 +410,20 @@ public class CrawlQueueManager implements AutoCloseable {
                         long sequence = Longs.tryParse(uriParts[0].trim());
                         long fetchTime = Longs.tryParse(uriParts[1].trim());
 
-                        deleted += removeQUri(ctx, uriId, chgp, executionId, sequence, fetchTime, true);
+                        long removed = uriRemoveScript.run(
+                                ctx,
+                                uriId,
+                                chgId,
+                                executionId,
+                                sequence,
+                                fetchTime,
+                                true,
+                                preserveActiveFetch);
+                        if (removed > 0) {
+                            deleted += removed;
+                        } else if (removed < 0) {
+                            preserved++;
+                        }
                     }
                 } while (!uris.isCompleteIteration());
             }
@@ -376,7 +432,21 @@ public class CrawlQueueManager implements AutoCloseable {
             }
             queues = ctx.getClient().scan(queues.getCursor(), scanParams);
         }
-        return deleted;
+        affectedChgIds.forEach(chgId -> chgCleanupIfEmptyScript.run(ctx, chgId));
+        return new QueueCleanupResult(deleted, preserved);
+    }
+
+    static String crawlHostGroupIdFromExecutionQueue(String queue, String executionId) {
+        String executionSuffix = ":" + executionId;
+        if (!queue.startsWith(UEID) || !queue.endsWith(executionSuffix)) {
+            throw new IllegalArgumentException(
+                    "Invalid crawl execution queue key '" + queue + "' for execution " + executionId);
+        }
+
+        // UEID:<chgId>:<executionId>. Do not split on ':' because a crawl-host
+        // group ID may itself contain it. The old parser also accidentally included
+        // executionId in chgId, causing UriRemoveScript to append it a second time.
+        return queue.substring(UEID.length(), queue.length() - executionSuffix.length());
     }
 
     /**
@@ -403,25 +473,42 @@ public class CrawlQueueManager implements AutoCloseable {
         redisClient.del(URI_ALREADY_INCLUDED_PREFIX + jobExecutionId);
         redisClient.del(JOB_EXECUTION_PREFIX + jobExecutionId);
         redisClient.hdel(JOB_EXECUTION_ID_COUNT_KEY, jobExecutionId);
+        redisClient.zrem(JOB_EXECUTION_FINALIZE_KEY, jobExecutionId);
     }
 
     public static String uriHash(String uri) {
         return Hashing.sha256().hashUnencodedChars(uri).toString();
     }
 
-    FutureOptional<QueuedUri> getNextFetchableQueuedUriForCrawlHostGroup(
+    FutureOptional<QueueLease> getNextFetchableQueuedUriForCrawlHostGroup(
             RedisContext ctx,
             CrawlHostGroup crawlHostGroup) throws DbException {
 
         NextUriScriptResult res = nextUriScript.run(ctx, crawlHostGroup);
         if (res.future != null) {
-            return res.future;
+            return res.future.isMaybeInFuture()
+                    ? FutureOptional.emptyUntil(res.future.getWhen())
+                    : FutureOptional.empty();
         }
 
         QueuedUri obj = frontierAdapter.getQueuedUri(res.id);
 
         if (obj != null) {
-            return FutureOptional.of(obj);
+            QueueLease lease = new QueueLease(
+                    res.id,
+                    res.eid,
+                    obj.getJobExecutionId(),
+                    res.chgId,
+                    res.sequence,
+                    res.fetchTime);
+            if (!res.chgId.equals(obj.getCrawlHostGroupId())) {
+                LOG.info("Repairing interrupted queue move for URI {} from {} to {}",
+                        res.id, res.chgId, obj.getCrawlHostGroupId());
+                moveLease(ctx, lease, obj);
+                releaseCrawlHostGroup(ctx, crawlHostGroup.getId(), crawlHostGroup.getSessionToken(), 0, false);
+                return FutureOptional.empty();
+            }
+            return FutureOptional.of(lease);
         } else {
             LOG.warn("Db inconsistency: Could not find queued uri: {}, CHG: {}", res.id, res.chgId);
             removeQUri(ctx, res.id, res.chgId, res.eid, res.sequence, res.fetchTime, false);
@@ -513,43 +600,42 @@ public class CrawlQueueManager implements AutoCloseable {
         return numRemoved;
     }
 
-    public boolean removeTmpCrawlHostGroup(QueuedUri qUri, String tmpChgId, boolean deleteUri) {
-        return removeQUri(qUri, tmpChgId, deleteUri);
+    public boolean completeLease(QueueLease lease) {
+        return removeQUri(lease, true);
     }
 
-    public boolean removeQUri(QueuedUriWrapper qUri) {
-        QueuedUri toBeRemoved = qUri.getQueuedUriForRemoval();
-        if (toBeRemoved.getId().isEmpty()) {
-            return false;
+    public long moveLease(QueueLease source, QueuedUri target) {
+        return moveLease(redisContext(), source, target);
+    }
+
+    private long moveLease(RedisContext ctx, QueueLease source, QueuedUri target) {
+        if (source.crawlHostGroupId().equals(target.getCrawlHostGroupId())) {
+            return 0L;
         }
-        return removeQUri(qUri.getQueuedUriForRemoval(), qUri.getCrawlHostGroupId(), true);
+        return uriMoveScript.run(ctx, source, target);
     }
 
-    private boolean removeQUri(QueuedUri qUri, String chgId, boolean deleteUri) {
+    private boolean removeQUri(QueueLease lease, boolean deleteUri) {
         if (LOG.isTraceEnabled()) {
-            String stack = Arrays.stream(new RuntimeException().getStackTrace())
-                    .filter(s -> s.getClassName().contains("no.nb.nna"))
-                    .map(s -> String.format(
-                            "%s:%s(%d)",
-                            s.getClassName().substring(s.getClassName().lastIndexOf(".") + 1),
-                            s.getMethodName(),
-                            s.getLineNumber()))
-                    .reduce("", (r, s) -> r.isEmpty() ? s : r + "<<" + s);
-            LOG.trace("remUri: {}, Trace: {}", qUri.getId(), stack);
+            LOG.trace("Completing queued URI lease {}", lease.uriId());
         }
 
         long numRemoved = uriRemoveScript.run(
                 redisContext(),
-                qUri.getId(),
-                chgId,
-                qUri.getExecutionId(),
-                qUri.getSequence(),
-                qUri.getEarliestFetchTimeStamp().getSeconds(),
+                lease.uriId(),
+                lease.crawlHostGroupId(),
+                lease.executionId(),
+                lease.sequence(),
+                lease.fetchTime(),
                 deleteUri);
         if (numRemoved != 1) {
-            LOG.error("Queued uri id '{}' to be removed from Redis was not found", qUri.getId());
+            LOG.warn("Queued URI lease '{}' was already absent", lease.uriId());
         }
-        return true;
+        return numRemoved == 1;
+    }
+
+    public void scheduleExecutionFinalization(String executionId) {
+        redisClient.zadd(CRAWL_EXECUTION_FINALIZE_KEY, System.currentTimeMillis(), executionId);
     }
 
     public Long getBusyTimeout(String crawlHostGroupId) {
@@ -665,6 +751,7 @@ public class CrawlQueueManager implements AutoCloseable {
     @Override
     public void close() throws InterruptedException {
         shouldRun = false;
+        executionReconciler.close();
         crawlQueueWorker.close();
         nextFetchSupplier.close();
     }

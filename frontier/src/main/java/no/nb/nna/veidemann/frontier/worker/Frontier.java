@@ -55,7 +55,7 @@ import no.nb.nna.veidemann.commons.db.FrontierAdapter;
 import no.nb.nna.veidemann.db.ProtoUtils;
 import no.nb.nna.veidemann.frontier.db.CrawlQueueManager;
 import no.nb.nna.veidemann.frontier.settings.Settings;
-import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
+import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionOutcome;
 import redis.clients.jedis.UnifiedJedis;
 
 /**
@@ -238,7 +238,7 @@ public class Frontier implements AutoCloseable {
                 return;
             }
 
-            ListenableFuture<PreconditionState> future = Preconditions.checkPreconditions(this, crawlConfig, status,
+            ListenableFuture<PreconditionOutcome> future = Preconditions.checkPreconditions(this, crawlConfig, status,
                     qUri);
 
             Futures.transformAsync(future, c -> {
@@ -251,9 +251,9 @@ public class Frontier implements AutoCloseable {
 
                 try (Scope scope = span != null && tracer != null ? tracer.scopeManager().activate(span) : null) {
                     switch (c) {
-                        case OK:
+                        case FETCH:
                             break;
-                        case DENIED:
+                        case COMPLETE:
                             if (status.getState() == State.ABORTED_MANUAL) {
                                 // Job was aborted before crawl execution was created. Ignore
                             } else if (qUri.shouldInclude()) {
@@ -280,6 +280,8 @@ public class Frontier implements AutoCloseable {
                         case RETRY:
                             status.incrementDocumentsRetried();
                             break;
+                        case MOVE:
+                            throw new IllegalStateException("A seed cannot move an existing queue lease");
                     }
 
                     // Prefetch ok, add to queue
@@ -311,6 +313,9 @@ public class Frontier implements AutoCloseable {
                         if (timeout != null) {
                             getCrawlQueueManager().scheduleCrawlExecutionTimeout(status.getId(), timeout);
                         }
+                    } catch (CrawlExecutionNotActiveException e) {
+                        LOG.debug("Seed '{}' was not queued because execution {} is no longer active",
+                                qUri.getUri(), status.getId());
                     } catch (Exception e) {
                         LOG.warn("Error adding seed '{}' to queue", qUri.getUri(), e);
                     }

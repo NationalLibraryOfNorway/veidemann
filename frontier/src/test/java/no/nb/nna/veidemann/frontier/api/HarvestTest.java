@@ -1074,4 +1074,89 @@ public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractI
         assertThat(redisData)
                 .readyQueue().hasNumberOfElements(0);
     }
+
+    @Test
+    public void testAbortTimeoutIsCleanedWhileCrawlerIsPaused() throws Exception {
+        DbService.getInstance().getExecutionsAdapter().setDesiredPausedState(true);
+        frontier.getCrawlQueueManager().pause(true);
+        try {
+            ConfigObject job = crawlRunner.genJob("paused-job");
+            List<SeedAndExecutions> seeds = crawlRunner.genSeeds(1, "paused.seed", job);
+            RunningCrawl crawl = crawlRunner.runCrawl(job, seeds);
+            org.assertj.core.api.Assertions.assertThat(crawl.awaitAllSeedsSubmitted(5, TimeUnit.SECONDS)).isZero();
+
+            String crawlExecutionId = seeds.get(0).getCrawlExecution(job).get().getId();
+            await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(15, TimeUnit.SECONDS)
+                    .until(() -> redisClient.hget(CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY,
+                            crawlExecutionId) != null);
+
+            DbService.getInstance().getExecutionsAdapter().setCrawlExecutionStateAborted(
+                    crawlExecutionId,
+                    CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+            crawlRunner.awaitCrawlFinished(30, TimeUnit.SECONDS, crawl);
+
+            CrawlExecutionStatus status = DbService.getInstance().getExecutionsAdapter()
+                    .getCrawlExecutionStatus(crawlExecutionId);
+            org.assertj.core.api.Assertions.assertThat(status.getState())
+                    .isEqualTo(CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+            org.assertj.core.api.Assertions.assertThat(status.getDesiredState())
+                    .isEqualTo(CrawlExecutionStatus.State.UNDEFINED);
+            org.assertj.core.api.Assertions.assertThat(status.hasEndTime()).isTrue();
+            org.assertj.core.api.Assertions.assertThat(status.getDocumentsDenied()).isZero();
+            assertThat(harvesterMock.requestLog).hasNumberOfRequests(0);
+            assertThat(redisData).hasQueueTotalCount(0).crawlHostGroups().hasNumberOfElements(0);
+            assertThat(redisData).crawlExecutionQueueCounts().hasNumberOfElements(0);
+            assertThat(redisData).sessionTokens().hasNumberOfElements(0);
+        } finally {
+            DbService.getInstance().getExecutionsAdapter().setDesiredPausedState(false);
+        }
+    }
+
+    @Test
+    public void testStartupRepairsHistoricalCreatedAbortAndMissingJobAggregate() throws Exception {
+        DbService.getInstance().getExecutionsAdapter().setDesiredPausedState(true);
+        frontier.getCrawlQueueManager().pause(true);
+        try {
+            ConfigObject job = crawlRunner.genJob("startup-repair-job");
+            List<SeedAndExecutions> seeds = crawlRunner.genSeeds(1, "historical.seed", job);
+            RunningCrawl crawl = crawlRunner.runCrawl(job, seeds);
+            org.assertj.core.api.Assertions.assertThat(crawl.awaitAllSeedsSubmitted(5, TimeUnit.SECONDS)).isZero();
+
+            String crawlExecutionId = seeds.get(0).getCrawlExecution(job).get().getId();
+            await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(15, TimeUnit.SECONDS)
+                    .until(() -> redisClient.hget(CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY,
+                            crawlExecutionId) != null);
+
+            stopFrontier();
+            DbService.getInstance().getExecutionsAdapter().setCrawlExecutionStateAborted(
+                    crawlExecutionId,
+                    CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+            redisClient.del(CrawlQueueManager.JOB_EXECUTION_PREFIX + crawl.getStatus().getId());
+
+            // Construction starts an include-initial changefeed. No harvester
+            // request is needed to discover or repair this historical command.
+            startFrontier();
+            crawlRunner.awaitCrawlFinished(30, TimeUnit.SECONDS, crawl);
+
+            CrawlExecutionStatus status = DbService.getInstance().getExecutionsAdapter()
+                    .getCrawlExecutionStatus(crawlExecutionId);
+            org.assertj.core.api.Assertions.assertThat(status.getState())
+                    .isEqualTo(CrawlExecutionStatus.State.ABORTED_TIMEOUT);
+            org.assertj.core.api.Assertions.assertThat(status.hasEndTime()).isTrue();
+            org.assertj.core.api.Assertions.assertThat(rawCrawlExecution(crawlExecutionId))
+                    .doesNotContainKey("desiredState");
+
+            JobExecutionStatus jobStatus = DbService.getInstance().getExecutionsAdapter()
+                    .getJobExecutionStatus(crawl.getStatus().getId());
+            org.assertj.core.api.Assertions.assertThat(jobStatus.getState())
+                    .isEqualTo(JobExecutionStatus.State.FINISHED);
+            org.assertj.core.api.Assertions.assertThat(jobStatus.hasEndTime()).isTrue();
+            org.assertj.core.api.Assertions.assertThat(jobStatus.getExecutionsStateOrDefault(
+                    CrawlExecutionStatus.State.ABORTED_TIMEOUT.name(), 0)).isOne();
+            assertThat(redisData).hasQueueTotalCount(0).crawlHostGroups().hasNumberOfElements(0);
+            assertThat(harvesterMock.requestLog).hasNumberOfRequests(0);
+        } finally {
+            DbService.getInstance().getExecutionsAdapter().setDesiredPausedState(false);
+        }
+    }
 }

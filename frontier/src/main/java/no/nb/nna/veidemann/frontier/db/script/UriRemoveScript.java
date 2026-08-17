@@ -1,8 +1,10 @@
 package no.nb.nna.veidemann.frontier.db.script;
 
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_PREFIX;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CHG_BUSY_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_JOB_EXECUTION_KEY;
+import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_FINALIZE_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.QUEUE_COUNT_TOTAL_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.REMOVE_URI_QUEUE_KEY;
@@ -28,6 +30,17 @@ public class UriRemoveScript extends RedisJob<Long> {
             long sequence,
             long fetchTime,
             boolean deleteUri) {
+        return run(ctx, uriId, chgId, eid, sequence, fetchTime, deleteUri, false);
+    }
+
+    public long run(RedisContext ctx,
+            String uriId,
+            String chgId,
+            String eid,
+            long sequence,
+            long fetchTime,
+            boolean deleteUri,
+            boolean preserveActiveFetch) {
         return execute(ctx, jedis -> {
             if (uriId == null || uriId.isEmpty()) {
                 throw new IllegalArgumentException("Missing uriId");
@@ -51,12 +64,17 @@ public class UriRemoveScript extends RedisJob<Long> {
                     JOB_EXECUTION_ID_COUNT_KEY,
                     CRAWL_EXECUTION_JOB_EXECUTION_KEY,
                     QUEUE_COUNT_TOTAL_KEY,
-                    REMOVE_URI_QUEUE_KEY);
+                    REMOVE_URI_QUEUE_KEY,
+                    CHG_BUSY_KEY,
+                    CRAWL_EXECUTION_FINALIZE_KEY);
 
             List<String> args = ImmutableList.of(
                     ueIdVal,
                     eid,
-                    removeQueue);
+                    removeQueue,
+                    chgId,
+                    Boolean.toString(preserveActiveFetch),
+                    Long.toString(System.currentTimeMillis()));
 
             return (Long) uriRemoveScript.runString(jedis, keys, args);
         });

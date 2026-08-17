@@ -43,10 +43,11 @@ public class Preconditions {
 
     private static final Logger LOG = LoggerFactory.getLogger(Preconditions.class);
 
-    public enum PreconditionState {
-        OK,
-        DENIED,
+    public enum PreconditionOutcome {
+        FETCH,
+        COMPLETE,
         RETRY,
+        MOVE,
     }
 
     private Preconditions() {
@@ -56,7 +57,7 @@ public class Preconditions {
      * Check whether the crawl execution is still valid and limits are not reached.
      */
     public static boolean crawlExecutionOk(Frontier frontier, StatusWrapper status) throws DbException {
-        if (CrawlExecutionHelpers.isAborted(frontier, status)) {
+        if (!CrawlExecutionHelpers.isExecutionActive(frontier, status.getId())) {
             return false;
         }
         return !isLimitReached(status);
@@ -67,7 +68,7 @@ public class Preconditions {
      *
      * Synchronous part:
      * - scope / inclusion
-     * - possibly immediate DENIED/OK
+     * - possibly immediate COMPLETE/FETCH
      *
      * Asynchronous part:
      * - DNS resolution (if unresolved)
@@ -75,9 +76,9 @@ public class Preconditions {
      *
      * If async work is needed, returns a future which will eventually be completed
      * with
-     * OK / DENIED / RETRY.
+     * FETCH / COMPLETE / RETRY / MOVE.
      */
-    public static ListenableFuture<PreconditionState> checkPreconditions(
+    public static ListenableFuture<PreconditionOutcome> checkPreconditions(
             Frontier frontier,
             ConfigObject crawlConfig,
             StatusWrapper status,
@@ -100,19 +101,15 @@ public class Preconditions {
                     frontier.writeLog(qUri);
             }
 
-            if (!qUri.isUnresolved()) {
-                frontier.getCrawlQueueManager().removeQUri(qUri);
-            }
-
             status.incrementDocumentsOutOfScope();
             frontier.getOutOfScopeHandlerClient().submitUri(qUri.getQueuedUri());
 
-            return Futures.immediateFuture(PreconditionState.DENIED);
+            return Futures.immediateFuture(PreconditionOutcome.COMPLETE);
         }
 
         // If unresolved, we must do DNS -> robots -> allowed/denied
         if (qUri.isUnresolved()) {
-            SettableFuture<PreconditionState> future = SettableFuture.create();
+            SettableFuture<PreconditionOutcome> future = SettableFuture.create();
 
             LOG.debug("Resolve IP for URI '{}'", qUri.getUri());
             ListenableFuture<Resolution> dnsFuture = frontier.getDnsServiceClient()
@@ -130,7 +127,7 @@ public class Preconditions {
             return future;
         } else {
             // Already resolved; caller can go straight to fetch
-            return Futures.immediateFuture(PreconditionState.OK);
+            return Futures.immediateFuture(PreconditionOutcome.FETCH);
         }
     }
 
@@ -154,13 +151,13 @@ public class Preconditions {
         }
     }
 
-    private static void safeSet(SettableFuture<PreconditionState> future, PreconditionState state) {
+    private static void safeSet(SettableFuture<PreconditionOutcome> future, PreconditionOutcome state) {
         if (!future.isDone() && !future.isCancelled()) {
             future.set(state);
         }
     }
 
-    private static void safeSetException(SettableFuture<PreconditionState> future, Throwable t) {
+    private static void safeSetException(SettableFuture<PreconditionOutcome> future, Throwable t) {
         if (!future.isDone() && !future.isCancelled()) {
             future.setException(t);
         } else {
@@ -176,14 +173,14 @@ public class Preconditions {
         private final QueuedUriWrapper qUri;
         private final StatusWrapper status;
         private final ConfigObject crawlConfig;
-        private final SettableFuture<PreconditionState> future;
+        private final SettableFuture<PreconditionOutcome> future;
         private final Span parentSpan;
 
         ResolveDnsCallback(Frontier frontier,
                 QueuedUriWrapper qUri,
                 StatusWrapper status,
                 ConfigObject crawlConfig,
-                SettableFuture<PreconditionState> future) {
+                SettableFuture<PreconditionOutcome> future) {
             this.frontier = frontier;
             this.qUri = qUri;
             this.status = status;
@@ -272,26 +269,11 @@ public class Preconditions {
                         && qUri.getQueuedUri().getId().isEmpty();
                 boolean updateCounters = statusCode.isTemporary() || !initialSeed;
 
-                PreconditionState state = ErrorHandler.fetchFailure(
+                PreconditionOutcome state = ErrorHandler.fetchFailure(
                         frontier, status, qUri, qUri.getError(), updateCounters);
 
-                if (state == PreconditionState.DENIED && !statusCode.isTemporary()) {
+                if (state == PreconditionOutcome.COMPLETE && !statusCode.isTemporary()) {
                     frontier.writeLog(qUri);
-                }
-
-                if (state == PreconditionState.RETRY
-                        && !qUri.getCrawlHostGroupId().isEmpty()
-                        && !qUri.getQueuedUri().getId().isEmpty()) {
-                    try {
-                        qUri.save();
-                    } catch (DbException e) {
-                        LOG.error("Unable to update URI earliest fetch timestamp", e);
-                    }
-                }
-                if (state == PreconditionState.DENIED
-                        && !qUri.getCrawlHostGroupId().isEmpty()
-                        && !qUri.getQueuedUri().getId().isEmpty()) {
-                    frontier.getCrawlQueueManager().removeQUri(qUri);
                 }
 
                 safeSet(future, state);
@@ -353,13 +335,13 @@ public class Preconditions {
         private final Frontier frontier;
         private final QueuedUriWrapper qUri;
         private final StatusWrapper status;
-        private final SettableFuture<PreconditionState> future;
+        private final SettableFuture<PreconditionOutcome> future;
 
         IsAllowedFunc(String changedCrawlHostGroup,
                 Frontier frontier,
                 QueuedUriWrapper qUri,
                 StatusWrapper status,
-                SettableFuture<PreconditionState> future) {
+                SettableFuture<PreconditionOutcome> future) {
             this.changedCrawlHostGroup = changedCrawlHostGroup;
             this.frontier = frontier;
             this.qUri = qUri;
@@ -369,43 +351,24 @@ public class Preconditions {
 
         @Override
         public void accept(Boolean isAllowed) {
-            PreconditionState state;
+            PreconditionOutcome state;
 
-            try {
-                if (Boolean.TRUE.equals(isAllowed)) {
-                    if (changedCrawlHostGroup != null) {
-                        // Move URI from temporary CHG to its proper group, then RETRY
-                        frontier.getCrawlQueueManager().removeTmpCrawlHostGroup(
-                                qUri.getQueuedUri(),
-                                changedCrawlHostGroup,
-                                false);
-                        frontier.getCrawlQueueManager().addToCrawlHostGroup(qUri.getQueuedUri());
-                        state = PreconditionState.RETRY;
-                    } else {
-                        state = PreconditionState.OK;
-                    }
+            if (Boolean.TRUE.equals(isAllowed)) {
+                if (changedCrawlHostGroup != null) {
+                    state = PreconditionOutcome.MOVE;
                 } else {
-                    if (changedCrawlHostGroup != null) {
-                        frontier.getCrawlQueueManager().removeTmpCrawlHostGroup(
-                                qUri.getQueuedUri(),
-                                changedCrawlHostGroup,
-                                true);
-                    } else {
-                        frontier.getCrawlQueueManager().removeQUri(qUri);
-                    }
-
-                    LOG.info("URI '{}' precluded by robots.txt", qUri.getUri());
-                    qUri.setError(ExtraStatusCodes.PRECLUDED_BY_ROBOTS.toFetchError());
-                    status.incrementDocumentsDenied(1L);
-                    frontier.writeLog(qUri);
-
-                    state = PreconditionState.DENIED;
+                    state = PreconditionOutcome.FETCH;
                 }
+            } else {
+                LOG.info("URI '{}' precluded by robots.txt", qUri.getUri());
+                qUri.setError(ExtraStatusCodes.PRECLUDED_BY_ROBOTS.toFetchError());
+                status.incrementDocumentsDenied(1L);
+                frontier.writeLog(qUri);
 
-                safeSet(future, state);
-            } catch (DbException e) {
-                safeSetException(future, e);
+                state = PreconditionOutcome.COMPLETE;
             }
+
+            safeSet(future, state);
         }
     }
 }

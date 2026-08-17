@@ -9,6 +9,7 @@ local crawlExecutionIdCountKey = KEYS[3]
 local jobExecutionIdCountKey = KEYS[4]
 local crawlExecutionJobExecutionKey = KEYS[5]
 local queueCountTotalKey = KEYS[6]
+local finalizeKey = KEYS[7]
 
 local nextReadyTime = ARGV[1]
 local crawlExecutionId = ARGV[2]
@@ -29,6 +30,7 @@ redis.call('HINCRBY', jobExecutionIdCountKey, jobExecutionId, 1)
 
 --- Increment total queue count
 redis.call('INCR', queueCountTotalKey)
+redis.call('ZREM', finalizeKey, crawlExecutionId)
 
 if chgExists == 0 then
     -- If new chg was created, queue it.

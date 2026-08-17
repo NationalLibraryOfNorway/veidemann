@@ -58,6 +58,9 @@ public class DbInitializerTestIT extends AbstractRethinkDbIntegrationTest {
         long configObjectCount = conn.exec(r.table(Tables.CONFIG.name).count());
         assertThat(configObjectCount).isGreaterThan(0);
 
+        List<String> executionIndexes = conn.exec(r.table(Tables.EXECUTIONS.name).indexList());
+        assertThat(executionIndexes).doesNotContain("desiredState");
+
         Map<String, Object> o = conn.exec(r.table(Tables.CONFIG.name)
                 .group("kind")
                 .count()
@@ -143,6 +146,29 @@ public class DbInitializerTestIT extends AbstractRethinkDbIntegrationTest {
         assertThatThrownBy(() -> DbService.getInstance().getDbInitializer().initialize())
                 .isInstanceOf(DbUpgradeException.class)
                 .hasMessageContaining("Unsupported database version '1.13'");
+    }
+
+    @Test
+    public void clearsStaleCrawlExecutionDesiredStates() throws DbException {
+        DbService.getInstance().getDbInitializer().initialize();
+
+        conn.exec(r.table(Tables.EXECUTIONS.name).insert(r.array(
+                r.hashMap("id", "stale")
+                        .with("state", "ABORTED_TIMEOUT")
+                        .with("desiredState", "ABORTED_TIMEOUT"),
+                r.hashMap("id", "pending")
+                        .with("state", "CREATED")
+                        .with("desiredState", "ABORTED_TIMEOUT"))));
+        conn.exec(r.table(Tables.SYSTEM.name)
+                .get("migration_clear_stale_crawl_execution_desired_state_v1")
+                .delete());
+
+        DbService.getInstance().getDbInitializer().initialize();
+
+        Map<String, Object> stale = conn.exec(r.table(Tables.EXECUTIONS.name).get("stale"));
+        Map<String, Object> pending = conn.exec(r.table(Tables.EXECUTIONS.name).get("pending"));
+        assertThat(stale).doesNotContainKey("desiredState");
+        assertThat(pending).containsEntry("desiredState", "ABORTED_TIMEOUT");
     }
 
     private void assertExpectedTables(List<String> tables) {

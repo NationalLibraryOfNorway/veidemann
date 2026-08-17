@@ -126,7 +126,7 @@ public class StatusWrapper {
         Boolean hasRunningExecutions = frontier.getCrawlQueueManager()
                 .updateJobExecutionStatus(
                         newDoc.getJobExecutionId(),
-                        status.getState(),
+                        oldDoc == null ? status.getState() : oldDoc.getState(),
                         newDoc.getState(),
                         change);
 
@@ -142,10 +142,25 @@ public class StatusWrapper {
         return this;
     }
 
-    private void updateJobExecution(String jobExecutionId) throws DbException {
-        JobExecutionStatus tjes = frontier.getCrawlQueueManager().getTempJobExecutionStatus(jobExecutionId);
+    private boolean updateJobExecution(String jobExecutionId) throws DbException {
+        return updateJobExecution(jobExecutionId, false);
+    }
+
+    private boolean updateJobExecution(String jobExecutionId, boolean reconstruct) throws DbException {
+        JobExecutionStatus tjes = reconstruct
+                ? null
+                : frontier.getCrawlQueueManager().getTempJobExecutionStatus(jobExecutionId);
         if (tjes == null) {
-            return;
+            LOG.info("Reconstructing JobExecution '{}' aggregate from RethinkDB", jobExecutionId);
+            tjes = frontier.getFrontierAdapter().getJobExecutionAggregate(jobExecutionId);
+            int running = tjes.getExecutionsStateOrDefault(CrawlExecutionStatus.State.UNDEFINED.name(), 0)
+                    + tjes.getExecutionsStateOrDefault(CrawlExecutionStatus.State.CREATED.name(), 0)
+                    + tjes.getExecutionsStateOrDefault(CrawlExecutionStatus.State.FETCHING.name(), 0)
+                    + tjes.getExecutionsStateOrDefault(CrawlExecutionStatus.State.SLEEPING.name(), 0);
+            int total = tjes.getExecutionsStateMap().values().stream().mapToInt(value -> value).sum();
+            if (total == 0 || running > 0) {
+                return false;
+            }
         }
 
         LOG.debug("JobExecution '{}' finished, saving stats", jobExecutionId);
@@ -181,6 +196,15 @@ public class StatusWrapper {
         frontier.getFrontierAdapter().saveJobExecutionStatus(jesBuilder.build());
 
         frontier.getCrawlQueueManager().removeRedisJobExecution(jobExecutionId);
+        return true;
+    }
+
+    /** Repair a persistent JobExecution even when no crawl transition is in flight. */
+    public static boolean repairJobExecution(Frontier frontier, String jobExecutionId) throws DbException {
+        StatusWrapper wrapper = new StatusWrapper(frontier, CrawlExecutionStatus.getDefaultInstance());
+        // Explicit repair must not trust a Redis aggregate which may itself be the
+        // artifact left behind by the interrupted terminal transition.
+        return wrapper.updateJobExecution(jobExecutionId, true);
     }
 
     public String getId() {

@@ -30,7 +30,7 @@ import no.nb.nna.veidemann.api.config.v1.Annotation;
 import no.nb.nna.veidemann.api.config.v1.ConfigRef;
 import no.nb.nna.veidemann.api.frontier.v1.QueuedUri;
 import no.nb.nna.veidemann.commons.db.DbException;
-import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionState;
+import no.nb.nna.veidemann.frontier.worker.Preconditions.PreconditionOutcome;
 
 public class OutlinkHandler {
 
@@ -79,12 +79,12 @@ public class OutlinkHandler {
                     scriptParameters,
                     scopeScriptRef);
 
-            PreconditionState check = Preconditions
+            PreconditionOutcome check = Preconditions
                     .checkPreconditions(frontier, status.getCrawlConfig(), status, outUri)
                     .get();
 
             switch (check) {
-                case OK:
+                case FETCH:
                     LOG.debug("Found new URI: {}, queueing.", outUri.getUri());
                     outUri.setPriorityWeight(
                             status.getCrawlConfig().getCrawlConfig().getPriorityWeight());
@@ -102,14 +102,19 @@ public class OutlinkHandler {
                     }
                     break;
 
-                case DENIED:
+                case COMPLETE:
                     // nothing to do
                     break;
+
+                case MOVE:
+                    throw new IllegalStateException("A new outlink cannot move an existing queue lease");
 
                 default:
                     LOG.warn("Unknown precondition state for outlink {}: {}", outUri.getUri(), check);
                     break;
             }
+        } catch (CrawlExecutionNotActiveException e) {
+            LOG.debug("Outlink {} was not queued because execution is no longer active", outlink.getUri());
         } catch (URISyntaxException ex) {
             status.incrementDocumentsFailed();
             LOG.info("Illegal URI {}", ex.toString(), ex);
