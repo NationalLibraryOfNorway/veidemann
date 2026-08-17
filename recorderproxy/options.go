@@ -28,6 +28,7 @@ func parseFlags() (Options, error) {
 	flags.String("mitm-cert-file", "", "Path to the fixed MITM server certificate")
 	flags.String("mitm-key-file", "", "Path to the fixed MITM private key")
 	flags.Duration("finalization-timeout", 30*time.Second, "Maximum time for ContentWriter terminal operations")
+	flags.Duration("idle-timeout", 2*time.Minute, "Maximum time to wait for downstream request headers; non-positive values disable it")
 	flags.String("cache-host", "", "Cache host")
 	flags.String("cache-port", "", "Cache port")
 	flags.String("metrics-interface", "", "interface for exposing Prometheus metrics. Empty means all interfaces")
@@ -153,4 +154,8 @@ func (o Options) MITMKeyFile() string {
 
 func (o Options) FinalizationTimeout() time.Duration {
 	return o.v.GetDuration("finalization-timeout")
+}
+
+func (o Options) IdleTimeout() time.Duration {
+	return o.v.GetDuration("idle-timeout")
 }

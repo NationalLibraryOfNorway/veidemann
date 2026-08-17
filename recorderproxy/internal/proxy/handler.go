@@ -31,7 +31,9 @@ type Config struct {
 	Filter          Filter
 	Dial            DialFunc
 	OnError         ErrorFunc
+	OnIdleTimeout   func()
 	Identity        *mitmcert.Identity
+	IdleTimeout     time.Duration
 	WaitForUpstream bool
 }
 
@@ -80,8 +82,11 @@ func (h *Handler) Handle(ctx context.Context, input io.Reader, downstream net.Co
 
 func (h *Handler) handle(ctx context.Context, input io.Reader, downstream, upstream net.Conn, upstreamFailure error, mitming bool) error {
 	reader := bufio.NewReader(input)
-	req, err := http.ReadRequest(reader)
+	req, err := h.readRequest(reader, downstream)
 	if err != nil {
+		if errors.Is(err, errIdleConnectionTimeout) {
+			return nil
+		}
 		phase := PhaseReadRequest
 		if mitming {
 			phase = PhaseInnerHTTPRequest
@@ -191,6 +196,7 @@ func connectAddress(req *http.Request) string {
 
 func (h *Handler) processRequests(ctx context.Context, state *State, remote string, req *http.Request, downstream net.Conn, reader *bufio.Reader, next Next) error {
 	for {
+		closeAfterResponse := req.Method != http.MethodConnect && req.Close
 		if req.URL.Scheme == "" {
 			req.URL.Scheme = state.OriginalURLScheme()
 		}
@@ -212,6 +218,9 @@ func (h *Handler) processRequests(ctx context.Context, state *State, remote stri
 			}
 		}
 		if resp != nil {
+			if closeAfterResponse {
+				resp.Close = true
+			}
 			if writeErr := h.writeResponse(downstream, req, resp); writeErr != nil {
 				if isExpectedDisconnect(writeErr) {
 					return nil
@@ -227,12 +236,15 @@ func (h *Handler) processRequests(ctx context.Context, state *State, remote stri
 		if state.Upstream() != nil || state.UpstreamAddr() != "" {
 			return h.proceedWithConnect(ctx, state.UpstreamAddr(), state.Upstream(), connWithBufferedReader(downstream, reader))
 		}
-		if req.Close || (resp != nil && resp.Close) {
+		if closeAfterResponse || (resp != nil && resp.Close) {
 			return nil
 		}
 
-		req, err = http.ReadRequest(reader)
+		req, err = h.readRequest(reader, downstream)
 		if err != nil {
+			if errors.Is(err, errIdleConnectionTimeout) {
+				return nil
+			}
 			if isUnexpected(err) {
 				if errResp := h.config.OnError(state, nil, PhaseReadRequest, err); errResp != nil {
 					_ = h.writeResponse(downstream, nil, errResp)
@@ -244,6 +256,33 @@ func (h *Handler) processRequests(ctx context.Context, state *State, remote stri
 		req = req.WithContext(ctx)
 		req.RemoteAddr = remote
 	}
+}
+
+var errIdleConnectionTimeout = errors.New("idle connection timeout")
+
+func (h *Handler) readRequest(reader *bufio.Reader, downstream net.Conn) (*http.Request, error) {
+	if h.config.IdleTimeout <= 0 {
+		return http.ReadRequest(reader)
+	}
+
+	if err := downstream.SetReadDeadline(time.Now().Add(h.config.IdleTimeout)); err != nil {
+		return nil, fmt.Errorf("unable to set idle request-header deadline: %w", err)
+	}
+	req, err := http.ReadRequest(reader)
+	if err != nil {
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			if h.config.OnIdleTimeout != nil {
+				h.config.OnIdleTimeout()
+			}
+			return nil, errIdleConnectionTimeout
+		}
+		return nil, err
+	}
+	if err := downstream.SetReadDeadline(time.Time{}); err != nil {
+		return nil, fmt.Errorf("unable to clear idle request-header deadline: %w", err)
+	}
+	return req, nil
 }
 
 func (h *Handler) proceedWithConnect(ctx context.Context, upstreamAddr string, upstream, downstream net.Conn) error {
@@ -399,6 +438,7 @@ func (h *Handler) writeResponse(downstream io.Writer, req *http.Request, resp *h
 }
 
 func prepareRequest(req *http.Request) *http.Request {
+	req = req.Clone(req.Context())
 	req.Proto = "HTTP/1.1"
 	req.ProtoMajor = 1
 	req.ProtoMinor = 1

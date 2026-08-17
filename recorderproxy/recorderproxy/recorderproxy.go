@@ -41,11 +41,15 @@ const (
 	CRLF = "\r\n"
 )
 
-const defaultFinalizationTimeout = 30 * time.Second
+const (
+	defaultFinalizationTimeout = 30 * time.Second
+	defaultIdleTimeout         = 2 * time.Minute
+)
 
 type recorderProxyOptions struct {
 	mitmIdentity        *mitmcert.Identity
 	finalizationTimeout time.Duration
+	idleTimeout         time.Duration
 }
 
 // Option configures a RecorderProxy.
@@ -57,6 +61,12 @@ func WithMITMIdentity(identity *mitmcert.Identity) Option {
 
 func WithFinalizationTimeout(timeout time.Duration) Option {
 	return func(opts *recorderProxyOptions) { opts.finalizationTimeout = timeout }
+}
+
+// WithIdleTimeout configures how long the proxy waits for downstream request
+// headers. Non-positive values disable the timeout.
+func WithIdleTimeout(timeout time.Duration) Option {
+	return func(opts *recorderProxyOptions) { opts.idleTimeout = timeout }
 }
 
 var (
@@ -78,9 +88,12 @@ func inMemoryMITMIdentity() (*mitmcert.Identity, error) {
 }
 
 type RecorderProxy struct {
-	handler           *proxy.Handler
-	id                int32
-	conn              *serviceconnections.Connections
+	handler *proxy.Handler
+	id      int32
+	conn    *serviceconnections.Connections
+	// ConnectionTimeout is retained for source compatibility.
+	//
+	// Deprecated: this field has no effect. Use WithIdleTimeout instead.
 	ConnectionTimeout time.Duration
 	nextProxy         string
 	mu                sync.Mutex
@@ -90,7 +103,10 @@ type RecorderProxy struct {
 }
 
 func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAddr string, options ...Option) *RecorderProxy {
-	opts := recorderProxyOptions{finalizationTimeout: defaultFinalizationTimeout}
+	opts := recorderProxyOptions{
+		finalizationTimeout: defaultFinalizationTimeout,
+		idleTimeout:         defaultIdleTimeout,
+	}
 	for _, option := range options {
 		option(&opts)
 	}
@@ -138,9 +154,11 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 	}
 
 	handler, err := proxy.New(proxy.Config{
-		Dial:     r.Dial,
-		Filter:   filterChain,
-		Identity: opts.mitmIdentity,
+		Dial:          r.Dial,
+		Filter:        filterChain,
+		Identity:      opts.mitmIdentity,
+		IdleTimeout:   opts.idleTimeout,
+		OnIdleTimeout: idleConnectionTimeouts.Inc,
 		OnError: func(cs *proxy.State, req *http.Request, phase proxy.ErrorPhase, err error) *http.Response {
 			phasedErr := err
 			if proxy.Phase(phasedErr) == "" {

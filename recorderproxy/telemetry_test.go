@@ -18,6 +18,9 @@ func TestMetricsServer(t *testing.T) {
 	if !strings.Contains(recorder.Body.String(), "go_goroutines") {
 		t.Fatal("metrics response does not contain Go runtime metrics")
 	}
+	if !strings.Contains(recorder.Body.String(), "recorderproxy_idle_connection_timeouts_total") {
+		t.Fatal("metrics response does not contain recorderproxy idle connection timeout metric")
+	}
 
 	profileRecorder := httptest.NewRecorder()
 	server.Handler.ServeHTTP(profileRecorder, httptest.NewRequest(http.MethodGet, "/debug/pprof/heap", nil))

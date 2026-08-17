@@ -131,6 +131,7 @@ func run() error {
 			cacheAddr,
 			recorderproxy.WithMITMIdentity(mitmIdentity),
 			recorderproxy.WithFinalizationTimeout(opts.FinalizationTimeout()),
+			recorderproxy.WithIdleTimeout(opts.IdleTimeout()),
 		)
 
 		ln, err := r.Listen(iface, firstPort)

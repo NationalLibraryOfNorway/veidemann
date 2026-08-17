@@ -193,7 +193,15 @@ that exports the standard `client_golang` metrics.
 The proxy also exports `recorderproxy_active_connections`,
 `recorderproxy_open_sessions`, and
 `recorderproxy_contentwriter_terminal_timeouts_total` for lifecycle and
-finalization monitoring.
+finalization monitoring. Downstream connections waiting for initial, tunneled,
+or keep-alive request headers are closed after two idle minutes by default. The
+deadline is cleared as soon as the headers are parsed, so request bodies and
+response streaming are not time-limited by this setting. Configure the duration
+with `--idle-timeout` or `IDLE_TIMEOUT`; a non-positive duration disables it.
+Each expiry increments `recorderproxy_idle_connection_timeouts_total` without
+recording a crawl failure. A sustained high expiry rate can indicate abandoned
+browser connections or a timeout that is too short; compare it with active
+connections, crawl errors, goroutines, and open file descriptors during rollout.
 
 ## Fixed MITM Identity
 
