@@ -80,7 +80,7 @@ func (t *frameLoadTracker) Finish(frameID string) bool {
 
 	delete(t.loading, frameID)
 	if t.waiting && len(t.loading) == 0 {
-		t.finishLocked(nil)
+		_ = t.finishLocked(nil)
 	}
 	return true
 }
@@ -123,7 +123,7 @@ func (t *frameLoadTracker) Cancel(err error) {
 	if err == nil {
 		err = context.Canceled
 	}
-	t.finish(err)
+	_ = t.finish(err)
 }
 
 func (t *frameLoadTracker) Snapshot() []string {
