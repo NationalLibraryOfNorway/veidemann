@@ -301,7 +301,7 @@ func (conn *wrappedConnection) Read(b []byte) (n int, err error) {
 	if logger.IsLevelEnabled(logger.TraceLevel) {
 		l.Tracef("read:\n%s\n", logger.FormatPayload(b, n, 10, 20))
 	} else {
-		l.Debugf("read: %s", logger.FormatPayload(b, n, 10, 20))
+		l.WithField("bytes", n).Debug("Connection read")
 	}
 	return
 }
@@ -315,7 +315,7 @@ func (conn *wrappedConnection) Write(b []byte) (n int, err error) {
 	if logger.IsLevelEnabled(logger.TraceLevel) {
 		l.Tracef("write:\n%s\n", logger.FormatPayload(b, n, 10, 20))
 	} else {
-		l.Debugf("write: %s", logger.FormatPayload(b, n, 10, 20))
+		l.WithField("bytes", n).Debug("Connection write")
 	}
 	return
 }
