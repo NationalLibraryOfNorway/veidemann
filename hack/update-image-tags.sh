@@ -119,17 +119,22 @@ while IFS='|' read -r name tag_prefix image_name files; do
     [ -f "$file" ] || die "mapped manifest does not exist: $file"
     matches=$(IMAGE_REPO="$image_repo" yq eval '.. | select(tag == "!!map" and has("image")) | .image | select(test("^" + strenv(IMAGE_REPO) + ":[^:]+$"))' "$file")
     count=$(printf '%s\n' "$matches" | awk 'NF { count++ } END { print count + 0 }')
-    [ "$count" -eq 1 ] || die "expected exactly one $image_repo image in $file, found $count"
-    current=${matches#"$image_repo:"}
-    printf '%s\n' "$current" | awk '$0 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ { valid = 1 } END { exit !valid }' ||
-      die "unexpected tag for $image_repo in $file: $current"
-    newest=$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -n 1)
-    [ "$newest" = "$latest" ] ||
-      die "manifest tag $current for $name is newer than local Git tag $latest; fetch tags before updating"
-    case ",$current_versions," in
-      *",$current,"*) ;;
-      *) current_versions="${current_versions}${current_versions:+,}$current" ;;
-    esac
+    [ "$count" -gt 0 ] || die "expected at least one $image_repo image in $file, found 0"
+    while IFS= read -r match; do
+      [ -n "$match" ] || continue
+      current=${match#"$image_repo:"}
+      printf '%s\n' "$current" | awk '$0 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ { valid = 1 } END { exit !valid }' ||
+        die "unexpected tag for $image_repo in $file: $current"
+      newest=$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -n 1)
+      [ "$newest" = "$latest" ] ||
+        die "manifest tag $current for $name is newer than local Git tag $latest; fetch tags before updating"
+      case ",$current_versions," in
+        *",$current,"*) ;;
+        *) current_versions="${current_versions}${current_versions:+,}$current" ;;
+      esac
+    done <<EOF
+$matches
+EOF
   done
   IFS=$old_ifs
 
