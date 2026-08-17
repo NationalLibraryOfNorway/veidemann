@@ -2,9 +2,12 @@ package robots
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type EvaluatorServer struct {
@@ -47,6 +50,9 @@ func (e *EvaluatorServer) IsAllowed(ctx context.Context, req *robotsevaluatorV1.
 			"jobExecutionId", jobExecutionId,
 			"error", err,
 		)
+		if errors.Is(err, errRobotsUnreachable) {
+			return nil, status.Error(codes.Unavailable, err.Error())
+		}
 		return nil, err
 	}
 

@@ -105,12 +105,11 @@ func (e *Evaluator) IsAllowed(ctx context.Context, req *AllowedRequest) (bool, e
 			return grobotstxt.AgentAllowed(req.CustomRobots, req.UserAgent, req.Uri), nil
 		}
 		if errors.Is(err, errRobotsUnreachable) {
-			slog.Warn("Robots.txt is unreachable and no cached rules are available; disallowing request",
+			slog.Warn("Robots.txt is unreachable and no cached rules are available; returning service error",
 				"uri", req.Uri,
 				"collectionId", req.CollectionId,
 				"error", err,
 			)
-			return false, nil
 		}
 		return false, fmt.Errorf("failed to fetch robots.txt: %w", err)
 

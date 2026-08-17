@@ -14,10 +14,10 @@ timeout, network error, or response-body error.
 
 | Value | Policy | Frontier check before browser start | Browser-controller check | Rules used | Site `robots.txt` unavailable or unreachable |
 |---:|---|---|---|---|---|
-| 0 | `OBEY_ROBOTS` | Evaluates the queued page | None | Site `robots.txt` | Unavailable allows; unreachable uses stale rules or denies if none exist |
+| 0 | `OBEY_ROBOTS` | Evaluates the queued page | None | Site `robots.txt` | Unavailable allows; unreachable uses stale rules or returns `Unavailable` if none exist |
 | 1 | `IGNORE_ROBOTS` | None | None | No robots rules | Not applicable |
 | 2 | `CUSTOM_ROBOTS` | Evaluates the queued page | None | Configured custom rules | Not applicable; site `robots.txt` is not fetched |
-| 3 | `OBEY_ROBOTS_CLASSIC` | Evaluates the queued page | Evaluates requests registered during the browser session | Site `robots.txt` | Unavailable allows; unreachable uses stale rules or denies if none exist |
+| 3 | `OBEY_ROBOTS_CLASSIC` | Evaluates the queued page | Evaluates requests registered during the browser session | Site `robots.txt` | Unavailable allows; unreachable uses stale rules or returns `Unavailable` if none exist |
 | 4 | `CUSTOM_ROBOTS_CLASSIC` | Evaluates the queued page | Evaluates requests registered during the browser session | Configured custom rules | Not applicable; site `robots.txt` is not fetched |
 | 5 | `CUSTOM_IF_MISSING` | Evaluates the queued page | None | Site rules, stale site rules when unreachable, otherwise configured custom rules | Configured custom rules are used when no site rules are available |
 | 6 | `CUSTOM_IF_MISSING_CLASSIC` | Evaluates the queued page | Evaluates requests registered during the browser session | Site rules, stale site rules when unreachable, otherwise configured custom rules | Configured custom rules are used when no site rules are available |
@@ -27,9 +27,10 @@ to its corresponding non-classic policy before calling robots-evaluator. For
 all other policies, browser-controller performs no robots-evaluator RPC.
 
 An internal robots-evaluator RPC failure remains fail-open in Frontier and
-browser-controller. Expected origin outcomes are converted into explicit
-decisions by robots-evaluator: an unreachable origin without cached or custom
-rules is denied instead of being returned as an RPC failure.
+browser-controller. An unreachable origin without cached or custom rules is
+returned as gRPC `Unavailable`; it is not reported as a robots-rule denial.
+Frontier therefore allows the request and logs the evaluator failure instead
+of completing the seed with `PRECLUDED_BY_ROBOTS` (`-9998`).
 
 ## Caching
 
@@ -61,13 +62,14 @@ Refresh outcomes are handled as follows:
 | Successful 2xx | Store the site rules for the configured freshness interval |
 | Final 3xx or 4xx | Store an unavailable result for the configured freshness interval |
 | 5xx, timeout, network failure, or body-read failure with cached rules | Keep using the stale rules and postpone refresh for the retry interval |
-| Unreachable without cached rules in this collection | Store the retry timestamp; obey policies deny and `CUSTOM_IF_MISSING` policies use their custom rules |
+| Unreachable without cached rules in this collection | Store the retry timestamp; obey policies return `Unavailable` and `CUSTOM_IF_MISSING` policies use their custom rules |
 
 Logical freshness does not delete an Olric entry. When a fresh result becomes
 stale, robots-evaluator attempts to refresh it. If the origin is unreachable,
 stale rules remain usable and the retry timestamp prevents a request storm.
-Without stale rules, `OBEY_ROBOTS` denies until retry; a
-`CUSTOM_IF_MISSING` policy evaluates its custom rules.
+Without stale rules, `OBEY_ROBOTS` returns `Unavailable` until retry so callers
+can apply their service-failure policy; a `CUSTOM_IF_MISSING` policy evaluates
+its custom rules.
 
 Olric storage retention is configured separately with a 30-day
 `maxIdleDuration`. Reads reset idle time, so actively used stale rules can

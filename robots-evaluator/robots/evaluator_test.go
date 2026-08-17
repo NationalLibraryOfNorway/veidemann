@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,7 +15,10 @@ import (
 	"time"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/cache"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -238,8 +242,8 @@ func TestCollectionCannotUseAnotherCollectionsStaleRules(t *testing.T) {
 	now = now.Add(25 * time.Hour)
 	origin.setResponse(http.StatusServiceUnavailable, "")
 	allowed, err = e.IsAllowed(context.Background(), allowedRequest(uri, "collection-b", "execution-b", "job-b"))
-	if err != nil || allowed {
-		t.Fatalf("collection-b IsAllowed = (%v, %v), want (false, nil)", allowed, err)
+	if !errors.Is(err, errRobotsUnreachable) || allowed {
+		t.Fatalf("collection-b IsAllowed = (%v, %v), want (false, errRobotsUnreachable)", allowed, err)
 	}
 
 	allowed, err = e.IsAllowed(context.Background(), allowedRequest(uri, "collection-a", "execution-a2", "job-a2"))
@@ -297,7 +301,7 @@ func TestConcurrentMissesUseSingleOriginFetch(t *testing.T) {
 	}
 }
 
-func TestUnreachableWithoutCachedRulesDisallowsAndCustomFallsBack(t *testing.T) {
+func TestUnreachableWithoutCachedRulesReturnsErrorAndCustomFallsBack(t *testing.T) {
 	origin := &testOrigin{status: http.StatusServiceUnavailable}
 	server := httptest.NewServer(origin)
 	defer server.Close()
@@ -308,8 +312,8 @@ func TestUnreachableWithoutCachedRulesDisallowsAndCustomFallsBack(t *testing.T) 
 
 	req := allowedRequest(uri, "collection-a", "execution-1", "job-1")
 	allowed, err := e.IsAllowed(context.Background(), req)
-	if err != nil || allowed {
-		t.Fatalf("OBEY_ROBOTS IsAllowed = (%v, %v), want (false, nil)", allowed, err)
+	if !errors.Is(err, errRobotsUnreachable) || allowed {
+		t.Fatalf("OBEY_ROBOTS IsAllowed = (%v, %v), want (false, errRobotsUnreachable)", allowed, err)
 	}
 
 	customReq := allowedRequest(uri, "collection-a", "execution-2", "job-2")
@@ -321,6 +325,32 @@ func TestUnreachableWithoutCachedRulesDisallowsAndCustomFallsBack(t *testing.T) 
 	}
 	if got := len(origin.requestSnapshot()); got != 1 {
 		t.Fatalf("origin requests = %d, want 1 during retry backoff", got)
+	}
+}
+
+func TestServerMapsUnreachableWithoutCachedRulesToUnavailable(t *testing.T) {
+	origin := &testOrigin{status: http.StatusServiceUnavailable}
+	server := httptest.NewServer(origin)
+	defer server.Close()
+
+	now := time.Date(2026, time.August, 3, 12, 0, 0, 0, time.UTC)
+	e := newTestEvaluator(newMemoryCache(), server.Client(), &now)
+	s := &EvaluatorServer{Evaluator: e}
+
+	_, err := s.IsAllowed(context.Background(), &robotsevaluatorV1.IsAllowedRequest{
+		Uri:       server.URL + "/page",
+		UserAgent: "testcrawler",
+		Politeness: &configV1.ConfigObject{
+			Spec: &configV1.ConfigObject_PolitenessConfig{
+				PolitenessConfig: &configV1.PolitenessConfig{
+					RobotsPolicy: configV1.PolitenessConfig_OBEY_ROBOTS,
+				},
+			},
+		},
+		CollectionRef: &configV1.ConfigRef{Id: "collection-a"},
+	})
+	if got := status.Code(err); got != codes.Unavailable {
+		t.Fatalf("IsAllowed status = %v, want %v (error: %v)", got, codes.Unavailable, err)
 	}
 }
 
