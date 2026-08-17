@@ -60,7 +60,7 @@ build:
   artifacts:
     - image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy
       context: ./recorderproxy
-      ko: {}
+      docker: {}
     - image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter
       context: ./contentwriter
       ko: {}
