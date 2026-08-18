@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.0
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/redis/go-redis/v9 v9.21.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
