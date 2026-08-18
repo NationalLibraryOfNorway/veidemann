@@ -28,8 +28,19 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      monorepo-go-dependencies:
-        group-by: "dependency-name"
+      go-redis:
+        patterns:
+          - "github.com/redis/go-redis"
+      grpc:
+        patterns:
+          - "google.golang.org/grpc"
+          - "google.golang.org/protobuf"
+      prometheus:
+        patterns:
+          - "github.com/prometheus/*"
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
     labels:
       - "dependencies"
     commit-message:
