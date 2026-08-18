@@ -1,80 +1,80 @@
 version: 2
 updates:
-    - package-ecosystem: "npm"
-      directory: "/dashboard"
-      schedule:
-          interval: "weekly"
-      labels:
-          - "dependencies"
-      commit-message:
-          prefix: "build"
-          include: "scope"
+  - package-ecosystem: "npm"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "build"
+      include: "scope"
 
-    - package-ecosystem: "gomod"
-      directories:
-          - "/api"
-          - "/browser-controller"
-          - "/cache/helpers"
-          - "/contentwriter"
-          - "/ctl"
-          - "/dns-resolver"
-          - "/frontier-queue-workers"
-          - "/log-service"
-          - "/metrics"
-          - "/ooshandler"
-          - "/recorderproxy"
-          - "/robots-evaluator"
-          - "/scopeservice"
-      schedule:
-          interval: "weekly"
-      groups:
-          monorepo-go-dependencies:
-              group-by: "dependency-name"
-      labels:
-          - "dependencies"
-      commit-message:
-          prefix: "build"
-          include: "scope"
+  - package-ecosystem: "gomod"
+    directories:
+      - "/api"
+      - "/browser-controller"
+      - "/cache/helpers"
+      - "/contentwriter"
+      - "/ctl"
+      - "/dns-resolver"
+      - "/frontier-queue-workers"
+      - "/log-service"
+      - "/metrics"
+      - "/ooshandler"
+      - "/recorderproxy"
+      - "/robots-evaluator"
+      - "/scopeservice"
+    schedule:
+      interval: "weekly"
+    groups:
+      monorepo-go-dependencies:
+        group-by: "dependency-name"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "build"
+      include: "scope"
 
-    - package-ecosystem: "github-actions"
-      directory: "/"
-      schedule:
-          interval: "weekly"
-      labels:
-          - "dependencies"
-      commit-message:
-          prefix: "build"
-          include: "scope"
-    
-    - package-ecosystem: "docker"
-      directories:
-          - "/browser-controller"
-          - "/cache"
-          - "/contentwriter"
-          - "/dashboard"
-          - "/dns-resolver"
-          - "/frontier-queue-workers"
-          - "/log-service"
-          - "/metrics"
-          - "/olricd"
-          - "/ooshandler"
-          - "/recorderproxy"
-          - "/robots-evaluator"
-          - "/scopeservice"
-      schedule:
-          interval: "weekly"
-      labels:
-          - "dependencies"
-      commit-message:
-          prefix: "build"
-          include: "scope"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "build"
+      include: "scope"
 
-    - package-ecosystem: "gradle"
-      labels:
-          - "dependencies"
-      directory: "/"
-      schedule:
-          interval: "weekly"
-      commit-message:
-          prefix: "build"
-          include: "scope"
+  - package-ecosystem: "docker"
+    directories:
+      - "/browser-controller"
+      - "/cache"
+      - "/contentwriter"
+      - "/dashboard"
+      - "/dns-resolver"
+      - "/frontier-queue-workers"
+      - "/log-service"
+      - "/metrics"
+      - "/olricd"
+      - "/ooshandler"
+      - "/recorderproxy"
+      - "/robots-evaluator"
+      - "/scopeservice"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+
+  - package-ecosystem: "gradle"
+    labels:
+      - "dependencies"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"
+      include: "scope"
