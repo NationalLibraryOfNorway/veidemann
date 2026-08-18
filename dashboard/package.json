@@ -37,7 +37,7 @@
     "@angular/material-date-fns-adapter": "^22.1.2",
     "@angular/platform-browser": "^22.1.2",
     "@angular/router": "^22.1.2",
-    "@bufbuild/protobuf": "2.13.0",
+    "@bufbuild/protobuf": "2.14.0",
     "@casl/ability": "^7.0.1",
     "@casl/angular": "^10.0.3",
     "@connectrpc/connect": "2.1.2",
@@ -78,15 +78,13 @@
     "@bufbuild/buf": "1.72.0",
     "@eslint/js": "^10.0.1",
     "@juggle/resize-observer": "^3.4.0",
-    "@types/node": "^25.6.0",
-    "@typescript-eslint/eslint-plugin": "^8.66.0",
-    "@typescript-eslint/parser": "^8.66.0",
+    "@types/node": "^26.2.0",
     "angular-eslint": "^22.1.0",
     "eslint": "^10.8.1",
     "jsdom": "^30.0.1",
     "ng-extract-i18n-merge": "^3.4.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "^8.66.0",
+    "typescript-eslint": "8.67.0",
     "vitest": "^4.1.10"
   }
 }

@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:26-trixie-slim AS build
 
 ARG VERSION
 
@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN npm ci --quiet --no-fund --no-audit --legacy-peer-deps
+RUN npm ci --quiet --no-fund --no-audit
 RUN sed -i "s/version: ''/version: '${VERSION}'/" src/environments/*.ts
 RUN npm run build
 
