@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file dnsresolver/v1/dnsresolver.proto.
  */
 export const file_dnsresolver_v1_dnsresolver: GenFile = /*@__PURE__*/
-  fileDesc("CiBkbnNyZXNvbHZlci92MS9kbnNyZXNvbHZlci5wcm90bxIcdmVpZGVtYW5uLmFwaS5kbnNyZXNvbHZlci52MSJ+Cg5SZXNvbHZlUmVxdWVzdBIMCgRob3N0GAEgASgJEgwKBHBvcnQYAiABKAUSFAoMZXhlY3V0aW9uX2lkGAYgASgJEjoKDmNvbGxlY3Rpb25fcmVmGAcgASgLMiIudmVpZGVtYW5uLmFwaS5jb25maWcudjEuQ29uZmlnUmVmIn4KDFJlc29sdmVSZXBseRIMCgRob3N0GAEgASgJEgwKBHBvcnQYAiABKAUSEgoKdGV4dHVhbF9pcBgDIAEoCRIOCgZyYXdfaXAYBCABKAwSLgoFZXJyb3IYBSABKAsyHy52ZWlkZW1hbm4uYXBpLmNvbW1vbnMudjEuRXJyb3IydAoLRG5zUmVzb2x2ZXISZQoHcmVzb2x2ZRIsLnZlaWRlbWFubi5hcGkuZG5zcmVzb2x2ZXIudjEuUmVzb2x2ZVJlcXVlc3QaKi52ZWlkZW1hbm4uYXBpLmRuc3Jlc29sdmVyLnYxLlJlc29sdmVSZXBseSIAQn8KJm5vLm5iLm5uYS52ZWlkZW1hbm4uYXBpLmRuc3Jlc29sdmVyLnYxQhJEbnNSZXNvbHZlclNlcnZpY2VQAVo/Z2l0aHViLmNvbS9OYXRpb25hbExpYnJhcnlPZk5vcndheS92ZWlkZW1hbm4vYXBpL2Ruc3Jlc29sdmVyL3YxYgZwcm90bzM", [file_config_v1_resources, file_commons_v1_resources]);
+  fileDesc("CiBkbnNyZXNvbHZlci92MS9kbnNyZXNvbHZlci5wcm90bxIcdmVpZGVtYW5uLmFwaS5kbnNyZXNvbHZlci52MSKCAQoOUmVzb2x2ZVJlcXVlc3QSDAoEaG9zdBgBIAEoCRIQCgRwb3J0GAIgASgFQgIYARIUCgxleGVjdXRpb25faWQYBiABKAkSOgoOY29sbGVjdGlvbl9yZWYYByABKAsyIi52ZWlkZW1hbm4uYXBpLmNvbmZpZy52MS5Db25maWdSZWYiggEKDFJlc29sdmVSZXBseRIMCgRob3N0GAEgASgJEhAKBHBvcnQYAiABKAVCAhgBEhIKCnRleHR1YWxfaXAYAyABKAkSDgoGcmF3X2lwGAQgASgMEi4KBWVycm9yGAUgASgLMh8udmVpZGVtYW5uLmFwaS5jb21tb25zLnYxLkVycm9yMnQKC0Ruc1Jlc29sdmVyEmUKB3Jlc29sdmUSLC52ZWlkZW1hbm4uYXBpLmRuc3Jlc29sdmVyLnYxLlJlc29sdmVSZXF1ZXN0GioudmVpZGVtYW5uLmFwaS5kbnNyZXNvbHZlci52MS5SZXNvbHZlUmVwbHkiAEJ/CiZuby5uYi5ubmEudmVpZGVtYW5uLmFwaS5kbnNyZXNvbHZlci52MUISRG5zUmVzb2x2ZXJTZXJ2aWNlUAFaP2dpdGh1Yi5jb20vTmF0aW9uYWxMaWJyYXJ5T2ZOb3J3YXkvdmVpZGVtYW5uL2FwaS9kbnNyZXNvbHZlci92MWIGcHJvdG8z", [file_config_v1_resources, file_commons_v1_resources]);
 
 /**
  * @generated from message veidemann.api.dnsresolver.v1.ResolveRequest
@@ -26,7 +26,10 @@ export type ResolveRequest = Message<"veidemann.api.dnsresolver.v1.ResolveReques
   host: string;
 
   /**
-   * @generated from field: int32 port = 2;
+   * Deprecated: a port is application metadata and is not part of DNS resolution.
+   *
+   * @generated from field: int32 port = 2 [deprecated = true];
+   * @deprecated
    */
   port: number;
 
@@ -58,7 +61,10 @@ export type ResolveReply = Message<"veidemann.api.dnsresolver.v1.ResolveReply"> 
   host: string;
 
   /**
-   * @generated from field: int32 port = 2;
+   * Deprecated: a port is application metadata and is not part of DNS resolution.
+   *
+   * @generated from field: int32 port = 2 [deprecated = true];
+   * @deprecated
    */
   port: number;
 
@@ -73,6 +79,10 @@ export type ResolveReply = Message<"veidemann.api.dnsresolver.v1.ResolveReply"> 
   rawIp: Uint8Array;
 
   /**
+   * Set when the DNS server returned a valid negative or failure response.
+   * Error.code contains the DNS RCODE. Presence with code 0 means NODATA.
+   * Transport and resolver-internal failures are returned as gRPC errors.
+   *
    * @generated from field: veidemann.api.commons.v1.Error error = 5;
    */
   error?: Error;
