@@ -58,7 +58,7 @@
     "filesize": "^11.0.22",
     "ip-address": "^10.5.0",
     "minimist": "~1.2.8",
-    "monaco-editor": "^0.55.1",
+    "monaco-editor": "^0.56.0",
     "ng-mocks": "^14.17.2",
     "ngx-echarts": "^22.0.0",
     "ngx-monaco-editor-v2": "^22.0.4",
