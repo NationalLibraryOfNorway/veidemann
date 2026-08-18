@@ -1,8 +1,8 @@
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.1 h1:TvIxMoM9fytX9bi8+l7yhcBz+C3tLDsbGIDhnXL0gyc=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.1/go.mod h1:1GXZS8hQkNdMl6SS6D7uy8lCgCh3Pk7X/yUmXOv3pcQ=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.3 h1:fmuzijQp4k2IgXVvvhoJvrVH2aHxuyi/L1YNDMI26Rs=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.3/go.mod h1:3Sxr5B1d46M946DYQtYe19UylsPHos8lmijyjWBuK3A=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4 h1:dIWIGnhHwnu15P/iGdsRbYD+yZIseIB2/FujDtXYKcA=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4/go.mod h1:eg97807n92Wu+pxNzsnUtXjRKUWEplR9Wh4H0e0G49Y=
 github.com/RoaringBitmap/roaring v1.9.4 h1:yhEIoH4YezLYT04s1nHehNO64EKFTop/wBhxv2QzDdQ=
 github.com/RoaringBitmap/roaring v1.9.4/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
