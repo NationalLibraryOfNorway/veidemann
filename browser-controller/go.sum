@@ -8,8 +8,8 @@ github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/NationalLibraryOfNorway/veidemann/api v1.5.0 h1:taJctfC7sy+TD1Gy7kjEtFsh51qKt6W53Pqwvip+jZI=
-github.com/NationalLibraryOfNorway/veidemann/api v1.5.0/go.mod h1:Jyk1oo8IIraLX5vHkOXcEp+zavnk99WgFhrJBhmfu1s=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.1 h1:TvIxMoM9fytX9bi8+l7yhcBz+C3tLDsbGIDhnXL0gyc=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.1/go.mod h1:1GXZS8hQkNdMl6SS6D7uy8lCgCh3Pk7X/yUmXOv3pcQ=
 github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.3 h1:fmuzijQp4k2IgXVvvhoJvrVH2aHxuyi/L1YNDMI26Rs=
 github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.3/go.mod h1:3Sxr5B1d46M946DYQtYe19UylsPHos8lmijyjWBuK3A=
 github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.6 h1:qRlB5pE+fuzRPZthc1llqofBL6/sSXxn047GJkFrAYs=
