@@ -119,7 +119,7 @@ func (e *Resolve) Resolve(ctx context.Context, request *dnsresolverV1.ResolveReq
 		Host: request.Host,
 		// Preserve the deprecated request/reply echo for older Frontier clients.
 		// Current clients neither send nor consume this value.
-		Port: request.Port,
+		Port: request.Port, //nolint:staticcheck // Required for compatibility with older Frontier clients.
 	}
 out:
 	for _, answer := range msg.Answer {

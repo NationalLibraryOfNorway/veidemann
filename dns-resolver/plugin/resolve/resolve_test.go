@@ -33,8 +33,9 @@ func TestExample(t *testing.T) {
 	if reply.Host != "example.org" {
 		t.Errorf("Expected Host to be example.org, got: %s", reply.Host)
 	}
-	if reply.Port != 0 {
-		t.Errorf("Expected deprecated Port to be unset, got: %d", reply.Port)
+	port := reply.Port //nolint:staticcheck // Verify that current requests leave the legacy field unset.
+	if port != 0 {
+		t.Errorf("Expected deprecated Port to be unset, got: %d", port)
 	}
 	if reply.TextualIp != "127.0.0.1" {
 		t.Errorf("Expected TextualIp to be 127.0.0.1, got: %s", reply.TextualIp)
@@ -52,13 +53,14 @@ func TestDeprecatedPortIsEchoedForLegacyClients(t *testing.T) {
 
 	reply, err := server.Resolve(testPeerContext(t), &dnsresolverV1.ResolveRequest{
 		Host: "example.org",
-		Port: 80,
+		Port: 80, //nolint:staticcheck // Exercise compatibility with legacy requests.
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reply.Port != 80 {
-		t.Errorf("Expected deprecated Port compatibility echo to be 80, got: %d", reply.Port)
+	port := reply.Port //nolint:staticcheck // Verify that the legacy field is echoed in the reply.
+	if port != 80 {
+		t.Errorf("Expected deprecated Port compatibility echo to be 80, got: %d", port)
 	}
 }
 
