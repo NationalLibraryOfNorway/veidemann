@@ -77,7 +77,7 @@ func parseFlags() (Options, error) {
 	flags.String("mode", modeCombined, "Runtime mode: combined, writer, or recent")
 
 	flags.String("parquet-dir", "./data/parquet", "Directory where parquet files are written")
-	flags.Int64("max-lines-per-file", 100000, "Rotate parquet file when this many rows are written")
+	flags.Int64("max-lines-per-file", 1000000, "Rotate parquet file when this many rows are written")
 	flags.String("recent-log-db-path", "./data/recent-logs.db", "Path to the SQLite database used for recent log reads")
 	flags.Int64("recent-crawl-log-max-entries", 1000000, "Maximum number of crawl logs retained in the recent read store")
 	flags.Int64("recent-page-log-max-entries", 250000, "Maximum number of page logs retained in the recent read store")

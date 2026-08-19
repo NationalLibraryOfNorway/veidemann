@@ -41,7 +41,7 @@ These notes apply to work inside `log-service/`.
 - If S3 is configured and `s3-upload-delay` is greater than `0`, finalized parquet files stay local until the retention threshold is reached. A background scan re-checks indexed finalized files so eligible uploads survive process restarts.
 - Successful S3 upload deletes the local parquet file and removes its index entry.
 - Current S3 object keys are built as `<keyPrefix>/<table>/<collection>/<file>.parquet`.
-- Current S3 object metadata includes `veidemann-table`, `veidemann-collection`, and `veidemann-row-count`.
+- S3 object user metadata contains only `md5`, the lowercase hexadecimal MD5 checksum of the uploaded Parquet file.
 
 ## Manual Local Cleanup
 

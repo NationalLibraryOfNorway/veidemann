@@ -90,7 +90,7 @@ to `PARQUET_DIR=/parquet`.
 | `--mode` | `MODE` | `combined` | Runtime role: `combined`, `writer`, or `recent`. |
 | `--metrics-address` | `METRICS_ADDRESS` | `:9153` | Address for `/metrics` and `/readyz`. |
 | `--parquet-dir` | `PARQUET_DIR` | `./data/parquet` | Local Parquet and index directory used by writer and combined modes. |
-| `--max-lines-per-file` | `MAX_LINES_PER_FILE` | `100000` | Finalizes/rotates a file after this many rows. Smaller values create more upload jobs and objects. |
+| `--max-lines-per-file` | `MAX_LINES_PER_FILE` | `1000000` | Finalizes/rotates a file after this many rows. Smaller values create more upload jobs and objects. |
 | `--recent-log-db-path` | `RECENT_LOG_DB_PATH` | `./data/recent-logs.db` | SQLite database used by recent and combined modes. |
 | `--recent-crawl-log-max-entries` | `RECENT_CRAWL_LOG_MAX_ENTRIES` | `1000000` | Independently retained crawl-log row limit. Must be at least one. |
 | `--recent-page-log-max-entries` | `RECENT_PAGE_LOG_MAX_ENTRIES` | `250000` | Independently retained page-log row limit. Must be at least one. |
@@ -177,6 +177,9 @@ Writer mode also exports:
 The bounded outcomes are `success`, `failure`, `queue_full_drop`, and
 `shutdown_drop`. Writer readiness intentionally does not depend on the recent
 service because the secondary copy is best-effort.
+
+Each uploaded Parquet object has a single user-metadata field, `md5`, containing
+the lowercase hexadecimal MD5 checksum of the uploaded file.
 
 If an upload fails, the finalized Parquet file and its index entry remain in
 `PARQUET_DIR`. The error is logged as `Parquet S3 handoff failed`, the service

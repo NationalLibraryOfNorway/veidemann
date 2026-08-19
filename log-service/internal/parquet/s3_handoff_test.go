@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -81,6 +82,24 @@ func waitForIndexFileCount(t *testing.T, dir string, want int) {
 	}
 }
 
+func TestCalculateMD5(t *testing.T) {
+	t.Parallel()
+
+	filePath := filepath.Join(t.TempDir(), "file.parquet")
+	if err := os.WriteFile(filePath, []byte("parquet"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := calculateMD5(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "5c8844a97bf2298a6724856911dde080"
+	if got != want {
+		t.Fatalf("expected MD5 %s, got %s", want, got)
+	}
+}
+
 func TestAsyncS3HandoffUploadsInBackground(t *testing.T) {
 	t.Parallel()
 
@@ -130,8 +149,9 @@ func TestAsyncS3HandoffUploadsInBackground(t *testing.T) {
 		if uploaded.opts.ContentType != parquetContentType {
 			t.Fatalf("expected content type %s, got %s", parquetContentType, uploaded.opts.ContentType)
 		}
-		if uploaded.opts.UserMetadata["veidemann-row-count"] != "3" {
-			t.Fatalf("expected row count metadata 3, got %s", uploaded.opts.UserMetadata["veidemann-row-count"])
+		expectedMetadata := map[string]string{"md5": "5c8844a97bf2298a6724856911dde080"}
+		if len(uploaded.opts.UserMetadata) != len(expectedMetadata) || uploaded.opts.UserMetadata["md5"] != expectedMetadata["md5"] {
+			t.Fatalf("expected user metadata %v, got %v", expectedMetadata, uploaded.opts.UserMetadata)
 		}
 		waitForFileCleanup(t, filePath)
 	case <-time.After(time.Second):
@@ -140,6 +160,66 @@ func TestAsyncS3HandoffUploadsInBackground(t *testing.T) {
 	if err := handoff.Close(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestAsyncS3HandoffChecksumFailureRetainsIndexEntry(t *testing.T) {
+	t.Parallel()
+
+	collectionDir := filepath.Join(t.TempDir(), tableCrawlLog, "collection-a")
+	filePath := filepath.Join(collectionDir, "crawl_log_1.parquet")
+	if err := os.MkdirAll(filePath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := appendIndexEntry(collectionDir, indexEntry{Name: filepath.Base(filePath), RowCount: 3}); err != nil {
+		t.Fatal(err)
+	}
+
+	uploader := &fakeS3Uploader{uploaded: make(chan uploadedObject, 1)}
+	uploadErrors := make(chan error, 1)
+	handoff, err := newAsyncS3Handoff(uploader, AsyncS3HandoffConfig{
+		Bucket:    "bucket-a",
+		Workers:   1,
+		QueueSize: 1,
+		OnError: func(_ FinalizedParquetFile, err error) {
+			uploadErrors <- err
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := handoff.Close(); err != nil {
+			t.Errorf("close handoff: %v", err)
+		}
+	})
+
+	if err := handoff.HandoffFinalizedFile(FinalizedParquetFile{
+		Table:      tableCrawlLog,
+		Collection: "collection-a",
+		Path:       filePath,
+		RowCount:   3,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case err := <-uploadErrors:
+		if !strings.Contains(err.Error(), "calculate md5") {
+			t.Fatalf("expected checksum error, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for checksum error")
+	}
+
+	select {
+	case uploaded := <-uploader.uploaded:
+		t.Fatalf("expected checksum failure to skip upload, got %+v", uploaded)
+	case <-time.After(50 * time.Millisecond):
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		t.Fatalf("expected source path to remain after checksum failure: %v", err)
+	}
+	waitForIndexFileCount(t, collectionDir, 1)
 }
 
 func TestStorageCloseDoesNotWaitForAsyncS3Upload(t *testing.T) {

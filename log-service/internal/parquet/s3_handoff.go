@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
 
@@ -238,6 +237,12 @@ func (h *AsyncS3Handoff) clearPending(path string) {
 func (h *AsyncS3Handoff) upload(file FinalizedParquetFile) {
 	defer h.clearPending(file.Path)
 
+	md5sum, err := calculateMD5(file.Path)
+	if err != nil {
+		h.reportError(file, fmt.Errorf("calculate md5 for parquet file %s: %w", file.Path, err))
+		return
+	}
+
 	ctx := context.Background()
 	if h.uploadTimeout > 0 {
 		var cancel context.CancelFunc
@@ -245,13 +250,9 @@ func (h *AsyncS3Handoff) upload(file FinalizedParquetFile) {
 		defer cancel()
 	}
 
-	_, err := h.client.FPutObject(ctx, h.bucket, h.objectKey(file), file.Path, minio.PutObjectOptions{
-		ContentType: parquetContentType,
-		UserMetadata: map[string]string{
-			"veidemann-table":      file.Table,
-			"veidemann-collection": file.Collection,
-			"veidemann-row-count":  strconv.FormatInt(file.RowCount, 10),
-		},
+	_, err = h.client.FPutObject(ctx, h.bucket, h.objectKey(file), file.Path, minio.PutObjectOptions{
+		ContentType:  parquetContentType,
+		UserMetadata: map[string]string{"md5": md5sum},
 	})
 	if err != nil {
 		h.reportError(file, err)
