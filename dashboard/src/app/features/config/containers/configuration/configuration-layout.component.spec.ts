@@ -304,7 +304,7 @@ describe('ConfigurationComponent crawl-job layout', () => {
     expect(link.textContent.trim()).toBe('Owner registry');
     expect(link.href).toBe('https://example.com/owners/archive');
     expect(seedContext).not.toBeNull();
-    expect([...aside.querySelectorAll('h2')]
+    expect([...aside.querySelectorAll('h2, h3')]
       .map((heading: HTMLElement) => heading.textContent.trim())).toEqual(['Links', 'Seeds']);
     expect(labelLinks.compareDocumentPosition(seedContext) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
