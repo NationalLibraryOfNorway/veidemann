@@ -2745,16 +2745,6 @@
         <source>Log out</source>
       </segment>
     </unit>
-    <unit id="mainToolbarScheduledCrawljobsButtonTooltip">
-      <segment>
-        <source>Click to show overview of scheduled crawljobs</source>
-      </segment>
-    </unit>
-    <unit id="mainToolbarScheduleMenuItem">
-      <segment>
-        <source>Crawljob schedule</source>
-      </segment>
-    </unit>
     <unit id="malformedOutlinkLabel">
       <segment>
         <source>Malformed outlink</source>

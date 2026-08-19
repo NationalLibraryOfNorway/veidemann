@@ -3,7 +3,6 @@ import {BreakpointObserver, BreakpointState} from '@angular/cdk/layout';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {NavigationEnd, provideRouter, ResolveFn, Router} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
-import {MatDialog} from '@angular/material/dialog';
 import {BehaviorSubject, filter, firstValueFrom, ReplaySubject, take} from 'rxjs';
 
 import {AuthService, SnackBarService} from '../../core';
@@ -22,7 +21,6 @@ describe('AppComponent navigation', () => {
   let router: Router;
   let breakpointState: BehaviorSubject<BreakpointState>;
   let seedResolution: ReplaySubject<unknown>;
-  let dialog: {open: ReturnType<typeof vi.fn>};
   const can = vi.fn((_action: string, subject: string) =>
     ['configs', 'CRAWLENTITY', 'SEED'].includes(subject));
 
@@ -37,9 +35,6 @@ describe('AppComponent navigation', () => {
       },
     });
     seedResolution = new ReplaySubject<unknown>(1);
-    dialog = {
-      open: vi.fn(() => ({})),
-    };
     const seedResolver: ResolveFn<unknown> = () => seedResolution;
 
     await TestBed.configureTestingModule({
@@ -82,7 +77,6 @@ describe('AppComponent navigation', () => {
         },
         {provide: ErrorHandler, useValue: {handleError: vi.fn()}},
         {provide: SnackBarService, useValue: {openSnackBar: vi.fn()}},
-        {provide: MatDialog, useValue: dialog},
       ],
     }).compileComponents();
 
@@ -568,8 +562,8 @@ describe('AppComponent navigation', () => {
     const actions = Array.from(
       fixture.nativeElement.querySelectorAll('.rail-actions .rail-action')
     ) as HTMLButtonElement[];
-    expect(actions).toHaveLength(2);
-    expect(actions[0].getAttribute('aria-label')).toBe('Crawljob schedule');
+    expect(actions).toHaveLength(1);
+    expect(actions[0].getAttribute('aria-label')).toBe('Log out');
     for (const action of actions) {
       expect(action.querySelector('mat-icon')).not.toBeNull();
       expect(action.getAttribute('aria-label')).not.toBe('');
@@ -590,7 +584,6 @@ describe('AppComponent navigation', () => {
 
     const drawerText = (fixture.nativeElement.querySelector('.primary-navigation') as HTMLElement).textContent;
     expect(drawerText).not.toContain('Home');
-    expect(drawerText).not.toContain('Crawljob schedule');
     expect(drawerText).not.toContain('LOGIN');
     expect(drawerText).not.toContain('Log out');
     expect(drawerText).toContain('Configuration');
@@ -616,12 +609,9 @@ describe('AppComponent navigation', () => {
       expect.stringContaining('Home'),
       expect.stringContaining('Configuration'),
       expect.stringContaining('Reports'),
-      expect.stringContaining('Crawljob schedule'),
       expect.stringContaining('Log out'),
     ]);
-    expect(drawerItems.at(-2)?.querySelector('mat-icon')?.textContent).toContain('calendar_month');
     expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
-    expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
     expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);
   });
 
@@ -641,7 +631,6 @@ describe('AppComponent navigation', () => {
     expect(drawerItems.at(-1)?.querySelector('mat-icon')?.textContent).toContain('logout');
     expect(getComputedStyle(drawerItems.at(-1) as HTMLElement).marginTop).not.toBe('auto');
     expect(drawerItems.some(item => item.textContent.includes('LOGIN'))).toBe(false);
-    expectDrawerActionStyle(drawerItems.at(-2) as HTMLButtonElement);
     expectDrawerActionStyle(drawerItems.at(-1) as HTMLButtonElement);
   });
 

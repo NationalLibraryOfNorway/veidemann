@@ -3225,18 +3225,6 @@
         <target>Logg ut</target>
       </segment>
     </unit>
-    <unit id="mainToolbarScheduledCrawljobsButtonTooltip">
-      <segment state="initial">
-        <source>Click to show overview of scheduled crawljobs</source>
-        <target>Click to show overview of scheduled crawljobs</target>
-      </segment>
-    </unit>
-    <unit id="mainToolbarScheduleMenuItem">
-      <segment state="initial">
-        <source>Crawljob schedule</source>
-        <target>Crawljob schedule</target>
-      </segment>
-    </unit>
     <unit id="malformedOutlinkLabel">
       <segment state="initial">
         <source>Malformed outlink</source>

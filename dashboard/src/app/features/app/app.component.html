@@ -57,15 +57,6 @@
   <span class="rail-spacer"></span>
 
   <div class="rail-actions">
-    @if (can('read', 'report')) {
-      <button class="rail-action" mat-icon-button
-              matTooltip="Click to show overview of scheduled crawljobs"
-              i18n-matTooltip="@@mainToolbarScheduledCrawljobsButtonTooltip"
-              aria-label="Crawljob schedule" i18n-aria-label="@@mainToolbarScheduleMenuItem"
-              (click)="onShowJobSchedule()">
-        <mat-icon>calendar_month</mat-icon>
-      </button>
-    }
     <button class="rail-action" mat-icon-button matTooltip="{{name}}" (click)="onLogout()"
             aria-label="Log out" i18n-aria-label="@@mainToolbarLogoutButton">
       <mat-icon>logout</mat-icon>
@@ -105,12 +96,6 @@
             }
           }
           @if (!railNavigation()) {
-            @if (can('read', 'report')) {
-              <button mat-list-item type="button" (click)="onShowJobSchedule(); closePrimaryDrawer()">
-                <mat-icon matListItemIcon>calendar_month</mat-icon>
-                <span matListItemTitle i18n="@@mainToolbarScheduleMenuItem">Crawljob schedule</span>
-              </button>
-            }
             <button mat-list-item type="button" (click)="onLogout(); closePrimaryDrawer()">
               <mat-icon matListItemIcon>logout</mat-icon>
               <span matListItemTitle i18n="@@mainToolbarLogoutButton">Log out</span>

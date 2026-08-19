@@ -18,13 +18,11 @@ import {
   RouterLinkActive,
   RouterOutlet
 } from '@angular/router';
-import {MatDialog} from '@angular/material/dialog';
 import {filter, map, startWith, tap} from 'rxjs/operators';
 import {AbilityServiceSignal} from "@casl/angular";
 import {MongoAbility} from '@casl/ability';
 
 import {AuthService, SnackBarService} from '../../core';
-import {ScheduleOverviewComponent} from './schedule-overview/schedule-overview.component';
 import {MatToolbar} from '@angular/material/toolbar';
 import {MatIcon} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
@@ -81,7 +79,6 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private snackBarService = inject(SnackBarService);
-  private dialog = inject(MatDialog);
   private errorHandler = inject(ErrorHandler);
   private abilityService = inject<AbilityServiceSignal<MongoAbility>>(AbilityServiceSignal);
   private breakpointObserver = inject(BreakpointObserver);
@@ -317,14 +314,4 @@ export class AppComponent implements OnInit {
       .then(() => this.snackBarService.openSnackBar($localize`:@snackBarMessage.loggedOut:You are now logged out`));
   }
 
-  onShowJobSchedule() {
-    this.dialog.open(ScheduleOverviewComponent, {
-      maxWidth: '95vw',
-      maxHeight: '95vh',
-      height: '95%',
-      width: '95%',
-      autoFocus: true,
-      panelClass: 'calendar'
-    });
-  }
 }
