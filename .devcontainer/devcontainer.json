@@ -5,13 +5,17 @@
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {},
-    "ghcr.io/devcontainers/features/go:1": {},
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.27"
+    },
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",
       "jdkDistro": "ms",
       "installGradle": true
     },
-    "ghcr.io/devcontainers/features/node:2.1.0": {},
+    "ghcr.io/devcontainers/features/node:2": {
+      "version": "26"
+    },
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/nix:1": {
