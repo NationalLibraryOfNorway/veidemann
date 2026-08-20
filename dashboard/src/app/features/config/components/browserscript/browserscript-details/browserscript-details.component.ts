@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -18,8 +18,8 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatInput} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
-import {EditorComponent} from 'ngx-monaco-editor-v2';
 import {CopyIdDirective} from '../../../../../shared/directives';
+import {MonacoEditorComponent, MonacoEditorLanguage} from '../../../../../shared/components';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,7 +28,7 @@ import {CopyIdDirective} from '../../../../../shared/directives';
   styleUrls: ['./browserscript-details.component.scss'],
   imports: [
     CopyIdDirective,
-    EditorComponent,
+    MonacoEditorComponent,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -46,11 +46,10 @@ export class BrowserScriptDetailsComponent implements OnChanges {
   protected fb = inject(UntypedFormBuilder);
   protected authService = inject(AuthService);
 
-  private readonly editorComponent = viewChild(EditorComponent);
   private readonly darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
   private readonly darkMode = signal(this.darkModeQuery.matches);
-  private readonly editorInitialized = signal(false);
   private readonly onColorSchemeChange = (event: MediaQueryListEvent) => this.darkMode.set(event.matches);
+  readonly editorTheme = computed(() => this.darkMode() ? 'vs-dark' as const : 'vs' as const);
   readonly scriptExpanded = signal(false);
   readonly scriptToggleLabel = computed(() => this.scriptExpanded()
     ? $localize`:@@browserscriptCollapseScriptAction:Show full form`
@@ -82,8 +81,6 @@ export class BrowserScriptDetailsComponent implements OnChanges {
   labelInputSeparators = [ENTER, COMMA];
 
   editorOptions = {
-    theme: this.monacoTheme(this.darkMode()),
-    language: 'javascript',
     roundedSelection: true,
     automaticLayout: true,
   };
@@ -93,16 +90,13 @@ export class BrowserScriptDetailsComponent implements OnChanges {
     inject(DestroyRef).onDestroy(() => {
       this.darkModeQuery.removeEventListener('change', this.onColorSchemeChange);
     });
-    effect(() => {
-      if (this.editorInitialized()) {
-        this.editorComponent()?.setTheme(this.monacoTheme(this.darkMode()));
-      }
-    });
     this.createForm();
   }
 
-  private monacoTheme(darkMode: boolean): 'vs' | 'vs-dark' {
-    return darkMode ? 'vs-dark' : 'vs';
+  get editorLanguage(): MonacoEditorLanguage {
+    return this.form?.get('browserScriptType')?.value === BrowserScriptType.SCOPE_CHECK
+      ? 'python'
+      : 'javascript';
   }
 
   get canEdit(): boolean {
@@ -141,10 +135,6 @@ export class BrowserScriptDetailsComponent implements OnChanges {
         this.form.reset();
       }
     }
-  }
-
-  initEditor(): void {
-    this.editorInitialized.set(true);
   }
 
   toggleScriptExpanded(): void {

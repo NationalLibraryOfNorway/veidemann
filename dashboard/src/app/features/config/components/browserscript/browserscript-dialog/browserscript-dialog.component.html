@@ -64,11 +64,12 @@
         </mat-card>
       </form>
     }
-    <ngx-monaco-editor #editor class="editor flex-fill"
+    <app-monaco-editor #editor class="editor flex-fill"
       formControlName="script"
       [options]="editorOptions"
-      (onInit)="initEditor()">
-    </ngx-monaco-editor>
+      [language]="editorLanguage"
+      [theme]="editorTheme()">
+    </app-monaco-editor>
     @if (!script.valid) {
       <mat-error
         i18n="@@browserscriptFormScriptRequiredError">

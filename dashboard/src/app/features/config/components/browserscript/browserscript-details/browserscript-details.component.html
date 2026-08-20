@@ -84,11 +84,12 @@
         }
         <div class="editor-section layout-column flex-fill">
           <div class="editor-field flex-fill">
-            <ngx-monaco-editor class="editor editor-resizable"
+            <app-monaco-editor class="editor editor-resizable"
               formControlName="script"
               [options]="editorOptions"
-              (onInit)="initEditor()">
-            </ngx-monaco-editor>
+              [language]="editorLanguage"
+              [theme]="editorTheme()">
+            </app-monaco-editor>
           </div>
           @if (!script.valid) {
             <mat-error>{{script?.errors['monaco']?.value}}</mat-error>

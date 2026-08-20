@@ -4,9 +4,9 @@ import {BrowserScriptDialogComponent} from './browserscript-dialog.component';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ConfigObject, Kind} from '../../../../../shared/models';
 import {ConfigDialogData} from '../../../func';
-import {MonacoEditorModule} from 'ngx-monaco-editor-v2';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {describe, it } from 'vitest'
+import {createMonacoEditorTestingHarness} from '../../../../../shared/components/monaco-editor/monaco-editor.spec-helpers';
 
 describe('BrowserScriptDialogComponent', () => {
   let component: BrowserScriptDialogComponent;
@@ -18,13 +18,14 @@ describe('BrowserScriptDialogComponent', () => {
   };
 
   beforeEach(() => {
+    const monaco = createMonacoEditorTestingHarness();
     TestBed.configureTestingModule({
       imports: [
         BrowserScriptDialogComponent,
-        MonacoEditorModule.forRoot()
       ],
       providers: [
         ...provideCoreTesting,
+        monaco.provider,
         {
           provide: MAT_DIALOG_DATA,
           useValue: MY_CONF

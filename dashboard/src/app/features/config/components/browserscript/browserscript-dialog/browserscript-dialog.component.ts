@@ -9,8 +9,8 @@ import { MAT_DIALOG_DATA,MatDialogModule,MatDialogRef } from '@angular/material/
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { EditorComponent } from 'ngx-monaco-editor-v2';
 import { ConfigObject } from '../../../../../shared/models';
+import { MonacoEditorComponent } from '../../../../../shared/components';
 import { ConfigDialogData } from '../../../func';
 import { MetaComponent } from '../../meta/meta.component';
 
@@ -20,7 +20,7 @@ import { MetaComponent } from '../../meta/meta.component';
   templateUrl: './browserscript-dialog.component.html',
   styleUrls: ['./browserscript-dialog.component.css'],
   imports: [
-    EditorComponent,
+    MonacoEditorComponent,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,

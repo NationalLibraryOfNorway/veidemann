@@ -9,3 +9,4 @@ export * from './detail-overflow/detail-overflow.component';
 export * from './boolean-state-chip/boolean-state-chip.component';
 export * from './boolean-override/boolean-override.component';
 export * from './polling-refresh-button/polling-refresh-button.component';
+export * from './monaco-editor/monaco-editor.component';

@@ -11,7 +11,6 @@ import { Ability, createMongoAbility } from '@casl/ability';
 import { AuthConfig, OAuthModule, OAuthService } from 'angular-oauth2-oidc';
 
 import { NGX_ECHARTS_CONFIG } from 'ngx-echarts';
-import { NgxMonacoEditorConfig, provideMonacoEditor } from 'ngx-monaco-editor-v2';
 import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { ApplicationErrorHandler, AuthService, ControllerApiService, LocaleService } from './core';
@@ -37,12 +36,6 @@ export class AppConfig {
   }
 }
 
-const monacoConfig: NgxMonacoEditorConfig = {
-  // You can pass cdn url here instead
-  baseUrl: 'public/monaco/min/vs',
-  defaultOptions: { scrollBeyondLastLine: false },
-};
-
 export const appConfig: ApplicationConfig = {
 
   providers: [
@@ -53,7 +46,6 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(
       OAuthModule.forRoot(),
     ),
-    provideMonacoEditor(monacoConfig),
     OAuthService,
     { provide: Ability, useValue: createMongoAbility() },
     provideAppInitializer(initializeApp),

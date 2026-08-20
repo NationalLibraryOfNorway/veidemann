@@ -5,6 +5,7 @@ import {SimpleChange} from '@angular/core';
 import {
   Annotation,
   BrowserScript,
+  BrowserScriptType,
   browserScriptTypes,
   ConfigObject,
   Kind,
@@ -15,10 +16,14 @@ import {HarnessLoader} from '@angular/cdk/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {EditorComponent, MonacoEditorModule} from 'ngx-monaco-editor-v2';
 import {AuthService} from '../../../../../core';
 import {provideCoreTesting} from '../../../../../core/core.testing.module';
 import {vi} from 'vitest';
+import {MonacoEditorComponent} from '../../../../../shared/components';
+import {
+  createMonacoEditorTestingHarness,
+  MonacoEditorTestingHarness
+} from '../../../../../shared/components/monaco-editor/monaco-editor.spec-helpers';
 
 
 const exampleBrowserScript: ConfigObject = {
@@ -51,6 +56,7 @@ describe('BrowserScriptDetailsComponent', () => {
   let updateButton: MatButtonHarness;
 
   let scriptTypeSelect: MatSelectHarness;
+  let monaco: MonacoEditorTestingHarness;
   const authService = {
     canUpdate: vi.fn(() => true),
     canDelete: vi.fn(() => true),
@@ -58,13 +64,14 @@ describe('BrowserScriptDetailsComponent', () => {
 
   // Async beforeEach needed when using external template
   beforeEach(() => {
+    monaco = createMonacoEditorTestingHarness();
     TestBed.configureTestingModule({
       imports: [
         BrowserScriptDetailsComponent,
-        MonacoEditorModule.forRoot()
       ],
       providers: [
         ...provideCoreTesting,
+        monaco.provider,
         {provide: AuthService, useValue: authService},
       ]
     })
@@ -106,7 +113,7 @@ describe('BrowserScriptDetailsComponent', () => {
     expect(editorSection.parentElement).toBe(scriptColumn);
     expect(Array.from(scriptColumn.children).indexOf(editorSection))
       .toBeGreaterThan(Array.from(scriptColumn.children).indexOf(urlRegexp));
-    const editor = editorSection.querySelector('ngx-monaco-editor.editor-resizable') as HTMLElement;
+    const editor = editorSection.querySelector('app-monaco-editor.editor-resizable') as HTMLElement;
     expect(editor).not.toBeNull();
     expect(editor.parentElement).toBe(editorField);
     expect(getComputedStyle(editorField).borderBlockEndStyle).toBe('solid');
@@ -131,7 +138,7 @@ describe('BrowserScriptDetailsComponent', () => {
     const detailsGrid = fixture.nativeElement.querySelector('.details-grid') as HTMLElement;
     const editorSection = fixture.nativeElement.querySelector('.editor-section') as HTMLElement;
     const editorField = fixture.nativeElement.querySelector('.editor-field') as HTMLElement;
-    const editor = editorField.querySelector('ngx-monaco-editor') as HTMLElement;
+    const editor = editorField.querySelector('app-monaco-editor') as HTMLElement;
 
     expect(getComputedStyle(detailsGrid).alignItems).toBe('stretch');
     expect(editorSection.classList).toContain('flex-fill');
@@ -189,12 +196,10 @@ describe('BrowserScriptDetailsComponent', () => {
   });
 
   it('uses the light Monaco theme when the dashboard is in light mode', () => {
-    expect(component.editorOptions.theme).toBe('vs');
+    expect(component.editorTheme()).toBe('vs');
   });
 
   it('updates the Monaco theme when the preferred color scheme changes', async () => {
-    const editorComponent = fixture.debugElement.query(By.directive(EditorComponent)).componentInstance as EditorComponent;
-    const setTheme = vi.spyOn(editorComponent, 'setTheme').mockImplementation(() => undefined);
     const matchMedia = vi.mocked(window.matchMedia);
     let queryIndex = -1;
     matchMedia.mock.calls.forEach(([query], index) => {
@@ -207,26 +212,54 @@ describe('BrowserScriptDetailsComponent', () => {
       ([type]) => type === 'change'
     )[1] as EventListener;
 
-    component.initEditor();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    setTheme.mockClear();
+    monaco.setTheme.mockClear();
 
     changeListener({matches: true} as MediaQueryListEvent);
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(setTheme).toHaveBeenCalledWith('vs-dark');
+    expect(component.editorTheme()).toBe('vs-dark');
+    expect(monaco.setTheme).toHaveBeenCalledWith('vs-dark');
 
-    setTheme.mockClear();
+    monaco.setTheme.mockClear();
     changeListener({matches: false} as MediaQueryListEvent);
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(setTheme).toHaveBeenCalledWith('vs');
+    expect(component.editorTheme()).toBe('vs');
+    expect(monaco.setTheme).toHaveBeenCalledWith('vs');
 
     fixture.destroy();
     expect(mediaQuery.removeEventListener).toHaveBeenCalledWith('change', changeListener);
+  });
+
+  it('uses Python highlighting for Starlark scope-check scripts', async () => {
+    component.form.get('browserScriptType').setValue(BrowserScriptType.SCOPE_CHECK);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const editor = fixture.debugElement.query(By.directive(MonacoEditorComponent))
+      .componentInstance as MonacoEditorComponent;
+    expect(component.editorLanguage).toBe('python');
+    expect(editor.language()).toBe('python');
+    expect(monaco.setModelLanguage).toHaveBeenLastCalledWith(expect.anything(), 'python');
+  });
+
+  it('uses JavaScript highlighting for browser-executed scripts', async () => {
+    component.form.get('browserScriptType').setValue(BrowserScriptType.SCOPE_CHECK);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    monaco.setModelLanguage.mockClear();
+
+    component.form.get('browserScriptType').setValue(BrowserScriptType.ON_LOAD);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const editor = fixture.debugElement.query(By.directive(MonacoEditorComponent))
+      .componentInstance as MonacoEditorComponent;
+    expect(component.editorLanguage).toBe('javascript');
+    expect(editor.language()).toBe('javascript');
+    expect(monaco.setModelLanguage).toHaveBeenLastCalledWith(expect.anything(), 'javascript');
   });
 
   describe('Creating a new browserscript', () => {

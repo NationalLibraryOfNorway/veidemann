@@ -228,12 +228,12 @@ mat-card-header.card-header-with-helpers {
   }
 }
 
-ngx-monaco-editor.editor .monaco-editor {
+app-monaco-editor.editor .monaco-editor {
   --vscode-editor-background: var(--mat-sys-surface-variant);
   --vscode-editorGutter-background: var(--mat-sys-surface-variant);
 }
 
-ngx-monaco-editor.editor .monaco-editor .lines-decorations {
+app-monaco-editor.editor .monaco-editor .lines-decorations {
   background-color: var(--mat-sys-surface-variant);
 }
 
