@@ -29,6 +29,10 @@
     "source=veidemann-codex,target=/home/vscode/.codex,type=volume"
   ],
 
+  "remoteEnv": {
+      "PATH": "${containerEnv:PATH}:/usr/lib/git-core"
+  },
+
   "containerEnv": {
     "GOCACHE": "/tmp/go-build-cache",
     "GRADLE_USER_HOME": "/tmp/gradle-home"
