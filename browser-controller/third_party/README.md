@@ -17,6 +17,9 @@ Browser-controller selects this copy with a local `replace` directive in its
   prevents `fatal error: concurrent map read and map write` in
   `chromedp.(*Target).domEvent` when an attached target is initialized while
   Chrome is delivering DOM events.
+- Make `WaitReady` apply `NodeReady` after caller options, consistent with the
+  other `Wait*` helpers and the fix proposed in upstream PR
+  [#1594](https://github.com/chromedp/chromedp/pull/1594).
 
 Do not copy `cdproto` or edit its generated protocol code here. It remains a
 normal Go module dependency selected by browser-controller's module graph.

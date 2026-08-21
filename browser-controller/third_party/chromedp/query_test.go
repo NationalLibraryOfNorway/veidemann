@@ -44,6 +44,35 @@ func TestWaitReady(t *testing.T) {
 	}
 }
 
+func TestWaitReadyForcesNodeReady(t *testing.T) {
+	t.Parallel()
+
+	const nodeID cdp.NodeID = 1
+	customWaitCalled := false
+	action := WaitReady("#target", WaitFunc(func(context.Context, *cdp.Frame, cdpruntime.ExecutionContextID, ...cdp.NodeID) ([]*cdp.Node, error) {
+		customWaitCalled = true
+		return nil, errors.New("custom wait condition called")
+	}))
+
+	selector, ok := action.(*Selector)
+	if !ok {
+		t.Fatalf("WaitReady returned %T, want *Selector", action)
+	}
+	frame := &cdp.Frame{Nodes: map[cdp.NodeID]*cdp.Node{
+		nodeID: {NodeID: nodeID},
+	}}
+	nodes, err := selector.wait(context.Background(), frame, 0, nodeID)
+	if err != nil {
+		t.Fatalf("NodeReady wait failed: %v", err)
+	}
+	if customWaitCalled {
+		t.Fatal("WaitReady did not override the custom wait condition with NodeReady")
+	}
+	if len(nodes) != 1 || nodes[0].NodeID != nodeID {
+		t.Fatalf("NodeReady returned %#v, want node %d", nodes, nodeID)
+	}
+}
+
 func TestWaitVisible(t *testing.T) {
 	t.Parallel()
 
