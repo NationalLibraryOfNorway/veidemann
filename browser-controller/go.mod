@@ -2,6 +2,8 @@ module github.com/NationalLibraryOfNorway/veidemann/browser-controller
 
 go 1.26
 
+replace github.com/chromedp/chromedp => ./third_party/chromedp
+
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.1
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4

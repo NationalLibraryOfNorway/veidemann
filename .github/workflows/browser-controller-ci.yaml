@@ -16,3 +16,22 @@ jobs:
     uses: ./.github/workflows/golang-ci.yaml
     with:
       working-directory: browser-controller
+
+  chromedp:
+    name: Patched chromedp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "stable"
+          cache-dependency-path: browser-controller/third_party/chromedp/go.sum
+
+      - name: Run upstream tests
+        working-directory: browser-controller/third_party/chromedp
+        run: go test ./...
+
+      - name: Run DOM event race regression
+        working-directory: browser-controller/third_party/chromedp
+        run: go test -race -run '^TestDOMEvent' .

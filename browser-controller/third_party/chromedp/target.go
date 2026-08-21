@@ -360,18 +360,29 @@ func (t *Target) pageEvent(ev any) {
 
 // domEvent handles incoming DOM events.
 func (t *Target) domEvent(ctx context.Context, ev any) {
+	if _, ok := ev.(*dom.EventDocumentUpdated); ok {
+		t.documentUpdated(ctx)
+		return
+	}
+
 	t.frameMu.RLock()
 	f := t.frames[t.cur]
 	t.frameMu.RUnlock()
+	if f == nil {
+		// DOM events can arrive before the top-level frame is known.
+		return
+	}
+
+	// documentUpdated holds this lock while replacing and rebuilding Nodes.
+	// Hold it while selecting and applying all other DOM events as well so an
+	// operation cannot access the map concurrently or retain a stale map.
+	f.Lock()
+	defer f.Unlock()
 
 	var id cdp.NodeID
 	var op nodeOp
 
 	switch e := ev.(type) {
-	case *dom.EventDocumentUpdated:
-		t.documentUpdated(ctx)
-		return
-
 	case *dom.EventSetChildNodes:
 		id, op = e.ParentID, setChildNodes(f.Nodes, e.Nodes)
 
@@ -429,7 +440,5 @@ func (t *Target) domEvent(ctx context.Context, ev any) {
 		return
 	}
 
-	f.Lock()
 	op(n)
-	f.Unlock()
 }

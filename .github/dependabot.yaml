@@ -41,6 +41,9 @@ updates:
       opentelemetry:
         patterns:
           - "go.opentelemetry.io/*"
+    ignore:
+      # chromedp is maintained as a patched subtree for browser-controller.
+      - dependency-name: "github.com/chromedp/chromedp"
     labels:
       - "dependencies"
     commit-message:
