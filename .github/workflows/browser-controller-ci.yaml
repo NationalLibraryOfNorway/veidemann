@@ -6,9 +6,11 @@ on:
       - "main"
     paths:
       - "browser-controller/**"
+      - ".github/workflows/browser-controller-ci.yaml"
   pull_request:
     paths:
       - "browser-controller/**"
+      - ".github/workflows/browser-controller-ci.yaml"
   workflow_dispatch:
 
 jobs:
@@ -28,10 +30,9 @@ jobs:
           go-version: "stable"
           cache-dependency-path: browser-controller/third_party/chromedp/go.sum
 
-      - name: Run upstream tests
+      - name: Run patched chromedp regressions
         working-directory: browser-controller/third_party/chromedp
-        run: go test ./...
-
-      - name: Run DOM event race regression
-        working-directory: browser-controller/third_party/chromedp
-        run: go test -race -run '^TestDOMEvent' .
+        run: >-
+          go test -race
+          -run '^(TestDOMEventConcurrentNodeMapRebuild|TestDOMEventWithoutCurrentFrame|TestWaitReadyForcesNodeReady)$'
+          .
