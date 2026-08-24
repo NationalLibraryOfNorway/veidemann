@@ -40,7 +40,7 @@ frontier-queue-workers|frontier-queue-workers|frontier-queue-workers|deploy/k8s/
 frontier|frontier|frontier|deploy/k8s/base/frontier/deployment.yaml
 browser-controller|browser-controller|browser-controller|deploy/k8s/base/harvester/deployment.yaml
 recorderproxy|recorderproxy|recorderproxy|deploy/k8s/base/harvester/deployment.yaml
-log-service|log-service|log-service|deploy/k8s/base/log-service/deployment/deployment.yaml,deploy/k8s/base/log-service/statefulset/statefulset.yaml
+log-service|log-service|log-service|deploy/k8s/base/log-service/deployment/deployment.yaml,deploy/k8s/base/log-service/recent/deployment.yaml,deploy/k8s/base/log-service/statefulset/statefulset.yaml
 metrics|metrics|metrics|deploy/k8s/base/metrics/deployment.yaml
 olricd|olricd|olricd|deploy/k8s/base/olric/statefulset.yaml
 ooshandler|ooshandler|ooshandler|deploy/k8s/base/ooshandler/deployment.yaml
