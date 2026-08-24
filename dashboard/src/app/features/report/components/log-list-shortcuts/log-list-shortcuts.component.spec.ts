@@ -1,3 +1,5 @@
+import {formatDate} from '@angular/common';
+import {LOCALE_ID} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideRouter} from '@angular/router';
 import {AbilityServiceSignal} from '@casl/angular';
@@ -14,6 +16,11 @@ describe('LogListShortcutsComponent', () => {
   let getCrawlExecution: ReturnType<typeof vi.fn>;
   let getSeed: ReturnType<typeof vi.fn>;
   let getJob: ReturnType<typeof vi.fn>;
+  let locale: string;
+
+  function localizedMedium(value: string): string {
+    return formatDate(value, 'medium', locale).replace(/\s+/g, ' ');
+  }
 
   beforeEach(async () => {
     can = vi.fn(() => true);
@@ -50,6 +57,7 @@ describe('LogListShortcutsComponent', () => {
 
     fixture = TestBed.createComponent(LogListShortcutsComponent);
     fixture.componentRef.setInput('logKind', 'pagelog');
+    locale = TestBed.inject(LOCALE_ID);
   });
 
   it('renders the filtered execution metadata beside the Page Log menu', async () => {
@@ -71,8 +79,8 @@ describe('LogListShortcutsComponent', () => {
       .map((value: HTMLElement) => value.textContent.replace(/\s+/g, ' ').trim());
     expect(labels).toEqual(['Started', 'Finished', 'Crawl job', 'Seed']);
     expect(values).toEqual([
-      'Aug 13, 2026, 10:49:12 PM',
-      'Aug 13, 2026, 10:49:24 PM',
+      localizedMedium('2026-08-13T22:49:12.000Z'),
+      localizedMedium('2026-08-13T22:49:24.000Z'),
       'Unscheduled',
       'Example seed',
     ]);

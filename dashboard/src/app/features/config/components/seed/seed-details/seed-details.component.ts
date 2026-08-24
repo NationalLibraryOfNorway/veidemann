@@ -5,7 +5,8 @@ import {AbstractControl, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGro
 import {AuthService} from '../../../../../core/auth';
 import {ConfigObject, ConfigRef, Kind, Meta} from '../../../../../shared/models';
 import {Subject} from 'rxjs';
-import {EffectiveScriptAnnotationsComponent, Parcel, SeedMetaComponent} from '../..';
+import {EffectiveScriptAnnotationsComponent} from '../effective-script-annotations/effective-script-annotations.component';
+import {Parcel, SeedMetaComponent} from '../../seed-meta/seed-meta.component';
 import {configRefIdRequired} from '../../../../../shared/validation/configref';
 import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';

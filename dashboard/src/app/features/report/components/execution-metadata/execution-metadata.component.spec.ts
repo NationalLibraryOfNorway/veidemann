@@ -1,3 +1,5 @@
+import {formatDate} from '@angular/common';
+import {LOCALE_ID} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 import {ExecutionStatePresentation} from '../../func';
@@ -8,10 +10,12 @@ describe('ExecutionMetadataComponent', () => {
     icon: 'progress_activity', label: 'Running', tone: 'active', lifecycle: 'active',
   };
   let fixture: ComponentFixture<ExecutionMetadataComponent>;
+  let locale: string;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({imports: [ExecutionMetadataComponent]}).compileComponents();
     fixture = TestBed.createComponent(ExecutionMetadataComponent);
+    locale = TestBed.inject(LOCALE_ID);
   });
 
   function render({
@@ -34,11 +38,15 @@ describe('ExecutionMetadataComponent', () => {
     return element.textContent?.replace(/\s+/g, ' ').trim() ?? '';
   }
 
+  function localizedMedium(value: string): string {
+    return formatDate(value, 'medium', locale).replace(/\s+/g, ' ');
+  }
+
   it('renders an active execution as Started and Running through Now', () => {
     const metadata = render({startTime: '2026-08-10T10:19:00.000Z'});
     const terms = [...metadata.querySelectorAll('dt')].map(term => term.textContent?.trim());
     expect(terms).toEqual(['Started', 'Running']);
-    expect(text(metadata)).toContain('Aug 10, 2026, 10:19:00 AM');
+    expect(text(metadata)).toContain(localizedMedium('2026-08-10T10:19:00.000Z'));
     expect(text(metadata)).toContain('Now');
   });
 
@@ -93,7 +101,7 @@ describe('ExecutionMetadataComponent', () => {
     const state: ExecutionStatePresentation = {icon: 'error', label, tone: 'error', lifecycle};
     const metadata = render({state, endTime: '2026-08-10T13:57:00.000Z'});
     expect(metadata.querySelectorAll('dt')[1].textContent?.trim()).toBe(label);
-    expect(text(metadata)).toContain('Aug 10, 2026, 1:57:00 PM');
+    expect(text(metadata)).toContain(localizedMedium('2026-08-10T13:57:00.000Z'));
     expect(text(metadata)).not.toContain('Now');
   });
 
@@ -138,7 +146,7 @@ describe('ExecutionMetadataComponent', () => {
     });
 
     expect(metadata.querySelectorAll('dt')[1].textContent?.trim()).toBe('Aborted manually');
-    expect(text(metadata.querySelectorAll('dd')[1])).toBe('Aug 10, 2026, 1:57:00 PM');
+    expect(text(metadata.querySelectorAll('dd')[1])).toBe(localizedMedium('2026-08-10T13:57:00.000Z'));
     expect(text(metadata).match(/Aborted manually/g)).toHaveLength(1);
   });
 });

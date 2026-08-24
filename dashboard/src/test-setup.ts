@@ -1,5 +1,11 @@
 import { vi } from 'vitest';
 
+// Monaco checks this deprecated browser API while registering clipboard support.
+Object.defineProperty(document, 'queryCommandSupported', {
+  writable: true,
+  value: vi.fn(() => false),
+});
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation(query => ({
@@ -24,4 +30,3 @@ Object.defineProperty(window, 'ResizeObserver', {
   writable: true,
   value: MockResizeObserver,
 });
-
