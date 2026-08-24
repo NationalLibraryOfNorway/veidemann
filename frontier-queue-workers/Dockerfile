@@ -1,18 +1,20 @@
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 
-WORKDIR /build
+WORKDIR /src
 
-COPY . .
+COPY go.mod go.sum ./
 RUN go mod download
 
-# -trimpath remove file system paths from executable
-# -ldflags arguments passed to go tool link:
-#   -s disable symbol table
-#   -w disable DWARF generation
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w"
+COPY . .
 
-FROM gcr.io/distroless/base-debian12
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags "-s -w" \
+    -o /out/app .
 
-COPY --from=build /build/frontier-queue-workers /app
+
+FROM gcr.io/distroless/base-debian12:nonroot
+
+COPY --from=build /out/app /app
 
 ENTRYPOINT ["/app"]

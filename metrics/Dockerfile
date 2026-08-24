@@ -1,17 +1,24 @@
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 
-WORKDIR /go/src/app
+ARG VERSION
+ARG COMMIT
+ARG DATE
+
+WORKDIR /src
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/veidemann-metrics .
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    -o /out/app .
 
-FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /go/bin/veidemann-metrics /
 
-ENTRYPOINT ["/veidemann-metrics"]
-EXPOSE 9301
+FROM gcr.io/distroless/base-debian12:nonroot
 
+COPY --from=build /out/app /app
+
+ENTRYPOINT ["/app"]

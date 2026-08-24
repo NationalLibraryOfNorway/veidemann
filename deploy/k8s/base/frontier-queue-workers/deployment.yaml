@@ -26,6 +26,10 @@ spec:
       containers:
         - name: frontier-queue-workers
           image: ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers:0.5.3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           envFrom:
             - secretRef:
                 name: rethinkdb-env

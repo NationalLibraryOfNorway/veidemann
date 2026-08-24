@@ -1,18 +1,24 @@
-FROM docker.io/golang:1.26.6 AS builder
+FROM golang:1.27 AS build
 
-WORKDIR /build
+ARG VERSION
+ARG COMMIT
+ARG DATE
 
-COPY . .
+WORKDIR /src
+
+COPY go.mod go.sum ./
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build  -trimpath -ldflags "-s -w"
+COPY . .
+
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    -o /out/app .
 
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
-COPY --from=builder /build/ooshandler /
+COPY --from=build /out/app /app
 
-EXPOSE 9301 50052
-VOLUME "/data"
-
-ENTRYPOINT ["/ooshandler"]
+ENTRYPOINT ["/app"]

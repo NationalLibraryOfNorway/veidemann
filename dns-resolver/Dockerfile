@@ -1,18 +1,19 @@
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 
-WORKDIR /build
+WORKDIR /src
 
-COPY . .
+COPY go.mod go.sum ./
 RUN go mod download
 
-# -trimpath Remove all file system paths from the compiled executable.
-# -s Omit the symbol table and debug information.
-# -w Omit the DWARF symbol table.
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w"
+COPY . .
+
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags "-s -w" \
+    -o /out/app .
 
 
 FROM gcr.io/distroless/static-debian12:nonroot
-LABEL maintainer="marius.beck@nb.no"
 
 # dns port
 EXPOSE 1053 1053/udp
@@ -31,8 +32,8 @@ ENV DNS_SERVER=8.8.8.8 \
     LOG_WRITER_HOST=veidemann-log-service \
     LOG_WRITER_PORT=8080
 
-COPY --from=build /build/dns-resolver /usr/local/sbin/dns-resolver
+COPY --from=build /out/app /usr/local/sbin/app
 COPY --chown=nonroot:nonroot Corefile.docker /Corefile
 
-ENTRYPOINT ["dns-resolver"]
+ENTRYPOINT ["app"]
 CMD ["-conf", "/Corefile"]

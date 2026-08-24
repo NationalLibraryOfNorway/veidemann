@@ -23,9 +23,16 @@ spec:
       annotations:
         linkerd.io/inject: enabled
     spec:
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: log-service
           image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.9.3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - name: grpc
               containerPort: 8080

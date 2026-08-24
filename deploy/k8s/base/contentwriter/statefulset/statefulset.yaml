@@ -27,9 +27,16 @@ spec:
         linkerd.io/inject: enabled
     spec:
       terminationGracePeriodSeconds: 300
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: contentwriter
           image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.6.4
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - name: grpc
               containerPort: 8082

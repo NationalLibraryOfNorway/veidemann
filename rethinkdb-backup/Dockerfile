@@ -1,4 +1,4 @@
-FROM docker.io/library/rethinkdb:2.4.4-bookworm-slim
+FROM library/rethinkdb:2.4.4-bookworm-slim
 
 LABEL maintainer="marius.beck@nb.no"
 

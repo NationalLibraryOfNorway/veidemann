@@ -1,22 +1,32 @@
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 
-WORKDIR /build
+ARG VERSION
+ARG COMMIT
+ARG DATE
+
+WORKDIR /src
+
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . ./
-# -trimpath remove file system paths from executable
-# -ldflags arguments passed to go tool link:
-#   -s disable symbol table
-#   -w disable DWARF generation
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o proxy .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o generate-mitm-cert ./cmd/generate-mitm-cert
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    -o /out/app \
+    .
+
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags "-s -w" \
+    -o /out/generate-mitm-cert \
+    ./cmd/generate-mitm-cert
 
 
-FROM gcr.io/distroless/base-debian12
+FROM gcr.io/distroless/base-debian12:nonroot
 
-COPY --from=build /build/proxy /
-COPY --from=build /build/generate-mitm-cert /
+COPY --from=build /out/app /app
+COPY --from=build /out/generate-mitm-cert /generate-mitm-cert
 
-EXPOSE 8080/tcp
-
-ENTRYPOINT ["/proxy"]
+ENTRYPOINT ["/app"]

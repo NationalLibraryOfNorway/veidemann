@@ -13,7 +13,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 
-FROM gcr.io/distroless/nodejs26-debian13
+FROM gcr.io/distroless/nodejs26-debian13:nonroot
 
 WORKDIR /app
 

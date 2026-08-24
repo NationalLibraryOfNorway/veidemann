@@ -1,24 +1,26 @@
-FROM golang:1.25-bookworm AS probe
+FROM golang:1.27 AS build
 
-WORKDIR /go/src/probe
+WORKDIR /src
 
-COPY probe/* ./
+COPY probe/go.mod probe/go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=0 go install -trimpath -ldflags "-s -w"
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags "-s -w" \
+    -o /out/rethinkdb-probe .
 
 
 FROM rethinkdb:2.4.4-bookworm-slim
-
-LABEL maintainer="Marius André Elsfjordstrand Beck <marius.beck@nb.no>"
 
 RUN apt-get update && \
     apt-get -y install --no-install-recommends coreutils libc-bin tini && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=probe /go/bin/probe /rethinkdb-probe
-COPY ./run.sh /
+COPY --from=build /out/rethinkdb-probe /rethinkdb-probe
+COPY ./run.sh /run.sh
 RUN chmod u+x /run.sh
-
-EXPOSE 28015 29015 8080
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/run.sh"]

@@ -17,6 +17,10 @@ spec:
       containers:
         - name: olricd
           image: ghcr.io/nationallibraryofnorway/veidemann/olricd:0.7.4
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - name: api
               containerPort: 3320

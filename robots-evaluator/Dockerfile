@@ -1,17 +1,24 @@
-FROM golang:latest AS build
+FROM golang:1.27 AS build
 
 ARG VERSION
 ARG COMMIT
 ARG DATE
 
-WORKDIR /src/
-COPY . /src/
+WORKDIR /src
+
+COPY go.mod go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=0 go build -o /usr/bin/app \
--ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    -o /out/app .
 
 
-FROM gcr.io/distroless/base-debian12
-COPY --from=build /usr/bin/app /usr/bin/app
+FROM gcr.io/distroless/base-debian12:nonroot
 
-ENTRYPOINT ["/usr/bin/app"]
+COPY --from=build /out/app /app
+
+ENTRYPOINT ["/app"]

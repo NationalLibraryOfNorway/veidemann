@@ -1,26 +1,24 @@
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 
-WORKDIR /build
+ARG VERSION
+ARG COMMIT
+ARG DATE
 
-COPY go.mod .
-COPY go.sum .
+WORKDIR /src
 
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-# -trimpath remove file system paths from executable
-# -ldflags arguments passed to go tool link:
-#   -s disable symbol table
-#   -w disable DWARF generation
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" .
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    -o /out/app .
 
-FROM gcr.io/distroless/base-debian12
-COPY --from=build /build/log-service /
 
-# api server
-EXPOSE 8090/tcp
-# prometheus metrics server
-EXPOSE 9153/tcp
+FROM gcr.io/distroless/base-debian12:nonroot
 
-ENTRYPOINT ["/log-service"]
+COPY --from=build /out/app /app
+
+ENTRYPOINT ["/app"]

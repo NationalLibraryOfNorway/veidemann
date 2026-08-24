@@ -84,6 +84,10 @@ spec:
               subPath: log4j2.xml
         - name: rethinkdb-ast-service
           image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.1
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - name: http
               containerPort: 3000

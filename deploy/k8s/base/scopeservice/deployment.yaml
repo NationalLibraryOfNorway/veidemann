@@ -19,6 +19,10 @@ spec:
       containers:
         - name: scopeservice
           image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice:0.4.2
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           resources:
             requests:
               memory: "50Mi"

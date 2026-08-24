@@ -37,6 +37,10 @@ spec:
       initContainers:
         - name: generate-recorder-mitm-cert
           image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.7
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           command:
             - /generate-mitm-cert
           args:
@@ -48,6 +52,10 @@ spec:
       containers:
         - name: browser-controller
           image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.2
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - containerPort: 9999
               protocol: TCP
@@ -122,6 +130,10 @@ spec:
               readOnly: true
         - name: recorderproxy
           image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.7
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - containerPort: 9900
               name: proxy

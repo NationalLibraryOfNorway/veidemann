@@ -23,6 +23,10 @@ spec:
       containers:
         - name: metrics
           image: ghcr.io/nationallibraryofnorway/veidemann/metrics:0.5.3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - containerPort: 9301
               name: http-metrics

@@ -18,6 +18,10 @@ spec:
       containers:
         - name: robots
           image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.12.4
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - name: grpc
               containerPort: 8090

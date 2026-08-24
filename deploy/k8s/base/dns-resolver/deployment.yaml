@@ -29,6 +29,10 @@ spec:
       containers:
         - name: dns-resolver
           image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver:0.10.1
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           env:
             - name: OLRIC_ADDRESS
               value: "olric-client:3320"

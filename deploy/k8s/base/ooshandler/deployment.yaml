@@ -18,9 +18,16 @@ spec:
       annotations:
         linkerd.io/inject: enabled
     spec:
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: ooshandler
           image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler:0.3.5
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
           ports:
             - name: http-ooshandler
               containerPort: 50052

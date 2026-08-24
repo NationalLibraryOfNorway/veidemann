@@ -35,7 +35,7 @@ jobs:
         if: startsWith(github.ref, format('refs/tags/{0}-', env.NORMALIZED_PATH))
         run: |
           TAG=${GITHUB_REF#refs/tags/${{ env.NORMALIZED_PATH }}-}
-          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Extract metadata
         id: meta
@@ -45,8 +45,15 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=semver,value=${{ env.TAG }},pattern={{version}}  
+            type=semver,value=${{ env.TAG }},pattern={{version}}
             type=raw,value=${{ env.TAG }},enable=${{ !startsWith(env.TAG, 'v') }}
+
+      - name: Compute build metadata
+        id: build
+        shell: bash
+        run: |
+          echo "commit=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push container image
         uses: docker/build-push-action@v7
@@ -57,3 +64,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
+            COMMIT=${{ steps.build.outputs.commit }}
+            DATE=${{ steps.build.outputs.date }}
