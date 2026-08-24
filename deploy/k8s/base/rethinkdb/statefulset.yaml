@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: rethinkdb
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.4.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.4.2
           ports:
             - name: driver
               containerPort: 28015

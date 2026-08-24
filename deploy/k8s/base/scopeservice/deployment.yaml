@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: scopeservice
-          image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice:0.4.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice:0.4.3
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532

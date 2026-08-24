@@ -28,7 +28,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: log-service
-          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.9.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/log-service:0.9.4
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532

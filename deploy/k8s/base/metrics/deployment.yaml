@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: metrics
-          image: ghcr.io/nationallibraryofnorway/veidemann/metrics:0.5.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/metrics:0.5.4
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532

@@ -83,7 +83,7 @@ spec:
               mountPath: /app/resources/log4j2.xml
               subPath: log4j2.xml
         - name: rethinkdb-ast-service
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.1
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.2
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532

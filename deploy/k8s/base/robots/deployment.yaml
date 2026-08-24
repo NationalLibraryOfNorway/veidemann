@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: robots
-          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.12.4
+          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.12.5
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
