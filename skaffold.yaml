@@ -63,31 +63,40 @@ build:
       docker: {}
     - image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter
       context: ./contentwriter
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator
       context: ./robots-evaluator
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/scopeservice
       context: ./scopeservice
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/dns-resolver
       context: ./dns-resolver
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/log-service
       context: ./log-service
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller
       context: ./browser-controller
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/metrics
       context: ./metrics
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler
       context: ./ooshandler
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/frontier-queue-workers
       context: ./frontier-queue-workers
-      ko: {}
+      ko:
+        main: .
     - image: ghcr.io/nationallibraryofnorway/veidemann/dashboard
       context: ./dashboard
       docker: {}
