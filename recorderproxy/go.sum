@@ -1,5 +1,5 @@
-github.com/NationalLibraryOfNorway/veidemann/api v1.5.1 h1:TvIxMoM9fytX9bi8+l7yhcBz+C3tLDsbGIDhnXL0gyc=
-github.com/NationalLibraryOfNorway/veidemann/api v1.5.1/go.mod h1:1GXZS8hQkNdMl6SS6D7uy8lCgCh3Pk7X/yUmXOv3pcQ=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.2 h1:cMHT7Andu9FaOjRoy+yvLyDJNksko2psuYsNFA/lSjs=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.2/go.mod h1:ZYTNoRgY86o3flw5z3T7iz/hRArRSilkXSnOPaGzHR8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=

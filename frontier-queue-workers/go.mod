@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.5.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/spf13/pflag v1.0.10

@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/recorderproxy
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.5.2
 	github.com/go-test/deep v1.1.1
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/pflag v1.0.10

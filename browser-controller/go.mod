@@ -5,7 +5,7 @@ go 1.26
 replace github.com/chromedp/chromedp => ./third_party/chromedp
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.5.2
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.7
 	github.com/chromedp/cdproto v0.0.0-20260804232424-e85f50dbfd32

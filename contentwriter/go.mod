@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/contentwriter
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.1
+	github.com/NationalLibraryOfNorway/veidemann/api v1.5.2
 	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.3.0
