@@ -5,7 +5,7 @@ WORKDIR /src
 COPY probe/go.mod probe/go.sum ./
 RUN go mod download
 
-COPY . .
+COPY probe/ ./
 
 RUN CGO_ENABLED=0 go build \
     -trimpath \
