@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.2
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.5
 	github.com/coredns/caddy v1.1.4
 	github.com/coredns/coredns v1.14.7
 	github.com/google/uuid v1.6.0

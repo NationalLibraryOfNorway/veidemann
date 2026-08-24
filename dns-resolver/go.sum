@@ -1,8 +1,8 @@
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.2 h1:cMHT7Andu9FaOjRoy+yvLyDJNksko2psuYsNFA/lSjs=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.2/go.mod h1:ZYTNoRgY86o3flw5z3T7iz/hRArRSilkXSnOPaGzHR8=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4 h1:dIWIGnhHwnu15P/iGdsRbYD+yZIseIB2/FujDtXYKcA=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.4/go.mod h1:eg97807n92Wu+pxNzsnUtXjRKUWEplR9Wh4H0e0G49Y=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.5 h1:ZBAkJpM90wdOdbPFhC/UNahFw/HXORQT812aGNmZwb4=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.5/go.mod h1:HjVfnk1wsI21kl4qGaAGM+XOGmiL5bAUh0hX5+9IvVo=
 github.com/RoaringBitmap/roaring v1.9.4 h1:yhEIoH4YezLYT04s1nHehNO64EKFTop/wBhxv2QzDdQ=
 github.com/RoaringBitmap/roaring v1.9.4/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -115,8 +115,8 @@ github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
-github.com/klauspost/compress v1.19.1 h1:VsB4HPswih7mmZ8WleSFQ75c/Ui1M4trX5oAsJnhSlk=
-github.com/klauspost/compress v1.19.1/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
+github.com/klauspost/compress v1.19.2 h1:hMRETovs/pu/dVWN7zIT1PGG8t509MwT6bO7XSi26R8=
+github.com/klauspost/compress v1.19.2/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
 github.com/klauspost/cpuid/v2 v2.4.0 h1:S6Hrbc7+ywsr0r+RLapfGBHfyefhCTwEh3A0tV913Dw=
 github.com/klauspost/cpuid/v2 v2.4.0/go.mod h1:19jmZ9mjzoF//ddRSUsv0zfBTJWh3QJh9FNxZTMrGxU=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
