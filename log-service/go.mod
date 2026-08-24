@@ -8,7 +8,7 @@ require (
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/opentracing-contrib/go-grpc v0.1.4
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/parquet-go/parquet-go v0.31.0
+	github.com/parquet-go/parquet-go v0.32.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
