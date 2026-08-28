@@ -39,6 +39,7 @@
   },
 
   "postCreateCommand": {
+    "codex-home": "[ \"$(stat -c '%u:%g' /home/vscode/.codex)\" = \"$(id -u):$(id -g)\" ] || sudo chown -R \"$(id -u):$(id -g)\" /home/vscode/.codex",
     "agent-tools": "sudo /nix/var/nix/profiles/default/bin/nix profile add --profile /nix/var/nix/profiles/default 'github:maeb/agentics?dir=nix/agent-tools#default'",
     "go-cache": "install -d -m 0700 /tmp/go-build-cache",
     "gradle-cache": "install -d -m 0700 /tmp/gradle-home"
