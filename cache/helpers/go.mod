@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/cache/helpers
 go 1.26.0
 
 require (
-	k8s.io/apimachinery v0.36.4
+	k8s.io/apimachinery v0.37.0
 	k8s.io/client-go v0.36.4
 )
 
