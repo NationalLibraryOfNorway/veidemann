@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/ooshandler
 go 1.26
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.2
+	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/prometheus/client_golang v1.24.1

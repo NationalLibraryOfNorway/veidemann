@@ -1,6 +1,6 @@
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/NationalLibraryOfNorway/veidemann/api v1.5.2 h1:cMHT7Andu9FaOjRoy+yvLyDJNksko2psuYsNFA/lSjs=
-github.com/NationalLibraryOfNorway/veidemann/api v1.5.2/go.mod h1:ZYTNoRgY86o3flw5z3T7iz/hRArRSilkXSnOPaGzHR8=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.3 h1:6tR5JpqbBXk/UeDF87hC+XmfcRt0D5CBhjcL0og2gEU=
+github.com/NationalLibraryOfNorway/veidemann/api v1.5.3/go.mod h1:w8qe5u/FHplAiyPeFQfwtYGNvfQsuyIGCiLdvVChIeA=
 github.com/RoaringBitmap/roaring v1.9.4 h1:yhEIoH4YezLYT04s1nHehNO64EKFTop/wBhxv2QzDdQ=
 github.com/RoaringBitmap/roaring v1.9.4/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
