@@ -23,7 +23,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: ooshandler
-          image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler:0.3.6
+          image: ghcr.io/nationallibraryofnorway/veidemann/ooshandler:0.3.7
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532

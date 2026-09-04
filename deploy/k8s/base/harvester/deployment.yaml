@@ -36,7 +36,7 @@ spec:
       terminationGracePeriodSeconds: 45
       initContainers:
         - name: generate-recorder-mitm-cert
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.8
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.9
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
@@ -51,7 +51,7 @@ spec:
               mountPath: /var/run/recorderproxy
       containers:
         - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.3
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.4
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
@@ -129,7 +129,7 @@ spec:
               subPath: tls.crt
               readOnly: true
         - name: recorderproxy
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.8
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.9
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532

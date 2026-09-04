@@ -32,7 +32,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: contentwriter
-          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.6.5
+          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.6.6
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
