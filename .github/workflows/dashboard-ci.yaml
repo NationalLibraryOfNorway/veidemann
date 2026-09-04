@@ -1,8 +1,9 @@
-name: dashboard-ci.yaml
+name: Dashboard CI
+
 on:
   push:
     branches:
-      - 'main'
+      - main
     paths:
       - 'dashboard/**'
       - 'proto/**'
@@ -16,10 +17,18 @@ on:
       - '.github/workflows/dashboard-ci.yaml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run unit tests (Vitest)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -34,7 +43,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: dashboard
-        run: npm ci --no-fund --no-audit
+        run: npm ci --no-fund --no-audit --strict-allow-scripts
 
       - name: Generate dashboard API
         working-directory: dashboard
