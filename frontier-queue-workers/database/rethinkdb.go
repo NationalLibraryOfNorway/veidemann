@@ -18,8 +18,10 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -46,6 +48,14 @@ type RethinkDbOptions struct {
 	MaxRetries         int
 	MaxOpenConnections int
 }
+
+type retryAction int
+
+const (
+	doNotRetry retryAction = iota
+	waitForWrites
+	reconnect
+)
 
 // NewRethinkDbConnection creates a new RethinkDbConnection object
 func NewRethinkDbConnection(opts RethinkDbOptions) *RethinkDbConnection {
@@ -112,35 +122,88 @@ func (c *RethinkDbConnection) execWrite(ctx context.Context, name string, term *
 
 // execWithRetry executes given query function repeatedly until successful or max retry limit is reached
 func (c *RethinkDbConnection) execWithRetry(ctx context.Context, name string, q func(ctx context.Context) (*r.Cursor, error)) (cursor *r.Cursor, err error) {
+	maxAttempts := c.maxRetries + 1
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
+
 	attempts := 0
 	log := c.loggerOrDefault().With("operation", name)
-out:
-	for {
+retryLoop:
+	for attempts < maxAttempts {
 		attempts++
 		cursor, err = c.exec(ctx, q)
 		if err == nil {
 			return
 		}
-		log.Warn("Failed to execute query", "error", err, "retries", attempts-1)
-		switch err {
-		case r.ErrQueryTimeout:
-			err := c.wait()
-			if err != nil {
-				log.Warn("Timed out waiting for database to be ready", "error", err)
-			}
-		case r.ErrConnectionClosed:
-			err := c.Connect()
-			if err != nil {
-				log.Warn("Failed to reconnect database", "error", err)
-			}
-		default:
-			break out
-		}
-		if attempts > c.maxRetries {
+
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			err = ctxErr
 			break
 		}
+
+		action := retryActionFor(err)
+		retryable := action != doNotRetry
+		log.Warn("Failed to execute query",
+			"error", err,
+			"attempt", attempts,
+			"max_attempts", maxAttempts,
+			"retryable", retryable,
+		)
+		if !retryable || attempts == maxAttempts {
+			break
+		}
+
+		switch action {
+		case waitForWrites:
+			log.Warn("Waiting for database to be ready for writes before retrying",
+				"attempt", attempts,
+				"max_attempts", maxAttempts,
+			)
+			if waitErr := c.wait(ctx); waitErr != nil {
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					err = ctxErr
+					break retryLoop
+				}
+				log.Warn("Failed waiting for database to be ready for writes; retrying query",
+					"error", waitErr,
+					"attempt", attempts,
+					"max_attempts", maxAttempts,
+				)
+			}
+		case reconnect:
+			log.Warn("Reconnecting to database before retrying",
+				"attempt", attempts,
+				"max_attempts", maxAttempts,
+			)
+			if connectErr := c.Connect(); connectErr != nil {
+				log.Warn("Failed to reconnect database; retrying query",
+					"error", connectErr,
+					"attempt", attempts,
+					"max_attempts", maxAttempts,
+				)
+			}
+		}
 	}
-	return nil, fmt.Errorf("failed to %s after %d of %d attempts: %w", name, attempts, c.maxRetries+1, err)
+	return nil, fmt.Errorf("failed to %s after %d of %d attempts: %w", name, attempts, maxAttempts, err)
+}
+
+func retryActionFor(err error) retryAction {
+	switch {
+	case errors.Is(err, r.ErrQueryTimeout):
+		return waitForWrites
+	case errors.Is(err, r.ErrConnectionClosed):
+		return reconnect
+	case isPrimaryReplicaUnavailable(err):
+		return waitForWrites
+	default:
+		return doNotRetry
+	}
+}
+
+func isPrimaryReplicaUnavailable(err error) bool {
+	var opFailedErr r.RQLOpFailedError
+	return errors.As(err, &opFailedErr) && strings.Contains(strings.ToLower(err.Error()), "primary replica")
 }
 
 // exec the given query with a timeout
@@ -150,11 +213,15 @@ func (c *RethinkDbConnection) exec(ctx context.Context, q func(ctx context.Conte
 	return q(ctx)
 }
 
-// wait for database to be fully up-to-date and ready for read/write
-func (c *RethinkDbConnection) wait() error {
+// wait for database to be ready for writes
+func (c *RethinkDbConnection) wait(ctx context.Context) error {
 	waitOpts := r.WaitOpts{
-		Timeout: c.waitTimeout,
+		WaitFor: "ready_for_writes",
+		Timeout: c.waitTimeout.Seconds(),
 	}
-	_, err := r.DB(c.connectOpts.Database).Wait(waitOpts).Run(c.session)
-	return err
+	cursor, err := r.DB(c.connectOpts.Database).Wait(waitOpts).Run(c.session, r.RunOpts{Context: ctx})
+	if err != nil {
+		return err
+	}
+	return cursor.Close()
 }
