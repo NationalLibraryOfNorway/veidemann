@@ -6,8 +6,8 @@ replace github.com/chromedp/chromedp => ./third_party/chromedp
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.5
-	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.8
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6
+	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.9
 	github.com/chromedp/cdproto v0.0.0-20260804232424-e85f50dbfd32
 	github.com/chromedp/chromedp v0.16.0
 	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3
