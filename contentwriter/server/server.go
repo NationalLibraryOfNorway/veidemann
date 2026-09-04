@@ -73,7 +73,7 @@ func (s *ContentWriterService) Write(stream contentwriterV1.ContentWriter_WriteS
 		}
 	}
 
-	if err := ctx.validateSession(); err != nil {
+	if err := ctx.validateSession(stream.Context()); err != nil {
 		slog.Error("Validation failed", "error", err)
 		return status.Errorf(codes.Unknown, "validation failed: %v", err)
 	}

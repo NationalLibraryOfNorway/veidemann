@@ -84,7 +84,7 @@ func (s *writeSessionContext) getRecordBuilder(recordNum int32) gowarc.WarcRecor
 	return rb
 }
 
-func (s *writeSessionContext) validateSession() error {
+func (s *writeSessionContext) validateSession(ctx context.Context) error {
 	if s.meta == nil {
 		return errors.New("missing metadata object")
 	}
@@ -97,7 +97,7 @@ func (s *writeSessionContext) validateSession() error {
 	if len(s.meta.TargetUri) == 0 {
 		return errors.New("missing target URI")
 	}
-	collectionConfig, err := s.configAdapter.GetConfigObject(context.TODO(), s.meta.CollectionRef)
+	collectionConfig, err := s.configAdapter.GetConfigObject(ctx, s.meta.CollectionRef)
 	if err != nil {
 		return fmt.Errorf("failed to get collection config: %s", s.meta.GetCollectionRef().GetId())
 	}
