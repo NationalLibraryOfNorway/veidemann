@@ -22,7 +22,7 @@ prometheus-simpleclient = "0.16.0"
 protobuf = "4.36.0"
 rethinkdb-driver = "2.4.4"
 slf4j-bom = "2.0.18"
-snakeyaml = "2.6"
+snakeyaml = "2.7"
 testcontainers-junit-jupiter = "2.0.5"
 typesafe-config = "1.4.9"
 
