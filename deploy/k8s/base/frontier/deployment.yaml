@@ -31,7 +31,7 @@ spec:
       terminationGracePeriodSeconds: 600
       containers:
         - name: frontier
-          image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.21.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.21.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 7700
