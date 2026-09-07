@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: rethinkdb
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.4.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb:0.4.3
           resources:
             requests:
               cpu: 100m
