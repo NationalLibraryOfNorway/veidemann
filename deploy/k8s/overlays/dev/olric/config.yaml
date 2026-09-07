@@ -1,8 +1,8 @@
-olricd:
-  replicaCount: 1          # each key stored on 3 pods
-  writeQuorum: 1           # must reach 2 replicas
+server:
+  replicaCount: 1          # single-node development cluster
+  writeQuorum: 1           # one copy acknowledges writes
   readQuorum: 1            # fast reads, can be 2 for stronger consistency
-  memberCountQuorum: 1     # cluster requires 3 nodes to stay writable
+  memberCountQuorum: 1     # allow a single development node
   replicationMode: 1       # 0 = sync, 1 = async
 
   # BindAddr denotes the address that Olric will bind to for communication
@@ -197,7 +197,7 @@ dmaps:
     robots-evaluator:
       maxIdleDuration: "720h"
       maxInuse: 1073741824 # 1 GiB per pod
-      lRUSamples: 10
+      lruSamples: 10
       evictionPolicy: "LRU"
 #  checkEmptyFragmentsInterval: 1m
 #  triggerCompactionInterval: 10m
@@ -221,4 +221,4 @@ dmaps:
   # provider: "k8s"
   # path: "/usr/lib/olric-kubernetes-plugin.so"
   # namespace: "veidemann"
-  # label_selector: "app=olricd"
+  # LabelSelector: "app=olric"

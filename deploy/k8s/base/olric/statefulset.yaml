@@ -10,6 +10,12 @@ spec:
       app: olric
   template:
     metadata:
+      annotations:
+        linkerd.io/inject: enabled
+        config.linkerd.io/opaque-ports: "3320"
+        config.linkerd.io/skip-inbound-ports: "3322"
+        config.linkerd.io/skip-outbound-ports: "3322"
+        olric/auto-join-port: gossip-tcp
       labels:
         app: olric
     spec:
@@ -24,8 +30,13 @@ spec:
           ports:
             - name: api
               containerPort: 3320
-            - name: gossip
+              protocol: TCP
+            - name: gossip-tcp
               containerPort: 3322
+              protocol: TCP
+            - name: gossip-udp
+              containerPort: 3322
+              protocol: UDP
           resources:
             requests:
               memory: "256Mi"
