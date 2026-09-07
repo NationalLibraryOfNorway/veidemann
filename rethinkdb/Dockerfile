@@ -12,15 +12,21 @@ RUN CGO_ENABLED=0 go build \
     -ldflags "-s -w" \
     -o /out/rethinkdb-probe .
 
+WORKDIR /src/startup
+COPY startup/ ./
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags "-s -w" \
+    -o /out/rethinkdb-startup .
+
 
 FROM rethinkdb:2.4.4-bookworm-slim
 
 RUN apt-get update && \
-    apt-get -y install --no-install-recommends coreutils libc-bin tini && \
+    apt-get -y install --no-install-recommends tini && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /out/rethinkdb-probe /rethinkdb-probe
-COPY ./run.sh /run.sh
-RUN chmod u+x /run.sh
+COPY --from=build /out/rethinkdb-startup /rethinkdb-startup
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/run.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/rethinkdb-startup"]
