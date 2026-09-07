@@ -71,6 +71,8 @@ spec:
               command:
                 - /rethinkdb-probe
             failureThreshold: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             exec:
               command:
