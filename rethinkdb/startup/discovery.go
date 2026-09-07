@@ -62,7 +62,10 @@ func (d peerDiscovery) discover(ctx context.Context, c config) ([]string, error)
 		} else {
 			logger.InfoContext(ctx, "DNS lookup succeeded",
 				"attempt", attempt, "peer_count", len(snapshot.peers), "contains_self", snapshot.containsSelf)
-			if len(snapshot.peers) > 0 {
+			if !snapshot.containsSelf {
+				logger.WarnContext(ctx, "Ignoring DNS response that omits this pod",
+					"attempt", attempt, "pod_ip", c.pod.address)
+			} else if len(snapshot.peers) > 0 {
 				return snapshot.peers, nil
 			}
 		}
@@ -78,7 +81,7 @@ func (d peerDiscovery) discover(ctx context.Context, c config) ([]string, error)
 		logger.WarnContext(ctx, "Bootstrapping from a self-only DNS response; cluster membership is unverified")
 		return nil, nil
 	}
-	return nil, fmt.Errorf("no peers discovered through %s and bootstrap is not permitted; exiting so Kubernetes can restart the container and retry discovery", c.service)
+	return nil, fmt.Errorf("could not discover join targets or establish bootstrap eligibility through %s; exiting so Kubernetes can restart the container and retry discovery", c.service)
 }
 
 func (d peerDiscovery) query(ctx context.Context, c config) (peerSnapshot, error) {

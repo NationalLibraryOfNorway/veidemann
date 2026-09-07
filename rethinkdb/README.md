@@ -18,8 +18,11 @@ Explicit `RETHINKDB_SEEDS` take precedence over automatic discovery. Otherwise,
 pods whose names end in a numeric ordinal query
 `RETHINKDB_SERVICE_NAME.POD_NAMESPACE.svc.RETHINKDB_CLUSTER_DOMAIN` with
 Go's DNS resolver. Successful responses supply unique addresses other than
-`POD_IP` as `--join` targets. Discovery stops as soon as a response supplies peers,
-even if those peers have not opened their cluster listeners yet.
+`POD_IP` as `--join` targets. Automatic StatefulSet discovery accepts a response
+only if it also contains the current `POD_IP`. Responses that omit this pod are
+retried, even if they contain other peers: they can be stale during a rollout.
+Discovery stops when an accepted response supplies peers, even if those peers
+have not opened their cluster listeners yet.
 
 Lookups use context deadlines; SIGTERM or SIGINT cancels discovery and retry
 delays promptly. The static binary uses Go's resolver and the container's DNS
@@ -53,9 +56,9 @@ manifests supply it through the Downward API.
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `POD_NAME` | Required | Server name source and numeric ordinal detection. |
-| `POD_IP` | `127.0.0.1` | Address excluded from discovery; supply the actual pod IP in Kubernetes. |
+| `POD_IP` | `127.0.0.1` | Advertised cluster address and self-address required in automatic discovery; supply the actual pod IP in Kubernetes. |
 | `POD_NAMESPACE` | `default` | Namespace containing the headless Service. |
-| `RETHINKDB_SERVICE_NAME` | `rethinkdb` | Headless Service used for discovery and pod canonical hostnames. |
+| `RETHINKDB_SERVICE_NAME` | `rethinkdb` | Headless Service used for discovery. |
 | `RETHINKDB_CLUSTER_DOMAIN` | `cluster.local` | Kubernetes DNS cluster domain. |
 | `RETHINKDB_CLUSTER_PORT` | `29015` | Listener port, canonical port, and default seed port. |
 | `RETHINKDB_SEEDS` | Empty | Explicit join endpoints, separated by commas or whitespace, including newlines and tabs. |
@@ -94,6 +97,21 @@ is obsolete and unused; the DNS timeout setting does not open a cluster socket.
 
 ## Recovery and Kubernetes probes
 
+Every member advertises `POD_IP:RETHINKDB_CLUSTER_PORT` as its canonical address,
+including StatefulSet members. RethinkDB 2.4.4 resolves advertised hostnames
+during cluster handshakes and retains resolved addresses for reconnection. When
+StatefulSet DNS is stale during replacement, hostname canonical addresses can
+therefore leave a persistent missing connection even after a server is ready.
+Advertising the current pod IP removes DNS from canonical address exchange and
+routing to newly introduced peers. Persistent server IDs and data still come
+from the existing data directory; a stable hostname is not the server identity.
+
+DNS remains the seed-discovery mechanism; Kubernetes API access, RBAC, and new
+service accounts are not required. Seeing this pod in a DNS response does not
+prove that every other address is fresh. RethinkDB can learn current numeric
+canonical addresses through any peer it successfully joins. If all initial
+targets are stale or unreachable, startup recovery still depends on restart.
+
 The default automatic discovery budget is approximately 18 seconds:
 five two-second lookups plus four two-second delays, plus scheduling overhead.
 There is no subprocess termination grace period. Explicit seeds and ordinal-less
@@ -121,8 +139,9 @@ failures should remain visible in entrypoint logs, RethinkDB logs, and Kubernete
 probe failures; this entrypoint does not suppress those diagnostics.
 
 Removing raw TCP probes addresses misleading `invalid clustering header` warnings
-only. A genuine `non_transitive_error`, including the observed problem between
-`rethinkdb_2` and `rethinkdb_3`, still requires separate connectivity investigation.
+only. Numeric canonical addresses additionally address the reproduced
+`non_transitive_error` caused by stale canonical-hostname resolution. They do not
+hide genuine network partitions, filtering, or other cluster connectivity errors.
 
 ## Validation and rollout checklist
 
@@ -144,6 +163,15 @@ tag is not automatically updated by editing `startup/`. Validate in a disposable
 environment before rolling out to an existing cluster; do not delete production
 PVCs to exercise bootstrap.
 
+Roll out the new image one member at a time, preserving every PVC. Check
+`server_status.network.canonical_addresses` for the current pod IP on each
+updated member and verify full `connected_to` connectivity before continuing.
+Old members continue advertising hostnames until they are replaced, so the first
+rollout can still encounter stale hostname resolution involving an old member.
+Complete the migration and verify a subsequent rollout; local driver readiness
+alone does not establish full cluster connectivity. No new image tag is selected
+automatically by these source changes.
+
 - Start one fresh member, then add members incrementally. Also start several
   members concurrently. Verify that they converge into one cluster.
 - Restart ordinal 0 while another member remains healthy; verify that it joins
@@ -152,6 +180,15 @@ PVCs to exercise bootstrap.
   Only ordinal 0 with a final successful self-only response may bootstrap.
   Check a self-only response followed by a final failure and the reverse order.
   Check that partial output on resolver failure or timeout is ignored.
+- Return other peers plus this pod's previous IP from headless DNS. Verify that
+  startup retries until the response includes its current IP, or exits after
+  exhaustion; it must not accept the stale peers or bootstrap from that response.
+- On one member, pin another member's canonical hostname to a stale IP while
+  leaving headless discovery correct (for example, using a test-container hosts
+  entry). With the old hostname canonical addresses this reproduces a missing
+  connection and `non_transitive_error`. With numeric canonical addresses, verify
+  full membership and mutual connectivity despite the same stale hostname entry.
+  Repeat pod replacements at new IPs while retaining their data volumes.
 - Delay a peer's listener at the same IP; verify a native join succeeds. Then
   supply stale addresses and replace the peer at a new IP; verify a startup-probe
   restart reruns discovery and eventually joins the replacement.

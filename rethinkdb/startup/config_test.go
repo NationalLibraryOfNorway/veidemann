@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/netip"
 	"slices"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ func TestConfigurationDefaults(t *testing.T) {
 	if c.pod.ordinal != "0" || c.pod.statefulSet != "my-db" || c.clusterPort != 29015 || c.discovery.attempts != 5 || c.discovery.delay != 2*time.Second || c.discovery.timeout != 2*time.Second {
 		t.Fatalf("unexpected defaults: %+v", c)
 	}
-	if got := c.canonicalAddress(); got != "my-db-0.rethinkdb.default.svc.cluster.local:29015" {
+	if got := c.canonicalAddress(); got != "127.0.0.1:29015" {
 		t.Fatal(got)
 	}
 }
@@ -95,6 +96,7 @@ func TestPortOptionsAndForwarding(t *testing.T) {
 func TestSeedsAndCommand(t *testing.T) {
 	env := map[string]string{
 		"POD_NAME": "my-db-2", "POD_NAMESPACE": "archive", "RETHINKDB_SERVICE_NAME": "db",
+		"POD_IP":                   "10.0.0.2",
 		"RETHINKDB_CLUSTER_DOMAIN": "example.local", "RETHINKDB_PASSWORD": "secret",
 		"RETHINKDB_DISCOVERY_DELAY_SECONDS": "000", "RETHINKDB_DISCOVERY_ATTEMPTS": "008",
 		"RETHINKDB_SEEDS": "peer,\n\t10.0.0.2:029016 2001:db8::1 [2001:db8::2] [2001:db8::3]:30000",
@@ -108,7 +110,7 @@ func TestSeedsAndCommand(t *testing.T) {
 		t.Fatalf("unexpected config: %+v", c)
 	}
 	want := []string{"rethinkdb", "--server-name", "my_db_2", "--cluster-port", "30015",
-		"--canonical-address", "my-db-2.db.archive.svc.example.local:30015", "--initial-password", "secret"}
+		"--canonical-address", "10.0.0.2:30015", "--initial-password", "secret"}
 	for _, peer := range wantPeers {
 		want = append(want, "--join", peer)
 	}
@@ -126,5 +128,27 @@ func TestSeedsAndCommand(t *testing.T) {
 	}
 	if got := c.command(c.seeds); got[1] != "proxy" || c.canonicalAddress() != "[2001:db8::9]:29015" {
 		t.Fatalf("invalid proxy command: %q", got)
+	}
+}
+
+func TestCanonicalAddressFollowsPodReplacement(t *testing.T) {
+	for _, pod := range []string{"rethinkdb-1", "rethinkdb-admin"} {
+		t.Run(pod, func(t *testing.T) {
+			env := map[string]string{"POD_NAME": pod, "RETHINKDB_CLUSTER_PORT": "30015"}
+			for _, address := range []string{"10.42.159.113", "10.42.159.83", "2001:db8::83"} {
+				env["POD_IP"] = address
+				c, err := testConfig(t, env)
+				if err != nil {
+					t.Fatal(err)
+				}
+				endpoint, err := netip.ParseAddrPort(c.canonicalAddress())
+				if err != nil {
+					t.Fatalf("canonical address must be an IP literal: %v", err)
+				}
+				if endpoint.Addr().String() != address || endpoint.Port() != 30015 {
+					t.Fatalf("advertised %s for pod IP %s", endpoint, address)
+				}
+			}
+		})
 	}
 }

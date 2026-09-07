@@ -113,10 +113,10 @@ func joinEndpoint(seed string, defaultPort uint16) (string, error) {
 }
 
 func (c config) canonicalAddress() string {
-	if c.pod.ordinal == "" {
-		return netip.AddrPortFrom(c.pod.address, c.clusterPort).String()
-	}
-	return net.JoinHostPort(c.pod.name+"."+c.service, strconv.Itoa(int(c.clusterPort)))
+	// RethinkDB resolves advertised hostnames during handshakes and retains the
+	// resolved addresses for reconnects. Advertise this process's actual pod IP
+	// so stale DNS during a rollout cannot poison a peer's routing information.
+	return netip.AddrPortFrom(c.pod.address, c.clusterPort).String()
 }
 
 func (c config) command(peers []string) []string {

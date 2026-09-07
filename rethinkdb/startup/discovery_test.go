@@ -29,6 +29,7 @@ func ips(values ...string) []netip.Addr {
 func TestDiscoveryPolicy(t *testing.T) {
 	self := answer{addresses: ips("10.0.0.1")}
 	peer := answer{addresses: ips("10.0.0.1", "10.0.0.2", "::ffff:10.0.0.2", "2001:db8::2")}
+	stale := answer{addresses: ips("10.0.0.99", "10.0.0.2")}
 	failure := answer{err: errors.New("DNS unavailable")}
 	for _, tc := range []struct {
 		name, pod string
@@ -45,6 +46,10 @@ func TestDiscoveryPolicy(t *testing.T) {
 		{name: "final failure overrides earlier self", answers: []answer{self, failure}, wantError: true},
 		{name: "final success recovers", answers: []answer{failure, self}},
 		{name: "partial failure discarded", answers: []answer{{addresses: peer.addresses, err: failure.err}}, wantError: true},
+		{name: "peers without current pod cannot authorize startup", answers: []answer{stale, stale}, wantError: true},
+		{name: "higher ordinal rejects peers without current pod", pod: "rethinkdb-2", answers: []answer{stale}, wantError: true},
+		{name: "wait for DNS to include current pod", answers: []answer{stale, peer}, want: []string{"10.0.0.2:29015", "[2001:db8::2]:29015"}},
+		{name: "stale final response overrides self-only success", answers: []answer{self, stale}, wantError: true},
 		{name: "retry then join", answers: []answer{failure, {}, self, peer}, want: []string{"10.0.0.2:29015", "[2001:db8::2]:29015"}},
 		{name: "ordinal zero joins existing members", answers: []answer{peer}, want: []string{"10.0.0.2:29015", "[2001:db8::2]:29015"}},
 	} {
