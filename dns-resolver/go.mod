@@ -1,6 +1,6 @@
 module github.com/NationalLibraryOfNorway/veidemann/dns-resolver
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
@@ -13,7 +13,7 @@ require (
 	github.com/olric-data/olric v0.7.4
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.24.1
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
 )
