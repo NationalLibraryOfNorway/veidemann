@@ -40,7 +40,7 @@
     "@bufbuild/protobuf": "^2.14.1",
     "@casl/ability": "^7.0.1",
     "@casl/angular": "^10.0.3",
-    "@connectrpc/connect": "2.1.2",
+    "@connectrpc/connect": "2.2.0",
     "@connectrpc/connect-web": "2.1.2",
     "angular-oauth2-oidc": "~22.0.2",
     "date-fns": "^4.4.0",
