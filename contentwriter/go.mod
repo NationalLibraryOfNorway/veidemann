@@ -1,6 +1,6 @@
 module github.com/NationalLibraryOfNorway/veidemann/contentwriter
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
@@ -15,7 +15,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
