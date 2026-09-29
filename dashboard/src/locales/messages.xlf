@@ -2380,14 +2380,29 @@
         <source>Update entities</source>
       </segment>
     </unit>
-    <unit id="entityViewFilteredByLabel">
+    <unit id="entityViewCreatedByLabel">
       <segment>
-        <source>Filtered by entity</source>
+        <source>Created by</source>
+      </segment>
+    </unit>
+    <unit id="entityViewCreatedLabel">
+      <segment>
+        <source>Created</source>
       </segment>
     </unit>
     <unit id="entityViewLabelsAriaLabel">
       <segment>
         <source>Entity labels</source>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedByLabel">
+      <segment>
+        <source>Last modified by</source>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedLabel">
+      <segment>
+        <source>Last modified</source>
       </segment>
     </unit>
     <unit id="entityViewOpenEntityButton">

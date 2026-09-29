@@ -23,6 +23,9 @@
         @switch (kind) {
           @default {
             <div class="layout-column flex-fill">
+              @if (kind === Kind.SEED && entity(); as entityConfig) {
+                <app-entity-view [configObject]="entityConfig"></app-entity-view>
+              }
               <app-config-list
                 [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"

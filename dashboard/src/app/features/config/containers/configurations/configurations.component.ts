@@ -23,6 +23,7 @@ import {
   ConfigQueryComponent,
   DeleteDialogComponent,
   DeleteMultiDialogComponent,
+  EntityViewComponent,
   Parcel,
   RunCrawlDialogComponent
 } from '../../components';
@@ -75,6 +76,7 @@ import {configKindIcon} from '../../func/config-kind-icon';
     ActiveFilterChipsComponent,
     ConfigListComponent,
     ConfigQueryComponent,
+    EntityViewComponent,
     MatListModule,
     MatIcon,
     MatProgressBar,
