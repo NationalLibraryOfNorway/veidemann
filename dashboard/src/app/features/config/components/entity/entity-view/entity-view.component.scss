@@ -7,6 +7,28 @@
   min-width: 0;
 }
 
-mat-card-content {
-  padding-top: 16px;
+.entity-description {
+  margin: 0 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
+}
+
+.entity-facts {
+  display: flex;
+  margin: 12px 0 0;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+}
+
+.entity-facts dt {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.entity-facts dd {
+  margin: 3px 0 0;
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
 }

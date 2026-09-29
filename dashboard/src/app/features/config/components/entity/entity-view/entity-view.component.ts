@@ -1,4 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {DatePipe} from '@angular/common';
 import {ConfigObject, Label} from '../../../../../shared/models';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
@@ -13,6 +14,7 @@ import {LabelDisplayComponent} from '../../../../../shared/components';
   styleUrls: ['./entity-view.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DatePipe,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -38,5 +40,30 @@ export class EntityViewComponent {
 
   get name(): string {
     return this.configObject.meta.name;
+  }
+
+  get description(): string {
+    return this.configObject.meta.description;
+  }
+
+  get created(): string {
+    return this.configObject.meta.created;
+  }
+
+  get createdBy(): string {
+    return this.configObject.meta.createdBy;
+  }
+
+  get lastModified(): string {
+    return this.configObject.meta.lastModified;
+  }
+
+  get lastModifiedBy(): string {
+    return this.configObject.meta.lastModifiedBy;
+  }
+
+  get hasFacts(): boolean {
+    return !!(this.description || this.labels.length || this.created
+      || this.createdBy || this.lastModified || this.lastModifiedBy);
   }
 }

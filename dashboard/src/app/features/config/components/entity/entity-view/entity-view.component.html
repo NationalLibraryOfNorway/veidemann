@@ -2,15 +2,35 @@
   <mat-card-header>
     <mat-icon mat-card-avatar>business</mat-icon>
     <mat-card-title>{{name}}</mat-card-title>
-    <mat-card-subtitle i18n="@@entityViewFilteredByLabel">Filtered by entity</mat-card-subtitle>
   </mat-card-header>
-  @if (labels.length > 0) {
+  @if (hasFacts) {
     <mat-card-content>
-      <mat-chip-set aria-label="Entity labels" i18n-aria-label="@@entityViewLabelsAriaLabel">
-        @for (label of labels; track label) {
-          <mat-chip><app-label-display [key]="label.key" [value]="label.value"></app-label-display></mat-chip>
-        }
-      </mat-chip-set>
+      @if (description) {
+        <p class="entity-description">{{description}}</p>
+      }
+      @if (labels.length > 0) {
+        <mat-chip-set aria-label="Entity labels" i18n-aria-label="@@entityViewLabelsAriaLabel">
+          @for (label of labels; track label) {
+            <mat-chip><app-label-display [key]="label.key" [value]="label.value"></app-label-display></mat-chip>
+          }
+        </mat-chip-set>
+      }
+      @if (created || createdBy || lastModified || lastModifiedBy) {
+        <dl class="entity-facts">
+          @if (created) {
+            <div><dt i18n="@@entityViewCreatedLabel">Created</dt><dd>{{created | date:'medium':'UTC'}}</dd></div>
+          }
+          @if (createdBy) {
+            <div><dt i18n="@@entityViewCreatedByLabel">Created by</dt><dd>{{createdBy}}</dd></div>
+          }
+          @if (lastModified) {
+            <div><dt i18n="@@entityViewLastModifiedLabel">Last modified</dt><dd>{{lastModified | date:'medium':'UTC'}}</dd></div>
+          }
+          @if (lastModifiedBy) {
+            <div><dt i18n="@@entityViewLastModifiedByLabel">Last modified by</dt><dd>{{lastModifiedBy}}</dd></div>
+          }
+        </dl>
+      }
     </mat-card-content>
   }
   <mat-card-actions align="end">

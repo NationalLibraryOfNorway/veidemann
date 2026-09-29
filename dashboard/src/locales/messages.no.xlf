@@ -2787,16 +2787,34 @@
         <target>Seeds</target>
       </segment>
     </unit>
-    <unit id="entityViewFilteredByLabel">
+    <unit id="entityViewCreatedByLabel">
       <segment state="initial">
-        <source>Filtered by entity</source>
-        <target>Filtered by entity</target>
+        <source>Created by</source>
+        <target>Created by</target>
+      </segment>
+    </unit>
+    <unit id="entityViewCreatedLabel">
+      <segment state="initial">
+        <source>Created</source>
+        <target>Created</target>
       </segment>
     </unit>
     <unit id="entityViewLabelsAriaLabel">
       <segment state="initial">
         <source>Entity labels</source>
         <target>Entity labels</target>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedByLabel">
+      <segment state="initial">
+        <source>Last modified by</source>
+        <target>Last modified by</target>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedLabel">
+      <segment state="initial">
+        <source>Last modified</source>
+        <target>Last modified</target>
       </segment>
     </unit>
     <unit id="entityViewOpenEntityButton">
