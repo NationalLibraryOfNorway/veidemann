@@ -137,6 +137,14 @@
   gap: 4px;
 }
 
+.name-sort-header {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding-inline: 8px;
+  font: var(--mat-sys-label-large);
+}
+
 .order-control {
   flex: 0 1 auto;
   max-width: 264px;

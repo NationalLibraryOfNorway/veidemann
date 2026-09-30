@@ -2575,6 +2575,16 @@
         <source>Order by</source>
       </segment>
     </unit>
+    <unit id="configurationListSortByNameAriaLabel">
+      <segment>
+        <source>Sort by name</source>
+      </segment>
+    </unit>
+    <unit id="configurationListNameColumnLabel">
+      <segment>
+        <source>Name</source>
+      </segment>
+    </unit>
     <unit id="configurationListDefaultOrder">
       <segment>
         <source>Default order</source>
