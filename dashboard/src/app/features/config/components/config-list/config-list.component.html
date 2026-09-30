@@ -24,8 +24,15 @@
             </span>
           }
           @if (showStateFilter || showOrderControl) {
-            <span class="list-header-controls">
+            <span class="list-header-controls" matSort
+              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+              (matSortChange)="onSortChange($event)">
               @if (showOrderControl) {
+                <span mat-sort-header="name" class="name-sort-header"
+                  [disabled]="isSelectionMode()" [sortActionDescription]="sortByNameActionDescription"
+                  data-testid="configuration-name-sort">
+                  <span i18n="@@configurationListNameColumnLabel">Name</span>
+                </span>
                 @if (orderValue) {
                   <button mat-button type="button" class="order-control"
                     [disabled]="isSelectionMode()"

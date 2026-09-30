@@ -5,6 +5,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatSortHeaderHarness} from '@angular/material/sort/testing';
 import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ConfigListComponent} from './config-list.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
@@ -373,6 +374,42 @@ describe('ConfigListComponent', () => {
     await menu.open();
     await menu.clickItem({text: 'Default order'});
     expect(sorts.at(-1)).toEqual({active: '', direction: ''});
+  });
+
+  it('sorts by name via the sort-header arrow next to the order control, in sync with it', async () => {
+    component.showOrderControl = true;
+    component.length = 0;
+    const sorts: {active: string; direction: string}[] = [];
+    component.sort.subscribe(value => sorts.push(value));
+    fixture.detectChanges();
+
+    const nameHeader = await loader.getHarness(MatSortHeaderHarness.with({label: 'Name'}));
+    expect(await nameHeader.isDisabled()).toBe(false);
+    expect(await nameHeader.isActive()).toBe(false);
+
+    await nameHeader.click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: 'asc'});
+    fixture.componentRef.setInput('sortActive', 'name');
+    fixture.componentRef.setInput('sortDirection', 'asc');
+    fixture.detectChanges();
+    expect(await nameHeader.isActive()).toBe(true);
+    expect(await nameHeader.getSortDirection()).toBe('asc');
+    expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
+
+    await nameHeader.click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: 'desc'});
+    fixture.componentRef.setInput('sortDirection', 'desc');
+    fixture.detectChanges();
+    expect(await nameHeader.getSortDirection()).toBe('desc');
+    expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: Z–A');
+
+    await nameHeader.click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: ''});
+
+    component.selectedRows.set([new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})})]);
+    fixture.detectChanges();
+    expect(component.isSelectionMode()).toBe(true);
+    expect(await nameHeader.isDisabled()).toBe(true);
   });
 
   it('prepends selection controls while preserving filtering and ordering', async () => {

@@ -32,6 +32,7 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   @Output() readonly labelClick = new EventEmitter<Label>();
   @Output() readonly disabledFilterChange = new EventEmitter<boolean | null>();
   readonly deactivatedAriaDescription = $localize`:@@configurationListDeactivatedStatus:Deactivated`;
+  readonly sortByNameActionDescription = $localize`:@@configurationListSortByNameAriaLabel:Sort by name`;
   protected readonly isEmojiLabel = isEmojiLabel;
   protected override readonly autoSelectAppendedRows = true;
   readonly orderOptions = [

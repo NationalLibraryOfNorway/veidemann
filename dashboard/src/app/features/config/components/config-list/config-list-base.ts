@@ -19,7 +19,7 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
 import {MatMenuModule} from '@angular/material/menu';
-import {Sort, SortDirection} from '@angular/material/sort';
+import {MatSortModule, Sort, SortDirection} from '@angular/material/sort';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {combineLatest, Subscription} from 'rxjs';
@@ -37,6 +37,7 @@ export const CONFIG_LIST_IMPORTS = [
   MatIconModule,
   MatListModule,
   MatMenuModule,
+  MatSortModule,
   MatTooltipModule,
   MatToolbarModule,
   NgTemplateOutlet,

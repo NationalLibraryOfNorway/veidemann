@@ -3021,6 +3021,18 @@
         <target>Sorter etter</target>
       </segment>
     </unit>
+    <unit id="configurationListSortByNameAriaLabel">
+      <segment state="initial">
+        <source>Sort by name</source>
+        <target>Sorter etter navn</target>
+      </segment>
+    </unit>
+    <unit id="configurationListNameColumnLabel">
+      <segment state="initial">
+        <source>Name</source>
+        <target>Navn</target>
+      </segment>
+    </unit>
     <unit id="configurationListDefaultOrder">
       <segment state="initial">
         <source>Default order</source>
