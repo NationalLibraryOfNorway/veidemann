@@ -66,6 +66,10 @@ describe('CrawlExecutionStatusComponent', () => {
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     expect(fixture.nativeElement.querySelector('.overview-aside')).toBeNull();
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Example seed');
+    const seedLink = fixture.nativeElement.querySelector('h1 a') as HTMLAnchorElement;
+    expect(seedLink.getAttribute('href')).toBe('Example seed');
+    expect(seedLink.getAttribute('target')).toBe('_blank');
+    expect(seedLink.getAttribute('rel')).toBe('noopener noreferrer');
     expect(fixture.nativeElement.querySelector('.detail-header-description')).toBeNull();
     const metadata = fixture.nativeElement.querySelector('.statistics-section app-execution-metadata') as HTMLElement;
     expect([...metadata.querySelectorAll('dt')].map((term: HTMLElement) => term.textContent.trim()))

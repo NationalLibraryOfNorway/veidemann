@@ -17,7 +17,7 @@ export class UrlFormatPipe implements PipeTransform {
       urlText = new SedPipe().transform(url);
     }
 
-    const anchor = `<a class="formattedUri" href="${url}" target="_blank">${urlText}</a> `;
+    const anchor = `<a class="formattedUri" href="${url}" target="_blank" rel="noopener noreferrer">${urlText}</a> `;
     return this.domSanitizer.bypassSecurityTrustHtml(anchor);
   }
 

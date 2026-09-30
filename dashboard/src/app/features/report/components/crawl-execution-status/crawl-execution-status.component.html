@@ -6,7 +6,8 @@
     <div class="primary-pane">
       <app-detail-header icon="hdr_weak"
         supertitle="Crawl execution" i18n-supertitle="@@crawlExecutionHeaderSupertitle"
-        [title]="seedName?.label || crawlExecutionStatus.seedId">
+        [title]="seedName?.label || crawlExecutionStatus.seedId"
+        [titleHref]="seedName && !seedName.deleted ? seedName.label : ''">
         <ng-container detailHeaderActions>
           <ng-content select="[detailActions]"></ng-content>
         </ng-container>

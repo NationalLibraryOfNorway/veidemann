@@ -118,6 +118,10 @@ describe('PageLogStatusComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.detail-header h1')?.textContent).toBe('https://example.org');
+    const titleLink = fixture.nativeElement.querySelector('.detail-header h1 a') as HTMLAnchorElement;
+    expect(titleLink.getAttribute('href')).toBe('https://example.org');
+    expect(titleLink.getAttribute('target')).toBe('_blank');
+    expect(titleLink.getAttribute('rel')).toBe('noopener noreferrer');
     expect(fixture.nativeElement.querySelector('.collection-metadata dt')?.textContent).toBe('Collection');
     expect(fixture.nativeElement.querySelector('.collection-metadata dd')?.textContent).toBe('archive-collection');
     expect(fixture.nativeElement.querySelector('mat-card')).toBeNull();

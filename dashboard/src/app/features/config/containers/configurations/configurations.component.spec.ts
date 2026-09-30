@@ -7,7 +7,7 @@ import {BehaviorSubject, EMPTY, from, Observable, of, Subject} from 'rxjs';
 
 import {AuthService, ControllerApiService, SnackBarService} from '../../../../core';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {BrowserScriptType, ConfigObject, Kind, Label, ListRange, Role, RobotsPolicy} from '../../../../shared/models';
+import {BrowserScriptType, ConfigObject, Kind, Label, ListRange, Meta, Role, RobotsPolicy} from '../../../../shared/models';
 import {ConfigQuery} from '../../../../shared/func';
 import {ConfigService} from '../../../../shared/services';
 import {OptionsService} from '../../services';
@@ -207,6 +207,38 @@ describe('ConfigurationsComponent query loading', () => {
       .toContain('0 of 0 role mappings');
     expect(fixture.debugElement.query(By.directive(ConfigListComponent))).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-rolemapping-list')).toBeNull();
+  });
+
+  it('opens the seed URL in a new tab, but keeps other kinds navigating to the detail page', async () => {
+    const seed = new ConfigObject({
+      id: 'seed-1',
+      kind: Kind.SEED,
+      meta: new Meta({name: 'https://example.test/some/page'}),
+    });
+    search.mockReturnValueOnce(of(seed));
+    queryParams.next(convertToParamMap({q: 'seed-link'}));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const seedLink = fixture.nativeElement.querySelector('.primary-detail-link') as HTMLAnchorElement;
+    expect(seedLink.getAttribute('href')).toBe('https://example.test/some/page');
+    expect(seedLink.getAttribute('target')).toBe('_blank');
+    expect(seedLink.getAttribute('rel')).toBe('noopener');
+
+    const crawlJob = new ConfigObject({
+      id: 'job-1',
+      kind: Kind.CRAWLJOB,
+      meta: new Meta({name: 'Daily crawl'}),
+    });
+    search.mockReturnValueOnce(of(crawlJob));
+    kindParams.next(convertToParamMap({kind: 'crawljobs'}));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const jobLink = fixture.nativeElement.querySelector('.primary-detail-link') as HTMLAnchorElement;
+    expect(jobLink.getAttribute('href')).toBe('/config/crawljobs/job-1');
+    expect(jobLink.getAttribute('target')).toBe('_self');
+    expect(jobLink.getAttribute('rel')).toBeNull();
   });
 
   it('opens mass update in a responsive viewport-safe dialog', () => {

@@ -37,6 +37,8 @@
                 [showStateFilter]="kind === Kind.SEED || kind === Kind.CRAWLJOB"
                 [disabledFilter]="query().disabled"
                 [multiSelect]="true"
+                [primaryLinkDestination]="kind === Kind.SEED ? 'title' : 'detail'"
+                [detailLinkTarget]="kind === Kind.SEED ? '_blank' : '_self'"
                 (disabledFilterChange)="onDisabledFilterChange($event)"
                 (selectedChange)="onSelectedChange($event)"
                 (selectAll)="onSelectAll()"

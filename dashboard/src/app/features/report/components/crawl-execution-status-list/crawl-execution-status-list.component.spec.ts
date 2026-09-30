@@ -172,7 +172,7 @@ describe('CrawlExecutionStatusListComponent', () => {
     expect(endCells).toEqual(['Aborted after timeout', '', 'Not available', 'Not available']);
   });
 
-  it('renders the seed as plain row content and keeps row navigation', async () => {
+  it('renders the seed as an external link that opens the URL without also triggering row navigation', async () => {
     const row = new CrawlExecutionStatus({
       id: 'crawl-execution-1',
       seedId: 'seed-1',
@@ -194,8 +194,14 @@ describe('CrawlExecutionStatusListComponent', () => {
 
     const itemRow = fixture.nativeElement.querySelector('.item-row') as HTMLElement;
     const seedCell = itemRow.querySelector('td') as HTMLElement;
-    expect(seedCell.textContent).toContain('https://example.com/seed');
-    expect(seedCell.querySelector('a')).toBeNull();
+    const seedLink = seedCell.querySelector('a') as HTMLAnchorElement;
+    expect(seedLink.textContent.trim()).toBe('https://example.com/seed');
+    expect(seedLink.getAttribute('href')).toBe('https://example.com/seed');
+    expect(seedLink.getAttribute('target')).toBe('_blank');
+    expect(seedLink.getAttribute('rel')).toBe('noopener noreferrer');
+
+    seedLink.click();
+    expect(clicked).toEqual([]);
 
     itemRow.click();
     itemRow.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));

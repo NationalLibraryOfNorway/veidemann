@@ -1,7 +1,7 @@
 @if (pageLog) {
   <section class="page-log-detail" aria-label="Page log details" i18n-aria-label="@@pageLogDetailsLabel">
     <app-detail-header icon="art_track" supertitle="Page log"
-      i18n-supertitle="@@pageLogHeaderSupertitle" [title]="pageLog.uri">
+      i18n-supertitle="@@pageLogHeaderSupertitle" [title]="pageLog.uri" [titleHref]="pageLog.uri">
       <ng-container detailHeaderActions>
         <ng-content select="[detailHeaderHelpers]"></ng-content>
       </ng-container>
