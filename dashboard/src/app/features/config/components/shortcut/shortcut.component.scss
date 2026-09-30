@@ -30,13 +30,14 @@
   outline-offset: 2px;
 }
 .relationship-label small { color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-label-small); }
-.relationship-row.inactive { opacity: 0.68; }
+.relationship-row.inactive { color: var(--mat-sys-error); }
+.relationship-row.inactive .relationship-content > mat-icon { opacity: 0.75; }
 .relation-status {
   grid-column-start: 3;
   padding: 3px 7px;
   border-radius: 999px;
-  color: var(--mat-sys-on-surface-variant);
-  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
   font: var(--mat-sys-label-small);
   justify-self: end;
 }
