@@ -314,9 +314,15 @@ describe('ConfigShortcutHelpersComponent', () => {
     expect(status.textContent.trim()).toBe('Deactivated');
     expect(fixture.nativeElement.querySelector('.navigate-icon')).toBeNull();
     expect(getComputedStyle(status).gridColumnStart).toBe('3');
-    expect(getComputedStyle(status).color).toBe(getComputedStyle(rows[1].querySelector('small')).color);
-    expect(getComputedStyle(status).backgroundColor)
-      .not.toBe(getComputedStyle(document.documentElement).getPropertyValue('--mat-sys-error-container').trim());
+
+    const errorContainerRef = document.createElement('div');
+    errorContainerRef.style.backgroundColor = 'var(--mat-sys-error-container)';
+    errorContainerRef.style.color = 'var(--mat-sys-on-error-container)';
+    document.body.appendChild(errorContainerRef);
+    expect(getComputedStyle(status).color).toBe(getComputedStyle(errorContainerRef).color);
+    expect(getComputedStyle(status).backgroundColor).toBe(getComputedStyle(errorContainerRef).backgroundColor);
+    expect(getComputedStyle(status).color).not.toBe(getComputedStyle(rows[1].querySelector('small')).color);
+    errorContainerRef.remove();
     expect(getComputedStyle(rows[0].querySelector('.relationship-content')).borderRadius).toBe('0px');
     expect(getComputedStyle(rows[0]).borderTopStyle).toBe('none');
     expect(getComputedStyle(rows[0]).borderBottomStyle).toBe('none');

@@ -222,14 +222,13 @@ mat-list .item-row.row-checked {
 
 .row-deactivated .mdc-list-item__primary-text,
 .row-deactivated .mdc-list-item__secondary-text {
-  color: var(--mat-list-list-item-disabled-label-text-color, var(--mat-sys-on-surface));
-  opacity: var(--mat-list-list-item-disabled-label-text-opacity, 0.3);
+  color: var(--mat-sys-error);
 }
 
 .row-deactivated:not(.row-checked) .selection-entry-control mat-icon,
 .row-deactivated:not(.row-checked) .config-kind-icon {
-  color: var(--mat-list-list-item-disabled-leading-icon-color, var(--mat-sys-on-surface));
-  opacity: var(--mat-list-list-item-disabled-leading-icon-opacity, 0.38);
+  color: var(--mat-sys-error);
+  opacity: 0.75;
 }
 
 .row-deactivated.row-checked .mdc-list-item__primary-text,

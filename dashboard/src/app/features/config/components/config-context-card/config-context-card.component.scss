@@ -8,7 +8,11 @@
 
 .context-header { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) 48px; align-items: flex-start; gap: 12px; }
 .context-identity { display: flex; min-width: 0; align-items: flex-start; gap: 12px; }
-.context-identity.inactive { opacity: 0.62; }
+.context-identity.inactive { color: var(--mat-sys-error); }
+.context-identity.inactive .context-kind-icon {
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+}
 .context-kind-icon {
   display: grid; width: 40px; height: 40px; border-radius: var(--mat-sys-corner-small);
   color: var(--mat-sys-on-secondary-container); background: var(--mat-sys-secondary-container);
@@ -23,7 +27,7 @@
 .relation-source { margin-top: 3px; }
 
 .context-menu { display: flex; min-width: 48px; min-height: 48px; justify-content: flex-end; }
-.deactivated-status { margin: 4px 0 0; color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-label-medium); }
+.deactivated-status { margin: 4px 0 0; color: var(--mat-sys-error); font: var(--mat-sys-label-medium); }
 
 .context-facts {
   display: flex; margin: 0; justify-content: center; align-items: flex-start;
