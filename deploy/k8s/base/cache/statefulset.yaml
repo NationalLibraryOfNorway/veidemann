@@ -9,6 +9,16 @@ spec:
   serviceName: cache
   replicas: 1
   podManagementPolicy: OrderedReady
+  volumeClaimTemplates:
+    - metadata:
+        name: cache
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        volumeMode: Filesystem
+        resources:
+          requests:
+            storage: 1Gi
   selector:
     matchLabels:
       app.kubernetes.io/name: cache
@@ -20,12 +30,41 @@ spec:
         app.kubernetes.io/component: cache
       annotations:
         config.linkerd.io/opaque-ports: "3128"
+        config.linkerd.io/proxy-ephemeral-storage-request: "64Mi"
+        config.linkerd.io/proxy-ephemeral-storage-limit: "256Mi"
     spec:
       securityContext:
         fsGroup: 13
+      initContainers:
+        - name: init-cache-config
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.10.2
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              ephemeral-storage: 16Mi
+            limits:
+              ephemeral-storage: 64Mi
+          command:
+            - sh
+            - -ec
+            - |
+              cp -R /etc/squid/conf.d/. /generated-config/
+              # Keep Squid's network database on the explicitly writable spool.
+              printf '%s\n' 'netdb_filename stdio:/var/spool/squid/netdb.state' > /generated-config/30-storage.conf
+          volumeMounts:
+            - name: cache-config
+              mountPath: /generated-config
       containers:
         - name: cache
           image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.10.2
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              ephemeral-storage: 256Mi
+            limits:
+              ephemeral-storage: 512Mi
           ports:
             - name: http
               containerPort: 3128
@@ -34,11 +73,26 @@ spec:
             - name: DNS_SERVERS
               value: dns-resolver
           volumeMounts:
+            - name: cache
+              mountPath: /var/spool
+            - name: cache-run
+              mountPath: /run
+            - name: cache-config
+              mountPath: /etc/squid/conf.d
+            - name: cache-tmp
+              mountPath: /tmp
             - name: cache-certificate
               mountPath: "/ca-certificates"
               readOnly: true
         - name: cache-exporter
           image: docker.io/boynux/squid-exporter:v1.13.0
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              ephemeral-storage: 32Mi
+            limits:
+              ephemeral-storage: 128Mi
           ports:
             - name: http-metrics
               containerPort: 9301
@@ -47,6 +101,15 @@ spec:
             - "-listen"
             - "0.0.0.0:9301"
       volumes:
+        - name: cache-run
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: cache-config
+          emptyDir:
+            sizeLimit: 4Mi
+        - name: cache-tmp
+          emptyDir:
+            sizeLimit: 32Mi
         - name: cache-certificate
           secret:
             optional: false
