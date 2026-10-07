@@ -56,7 +56,7 @@ StatefulSet updates use `OnDelete` so normal image or config rollouts do not aut
 
 The StatefulSet uses `podManagementPolicy: Parallel` intentionally. With fail-closed startup, ordered startup can deadlock after a failover if `kvrocks-0` starts first, cannot discover the durable master, and blocks later pods from starting. Parallel startup allows every pod with durable Sentinel state to participate in recovery. The 90-second discovery wait prevents normal Sentinel startup delay from causing recurring restarts of `kvrocks-1` and `kvrocks-2` during a fresh bootstrap.
 
-The base uses best-effort pod anti-affinity so multi-node clusters spread replicas when possible, while still allowing single-node development clusters. Production overlays should replace this with required anti-affinity and stricter topology spread constraints.
+The base uses best-effort pod anti-affinity so multi-node clusters spread replicas when possible, while still allowing single-node development clusters. Deployment-specific overlays can replace this with required anti-affinity and stricter topology spread constraints.
 
 ## Restarting Pods With `OnDelete`
 
@@ -264,7 +264,7 @@ Do not automatically restart the StatefulSet when `kvrocks-auth` changes. A pass
 
 The base does not include backup export automation.
 
-Production overlays can add the optional [deploy/k8s/components/kvrocks-backup](../../components/kvrocks-backup) component instead of patching backup logic into the base.
+Overlays can add the optional [deploy/k8s/components/kvrocks-backup](../../components/kvrocks-backup) component instead of patching backup logic into the base.
 
 That component uses Kvrocks' own backup mechanism:
 
@@ -294,7 +294,7 @@ This means a lone surviving master in degraded mode will keep serving internally
 - Narrow the base `NetworkPolicy` from same-namespace access to only the exact workloads that should reach ports `6666`, `26379`, and `9121`.
 - If your Prometheus runs outside the Kvrocks namespace, widen metrics ingress to that namespace or its scrape pods in an overlay before enabling the optional ServiceMonitor.
 - Add [deploy/k8s/components/kvrocks-backup](../../components/kvrocks-backup) only in overlays that also provide a suitable RWX storage class and S3 configuration.
-- Replace the base placement policy with required anti-affinity and stricter topology spread constraints in production overlays.
+- Use overlay patches to replace the base placement policy with required anti-affinity and stricter topology spread constraints when needed.
 - Add TLS through overlay patches if required.
 - Pin container images to the versions approved for your environment.
 - Tune probe thresholds if your cluster starts slowly.
