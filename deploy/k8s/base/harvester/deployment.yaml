@@ -93,7 +93,7 @@ spec:
               mountPath: /var/run/recorderproxy
       containers:
         - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.4
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.10.0
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
