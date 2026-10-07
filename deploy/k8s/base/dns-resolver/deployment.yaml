@@ -33,6 +33,9 @@ spec:
             runAsNonRoot: true
             runAsUser: 65532
             runAsGroup: 65532
+          args:
+            - "-conf"
+            - "/etc/dns-resolver/Corefile"
           env:
             - name: OLRIC_ADDRESS
               value: "olric-client:3320"
@@ -86,5 +89,5 @@ spec:
             timeoutSeconds: 1
           volumeMounts:
             - name: corefile
-              mountPath: /Corefile
-              subPath: Corefile
+              mountPath: /etc/dns-resolver
+              readOnly: true

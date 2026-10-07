@@ -5,6 +5,7 @@ arpa {
 
 . {
     errors
+    metadata
     resolve :8053
     prometheus :9153
     ready :8181
