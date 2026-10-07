@@ -9,7 +9,7 @@ The same binary supports three storage roles while keeping one gRPC API:
 - `combined` preserves the original Parquet-first, synchronous SQLite
   best-effort behavior for compatibility.
 
-Production writers send to `log-service-writer`; readers send to `log-service`.
+In split deployments, writers send to `log-service-writer`; readers send to `log-service`.
 The writer acknowledges a request as soon as its Parquet append succeeds and the
 recent copy has either been queued or dropped. Existing Parquet files are never
 read or backfilled into SQLite.
@@ -65,9 +65,6 @@ an adequate termination grace period. If ingress propagation requires a
   Parquet claim per ordinal.
 - `deploy/k8s/base/log-service/recent` supplies the singleton recent Deployment,
   Service, and SQLite claim.
-- `deploy/k8s/overlays/prod/log-service` composes those bases with three writer
-  replicas and one recent replica. It expects a separately provisioned
-  `log-service-minio` Secret containing the keys referenced by its writer patch.
 - `deploy/k8s/base/log-service/deployment` retains combined mode and exposes both
   Service names to the same pod.
 - The development overlay changes that Deployment to recent-only mode. Its
