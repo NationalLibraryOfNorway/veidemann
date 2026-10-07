@@ -29,10 +29,11 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/script"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
+	"github.com/chromedp/cdproto/cdp"
+	jsonv2 "github.com/chromedp/cdproto/cdp/jsonv2"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
-	"github.com/go-json-experiment/json/jsontext"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -163,7 +164,7 @@ func (sess *Session) registerNewDocumentScripts(ctx context.Context) error {
 		}
 
 		source := buildNewDocumentScriptSource(configObject.GetBrowserScript().GetScript(), arguments)
-		if _, err := page.AddScriptToEvaluateOnNewDocument(source).Do(ctx); err != nil {
+		if _, err := chromedp.Call(ctx, page.AddScriptToEvaluateOnNewDocument, page.AddScriptToEvaluateOnNewDocumentParams{Source: source}); err != nil {
 			return fmt.Errorf("failed to register init script %s (%s): %w", configObject.GetMeta().GetName(), configObject.GetId(), err)
 		}
 
@@ -257,89 +258,64 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 // Returns an error: if the debug protocol action fails, if script execution
 // caused an exception, or if unmarshalling of result value fails.
 func callScript(ctx context.Context, eci runtime.ExecutionContextID, functionDeclaration string, arguments json.RawMessage) (json.RawMessage, error) {
-	var res *runtime.RemoteObject
-	var exceptionDetails *runtime.ExceptionDetails
-	err := chromedp.Run(ctx,
-		chromedp.ActionFunc(func(ctx context.Context) (err error) {
-			res, exceptionDetails, err = runtime.
-				CallFunctionOn(functionDeclaration).
-				WithArguments([]*runtime.CallArgument{{Value: jsontext.Value(arguments)}}).
-				WithExecutionContextID(eci).
-				WithReturnByValue(true).
-				WithAwaitPromise(true).
-				Do(ctx)
-			return err
-		}),
-	)
+	res, err := chromedp.Call(ctx, runtime.CallFunctionOn, runtime.CallFunctionOnParams{
+		FunctionDeclaration: functionDeclaration,
+		Arguments:           []*runtime.CallArgument{{Value: jsonv2.Value(arguments)}},
+		ExecutionContextID:  eci,
+		ReturnByValue:       new(true),
+		AwaitPromise:        new(true),
+	})
 	if err != nil {
 		return nil, err
 	}
-	if exceptionDetails != nil {
-		return nil, exceptionDetails
+	if res.ExceptionDetails != nil {
+		return nil, &chromedp.ExceptionError{ExceptionDetails: res.ExceptionDetails}
 	}
-
-	return json.RawMessage(res.Value), nil
-}
-
-// evaluateScript evaluates a script expression and awaits Promise results
-// before returning the resolved value.
-func evaluateScript(ctx context.Context, expression string) (json.RawMessage, error) {
-	var res *runtime.RemoteObject
-	var exceptionDetails *runtime.ExceptionDetails
-	err := chromedp.Run(ctx,
-		chromedp.ActionFunc(func(ctx context.Context) (err error) {
-			res, exceptionDetails, err = runtime.Evaluate(expression).
-				WithReturnByValue(true).
-				WithAwaitPromise(true).
-				Do(ctx)
-			return err
-		}),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if exceptionDetails != nil {
-		return nil, exceptionDetails
-	}
-	if res == nil || res.Value == nil {
+	if res.Result == nil {
 		return nil, nil
 	}
-
-	return json.RawMessage(res.Value), nil
+	return json.RawMessage(res.Result.Value), nil
 }
 
-// getExecutionContextID creates an isolated world from the root frame and returns
-// an execution context id.
+// evaluateScript evaluates an expression and awaits its Promise result.
+func evaluateScript(ctx context.Context, expression string) (json.RawMessage, error) {
+	res, err := chromedp.Call(ctx, runtime.Evaluate, runtime.EvaluateParams{
+		Expression:    expression,
+		ReturnByValue: new(true),
+		AwaitPromise:  new(true),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if res.ExceptionDetails != nil {
+		return nil, &chromedp.ExceptionError{ExceptionDetails: res.ExceptionDetails}
+	}
+	if res.Result == nil {
+		return nil, nil
+	}
+	return json.RawMessage(res.Result.Value), nil
+}
+
+// getExecutionContextID creates an isolated world in the root frame.
 func getExecutionContextID(ctx context.Context) (runtime.ExecutionContextID, error) {
 	frameTree, err := getFrameTree(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get frameTree: %w", err)
 	}
-
-	var eci runtime.ExecutionContextID
-	err = chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		var err error
-		eci, err = page.CreateIsolatedWorld(frameTree.Frame.ID).Do(ctx)
-		return err
-	}))
+	res, err := chromedp.Call(ctx, page.CreateIsolatedWorld, page.CreateIsolatedWorldParams{FrameID: frameTree.Frame.ID})
 	if err != nil {
 		return 0, fmt.Errorf("failed to create isolated world: %w", err)
 	}
-	return eci, nil
+	return res.ExecutionContextID, nil
 }
 
-// getFrameTree returns the frame tree of the current page or an error if it fails.
+// getFrameTree returns the frame tree of the current page.
 func getFrameTree(ctx context.Context) (*page.FrameTree, error) {
-	var frameTree *page.FrameTree
-	err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		var err error
-		frameTree, err = page.GetFrameTree().Do(ctx)
-		return err
-	}))
+	res, err := chromedp.Call(ctx, page.GetFrameTree, cdp.Empty{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get frameTree: %w", err)
 	}
-	return frameTree, nil
+	return res.FrameTree, nil
 }
 
 // match takes an array of regular expressions and a URI. It returns true if

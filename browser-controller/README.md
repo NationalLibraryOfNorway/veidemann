@@ -10,6 +10,19 @@ Need to use the context of the monorepo root when building the container:
 
     go test ./...
 
+## Chrome DevTools client
+
+The controller uses the released `chromedp` and `chromedp/remote` modules with
+typed actions and protocol commands. There is no local fork or module replacement.
+See the upstream [migration guide](https://github.com/chromedp/chromedp/blob/main/docs/MIGRATION.md)
+and [API guide](https://github.com/chromedp/chromedp/blob/main/docs/API.md).
+
+`session/remote.go` wraps the remote module's WebSocket transport to dispatch
+events in their original order. Request completion and frame loading depend on
+that order across different event methods; separate event iterators can process
+completion before creation. Event handlers must send protocol commands from a
+goroutine so they do not block the transport reader.
+
 ## Recorder certificate trust
 
 When `--proxy-host`/`PROXY_HOST` is configured, browser-controller also requires

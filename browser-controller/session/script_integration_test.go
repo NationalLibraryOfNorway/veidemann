@@ -26,6 +26,7 @@ import (
 	"time"
 
 	testcontainersupport "github.com/NationalLibraryOfNorway/veidemann/browser-controller/internal/testcontainers"
+	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
@@ -157,19 +158,19 @@ func newScriptExecutionTestContext(t *testing.T) (context.Context, func()) {
 	}
 	sess.browserWsEndpoint = browserWsEndpoint
 
-	allocatorContext, allocatorCancel := chromedp.NewRemoteAllocator(ctx, sess.browserWsEndpoint, chromedp.NoModifyURL)
+	allocatorContext, allocatorCancel := newRemoteAllocator(ctx, sess.browserWsEndpoint)
 	cdpCtx, cdpCancel := chromedp.NewContext(allocatorContext)
 
-	if err := chromedp.Run(cdpCtx,
-		page.Enable(),
-		runtime.Enable(),
+	if err := chromedp.Do(cdpCtx,
+		cdpAction(page.Enable, page.EnableParams{}),
+		cdpAction(runtime.Enable, cdp.Empty{}),
 		chromedp.Navigate("data:text/html,<html><body>script test</body></html>"),
 	); err != nil {
 		cdpCancel()
 		allocatorCancel()
 		terminateBrowserlessContainer(browserless)
 		cancel()
-		t.Fatalf("chromedp.Run() error = %v", err)
+		t.Fatalf("chromedp.Do() error = %v", err)
 	}
 
 	cleanup := func() {

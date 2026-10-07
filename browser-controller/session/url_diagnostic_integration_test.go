@@ -33,6 +33,7 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/chromedp/cdproto/browser"
+	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
@@ -274,39 +275,41 @@ func runURLDiagnosticMode(t *testing.T, parent context.Context, host string, por
 	if err != nil {
 		t.Fatalf("compile browser websocket endpoint: %v", err)
 	}
-	allocatorCtx, cancelAllocator := chromedp.NewRemoteAllocator(ctx, endpoint, chromedp.NoModifyURL)
+	allocatorCtx, cancelAllocator := newRemoteAllocator(ctx, endpoint)
 	defer cancelAllocator()
 	browserCtx, cancelBrowser := chromedp.NewContext(allocatorCtx)
 	defer cancelBrowser()
 
 	collector := newURLDiagnosticNetworkCollector()
-	chromedp.ListenTarget(browserCtx, collector.handleEvent)
+	if err := listenTarget(browserCtx, collector.handleEvent); err != nil {
+		t.Fatalf("listen to diagnostic browser events: %v", err)
+	}
 
 	var browserVersion string
 	var browserUserAgent string
 	var browserArguments []string
-	err = chromedp.Run(browserCtx,
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			var actionErr error
-			_, browserVersion, _, browserUserAgent, _, actionErr = browser.GetVersion().Do(ctx)
+	err = chromedp.Do(browserCtx,
+		chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
+			version, actionErr := chromedp.CallBrowser(ctx, browser.GetVersion, cdp.Empty{})
+			browserVersion, browserUserAgent = version.Product, version.UserAgent
 			return actionErr
 		}),
 	)
 	if err != nil {
 		t.Fatalf("get browser version: %v", err)
 	}
-	_ = chromedp.Run(browserCtx, chromedp.ActionFunc(func(ctx context.Context) error {
-		arguments, actionErr := browser.GetBrowserCommandLine().Do(ctx)
+	_ = chromedp.Do(browserCtx, chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
+		res, actionErr := chromedp.CallBrowser(ctx, browser.GetBrowserCommandLine, cdp.Empty{})
 		if actionErr == nil {
-			browserArguments = filterURLDiagnosticBrowserArguments(arguments)
+			browserArguments = filterURLDiagnosticBrowserArguments(res.Arguments)
 		}
 		return nil
 	}))
-	err = chromedp.Run(browserCtx,
-		network.Enable(),
-		page.Enable(),
-		runtime.Enable(),
-		network.SetCacheDisabled(true),
+	err = chromedp.Do(browserCtx,
+		cdpAction(network.Enable, network.EnableParams{}),
+		cdpAction(page.Enable, page.EnableParams{}),
+		cdpAction(runtime.Enable, cdp.Empty{}),
+		cdpAction(network.SetCacheDisabled, network.SetCacheDisabledParams{CacheDisabled: true}),
 		chromedp.Emulate(device.Info{
 			Name:      "Veidemann URL diagnostic",
 			UserAgent: strings.ReplaceAll(browserUserAgent, "HeadlessChrome", "Chrome") + " veidemann/development",
@@ -321,7 +324,7 @@ func runURLDiagnosticMode(t *testing.T, parent context.Context, host string, por
 		t.Fatalf("navigate to %q: %v", *diagnosticURL, err)
 	}
 	if mode == "foreground-scroll" {
-		if err := chromedp.Run(browserCtx, page.BringToFront()); err != nil {
+		if _, err := chromedp.Call(browserCtx, page.BringToFront, cdp.Empty{}); err != nil {
 			t.Fatalf("bring diagnostic page to front: %v", err)
 		}
 	}

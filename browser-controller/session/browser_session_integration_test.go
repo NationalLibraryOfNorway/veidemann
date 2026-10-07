@@ -39,7 +39,7 @@ func TestPrepareRemotePage(t *testing.T) {
 		t.Fatalf("compile browser WebSocket endpoint: %v", err)
 	}
 
-	allocatorCtx, cancelAllocator := chromedp.NewRemoteAllocator(ctx, endpoint, chromedp.NoModifyURL)
+	allocatorCtx, cancelAllocator := newRemoteAllocator(ctx, endpoint)
 	defer cancelAllocator()
 	browserCtx, cancelBrowser := chromedp.NewContext(allocatorCtx)
 	defer cancelBrowser()
@@ -47,14 +47,23 @@ func TestPrepareRemotePage(t *testing.T) {
 	var visibilityState string
 	var hidden bool
 	var focused bool
-	if err := chromedp.Run(browserCtx,
-		chromedp.ActionFunc(prepareRemotePage),
+	if err := chromedp.Do(browserCtx,
+		chromedp.Func(prepareRemotePage),
 		chromedp.Navigate("data:text/html,<html><body>remote page activation</body></html>"),
-		chromedp.Evaluate("document.visibilityState", &visibilityState),
-		chromedp.Evaluate("document.hidden", &hidden),
-		chromedp.Evaluate("document.hasFocus()", &focused),
 	); err != nil {
 		t.Fatalf("prepare and navigate remote page: %v", err)
+	}
+	visibilityState, err = chromedp.Run(browserCtx, chromedp.Evaluate[string]("document.visibilityState"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hidden, err = chromedp.Run(browserCtx, chromedp.Evaluate[bool]("document.hidden"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	focused, err = chromedp.Run(browserCtx, chromedp.Evaluate[bool]("document.hasFocus()"))
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if visibilityState != "visible" {

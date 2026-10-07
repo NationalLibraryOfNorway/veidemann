@@ -23,8 +23,10 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -51,6 +53,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/testutil"
 	logServiceTestUtil "github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/testutil"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	proxyServiceConnections "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	proxyTestUtil "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
@@ -144,6 +147,18 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	// Share one recorder identity with all proxy instances and scope Chromium's
+	// certificate exception to the public key they actually serve.
+	certPEM, keyPEM, err := mitmcert.Generate(time.Now())
+	if err != nil {
+		panic(err)
+	}
+	recorderIdentity, err := mitmcert.ParseIdentity(certPEM, keyPEM)
+	if err != nil {
+		panic(err)
+	}
+	recorderSPKI := sha256.Sum256(recorderIdentity.Certificate().RawSubjectPublicKeyInfo)
+
 	// setup sessions
 	sessions = session.NewRegistry(
 		maxSessions,
@@ -151,6 +166,7 @@ func TestMain(m *testing.M) {
 		session.WithBrowserPort(browserPort),
 		session.WithProxyHost(localhost),
 		session.WithProxyPort(proxyPort),
+		session.WithRecorderCertificateSPKI(base64.StdEncoding.EncodeToString(recorderSPKI[:])),
 		session.WithConfigAdapter(dbAdapter),
 		session.WithScreenshotWriter(screenShotWriter),
 		session.WithLogWriter(logWriter),
@@ -187,9 +203,9 @@ func TestMain(m *testing.M) {
 		),
 	)
 	grpcServices := proxyTestUtil.NewGrpcServiceMock(opt)
-	recorderProxy0 := localRecorderProxy(0, grpcServices.ClientConn, "")
-	recorderProxy1 := localRecorderProxy(1, grpcServices.ClientConn, "")
-	recorderProxy2 := localRecorderProxy(2, grpcServices.ClientConn, "")
+	recorderProxy0 := localRecorderProxy(0, grpcServices.ClientConn, "", recorderIdentity)
+	recorderProxy1 := localRecorderProxy(1, grpcServices.ClientConn, "", recorderIdentity)
+	recorderProxy2 := localRecorderProxy(2, grpcServices.ClientConn, "", recorderIdentity)
 
 	// Run the tests
 	code := m.Run()
@@ -534,8 +550,8 @@ func setupDbMock() *database.MockConnection {
 }
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
-func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string) *recorderproxy.RecorderProxy {
-	proxy := recorderproxy.NewRecorderProxy(id, conn, nextProxyAddr)
+func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string, identity *mitmcert.Identity) *recorderproxy.RecorderProxy {
+	proxy := recorderproxy.NewRecorderProxy(id, conn, nextProxyAddr, recorderproxy.WithMITMIdentity(identity))
 
 	ln, err := proxy.Listen("", proxyPort)
 	if err != nil {

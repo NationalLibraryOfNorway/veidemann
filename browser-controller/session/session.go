@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"math"
 	"net/url"
 	"runtime/debug"
 	"strconv"
@@ -277,7 +276,8 @@ func (sess *Session) stopLoading() error {
 	if sess.ctx == nil {
 		return nil
 	}
-	return chromedp.Run(sess.ctx, page.StopLoading())
+	_, err := chromedp.Call(sess.ctx, page.StopLoading, cdp.Empty{})
+	return err
 }
 
 func (sess *Session) Context() context.Context {
@@ -365,33 +365,26 @@ func (sess *Session) loadFetchConfig(ctx context.Context, phs *frontierV1.PageHa
 func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.Duration) (context.Context, context.Context, func(), error) {
 	log := sess.loggerOrDefault()
 
-	allocatorContext, allocatorCancel := chromedp.NewRemoteAllocator(ctx, sess.browserWsEndpoint, chromedp.NoModifyURL)
+	allocatorContext, allocatorCancel := newRemoteAllocator(ctx, sess.browserWsEndpoint)
 	cdpCtx, cdpCancel := chromedp.NewContext(allocatorContext,
 		chromedp.WithErrorf(chromedpErrorf(log)),
 	)
 	sess.ctx = cdpCtx
 
-	var browserUserAgent string
-	var browserVersion string
-	if err := chromedp.Run(sess.ctx,
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			var err error
-			_, browserVersion, _, browserUserAgent, _, err = browser.GetVersion().Do(ctx)
-			return err
-		}),
-	); err != nil {
+	version, err := chromedp.CallBrowser(sess.ctx, browser.GetVersion, cdp.Empty{})
+	if err != nil {
 		cdpCancel()
 		allocatorCancel()
 		return nil, nil, nil, fmt.Errorf("failed to start browser: %w", err)
 	}
-	sess.browserVersion = browserVersion
+	sess.browserVersion = version.Product
 
-	sess.UserAgent = strings.ReplaceAll(browserUserAgent, "HeadlessChrome", "Chrome")
+	sess.UserAgent = strings.ReplaceAll(version.UserAgent, "HeadlessChrome", "Chrome")
 	if sess.browserConfig.UserAgent != "" {
 		sess.UserAgent += " " + sess.browserConfig.UserAgent
 	}
 
-	log.Debug("Browser session", "version", browserVersion, "userAgent", sess.UserAgent, "endpoint", sess.browserWsEndpoint)
+	log.Debug("Browser session", "version", version.Product, "userAgent", sess.UserAgent, "endpoint", sess.browserWsEndpoint)
 
 	loadCtx, loadCancel := context.WithTimeout(sess.ctx, maxTotalTime)
 	sess.loadCancel = loadCancel
@@ -400,7 +393,12 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.
 	sess.registry()
 	sess.completionActivity = make(chan struct{}, 1)
 
-	sess.initListeners(cdpCtx)
+	if err := sess.initListeners(cdpCtx); err != nil {
+		loadCancel()
+		cdpCancel()
+		allocatorCancel()
+		return nil, nil, nil, err
+	}
 
 	browserWidth := int64(sess.browserConfig.WindowWidth)
 	browserHeight := int64(sess.browserConfig.WindowHeight)
@@ -418,16 +416,16 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.
 	}
 
 	// run task list
-	if err := chromedp.Run(sess.ctx,
-		network.SetCacheDisabled(true),
-		serviceworker.Enable(),
+	if err := chromedp.Do(sess.ctx,
+		cdpAction(network.SetCacheDisabled, network.SetCacheDisabledParams{CacheDisabled: true}),
+		cdpAction(serviceworker.Enable, cdp.Empty{}),
 		chromedp.Emulate(deviceInfo),
-		fetch.Enable(),
-		network.Enable(),
-		chromedp.ActionFunc(prepareRemotePage),
-		network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
-		runtime.Enable(),
-		target.SetAutoAttach(true, false).WithFlatten(true),
+		cdpAction(fetch.Enable, fetch.EnableParams{}),
+		cdpAction(network.Enable, network.EnableParams{}),
+		chromedp.Func(prepareRemotePage),
+		cdpAction(network.SetCookies, network.SetCookiesParams{Cookies: sess.getCookieParams(sess.RequestedUrl)}),
+		cdpAction(runtime.Enable, cdp.Empty{}),
+		cdpAction(target.SetAutoAttach, target.SetAutoAttachParams{AutoAttach: true, WaitForDebuggerOnStart: false, Flatten: new(true)}),
 	); err != nil {
 		loadCancel()
 		cdpCancel()
@@ -447,23 +445,18 @@ func (sess *Session) startBrowserSession(ctx context.Context, maxTotalTime time.
 // prepareRemotePage establishes the page lifecycle state expected by fetch
 // scripts. Remote browser backends may leave a newly created target in the
 // background, which suppresses visibility-dependent browser behavior.
-func prepareRemotePage(ctx context.Context) error {
-	if err := page.Enable().Do(ctx); err != nil {
+func prepareRemotePage(ctx context.Context, t *chromedp.Target) error {
+	if _, err := cdp.Call(ctx, t, page.Enable, page.EnableParams{}); err != nil {
 		return fmt.Errorf("enable page domain: %w", err)
 	}
-	if err := page.BringToFront().Do(ctx); err != nil {
+	if _, err := cdp.Call(ctx, t, page.BringToFront, cdp.Empty{}); err != nil {
 		return fmt.Errorf("bring remote page to front: %w", err)
 	}
 	return nil
 }
 
 func (sess *Session) navigate(loadCtx context.Context) error {
-	err := chromedp.Run(loadCtx,
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			_, _, _, _, err := page.Navigate(sess.RequestedUrl.Uri).WithTransitionType(page.TransitionTypeOther).Do(ctx)
-			return err
-		}),
-	)
+	_, err := chromedp.Call(loadCtx, page.Navigate, page.NavigateParams{URL: sess.RequestedUrl.Uri, TransitionType: page.TransitionTypeOther})
 	if err != nil {
 		return sess.classifyNavigationError(err)
 	}
@@ -736,9 +729,6 @@ func (sess *Session) getCookieParams(uri *frontierV1.QueuedUri) []*network.Cooki
 	}
 	cookies := make([]*network.CookieParam, len(uri.GetCookies()))
 	for i, c := range uri.GetCookies() {
-		expSec, expNsec := math.Modf(c.Expires)
-		expires := cdp.TimeSinceEpoch(time.Unix(int64(expSec), int64(expNsec*(1e9))))
-
 		cookies[i] = &network.CookieParam{
 			Name:     c.Name,
 			Value:    c.Value,
@@ -748,7 +738,7 @@ func (sess *Session) getCookieParams(uri *frontierV1.QueuedUri) []*network.Cooki
 			Secure:   c.Secure,
 			HTTPOnly: c.HttpOnly,
 			SameSite: network.CookieSameSite(c.SameSite),
-			Expires:  &expires,
+			Expires:  cdp.TimeSinceEpoch(c.Expires),
 		}
 	}
 	return cookies
@@ -756,34 +746,26 @@ func (sess *Session) getCookieParams(uri *frontierV1.QueuedUri) []*network.Cooki
 
 func (sess *Session) extractCookies() []*frontierV1.Cookie {
 	log := sess.loggerOrDefault()
-	var result []*frontierV1.Cookie
-
-	if err := chromedp.Run(sess.ctx,
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			cookies, err := network.GetCookies().Do(ctx)
-			if err != nil {
-				return err
-			}
-
-			result = make([]*frontierV1.Cookie, len(cookies))
-			for i, c := range cookies {
-				result[i] = &frontierV1.Cookie{
-					Name:     c.Name,
-					Value:    c.Value,
-					Domain:   c.Domain,
-					Path:     c.Path,
-					Expires:  c.Expires,
-					Size:     int32(c.Size),
-					HttpOnly: c.HTTPOnly,
-					Secure:   c.Secure,
-					Session:  c.Session,
-					SameSite: c.SameSite.String(),
-				}
-			}
-			return nil
-		}),
-	); err != nil {
+	res, err := chromedp.Call(sess.ctx, network.GetCookies, network.GetCookiesParams{})
+	if err != nil {
 		log.Error("Could not extract cookies", "error", err)
+		return nil
+	}
+
+	result := make([]*frontierV1.Cookie, len(res.Cookies))
+	for i, c := range res.Cookies {
+		result[i] = &frontierV1.Cookie{
+			Name:     c.Name,
+			Value:    c.Value,
+			Domain:   c.Domain,
+			Path:     c.Path,
+			Expires:  float64(c.Expires),
+			Size:     int32(c.Size),
+			HttpOnly: c.HTTPOnly,
+			Secure:   c.Secure,
+			Session:  c.Session,
+			SameSite: c.SameSite.String(),
+		}
 	}
 
 	return result
@@ -818,26 +800,18 @@ func (sess *Session) saveScreenshot(ctx context.Context, rootRequest *requests.R
 		log.Debug("Skipping screenshot: crawlLog has empty warcId", "resourceType", rootRequest.ResourceType)
 		return
 	}
-	var data []byte
-	err := chromedp.Run(ctx,
-		chromedp.ActionFunc(func(ctx context.Context) (err error) {
-			capture := page.CaptureScreenshot().WithFormat(page.CaptureScreenshotFormatPng)
-			if sess.browserConfig != nil && sess.browserConfig.WindowWidth > 0 && sess.browserConfig.WindowHeight > 0 {
-				capture = capture.
-					WithClip(&page.Viewport{
-						X:      0,
-						Y:      0,
-						Width:  float64(sess.browserConfig.WindowWidth),
-						Height: float64(sess.browserConfig.WindowHeight),
-						Scale:  1,
-					}).
-					WithCaptureBeyondViewport(true)
-			}
-
-			data, err = capture.Do(ctx)
-			return
-		}),
-	)
+	capture := page.CaptureScreenshotParams{Format: page.CaptureScreenshotFormatPng}
+	if sess.browserConfig != nil && sess.browserConfig.WindowWidth > 0 && sess.browserConfig.WindowHeight > 0 {
+		capture.Clip = &page.Viewport{
+			X:      0,
+			Y:      0,
+			Width:  float64(sess.browserConfig.WindowWidth),
+			Height: float64(sess.browserConfig.WindowHeight),
+			Scale:  1,
+		}
+		capture.CaptureBeyondViewport = new(true)
+	}
+	res, err := chromedp.Call(ctx, page.CaptureScreenshot, capture)
 	if err != nil {
 		log.Error("Error capturing screenshot", "error", err)
 		return
@@ -848,7 +822,7 @@ func (sess *Session) saveScreenshot(ctx context.Context, rootRequest *requests.R
 		BrowserConfig:  sess.browserConfig,
 		BrowserVersion: sess.browserVersion,
 	}
-	if err = sess.screenShotWriter.Write(ctx, data, metadata); err != nil {
+	if err = sess.screenShotWriter.Write(ctx, res.Data, metadata); err != nil {
 		log.Error("Error writing screenshot", "error", err)
 		return
 	}
@@ -907,7 +881,8 @@ func (sess *Session) abortFetch() error {
 	if sess.ctx == nil {
 		return nil
 	}
-	return chromedp.Run(sess.ctx, page.StopLoading())
+	_, err := chromedp.Call(sess.ctx, page.StopLoading, cdp.Empty{})
+	return err
 }
 
 func (sess *Session) waitForNetworkIdle(ctx context.Context, maxIdleTime time.Duration) error {

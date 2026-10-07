@@ -23,6 +23,7 @@ import (
 
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
+	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
@@ -31,7 +32,10 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-func (sess *Session) initListeners(ctx context.Context) {
+func (sess *Session) initListeners(ctx context.Context) error {
+	if err := chromedp.Do(ctx); err != nil {
+		return err
+	}
 	currentTargetID := target.ID(targetIDFromContext(ctx))
 	sess.rootTargetID = currentTargetID
 	if currentTargetID != "" {
@@ -42,7 +46,7 @@ func (sess *Session) initListeners(ctx context.Context) {
 	sess.loggerOrDefault().Debug("Registering target listener",
 		"listenerId", listenerID,
 		"targetId", currentTargetID)
-	chromedp.ListenTarget(ctx, sess.listenFunc(ctx, listenerID))
+	return listenTarget(ctx, sess.listenFunc(ctx, listenerID))
 }
 
 func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev any) {
@@ -240,7 +244,7 @@ func (sess *Session) onPageEventJavascriptDialogOpening(ctx context.Context, ev 
 	)
 	log.Debug("Javascript dialog opening", "message", ev.Message)
 	accept := ev.Type == "alert"
-	if err := chromedp.Run(ctx, page.HandleJavaScriptDialog(accept)); err != nil {
+	if _, err := chromedp.Call(ctx, page.HandleJavaScriptDialog, page.HandleJavaScriptDialogParams{Accept: accept}); err != nil {
 		log.Error("Failed to handle JavaScript dialog", "error", err)
 	}
 }
@@ -379,20 +383,13 @@ func (sess *Session) continuePausedRequest(
 	ev *fetch.EventRequestPaused,
 	canonicalID string,
 ) error {
-	continueRequest := fetch.ContinueRequest(ev.RequestID)
-
-	// Preserve original URL/method if you really need to. If you are not modifying
-	// them, this is optional. Keeping it here matches your current behavior.
-	continueRequest = continueRequest.
-		WithURL(ev.Request.URL).
-		WithMethod(ev.Request.Method)
-
-	headers := buildFetchHeaders(ev, canonicalID)
-	if len(headers) > 0 {
-		continueRequest = continueRequest.WithHeaders(headers)
-	}
-
-	return chromedp.Run(ctx, continueRequest)
+	_, err := chromedp.Call(ctx, fetch.ContinueRequest, fetch.ContinueRequestParams{
+		RequestID: ev.RequestID,
+		URL:       ev.Request.URL,
+		Method:    ev.Request.Method,
+		Headers:   buildFetchHeaders(ev, canonicalID),
+	})
+	return err
 }
 
 func buildFetchHeaders(ev *fetch.EventRequestPaused, canonicalID string) []*fetch.HeaderEntry {
@@ -463,20 +460,20 @@ func (sess *Session) markTargetInitialized(targetID target.ID) bool {
 	return true
 }
 
-func (sess *Session) childTargetActions(targetType string) []chromedp.Action {
-	actions := []chromedp.Action{
-		fetch.Enable(),
-		runtime.Enable(),
-		target.SetAutoAttach(true, false).WithFlatten(true),
-		runtime.RunIfWaitingForDebugger(),
-		network.Enable(),
-		network.SetCacheDisabled(true),
-		network.SetCookies(sess.getCookieParams(sess.RequestedUrl)),
+func (sess *Session) childTargetActions(targetType string) []chromedp.Action[chromedp.Void] {
+	actions := []chromedp.Action[chromedp.Void]{
+		cdpAction(fetch.Enable, fetch.EnableParams{}),
+		cdpAction(runtime.Enable, cdp.Empty{}),
+		cdpAction(target.SetAutoAttach, target.SetAutoAttachParams{AutoAttach: true, WaitForDebuggerOnStart: false, Flatten: new(true)}),
+		cdpAction(runtime.RunIfWaitingForDebugger, cdp.Empty{}),
+		cdpAction(network.Enable, network.EnableParams{}),
+		cdpAction(network.SetCacheDisabled, network.SetCacheDisabledParams{CacheDisabled: true}),
+		cdpAction(network.SetCookies, network.SetCookiesParams{Cookies: sess.getCookieParams(sess.RequestedUrl)}),
 	}
 
 	if targetType != "shared_worker" && targetType != "service_worker" {
 		actions = append(actions,
-			page.Enable(),
+			cdpAction(page.Enable, page.EnableParams{}),
 		)
 	}
 
@@ -503,9 +500,12 @@ func (sess *Session) initChildTarget(ctx context.Context, targetID target.ID, ta
 	go func() {
 		listenerID := sess.listenerSeq.Add(1)
 		sess.loggerOrDefault().Debug("Registering child target listener", "listenerId", listenerID, "targetId", targetID.String(), "targetType", targetType)
-		chromedp.ListenTarget(newCtx, sess.listenFunc(newCtx, listenerID))
+		if err := listenTarget(newCtx, sess.listenFunc(newCtx, listenerID)); err != nil {
+			sess.loggerOrDefault().Error("Failed listening to new target", "targetType", targetType, "error", err)
+			return
+		}
 
-		if err := chromedp.Run(newCtx, actions...); err != nil {
+		if err := chromedp.Do(newCtx, actions...); err != nil {
 			sess.loggerOrDefault().Error("Failed initializing new target", "targetType", targetType, "error", err)
 		}
 	}()
@@ -513,9 +513,11 @@ func (sess *Session) initChildTarget(ctx context.Context, targetID target.ID, ta
 
 func (sess *Session) finalizePausedRequest(ctx context.Context, ev *fetch.EventRequestPaused) error {
 	if ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != "" {
-		return chromedp.Run(ctx, fetch.ContinueRequest(ev.RequestID))
+		_, err := chromedp.Call(ctx, fetch.ContinueRequest, fetch.ContinueRequestParams{RequestID: ev.RequestID})
+		return err
 	}
-	return chromedp.Run(ctx, fetch.FailRequest(ev.RequestID, network.ErrorReasonAborted))
+	_, err := chromedp.Call(ctx, fetch.FailRequest, fetch.FailRequestParams{RequestID: ev.RequestID, ErrorReason: network.ErrorReasonAborted})
+	return err
 }
 
 func isInvalidInterceptionIDError(err error) bool {

@@ -7,7 +7,6 @@ ARG DATE
 WORKDIR /src
 
 COPY go.mod go.sum ./
-COPY third_party/chromedp/go.mod third_party/chromedp/go.sum ./third_party/chromedp/
 RUN go mod download
 
 COPY . .
