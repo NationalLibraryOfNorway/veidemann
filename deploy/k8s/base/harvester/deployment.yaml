@@ -20,11 +20,24 @@ spec:
         app.kubernetes.io/component: harvester
       annotations:
         linkerd.io/inject: enabled
+        config.linkerd.io/proxy-ephemeral-storage-request: "64Mi"
+        config.linkerd.io/proxy-ephemeral-storage-limit: "256Mi"
         config.linkerd.io/opaque-ports: "9900"
         # Skip outbound to cache
         config.linkerd.io/skip-outbound-ports: "3128"
     spec:
+      securityContext:
+        fsGroup: 65532
       volumes:
+        - name: browser-storage
+          ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 4Gi
         - name: dshm
           emptyDir:
             medium: Memory
@@ -35,12 +48,41 @@ spec:
             sizeLimit: 1Mi
       terminationGracePeriodSeconds: 45
       initContainers:
+        - name: init-browser-storage
+          image: busybox:1.36
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            # blessuser in the pinned Browserless image.
+            runAsUser: 999
+            runAsGroup: 65532
+          resources:
+            requests:
+              ephemeral-storage: 16Mi
+            limits:
+              ephemeral-storage: 64Mi
+          command:
+            - sh
+            - -ec
+            - |
+              mkdir -p /browser-storage/tmp /browser-storage/home
+              chmod 1777 /browser-storage/tmp
+              chmod 0700 /browser-storage/home
+          volumeMounts:
+            - name: browser-storage
+              mountPath: /browser-storage
         - name: generate-recorder-mitm-cert
           image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.9
           securityContext:
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 65532
             runAsGroup: 65532
+          resources:
+            requests:
+              ephemeral-storage: 16Mi
+            limits:
+              ephemeral-storage: 64Mi
           command:
             - /generate-mitm-cert
           args:
@@ -53,9 +95,15 @@ spec:
         - name: browser-controller
           image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.9.4
           securityContext:
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 65532
             runAsGroup: 65532
+          resources:
+            requests:
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
           ports:
             - containerPort: 9999
               protocol: TCP
@@ -131,9 +179,15 @@ spec:
         - name: recorderproxy
           image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.9
           securityContext:
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 65532
             runAsGroup: 65532
+          resources:
+            requests:
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
           ports:
             - containerPort: 9900
               name: proxy
@@ -180,11 +234,21 @@ spec:
               readOnly: true
         - name: browser
           image: ghcr.io/browserless/chromium:v2.55.2
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              # Browser files use the PVC; local storage is for container logs.
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
           ports:
             - containerPort: 3000
               name: debug
               protocol: TCP
           env:
+            - name: TMPDIR
+              value: /tmp
             - name: CONNECTION_TIMEOUT
               value: "600000"
             - name: ENABLE_CORS
@@ -212,5 +276,11 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
           volumeMounts:
+            - name: browser-storage
+              mountPath: /tmp
+              subPath: tmp
+            - name: browser-storage
+              mountPath: /home/blessuser
+              subPath: home
             - mountPath: /dev/shm
               name: dshm
