@@ -38,7 +38,7 @@ spec:
               mountPath: /data
       containers:
         - name: pywb
-          image: webrecorder/pywb:2.9.1
+          image: webrecorder/pywb:2.10.0
           env:
             - name: UWSGI_MOUNT
               value: /pywb=/pywb/pywb/apps/wayback.py
