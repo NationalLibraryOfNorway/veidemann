@@ -20,8 +20,13 @@ spec:
         app.kubernetes.io/component: frontier
       annotations:
         linkerd.io/inject: enabled
+        config.linkerd.io/proxy-ephemeral-storage-request: "64Mi"
+        config.linkerd.io/proxy-ephemeral-storage-limit: "256Mi"
     spec:
       volumes:
+        - name: frontier-tmp
+          emptyDir:
+            sizeLimit: 256Mi
         - name: log4j2
           configMap:
             name: frontier
@@ -33,6 +38,8 @@ spec:
         - name: frontier
           image: ghcr.io/nationallibraryofnorway/veidemann/frontier:0.21.1
           imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 7700
               name: grpc
@@ -42,8 +49,10 @@ spec:
               protocol: TCP
           resources:
             limits:
+              ephemeral-storage: 512Mi
               memory: 2Gi
             requests:
+              ephemeral-storage: 256Mi
               cpu: 100m
               memory: 1Gi
           envFrom:
@@ -100,8 +109,10 @@ spec:
             - name: JAEGER_SAMPLER_PARAM
               value: "0.1"
             - name: JAVA_TOOL_OPTIONS
-              value: -Dfile.encoding=UTF-8 -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=75.0
+              value: -Djava.io.tmpdir=/tmp -Dfile.encoding=UTF-8 -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=75.0
           volumeMounts:
+            - name: frontier-tmp
+              mountPath: /tmp
             - mountPath: /app/resources/log4j2.xml
               name: log4j2
               subPath: log4j2.xml

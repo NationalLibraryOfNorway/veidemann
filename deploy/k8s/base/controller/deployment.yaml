@@ -20,8 +20,16 @@ spec:
         app.kubernetes.io/component: controller
       annotations:
         linkerd.io/inject: enabled
+        config.linkerd.io/proxy-ephemeral-storage-request: "64Mi"
+        config.linkerd.io/proxy-ephemeral-storage-limit: "256Mi"
     spec:
       volumes:
+        - name: controller-tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: envoy-tmp
+          emptyDir:
+            sizeLimit: 16Mi
         - name: log4j2
           configMap:
             name: controller
@@ -35,10 +43,16 @@ spec:
         - name: controller
           image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.16.1
           imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
           ports:
             - name: grpc
               containerPort: 7700
-          resources: {}
+          resources:
+            requests:
+              ephemeral-storage: 256Mi
+            limits:
+              ephemeral-storage: 512Mi
           envFrom:
             - secretRef:
                 name: rethinkdb-env
@@ -77,23 +91,37 @@ spec:
             - name: JAEGER_AGENT_PORT
               value: "6831"
             - name: JAVA_TOOL_OPTIONS
-              value: "-Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStore=/opt/java/openjdk/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
+              value: "-Djava.io.tmpdir=/tmp -Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStore=/opt/java/openjdk/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
           volumeMounts:
+            - name: controller-tmp
+              mountPath: /tmp
             - name: log4j2
               mountPath: /app/resources/log4j2.xml
               subPath: log4j2.xml
         - name: rethinkdb-ast-service
           image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.2
           securityContext:
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 65532
             runAsGroup: 65532
           ports:
             - name: http
               containerPort: 3000
-          resources: {}
+          resources:
+            requests:
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
         - name: envoy
           image: docker.io/envoyproxy/envoy:distroless-v1.39.0
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
           ports:
             - name: admin
               containerPort: 9901
@@ -115,5 +143,7 @@ spec:
               port: admin
             initialDelaySeconds: 2
           volumeMounts:
+            - name: envoy-tmp
+              mountPath: /tmp
             - name: envoy-config
               mountPath: /config
