@@ -2,6 +2,19 @@
 
 Veidemann Dashboard is the Veidemann UI.
 
+## Formatting
+
+Run these commands from `dashboard`, passing the files you want to format:
+
+```sh
+npm run format -- src/app/path/to/file.spec.ts
+npm run format:check -- src/app/path/to/file.spec.ts
+```
+
+Multiple file paths can be passed in one command. Prettier uses two-space
+indentation from `.editorconfig`, single quotes, and a 100-character line width.
+Generated API clients and build output are excluded in `.prettierignore`.
+
 ## Runtime configuration
 
 The dashboard reads `public/config.json` at startup. In addition to the API and

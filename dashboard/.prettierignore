@@ -1,0 +1,10 @@
+# Generated API clients and build output
+src/api/
+build/
+dist/
+.angular/
+coverage/
+tmp/
+docs/public/
+docs/resources/
+package-lock.json
