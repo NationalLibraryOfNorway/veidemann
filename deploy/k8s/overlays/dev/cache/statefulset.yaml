@@ -4,27 +4,24 @@ kind: StatefulSet
 metadata:
   name: cache
 spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: cache
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        volumeMode: Filesystem
+        resources:
+          requests:
+            storage: 250Mi
   template:
     spec:
-      volumes:
-        - name: cache
-          ephemeral:
-            volumeClaimTemplate:
-              spec:
-                accessModes:
-                  - ReadWriteOnce
-                resources:
-                  requests:
-                    storage: 250Mi
       containers:
         - name: cache
           env:
-            - name: CACHE_DIR_SIZE_PERCENT
-              value: "80"
+            - name: CACHE_DIR_SIZE_MB
+              value: "100"
             - name: CACHE_DIR_L1
               value: "8"
             - name: CACHE_DIR_L2
               value: "16"
-          volumeMounts:
-            - name: cache
-              mountPath: /var/spool
