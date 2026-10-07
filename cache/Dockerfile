@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 go install \
 
 FROM debian:sid-slim
 
-ARG SQUID_VERSION=7.6-2
+ARG SQUID_VERSION=7.7-1
 
 ENV TZ=UTC \
     DNS_SERVERS="8.8.8.8 8.8.4.4"
