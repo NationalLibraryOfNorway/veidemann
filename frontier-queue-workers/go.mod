@@ -1,6 +1,6 @@
 module github.com/NationalLibraryOfNorway/veidemann/frontier-queue-workers
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
@@ -9,7 +9,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
