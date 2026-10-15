@@ -40,7 +40,7 @@
     "@angular/material": "^22.2.1",
     "@angular/material-date-fns-adapter": "^22.2.1",
     "@angular/platform-browser": "^22.2.1",
-    "@angular/router": "^22.2.1",
+    "@angular/router": "^22.2.2",
     "@bufbuild/protobuf": "^2.16.0",
     "@casl/ability": "^7.0.1",
     "@casl/angular": "^10.0.3",
