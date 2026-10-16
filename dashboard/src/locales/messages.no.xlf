@@ -741,12 +741,6 @@
         <target>Ikke tilgjengelig</target>
       </segment>
     </unit>
-    <unit id="commonNotSet">
-      <segment state="initial">
-        <source>Not set</source>
-        <target>Ikke angitt</target>
-      </segment>
-    </unit>
     <unit id="commonCancel">
       <segment state="final">
         <source> Cancel </source>
@@ -2961,6 +2955,12 @@
         <target>Configuration</target>
       </segment>
     </unit>
+    <unit id="configurationListLabelsAndCrawlJobsAriaLabel">
+      <segment state="initial">
+        <source>Configuration labels and crawl jobs</source>
+        <target>Etiketter og crawljobber</target>
+      </segment>
+    </unit>
     <unit id="configurationListLabelsAriaLabel">
       <segment state="initial">
         <source>Configuration labels</source>
@@ -2995,6 +2995,18 @@
       <segment state="final">
         <source>Configuration list controls</source>
         <target>Kontroller for konfigurasjonslisten</target>
+      </segment>
+    </unit>
+    <unit id="configurationListCrawlJobFilterAriaLabel">
+      <segment state="initial">
+        <source>Filter by crawl job <ph id="0" equiv="CRAWL_JOB_NAME" disp="this.crawlJobName(jobId)"/></source>
+        <target>Filtrer på crawljobb <ph id="0" equiv="CRAWL_JOB_NAME" disp="this.crawlJobName(jobId)"/></target>
+      </segment>
+    </unit>
+    <unit id="configurationListCrawlJobsAriaLabel">
+      <segment state="initial">
+        <source>Crawl jobs</source>
+        <target>Crawljobber</target>
       </segment>
     </unit>
     <unit id="configurationListStateFilterAriaLabel">
@@ -3075,6 +3087,12 @@
         <target>Deaktivert</target>
       </segment>
     </unit>
+    <unit id="configurationListDecorationAriaLabel">
+      <segment state="initial">
+        <source>Show on rows</source>
+        <target>Vis på radene</target>
+      </segment>
+    </unit>
     <unit id="configurationListDeselectConfigurationAriaLabel">
       <segment state="initial">
         <source>Deselect <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
@@ -3127,6 +3145,18 @@
       <segment state="initial">
         <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
         <target>Marker <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></target>
+      </segment>
+    </unit>
+    <unit id="configurationListShowCrawlJobs">
+      <segment state="initial">
+        <source>Show crawl jobs</source>
+        <target>Vis crawljobber</target>
+      </segment>
+    </unit>
+    <unit id="configurationListShowLabels">
+      <segment state="initial">
+        <source>Show labels</source>
+        <target>Vis etiketter</target>
       </segment>
     </unit>
     <unit id="configurationListRowActionsAriaLabel">

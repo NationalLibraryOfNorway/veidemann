@@ -1,6 +1,6 @@
 <div class="container layout-column">
   @let total = totalLength();
-  @if (isSelectionMode() || total !== null || showOrderControl) {
+  @if (isSelectionMode() || total !== null || showOrderControl || showDecorationToggle) {
     <mat-list class="list-header" aria-label="Configuration list controls"
       [style.padding-left.px]="flush ? 0 : null"
       [style.padding-right.px]="flush ? 0 : null"
@@ -149,6 +149,28 @@
           </span>
         }
         <span class="header-trailing">
+          @if (showDecorationToggle) {
+            <span class="decoration-toggle" role="group"
+              aria-label="Show on rows" i18n-aria-label="@@configurationListDecorationAriaLabel"
+              data-testid="configuration-row-decoration">
+              <button mat-icon-button type="button" class="stateful-filter-button"
+                [disabled]="isSelectionMode()"
+                [attr.aria-pressed]="rowDecorations().includes('labels')"
+                aria-label="Show labels" i18n-aria-label="@@configurationListShowLabels"
+                matTooltip="Show labels" i18n-matTooltip="@@configurationListShowLabels"
+                (click)="toggleDecoration('labels')">
+                <mat-icon>label</mat-icon>
+              </button>
+              <button mat-icon-button type="button" class="stateful-filter-button"
+                [disabled]="isSelectionMode()"
+                [attr.aria-pressed]="rowDecorations().includes('crawlJobs')"
+                aria-label="Show crawl jobs" i18n-aria-label="@@configurationListShowCrawlJobs"
+                matTooltip="Show crawl jobs" i18n-matTooltip="@@configurationListShowCrawlJobs"
+                (click)="toggleDecoration('crawlJobs')">
+                <mat-icon>{{ crawlJobIcon }}</mat-icon>
+              </button>
+            </span>
+          }
           <ng-content select="[listHeaderAction]"></ng-content>
         </span>
       </div>
@@ -163,7 +185,7 @@
         <mat-list-item class="item-row"
           [class.row-checked]="isChecked(row)"
           [class.row-deactivated]="isDeactivated(row)"
-          [class.row-with-labels]="!titleOnly && row.meta.labelList.length > 0"
+          [class.row-with-labels]="!titleOnly && hasDecoration(row)"
           [attr.aria-description]="isDeactivated(row) ? deactivatedAriaDescription : null"
           tabindex="0"
           (click)="onRowClick(row, $event)"
@@ -196,27 +218,49 @@
           @if (!titleOnly) {
             <span matListItemLine class="row-text">{{ configSubtitle(row) }}</span>
           }
-          @if (!titleOnly && row.meta.labelList.length) {
+          @if (!titleOnly && hasDecoration(row)) {
             <span matListItemMeta class="label-region">
-              <mat-chip-set
-                aria-label="Configuration labels"
-                i18n-aria-label="@@configurationListLabelsAriaLabel">
-                @for (label of row.meta.labelList; track label.key + ':' + label.value) {
-                  @if (isSelectionMode()) {
-                    <mat-chip [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)">
-                      <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
-                    </mat-chip>
-                  } @else {
-                    <mat-chip
-                      role="button"
-                      tabindex="0"
-                      [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)"
-                      [aria-label]="labelSearchAriaLabel(label)"
-                      (click)="onLabelClick(label, $event)"
-                      (keydown.enter)="onLabelClick(label, $event)"
-                      (keydown.space)="onLabelClick(label, $event)">
-                      <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
-                    </mat-chip>
+              <mat-chip-set [attr.aria-label]="decorationAriaLabel()">
+                @if (showLabels()) {
+                  @for (label of row.meta.labelList; track label.key + ':' + label.value) {
+                    @if (isSelectionMode()) {
+                      <mat-chip [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)">
+                        <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+                      </mat-chip>
+                    } @else {
+                      <mat-chip
+                        role="button"
+                        tabindex="0"
+                        [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)"
+                        [aria-label]="labelSearchAriaLabel(label)"
+                        (click)="onLabelClick(label, $event)"
+                        (keydown.enter)="onLabelClick(label, $event)"
+                        (keydown.space)="onLabelClick(label, $event)">
+                        <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+                      </mat-chip>
+                    }
+                  }
+                }
+                @if (showCrawlJobs()) {
+                  @for (jobRef of row.seed?.jobRefList ?? []; track jobRef.id) {
+                    @if (isSelectionMode()) {
+                      <mat-chip class="crawl-job-chip">
+                        <mat-icon matChipAvatar aria-hidden="true">{{ crawlJobIcon }}</mat-icon>
+                        {{ crawlJobName(jobRef.id) }}
+                      </mat-chip>
+                    } @else {
+                      <mat-chip
+                        class="crawl-job-chip"
+                        role="button"
+                        tabindex="0"
+                        [aria-label]="crawlJobFilterAriaLabel(jobRef.id)"
+                        (click)="onCrawlJobClick(jobRef.id, $event)"
+                        (keydown.enter)="onCrawlJobClick(jobRef.id, $event)"
+                        (keydown.space)="onCrawlJobClick(jobRef.id, $event)">
+                        <mat-icon matChipAvatar aria-hidden="true">{{ crawlJobIcon }}</mat-icon>
+                        {{ crawlJobName(jobRef.id) }}
+                      </mat-chip>
+                    }
                   }
                 }
               </mat-chip-set>

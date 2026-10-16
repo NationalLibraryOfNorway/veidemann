@@ -635,11 +635,6 @@
         <source>Not available</source>
       </segment>
     </unit>
-    <unit id="commonNotSet">
-      <segment>
-        <source>Not set</source>
-      </segment>
-    </unit>
     <unit id="commonCancel">
       <segment>
         <source> Cancel </source>
@@ -2525,6 +2520,11 @@
         <source>Configuration</source>
       </segment>
     </unit>
+    <unit id="configurationListLabelsAndCrawlJobsAriaLabel">
+      <segment>
+        <source>Configuration labels and crawl jobs</source>
+      </segment>
+    </unit>
     <unit id="configurationListLabelsAriaLabel">
       <segment>
         <source>Configuration labels</source>
@@ -2553,6 +2553,16 @@
     <unit id="configurationListControlsAriaLabel">
       <segment>
         <source>Configuration list controls</source>
+      </segment>
+    </unit>
+    <unit id="configurationListCrawlJobFilterAriaLabel">
+      <segment>
+        <source>Filter by crawl job <ph id="0" equiv="CRAWL_JOB_NAME" disp="this.crawlJobName(jobId)"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListCrawlJobsAriaLabel">
+      <segment>
+        <source>Crawl jobs</source>
       </segment>
     </unit>
     <unit id="configurationListStateFilterAriaLabel">
@@ -2620,6 +2630,11 @@
         <source>Deactivated</source>
       </segment>
     </unit>
+    <unit id="configurationListDecorationAriaLabel">
+      <segment>
+        <source>Show on rows</source>
+      </segment>
+    </unit>
     <unit id="configurationListDeselectConfigurationAriaLabel">
       <segment>
         <source>Deselect <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
@@ -2663,6 +2678,16 @@
     <unit id="configurationListSelectConfigurationAriaLabel">
       <segment>
         <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListShowCrawlJobs">
+      <segment>
+        <source>Show crawl jobs</source>
+      </segment>
+    </unit>
+    <unit id="configurationListShowLabels">
+      <segment>
+        <source>Show labels</source>
       </segment>
     </unit>
     <unit id="configurationListRowActionsAriaLabel">
