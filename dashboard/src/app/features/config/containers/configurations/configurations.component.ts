@@ -374,6 +374,16 @@ export class ConfigurationsComponent implements OnDestroy {
     });
   }
 
+  onFilterByCrawlJob(crawlJobId: string): void {
+    if (this.selectionMode()) {
+      return;
+    }
+    this.onQueryChange({
+      ...this.query(),
+      crawlJobIdList: [crawlJobId],
+    });
+  }
+
   onRemoveFilter(chip: ActiveConfigFilterChip): void {
     if (this.selectionMode()) {
       return;

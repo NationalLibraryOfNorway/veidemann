@@ -1,9 +1,11 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, signal} from '@angular/core';
 import {SortDirection} from '@angular/material/sort';
 import {ConfigObject, Kind, Label, Role} from '../../../../shared/models/config';
 import {CONFIG_LIST_IMPORTS, ConfigListBaseComponent} from './config-list-base';
 import {isEmojiLabel, LabelDisplayComponent} from '../../../../shared/components';
 import {configKindIcon} from '../../func/config-kind-icon';
+
+type RowDecoration = 'labels' | 'crawlJobs';
 
 @Component({
     selector: 'app-config-list',
@@ -29,11 +31,16 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   @Input() showOrderControl = false;
   @Input() showStateFilter = false;
   @Input() disabledFilter: boolean | null = null;
+  @Input() showDecorationToggle = false;
+  @Input() crawlJobs: ConfigObject[] = [];
   @Output() readonly labelClick = new EventEmitter<Label>();
+  @Output() readonly crawlJobClick = new EventEmitter<string>();
   @Output() readonly disabledFilterChange = new EventEmitter<boolean | null>();
   readonly deactivatedAriaDescription = $localize`:@@configurationListDeactivatedStatus:Deactivated`;
   readonly sortByNameActionDescription = $localize`:@@configurationListSortByNameAriaLabel:Sort by name`;
   protected readonly isEmojiLabel = isEmojiLabel;
+  readonly crawlJobIcon = configKindIcon(Kind.CRAWLJOB);
+  readonly rowDecorations = signal<RowDecoration[]>(['labels']);
   protected override readonly autoSelectAppendedRows = true;
   readonly orderOptions = [
     {value: '', label: $localize`:@@configurationListDefaultOrder:Default order`},
@@ -156,6 +163,49 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
     event.preventDefault();
     event.stopPropagation();
     this.onDeselectAll();
+  }
+
+  toggleDecoration(decoration: RowDecoration): void {
+    this.rowDecorations.update(decorations => decorations.includes(decoration)
+      ? decorations.filter(value => value !== decoration)
+      : [...decorations, decoration]);
+  }
+
+  showLabels(): boolean {
+    return !this.showDecorationToggle || this.rowDecorations().includes('labels');
+  }
+
+  showCrawlJobs(): boolean {
+    return this.showDecorationToggle && this.rowDecorations().includes('crawlJobs');
+  }
+
+  hasDecoration(config: ConfigObject): boolean {
+    return this.showLabels() && config.meta.labelList.length > 0
+      || this.showCrawlJobs() && !!config.seed?.jobRefList.length;
+  }
+
+  decorationAriaLabel(): string {
+    if (this.showLabels() && this.showCrawlJobs()) {
+      return $localize`:@@configurationListLabelsAndCrawlJobsAriaLabel:Configuration labels and crawl jobs`;
+    }
+    if (this.showCrawlJobs()) {
+      return $localize`:@@configurationListCrawlJobsAriaLabel:Crawl jobs`;
+    }
+    return $localize`:@@configurationListLabelsAriaLabel:Configuration labels`;
+  }
+
+  crawlJobName(jobId: string): string {
+    return this.crawlJobs?.find(job => job.id === jobId)?.meta.name?.trim() || jobId;
+  }
+
+  crawlJobFilterAriaLabel(jobId: string): string {
+    return $localize`:@@configurationListCrawlJobFilterAriaLabel:Filter by crawl job ${this.crawlJobName(jobId)}:CRAWL_JOB_NAME:`;
+  }
+
+  onCrawlJobClick(jobId: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.crawlJobClick.emit(jobId);
   }
 
   labelSearchAriaLabel(label: Label): string {

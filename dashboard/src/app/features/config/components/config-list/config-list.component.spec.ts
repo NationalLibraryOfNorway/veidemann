@@ -9,7 +9,17 @@ import {MatSortHeaderHarness} from '@angular/material/sort/testing';
 import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ConfigListComponent} from './config-list.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {ConfigObject, Kind, Label, ListDataSource, Meta, Role, RoleMapping} from '../../../../shared/models';
+import {
+  ConfigObject,
+  ConfigRef,
+  Kind,
+  Label,
+  ListDataSource,
+  Meta,
+  Role,
+  RoleMapping,
+  Seed,
+} from '../../../../shared/models';
 import {AppConfig} from '../../../../app.config';
 
 describe('ConfigListComponent', () => {
@@ -989,6 +999,78 @@ describe('ConfigListComponent', () => {
     expect(observe).toHaveBeenCalledWith(sentinel);
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
+  it('combines seed row decorations for labels and crawl jobs', async () => {
+    const seed = new ConfigObject({
+      id: 'seed-1',
+      kind: Kind.SEED,
+      meta: new Meta({name: 'https://example.test/', labelList: [new Label({key: 'topic', value: 'news'})]}),
+      seed: new Seed({jobRefList: [
+        new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'}),
+        new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-unknown'}),
+      ]}),
+    });
+    component.configKind = Kind.SEED;
+    component.showDecorationToggle = true;
+    component.crawlJobs = [new ConfigObject({id: 'job-1', kind: Kind.CRAWLJOB, meta: new Meta({name: 'Daily crawl'})})];
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(seed),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    const crawlJobClicks: string[] = [];
+    const rowClicks: ConfigObject[] = [];
+    component.crawlJobClick.subscribe(id => crawlJobClicks.push(id));
+    component.rowClick.subscribe(row => rowClicks.push(row));
+    fixture.detectChanges();
+
+    const chipTexts = () => ([...fixture.nativeElement.querySelectorAll('.item-row .label-region mat-chip')] as HTMLElement[])
+      .map(chip => chip.textContent.trim());
+    const toggleGroup = fixture.nativeElement.querySelector('[data-testid="configuration-row-decoration"]') as HTMLElement;
+    expect(toggleGroup.closest('.header-trailing')).not.toBeNull();
+    const toggles = [...toggleGroup.querySelectorAll('button')] as HTMLButtonElement[];
+    const toggle = (index: number) => {
+      toggles[index].click();
+      fixture.detectChanges();
+    };
+    expect(toggles.length).toBe(2);
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
+    expect(toggles[1].getAttribute('aria-pressed')).toBe('false');
+    expect(chipTexts()).toEqual([expect.stringContaining('topic')]);
+
+    toggle(1);
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
+    expect(toggles[1].getAttribute('aria-pressed')).toBe('true');
+    expect(chipTexts()).toEqual([expect.stringContaining('topic'), expect.stringContaining('Daily crawl'),
+      expect.stringContaining('job-unknown')]);
+    expect(fixture.nativeElement.querySelector('.label-region mat-chip-set').getAttribute('aria-label'))
+      .toBe('Configuration labels and crawl jobs');
+
+    toggle(0);
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('false');
+    expect(chipTexts().map(text => text.replace(/^\S+\s+/, ''))).toEqual(['Daily crawl', 'job-unknown']);
+    const jobChip = fixture.nativeElement.querySelector('.item-row .crawl-job-chip') as HTMLElement;
+    expect(jobChip.getAttribute('aria-label')).toBe('Filter by crawl job Daily crawl');
+    jobChip.click();
+    jobChip.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    expect(crawlJobClicks).toEqual(['job-1', 'job-1']);
+    expect(rowClicks).toEqual([]);
+
+    toggle(1);
+    expect(fixture.nativeElement.querySelector('.item-row .label-region')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.item-row').classList).not.toContain('row-with-labels');
+  });
+
+  it('hides the decoration toggle unless enabled', () => {
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    component.showOrderControl = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="configuration-row-decoration"]')).toBeNull();
+  });
+
 });
 
 function horizontalCenter(element: HTMLElement): number {

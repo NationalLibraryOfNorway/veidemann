@@ -35,6 +35,8 @@
                 [sortActive]="sortActive()"
                 [showOrderControl]="true"
                 [showStateFilter]="kind === Kind.SEED || kind === Kind.CRAWLJOB"
+                [showDecorationToggle]="kind === Kind.SEED"
+                [crawlJobs]="(options$ | async)?.crawlJobs ?? []"
                 [disabledFilter]="query().disabled"
                 [multiSelect]="true"
                 [primaryLinkDestination]="kind === Kind.SEED ? 'title' : 'detail'"
@@ -44,6 +46,7 @@
                 (selectAll)="onSelectAll()"
                 (sort)="onSort($event)"
                 (labelClick)="onFilterByLabel($event)"
+                (crawlJobClick)="onFilterByCrawlJob($event)"
                 (rowClick)="onRowClick($event)" class="flex-fill">
                 @if (kind===Kind.SEED && !isAllSelected) {
                   <button mat-icon-button class="filled-icon-button"
