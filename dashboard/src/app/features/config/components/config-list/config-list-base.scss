@@ -318,6 +318,8 @@ mat-list .item-row.row-checked {
 }
 
 .primary-detail-link {
+  width: fit-content;
+  max-width: 100%;
   color: var(--mat-sys-primary);
   text-decoration: none;
 }

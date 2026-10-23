@@ -813,6 +813,84 @@
         <target>Eksplisitt referanse</target>
       </segment>
     </unit>
+    <unit id="seedPreviewCrawlJob">
+      <segment state="initial">
+        <source>Crawl job</source>
+        <target>Crawljobb</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCrawlJobs">
+      <segment state="initial">
+        <source>Crawl jobs</source>
+        <target>Crawljobber</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCreated">
+      <segment state="initial">
+        <source>Created</source>
+        <target>Opprettet</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEnded">
+      <segment state="initial">
+        <source>Ended</source>
+        <target>Avsluttet</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEntity">
+      <segment state="initial">
+        <source>Entity</source>
+        <target>Entitet</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewId">
+      <segment state="initial">
+        <source>ID</source>
+        <target>ID</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLabels">
+      <segment state="initial">
+        <source>Labels</source>
+        <target>Etiketter</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLastModified">
+      <segment state="initial">
+        <source>Last modified</source>
+        <target>Sist endret</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlExecutions">
+      <segment state="initial">
+        <source>This seed has not been crawled yet.</source>
+        <target>Denne seeden er ikke crawlet ennå.</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlJobs">
+      <segment state="initial">
+        <source>None</source>
+        <target>Ingen</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewRecentCrawlExecutions">
+      <segment state="initial">
+        <source>Recent crawl executions</source>
+        <target>Siste crawl-kjøringer</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewScriptAnnotations">
+      <segment state="initial">
+        <source>Script annotations</source>
+        <target>Skriptannoteringer</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewStatus">
+      <segment state="initial">
+        <source>Status</source>
+        <target>Status</target>
+      </segment>
+    </unit>
     <unit id="configFactCronExpression">
       <segment state="initial">
         <source>CRON expression</source>
@@ -2955,6 +3033,12 @@
         <target>Configuration</target>
       </segment>
     </unit>
+    <unit id="configurationListHidePreviewAriaLabel">
+      <segment state="initial">
+        <source>Hide preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+        <target>Skjul forhåndsvisning av <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></target>
+      </segment>
+    </unit>
     <unit id="configurationListLabelsAndCrawlJobsAriaLabel">
       <segment state="initial">
         <source>Configuration labels and crawl jobs</source>
@@ -3031,6 +3115,12 @@
       <segment state="initial">
         <source>Order by</source>
         <target>Sorter etter</target>
+      </segment>
+    </unit>
+    <unit id="configurationListPreviewAriaLabel">
+      <segment state="initial">
+        <source>Preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+        <target>Forhåndsvisning av <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></target>
       </segment>
     </unit>
     <unit id="configurationListSortByNameAriaLabel">
@@ -3157,6 +3247,12 @@
       <segment state="initial">
         <source>Show labels</source>
         <target>Vis etiketter</target>
+      </segment>
+    </unit>
+    <unit id="configurationListShowPreviewAriaLabel">
+      <segment state="initial">
+        <source>Show preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+        <target>Vis forhåndsvisning av <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></target>
       </segment>
     </unit>
     <unit id="configurationListRowActionsAriaLabel">

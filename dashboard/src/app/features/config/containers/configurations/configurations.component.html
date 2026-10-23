@@ -48,6 +48,11 @@
                 (labelClick)="onFilterByLabel($event)"
                 (crawlJobClick)="onFilterByCrawlJob($event)"
                 (rowClick)="onRowClick($event)" class="flex-fill">
+                @if (kind === Kind.SEED) {
+                  <ng-template appPreview let-row>
+                    <app-seed-preview [seed]="row" [crawlJobs]="(options$ | async)?.crawlJobs ?? []" />
+                  </ng-template>
+                }
                 @if (kind===Kind.SEED && !isAllSelected) {
                   <button mat-icon-button class="filled-icon-button"
                     aria-label="Start crawl for selected seeds"
