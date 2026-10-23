@@ -2,23 +2,6 @@
   padding: 0;
 }
 
-.selection-entry-control,
-.config-kind-icon {
-  flex: 0 0 auto;
-  align-self: center;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.selection-entry-control {
-  --mat-icon-button-state-layer-size: var(--mat-list-list-item-leading-icon-size, 24px);
-
-  cursor: pointer;
-}
-
-.selection-entry-control:hover {
-  color: var(--mat-sys-primary);
-}
-
 .extra-region {
   display: flex;
   flex: 0 0 auto;

@@ -71,7 +71,7 @@ describe('ConfigListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders role mapping identities as titles and roles as subtitles', () => {
+  it('renders role mapping identities as titles and roles as subtitles', async () => {
     const emailMapping = new ConfigObject({
       id: 'email-mapping',
       kind: Kind.ROLEMAPPING,
@@ -99,12 +99,12 @@ describe('ConfigListComponent', () => {
 
     const titles = fixture.nativeElement.querySelectorAll('.item-row [matlistitemtitle]') as NodeListOf<HTMLElement>;
     const subtitles = fixture.nativeElement.querySelectorAll('.item-row [matlistitemline]') as NodeListOf<HTMLElement>;
-    const selectionButtons = fixture.nativeElement.querySelectorAll('.selection-entry-control') as NodeListOf<HTMLButtonElement>;
+    const rowCheckboxes = await loader.getAllHarnesses(MatCheckboxHarness.with({selector: '.item-row .selection-control'}));
     expect(Array.from(titles, title => title.textContent.trim()))
       .toEqual(['curator@example.test', 'operators']);
     expect(Array.from(subtitles, subtitle => subtitle.textContent.trim()))
       .toEqual(['CURATOR, READONLY', 'OPERATOR, SYSTEM']);
-    expect(Array.from(selectionButtons, button => button.getAttribute('aria-label')))
+    expect(await Promise.all(rowCheckboxes.map(checkbox => checkbox.getAriaLabel())))
       .toEqual(['Select curator@example.test', 'Select operators']);
 
     component.onCheckboxToggle(emailMapping);
@@ -139,7 +139,7 @@ describe('ConfigListComponent', () => {
     expect(selections.at(-1)).toEqual([]);
   });
 
-  it('shows a kind icon in normal mode and reveals the master checkbox after selection starts', async () => {
+  it('shows row checkboxes from the start and reveals the master checkbox after selection starts', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -149,12 +149,11 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
-    const entry = fixture.nativeElement.querySelector('.selection-entry-control') as HTMLButtonElement;
-    expect(entry.textContent.trim()).toBe('link');
-    expect(entry.getAttribute('aria-label')).toBe('Select One');
+    const entry = await loader.getHarness(MatCheckboxHarness.with({selector: '.item-row .selection-control'}));
+    expect(await entry.getAriaLabel()).toBe('Select One');
+    expect(await entry.isChecked()).toBe(false);
 
-    entry.click();
-    fixture.detectChanges();
+    await entry.check();
 
     const header = fixture.nativeElement.querySelector('.list-header-row') as HTMLElement;
     const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
@@ -162,7 +161,6 @@ describe('ConfigListComponent', () => {
     expect(await master.getAriaLabel()).toBe('Select all loaded configurations');
     expect(await master.isChecked()).toBe(true);
     expect(await master.isIndeterminate()).toBe(false);
-    expect(fixture.nativeElement.querySelector('.selection-entry-control')).toBeNull();
     const masterControl = header.querySelector('.master-selection-control') as HTMLElement;
     const rowControl = fixture.nativeElement.querySelector('.item-row .selection-control') as HTMLElement;
     expect(Math.abs(horizontalCenter(masterControl) - horizontalCenter(rowControl))).toBeLessThanOrEqual(1);
@@ -170,7 +168,6 @@ describe('ConfigListComponent', () => {
     fixture.componentRef.setInput('multiSelect', false);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.config-kind-icon').textContent.trim()).toBe('link');
   });
 
   it('uses checked and indeterminate master states and renders actions beside it', async () => {
@@ -646,22 +643,6 @@ describe('ConfigListComponent', () => {
     expect(component.configTypePluralLabel()).toBe('seeds');
   });
 
-  it.each([
-    [Kind.CRAWLENTITY, 'business'],
-    [Kind.SEED, 'link'],
-    [Kind.CRAWLJOB, 'work'],
-    [Kind.CRAWLSCHEDULECONFIG, 'schedule'],
-    [Kind.CRAWLCONFIG, 'settings_system_daydream'],
-    [Kind.COLLECTION, 'collections_bookmark'],
-    [Kind.BROWSERCONFIG, 'web'],
-    [Kind.BROWSERSCRIPT, 'web_asset'],
-    [Kind.POLITENESSCONFIG, 'sentiment_very_satisfied'],
-    [Kind.CRAWLHOSTGROUPCONFIG, 'group_work'],
-    [Kind.ROLEMAPPING, 'people'],
-  ])('uses the configuration navigation icon for kind %s', (kind, icon) => {
-    expect(component.configKindIcon(new ConfigObject({kind}))).toBe(icon);
-  });
-
   it('only treats disabled Seeds and Crawl Jobs as deactivated configurations', () => {
     const seed = new ConfigObject({kind: Kind.SEED});
     seed.seed = {disabled: true} as ConfigObject['seed'];
@@ -863,7 +844,7 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('.external-label-link')).toBeNull();
     expect(fixture.nativeElement.querySelector('.action-region')).not.toBeNull();
 
-    (fixture.nativeElement.querySelector('.selection-entry-control') as HTMLElement).click();
+    (fixture.nativeElement.querySelector('.item-row .selection-control input') as HTMLElement).click();
     fixture.detectChanges();
 
     const chip = fixture.nativeElement.querySelector('.label-region mat-chip') as HTMLElement;
@@ -886,7 +867,7 @@ describe('ConfigListComponent', () => {
     component.rowClick.subscribe(value => navigated.push(value));
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('.selection-entry-control') as HTMLElement).click();
+    (fixture.nativeElement.querySelector('.item-row .selection-control input') as HTMLElement).click();
     fixture.detectChanges();
     const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
     rows[1].click();
@@ -903,7 +884,7 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
     expect(escape.defaultPrevented).toBe(true);
     expect(component.selection.selected).toEqual([]);
-    expect(fixture.nativeElement.querySelector('.selection-entry-control')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
   });
 
   it('preserves row navigation, deactivated styling, and bulk selection behavior', () => {
@@ -958,7 +939,7 @@ describe('ConfigListComponent', () => {
     expect(component.allSelected()).toBe(false);
   });
 
-  it('keeps Collections non-selectable with a decorative kind icon', () => {
+  it('keeps Collections non-selectable', () => {
     const collection = new ConfigObject({
       id: 'collection',
       kind: Kind.COLLECTION,
@@ -972,10 +953,8 @@ describe('ConfigListComponent', () => {
     fixture.componentRef.setInput('multiSelect', false);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.selection-entry-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-control')).toBeNull();
     expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.config-kind-icon').textContent.trim())
-      .toBe('collections_bookmark');
     expect(fixture.nativeElement.querySelector('.primary-detail-link')).not.toBeNull();
   });
 

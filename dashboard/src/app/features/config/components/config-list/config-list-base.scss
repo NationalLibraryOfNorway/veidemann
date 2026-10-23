@@ -233,12 +233,6 @@ mat-list .item-row.row-checked {
   color: var(--mat-sys-error);
 }
 
-.row-deactivated:not(.row-checked) .selection-entry-control mat-icon,
-.row-deactivated:not(.row-checked) .config-kind-icon {
-  color: var(--mat-sys-error);
-  opacity: 0.75;
-}
-
 .row-deactivated.row-checked .mdc-list-item__primary-text,
 .row-deactivated.row-checked .mdc-list-item__secondary-text {
   color: var(--mat-sys-on-secondary-container);
