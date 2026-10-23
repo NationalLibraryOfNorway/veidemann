@@ -192,23 +192,12 @@
           tabindex="0"
           (click)="onRowClick(row, $event)"
           (keydown)="onRowKeydown(row, $event)">
-          @if (isSelectionMode()) {
+          @if (multiSelect) {
             <mat-checkbox matListItemIcon class="selection-control"
               [checked]="isChecked(row)"
-              [attr.aria-label]="selectionAriaLabel(row)"
+              [aria-label]="selectionAriaLabel(row)"
               (click)="$event.stopPropagation()"
               (change)="onCheckboxToggle(row)"></mat-checkbox>
-          } @else if (multiSelect) {
-            <button mat-icon-button matListItemIcon class="selection-entry-control"
-              [attr.aria-label]="selectionAriaLabel(row)"
-              [matTooltip]="selectionAriaLabel(row)"
-              (click)="onSelectionStart(row, $event)">
-              <mat-icon>{{ configKindIcon(row) }}</mat-icon>
-            </button>
-          } @else if (showKindIcon) {
-            <mat-icon matListItemIcon class="config-kind-icon" aria-hidden="true">
-              {{ configKindIcon(row) }}
-            </mat-icon>
           }
           @if (isSelectionMode()) {
             <span matListItemTitle class="row-text">{{ configTitle(row) }}</span>

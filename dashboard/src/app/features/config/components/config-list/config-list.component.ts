@@ -25,7 +25,6 @@ type RowDecoration = 'labels' | 'crawlJobs';
 export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   @Input() configKind: Kind | null = null;
   @Input() titleOnly = false;
-  @Input() showKindIcon = true;
   @Input() flush = false;
   @Input() primaryLinkDestination: 'detail' | 'title' = 'detail';
   @Input() showOrderControl = false;
@@ -95,10 +94,6 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
     }
   }
 
-  configKindIcon(config: ConfigObject): string {
-    return configKindIcon(config.kind);
-  }
-
   selectionAriaLabel(config: ConfigObject): string {
     if (this.isChecked(config)) {
       return $localize`:@@configurationListDeselectConfigurationAriaLabel:Deselect ${this.configTitle(config)}:CONFIGURATION_NAME:`;
@@ -135,12 +130,6 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
       return config.roleMapping?.roleList.map(role => Role[role]).join(', ') || '';
     }
     return config.meta.description;
-  }
-
-  onSelectionStart(config: ConfigObject, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.onCheckboxToggle(config);
   }
 
   override onRowClick(config: ConfigObject, event?: Event): void {
