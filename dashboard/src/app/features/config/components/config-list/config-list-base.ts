@@ -1,6 +1,7 @@
 import {SelectionModel} from '@angular/cdk/collections';
 import {AsyncPipe, DecimalPipe, NgTemplateOutlet} from '@angular/common';
 import {
+  ContentChild,
   ContentChildren,
   Directive,
   ElementRef,
@@ -26,7 +27,13 @@ import {combineLatest, Subscription} from 'rxjs';
 import {startWith} from 'rxjs/operators';
 
 import {Kind, ListDataSource, ListItem} from '../../../../shared/models';
-import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {
+  ActionDirective,
+  ExtraDirective,
+  FilterDirective,
+  PreviewDirective,
+  ShortcutDirective,
+} from '../../../../shared/directives';
 
 export const CONFIG_LIST_IMPORTS = [
   AsyncPipe,
@@ -64,6 +71,7 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   @Input() multiSelect = true;
   @Input() detailPath = '';
   @Input() detailLinkTarget: '_self' | '_blank' = '_self';
+  readonly expandedId = signal<string | null>(null);
 
   private _dataSource: ListDataSource<T, unknown>;
   private dataSourceSubscription = Subscription.EMPTY;
@@ -126,6 +134,12 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   filterButtonTemplates: QueryList<TemplateRef<unknown>>;
   @ContentChildren(ShortcutDirective, {read: TemplateRef, descendants: true})
   shortcutButtonTemplates: QueryList<TemplateRef<unknown>>;
+  @ContentChild(PreviewDirective, {read: TemplateRef})
+  previewTemplate: TemplateRef<unknown> | null = null;
+
+  get expandable(): boolean {
+    return !!this.previewTemplate;
+  }
 
   readonly selection = new SelectionModel<T>(true, []);
   selectedRowIndex: number = null;
@@ -140,6 +154,19 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     this.selection.clear();
     this.allSelected.set(false);
     this.selectedRowIndex = null;
+    this.expandedId.set(null);
+  }
+
+  toggleExpanded(item: T): void {
+    this.expandedId.update(id => id === item.id ? null : item.id);
+  }
+
+  private activateRow(item: T): void {
+    if (this.expandable) {
+      this.toggleExpanded(item);
+    } else {
+      this.rowClick.emit(item);
+    }
   }
 
   onSortChange(sort: Sort): void {
@@ -150,14 +177,14 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     if (event?.target instanceof Element && event.target.closest('a, button, input, [role="button"]')) {
       return;
     }
-    this.rowClick.emit(item);
+    this.activateRow(item);
   }
 
   onRowKeydown(item: T, event: KeyboardEvent): void {
     if (event.key === 'Enter'
       && !(event.target instanceof Element && event.target.closest('a, button, input, [role="button"]'))) {
       event.preventDefault();
-      this.rowClick.emit(item);
+      this.activateRow(item);
     }
   }
 

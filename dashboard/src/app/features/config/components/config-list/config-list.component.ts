@@ -119,6 +119,17 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
       : super.detailHref(config);
   }
 
+  previewAriaLabel(config: ConfigObject): string {
+    return $localize`:@@configurationListPreviewAriaLabel:Preview of ${this.configTitle(config)}:CONFIGURATION_NAME:`;
+  }
+
+  expandAriaLabel(config: ConfigObject): string {
+    if (this.expandedId() === config.id) {
+      return $localize`:@@configurationListHidePreviewAriaLabel:Hide preview of ${this.configTitle(config)}:CONFIGURATION_NAME:`;
+    }
+    return $localize`:@@configurationListShowPreviewAriaLabel:Show preview of ${this.configTitle(config)}:CONFIGURATION_NAME:`;
+  }
+
   configSubtitle(config: ConfigObject): string {
     if (config.kind === this.Kind.ROLEMAPPING) {
       return config.roleMapping?.roleList.map(role => Role[role]).join(', ') || '';

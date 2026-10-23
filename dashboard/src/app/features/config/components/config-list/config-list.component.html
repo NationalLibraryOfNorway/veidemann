@@ -187,6 +187,8 @@
           [class.row-deactivated]="isDeactivated(row)"
           [class.row-with-labels]="!titleOnly && hasDecoration(row)"
           [attr.aria-description]="isDeactivated(row) ? deactivatedAriaDescription : null"
+          [attr.aria-expanded]="expandable && !isSelectionMode() ? expandedId() === row.id : null"
+          [attr.aria-controls]="expandable && expandedId() === row.id ? 'config-preview-' + row.id : null"
           tabindex="0"
           (click)="onRowClick(row, $event)"
           (keydown)="onRowKeydown(row, $event)">
@@ -278,6 +280,15 @@
           @if (!isSelectionMode()) {
             <span matListItemMeta class="action-region" role="group" aria-label="Row actions"
               i18n-aria-label="@@configurationListRowActionsAriaLabel">
+              @if (expandable) {
+                <button mat-icon-button type="button" class="preview-toggle"
+                  [attr.aria-expanded]="expandedId() === row.id"
+                  [attr.aria-label]="expandAriaLabel(row)"
+                  [matTooltip]="expandAriaLabel(row)"
+                  (click)="toggleExpanded(row); $event.stopPropagation()">
+                  <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+              }
               <button mat-icon-button [matMenuTriggerFor]="actionMenu"
                 aria-label="More actions" matTooltip="More actions"
                 i18n-aria-label="@@configurationListMoreActions"
@@ -299,6 +310,12 @@
             </span>
           }
         </mat-list-item>
+        @if (expandable && !isSelectionMode() && expandedId() === row.id) {
+          <div class="row-preview" role="listitem" [id]="'config-preview-' + row.id"
+            [attr.aria-label]="previewAriaLabel(row)">
+            <ng-container *ngTemplateOutlet="previewTemplate; context: {$implicit: row}"></ng-container>
+          </div>
+        }
       }
     </mat-list>
     <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>

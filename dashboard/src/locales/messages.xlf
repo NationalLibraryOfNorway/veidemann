@@ -695,6 +695,71 @@
         <source>Explicit reference</source>
       </segment>
     </unit>
+    <unit id="seedPreviewCrawlJob">
+      <segment>
+        <source>Crawl job</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCrawlJobs">
+      <segment>
+        <source>Crawl jobs</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCreated">
+      <segment>
+        <source>Created</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEnded">
+      <segment>
+        <source>Ended</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEntity">
+      <segment>
+        <source>Entity</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewId">
+      <segment>
+        <source>ID</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLabels">
+      <segment>
+        <source>Labels</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLastModified">
+      <segment>
+        <source>Last modified</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlExecutions">
+      <segment>
+        <source>This seed has not been crawled yet.</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlJobs">
+      <segment>
+        <source>None</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewRecentCrawlExecutions">
+      <segment>
+        <source>Recent crawl executions</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewScriptAnnotations">
+      <segment>
+        <source>Script annotations</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewStatus">
+      <segment>
+        <source>Status</source>
+      </segment>
+    </unit>
     <unit id="configFactCronExpression">
       <segment>
         <source>CRON expression</source>
@@ -2520,6 +2585,11 @@
         <source>Configuration</source>
       </segment>
     </unit>
+    <unit id="configurationListHidePreviewAriaLabel">
+      <segment>
+        <source>Hide preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+      </segment>
+    </unit>
     <unit id="configurationListLabelsAndCrawlJobsAriaLabel">
       <segment>
         <source>Configuration labels and crawl jobs</source>
@@ -2583,6 +2653,11 @@
     <unit id="configurationListOrderByLabel">
       <segment>
         <source>Order by</source>
+      </segment>
+    </unit>
+    <unit id="configurationListPreviewAriaLabel">
+      <segment>
+        <source>Preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
       </segment>
     </unit>
     <unit id="configurationListSortByNameAriaLabel">
@@ -2688,6 +2763,11 @@
     <unit id="configurationListShowLabels">
       <segment>
         <source>Show labels</source>
+      </segment>
+    </unit>
+    <unit id="configurationListShowPreviewAriaLabel">
+      <segment>
+        <source>Show preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
       </segment>
     </unit>
     <unit id="configurationListRowActionsAriaLabel">

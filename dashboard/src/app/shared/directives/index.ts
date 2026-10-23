@@ -3,3 +3,4 @@ export * from './copy-id.directive';
 export * from './extra.directive';
 export * from './shortcut.directive';
 export * from './filter.directive';
+export * from './preview.directive';

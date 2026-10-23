@@ -1,6 +1,6 @@
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {DestroyRef, ElementRef} from '@angular/core';
+import {Component, DestroyRef, ElementRef, ViewChild} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
@@ -21,6 +21,21 @@ import {
   Seed,
 } from '../../../../shared/models';
 import {AppConfig} from '../../../../app.config';
+import {PreviewDirective} from '../../../../shared/directives';
+
+@Component({
+  template: `
+    <app-config-list [dataSource]="dataSource">
+      <ng-template appPreview let-row><span class="preview-content">Preview {{ row.meta.name }}</span></ng-template>
+    </app-config-list>
+  `,
+  imports: [ConfigListComponent, PreviewDirective],
+  standalone: true,
+})
+class PreviewHostComponent {
+  @ViewChild(ConfigListComponent, {static: true}) list: ConfigListComponent;
+  dataSource: ListDataSource<ConfigObject, unknown>;
+}
 
 describe('ConfigListComponent', () => {
   let component: ConfigListComponent;
@@ -32,6 +47,7 @@ describe('ConfigListComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         ConfigListComponent,
+        PreviewHostComponent,
       ],
       providers: [
         ...provideCoreTesting,
@@ -1071,6 +1087,100 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="configuration-row-decoration"]')).toBeNull();
   });
 
+  describe('expandable rows', () => {
+    let hostFixture: ComponentFixture<PreviewHostComponent>;
+    let first: ConfigObject;
+    let second: ConfigObject;
+    let rowClicks: ConfigObject[];
+
+    const rows = () => hostFixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
+    const previews = () => hostFixture.nativeElement.querySelectorAll('.row-preview') as NodeListOf<HTMLElement>;
+
+    beforeEach(() => {
+      first = new ConfigObject({id: 'first', kind: Kind.COLLECTION, meta: new Meta({name: 'First'})});
+      second = new ConfigObject({id: 'second', kind: Kind.COLLECTION, meta: new Meta({name: 'Second'})});
+      hostFixture = TestBed.createComponent(PreviewHostComponent);
+      hostFixture.componentInstance.dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: () => of(first, second),
+        destroyRef: hostFixture.componentRef.injector.get(DestroyRef),
+      });
+      hostFixture.detectChanges();
+      component = hostFixture.componentInstance.list;
+      rowClicks = [];
+      component.rowClick.subscribe(value => rowClicks.push(value));
+    });
+
+    it('toggles a preview below the row on click and Enter instead of emitting rowClick', () => {
+      expect(previews().length).toBe(0);
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('false');
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(rows()[0].nextElementSibling).toBe(previews()[0]);
+      expect(previews()[0].querySelector('.preview-content')?.textContent).toBe('Preview First');
+      expect(previews()[0].getAttribute('role')).toBe('listitem');
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('true');
+      expect(rows()[0].getAttribute('aria-controls')).toBe(previews()[0].id);
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(0);
+
+      rows()[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(rowClicks).toEqual([]);
+    });
+
+    it('limits the title link to its text so the rest of the row toggles the preview', () => {
+      const link = rows()[0].querySelector('.primary-detail-link') as HTMLElement;
+      expect(getComputedStyle(link).width).toBe('fit-content');
+      expect(getComputedStyle(link).maxWidth).toBe('100%');
+    });
+
+    it('keeps only one preview open at a time', () => {
+      rows()[0].click();
+      hostFixture.detectChanges();
+      rows()[1].click();
+      hostFixture.detectChanges();
+
+      expect(previews().length).toBe(1);
+      expect(rows()[1].nextElementSibling).toBe(previews()[0]);
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('navigates through the title link and toggles through the expand button', () => {
+      (rows()[0].querySelector('.primary-detail-link') as HTMLElement).click();
+      hostFixture.detectChanges();
+      expect(rowClicks).toEqual([first]);
+      expect(previews().length).toBe(0);
+
+      const toggle = rows()[1].querySelector('.preview-toggle') as HTMLElement;
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      toggle.click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(toggle.getAttribute('aria-label')).toBe('Hide preview of Second');
+      expect(rowClicks).toEqual([first]);
+    });
+
+    it('hides the preview in selection mode and selects rows on click', () => {
+      rows()[0].click();
+      hostFixture.detectChanges();
+      component.onCheckboxToggle(second);
+      hostFixture.detectChanges();
+
+      expect(previews().length).toBe(0);
+      expect(rows()[0].hasAttribute('aria-expanded')).toBe(false);
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(component.selection.selected.map(row => row.id).sort()).toEqual(['first', 'second']);
+      expect(previews().length).toBe(0);
+    });
+  });
 });
 
 function horizontalCenter(element: HTMLElement): number {
