@@ -96,7 +96,9 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     ]).subscribe(([, rows]) => {
       this.loadedLength.set(rows.length);
       const selectedIds = new Set(this.selection.selected.map(row => row.id));
-      const appendedRows = this.selectLoadedRows && this.autoSelectAppendedRows
+      // With fixed pages, only a database-wide selection follows the page that is shown.
+      const followsLoadedRows = this.selectLoadedRows && (!dataSource.currentPaging || this.allSelected());
+      const appendedRows = followsLoadedRows && this.autoSelectAppendedRows
         ? rows.filter(row => !selectedIds.has(row.id))
         : [];
       if (appendedRows.length > 0) {
@@ -106,8 +108,9 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
         }
         return;
       }
-      this.selectedRows.set(rows.filter(row => selectedIds.has(row.id)));
-      this.isAllLoadedSelected.set(rows.length === selectedIds.size && rows.length > 0);
+      // The selection spans every page that has been visited, not just the rows shown now.
+      this.selectedRows.set(this.selection.selected);
+      this.isAllLoadedSelected.set(rows.length > 0 && rows.every(row => selectedIds.has(row.id)));
     }));
   }
 
@@ -204,10 +207,12 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   onMasterCheckboxToggle(checked: boolean): void {
     this.selectLoadedRows = checked;
     this.allSelected.set(false);
+    const shownIds = new Set(this.dataSource.snapshot.map(row => row.id));
     if (checked) {
       this.selection.select(...this.dataSource.snapshot);
     } else {
-      this.selection.clear();
+      // Only the shown rows: selections made on other pages are kept.
+      this.selection.deselect(...this.selection.selected.filter(row => shownIds.has(row.id)));
     }
     this.selectedChange.emit(this.selection.selected);
   }
@@ -243,8 +248,10 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   }
 
   onDeselectAll(): void {
+    this.selectLoadedRows = false;
     this.allSelected.set(false);
-    this.onMasterCheckboxToggle(false);
+    this.selection.clear();
+    this.selectedChange.emit(this.selection.selected);
   }
 
   retry(): void {

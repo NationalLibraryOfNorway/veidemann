@@ -1,6 +1,7 @@
 <div class="container layout-column">
   @let total = totalLength();
-  @if (isSelectionMode() || total !== null || showOrderControl || showDecorationToggle) {
+  @let paging = dataSource?.paging$ | async;
+  @if (isSelectionMode() || total !== null || showOrderControl || showDecorationToggle || allowPaging) {
     <mat-list class="list-header" aria-label="Configuration list controls"
       [style.padding-left.px]="flush ? 0 : null"
       [style.padding-right.px]="flush ? 0 : null"
@@ -23,7 +24,7 @@
               </span>
             </span>
           }
-          @if (showStateFilter || showOrderControl) {
+          @if (showStateFilter || showOrderControl || allowPaging) {
             <span class="list-header-controls" matSort
               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
               (matSortChange)="onSortChange($event)">
@@ -92,13 +93,32 @@
                   </button>
                 </span>
               }
+              @if (allowPaging) {
+                <span class="state-filter" role="group"
+                  aria-label="List mode" i18n-aria-label="@@configurationListPagingModeAriaLabel">
+                  <button mat-icon-button type="button" class="stateful-filter-button"
+                    [attr.aria-pressed]="pagingMode() === 'scroll'"
+                    aria-label="Endless scroll" i18n-aria-label="@@configurationListPagingScroll"
+                    matTooltip="Endless scroll" i18n-matTooltip="@@configurationListPagingScroll"
+                    (click)="setPagingMode('scroll')">
+                    <mat-icon>swap_vert</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" class="stateful-filter-button"
+                    [attr.aria-pressed]="pagingMode() === 'pages'"
+                    aria-label="Pages" i18n-aria-label="@@configurationListPagingPages"
+                    matTooltip="Pages" i18n-matTooltip="@@configurationListPagingPages"
+                    (click)="setPagingMode('pages')">
+                    <mat-icon>format_list_numbered</mat-icon>
+                  </button>
+                </span>
+              }
             </span>
           }
         </span>
         @if (isSelectionMode()) {
           <span class="header-summary selection-summary" role="status" aria-live="polite">
             @if (!allSelected()) {
-              @if (isAllLoadedSelected()) {
+              @if (isAllLoadedSelected() && selectedRows().length === loadedLength()) {
                 @if (total !== null) {
                   <span i18n="@@configurationListAllLoadedSelectedMessage">
                     All <strong>{{ selectedRows().length | number }}</strong> {{ configTypePluralLabel() }} of {{ total | number }} selected.
@@ -149,6 +169,10 @@
           </span>
         }
         <span class="header-trailing">
+          @if (isSelectionMode() && !allSelected()) {
+            <button mat-button type="button" class="clear-selection" (click)="onDeselectAll()"
+              i18n="@@configurationListClearSelection">Clear selection</button>
+          }
           @if (showDecorationToggle) {
             <span class="decoration-toggle" role="group"
               aria-label="Show on rows" i18n-aria-label="@@configurationListDecorationAriaLabel"
@@ -177,7 +201,7 @@
     </mat-list>
   }
 
-  <div class="scroll flex-fill">
+  <div #scrollContainer class="scroll flex-fill">
     <mat-list aria-label="Configurations"
       [style.padding-left.px]="flush ? 0 : null"
       [style.padding-right.px]="flush ? 0 : null">
@@ -308,14 +332,21 @@
       }
     </mat-list>
     <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>
-    @if (dataSource?.appendLoading$ | async) {
+    @if (!paging && (dataSource?.appendLoading$ | async)) {
       <div class="load-state" role="status">Loading more…</div>
     }
     @if (dataSource?.appendFailed$ | async) {
       <div class="load-state" role="alert">
-        Could not load more rows.
+        {{ paging ? 'Could not load the page.' : 'Could not load more rows.' }}
         <button mat-button (click)="retry()">Retry</button>
       </div>
     }
   </div>
+  @if (paging) {
+    <mat-paginator class="list-paginator" showFirstLastButtons
+      [length]="knownTotal()" [pageIndex]="paging.pageIndex" [pageSize]="paging.pageSize"
+      [pageSizeOptions]="pageSizeOptions" aria-label="Select page"
+      i18n-aria-label="@@configurationListPaginatorAriaLabel"
+      (page)="onPage($event)"></mat-paginator>
+  }
 </div>

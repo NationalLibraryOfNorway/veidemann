@@ -1160,9 +1160,155 @@ describe('ConfigListComponent', () => {
       expect(previews().length).toBe(0);
     });
   });
+
+  describe('with fixed pages', () => {
+    const all = ['a', 'b', 'c', 'd'].map(id => new ConfigObject({id, kind: Kind.SEED, meta: new Meta({name: id})}));
+    let dataSource: ListDataSource<ConfigObject, string>;
+
+    const ids = (rows: readonly ConfigObject[]) => rows.map(row => row.id);
+
+    beforeEach(() => {
+      dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: (_query, range) => of(...all.slice(range.offset, range.offset + range.pageSize)),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      component.dataSource = dataSource;
+      component.length = all.length;
+      fixture.detectChanges();
+      dataSource.setPaging(2);
+      fixture.detectChanges();
+    });
+
+    it('keeps rows selected on earlier pages and counts them in the selection', () => {
+      component.onCheckboxToggle(all[0]);
+      dataSource.goToPage(1);
+      fixture.detectChanges();
+
+      expect(ids(dataSource.snapshot)).toEqual(['c', 'd']);
+      expect(ids(component.selectedRows())).toEqual(['a']);
+      expect(component.isSelectionMode()).toBe(true);
+      expect(component.isAllLoadedSelected()).toBe(false);
+
+      component.onCheckboxToggle(all[2]);
+      expect(ids(component.selectedRows())).toEqual(['a', 'c']);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.selection-summary').textContent)
+        .toContain('2 seeds of 4 selected');
+    });
+
+    it('lets the master checkbox select and deselect only the rows on the page shown', () => {
+      component.onCheckboxToggle(all[0]);
+      dataSource.goToPage(1);
+      component.onMasterCheckboxToggle(true);
+      expect(ids(component.selectedRows())).toEqual(['a', 'c', 'd']);
+      expect(component.isAllLoadedSelected()).toBe(true);
+
+      component.onMasterCheckboxToggle(false);
+      expect(ids(component.selectedRows())).toEqual(['a']);
+    });
+
+    it('only auto-selects newly shown pages for a database-wide selection', () => {
+      component.onMasterCheckboxToggle(true);
+      dataSource.goToPage(1);
+      expect(ids(component.selectedRows())).toEqual(['a', 'b']);
+
+      component.onSelectAll();
+      dataSource.goToPage(0);
+      dataSource.goToPage(1);
+      expect(ids(component.selectedRows())).toEqual(['a', 'b', 'c', 'd']);
+    });
+
+    it('clears the selection on every page with the clear selection button', () => {
+      component.onCheckboxToggle(all[0]);
+      dataSource.goToPage(1);
+      fixture.detectChanges();
+
+      (fixture.nativeElement.querySelector('.clear-selection') as HTMLElement).click();
+      fixture.detectChanges();
+
+      expect(component.selectedRows()).toEqual([]);
+      expect(component.isSelectionMode()).toBe(false);
+      expect(fixture.nativeElement.querySelector('.clear-selection')).toBeNull();
+    });
+
+    it('keeps the selection when the page changes but drops it for a new query', () => {
+      const query = new BehaviorSubject('first');
+      const queried = ListDataSource.fromQuery({
+        query$: query,
+        load: (_query, range) => of(...all.slice(range.offset, range.offset + range.pageSize)),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      component.dataSource = queried;
+      queried.setPaging(2);
+      component.onCheckboxToggle(all[0]);
+      queried.goToPage(1);
+      expect(ids(component.selectedRows())).toEqual(['a']);
+
+      query.next('second');
+      expect(component.selectedRows()).toEqual([]);
+    });
+  });
+
+  describe('paging controls', () => {
+    const rows = Array.from({length: 120}, (_, n) => n + 1).map(n => new ConfigObject({id: String(n), kind: Kind.SEED, meta: new Meta({name: `Seed ${n}`})}));
+
+    beforeEach(() => {
+      localStorage.clear();
+      component.dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: (_query, range) => of(...rows.slice(range.offset, range.offset + range.pageSize)),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      component.length = 120;
+    });
+
+    afterEach(() => localStorage.clear());
+
+    it('offers no paging mode toggle or paginator unless paging is allowed', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[aria-label="List mode"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+    });
+
+    it('switches between endless scroll and pages and remembers the choice', () => {
+      fixture.componentRef.setInput('allowPaging', true);
+      fixture.detectChanges();
+      expect(component.dataSource.currentPaging).toBeNull();
+      const modeButtons = () => [...fixture.nativeElement.querySelectorAll('[aria-label="List mode"] button')] as HTMLElement[];
+      expect(modeButtons().map(button => button.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+      expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+
+      modeButtons()[1].click();
+      fixture.detectChanges();
+      expect(modeButtons().map(button => button.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+      expect(component.dataSource.currentPaging).toEqual({pageIndex: 0, pageSize: 50});
+      expect(fixture.nativeElement.querySelector('mat-paginator')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.load-more-sentinel')).not.toBeNull();
+      expect(localStorage.getItem('configList.pagingMode')).toBe('pages');
+
+      modeButtons()[0].click();
+      fixture.detectChanges();
+      expect(component.dataSource.currentPaging).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+    });
+
+    it('moves between pages and changes the page size from the paginator', () => {
+      fixture.componentRef.setInput('allowPaging', true);
+      component.setPagingMode('pages');
+      fixture.detectChanges();
+
+      component.onPage({pageIndex: 1, pageSize: 50, previousPageIndex: 0, length: 120});
+      expect(component.dataSource.currentPaging).toEqual({pageIndex: 1, pageSize: 50});
+
+      component.onPage({pageIndex: 1, pageSize: 25, previousPageIndex: 1, length: 120});
+      expect(component.dataSource.currentPaging).toEqual({pageIndex: 0, pageSize: 25});
+      expect(localStorage.getItem('configList.pageSize')).toBe('25');
+    });
+  });
 });
 
-function horizontalCenter(element: HTMLElement): number {
-  const rect = element.getBoundingClientRect();
-  return rect.left + rect.width / 2;
+function horizontalCenter(element: Element): number {
+  const {left, width} = element.getBoundingClientRect();
+  return left + width / 2;
 }

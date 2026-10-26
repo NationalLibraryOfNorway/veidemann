@@ -1,4 +1,18 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, signal} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  Output,
+  signal,
+  SimpleChanges,
+  ViewChild,
+} from '@angular/core';
+import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {SortDirection} from '@angular/material/sort';
 import {ConfigObject, Kind, Label, Role} from '../../../../shared/models/config';
 import {CONFIG_LIST_IMPORTS, ConfigListBaseComponent} from './config-list-base';
@@ -6,6 +20,27 @@ import {isEmojiLabel, LabelDisplayComponent} from '../../../../shared/components
 import {configKindIcon} from '../../func/config-kind-icon';
 
 type RowDecoration = 'labels' | 'crawlJobs';
+type PagingMode = 'scroll' | 'pages';
+
+const PAGING_MODE_KEY = 'configList.pagingMode';
+const PAGE_SIZE_KEY = 'configList.pageSize';
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
+
+function readStored(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // The choice then only lasts for this session.
+  }
+}
 
 @Component({
     selector: 'app-config-list',
@@ -18,11 +53,12 @@ type RowDecoration = 'labels' | 'crawlJobs';
     imports: [
       ...CONFIG_LIST_IMPORTS,
       LabelDisplayComponent,
+      MatPaginatorModule,
     ],
     standalone: true,
 })
 
-export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
+export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> implements OnChanges {
   @Input() configKind: Kind | null = null;
   @Input() titleOnly = false;
   @Input() flush = false;
@@ -31,6 +67,8 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   @Input() showStateFilter = false;
   @Input() disabledFilter: boolean | null = null;
   @Input() showDecorationToggle = false;
+  /** Offers fixed pages as an alternative to endless scrolling. */
+  @Input() allowPaging = false;
   @Input() crawlJobs: ConfigObject[] = [];
   @Output() readonly labelClick = new EventEmitter<Label>();
   @Output() readonly crawlJobClick = new EventEmitter<string>();
@@ -40,6 +78,13 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
   protected readonly isEmojiLabel = isEmojiLabel;
   readonly crawlJobIcon = configKindIcon(Kind.CRAWLJOB);
   readonly rowDecorations = signal<RowDecoration[]>(['labels']);
+  readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
+  readonly pagingMode = signal<PagingMode>(readStored(PAGING_MODE_KEY) === 'pages' ? 'pages' : 'scroll');
+  /** The last count received, so the paginator keeps its range while the total is recounted. */
+  readonly knownTotal = signal(0);
+  private pageSize = PAGE_SIZE_OPTIONS.find(size => String(size) === readStored(PAGE_SIZE_KEY)) ?? PAGE_SIZE_OPTIONS[1];
+
+  @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLElement>;
   protected override readonly autoSelectAppendedRows = true;
   readonly orderOptions = [
     {value: '', label: $localize`:@@configurationListDefaultOrder:Default order`},
@@ -54,6 +99,49 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> {
       label: $localize`:@@configurationListModifiedOldest:Last modified: oldest first`,
     },
   ];
+
+  constructor() {
+    super();
+    effect(() => {
+      const total = this.totalLength();
+      if (total !== null) {
+        this.knownTotal.set(total);
+      }
+    });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dataSource'] || changes['allowPaging']) {
+      this.applyPaging();
+    }
+  }
+
+  setPagingMode(mode: PagingMode): void {
+    this.pagingMode.set(mode);
+    writeStored(PAGING_MODE_KEY, mode);
+    this.applyPaging();
+  }
+
+  onPage(event: PageEvent): void {
+    this.expandedId.set(null);
+    if (event.pageSize !== this.pageSize) {
+      this.pageSize = event.pageSize;
+      writeStored(PAGE_SIZE_KEY, String(event.pageSize));
+      this.dataSource.setPaging(event.pageSize);
+    } else {
+      this.dataSource.goToPage(event.pageIndex);
+    }
+    if (this.scrollContainer) {
+      this.scrollContainer.nativeElement.scrollTop = 0;
+    }
+  }
+
+  private applyPaging(): void {
+    const pageSize = this.allowPaging && this.pagingMode() === 'pages' ? this.pageSize : null;
+    if (this.dataSource && (this.dataSource.currentPaging?.pageSize ?? null) !== pageSize) {
+      this.dataSource.setPaging(pageSize);
+    }
+  }
 
   isSelectionMode(): boolean {
     return this.multiSelect && this.selectedRows().length > 0;

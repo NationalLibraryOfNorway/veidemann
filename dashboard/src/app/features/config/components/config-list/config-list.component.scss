@@ -98,3 +98,8 @@ mat-list .item-row.row-with-labels {
   align-items: center;
   gap: 4px;
 }
+
+.list-paginator {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}

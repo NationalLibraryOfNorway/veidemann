@@ -23,6 +23,12 @@ export interface ListDataSourceOptions<Q, T extends ListItem> {
   pageSize?: number;
 }
 
+/** Fixed-size paging. Without it the data source accumulates rows for endless scrolling. */
+export interface ListPaging {
+  pageIndex: number;
+  pageSize: number;
+}
+
 export interface ListLoadCompleted<Q, T extends ListItem> {
   query: Q;
   rows: readonly T[];
@@ -49,6 +55,7 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
   private readonly appendLoading = new BehaviorSubject(false);
   private readonly exhausted = new BehaviorSubject(false);
   private readonly appendFailed = new BehaviorSubject(false);
+  private readonly paging = new BehaviorSubject<ListPaging | null>(null);
   private readonly reset = new Subject<void>();
   private readonly completed = new Subject<ListLoadCompleted<Q, T>>();
   private readonly destroy = new Subject<void>();
@@ -72,6 +79,7 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
   readonly loading$: Observable<boolean>;
   readonly exhausted$ = this.exhausted.asObservable().pipe(distinctUntilChanged());
   readonly appendFailed$ = this.appendFailed.asObservable().pipe(distinctUntilChanged());
+  readonly paging$ = this.paging.asObservable();
   readonly reset$ = this.reset.asObservable();
   readonly completed$ = this.completed.asObservable();
 
@@ -88,6 +96,11 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
     const dataSource = new ListDataSource<T, Q>(options);
     dataSource.connectQuery();
     return dataSource;
+  }
+
+  /** The current page, or null while accumulating rows for endless scrolling. */
+  get currentPaging(): ListPaging | null {
+    return this.paging.value;
   }
 
   get length(): number {
@@ -123,8 +136,30 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
     this.publish();
   }
 
+  /**
+   * Switches between fixed pages (a page size) and endless scrolling (null).
+   * Starts over from the first row without a reset, so selections are kept.
+   */
+  setPaging(pageSize: number | null): void {
+    this.paging.next(pageSize === null ? null : {pageIndex: 0, pageSize});
+    if (this.hasQuery) {
+      this.restart(false, false);
+    }
+  }
+
+  goToPage(pageIndex: number): void {
+    const paging = this.paging.value;
+    if (!paging || pageIndex === paging.pageIndex || pageIndex < 0) {
+      return;
+    }
+    this.paging.next({...paging, pageIndex});
+    if (this.hasQuery) {
+      this.restart(false, false);
+    }
+  }
+
   loadMore(): void {
-    if (!this.hasQuery || this.capacity > 0 || this.initialLoading.value ||
+    if (!this.hasQuery || this.capacity > 0 || this.paging.value || this.initialLoading.value ||
       this.appendLoading.value || this.exhausted.value || this.appendFailed.value) {
       return;
     }
@@ -145,17 +180,30 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
     if (!this.hasQuery) {
       return;
     }
+    this.restart(options.retainRows ?? false, true);
+  }
+
+  private restart(retainRows: boolean, emitReset: boolean): void {
     ++this.generation;
     this.activeLoad.unsubscribe();
     this.offset = 0;
     this.failedRange = null;
     this.appendFailed.next(false);
     this.exhausted.next(false);
-    if (!options.retainRows) {
+    if (!retainRows) {
       this.clear();
-      this.reset.next();
+      if (emitReset) {
+        this.reset.next();
+      }
     }
-    this.request({offset: 0, pageSize: this.pageSize}, false);
+    this.request(this.firstRange(), false);
+  }
+
+  private firstRange(): ListRange {
+    const paging = this.paging.value;
+    return paging
+      ? {offset: paging.pageIndex * paging.pageSize, pageSize: paging.pageSize}
+      : {offset: 0, pageSize: this.pageSize};
   }
 
   /** Refreshes every currently loaded page and keeps the existing rows visible until replacement completes. */
@@ -167,13 +215,19 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
     this.activeLoad.unsubscribe();
     this.failedRange = null;
     this.appendFailed.next(false);
-    this.requestReplacement({offset: 0, pageSize: Math.max(this.offset, this.pageSize)});
+    this.requestReplacement(this.paging.value
+      ? this.firstRange()
+      : {offset: 0, pageSize: Math.max(this.offset, this.pageSize)});
   }
 
   private connectQuery(): void {
     this.querySubscription = this.options.query$.subscribe(query => {
       this.latestQuery = query;
       this.hasQuery = true;
+      const paging = this.paging.value;
+      if (paging) {
+        this.paging.next({...paging, pageIndex: 0});
+      }
       this.capacity = this.options.capacity?.(query) ?? 0;
       this.reload();
     });
@@ -186,6 +240,7 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
       this.initialLoading.complete();
       this.appendLoading.complete();
       this.exhausted.complete();
+      this.paging.complete();
       this.appendFailed.complete();
       this.reset.complete();
       this.completed.complete();
@@ -236,6 +291,11 @@ export class ListDataSource<T extends ListItem, Q = never> implements DataSource
         this.offset += received;
         this.exhausted.next(this.capacity > 0 || received < range.pageSize);
         this.completed.next({query: this.latestQuery, rows: this.snapshot, range, received});
+        // The last page may have emptied (e.g. after a delete): step back to the last page with rows.
+        const paging = this.paging.value;
+        if (paging && received === 0 && paging.pageIndex > 0) {
+          this.goToPage(paging.pageIndex - 1);
+        }
       })
     ).subscribe();
   }

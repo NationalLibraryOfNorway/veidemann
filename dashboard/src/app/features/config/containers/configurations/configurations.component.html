@@ -39,6 +39,7 @@
                 [crawlJobs]="(options$ | async)?.crawlJobs ?? []"
                 [disabledFilter]="query().disabled"
                 [multiSelect]="true"
+                [allowPaging]="true"
                 [primaryLinkDestination]="kind === Kind.SEED ? 'title' : 'detail'"
                 [detailLinkTarget]="kind === Kind.SEED ? '_blank' : '_self'"
                 (disabledFilterChange)="onDisabledFilterChange($event)"
