@@ -262,6 +262,40 @@ describe('DashboardComponent', () => {
     expect(search).toHaveBeenCalledTimes(2);
   });
 
+  it('refreshes the crawler status counters together with the running crawls', async () => {
+    getCrawlerStatus.mockReturnValueOnce(of(new CrawlerStatus({queueSize: 5, busyCrawlHostGroupCount: 1})));
+    getCrawlerStatus.mockReturnValueOnce(of(new CrawlerStatus({queueSize: 8, busyCrawlHostGroupCount: 3})));
+    const fixture = createDashboard();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const metrics = () => [...fixture.nativeElement.querySelectorAll('.metric-value')]
+      .map(element => (element as HTMLElement).textContent.trim());
+    expect(metrics()).toEqual(['5', '1']);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    fixture.detectChanges();
+
+    expect(getCrawlerStatus).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(metrics()).toEqual(['8', '3']);
+  });
+
+  it('refreshes the crawler status counters when the refresh button is clicked', async () => {
+    getCrawlerStatus.mockReturnValueOnce(of(new CrawlerStatus({queueSize: 5, busyCrawlHostGroupCount: 1})));
+    getCrawlerStatus.mockReturnValueOnce(of(new CrawlerStatus({queueSize: 8, busyCrawlHostGroupCount: 3})));
+    const fixture = createDashboard();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.polling-refresh-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(getCrawlerStatus).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenCalledTimes(2);
+    expect([...fixture.nativeElement.querySelectorAll('.metric-value')]
+      .map(element => (element as HTMLElement).textContent.trim())).toEqual(['8', '3']);
+  });
+
   it('does not render or subscribe to running crawls without permission', async () => {
     canReadJobExecutions = false;
     const fixture = createDashboard();

@@ -129,6 +129,7 @@ export class DashboardComponent implements OnInit {
 
   onLatestJobsRefresh(): void {
     this.latestJobsDataSource?.refreshLoaded();
+    this.updateRunStatus.next();
   }
 
   onChangeRunStatus(shouldPause: boolean) {
