@@ -220,24 +220,17 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> i
     return config.meta.description;
   }
 
+  // Rows are only selected through their checkbox. Without a preview a row click
+  // would navigate away, which is not wanted in the middle of a selection.
   override onRowClick(config: ConfigObject, event?: Event): void {
-    if (this.isSelectionMode()) {
-      this.onCheckboxToggle(config);
+    if (this.isSelectionMode() && !this.expandable) {
       return;
     }
     super.onRowClick(config, event);
   }
 
   override onRowKeydown(config: ConfigObject, event: KeyboardEvent): void {
-    const nestedAction = event.target instanceof Element
-      && event.target !== event.currentTarget
-      && !!event.target.closest('a, button, input, [role="button"]');
-    if (nestedAction) {
-      return;
-    }
-    if (this.isSelectionMode() && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault();
-      this.onCheckboxToggle(config);
+    if (this.isSelectionMode() && !this.expandable) {
       return;
     }
     super.onRowKeydown(config, event);

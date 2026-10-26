@@ -139,7 +139,7 @@ describe('ConfigListComponent', () => {
     expect(selections.at(-1)).toEqual([]);
   });
 
-  it('shows row checkboxes from the start and reveals the master checkbox after selection starts', async () => {
+  it('shows row and master checkboxes from the start', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -148,7 +148,10 @@ describe('ConfigListComponent', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+    const masterFromStart = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
+    expect(await masterFromStart.isChecked()).toBe(false);
+    expect(await masterFromStart.isIndeterminate()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
     const entry = await loader.getHarness(MatCheckboxHarness.with({selector: '.item-row .selection-control'}));
     expect(await entry.getAriaLabel()).toBe('Select One');
     expect(await entry.isChecked()).toBe(false);
@@ -168,6 +171,27 @@ describe('ConfigListComponent', () => {
     fixture.componentRef.setInput('multiSelect', false);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+  });
+
+  it('selects all shown rows from the header checkbox without a prior selection', async () => {
+    const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({name: 'Two'})});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(first, second),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.detectChanges();
+
+    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
+    expect(await master.isDisabled()).toBe(false);
+    await master.check();
+    expect(component.selection.selected).toEqual([first, second]);
+    expect(fixture.nativeElement.querySelector('.selection-actions')).not.toBeNull();
+
+    await master.uncheck();
+    expect(component.selection.selected).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
   });
 
   it('uses checked and indeterminate master states and renders actions beside it', async () => {
@@ -254,7 +278,7 @@ describe('ConfigListComponent', () => {
     const stateFilter = headerControls.querySelector('.state-filter') as HTMLElement;
     const orderControl = headerControls.querySelector('.order-control') as HTMLElement;
     const resultCount = fixture.nativeElement.querySelector('.result-count') as HTMLElement;
-    expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
     expect(orderControl.compareDocumentPosition(stateFilter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(headerControls.compareDocumentPosition(resultCount) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const orderIcon = orderControl.querySelector('mat-icon') as HTMLElement;
@@ -482,7 +506,7 @@ describe('ConfigListComponent', () => {
 
     component.onDeselectAll();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
     expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
     expect(deactivated.getAttribute('aria-pressed')).toBe('true');
     expect((fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement).disabled).toBe(false);
@@ -855,7 +879,7 @@ describe('ConfigListComponent', () => {
     expect(chip.hasAttribute('tabindex')).toBe(false);
   });
 
-  it('toggles rows by pointer and keyboard in selection mode and Escape clears selection', () => {
+  it('only selects rows through the checkbox in selection mode and Escape clears selection', () => {
     const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({name: 'Two'})});
     component.dataSource = ListDataSource.fromQuery({
@@ -871,12 +895,11 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
     const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
     rows[1].click();
-    expect(component.selection.selected).toEqual([first, second]);
+    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    expect(component.selection.selected).toEqual([first]);
     expect(navigated).toEqual([]);
 
-    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: ' ', bubbles: true, cancelable: true}));
-    expect(component.selection.selected).toEqual([first]);
-    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    (rows[1].querySelector('.selection-control input') as HTMLElement).click();
     expect(component.selection.selected).toEqual([first, second]);
 
     const escape = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true});
@@ -884,7 +907,7 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
     expect(escape.defaultPrevented).toBe(true);
     expect(component.selection.selected).toEqual([]);
-    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
   });
 
   it('preserves row navigation, deactivated styling, and bulk selection behavior', () => {
@@ -1146,18 +1169,30 @@ describe('ConfigListComponent', () => {
       expect(rowClicks).toEqual([first]);
     });
 
-    it('hides the preview in selection mode and selects rows on click', () => {
+    it('toggles the preview on row click in selection mode without changing the selection', () => {
+      component.onCheckboxToggle(second);
+      hostFixture.detectChanges();
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(rows()[0].nextElementSibling).toBe(previews()[0]);
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('true');
+      expect(component.selection.selected.map(row => row.id)).toEqual(['second']);
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(0);
+    });
+
+    it('keeps an open preview when selection mode starts', () => {
       rows()[0].click();
       hostFixture.detectChanges();
       component.onCheckboxToggle(second);
       hostFixture.detectChanges();
 
-      expect(previews().length).toBe(0);
-      expect(rows()[0].hasAttribute('aria-expanded')).toBe(false);
-      rows()[0].click();
-      hostFixture.detectChanges();
-      expect(component.selection.selected.map(row => row.id).sort()).toEqual(['first', 'second']);
-      expect(previews().length).toBe(0);
+      expect(previews().length).toBe(1);
+      expect(rows()[0].querySelector('.action-region')).toBeNull();
     });
   });
 
