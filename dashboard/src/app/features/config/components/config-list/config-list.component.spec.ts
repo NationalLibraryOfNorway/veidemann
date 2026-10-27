@@ -605,8 +605,8 @@ describe('ConfigListComponent', () => {
   });
 
   it('uses type-specific selection summaries while the total is unavailable', async () => {
-    const first = new ConfigObject({id: 'one', kind: Kind.SEED});
-    const second = new ConfigObject({id: 'two', kind: Kind.SEED});
+    const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({description: 'First'})});
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({description: 'Second'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
       load: () => of(first, second),
@@ -695,7 +695,7 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('.item-row').classList).toContain('row-checked');
   });
 
-  it('aligns title and supporting text against the leading control', () => {
+  it('centers title and supporting text against the leading checkbox without an offset', () => {
     const row = new ConfigObject({
       id: 'aligned',
       meta: new Meta({name: 'Aligned', description: 'Supporting text'}),
@@ -709,7 +709,22 @@ describe('ConfigListComponent', () => {
 
     const text = fixture.nativeElement.querySelectorAll('.item-row .row-text') as NodeListOf<HTMLElement>;
     expect(text).toHaveLength(2);
-    expect(Array.from(text).every(element => getComputedStyle(element).top === '-4px')).toBe(true);
+    expect(Array.from(text).some(element => getComputedStyle(element).top === '-4px')).toBe(false);
+  });
+
+  it('renders a supporting text line only when the configuration has a description', () => {
+    const described = new ConfigObject({id: 'one', meta: new Meta({name: 'One', description: 'Supporting text'})});
+    const plain = new ConfigObject({id: 'two', meta: new Meta({name: 'Two'})});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(described, plain),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
+    expect(rows[0].querySelector('.mat-mdc-list-item-line')).not.toBeNull();
+    expect(rows[1].querySelector('.mat-mdc-list-item-line')).toBeNull();
   });
 
   it('renders labels in an accessible trailing column before row actions', () => {

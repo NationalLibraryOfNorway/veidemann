@@ -201,11 +201,6 @@ mat-list .item-row {
   outline-offset: -3px;
 }
 
-.item-row .row-text {
-  position: relative;
-  top: -4px;
-}
-
 mat-list .item-row.row-checked {
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
