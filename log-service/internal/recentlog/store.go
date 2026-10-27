@@ -221,7 +221,7 @@ func (s *Store) write(ctx context.Context, logType, warcID, executionID string, 
 
 	newCount := s.counts[logType]
 	if warcID != "" {
-		result, err := tx.ExecContext(ctx, "DELETE FROM "+table+" WHERE warc_id = ?", warcID)
+		result, err := tx.ExecContext(ctx, deleteByWarcIDStatement(table), warcID)
 		if err != nil {
 			return fmt.Errorf("replace recent %s log: %w", logType, err)
 		}
@@ -269,6 +269,23 @@ func pruneStatement(table string) string {
 	return "DELETE FROM " + table + " WHERE ingestion_sequence IN (" +
 		"SELECT ingestion_sequence FROM " + table + " ORDER BY ingestion_sequence ASC LIMIT ?" +
 		")"
+}
+
+func deleteByWarcIDStatement(table string) string {
+	// Match the partial index predicate explicitly. SQLite cannot infer it
+	// from the bound parameter, so omitting it scans the entire retained table
+	// on every write, including writes of IDs that do not already exist.
+	return "DELETE FROM " + table + " WHERE warc_id = ? AND warc_id <> ''"
+}
+
+func selectByWarcIDStatement(table, warcID string) string {
+	predicate := "warc_id = ?"
+	if warcID != "" {
+		// As in deleteByWarcIDStatement, make the partial index usable. Empty
+		// IDs are deliberately unindexed and may match multiple anonymous logs.
+		predicate += " AND warc_id <> ''"
+	}
+	return "SELECT payload FROM " + table + " WHERE " + predicate + " ORDER BY ingestion_sequence DESC"
 }
 
 func tableForType(logType string) string {
@@ -370,7 +387,7 @@ func listRecent(ctx context.Context, db *sql.DB, table string, offset, pageSize 
 
 func listByWarcID(ctx context.Context, db *sql.DB, table, warcID string, emit func([]byte) error) (int, error) {
 	rows, err := db.QueryContext(ctx,
-		"SELECT payload FROM "+table+" WHERE warc_id = ? ORDER BY ingestion_sequence DESC",
+		selectByWarcIDStatement(table, warcID),
 		warcID,
 	)
 	if err != nil {

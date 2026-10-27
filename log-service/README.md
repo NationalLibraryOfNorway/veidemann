@@ -136,6 +136,13 @@ existing offset and page-size fields. Page resources and outlinks are embedded
 in the page-log protobuf and count as one retained page row. Lowering either
 limit prunes that table before the service becomes ready.
 
+Once a table reaches its retention limit, each new ID evicts its oldest row.
+This is the normal steady state of the recent window. Both duplicate deletion
+and non-empty WARC-ID reads explicitly include `warc_id <> ''` so SQLite can use
+the existing partial unique index. Without this predicate, even an unseen ID
+causes a full retained-table scan on every write. Increasing the retention limit
+makes that scan more expensive; it does not fix ingestion latency.
+
 Requests without WARC-ID or execution-ID filters return logs newest-first across
 the selected log type. An empty request returns only the latest inserted row;
 setting a positive page size returns that many rows, and offset skips newer rows.
@@ -204,6 +211,14 @@ There are currently no dedicated S3 upload failure or backlog metrics. Monitor
 
 ## Shutdown and recovery checks
 
+After rolling out a recent-store query change, keep the existing SQLite PVC and
+the singleton Deployment. Verify write RPC latency at a full retention window,
+stable `veidemann_recent_logs_entries`, and writer forwarding queue depth,
+failures, and drops. Continued retention evictions are expected. Check PVC usage
+separately: the row limits do not guarantee free disk space for growing payloads
+or the WAL. These checks require a running cluster; local benchmarks cannot
+establish production P99 latency.
+
 Before deploying S3 handoff, verify the following in the target overlay:
 
 - The pod receives `SIGTERM` and is not launched through a wrapper that swallows
@@ -250,6 +265,13 @@ Run unit tests from this module:
 ```shell
 go test ./...
 CGO_ENABLED=0 go build ./...
+```
+
+The saturated-store benchmark seeds 100,000 retained crawl rows with 1 KiB
+payloads and reports write P99 with one or six concurrent callers:
+
+```shell
+go test ./internal/recentlog -run '^$' -bench BenchmarkStoreAtRetention -benchtime=2s
 ```
 
 The integration tests are tagged `integration` and use test containers:
