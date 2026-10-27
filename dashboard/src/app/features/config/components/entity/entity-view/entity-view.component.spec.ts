@@ -38,6 +38,16 @@ describe('EntityViewComponent', () => {
     expect(fixture.nativeElement.querySelector('mat-chip-listbox')).toBeNull();
   });
 
+  it('renders the kind icon in the shared avatar and centers it with the title', () => {
+    const header = fixture.nativeElement.querySelector('mat-card-header') as HTMLElement;
+    const avatar = header.querySelector('[mat-card-avatar]') as HTMLElement;
+
+    expect(avatar.classList).toContain('config-kind-avatar');
+    expect(avatar.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe('true');
+    expect(avatar.textContent.trim()).toBe('business');
+    expect(getComputedStyle(header).alignItems).toBe('center');
+  });
+
   it('renders description and created/modified metadata when available', async () => {
     fixture.componentRef.setInput('configObject', new ConfigObject({
       id: 'entity-2',

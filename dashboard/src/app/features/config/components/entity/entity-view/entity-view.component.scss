@@ -7,6 +7,11 @@
   min-width: 0;
 }
 
+// Centers the title against the avatar; Material aligns the header content to the top.
+.entity-card mat-card-header {
+  align-items: center;
+}
+
 .entity-description {
   margin: 0 0 12px;
   color: var(--mat-sys-on-surface-variant);

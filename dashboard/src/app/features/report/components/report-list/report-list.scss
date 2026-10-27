@@ -70,6 +70,38 @@ tr.item-row:focus-visible {
   text-decoration: underline;
 }
 
+// A quiet notice, not an error: the job ran longer than its configured limit.
+.over-max-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 8px;
+  padding: 2px 8px 2px 4px;
+  border-radius: var(--mat-sys-corner-full);
+  color: var(--mat-sys-on-tertiary-container);
+  background-color: var(--mat-sys-tertiary-container);
+  white-space: nowrap;
+}
+
+// Ended executions only get a subtle hint: the duration text is tinted.
+.duration-over-max {
+  color: var(--mat-sys-tertiary);
+}
+
+.over-max-duration .mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 .load-more-sentinel {
   height: 1px;
 }

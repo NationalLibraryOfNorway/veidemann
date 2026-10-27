@@ -12,6 +12,7 @@
     <app-execution-metrics
       [source]="jobExecutionStatus"
       [queueSize]="queueSize"
+      [durationNotice]="durationNotice()"
       [remainingBytes]="isRunning() ? remainingBytes() : null"
       [remainingTime]="isRunning() ? remainingTime() : null">
     </app-execution-metrics>

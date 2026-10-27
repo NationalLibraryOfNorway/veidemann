@@ -1,6 +1,8 @@
 <mat-card appearance="outlined" class="entity-card">
   <mat-card-header>
-    <mat-icon mat-card-avatar>business</mat-icon>
+    <div mat-card-avatar class="config-kind-avatar">
+      <mat-icon aria-hidden="true">business</mat-icon>
+    </div>
     <mat-card-title>{{name}}</mat-card-title>
   </mat-card-header>
   @if (hasFacts) {
