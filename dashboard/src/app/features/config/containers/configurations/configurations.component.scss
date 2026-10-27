@@ -30,6 +30,11 @@
   bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
+// Keeps the bottom end of the list (e.g. the paginator) clear of the create FAB.
+.result-content.has-create-fab {
+  --config-list-end-inset: calc(72px + 16px + env(safe-area-inset-right));
+}
+
 .result-content > * {
   min-width: 0;
   min-height: 0;

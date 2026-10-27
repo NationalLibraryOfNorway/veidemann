@@ -672,6 +672,7 @@ describe('ConfigurationsComponent query loading', () => {
     expect(fab).not.toBeNull();
     expect(fab.hasAttribute('mat-fab')).toBe(true);
     expect(fab.getAttribute('aria-label')).toBe('Create a new configuration');
+    expect(fixture.nativeElement.querySelector('.result-content').classList).toContain('has-create-fab');
     expect(fixture.nativeElement.querySelector('mat-drawer')).toBeNull();
   });
 });

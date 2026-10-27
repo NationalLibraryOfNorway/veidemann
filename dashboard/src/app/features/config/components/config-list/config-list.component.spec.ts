@@ -1306,6 +1306,16 @@ describe('ConfigListComponent', () => {
       expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
     });
 
+    it('keeps the paginator clear of an end inset set by the host', () => {
+      fixture.componentRef.setInput('allowPaging', true);
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelectorAll('[aria-label="List mode"] button')[1] as HTMLElement).click();
+      fixture.detectChanges();
+      const paginator = fixture.nativeElement.querySelector('mat-paginator') as HTMLElement;
+      // jsdom does not resolve var(), so only the reference to the host's inset is checked.
+      expect(getComputedStyle(paginator).paddingInlineEnd).toContain('--config-list-end-inset');
+    });
+
     it('switches between endless scroll and pages and remembers the choice', () => {
       fixture.componentRef.setInput('allowPaging', true);
       fixture.detectChanges();

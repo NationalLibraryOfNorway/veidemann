@@ -19,7 +19,8 @@
           (removeFilter)="onRemoveFilter($event)">
         </app-active-filter-chips>
         @let total = totalLength();
-        <div class="result-content flex-fill">
+        <div class="result-content flex-fill"
+          [class.has-create-fab]="can('create', Kind[kind]) && showCreateButton()">
         @switch (kind) {
           @default {
             <div class="layout-column flex-fill">
