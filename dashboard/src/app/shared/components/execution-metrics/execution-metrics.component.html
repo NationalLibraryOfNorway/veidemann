@@ -15,16 +15,11 @@
     <div class="metric">
       <dt i18n="@@executionDurationMetric">Duration</dt>
       <dd>
-        @if (durationNotice?.badge) {
+        @if (durationNotice) {
           {{source.startTime | durationFormat:source.endTime}}
           <span class="duration-badge" [matTooltip]="durationNotice.label">
             <mat-icon aria-hidden="true">hourglass_top</mat-icon>
             {{durationNotice.badge}}
-            <span class="visually-hidden">{{durationNotice.label}}</span>
-          </span>
-        } @else if (durationNotice) {
-          <span class="duration-tinted" [matTooltip]="durationNotice.label">
-            {{source.startTime | durationFormat:source.endTime}}
             <span class="visually-hidden">{{durationNotice.label}}</span>
           </span>
         } @else {

@@ -5,8 +5,9 @@ import {DatePipe, DecimalPipe} from '@angular/common';
 import {JobMaxDurationPipe, JobNamePipe} from '../../pipe';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates, isValidDate} from '../../../../shared/func';
+import {DurationNotice} from '../../../../shared/components/execution-metrics/execution-metrics.component';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
-import {jobExecutionStatePresentation, MaxDurationOverrun, maxDurationOverrun} from '../../func';
+import {jobExecutionStatePresentation, maxDurationOverrun} from '../../func';
 import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/report-list-base';
 
 @Component({
@@ -57,7 +58,7 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
   }
 
   // Compared against the job's current configuration, which is not stored per execution.
-  maxDurationOverrun(row: JobExecutionStatus, maxDurationS: number | null): MaxDurationOverrun | null {
+  maxDurationOverrun(row: JobExecutionStatus, maxDurationS: number | null): DurationNotice | null {
     return maxDurationOverrun(row, maxDurationS);
   }
 

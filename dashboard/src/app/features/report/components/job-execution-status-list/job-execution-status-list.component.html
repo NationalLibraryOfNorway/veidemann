@@ -77,16 +77,11 @@
         </th>
         <td mat-cell *matCellDef="let row">
           @let overrun = maxDurationOverrun(row, row.jobId | getJobMaxDurationPipe | async);
-          @if (overrun?.running) {
+          @if (overrun) {
             {{duration(row)}}
             <span class="over-max-duration" [matTooltip]="overrun.label">
               <mat-icon aria-hidden="true">hourglass_top</mat-icon>
-              {{overrun.overrun}}
-              <span class="visually-hidden">{{overrun.label}}</span>
-            </span>
-          } @else if (overrun) {
-            <span class="duration-over-max" [matTooltip]="overrun.label">
-              {{duration(row)}}
+              {{overrun.badge}}
               <span class="visually-hidden">{{overrun.label}}</span>
             </span>
           } @else {

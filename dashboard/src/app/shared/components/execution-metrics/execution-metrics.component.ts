@@ -6,11 +6,10 @@ import {MatTooltip} from '@angular/material/tooltip';
 import {DurationFormatPipe} from '../../pipes/duration-format.pipe';
 import {FileSizePipe} from '../../pipes/filesize.pipe';
 
-// A hint on the duration. With a badge it is shown as a pill after the value, without one
-// the value itself is tinted.
+// A hint on the duration, shown as a pill after the value.
 export interface DurationNotice {
   label: string;
-  badge?: string;
+  badge: string;
 }
 
 export interface ExecutionMetricSource {

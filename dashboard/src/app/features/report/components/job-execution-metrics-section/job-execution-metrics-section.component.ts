@@ -38,11 +38,7 @@ export class JobExecutionMetricsSectionComponent {
 
   // Compared against the job's current configuration, which is not stored per execution.
   durationNotice(): DurationNotice | null {
-    const overrun = maxDurationOverrun(this.jobExecutionStatus, this.crawlJob?.crawlJob?.limits?.maxDurationS);
-    if (!overrun) {
-      return null;
-    }
-    return {label: overrun.label, badge: overrun.running ? overrun.overrun : undefined};
+    return maxDurationOverrun(this.jobExecutionStatus, this.crawlJob?.crawlJob?.limits?.maxDurationS);
   }
 
   remainingBytes(): number | null {

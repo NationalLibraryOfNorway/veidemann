@@ -1,22 +1,14 @@
 import {formatDuration, isValidDate} from '../../../shared/func';
+import {DurationNotice} from '../../../shared/components/execution-metrics/execution-metrics.component';
 import {JobExecutionState} from '../../../shared/models';
 
-// Executions a few minutes over their limit are normal (e.g. while winding down), so
-// only an overrun longer than this is reported.
+// A few minutes over the limit is normal (e.g. while winding down), so only an overrun
+// longer than this is reported.
 export const MAX_DURATION_TOLERANCE_MS = 60 * 60 * 1000;
-
-export interface MaxDurationOverrun {
-  // Still created or running: the overrun is ongoing, otherwise the execution has ended.
-  running: boolean;
-  // The time beyond the maximum duration, e.g. "+1 h 12min".
-  overrun: string;
-  label: string;
-}
 
 interface ExecutionTiming {
   state: JobExecutionState;
   startTime: string;
-  endTime: string;
 }
 
 function readable(ms: number): string {
@@ -25,38 +17,34 @@ function readable(ms: number): string {
 }
 
 /**
- * Describes how far an execution has run past the job's maximum duration, or null if it has
- * not run past it by more than the tolerance. Still running executions are measured against
- * `now`; executions that have ended without an end time cannot be measured.
+ * Describes how far a created or running execution has run past the job's maximum duration
+ * (the badge is the overrun, e.g. "+1 h 12min"), or null if it has not run past it by more than the tolerance. Ended executions are never
+ * reported: the limit is not stored per execution, so the job's current limit says nothing
+ * about the limit an earlier execution started with.
  */
 export function maxDurationOverrun(
   execution: ExecutionTiming,
   maxDurationS: number | null | undefined,
   now = new Date(),
-): MaxDurationOverrun | null {
+): DurationNotice | null {
   if (!maxDurationS || !execution.startTime) {
     return null;
   }
-  const running = execution.state === JobExecutionState.CREATED || execution.state === JobExecutionState.RUNNING;
-  if (!running && !execution.endTime) {
+  if (execution.state !== JobExecutionState.CREATED && execution.state !== JobExecutionState.RUNNING) {
     return null;
   }
   const start = new Date(execution.startTime);
-  const end = execution.endTime ? new Date(execution.endTime) : now;
-  if (!isValidDate(start) || !isValidDate(end)) {
+  if (!isValidDate(start)) {
     return null;
   }
-  const overrunMs = end.getTime() - start.getTime() - maxDurationS * 1000;
+  const overrunMs = now.getTime() - start.getTime() - maxDurationS * 1000;
   if (overrunMs <= MAX_DURATION_TOLERANCE_MS) {
     return null;
   }
   const overrun = readable(Math.floor(overrunMs / 60_000) * 60_000);
   const maxDuration = readable(maxDurationS * 1000);
   return {
-    running,
-    overrun: `+${overrun}`,
-    label: running
-      ? $localize`:@@jobExecutionRunningOverMaxDuration:Running ${overrun}:OVERRUN: over the maximum duration of ${maxDuration}:MAX_DURATION: set on the job`
-      : $localize`:@@jobExecutionRanOverMaxDuration:Ran ${overrun}:OVERRUN: over the maximum duration of ${maxDuration}:MAX_DURATION: set on the job`,
+    badge: `+${overrun}`,
+    label: $localize`:@@jobExecutionRunningOverMaxDuration:Running ${overrun}:OVERRUN: over the maximum duration of ${maxDuration}:MAX_DURATION: set on the job`,
   };
 }

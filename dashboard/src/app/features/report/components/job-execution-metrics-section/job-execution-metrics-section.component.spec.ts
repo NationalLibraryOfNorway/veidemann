@@ -59,7 +59,7 @@ describe('JobExecutionMetricsSectionComponent', () => {
     expect(queueMetric?.querySelector('dd')?.textContent.trim()).toBe('Not available');
   });
 
-  it('badges running executions and tints ended ones that ran well over the maximum duration', () => {
+  it('badges running executions that ran well over the maximum duration, but never ended ones', () => {
     render();
     const running = fixture.componentInstance.durationNotice();
     expect(running?.badge).toMatch(/^\+/);
@@ -72,14 +72,12 @@ describe('JobExecutionMetricsSectionComponent', () => {
       endTime: '2026-08-11T14:00:00.000Z',
     }));
     fixture.detectChanges();
-    expect(fixture.componentInstance.durationNotice()?.badge).toBeUndefined();
-    expect(fixture.nativeElement.querySelector('.duration-tinted')).not.toBeNull();
+    expect(fixture.componentInstance.durationNotice()).toBeNull();
     expect(fixture.nativeElement.querySelector('.duration-badge')).toBeNull();
 
     fixture.componentRef.setInput('jobExecutionStatus', new JobExecutionStatus({
-      state: JobExecutionState.FINISHED,
-      startTime: '2026-08-11T10:00:00.000Z',
-      endTime: '2026-08-11T12:30:00.000Z',
+      state: JobExecutionState.RUNNING,
+      startTime: new Date().toISOString(),
     }));
     fixture.detectChanges();
     expect(fixture.componentInstance.durationNotice()).toBeNull();

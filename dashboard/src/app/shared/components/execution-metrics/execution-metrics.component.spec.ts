@@ -42,9 +42,9 @@ describe('ExecutionMetricsComponent', () => {
     expect(fixture.nativeElement.querySelector('.secondary-metrics')).toBeNull();
   });
 
-  it('shows a duration notice as a badge or as a tinted value, only when one is given', () => {
+  it('shows a duration notice as a badge after the value, only when one is given', () => {
     const duration = () => fixture.nativeElement.querySelector('.primary-metrics .metric:last-child dd') as HTMLElement;
-    expect(duration().querySelector('.duration-badge, .duration-tinted')).toBeNull();
+    expect(duration().querySelector('.duration-badge')).toBeNull();
 
     fixture.componentRef.setInput('durationNotice', {label: 'Running 2 h over the limit', badge: '+2 h'});
     fixture.detectChanges();
@@ -53,13 +53,9 @@ describe('ExecutionMetricsComponent', () => {
     expect(badge.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe('true');
     expect(badge.querySelector('.visually-hidden')?.textContent).toBe('Running 2 h over the limit');
     expect(duration().textContent.indexOf('30')).toBeLessThan(duration().textContent.indexOf('+2 h'));
-    expect(duration().querySelector('.duration-tinted')).toBeNull();
 
-    fixture.componentRef.setInput('durationNotice', {label: 'Ran 2 h over the limit'});
+    fixture.componentRef.setInput('durationNotice', null);
     fixture.detectChanges();
-    const tinted = duration().querySelector('.duration-tinted') as HTMLElement;
-    expect(tinted.textContent).toContain('30');
-    expect(tinted.querySelector('.visually-hidden')?.textContent).toBe('Ran 2 h over the limit');
     expect(duration().querySelector('.duration-badge')).toBeNull();
   });
 

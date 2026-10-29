@@ -138,26 +138,16 @@ describe('JobExecutionStatusListComponent', () => {
       return [...fixture.nativeElement.querySelectorAll('td.mat-column-duration')] as HTMLElement[];
     }
 
-    it('only tints the duration of ended executions that ran well over the job limit', async () => {
+    it('does not mark ended executions, whatever their duration', async () => {
       jobs.set('limited', job(3600));
-      const [over, slightlyOver] = await render(
-        new JobExecutionStatus({
-          id: 'over', jobId: 'limited', state: JobExecutionState.FINISHED,
-          startTime: '2026-08-11T10:00:00.000Z', endTime: '2026-08-11T12:30:00.000Z',
-        }),
-        new JobExecutionStatus({
-          id: 'slightly-over', jobId: 'limited', state: JobExecutionState.FINISHED,
-          startTime: '2026-08-11T10:00:00.000Z', endTime: '2026-08-11T11:20:00.000Z',
-        }),
-      );
+      const [ended] = await render(new JobExecutionStatus({
+        id: 'ended', jobId: 'limited', state: JobExecutionState.FINISHED,
+        startTime: '2026-08-11T10:00:00.000Z', endTime: '2026-08-11T22:30:00.000Z',
+      }));
 
-      const tinted = over.querySelector('.duration-over-max') as HTMLElement;
-      expect(tinted.textContent).toContain('2hours:30min');
-      expect(over.querySelector('.over-max-duration')).toBeNull();
-      expect(tinted.querySelector('.visually-hidden')?.textContent.trim())
-        .toBe('Ran 1 h 30min over the maximum duration of 1 h set on the job');
-      expect(slightlyOver.querySelector('.duration-over-max')).toBeNull();
-      expect(slightlyOver.textContent.trim()).toBe('1hours:20min');
+      expect(ended.querySelector('.over-max-duration')).toBeNull();
+      expect(ended.querySelector('.visually-hidden')).toBeNull();
+      expect(ended.textContent.trim()).toBe('12hours:30min');
     });
 
     it('shows a badge with the overrun behind the duration of running executions', async () => {
@@ -171,7 +161,6 @@ describe('JobExecutionStatusListComponent', () => {
       expect(badge).not.toBeNull();
       expect(badge.textContent).toContain('+4 h');
       expect(badge.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe('true');
-      expect(running.querySelector('.duration-over-max')).toBeNull();
       expect(running.textContent.indexOf('5hours')).toBeLessThan(running.textContent.indexOf('+4 h'));
     });
 
@@ -185,7 +174,7 @@ describe('JobExecutionStatusListComponent', () => {
         new JobExecutionStatus({id: 'no-start', jobId: 'unlimited', state: JobExecutionState.RUNNING}),
       );
 
-      expect(cells.map(cell => cell.querySelector('.over-max-duration, .duration-over-max'))).toEqual([null, null]);
+      expect(cells.map(cell => cell.querySelector('.over-max-duration'))).toEqual([null, null]);
     });
   });
 
