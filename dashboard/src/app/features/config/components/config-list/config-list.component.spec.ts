@@ -1,15 +1,41 @@
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {DestroyRef, ElementRef} from '@angular/core';
+import {Component, DestroyRef, ElementRef, ViewChild} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatSortHeaderHarness} from '@angular/material/sort/testing';
 import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ConfigListComponent} from './config-list.component';
 import {provideCoreTesting} from '../../../../core/core.testing.module';
-import {ConfigObject, Kind, Label, ListDataSource, Meta, Role, RoleMapping} from '../../../../shared/models';
+import {
+  ConfigObject,
+  ConfigRef,
+  Kind,
+  Label,
+  ListDataSource,
+  Meta,
+  Role,
+  RoleMapping,
+  Seed,
+} from '../../../../shared/models';
 import {AppConfig} from '../../../../app.config';
+import {PreviewDirective} from '../../../../shared/directives';
+
+@Component({
+  template: `
+    <app-config-list [dataSource]="dataSource">
+      <ng-template appPreview let-row><span class="preview-content">Preview {{ row.meta.name }}</span></ng-template>
+    </app-config-list>
+  `,
+  imports: [ConfigListComponent, PreviewDirective],
+  standalone: true,
+})
+class PreviewHostComponent {
+  @ViewChild(ConfigListComponent, {static: true}) list: ConfigListComponent;
+  dataSource: ListDataSource<ConfigObject, unknown>;
+}
 
 describe('ConfigListComponent', () => {
   let component: ConfigListComponent;
@@ -21,6 +47,7 @@ describe('ConfigListComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         ConfigListComponent,
+        PreviewHostComponent,
       ],
       providers: [
         ...provideCoreTesting,
@@ -44,7 +71,7 @@ describe('ConfigListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders role mapping identities as titles and roles as subtitles', () => {
+  it('renders role mapping identities as titles and roles as subtitles', async () => {
     const emailMapping = new ConfigObject({
       id: 'email-mapping',
       kind: Kind.ROLEMAPPING,
@@ -72,12 +99,12 @@ describe('ConfigListComponent', () => {
 
     const titles = fixture.nativeElement.querySelectorAll('.item-row [matlistitemtitle]') as NodeListOf<HTMLElement>;
     const subtitles = fixture.nativeElement.querySelectorAll('.item-row [matlistitemline]') as NodeListOf<HTMLElement>;
-    const selectionButtons = fixture.nativeElement.querySelectorAll('.selection-entry-control') as NodeListOf<HTMLButtonElement>;
+    const rowCheckboxes = await loader.getAllHarnesses(MatCheckboxHarness.with({selector: '.item-row .selection-control'}));
     expect(Array.from(titles, title => title.textContent.trim()))
       .toEqual(['curator@example.test', 'operators']);
     expect(Array.from(subtitles, subtitle => subtitle.textContent.trim()))
       .toEqual(['CURATOR, READONLY', 'OPERATOR, SYSTEM']);
-    expect(Array.from(selectionButtons, button => button.getAttribute('aria-label')))
+    expect(await Promise.all(rowCheckboxes.map(checkbox => checkbox.getAriaLabel())))
       .toEqual(['Select curator@example.test', 'Select operators']);
 
     component.onCheckboxToggle(emailMapping);
@@ -112,7 +139,7 @@ describe('ConfigListComponent', () => {
     expect(selections.at(-1)).toEqual([]);
   });
 
-  it('shows a kind icon in normal mode and reveals the master checkbox after selection starts', async () => {
+  it('shows row and master checkboxes from the start', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
@@ -121,13 +148,15 @@ describe('ConfigListComponent', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
-    const entry = fixture.nativeElement.querySelector('.selection-entry-control') as HTMLButtonElement;
-    expect(entry.textContent.trim()).toBe('link');
-    expect(entry.getAttribute('aria-label')).toBe('Select One');
+    const masterFromStart = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
+    expect(await masterFromStart.isChecked()).toBe(false);
+    expect(await masterFromStart.isIndeterminate()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
+    const entry = await loader.getHarness(MatCheckboxHarness.with({selector: '.item-row .selection-control'}));
+    expect(await entry.getAriaLabel()).toBe('Select One');
+    expect(await entry.isChecked()).toBe(false);
 
-    entry.click();
-    fixture.detectChanges();
+    await entry.check();
 
     const header = fixture.nativeElement.querySelector('.list-header-row') as HTMLElement;
     const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
@@ -135,7 +164,6 @@ describe('ConfigListComponent', () => {
     expect(await master.getAriaLabel()).toBe('Select all loaded configurations');
     expect(await master.isChecked()).toBe(true);
     expect(await master.isIndeterminate()).toBe(false);
-    expect(fixture.nativeElement.querySelector('.selection-entry-control')).toBeNull();
     const masterControl = header.querySelector('.master-selection-control') as HTMLElement;
     const rowControl = fixture.nativeElement.querySelector('.item-row .selection-control') as HTMLElement;
     expect(Math.abs(horizontalCenter(masterControl) - horizontalCenter(rowControl))).toBeLessThanOrEqual(1);
@@ -143,7 +171,27 @@ describe('ConfigListComponent', () => {
     fixture.componentRef.setInput('multiSelect', false);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.config-kind-icon').textContent.trim()).toBe('link');
+  });
+
+  it('selects all shown rows from the header checkbox without a prior selection', async () => {
+    const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({name: 'Two'})});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(first, second),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.detectChanges();
+
+    const master = await loader.getHarness(MatCheckboxHarness.with({selector: '.master-selection-control'}));
+    expect(await master.isDisabled()).toBe(false);
+    await master.check();
+    expect(component.selection.selected).toEqual([first, second]);
+    expect(fixture.nativeElement.querySelector('.selection-actions')).not.toBeNull();
+
+    await master.uncheck();
+    expect(component.selection.selected).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
   });
 
   it('uses checked and indeterminate master states and renders actions beside it', async () => {
@@ -230,7 +278,7 @@ describe('ConfigListComponent', () => {
     const stateFilter = headerControls.querySelector('.state-filter') as HTMLElement;
     const orderControl = headerControls.querySelector('.order-control') as HTMLElement;
     const resultCount = fixture.nativeElement.querySelector('.result-count') as HTMLElement;
-    expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
     expect(orderControl.compareDocumentPosition(stateFilter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(headerControls.compareDocumentPosition(resultCount) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const orderIcon = orderControl.querySelector('mat-icon') as HTMLElement;
@@ -375,6 +423,42 @@ describe('ConfigListComponent', () => {
     expect(sorts.at(-1)).toEqual({active: '', direction: ''});
   });
 
+  it('sorts by name via the sort-header arrow next to the order control, in sync with it', async () => {
+    component.showOrderControl = true;
+    component.length = 0;
+    const sorts: {active: string; direction: string}[] = [];
+    component.sort.subscribe(value => sorts.push(value));
+    fixture.detectChanges();
+
+    const nameHeader = await loader.getHarness(MatSortHeaderHarness.with({label: 'Name'}));
+    expect(await nameHeader.isDisabled()).toBe(false);
+    expect(await nameHeader.isActive()).toBe(false);
+
+    await nameHeader.click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: 'asc'});
+    fixture.componentRef.setInput('sortActive', 'name');
+    fixture.componentRef.setInput('sortDirection', 'asc');
+    fixture.detectChanges();
+    expect(await nameHeader.isActive()).toBe(true);
+    expect(await nameHeader.getSortDirection()).toBe('asc');
+    expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
+
+    await nameHeader.click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: 'desc'});
+    fixture.componentRef.setInput('sortDirection', 'desc');
+    fixture.detectChanges();
+    expect(await nameHeader.getSortDirection()).toBe('desc');
+    expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: Z–A');
+
+    await nameHeader.click();
+    expect(sorts.at(-1)).toEqual({active: 'name', direction: ''});
+
+    component.selectedRows.set([new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})})]);
+    fixture.detectChanges();
+    expect(component.isSelectionMode()).toBe(true);
+    expect(await nameHeader.isDisabled()).toBe(true);
+  });
+
   it('prepends selection controls while preserving filtering and ordering', async () => {
     const row = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     component.dataSource = ListDataSource.fromQuery({
@@ -422,7 +506,7 @@ describe('ConfigListComponent', () => {
 
     component.onDeselectAll();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.selection-leading')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
     expect(fixture.nativeElement.querySelector('.order-control')?.textContent).toContain('Name: A–Z');
     expect(deactivated.getAttribute('aria-pressed')).toBe('true');
     expect((fixture.nativeElement.querySelector('.order-control') as HTMLButtonElement).disabled).toBe(false);
@@ -521,8 +605,8 @@ describe('ConfigListComponent', () => {
   });
 
   it('uses type-specific selection summaries while the total is unavailable', async () => {
-    const first = new ConfigObject({id: 'one', kind: Kind.SEED});
-    const second = new ConfigObject({id: 'two', kind: Kind.SEED});
+    const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({description: 'First'})});
+    const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({description: 'Second'})});
     component.dataSource = ListDataSource.fromQuery({
       query$: of('query'),
       load: () => of(first, second),
@@ -583,22 +667,6 @@ describe('ConfigListComponent', () => {
     expect(component.configTypePluralLabel()).toBe('seeds');
   });
 
-  it.each([
-    [Kind.CRAWLENTITY, 'business'],
-    [Kind.SEED, 'link'],
-    [Kind.CRAWLJOB, 'work'],
-    [Kind.CRAWLSCHEDULECONFIG, 'schedule'],
-    [Kind.CRAWLCONFIG, 'settings_system_daydream'],
-    [Kind.COLLECTION, 'collections_bookmark'],
-    [Kind.BROWSERCONFIG, 'web'],
-    [Kind.BROWSERSCRIPT, 'web_asset'],
-    [Kind.POLITENESSCONFIG, 'sentiment_very_satisfied'],
-    [Kind.CRAWLHOSTGROUPCONFIG, 'group_work'],
-    [Kind.ROLEMAPPING, 'people'],
-  ])('uses the configuration navigation icon for kind %s', (kind, icon) => {
-    expect(component.configKindIcon(new ConfigObject({kind}))).toBe(icon);
-  });
-
   it('only treats disabled Seeds and Crawl Jobs as deactivated configurations', () => {
     const seed = new ConfigObject({kind: Kind.SEED});
     seed.seed = {disabled: true} as ConfigObject['seed'];
@@ -627,7 +695,7 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('.item-row').classList).toContain('row-checked');
   });
 
-  it('aligns title and supporting text against the leading control', () => {
+  it('centers title and supporting text against the leading checkbox without an offset', () => {
     const row = new ConfigObject({
       id: 'aligned',
       meta: new Meta({name: 'Aligned', description: 'Supporting text'}),
@@ -641,7 +709,22 @@ describe('ConfigListComponent', () => {
 
     const text = fixture.nativeElement.querySelectorAll('.item-row .row-text') as NodeListOf<HTMLElement>;
     expect(text).toHaveLength(2);
-    expect(Array.from(text).every(element => getComputedStyle(element).top === '-4px')).toBe(true);
+    expect(Array.from(text).some(element => getComputedStyle(element).top === '-4px')).toBe(false);
+  });
+
+  it('renders a supporting text line only when the configuration has a description', () => {
+    const described = new ConfigObject({id: 'one', meta: new Meta({name: 'One', description: 'Supporting text'})});
+    const plain = new ConfigObject({id: 'two', meta: new Meta({name: 'Two'})});
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(described, plain),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
+    expect(rows[0].querySelector('.mat-mdc-list-item-line')).not.toBeNull();
+    expect(rows[1].querySelector('.mat-mdc-list-item-line')).toBeNull();
   });
 
   it('renders labels in an accessible trailing column before row actions', () => {
@@ -800,7 +883,7 @@ describe('ConfigListComponent', () => {
     expect(fixture.nativeElement.querySelector('.external-label-link')).toBeNull();
     expect(fixture.nativeElement.querySelector('.action-region')).not.toBeNull();
 
-    (fixture.nativeElement.querySelector('.selection-entry-control') as HTMLElement).click();
+    (fixture.nativeElement.querySelector('.item-row .selection-control input') as HTMLElement).click();
     fixture.detectChanges();
 
     const chip = fixture.nativeElement.querySelector('.label-region mat-chip') as HTMLElement;
@@ -811,7 +894,7 @@ describe('ConfigListComponent', () => {
     expect(chip.hasAttribute('tabindex')).toBe(false);
   });
 
-  it('toggles rows by pointer and keyboard in selection mode and Escape clears selection', () => {
+  it('only selects rows through the checkbox in selection mode and Escape clears selection', () => {
     const first = new ConfigObject({id: 'one', kind: Kind.SEED, meta: new Meta({name: 'One'})});
     const second = new ConfigObject({id: 'two', kind: Kind.SEED, meta: new Meta({name: 'Two'})});
     component.dataSource = ListDataSource.fromQuery({
@@ -823,16 +906,15 @@ describe('ConfigListComponent', () => {
     component.rowClick.subscribe(value => navigated.push(value));
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('.selection-entry-control') as HTMLElement).click();
+    (fixture.nativeElement.querySelector('.item-row .selection-control input') as HTMLElement).click();
     fixture.detectChanges();
     const rows = fixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
     rows[1].click();
-    expect(component.selection.selected).toEqual([first, second]);
+    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    expect(component.selection.selected).toEqual([first]);
     expect(navigated).toEqual([]);
 
-    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: ' ', bubbles: true, cancelable: true}));
-    expect(component.selection.selected).toEqual([first]);
-    rows[1].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    (rows[1].querySelector('.selection-control input') as HTMLElement).click();
     expect(component.selection.selected).toEqual([first, second]);
 
     const escape = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true});
@@ -840,7 +922,7 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
     expect(escape.defaultPrevented).toBe(true);
     expect(component.selection.selected).toEqual([]);
-    expect(fixture.nativeElement.querySelector('.selection-entry-control')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-actions')).toBeNull();
   });
 
   it('preserves row navigation, deactivated styling, and bulk selection behavior', () => {
@@ -895,7 +977,7 @@ describe('ConfigListComponent', () => {
     expect(component.allSelected()).toBe(false);
   });
 
-  it('keeps Collections non-selectable with a decorative kind icon', () => {
+  it('keeps Collections non-selectable', () => {
     const collection = new ConfigObject({
       id: 'collection',
       kind: Kind.COLLECTION,
@@ -909,10 +991,8 @@ describe('ConfigListComponent', () => {
     fixture.componentRef.setInput('multiSelect', false);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.selection-entry-control')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.selection-control')).toBeNull();
     expect(fixture.nativeElement.querySelector('.master-selection-control')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.config-kind-icon').textContent.trim())
-      .toBe('collections_bookmark');
     expect(fixture.nativeElement.querySelector('.primary-detail-link')).not.toBeNull();
   });
 
@@ -952,9 +1032,343 @@ describe('ConfigListComponent', () => {
     expect(observe).toHaveBeenCalledWith(sentinel);
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
+  it('combines seed row decorations for labels and crawl jobs', async () => {
+    const seed = new ConfigObject({
+      id: 'seed-1',
+      kind: Kind.SEED,
+      meta: new Meta({name: 'https://example.test/', labelList: [new Label({key: 'topic', value: 'news'})]}),
+      seed: new Seed({jobRefList: [
+        new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-1'}),
+        new ConfigRef({kind: Kind.CRAWLJOB, id: 'job-unknown'}),
+      ]}),
+    });
+    component.configKind = Kind.SEED;
+    component.showDecorationToggle = true;
+    component.crawlJobs = [new ConfigObject({id: 'job-1', kind: Kind.CRAWLJOB, meta: new Meta({name: 'Daily crawl'})})];
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(seed),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    const crawlJobClicks: string[] = [];
+    const rowClicks: ConfigObject[] = [];
+    component.crawlJobClick.subscribe(id => crawlJobClicks.push(id));
+    component.rowClick.subscribe(row => rowClicks.push(row));
+    fixture.detectChanges();
+
+    const chipTexts = () => ([...fixture.nativeElement.querySelectorAll('.item-row .label-region mat-chip')] as HTMLElement[])
+      .map(chip => chip.textContent.trim());
+    const toggleGroup = fixture.nativeElement.querySelector('[data-testid="configuration-row-decoration"]') as HTMLElement;
+    expect(toggleGroup.closest('.header-trailing')).not.toBeNull();
+    const toggles = [...toggleGroup.querySelectorAll('button')] as HTMLButtonElement[];
+    const toggle = (index: number) => {
+      toggles[index].click();
+      fixture.detectChanges();
+    };
+    expect(toggles.length).toBe(2);
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
+    expect(toggles[1].getAttribute('aria-pressed')).toBe('false');
+    expect(chipTexts()).toEqual([expect.stringContaining('topic')]);
+
+    toggle(1);
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
+    expect(toggles[1].getAttribute('aria-pressed')).toBe('true');
+    expect(chipTexts()).toEqual([expect.stringContaining('topic'), expect.stringContaining('Daily crawl'),
+      expect.stringContaining('job-unknown')]);
+    expect(fixture.nativeElement.querySelector('.label-region mat-chip-set').getAttribute('aria-label'))
+      .toBe('Configuration labels and crawl jobs');
+
+    toggle(0);
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('false');
+    expect(chipTexts().map(text => text.replace(/^\S+\s+/, ''))).toEqual(['Daily crawl', 'job-unknown']);
+    const jobChip = fixture.nativeElement.querySelector('.item-row .crawl-job-chip') as HTMLElement;
+    expect(jobChip.getAttribute('aria-label')).toBe('Filter by crawl job Daily crawl');
+    jobChip.click();
+    jobChip.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    expect(crawlJobClicks).toEqual(['job-1', 'job-1']);
+    expect(rowClicks).toEqual([]);
+
+    toggle(1);
+    expect(fixture.nativeElement.querySelector('.item-row .label-region')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.item-row').classList).not.toContain('row-with-labels');
+  });
+
+  it('hides the decoration toggle unless enabled', () => {
+    component.dataSource = ListDataSource.fromQuery({
+      query$: of('query'),
+      load: () => of(),
+      destroyRef: fixture.componentRef.injector.get(DestroyRef),
+    });
+    component.showOrderControl = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="configuration-row-decoration"]')).toBeNull();
+  });
+
+  describe('expandable rows', () => {
+    let hostFixture: ComponentFixture<PreviewHostComponent>;
+    let first: ConfigObject;
+    let second: ConfigObject;
+    let rowClicks: ConfigObject[];
+
+    const rows = () => hostFixture.nativeElement.querySelectorAll('.item-row') as NodeListOf<HTMLElement>;
+    const previews = () => hostFixture.nativeElement.querySelectorAll('.row-preview') as NodeListOf<HTMLElement>;
+
+    beforeEach(() => {
+      first = new ConfigObject({id: 'first', kind: Kind.COLLECTION, meta: new Meta({name: 'First'})});
+      second = new ConfigObject({id: 'second', kind: Kind.COLLECTION, meta: new Meta({name: 'Second'})});
+      hostFixture = TestBed.createComponent(PreviewHostComponent);
+      hostFixture.componentInstance.dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: () => of(first, second),
+        destroyRef: hostFixture.componentRef.injector.get(DestroyRef),
+      });
+      hostFixture.detectChanges();
+      component = hostFixture.componentInstance.list;
+      rowClicks = [];
+      component.rowClick.subscribe(value => rowClicks.push(value));
+    });
+
+    it('toggles a preview below the row on click and Enter instead of emitting rowClick', () => {
+      expect(previews().length).toBe(0);
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('false');
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(rows()[0].nextElementSibling).toBe(previews()[0]);
+      expect(previews()[0].querySelector('.preview-content')?.textContent).toBe('Preview First');
+      expect(previews()[0].getAttribute('role')).toBe('listitem');
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('true');
+      expect(rows()[0].getAttribute('aria-controls')).toBe(previews()[0].id);
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(0);
+
+      rows()[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(rowClicks).toEqual([]);
+    });
+
+    it('limits the title link to its text so the rest of the row toggles the preview', () => {
+      const link = rows()[0].querySelector('.primary-detail-link') as HTMLElement;
+      expect(getComputedStyle(link).width).toBe('fit-content');
+      expect(getComputedStyle(link).maxWidth).toBe('100%');
+    });
+
+    it('keeps only one preview open at a time', () => {
+      rows()[0].click();
+      hostFixture.detectChanges();
+      rows()[1].click();
+      hostFixture.detectChanges();
+
+      expect(previews().length).toBe(1);
+      expect(rows()[1].nextElementSibling).toBe(previews()[0]);
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('navigates through the title link and toggles through the expand button', () => {
+      (rows()[0].querySelector('.primary-detail-link') as HTMLElement).click();
+      hostFixture.detectChanges();
+      expect(rowClicks).toEqual([first]);
+      expect(previews().length).toBe(0);
+
+      const toggle = rows()[1].querySelector('.preview-toggle') as HTMLElement;
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      toggle.click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(toggle.getAttribute('aria-label')).toBe('Hide preview of Second');
+      expect(rowClicks).toEqual([first]);
+    });
+
+    it('toggles the preview on row click in selection mode without changing the selection', () => {
+      component.onCheckboxToggle(second);
+      hostFixture.detectChanges();
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(1);
+      expect(rows()[0].nextElementSibling).toBe(previews()[0]);
+      expect(rows()[0].getAttribute('aria-expanded')).toBe('true');
+      expect(component.selection.selected.map(row => row.id)).toEqual(['second']);
+
+      rows()[0].click();
+      hostFixture.detectChanges();
+      expect(previews().length).toBe(0);
+    });
+
+    it('keeps an open preview when selection mode starts', () => {
+      rows()[0].click();
+      hostFixture.detectChanges();
+      component.onCheckboxToggle(second);
+      hostFixture.detectChanges();
+
+      expect(previews().length).toBe(1);
+      expect(rows()[0].querySelector('.action-region')).toBeNull();
+    });
+  });
+
+  describe('with fixed pages', () => {
+    const all = ['a', 'b', 'c', 'd'].map(id => new ConfigObject({id, kind: Kind.SEED, meta: new Meta({name: id})}));
+    let dataSource: ListDataSource<ConfigObject, string>;
+
+    const ids = (rows: readonly ConfigObject[]) => rows.map(row => row.id);
+
+    beforeEach(() => {
+      dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: (_query, range) => of(...all.slice(range.offset, range.offset + range.pageSize)),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      component.dataSource = dataSource;
+      component.length = all.length;
+      fixture.detectChanges();
+      dataSource.setPaging(2);
+      fixture.detectChanges();
+    });
+
+    it('keeps rows selected on earlier pages and counts them in the selection', () => {
+      component.onCheckboxToggle(all[0]);
+      dataSource.goToPage(1);
+      fixture.detectChanges();
+
+      expect(ids(dataSource.snapshot)).toEqual(['c', 'd']);
+      expect(ids(component.selectedRows())).toEqual(['a']);
+      expect(component.isSelectionMode()).toBe(true);
+      expect(component.isAllLoadedSelected()).toBe(false);
+
+      component.onCheckboxToggle(all[2]);
+      expect(ids(component.selectedRows())).toEqual(['a', 'c']);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.selection-summary').textContent)
+        .toContain('2 seeds of 4 selected');
+    });
+
+    it('lets the master checkbox select and deselect only the rows on the page shown', () => {
+      component.onCheckboxToggle(all[0]);
+      dataSource.goToPage(1);
+      component.onMasterCheckboxToggle(true);
+      expect(ids(component.selectedRows())).toEqual(['a', 'c', 'd']);
+      expect(component.isAllLoadedSelected()).toBe(true);
+
+      component.onMasterCheckboxToggle(false);
+      expect(ids(component.selectedRows())).toEqual(['a']);
+    });
+
+    it('only auto-selects newly shown pages for a database-wide selection', () => {
+      component.onMasterCheckboxToggle(true);
+      dataSource.goToPage(1);
+      expect(ids(component.selectedRows())).toEqual(['a', 'b']);
+
+      component.onSelectAll();
+      dataSource.goToPage(0);
+      dataSource.goToPage(1);
+      expect(ids(component.selectedRows())).toEqual(['a', 'b', 'c', 'd']);
+    });
+
+    it('clears the selection on every page with the clear selection button', () => {
+      component.onCheckboxToggle(all[0]);
+      dataSource.goToPage(1);
+      fixture.detectChanges();
+
+      (fixture.nativeElement.querySelector('.clear-selection') as HTMLElement).click();
+      fixture.detectChanges();
+
+      expect(component.selectedRows()).toEqual([]);
+      expect(component.isSelectionMode()).toBe(false);
+      expect(fixture.nativeElement.querySelector('.clear-selection')).toBeNull();
+    });
+
+    it('keeps the selection when the page changes but drops it for a new query', () => {
+      const query = new BehaviorSubject('first');
+      const queried = ListDataSource.fromQuery({
+        query$: query,
+        load: (_query, range) => of(...all.slice(range.offset, range.offset + range.pageSize)),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      component.dataSource = queried;
+      queried.setPaging(2);
+      component.onCheckboxToggle(all[0]);
+      queried.goToPage(1);
+      expect(ids(component.selectedRows())).toEqual(['a']);
+
+      query.next('second');
+      expect(component.selectedRows()).toEqual([]);
+    });
+  });
+
+  describe('paging controls', () => {
+    const rows = Array.from({length: 120}, (_, n) => n + 1).map(n => new ConfigObject({id: String(n), kind: Kind.SEED, meta: new Meta({name: `Seed ${n}`})}));
+
+    beforeEach(() => {
+      localStorage.clear();
+      component.dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: (_query, range) => of(...rows.slice(range.offset, range.offset + range.pageSize)),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      component.length = 120;
+    });
+
+    afterEach(() => localStorage.clear());
+
+    it('offers no paging mode toggle or paginator unless paging is allowed', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[aria-label="List mode"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+    });
+
+    it('keeps the paginator clear of an end inset set by the host', () => {
+      fixture.componentRef.setInput('allowPaging', true);
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelectorAll('[aria-label="List mode"] button')[1] as HTMLElement).click();
+      fixture.detectChanges();
+      const paginator = fixture.nativeElement.querySelector('mat-paginator') as HTMLElement;
+      // jsdom does not resolve var(), so only the reference to the host's inset is checked.
+      expect(getComputedStyle(paginator).paddingInlineEnd).toContain('--config-list-end-inset');
+    });
+
+    it('switches between endless scroll and pages and remembers the choice', () => {
+      fixture.componentRef.setInput('allowPaging', true);
+      fixture.detectChanges();
+      expect(component.dataSource.currentPaging).toBeNull();
+      const modeButtons = () => [...fixture.nativeElement.querySelectorAll('[aria-label="List mode"] button')] as HTMLElement[];
+      expect(modeButtons().map(button => button.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+      expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+
+      modeButtons()[1].click();
+      fixture.detectChanges();
+      expect(modeButtons().map(button => button.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+      expect(component.dataSource.currentPaging).toEqual({pageIndex: 0, pageSize: 50});
+      expect(fixture.nativeElement.querySelector('mat-paginator')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.load-more-sentinel')).not.toBeNull();
+      expect(localStorage.getItem('configList.pagingMode')).toBe('pages');
+
+      modeButtons()[0].click();
+      fixture.detectChanges();
+      expect(component.dataSource.currentPaging).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+    });
+
+    it('moves between pages and changes the page size from the paginator', () => {
+      fixture.componentRef.setInput('allowPaging', true);
+      component.setPagingMode('pages');
+      fixture.detectChanges();
+
+      component.onPage({pageIndex: 1, pageSize: 50, previousPageIndex: 0, length: 120});
+      expect(component.dataSource.currentPaging).toEqual({pageIndex: 1, pageSize: 50});
+
+      component.onPage({pageIndex: 1, pageSize: 25, previousPageIndex: 1, length: 120});
+      expect(component.dataSource.currentPaging).toEqual({pageIndex: 0, pageSize: 25});
+      expect(localStorage.getItem('configList.pageSize')).toBe('25');
+    });
+  });
 });
 
-function horizontalCenter(element: HTMLElement): number {
-  const rect = element.getBoundingClientRect();
-  return rect.left + rect.width / 2;
+function horizontalCenter(element: Element): number {
+  const {left, width} = element.getBoundingClientRect();
+  return left + width / 2;
 }

@@ -19,10 +19,14 @@
           (removeFilter)="onRemoveFilter($event)">
         </app-active-filter-chips>
         @let total = totalLength();
-        <div class="result-content flex-fill">
+        <div class="result-content flex-fill"
+          [class.has-create-fab]="can('create', Kind[kind]) && showCreateButton()">
         @switch (kind) {
           @default {
             <div class="layout-column flex-fill">
+              @if (kind === Kind.SEED && entity(); as entityConfig) {
+                <app-entity-view [configObject]="entityConfig"></app-entity-view>
+              }
               <app-config-list
                 [dataSource]="dataSource"
                 [detailPath]="ConfigPath[kind]"
@@ -32,14 +36,25 @@
                 [sortActive]="sortActive()"
                 [showOrderControl]="true"
                 [showStateFilter]="kind === Kind.SEED || kind === Kind.CRAWLJOB"
+                [showDecorationToggle]="kind === Kind.SEED"
+                [crawlJobs]="(options$ | async)?.crawlJobs ?? []"
                 [disabledFilter]="query().disabled"
                 [multiSelect]="true"
+                [allowPaging]="true"
+                [primaryLinkDestination]="kind === Kind.SEED ? 'title' : 'detail'"
+                [detailLinkTarget]="kind === Kind.SEED ? '_blank' : '_self'"
                 (disabledFilterChange)="onDisabledFilterChange($event)"
                 (selectedChange)="onSelectedChange($event)"
                 (selectAll)="onSelectAll()"
                 (sort)="onSort($event)"
                 (labelClick)="onFilterByLabel($event)"
+                (crawlJobClick)="onFilterByCrawlJob($event)"
                 (rowClick)="onRowClick($event)" class="flex-fill">
+                @if (kind === Kind.SEED) {
+                  <ng-template appPreview let-row>
+                    <app-seed-preview [seed]="row" [crawlJobs]="(options$ | async)?.crawlJobs ?? []" />
+                  </ng-template>
+                }
                 @if (kind===Kind.SEED && !isAllSelected) {
                   <button mat-icon-button class="filled-icon-button"
                     aria-label="Start crawl for selected seeds"

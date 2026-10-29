@@ -115,6 +115,10 @@ describe('JobExecutionStatusComponent', () => {
   });
 
   it('shows configured remaining byte and time limits and clamps exhausted limits to zero', async () => {
+    // Running executions are measured against the current time: 30 min over the limit is within tolerance.
+    vi.useFakeTimers({toFake: ['Date']});
+    vi.setSystemTime(new Date('2026-08-09T11:30:00.000Z'));
+    onTestFinished(() => { vi.useRealTimers(); });
     job = new ConfigObject({
       id: 'job-id',
       kind: Kind.CRAWLJOB,

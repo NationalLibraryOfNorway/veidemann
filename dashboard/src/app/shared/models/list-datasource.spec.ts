@@ -346,4 +346,107 @@ describe('ListDataSource', () => {
     ]);
     destroyRef.destroy();
   });
+
+  describe('paging', () => {
+    const setup = () => {
+      const query = new BehaviorSubject('query');
+      const streams: Subject<TestItem>[] = [];
+      const ranges: ListRange[] = [];
+      const destroyRef = new TestDestroyRef();
+      const dataSource = ListDataSource.fromQuery({
+        query$: query,
+        load: (_query, range) => {
+          ranges.push(range);
+          const stream = new Subject<TestItem>();
+          streams.push(stream);
+          return stream;
+        },
+        destroyRef,
+      });
+      const respond = (stream: Subject<TestItem>, ids: string[]) => {
+        ids.forEach(id => stream.next({id, value: id}));
+        stream.complete();
+      };
+      return {query, streams, ranges, destroyRef, dataSource, respond};
+    };
+
+    it('replaces the rows with the requested page and never appends', () => {
+      const {streams, ranges, dataSource, respond, destroyRef} = setup();
+      dataSource.setPaging(2);
+      expect(ranges.at(-1)).toEqual({offset: 0, pageSize: 2});
+      respond(streams.at(-1), ['a', 'b']);
+      expect(dataSource.snapshot.map(row => row.id)).toEqual(['a', 'b']);
+
+      dataSource.loadMore();
+      expect(ranges).toHaveLength(2);
+
+      dataSource.goToPage(2);
+      expect(ranges.at(-1)).toEqual({offset: 4, pageSize: 2});
+      expect(dataSource.snapshot).toEqual([]);
+      respond(streams.at(-1), ['e', 'f']);
+      expect(dataSource.snapshot.map(row => row.id)).toEqual(['e', 'f']);
+      expect(dataSource.currentPaging).toEqual({pageIndex: 2, pageSize: 2});
+      destroyRef.destroy();
+    });
+
+    it('does not emit reset when the page or paging mode changes, but does for a new query', () => {
+      const {query, streams, dataSource, respond, destroyRef} = setup();
+      const resets: number[] = [];
+      dataSource.reset$.subscribe(() => resets.push(1));
+
+      dataSource.setPaging(2);
+      respond(streams.at(-1), ['a', 'b']);
+      dataSource.goToPage(1);
+      respond(streams.at(-1), ['c', 'd']);
+      dataSource.setPaging(null);
+      expect(resets).toEqual([]);
+
+      dataSource.setPaging(2);
+      dataSource.goToPage(1);
+      query.next('other');
+      expect(resets).toEqual([1]);
+      expect(dataSource.currentPaging).toEqual({pageIndex: 0, pageSize: 2});
+      destroyRef.destroy();
+    });
+
+    it('returns to endless scrolling from the first row', () => {
+      const {streams, ranges, dataSource, respond, destroyRef} = setup();
+      dataSource.setPaging(2);
+      dataSource.goToPage(3);
+      respond(streams.at(-1), ['x']);
+
+      dataSource.setPaging(null);
+      expect(dataSource.currentPaging).toBeNull();
+      expect(ranges.at(-1)).toEqual({offset: 0, pageSize: 100});
+      destroyRef.destroy();
+    });
+
+    it('keeps the page on reload and refreshes only that page', () => {
+      const {streams, ranges, dataSource, respond, destroyRef} = setup();
+      dataSource.setPaging(2);
+      dataSource.goToPage(1);
+      respond(streams.at(-1), ['c', 'd']);
+
+      dataSource.reload();
+      expect(ranges.at(-1)).toEqual({offset: 2, pageSize: 2});
+      respond(streams.at(-1), ['c', 'd']);
+
+      dataSource.refreshLoaded();
+      expect(ranges.at(-1)).toEqual({offset: 2, pageSize: 2});
+      destroyRef.destroy();
+    });
+
+    it('steps back when the current page has become empty', () => {
+      const {streams, ranges, dataSource, respond, destroyRef} = setup();
+      dataSource.setPaging(2);
+      dataSource.goToPage(1);
+      respond(streams.at(-1), ['c']);
+
+      dataSource.reload();
+      respond(streams.at(-1), []);
+      expect(ranges.at(-1)).toEqual({offset: 0, pageSize: 2});
+      expect(dataSource.currentPaging?.pageIndex).toBe(0);
+      destroyRef.destroy();
+    });
+  });
 });

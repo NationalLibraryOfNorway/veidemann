@@ -1,6 +1,7 @@
 import {SelectionModel} from '@angular/cdk/collections';
 import {AsyncPipe, DecimalPipe, NgTemplateOutlet} from '@angular/common';
 import {
+  ContentChild,
   ContentChildren,
   Directive,
   ElementRef,
@@ -19,14 +20,20 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
 import {MatMenuModule} from '@angular/material/menu';
-import {Sort, SortDirection} from '@angular/material/sort';
+import {MatSortModule, Sort, SortDirection} from '@angular/material/sort';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {combineLatest, Subscription} from 'rxjs';
 import {startWith} from 'rxjs/operators';
 
 import {Kind, ListDataSource, ListItem} from '../../../../shared/models';
-import {ActionDirective, ExtraDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {
+  ActionDirective,
+  ExtraDirective,
+  FilterDirective,
+  PreviewDirective,
+  ShortcutDirective,
+} from '../../../../shared/directives';
 
 export const CONFIG_LIST_IMPORTS = [
   AsyncPipe,
@@ -37,6 +44,7 @@ export const CONFIG_LIST_IMPORTS = [
   MatIconModule,
   MatListModule,
   MatMenuModule,
+  MatSortModule,
   MatTooltipModule,
   MatToolbarModule,
   NgTemplateOutlet,
@@ -63,6 +71,7 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   @Input() multiSelect = true;
   @Input() detailPath = '';
   @Input() detailLinkTarget: '_self' | '_blank' = '_self';
+  readonly expandedId = signal<string | null>(null);
 
   private _dataSource: ListDataSource<T, unknown>;
   private dataSourceSubscription = Subscription.EMPTY;
@@ -87,7 +96,9 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     ]).subscribe(([, rows]) => {
       this.loadedLength.set(rows.length);
       const selectedIds = new Set(this.selection.selected.map(row => row.id));
-      const appendedRows = this.selectLoadedRows && this.autoSelectAppendedRows
+      // With fixed pages, only a database-wide selection follows the page that is shown.
+      const followsLoadedRows = this.selectLoadedRows && (!dataSource.currentPaging || this.allSelected());
+      const appendedRows = followsLoadedRows && this.autoSelectAppendedRows
         ? rows.filter(row => !selectedIds.has(row.id))
         : [];
       if (appendedRows.length > 0) {
@@ -97,8 +108,9 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
         }
         return;
       }
-      this.selectedRows.set(rows.filter(row => selectedIds.has(row.id)));
-      this.isAllLoadedSelected.set(rows.length === selectedIds.size && rows.length > 0);
+      // The selection spans every page that has been visited, not just the rows shown now.
+      this.selectedRows.set(this.selection.selected);
+      this.isAllLoadedSelected.set(rows.length > 0 && rows.every(row => selectedIds.has(row.id)));
     }));
   }
 
@@ -125,6 +137,12 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   filterButtonTemplates: QueryList<TemplateRef<unknown>>;
   @ContentChildren(ShortcutDirective, {read: TemplateRef, descendants: true})
   shortcutButtonTemplates: QueryList<TemplateRef<unknown>>;
+  @ContentChild(PreviewDirective, {read: TemplateRef})
+  previewTemplate: TemplateRef<unknown> | null = null;
+
+  get expandable(): boolean {
+    return !!this.previewTemplate;
+  }
 
   readonly selection = new SelectionModel<T>(true, []);
   selectedRowIndex: number = null;
@@ -139,6 +157,19 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     this.selection.clear();
     this.allSelected.set(false);
     this.selectedRowIndex = null;
+    this.expandedId.set(null);
+  }
+
+  toggleExpanded(item: T): void {
+    this.expandedId.update(id => id === item.id ? null : item.id);
+  }
+
+  private activateRow(item: T): void {
+    if (this.expandable) {
+      this.toggleExpanded(item);
+    } else {
+      this.rowClick.emit(item);
+    }
   }
 
   onSortChange(sort: Sort): void {
@@ -149,14 +180,14 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
     if (event?.target instanceof Element && event.target.closest('a, button, input, [role="button"]')) {
       return;
     }
-    this.rowClick.emit(item);
+    this.activateRow(item);
   }
 
   onRowKeydown(item: T, event: KeyboardEvent): void {
     if (event.key === 'Enter'
       && !(event.target instanceof Element && event.target.closest('a, button, input, [role="button"]'))) {
       event.preventDefault();
-      this.rowClick.emit(item);
+      this.activateRow(item);
     }
   }
 
@@ -176,10 +207,12 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   onMasterCheckboxToggle(checked: boolean): void {
     this.selectLoadedRows = checked;
     this.allSelected.set(false);
+    const shownIds = new Set(this.dataSource.snapshot.map(row => row.id));
     if (checked) {
       this.selection.select(...this.dataSource.snapshot);
     } else {
-      this.selection.clear();
+      // Only the shown rows: selections made on other pages are kept.
+      this.selection.deselect(...this.selection.selected.filter(row => shownIds.has(row.id)));
     }
     this.selectedChange.emit(this.selection.selected);
   }
@@ -215,8 +248,10 @@ export abstract class ConfigListBaseComponent<T extends ListItem> implements OnD
   }
 
   onDeselectAll(): void {
+    this.selectLoadedRows = false;
     this.allSelected.set(false);
-    this.onMasterCheckboxToggle(false);
+    this.selection.clear();
+    this.selectedChange.emit(this.selection.selected);
   }
 
   retry(): void {

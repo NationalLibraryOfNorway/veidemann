@@ -91,7 +91,6 @@ describe('EntitySeedContextComponent', () => {
     ]);
     expect(rows[0].querySelector('[matListItemLine]')).toBeNull();
     expect(rows[0].querySelector('.label-region')).toBeNull();
-    expect(rows[0].querySelector('.config-kind-icon')).toBeNull();
     expect(rows[0].textContent).not.toContain('Hidden seed description');
     expect(rows[0].textContent).not.toContain('hidden');
     expect(getComputedStyle(fixture.nativeElement.querySelector('.seed-list mat-list')).paddingLeft).toBe('0px');

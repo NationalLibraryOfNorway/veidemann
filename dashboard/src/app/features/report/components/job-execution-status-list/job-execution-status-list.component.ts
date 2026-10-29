@@ -2,11 +2,12 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 
 import {DatePipe, DecimalPipe} from '@angular/common';
-import {JobNamePipe} from '../../pipe';
+import {JobMaxDurationPipe, JobNamePipe} from '../../pipe';
 import {JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {durationBetweenDates, isValidDate} from '../../../../shared/func';
+import {DurationNotice} from '../../../../shared/components/execution-metrics/execution-metrics.component';
 import {FileSizePipe} from '../../../../shared/pipes/filesize.pipe';
-import {jobExecutionStatePresentation} from '../../func';
+import {jobExecutionStatePresentation, maxDurationOverrun} from '../../func';
 import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/report-list-base';
 
 @Component({
@@ -18,6 +19,7 @@ import {REPORT_LIST_IMPORTS, ReportListBaseComponent} from '../report-list/repor
     DatePipe,
     DecimalPipe,
     FileSizePipe,
+    JobMaxDurationPipe,
     JobNamePipe,
     ...REPORT_LIST_IMPORTS,
   ],
@@ -53,6 +55,11 @@ export class JobExecutionStatusListComponent extends ReportListBaseComponent<Job
       return '';
     }
     return durationBetweenDates(row.startTime, row.endTime);
+  }
+
+  // Compared against the job's current configuration, which is not stored per execution.
+  maxDurationOverrun(row: JobExecutionStatus, maxDurationS: number | null): DurationNotice | null {
+    return maxDurationOverrun(row, maxDurationS);
   }
 
   endTimeFallback(row: JobExecutionStatus): string {

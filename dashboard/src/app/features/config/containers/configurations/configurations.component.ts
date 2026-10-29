@@ -23,6 +23,7 @@ import {
   ConfigQueryComponent,
   DeleteDialogComponent,
   DeleteMultiDialogComponent,
+  EntityViewComponent,
   Parcel,
   RunCrawlDialogComponent
 } from '../../components';
@@ -49,7 +50,7 @@ import {AsyncPipe} from '@angular/common';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatListModule} from '@angular/material/list';
 import {MatIcon} from '@angular/material/icon';
-import {ActionDirective, FilterDirective, ShortcutDirective} from '../../../../shared/directives';
+import {ActionDirective, FilterDirective, PreviewDirective, ShortcutDirective} from '../../../../shared/directives';
 import {MatMenuItem} from '@angular/material/menu';
 import {MatTooltip} from '@angular/material/tooltip';
 import {
@@ -61,6 +62,7 @@ import {
 } from '../../pipe';
 import {MatButtonModule} from '@angular/material/button';
 import {SeedDialogComponent} from '../../components/seed/seed-dialog/seed-dialog.component';
+import {SeedPreviewComponent} from '../../components/seed/seed-preview/seed-preview.component';
 import {MongoAbility} from '@casl/ability';
 import {configKindIcon} from '../../func/config-kind-icon';
 
@@ -75,12 +77,15 @@ import {configKindIcon} from '../../func/config-kind-icon';
     ActiveFilterChipsComponent,
     ConfigListComponent,
     ConfigQueryComponent,
+    EntityViewComponent,
     MatListModule,
     MatIcon,
     MatProgressBar,
     FilterDirective,
     RouterLink,
     ActionDirective,
+    PreviewDirective,
+    SeedPreviewComponent,
     MatMenuItem,
     MatTooltip,
     CollectionNamePipe,
@@ -369,6 +374,16 @@ export class ConfigurationsComponent implements OnDestroy {
     this.onQueryChange({
       ...this.query(),
       term: `label:${label.key}:${label.value}`,
+    });
+  }
+
+  onFilterByCrawlJob(crawlJobId: string): void {
+    if (this.selectionMode()) {
+      return;
+    }
+    this.onQueryChange({
+      ...this.query(),
+      crawlJobIdList: [crawlJobId],
     });
   }
 

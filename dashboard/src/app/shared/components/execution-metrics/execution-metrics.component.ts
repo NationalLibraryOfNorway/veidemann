@@ -1,8 +1,16 @@
 import {DecimalPipe} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {MatIcon} from '@angular/material/icon';
+import {MatTooltip} from '@angular/material/tooltip';
 
 import {DurationFormatPipe} from '../../pipes/duration-format.pipe';
 import {FileSizePipe} from '../../pipes/filesize.pipe';
+
+// A hint on the duration, shown as a pill after the value.
+export interface DurationNotice {
+  label: string;
+  badge: string;
+}
 
 export interface ExecutionMetricSource {
   documentsCrawled: number;
@@ -21,7 +29,7 @@ export interface ExecutionMetricSource {
   templateUrl: './execution-metrics.component.html',
   styleUrls: ['./execution-metrics.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, DurationFormatPipe, FileSizePipe],
+  imports: [DecimalPipe, DurationFormatPipe, FileSizePipe, MatIcon, MatTooltip],
   standalone: true,
 })
 export class ExecutionMetricsComponent {
@@ -29,6 +37,7 @@ export class ExecutionMetricsComponent {
   @Input() queueSize: number | null | undefined = undefined;
   @Input() remainingBytes: number | null = null;
   @Input() remainingTime: string | null = null;
+  @Input() durationNotice: DurationNotice | null = null;
   @Input() currentUris: number | null = null;
 
   get hasSecondaryMetrics(): boolean {

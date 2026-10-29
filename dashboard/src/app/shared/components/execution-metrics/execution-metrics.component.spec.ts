@@ -42,6 +42,23 @@ describe('ExecutionMetricsComponent', () => {
     expect(fixture.nativeElement.querySelector('.secondary-metrics')).toBeNull();
   });
 
+  it('shows a duration notice as a badge after the value, only when one is given', () => {
+    const duration = () => fixture.nativeElement.querySelector('.primary-metrics .metric:last-child dd') as HTMLElement;
+    expect(duration().querySelector('.duration-badge')).toBeNull();
+
+    fixture.componentRef.setInput('durationNotice', {label: 'Running 2 h over the limit', badge: '+2 h'});
+    fixture.detectChanges();
+    const badge = duration().querySelector('.duration-badge') as HTMLElement;
+    expect(badge.textContent).toContain('+2 h');
+    expect(badge.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe('true');
+    expect(badge.querySelector('.visually-hidden')?.textContent).toBe('Running 2 h over the limit');
+    expect(duration().textContent.indexOf('30')).toBeLessThan(duration().textContent.indexOf('+2 h'));
+
+    fixture.componentRef.setInput('durationNotice', null);
+    fixture.detectChanges();
+    expect(duration().querySelector('.duration-badge')).toBeNull();
+  });
+
   it('keeps zero remaining limits while omitting zero outcomes', () => {
     fixture.componentRef.setInput('remainingBytes', 0);
     fixture.componentRef.setInput('remainingTime', '0 s');

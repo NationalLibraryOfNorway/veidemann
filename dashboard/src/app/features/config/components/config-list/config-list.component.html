@@ -1,6 +1,7 @@
 <div class="container layout-column">
   @let total = totalLength();
-  @if (isSelectionMode() || total !== null || showOrderControl) {
+  @let paging = dataSource?.paging$ | async;
+  @if (multiSelect || isSelectionMode() || total !== null || showOrderControl || showDecorationToggle || allowPaging) {
     <mat-list class="list-header" aria-label="Configuration list controls"
       [style.padding-left.px]="flush ? 0 : null"
       [style.padding-right.px]="flush ? 0 : null"
@@ -8,7 +9,7 @@
       <div class="list-header-row" role="listitem"
         [class.has-summary]="isSelectionMode() || total !== null">
         <span class="list-header-leading">
-          @if (isSelectionMode()) {
+          @if (multiSelect) {
             <span class="selection-leading">
               <mat-checkbox class="master-selection-control selection-control"
                 [checked]="isAllLoadedSelected()"
@@ -17,15 +18,24 @@
                 aria-label="Select all loaded configurations"
                 i18n-aria-label="@@configurationListSelectAllLoadedAriaLabel"
                 (change)="onMasterCheckboxToggle($event.checked)"></mat-checkbox>
-              <span class="selection-actions" role="group" aria-label="Bulk actions"
-                i18n-aria-label="@@configurationListBulkActionsAriaLabel">
-                <ng-content></ng-content>
-              </span>
+              @if (isSelectionMode()) {
+                <span class="selection-actions" role="group" aria-label="Bulk actions"
+                  i18n-aria-label="@@configurationListBulkActionsAriaLabel">
+                  <ng-content></ng-content>
+                </span>
+              }
             </span>
           }
-          @if (showStateFilter || showOrderControl) {
-            <span class="list-header-controls">
+          @if (showStateFilter || showOrderControl || allowPaging) {
+            <span class="list-header-controls" matSort
+              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+              (matSortChange)="onSortChange($event)">
               @if (showOrderControl) {
+                <span mat-sort-header="name" class="name-sort-header"
+                  [disabled]="isSelectionMode()" [sortActionDescription]="sortByNameActionDescription"
+                  data-testid="configuration-name-sort">
+                  <span i18n="@@configurationListNameColumnLabel">Name</span>
+                </span>
                 @if (orderValue) {
                   <button mat-button type="button" class="order-control"
                     [disabled]="isSelectionMode()"
@@ -85,13 +95,32 @@
                   </button>
                 </span>
               }
+              @if (allowPaging) {
+                <span class="state-filter" role="group"
+                  aria-label="List mode" i18n-aria-label="@@configurationListPagingModeAriaLabel">
+                  <button mat-icon-button type="button" class="stateful-filter-button"
+                    [attr.aria-pressed]="pagingMode() === 'scroll'"
+                    aria-label="Endless scroll" i18n-aria-label="@@configurationListPagingScroll"
+                    matTooltip="Endless scroll" i18n-matTooltip="@@configurationListPagingScroll"
+                    (click)="setPagingMode('scroll')">
+                    <mat-icon>swap_vert</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" class="stateful-filter-button"
+                    [attr.aria-pressed]="pagingMode() === 'pages'"
+                    aria-label="Pages" i18n-aria-label="@@configurationListPagingPages"
+                    matTooltip="Pages" i18n-matTooltip="@@configurationListPagingPages"
+                    (click)="setPagingMode('pages')">
+                    <mat-icon>format_list_numbered</mat-icon>
+                  </button>
+                </span>
+              }
             </span>
           }
         </span>
         @if (isSelectionMode()) {
           <span class="header-summary selection-summary" role="status" aria-live="polite">
             @if (!allSelected()) {
-              @if (isAllLoadedSelected()) {
+              @if (isAllLoadedSelected() && selectedRows().length === loadedLength()) {
                 @if (total !== null) {
                   <span i18n="@@configurationListAllLoadedSelectedMessage">
                     All <strong>{{ selectedRows().length | number }}</strong> {{ configTypePluralLabel() }} of {{ total | number }} selected.
@@ -142,13 +171,39 @@
           </span>
         }
         <span class="header-trailing">
+          @if (isSelectionMode() && !allSelected()) {
+            <button mat-button type="button" class="clear-selection" (click)="onDeselectAll()"
+              i18n="@@configurationListClearSelection">Clear selection</button>
+          }
+          @if (showDecorationToggle) {
+            <span class="decoration-toggle" role="group"
+              aria-label="Show on rows" i18n-aria-label="@@configurationListDecorationAriaLabel"
+              data-testid="configuration-row-decoration">
+              <button mat-icon-button type="button" class="stateful-filter-button"
+                [disabled]="isSelectionMode()"
+                [attr.aria-pressed]="rowDecorations().includes('labels')"
+                aria-label="Show labels" i18n-aria-label="@@configurationListShowLabels"
+                matTooltip="Show labels" i18n-matTooltip="@@configurationListShowLabels"
+                (click)="toggleDecoration('labels')">
+                <mat-icon>label</mat-icon>
+              </button>
+              <button mat-icon-button type="button" class="stateful-filter-button"
+                [disabled]="isSelectionMode()"
+                [attr.aria-pressed]="rowDecorations().includes('crawlJobs')"
+                aria-label="Show crawl jobs" i18n-aria-label="@@configurationListShowCrawlJobs"
+                matTooltip="Show crawl jobs" i18n-matTooltip="@@configurationListShowCrawlJobs"
+                (click)="toggleDecoration('crawlJobs')">
+                <mat-icon>{{ crawlJobIcon }}</mat-icon>
+              </button>
+            </span>
+          }
           <ng-content select="[listHeaderAction]"></ng-content>
         </span>
       </div>
     </mat-list>
   }
 
-  <div class="scroll flex-fill">
+  <div #scrollContainer class="scroll flex-fill">
     <mat-list aria-label="Configurations"
       [style.padding-left.px]="flush ? 0 : null"
       [style.padding-right.px]="flush ? 0 : null">
@@ -156,28 +211,19 @@
         <mat-list-item class="item-row"
           [class.row-checked]="isChecked(row)"
           [class.row-deactivated]="isDeactivated(row)"
-          [class.row-with-labels]="!titleOnly && row.meta.labelList.length > 0"
+          [class.row-with-labels]="!titleOnly && hasDecoration(row)"
           [attr.aria-description]="isDeactivated(row) ? deactivatedAriaDescription : null"
+          [attr.aria-expanded]="expandable ? expandedId() === row.id : null"
+          [attr.aria-controls]="expandable && expandedId() === row.id ? 'config-preview-' + row.id : null"
           tabindex="0"
           (click)="onRowClick(row, $event)"
           (keydown)="onRowKeydown(row, $event)">
-          @if (isSelectionMode()) {
+          @if (multiSelect) {
             <mat-checkbox matListItemIcon class="selection-control"
               [checked]="isChecked(row)"
-              [attr.aria-label]="selectionAriaLabel(row)"
+              [aria-label]="selectionAriaLabel(row)"
               (click)="$event.stopPropagation()"
               (change)="onCheckboxToggle(row)"></mat-checkbox>
-          } @else if (multiSelect) {
-            <button mat-icon-button matListItemIcon class="selection-entry-control"
-              [attr.aria-label]="selectionAriaLabel(row)"
-              [matTooltip]="selectionAriaLabel(row)"
-              (click)="onSelectionStart(row, $event)">
-              <mat-icon>{{ configKindIcon(row) }}</mat-icon>
-            </button>
-          } @else if (showKindIcon) {
-            <mat-icon matListItemIcon class="config-kind-icon" aria-hidden="true">
-              {{ configKindIcon(row) }}
-            </mat-icon>
           }
           @if (isSelectionMode()) {
             <span matListItemTitle class="row-text">{{ configTitle(row) }}</span>
@@ -186,30 +232,52 @@
               [attr.target]="detailLinkTarget" [attr.rel]="detailLinkTarget === '_blank' ? 'noopener' : null"
               (click)="onPrimaryLink(row, $event)">{{ configTitle(row) }}</a>
           }
-          @if (!titleOnly) {
+          @if (!titleOnly && configSubtitle(row)) {
             <span matListItemLine class="row-text">{{ configSubtitle(row) }}</span>
           }
-          @if (!titleOnly && row.meta.labelList.length) {
+          @if (!titleOnly && hasDecoration(row)) {
             <span matListItemMeta class="label-region">
-              <mat-chip-set
-                aria-label="Configuration labels"
-                i18n-aria-label="@@configurationListLabelsAriaLabel">
-                @for (label of row.meta.labelList; track label.key + ':' + label.value) {
-                  @if (isSelectionMode()) {
-                    <mat-chip [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)">
-                      <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
-                    </mat-chip>
-                  } @else {
-                    <mat-chip
-                      role="button"
-                      tabindex="0"
-                      [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)"
-                      [aria-label]="labelSearchAriaLabel(label)"
-                      (click)="onLabelClick(label, $event)"
-                      (keydown.enter)="onLabelClick(label, $event)"
-                      (keydown.space)="onLabelClick(label, $event)">
-                      <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
-                    </mat-chip>
+              <mat-chip-set [attr.aria-label]="decorationAriaLabel()">
+                @if (showLabels()) {
+                  @for (label of row.meta.labelList; track label.key + ':' + label.value) {
+                    @if (isSelectionMode()) {
+                      <mat-chip [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)">
+                        <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+                      </mat-chip>
+                    } @else {
+                      <mat-chip
+                        role="button"
+                        tabindex="0"
+                        [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)"
+                        [aria-label]="labelSearchAriaLabel(label)"
+                        (click)="onLabelClick(label, $event)"
+                        (keydown.enter)="onLabelClick(label, $event)"
+                        (keydown.space)="onLabelClick(label, $event)">
+                        <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+                      </mat-chip>
+                    }
+                  }
+                }
+                @if (showCrawlJobs()) {
+                  @for (jobRef of row.seed?.jobRefList ?? []; track jobRef.id) {
+                    @if (isSelectionMode()) {
+                      <mat-chip class="crawl-job-chip">
+                        <mat-icon matChipAvatar aria-hidden="true">{{ crawlJobIcon }}</mat-icon>
+                        {{ crawlJobName(jobRef.id) }}
+                      </mat-chip>
+                    } @else {
+                      <mat-chip
+                        class="crawl-job-chip"
+                        role="button"
+                        tabindex="0"
+                        [aria-label]="crawlJobFilterAriaLabel(jobRef.id)"
+                        (click)="onCrawlJobClick(jobRef.id, $event)"
+                        (keydown.enter)="onCrawlJobClick(jobRef.id, $event)"
+                        (keydown.space)="onCrawlJobClick(jobRef.id, $event)">
+                        <mat-icon matChipAvatar aria-hidden="true">{{ crawlJobIcon }}</mat-icon>
+                        {{ crawlJobName(jobRef.id) }}
+                      </mat-chip>
+                    }
                   }
                 }
               </mat-chip-set>
@@ -227,6 +295,15 @@
           @if (!isSelectionMode()) {
             <span matListItemMeta class="action-region" role="group" aria-label="Row actions"
               i18n-aria-label="@@configurationListRowActionsAriaLabel">
+              @if (expandable) {
+                <button mat-icon-button type="button" class="preview-toggle"
+                  [attr.aria-expanded]="expandedId() === row.id"
+                  [attr.aria-label]="expandAriaLabel(row)"
+                  [matTooltip]="expandAriaLabel(row)"
+                  (click)="toggleExpanded(row); $event.stopPropagation()">
+                  <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+              }
               <button mat-icon-button [matMenuTriggerFor]="actionMenu"
                 aria-label="More actions" matTooltip="More actions"
                 i18n-aria-label="@@configurationListMoreActions"
@@ -248,17 +325,30 @@
             </span>
           }
         </mat-list-item>
+        @if (expandable && expandedId() === row.id) {
+          <div class="row-preview" role="listitem" [id]="'config-preview-' + row.id"
+            [attr.aria-label]="previewAriaLabel(row)">
+            <ng-container *ngTemplateOutlet="previewTemplate; context: {$implicit: row}"></ng-container>
+          </div>
+        }
       }
     </mat-list>
     <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>
-    @if (dataSource?.appendLoading$ | async) {
+    @if (!paging && (dataSource?.appendLoading$ | async)) {
       <div class="load-state" role="status">Loading more…</div>
     }
     @if (dataSource?.appendFailed$ | async) {
       <div class="load-state" role="alert">
-        Could not load more rows.
+        {{ paging ? 'Could not load the page.' : 'Could not load more rows.' }}
         <button mat-button (click)="retry()">Retry</button>
       </div>
     }
   </div>
+  @if (paging) {
+    <mat-paginator class="list-paginator" showFirstLastButtons
+      [length]="knownTotal()" [pageIndex]="paging.pageIndex" [pageSize]="paging.pageSize"
+      [pageSizeOptions]="pageSizeOptions" aria-label="Select page"
+      i18n-aria-label="@@configurationListPaginatorAriaLabel"
+      (page)="onPage($event)"></mat-paginator>
+  }
 </div>

@@ -59,6 +59,34 @@ describe('JobExecutionMetricsSectionComponent', () => {
     expect(queueMetric?.querySelector('dd')?.textContent.trim()).toBe('Not available');
   });
 
+  it('badges running executions that ran well over the maximum duration, but never ended ones', () => {
+    render();
+    const running = fixture.componentInstance.durationNotice();
+    expect(running?.badge).toMatch(/^\+/);
+    expect(running?.label).toContain('over the maximum duration of 2 h set on the job');
+    expect(fixture.nativeElement.querySelector('.duration-badge')).not.toBeNull();
+
+    fixture.componentRef.setInput('jobExecutionStatus', new JobExecutionStatus({
+      state: JobExecutionState.FINISHED,
+      startTime: '2026-08-11T10:00:00.000Z',
+      endTime: '2026-08-11T14:00:00.000Z',
+    }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.durationNotice()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.duration-badge')).toBeNull();
+
+    fixture.componentRef.setInput('jobExecutionStatus', new JobExecutionStatus({
+      state: JobExecutionState.RUNNING,
+      startTime: new Date().toISOString(),
+    }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.durationNotice()).toBeNull();
+
+    fixture.componentRef.setInput('crawlJob', null);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.durationNotice()).toBeNull();
+  });
+
   it('calculates remaining limits once for both consuming contexts', () => {
     render();
     const fixedNow = new Date('2026-08-11T11:30:00.000Z');

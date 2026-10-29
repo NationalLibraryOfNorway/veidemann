@@ -137,6 +137,14 @@
   gap: 4px;
 }
 
+.name-sort-header {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding-inline: 8px;
+  font: var(--mat-sys-label-large);
+}
+
 .order-control {
   flex: 0 1 auto;
   max-width: 264px;
@@ -193,11 +201,6 @@ mat-list .item-row {
   outline-offset: -3px;
 }
 
-.item-row .row-text {
-  position: relative;
-  top: -4px;
-}
-
 mat-list .item-row.row-checked {
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
@@ -222,14 +225,7 @@ mat-list .item-row.row-checked {
 
 .row-deactivated .mdc-list-item__primary-text,
 .row-deactivated .mdc-list-item__secondary-text {
-  color: var(--mat-list-list-item-disabled-label-text-color, var(--mat-sys-on-surface));
-  opacity: var(--mat-list-list-item-disabled-label-text-opacity, 0.3);
-}
-
-.row-deactivated:not(.row-checked) .selection-entry-control mat-icon,
-.row-deactivated:not(.row-checked) .config-kind-icon {
-  color: var(--mat-list-list-item-disabled-leading-icon-color, var(--mat-sys-on-surface));
-  opacity: var(--mat-list-list-item-disabled-leading-icon-opacity, 0.38);
+  color: var(--mat-sys-error);
 }
 
 .row-deactivated.row-checked .mdc-list-item__primary-text,
@@ -311,6 +307,8 @@ mat-list .item-row.row-checked {
 }
 
 .primary-detail-link {
+  width: fit-content;
+  max-width: 100%;
   color: var(--mat-sys-primary);
   text-decoration: none;
 }

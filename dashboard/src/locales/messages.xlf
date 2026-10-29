@@ -635,11 +635,6 @@
         <source>Not available</source>
       </segment>
     </unit>
-    <unit id="commonNotSet">
-      <segment>
-        <source>Not set</source>
-      </segment>
-    </unit>
     <unit id="commonCancel">
       <segment>
         <source> Cancel </source>
@@ -698,6 +693,71 @@
     <unit id="configRelationExplicitReference">
       <segment>
         <source>Explicit reference</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCrawlJob">
+      <segment>
+        <source>Crawl job</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCrawlJobs">
+      <segment>
+        <source>Crawl jobs</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCreated">
+      <segment>
+        <source>Created</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEnded">
+      <segment>
+        <source>Ended</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEntity">
+      <segment>
+        <source>Entity</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewId">
+      <segment>
+        <source>ID</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLabels">
+      <segment>
+        <source>Labels</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLastModified">
+      <segment>
+        <source>Last modified</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlExecutions">
+      <segment>
+        <source>This seed has not been crawled yet.</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlJobs">
+      <segment>
+        <source>None</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewRecentCrawlExecutions">
+      <segment>
+        <source>Recent crawl executions</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewScriptAnnotations">
+      <segment>
+        <source>Script annotations</source>
+      </segment>
+    </unit>
+    <unit id="seedPreviewStatus">
+      <segment>
+        <source>Status</source>
       </segment>
     </unit>
     <unit id="configFactCronExpression">
@@ -2380,14 +2440,29 @@
         <source>Update entities</source>
       </segment>
     </unit>
-    <unit id="entityViewFilteredByLabel">
+    <unit id="entityViewCreatedByLabel">
       <segment>
-        <source>Filtered by entity</source>
+        <source>Created by</source>
+      </segment>
+    </unit>
+    <unit id="entityViewCreatedLabel">
+      <segment>
+        <source>Created</source>
       </segment>
     </unit>
     <unit id="entityViewLabelsAriaLabel">
       <segment>
         <source>Entity labels</source>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedByLabel">
+      <segment>
+        <source>Last modified by</source>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedLabel">
+      <segment>
+        <source>Last modified</source>
       </segment>
     </unit>
     <unit id="entityViewOpenEntityButton">
@@ -2510,6 +2585,16 @@
         <source>Configuration</source>
       </segment>
     </unit>
+    <unit id="configurationListHidePreviewAriaLabel">
+      <segment>
+        <source>Hide preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListLabelsAndCrawlJobsAriaLabel">
+      <segment>
+        <source>Configuration labels and crawl jobs</source>
+      </segment>
+    </unit>
     <unit id="configurationListLabelsAriaLabel">
       <segment>
         <source>Configuration labels</source>
@@ -2540,6 +2625,16 @@
         <source>Configuration list controls</source>
       </segment>
     </unit>
+    <unit id="configurationListCrawlJobFilterAriaLabel">
+      <segment>
+        <source>Filter by crawl job <ph id="0" equiv="CRAWL_JOB_NAME" disp="this.crawlJobName(jobId)"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListCrawlJobsAriaLabel">
+      <segment>
+        <source>Crawl jobs</source>
+      </segment>
+    </unit>
     <unit id="configurationListStateFilterAriaLabel">
       <segment>
         <source>Filter configurations by state</source>
@@ -2558,6 +2653,21 @@
     <unit id="configurationListOrderByLabel">
       <segment>
         <source>Order by</source>
+      </segment>
+    </unit>
+    <unit id="configurationListPreviewAriaLabel">
+      <segment>
+        <source>Preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListSortByNameAriaLabel">
+      <segment>
+        <source>Sort by name</source>
+      </segment>
+    </unit>
+    <unit id="configurationListNameColumnLabel">
+      <segment>
+        <source>Name</source>
       </segment>
     </unit>
     <unit id="configurationListDefaultOrder">
@@ -2593,6 +2703,11 @@
     <unit id="configurationListDeactivatedStatus">
       <segment>
         <source>Deactivated</source>
+      </segment>
+    </unit>
+    <unit id="configurationListDecorationAriaLabel">
+      <segment>
+        <source>Show on rows</source>
       </segment>
     </unit>
     <unit id="configurationListDeselectConfigurationAriaLabel">
@@ -2638,6 +2753,21 @@
     <unit id="configurationListSelectConfigurationAriaLabel">
       <segment>
         <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+      </segment>
+    </unit>
+    <unit id="configurationListShowCrawlJobs">
+      <segment>
+        <source>Show crawl jobs</source>
+      </segment>
+    </unit>
+    <unit id="configurationListShowLabels">
+      <segment>
+        <source>Show labels</source>
+      </segment>
+    </unit>
+    <unit id="configurationListShowPreviewAriaLabel">
+      <segment>
+        <source>Show preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
       </segment>
     </unit>
     <unit id="configurationListRowActionsAriaLabel">

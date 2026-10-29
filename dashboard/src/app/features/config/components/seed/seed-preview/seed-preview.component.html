@@ -1,0 +1,134 @@
+<div class="seed-preview">
+  <section class="preview-section seed-metadata" aria-labelledby="seed-preview-title">
+    <h3 id="seed-preview-title" class="seed-title">
+      <a class="preview-link" [routerLink]="['/config', 'seed', seed.id]">{{seed.meta.name}}</a>
+    </h3>
+    <dl class="preview-facts">
+      <div>
+        <dt i18n="@@seedPreviewId">ID</dt>
+        <dd class="id-value">
+          <span class="monospace">{{seed.id}}</span>
+          <button mat-icon-button type="button" [appCopyId]="seed.id"
+            matTooltip="Copy ID" i18n-matTooltip="@@copyIdTooltip"
+            aria-label="Copy ID" i18n-aria-label="@@copyIdTooltip">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </dd>
+      </div>
+      @if (seed.meta.created) {
+        <div>
+          <dt i18n="@@seedPreviewCreated">Created</dt>
+          <dd>{{seed.meta.created | date:'short'}}@if (seed.meta.createdBy) {, {{seed.meta.createdBy}}}</dd>
+        </div>
+      }
+      @if (seed.meta.lastModified) {
+        <div>
+          <dt i18n="@@seedPreviewLastModified">Last modified</dt>
+          <dd>{{seed.meta.lastModified | date:'short'}}@if (seed.meta.lastModifiedBy) {, {{seed.meta.lastModifiedBy}}}</dd>
+        </div>
+      }
+      <div>
+        <dt i18n="@@seedPreviewEntity">Entity</dt>
+        <dd>
+          @if (entity$ | async; as entity) {
+            <a class="preview-link" [routerLink]="['/config', 'entity', entity.id]">{{entity.meta.name}}</a>
+          } @else {
+            <span class="monospace">{{seed.seed.entityRef.id}}</span>
+          }
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <dl class="preview-facts seed-relations">
+    <div>
+      <dt i18n="@@seedPreviewCrawlJobs">Crawl jobs</dt>
+      <dd>
+        @for (jobId of jobIds; track jobId; let last = $last) {
+          <a class="preview-link" [routerLink]="['/config', 'crawljobs', jobId]">{{crawlJobName(jobId)}}</a>@if (!last) {, }
+        } @empty {
+          <span i18n="@@seedPreviewNoCrawlJobs">None</span>
+        }
+      </dd>
+    </div>
+    @if (seed.meta.labelList.length) {
+      <div>
+        <dt i18n="@@seedPreviewLabels">Labels</dt>
+        <dd>
+          <mat-chip-set aria-label="Labels" i18n-aria-label="@@seedPreviewLabels">
+            @for (label of seed.meta.labelList; track label.key + ':' + label.value) {
+              <mat-chip [class.emoji-label-chip]="isEmojiLabel(label.key, label.value)">
+                <app-label-display [key]="label.key" [value]="label.value"></app-label-display>
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </dd>
+      </div>
+    }
+    @if (seed.meta.annotationList.length) {
+      <div>
+        <dt i18n="@@seedPreviewScriptAnnotations">Script annotations</dt>
+        <dd>
+          <mat-chip-set aria-label="Script annotations" i18n-aria-label="@@seedPreviewScriptAnnotations">
+            @for (annotation of seed.meta.annotationList; track annotation.key + ':' + annotation.value) {
+              <mat-chip>
+                <app-label-display [key]="annotation.key" [value]="annotation.value || '—'"></app-label-display>
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </dd>
+      </div>
+    }
+  </dl>
+
+  <section class="preview-section recent-crawls" aria-labelledby="seed-preview-recent-crawls">
+    <h3 id="seed-preview-recent-crawls" i18n="@@seedPreviewRecentCrawlExecutions">Recent crawl executions</h3>
+    @if (recentCrawlExecutions$ | async; as recent) {
+      @if (recent.failed) {
+        <p class="empty-state empty-state-error" role="status" i18n="@@seedPreviewCrawlExecutionsFailed">Could not load crawl executions.</p>
+      } @else if (recent.executions.length) {
+        <div class="table-scroll">
+          <table mat-table class="crawl-execution-table" [dataSource]="recent.executions">
+            <ng-container matColumnDef="crawlJob">
+              <th mat-header-cell *matHeaderCellDef i18n="@@seedPreviewCrawlJob">Crawl job</th>
+              <td mat-cell *matCellDef="let execution">{{crawlJobName(execution.jobId)}}</td>
+            </ng-container>
+            <ng-container matColumnDef="startTime">
+              <th mat-header-cell *matHeaderCellDef i18n="@@executionStartedLabel">Started</th>
+              <td mat-cell *matCellDef="let execution">
+                {{(execution.startTime | date:'short') ?? '–'}}
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="endTime">
+              <th mat-header-cell *matHeaderCellDef i18n="@@seedPreviewEnded">Ended</th>
+              <td mat-cell *matCellDef="let execution">
+                {{(execution.endTime | date:'short') ?? '–'}}
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="state">
+              <th mat-header-cell *matHeaderCellDef i18n="@@seedPreviewStatus">Status</th>
+              <td mat-cell *matCellDef="let execution">
+                @let state = statePresentation(execution.state);
+                <span class="execution-state" [class.execution-state-error]="state.tone === 'error'">
+                  <mat-icon aria-hidden="true">{{state.icon}}</mat-icon>
+                  @if (authService.canRead('crawlexecution') && execution.id) {
+                    <a class="preview-link" [routerLink]="['/report', 'crawlexecution', execution.id]">{{state.label}}</a>
+                  } @else {
+                    {{state.label}}
+                  }
+                </span>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="crawlExecutionColumns"></tr>
+            <tr mat-row *matRowDef="let execution; columns: crawlExecutionColumns"></tr>
+          </table>
+        </div>
+      } @else {
+        <p class="empty-state" role="status" i18n="@@seedPreviewNoCrawlExecutions">This seed has not been crawled yet.</p>
+      }
+    } @else {
+      <mat-progress-bar mode="indeterminate" aria-label="Loading crawl executions"
+        i18n-aria-label="@@seedPreviewCrawlExecutionsLoading"></mat-progress-bar>
+    }
+  </section>
+</div>

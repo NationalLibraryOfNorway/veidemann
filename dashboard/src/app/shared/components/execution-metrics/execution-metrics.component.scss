@@ -48,6 +48,34 @@ dd {
   font: var(--mat-sys-title-large);
 }
 
+// A quiet notice, not an error: the execution ran longer than the job's configured limit.
+.duration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 12px;
+  padding: 2px 12px 2px 6px;
+  border-radius: var(--mat-sys-corner-full);
+  color: var(--mat-sys-on-tertiary-container);
+  background-color: var(--mat-sys-tertiary-container);
+  font: var(--mat-sys-label-large);
+  vertical-align: middle;
+}
+
+.duration-badge .mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 .outcome-error dd {
   color: var(--mat-sys-error);
 }

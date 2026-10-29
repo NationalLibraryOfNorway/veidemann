@@ -741,12 +741,6 @@
         <target>Ikke tilgjengelig</target>
       </segment>
     </unit>
-    <unit id="commonNotSet">
-      <segment state="initial">
-        <source>Not set</source>
-        <target>Ikke angitt</target>
-      </segment>
-    </unit>
     <unit id="commonCancel">
       <segment state="final">
         <source> Cancel </source>
@@ -817,6 +811,84 @@
       <segment state="initial">
         <source>Explicit reference</source>
         <target>Eksplisitt referanse</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCrawlJob">
+      <segment state="initial">
+        <source>Crawl job</source>
+        <target>Crawljobb</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCrawlJobs">
+      <segment state="initial">
+        <source>Crawl jobs</source>
+        <target>Crawljobber</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewCreated">
+      <segment state="initial">
+        <source>Created</source>
+        <target>Opprettet</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEnded">
+      <segment state="initial">
+        <source>Ended</source>
+        <target>Avsluttet</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewEntity">
+      <segment state="initial">
+        <source>Entity</source>
+        <target>Entitet</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewId">
+      <segment state="initial">
+        <source>ID</source>
+        <target>ID</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLabels">
+      <segment state="initial">
+        <source>Labels</source>
+        <target>Etiketter</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewLastModified">
+      <segment state="initial">
+        <source>Last modified</source>
+        <target>Sist endret</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlExecutions">
+      <segment state="initial">
+        <source>This seed has not been crawled yet.</source>
+        <target>Denne seeden er ikke crawlet ennå.</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewNoCrawlJobs">
+      <segment state="initial">
+        <source>None</source>
+        <target>Ingen</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewRecentCrawlExecutions">
+      <segment state="initial">
+        <source>Recent crawl executions</source>
+        <target>Siste crawl-kjøringer</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewScriptAnnotations">
+      <segment state="initial">
+        <source>Script annotations</source>
+        <target>Skriptannoteringer</target>
+      </segment>
+    </unit>
+    <unit id="seedPreviewStatus">
+      <segment state="initial">
+        <source>Status</source>
+        <target>Status</target>
       </segment>
     </unit>
     <unit id="configFactCronExpression">
@@ -2787,16 +2859,34 @@
         <target>Seeds</target>
       </segment>
     </unit>
-    <unit id="entityViewFilteredByLabel">
+    <unit id="entityViewCreatedByLabel">
       <segment state="initial">
-        <source>Filtered by entity</source>
-        <target>Filtered by entity</target>
+        <source>Created by</source>
+        <target>Created by</target>
+      </segment>
+    </unit>
+    <unit id="entityViewCreatedLabel">
+      <segment state="initial">
+        <source>Created</source>
+        <target>Created</target>
       </segment>
     </unit>
     <unit id="entityViewLabelsAriaLabel">
       <segment state="initial">
         <source>Entity labels</source>
         <target>Entity labels</target>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedByLabel">
+      <segment state="initial">
+        <source>Last modified by</source>
+        <target>Last modified by</target>
+      </segment>
+    </unit>
+    <unit id="entityViewLastModifiedLabel">
+      <segment state="initial">
+        <source>Last modified</source>
+        <target>Last modified</target>
       </segment>
     </unit>
     <unit id="entityViewOpenEntityButton">
@@ -2943,6 +3033,18 @@
         <target>Configuration</target>
       </segment>
     </unit>
+    <unit id="configurationListHidePreviewAriaLabel">
+      <segment state="initial">
+        <source>Hide preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+        <target>Skjul forhåndsvisning av <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></target>
+      </segment>
+    </unit>
+    <unit id="configurationListLabelsAndCrawlJobsAriaLabel">
+      <segment state="initial">
+        <source>Configuration labels and crawl jobs</source>
+        <target>Etiketter og crawljobber</target>
+      </segment>
+    </unit>
     <unit id="configurationListLabelsAriaLabel">
       <segment state="initial">
         <source>Configuration labels</source>
@@ -2979,6 +3081,18 @@
         <target>Kontroller for konfigurasjonslisten</target>
       </segment>
     </unit>
+    <unit id="configurationListCrawlJobFilterAriaLabel">
+      <segment state="initial">
+        <source>Filter by crawl job <ph id="0" equiv="CRAWL_JOB_NAME" disp="this.crawlJobName(jobId)"/></source>
+        <target>Filtrer på crawljobb <ph id="0" equiv="CRAWL_JOB_NAME" disp="this.crawlJobName(jobId)"/></target>
+      </segment>
+    </unit>
+    <unit id="configurationListCrawlJobsAriaLabel">
+      <segment state="initial">
+        <source>Crawl jobs</source>
+        <target>Crawljobber</target>
+      </segment>
+    </unit>
     <unit id="configurationListStateFilterAriaLabel">
       <segment state="initial">
         <source>Filter configurations by state</source>
@@ -3001,6 +3115,24 @@
       <segment state="initial">
         <source>Order by</source>
         <target>Sorter etter</target>
+      </segment>
+    </unit>
+    <unit id="configurationListPreviewAriaLabel">
+      <segment state="initial">
+        <source>Preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+        <target>Forhåndsvisning av <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></target>
+      </segment>
+    </unit>
+    <unit id="configurationListSortByNameAriaLabel">
+      <segment state="initial">
+        <source>Sort by name</source>
+        <target>Sorter etter navn</target>
+      </segment>
+    </unit>
+    <unit id="configurationListNameColumnLabel">
+      <segment state="initial">
+        <source>Name</source>
+        <target>Navn</target>
       </segment>
     </unit>
     <unit id="configurationListDefaultOrder">
@@ -3043,6 +3175,12 @@
       <segment state="final">
         <source>Deactivated</source>
         <target>Deaktivert</target>
+      </segment>
+    </unit>
+    <unit id="configurationListDecorationAriaLabel">
+      <segment state="initial">
+        <source>Show on rows</source>
+        <target>Vis på radene</target>
       </segment>
     </unit>
     <unit id="configurationListDeselectConfigurationAriaLabel">
@@ -3097,6 +3235,24 @@
       <segment state="initial">
         <source>Select <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
         <target>Marker <ph id="0" equiv="CONFIGURATION_NAME" disp="config.meta.name"/></target>
+      </segment>
+    </unit>
+    <unit id="configurationListShowCrawlJobs">
+      <segment state="initial">
+        <source>Show crawl jobs</source>
+        <target>Vis crawljobber</target>
+      </segment>
+    </unit>
+    <unit id="configurationListShowLabels">
+      <segment state="initial">
+        <source>Show labels</source>
+        <target>Vis etiketter</target>
+      </segment>
+    </unit>
+    <unit id="configurationListShowPreviewAriaLabel">
+      <segment state="initial">
+        <source>Show preview of <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></source>
+        <target>Vis forhåndsvisning av <ph id="0" equiv="CONFIGURATION_NAME" disp="this.configTitle(config)"/></target>
       </segment>
     </unit>
     <unit id="configurationListRowActionsAriaLabel">

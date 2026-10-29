@@ -3,7 +3,8 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {ExecutionMetricsComponent} from '../../../../shared/components';
 import {ConfigObject, JobExecutionState, JobExecutionStatus} from '../../../../shared/models';
 import {DurationFormatPipe} from '../../../../shared/pipes/duration-format.pipe';
-import {jobExecutionStatePresentation} from '../../func';
+import {jobExecutionStatePresentation, maxDurationOverrun} from '../../func';
+import {DurationNotice} from '../../../../shared/components/execution-metrics/execution-metrics.component';
 import {ExecutionMetadataComponent} from '../execution-metadata/execution-metadata.component';
 
 @Component({
@@ -33,6 +34,11 @@ export class JobExecutionMetricsSectionComponent {
 
   isRunning(): boolean {
     return this.jobExecutionStatus.state === JobExecutionState.RUNNING;
+  }
+
+  // Compared against the job's current configuration, which is not stored per execution.
+  durationNotice(): DurationNotice | null {
+    return maxDurationOverrun(this.jobExecutionStatus, this.crawlJob?.crawlJob?.limits?.maxDurationS);
   }
 
   remainingBytes(): number | null {

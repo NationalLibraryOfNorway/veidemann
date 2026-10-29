@@ -75,7 +75,19 @@
         <th i18n="@@crawlJobExecutionReportListDurationHeaderCell"
           mat-header-cell *matHeaderCellDef>Duration
         </th>
-        <td mat-cell *matCellDef="let row">{{duration(row)}}</td>
+        <td mat-cell *matCellDef="let row">
+          @let overrun = maxDurationOverrun(row, row.jobId | getJobMaxDurationPipe | async);
+          @if (overrun) {
+            {{duration(row)}}
+            <span class="over-max-duration" [matTooltip]="overrun.label">
+              <mat-icon aria-hidden="true">hourglass_top</mat-icon>
+              {{overrun.badge}}
+              <span class="visually-hidden">{{overrun.label}}</span>
+            </span>
+          } @else {
+            {{duration(row)}}
+          }
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="extra">

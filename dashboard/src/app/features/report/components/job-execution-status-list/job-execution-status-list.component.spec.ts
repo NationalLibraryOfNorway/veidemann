@@ -6,9 +6,11 @@ import {JobExecutionStatusListComponent} from './job-execution-status-list.compo
 import {provideCoreTesting} from '../../../../core/core.testing.module';
 import {
   ConfigObject,
+  CrawlJob,
   JobExecutionState,
   JobExecutionStatus,
   ListDataSource,
+  Kind,
   Meta,
 } from '../../../../shared/models';
 import {JobExecutionService} from '../../services';
@@ -16,8 +18,10 @@ import {JobExecutionService} from '../../services';
 describe('JobExecutionStatusListComponent', () => {
   let component: JobExecutionStatusListComponent;
   let fixture: ComponentFixture<JobExecutionStatusListComponent>;
+  const jobs = new Map<string, ConfigObject>();
 
   beforeEach(() => {
+    jobs.clear();
     TestBed.configureTestingModule({
       imports: [JobExecutionStatusListComponent],
       providers: [
@@ -25,7 +29,7 @@ describe('JobExecutionStatusListComponent', () => {
         {
           provide: JobExecutionService,
           useValue: {
-            getJob: () => of(new ConfigObject({meta: new Meta({name: 'Daily crawl'})})),
+            getJob: (id: string) => of(jobs.get(id) ?? new ConfigObject({meta: new Meta({name: 'Daily crawl'})})),
           },
         },
       ]
@@ -113,6 +117,65 @@ describe('JobExecutionStatusListComponent', () => {
       .not.toContain('Aborted manually');
     expect(fixture.nativeElement.querySelector('td.mat-column-duration').textContent.trim())
       .toBe('1hours:2min');
+  });
+
+  describe('maximum duration', () => {
+    const job = (maxDurationS: number) => new ConfigObject({
+      kind: Kind.CRAWLJOB,
+      meta: new Meta({name: 'Limited crawl'}),
+      crawlJob: new CrawlJob({limits: {maxDurationS, maxBytes: 0}}),
+    });
+
+    async function render(...rows: JobExecutionStatus[]): Promise<HTMLElement[]> {
+      fixture.componentRef.setInput('dataSource', ListDataSource.fromQuery({
+        query$: of('query'),
+        load: () => of(...rows),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return [...fixture.nativeElement.querySelectorAll('td.mat-column-duration')] as HTMLElement[];
+    }
+
+    it('does not mark ended executions, whatever their duration', async () => {
+      jobs.set('limited', job(3600));
+      const [ended] = await render(new JobExecutionStatus({
+        id: 'ended', jobId: 'limited', state: JobExecutionState.FINISHED,
+        startTime: '2026-08-11T10:00:00.000Z', endTime: '2026-08-11T22:30:00.000Z',
+      }));
+
+      expect(ended.querySelector('.over-max-duration')).toBeNull();
+      expect(ended.querySelector('.visually-hidden')).toBeNull();
+      expect(ended.textContent.trim()).toBe('12hours:30min');
+    });
+
+    it('shows a badge with the overrun behind the duration of running executions', async () => {
+      jobs.set('limited', job(3600));
+      const [running] = await render(new JobExecutionStatus({
+        id: 'running', jobId: 'limited', state: JobExecutionState.RUNNING,
+        startTime: new Date(Date.now() - 5 * 3600_000).toISOString(),
+      }));
+
+      const badge = running.querySelector('.over-max-duration') as HTMLElement;
+      expect(badge).not.toBeNull();
+      expect(badge.textContent).toContain('+4 h');
+      expect(badge.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe('true');
+      expect(running.textContent.indexOf('5hours')).toBeLessThan(running.textContent.indexOf('+4 h'));
+    });
+
+    it('does not mark executions of jobs without a limit or without a start', async () => {
+      jobs.set('unlimited', job(0));
+      const cells = await render(
+        new JobExecutionStatus({
+          id: 'unlimited', jobId: 'unlimited', state: JobExecutionState.FINISHED,
+          startTime: '2026-08-11T10:00:00.000Z', endTime: '2026-08-14T10:00:00.000Z',
+        }),
+        new JobExecutionStatus({id: 'no-start', jobId: 'unlimited', state: JobExecutionState.RUNNING}),
+      );
+
+      expect(cells.map(cell => cell.querySelector('.over-max-duration'))).toEqual([null, null]);
+    });
   });
 
   it('uses desired state or missing-value text when an end timestamp is absent', async () => {
