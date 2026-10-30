@@ -57,6 +57,7 @@ import no.nb.nna.veidemann.frontier.worker.PreFetchHandler;
 import no.nb.nna.veidemann.frontier.worker.QueuedUriWrapper;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.params.ZAddParams;
 import redis.clients.jedis.resps.ScanResult;
 import redis.clients.jedis.resps.Tuple;
 
@@ -636,6 +637,12 @@ public class CrawlQueueManager implements AutoCloseable {
 
     public void scheduleExecutionFinalization(String executionId) {
         redisClient.zadd(CRAWL_EXECUTION_FINALIZE_KEY, System.currentTimeMillis(), executionId);
+    }
+
+    /** Coalesce job repairs without bringing an existing retry forward. */
+    public void scheduleJobExecutionFinalization(String jobExecutionId) {
+        redisClient.zadd(JOB_EXECUTION_FINALIZE_KEY, System.currentTimeMillis(), jobExecutionId,
+                ZAddParams.zAddParams().nx());
     }
 
     public Long getBusyTimeout(String crawlHostGroupId) {

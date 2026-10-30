@@ -150,7 +150,16 @@ public class StatusWrapper {
         JobExecutionStatus tjes = reconstruct
                 ? null
                 : frontier.getCrawlQueueManager().getTempJobExecutionStatus(jobExecutionId);
-        if (tjes == null) {
+        if (!reconstruct && tjes == null) {
+            frontier.getCrawlQueueManager().scheduleJobExecutionFinalization(jobExecutionId);
+            return false;
+        }
+        if (reconstruct) {
+            // An indexed existence check can stop at the first active child. Avoid
+            // reconstructing every counter just to discover that the job is running.
+            if (frontier.getFrontierAdapter().hasRunningCrawlExecutions(jobExecutionId)) {
+                return false;
+            }
             LOG.info("Reconstructing JobExecution '{}' aggregate from RethinkDB", jobExecutionId);
             tjes = frontier.getFrontierAdapter().getJobExecutionAggregate(jobExecutionId);
             int running = tjes.getExecutionsStateOrDefault(CrawlExecutionStatus.State.UNDEFINED.name(), 0)

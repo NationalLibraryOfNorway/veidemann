@@ -34,6 +34,22 @@ import no.nb.nna.veidemann.frontier.testutil.HarvesterMock;
 @Tag("rethinkDb")
 public class HarvestTest extends no.nb.nna.veidemann.frontier.testutil.AbstractIntegrationTest {
     @Test
+    public void testJobRepairNotificationsPreserveAnExistingCooldown() {
+        String jobExecutionId = "deferred-repair-job";
+        long retryAt = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
+        redisClient.zadd(CrawlQueueManager.JOB_EXECUTION_FINALIZE_KEY, retryAt, jobExecutionId);
+
+        for (int i = 0; i < 40; i++) {
+            frontier.getCrawlQueueManager().scheduleJobExecutionFinalization(jobExecutionId);
+        }
+
+        org.assertj.core.api.Assertions.assertThat(redisClient.zscore(
+                CrawlQueueManager.JOB_EXECUTION_FINALIZE_KEY, jobExecutionId)).isEqualTo((double) retryAt);
+        org.assertj.core.api.Assertions.assertThat(redisClient.zcard(
+                CrawlQueueManager.JOB_EXECUTION_FINALIZE_KEY)).isOne();
+    }
+
+    @Test
     public void testOneSuccessfullSeed() throws Exception {
         int seedCount = 1;
         int linksPerLevel = 3;

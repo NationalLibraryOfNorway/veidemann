@@ -185,6 +185,23 @@ public class RethinkDbFrontierAdapter implements FrontierAdapter {
     }
 
     @Override
+    public boolean hasRunningCrawlExecutions(String jobExecutionId) throws DbException {
+        return conn.executeAtom(
+                "db-hasRunningCrawlExecutions",
+                r.table(Tables.EXECUTIONS.name)
+                        .between(
+                                r.array(jobExecutionId, r.minval()),
+                                r.array(jobExecutionId, r.maxval()))
+                        .optArg("index", "jobExecutionId_seedId")
+                        .filter(row -> r.expr(r.array("UNDEFINED", "CREATED", "FETCHING", "SLEEPING"))
+                                .contains(row.g("state").default_("UNDEFINED")))
+                        .limit(1)
+                        .isEmpty()
+                        .not(),
+                Boolean.class);
+    }
+
+    @Override
     public JobExecutionStatus getJobExecutionAggregate(String jobExecutionId) throws DbException {
         JobExecutionStatus.Builder aggregate = JobExecutionStatus.newBuilder().setId(jobExecutionId);
         try (DbResultSet<Map<String, Object>> rows = conn.executeSequence(

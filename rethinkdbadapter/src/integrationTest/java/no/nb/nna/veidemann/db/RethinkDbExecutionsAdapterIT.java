@@ -66,6 +66,40 @@ public class RethinkDbExecutionsAdapterIT extends AbstractRethinkDbIntegrationTe
         cleanupDbService();
     }
 
+    @Test
+    void detectsRunningChildrenOnlyWithinTheRequestedJob() throws Exception {
+        createCrawlExecutionStatus("config", "other-job", "other-seed");
+        assertThat(frontierAdapter.hasRunningCrawlExecutions("job")).isFalse();
+
+        for (CrawlExecutionStatus.State state : new CrawlExecutionStatus.State[] {
+                CrawlExecutionStatus.State.FINISHED,
+                CrawlExecutionStatus.State.FAILED,
+                CrawlExecutionStatus.State.ABORTED_MANUAL,
+                CrawlExecutionStatus.State.ABORTED_TIMEOUT,
+                CrawlExecutionStatus.State.ABORTED_SIZE,
+                CrawlExecutionStatus.State.DIED }) {
+            CrawlExecutionStatus child = createCrawlExecutionStatus("config", "job", state.name());
+            conn.exec(r.table(Tables.EXECUTIONS.name).get(child.getId()).update(r.hashMap("state", state.name())));
+        }
+        assertThat(frontierAdapter.hasRunningCrawlExecutions("job")).isFalse();
+
+        for (CrawlExecutionStatus.State state : new CrawlExecutionStatus.State[] {
+                CrawlExecutionStatus.State.UNDEFINED,
+                CrawlExecutionStatus.State.CREATED,
+                CrawlExecutionStatus.State.FETCHING,
+                CrawlExecutionStatus.State.SLEEPING }) {
+            CrawlExecutionStatus child = createCrawlExecutionStatus("config", "job", state.name());
+            conn.exec(r.table(Tables.EXECUTIONS.name).get(child.getId()).update(r.hashMap("state", state.name())));
+            assertThat(frontierAdapter.hasRunningCrawlExecutions("job")).as(state.name()).isTrue();
+            conn.exec(r.table(Tables.EXECUTIONS.name).get(child.getId()).update(r.hashMap("state", "FINISHED")));
+            assertThat(frontierAdapter.hasRunningCrawlExecutions("job")).isFalse();
+        }
+
+        CrawlExecutionStatus missingState = createCrawlExecutionStatus("config", "job", "missing-state");
+        conn.exec(r.table(Tables.EXECUTIONS.name).get(missingState.getId()).replace(row -> row.without("state")));
+        assertThat(frontierAdapter.hasRunningCrawlExecutions("job")).isTrue();
+    }
+
     private CrawlExecutionStatus createCrawlExecutionStatus(String jobId, String jobExecutionId, String seedId) throws DbException {
         Objects.requireNonNull(jobId, "jobId must be set");
         Objects.requireNonNull(jobExecutionId, "jobExecutionId must be set");

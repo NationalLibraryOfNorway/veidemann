@@ -14,6 +14,9 @@ public interface FrontierAdapter {
 
     JobExecutionStatus getJobExecutionStatus(String jobExecutionId) throws DbException;
 
+    /** Return whether any persisted child still prevents job finalization. */
+    boolean hasRunningCrawlExecutions(String jobExecutionId) throws DbException;
+
     /** Reconstruct the job aggregate from its persisted crawl executions. */
     JobExecutionStatus getJobExecutionAggregate(String jobExecutionId) throws DbException;
 

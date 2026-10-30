@@ -13,11 +13,13 @@ import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.CRAWL_EXECUTION_ID_COUNT_KEY;
 import static no.nb.nna.veidemann.frontier.db.CrawlQueueManager.JOB_EXECUTION_FINALIZE_KEY;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ import no.nb.nna.veidemann.frontier.worker.Frontier;
 import no.nb.nna.veidemann.frontier.worker.StatusWrapper;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.params.ZAddParams;
 import redis.clients.jedis.params.ZRangeParams;
 import redis.clients.jedis.resps.ScanResult;
 
@@ -44,6 +47,7 @@ final class CrawlExecutionReconciler implements AutoCloseable {
 
     private final Frontier frontier;
     private final UnifiedJedis redisClient;
+    private final Clock clock;
     private final ExecutorService changeFeedExecutor;
     private final ScheduledExecutorService maintenanceExecutor;
     private volatile boolean closed;
@@ -51,17 +55,29 @@ final class CrawlExecutionReconciler implements AutoCloseable {
     private String queueCountCursor = "0";
 
     CrawlExecutionReconciler(Frontier frontier, UnifiedJedis redisClient) {
+        this(frontier, redisClient, Clock.systemUTC(),
+                Executors.newSingleThreadExecutor(reconcilerThreads()),
+                Executors.newSingleThreadScheduledExecutor(reconcilerThreads()));
+    }
+
+    CrawlExecutionReconciler(Frontier frontier, UnifiedJedis redisClient, Clock clock,
+            ExecutorService changeFeedExecutor, ScheduledExecutorService maintenanceExecutor) {
         this.frontier = frontier;
         this.redisClient = redisClient;
-        ThreadFactoryBuilder threads = new ThreadFactoryBuilder()
-                .setNameFormat("CrawlExecutionReconciler-%d")
-                .setUncaughtExceptionHandler((thread, error) ->
-                        LOG.error("Uncaught exception in {}", thread.getName(), error));
-        changeFeedExecutor = Executors.newSingleThreadExecutor(threads.build());
-        maintenanceExecutor = Executors.newSingleThreadScheduledExecutor(threads.build());
+        this.clock = clock;
+        this.changeFeedExecutor = changeFeedExecutor;
+        this.maintenanceExecutor = maintenanceExecutor;
         changeFeedExecutor.execute(this::watchAbortRequests);
         maintenanceExecutor.scheduleWithFixedDelay(this::processFinalizationSignals, 1, 1, TimeUnit.SECONDS);
         maintenanceExecutor.scheduleWithFixedDelay(this::runAntiEntropy, 1, 60, TimeUnit.SECONDS);
+    }
+
+    private static ThreadFactory reconcilerThreads() {
+        return new ThreadFactoryBuilder()
+                .setNameFormat("CrawlExecutionReconciler-%d")
+                .setUncaughtExceptionHandler((thread, error) ->
+                        LOG.error("Uncaught exception in {}", thread.getName(), error))
+                .build();
     }
 
     private void watchAbortRequests() {
@@ -98,12 +114,12 @@ final class CrawlExecutionReconciler implements AutoCloseable {
         try {
             List<String> executionIds = redisClient.zrange(
                     CRAWL_EXECUTION_FINALIZE_KEY,
-                    ZRangeParams.zrangeByScoreParams(0, System.currentTimeMillis()).limit(0, BATCH_SIZE));
+                    ZRangeParams.zrangeByScoreParams(0, clock.millis()).limit(0, BATCH_SIZE));
             executionIds.forEach(this::reconcileByIdSafely);
 
             List<String> jobExecutionIds = redisClient.zrange(
                     JOB_EXECUTION_FINALIZE_KEY,
-                    ZRangeParams.zrangeByScoreParams(0, System.currentTimeMillis()).limit(0, BATCH_SIZE));
+                    ZRangeParams.zrangeByScoreParams(0, clock.millis()).limit(0, BATCH_SIZE));
             jobExecutionIds.forEach(this::repairJobSafely);
         } catch (Exception e) {
             LOG.warn("Could not process execution finalization signals", e);
@@ -115,13 +131,18 @@ final class CrawlExecutionReconciler implements AutoCloseable {
             if (StatusWrapper.repairJobExecution(frontier, jobExecutionId)) {
                 redisClient.zrem(JOB_EXECUTION_FINALIZE_KEY, jobExecutionId);
             } else {
-                redisClient.zadd(JOB_EXECUTION_FINALIZE_KEY,
-                        System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1),
-                        jobExecutionId);
+                deferJobRepair(jobExecutionId);
             }
         } catch (Exception e) {
             LOG.warn("Could not repair job execution {}", jobExecutionId, e);
+            deferJobRepair(jobExecutionId);
         }
+    }
+
+    private void deferJobRepair(String jobExecutionId) {
+        // A concurrent normal completion may already have removed this request.
+        redisClient.zadd(JOB_EXECUTION_FINALIZE_KEY,
+                clock.millis() + TimeUnit.MINUTES.toMillis(1), jobExecutionId, ZAddParams.zAddParams().xx());
     }
 
     private void runAntiEntropy() {
@@ -178,16 +199,9 @@ final class CrawlExecutionReconciler implements AutoCloseable {
                         .setEndState(status.getState())
                         .saveStatus();
             }
-            if (StatusWrapper.repairJobExecution(frontier, status.getJobExecutionId())) {
-                redisClient.zrem(JOB_EXECUTION_FINALIZE_KEY, status.getJobExecutionId());
-            } else {
-                // Keep a durable, low-frequency repair trigger until the remaining
-                // children become terminal. This covers a crash between the crawl
-                // status write and its Redis job-aggregate update.
-                redisClient.zadd(JOB_EXECUTION_FINALIZE_KEY,
-                        System.currentTimeMillis(),
-                        status.getJobExecutionId());
-            }
+            // Persist the coalesced job repair before acknowledging this execution.
+            // This covers a crash between the crawl status and job-aggregate writes.
+            frontier.getCrawlQueueManager().scheduleJobExecutionFinalization(status.getJobExecutionId());
             redisClient.zrem(CRAWL_EXECUTION_FINALIZE_KEY, executionId);
             return;
         }
@@ -198,7 +212,7 @@ final class CrawlExecutionReconciler implements AutoCloseable {
                     .deletePendingUrisForExecution(executionId);
             if (cleanup.preservedActive() > 0) {
                 redisClient.zadd(CRAWL_EXECUTION_FINALIZE_KEY,
-                        System.currentTimeMillis() + 1000L,
+                        clock.millis() + 1000L,
                         executionId);
                 return;
             }
