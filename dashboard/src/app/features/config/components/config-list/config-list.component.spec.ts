@@ -860,7 +860,7 @@ describe('ConfigListComponent', () => {
     expect(selectedLabels).toEqual([label]);
   });
 
-  it('makes names and labels passive and hides nested actions in selection mode', () => {
+  it('makes labels passive and hides nested actions in selection mode', () => {
     appConfig.labelLinks = {
       owner: {
         text: 'Owner registry',
@@ -887,11 +887,56 @@ describe('ConfigListComponent', () => {
     fixture.detectChanges();
 
     const chip = fixture.nativeElement.querySelector('.label-region mat-chip') as HTMLElement;
-    expect(fixture.nativeElement.querySelector('.primary-detail-link')).toBeNull();
     expect(fixture.nativeElement.querySelector('.external-label-link')).toBeNull();
     expect(fixture.nativeElement.querySelector('.action-region')).toBeNull();
     expect(chip.getAttribute('role')).not.toBe('button');
     expect(chip.hasAttribute('tabindex')).toBe(false);
+  });
+
+  describe('title links in selection mode', () => {
+    const row = new ConfigObject({id: 'seed-1', kind: Kind.SEED, meta: new Meta({name: 'https://www.nb.no'})});
+    let rowClicks: ConfigObject[];
+
+    function startSelection(): HTMLAnchorElement {
+      component.dataSource = ListDataSource.fromQuery({
+        query$: of('query'),
+        load: () => of(row),
+        destroyRef: fixture.componentRef.injector.get(DestroyRef),
+      });
+      rowClicks = [];
+      component.rowClick.subscribe(value => rowClicks.push(value));
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.item-row .selection-control input') as HTMLElement).click();
+      fixture.detectChanges();
+      return fixture.nativeElement.querySelector('.primary-detail-link') as HTMLAnchorElement;
+    }
+
+    function click(link: HTMLAnchorElement, init: MouseEventInit = {}): MouseEvent {
+      const event = new MouseEvent('click', {bubbles: true, cancelable: true, ...init});
+      link.dispatchEvent(event);
+      return event;
+    }
+
+    it('keeps links that open in a new tab as real links', () => {
+      fixture.componentRef.setInput('detailLinkTarget', '_blank');
+      const link = startSelection();
+
+      expect(component.isSelectionMode()).toBe(true);
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener');
+      expect(link.getAttribute('href')).toContain('seed-1');
+      expect(click(link).defaultPrevented).toBe(false);
+      expect(rowClicks).toEqual([]);
+    });
+
+    it('does not navigate away from the selection with links that open in place', () => {
+      const link = startSelection();
+
+      expect(component.isSelectionMode()).toBe(true);
+      expect(link.getAttribute('href')).toContain('seed-1');
+      expect(click(link).defaultPrevented).toBe(true);
+      expect(rowClicks).toEqual([]);
+    });
   });
 
   it('only selects rows through the checkbox in selection mode and Escape clears selection', () => {
