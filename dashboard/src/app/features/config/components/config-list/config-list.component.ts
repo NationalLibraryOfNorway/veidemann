@@ -229,6 +229,17 @@ export class ConfigListComponent extends ConfigListBaseComponent<ConfigObject> i
     super.onRowClick(config, event);
   }
 
+  // Links that open in a new tab keep working in selection mode. Links that navigate in place
+  // would drop the selection, so a plain click then acts like a click on the row instead.
+  override onPrimaryLink(config: ConfigObject, event: Event): void {
+    if (this.isSelectionMode() && this.detailLinkTarget !== '_blank') {
+      event.preventDefault();
+      this.onRowClick(config);
+      return;
+    }
+    super.onPrimaryLink(config, event);
+  }
+
   override onRowKeydown(config: ConfigObject, event: KeyboardEvent): void {
     if (this.isSelectionMode() && !this.expandable) {
       return;

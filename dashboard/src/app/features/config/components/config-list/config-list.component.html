@@ -225,13 +225,9 @@
               (click)="$event.stopPropagation()"
               (change)="onCheckboxToggle(row)"></mat-checkbox>
           }
-          @if (isSelectionMode()) {
-            <span matListItemTitle class="row-text">{{ configTitle(row) }}</span>
-          } @else {
-            <a matListItemTitle class="primary-detail-link row-text" [href]="detailHref(row)"
-              [attr.target]="detailLinkTarget" [attr.rel]="detailLinkTarget === '_blank' ? 'noopener' : null"
-              (click)="onPrimaryLink(row, $event)">{{ configTitle(row) }}</a>
-          }
+          <a matListItemTitle class="primary-detail-link row-text" [href]="detailHref(row)"
+            [attr.target]="detailLinkTarget" [attr.rel]="detailLinkTarget === '_blank' ? 'noopener' : null"
+            (click)="onPrimaryLink(row, $event)">{{ configTitle(row) }}</a>
           @if (!titleOnly && configSubtitle(row)) {
             <span matListItemLine class="row-text">{{ configSubtitle(row) }}</span>
           }
