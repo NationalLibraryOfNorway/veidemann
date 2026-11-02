@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -39,8 +40,7 @@ func (a *remoteAllocator) Allocate(ctx context.Context, opts ...chromedp.Browser
 	b, err := chromedp.NewBrowserTransport(connectionCtx, &eventTransport{Transport: conn, events: &a.events}, opts...)
 	if err != nil {
 		cancelConnection()
-		conn.Close()
-		return nil, err
+		return nil, errors.Join(err, conn.Close())
 	}
 	a.wg.Go(func() {
 		<-ctx.Done()

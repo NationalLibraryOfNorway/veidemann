@@ -29,7 +29,11 @@ func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
 			t.Errorf("upgrade browser connection: %v", err)
 			return
 		}
-		defer conn.Close()
+		defer func() {
+			if err := conn.Close(); err != nil {
+				t.Errorf("close browser connection: %v", err)
+			}
+		}()
 		defer func() { closed <- struct{}{} }()
 		connected <- r.URL.RequestURI()
 		for {
