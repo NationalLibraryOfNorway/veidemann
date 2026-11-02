@@ -6,16 +6,17 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/app.test.js",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.12",
-    "hono": "^4.10.7",
+    "@hono/node-server": "^2.1.6",
+    "hono": "^4.13.16",
     "rethinkdb-ts": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.6.6",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
   }

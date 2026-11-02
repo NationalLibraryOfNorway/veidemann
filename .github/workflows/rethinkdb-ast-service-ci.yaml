@@ -1,0 +1,46 @@
+name: RethinkDB AST Service CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'rethinkdb-ast-service/**'
+      - '.github/workflows/rethinkdb-ast-service-ci.yaml'
+  pull_request:
+    paths:
+      - 'rethinkdb-ast-service/**'
+      - '.github/workflows/rethinkdb-ast-service-ci.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rethinkdb-ast-service-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run tests on Node.js 26
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: rethinkdb-ast-service/package-lock.json
+
+      - name: Install dependencies
+        working-directory: rethinkdb-ast-service
+        run: npm ci --no-fund --no-audit
+
+      - name: Run tests
+        working-directory: rethinkdb-ast-service
+        run: npm test
