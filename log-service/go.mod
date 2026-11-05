@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
 	github.com/google/uuid v1.6.0
-	github.com/minio/minio-go/v7 v7.3.0
+	github.com/minio/minio-go/v7 v7.4.1
 	github.com/opentracing-contrib/go-grpc v0.1.4
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/parquet-go/parquet-go v0.32.0
