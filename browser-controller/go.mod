@@ -6,7 +6,7 @@ require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.9
-	github.com/chromedp/cdproto v0.157.9
+	github.com/chromedp/cdproto v0.159.0
 	github.com/chromedp/chromedp v0.20.1
 	github.com/chromedp/chromedp/remote v0.2.0
 	github.com/gobwas/ws v1.4.0
