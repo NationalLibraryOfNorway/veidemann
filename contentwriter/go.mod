@@ -6,7 +6,7 @@ require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.3
 	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/google/uuid v1.6.0
-	github.com/minio/minio-go/v7 v7.3.0
+	github.com/minio/minio-go/v7 v7.4.1
 	github.com/nlnwa/gowarc v1.6.0
 	github.com/opentracing-contrib/go-grpc v0.1.4
 	github.com/opentracing/opentracing-go v1.2.0
@@ -48,7 +48,7 @@ require (
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
-	github.com/sirupsen/logrus v1.10.1 // indirect
+	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
