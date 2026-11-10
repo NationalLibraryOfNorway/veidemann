@@ -9,7 +9,7 @@ require (
 	github.com/olric-data/olric v0.7.4
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	golang.org/x/sync v0.23.0
+	golang.org/x/sync v0.25.0
 	google.golang.org/grpc v1.85.0
 )
 
