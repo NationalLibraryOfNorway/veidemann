@@ -233,7 +233,7 @@ spec:
               mountPath: /var/run/recorderproxy
               readOnly: true
         - name: browser
-          image: ghcr.io/browserless/chromium:v2.57.0
+          image: ghcr.io/browserless/chromium:v2.61.0
           securityContext:
             readOnlyRootFilesystem: true
           resources:

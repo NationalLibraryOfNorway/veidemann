@@ -24,11 +24,12 @@ certificate volume also remains memory-backed.
 
 ## Cleanup and recovery
 
-Browserless v2.57.0 attempts to delete automatically generated profiles when
-sessions close. It retries failed deletions, but does not sweep all of `/tmp`
-or guarantee recovery from a full filesystem. Its retry queue is lost if the
-Browserless process is killed. See the pinned
-[cleanup implementation](https://github.com/browserless/browserless/blob/v2.57.0/src/browsers/index.ts).
+Browserless v2.61.0 attempts to delete automatically generated profiles and
+session scratch directories after the browser closes. It retries failed deletions
+and queues remaining directories for a background retry every five minutes, but
+does not sweep all of `/tmp` or guarantee recovery from a full filesystem. Its
+retry queue is lost if the Browserless process is killed. See the pinned
+[cleanup implementation](https://github.com/browserless/browserless/blob/v2.61.0/src/browsers/index.ts).
 
 Both browser directories survive a container restart. The PVC belongs to the
 pod and is garbage-collected when that pod is deleted; backing-volume disposal
