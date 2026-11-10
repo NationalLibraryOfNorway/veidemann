@@ -684,7 +684,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(up{service=\"harvester\"})",
+          "expr": "sum(up{service=\"harvester\",endpoint=\"http-metrics\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
