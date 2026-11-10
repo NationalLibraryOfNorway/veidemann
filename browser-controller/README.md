@@ -12,16 +12,22 @@ Need to use the context of the monorepo root when building the container:
 
 ## Chrome DevTools client
 
-The controller uses the released `chromedp` and `chromedp/remote` modules with
+The controller uses the released `chromedp` module, including its `remote` package, with
 typed actions and protocol commands. There is no local fork or module replacement.
 See the upstream [migration guide](https://github.com/chromedp/chromedp/blob/main/docs/MIGRATION.md)
 and [API guide](https://github.com/chromedp/chromedp/blob/main/docs/API.md).
 
-`session/remote.go` wraps the remote module's WebSocket transport to dispatch
-events in their original order. Request completion and frame loading depend on
-that order across different event methods; separate event iterators can process
-completion before creation. Event handlers must send protocol commands from a
-goroutine so they do not block the transport reader.
+`session/remote.go` connects to the remote browser and keeps the connection alive
+through target cleanup. Event handlers use `chromedp.Listen` to process events in
+the order they arrive, before a subsequent command reply returns. Request
+completion and frame loading depend on that order across different event methods;
+separate event iterators can process completion before creation. Event handlers
+must send protocol commands from a goroutine so they do not block the target's
+message loop.
+
+The `remote` package is part of the main module as of chromedp v0.21.0. Do not add
+a separate `github.com/chromedp/chromedp/remote` module requirement: it causes an
+ambiguous import with current chromedp releases.
 
 ## Recorder certificate trust
 

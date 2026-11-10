@@ -3,16 +3,17 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/chromedp/cdproto"
 	"github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/cdp"
-	jsonv2 "github.com/chromedp/cdproto/cdp/jsonv2"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/gobwas/ws"
@@ -21,6 +22,15 @@ import (
 
 // This backend exercises a real remote WebSocket connection without Docker.
 func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
+	testRemoteBrowserEventOrderAndShutdown(t, false)
+}
+
+func TestRemoteBrowserEventOrderBeforeDetach(t *testing.T) {
+	testRemoteBrowserEventOrderAndShutdown(t, true)
+}
+
+func testRemoteBrowserEventOrderAndShutdown(t *testing.T, detach bool) {
+	t.Helper()
 	connected := make(chan string, 1)
 	closed := make(chan struct{}, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +61,7 @@ func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
 				t.Errorf("decode browser command: %v", err)
 				return
 			}
+			detachAfterReply := false
 			result := json.RawMessage(`{}`)
 			switch cmd.Method {
 			case "Browser.getVersion":
@@ -67,7 +78,10 @@ func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
 					return
 				}
 				if params.Expression == "emit-events" {
+					detachAfterReply = detach
 					for _, event := range []string{
+						`{"method":"Network.loadingFinished","sessionId":"other-session","params":{"requestId":"other"}}`,
+						`{"method":"Network.loadingFinished","params":{"requestId":"browser"}}`,
 						`{"method":"Page.frameStartedLoading","sessionId":"root-session","params":{"frameId":"frame"}}`,
 						`{"method":"Network.requestWillBeSent","sessionId":"root-session","params":{"requestId":"req","request":{"url":"https://example.com/","method":"GET"},"initiator":{"type":"parser"},"type":"Document","frameId":"frame"}}`,
 						`{"method":"Network.loadingFinished","sessionId":"root-session","params":{"requestId":"req"}}`,
@@ -90,6 +104,11 @@ func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
 			}
 			if err := wsutil.WriteServerText(conn, response); err != nil {
 				return
+			}
+			if detachAfterReply {
+				if err := wsutil.WriteServerText(conn, []byte(`{"method":"Target.detachedFromTarget","params":{"sessionId":"root-session","targetId":"root"}}`)); err != nil {
+					return
+				}
 			}
 		}
 	}))
@@ -121,8 +140,44 @@ func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
 	if sess.rootTargetID != "root" {
 		t.Fatalf("root target = %q", sess.rootTargetID)
 	}
-	if _, err := chromedp.Call(browserCtx, runtime.Evaluate, runtime.EvaluateParams{Expression: "emit-events"}); err != nil {
+	var delivered, canceled atomic.Int32
+	if err := listenTarget(browserCtx, func(ev any) {
+		if _, ok := ev.(*network.EventLoadingFinished); ok {
+			delivered.Add(1)
+		}
+	}); err != nil {
 		t.Fatal(err)
+	}
+	listenerCtx, cancelListener := context.WithCancel(browserCtx)
+	defer cancelListener()
+	if err := listenTarget(listenerCtx, func(any) { canceled.Add(1) }); err != nil {
+		t.Fatal(err)
+	}
+	cancelListener()
+
+	detached, err := chromedp.Detached(browserCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := chromedp.Call(browserCtx, runtime.Evaluate, runtime.EvaluateParams{Expression: "emit-events"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Result == nil || res.Result.ClassName != "Window" {
+		t.Fatalf("command reply lost: %+v", res)
+	}
+	if detach {
+		select {
+		case <-detached:
+		case <-ctx.Done():
+			t.Fatal("target did not detach")
+		}
+	}
+	if got := delivered.Load(); got != 1 {
+		t.Fatalf("delivered %d completion events, want only the root session event", got)
+	}
+	if got := canceled.Load(); got != 0 {
+		t.Fatalf("canceled listener received %d events", got)
 	}
 	request, found := sess.RequestSnapshot("req")
 	if !found || !request.GotComplete {
@@ -143,21 +198,8 @@ func TestRemoteBrowserEventOrderAndShutdown(t *testing.T) {
 	}
 }
 
-func TestRemoteEventsIgnoreOtherSessionsAndCanceledListeners(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
-	var events targetEvents
-	count := 0
-	events.listen(ctx, "root-session", func(any) { count++ })
-	msg := &cdproto.Message{Method: cdproto.EventNetworkLoadingFinished, SessionID: "other-session", Params: jsonv2.Value(`{"requestId":"req"}`)}
-	events.dispatch(msg)
-	msg.SessionID = "root-session"
-	events.dispatch(msg)
-	msg.ID = 1
-	events.dispatch(msg)
-	msg.ID = 0
-	cancel()
-	events.dispatch(msg)
-	if count != 1 {
-		t.Fatalf("delivered %d events, want 1", count)
+func TestListenTargetPropagatesRegistrationError(t *testing.T) {
+	if err := listenTarget(t.Context(), func(any) {}); !errors.Is(err, chromedp.ErrInvalidContext) {
+		t.Fatalf("listenTarget() error = %v, want ErrInvalidContext", err)
 	}
 }
