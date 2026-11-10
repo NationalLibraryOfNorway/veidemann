@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 go install \
 
 FROM debian:sid-slim
 
-ARG SQUID_VERSION=7.7-1
+ARG SQUID_MAJOR_VERSION=7
 
 ENV TZ=UTC \
     DNS_SERVERS="8.8.8.8 8.8.4.4"
@@ -22,9 +22,17 @@ RUN set -eux; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         ca-certificates \
-        "squid-openssl=${SQUID_VERSION}" \
+        squid-openssl \
         tini \
         tzdata; \
+    case "${SQUID_MAJOR_VERSION}" in \
+      ''|*[!0-9]*) echo "SQUID_MAJOR_VERSION must be a number" >&2; exit 1 ;; \
+    esac; \
+    squid_version="$(dpkg-query -W -f='${Version}' squid-openssl)"; \
+    case "${squid_version#*:}" in \
+      "${SQUID_MAJOR_VERSION}".*) ;; \
+      *) echo "Expected squid-openssl ${SQUID_MAJOR_VERSION}.x, got ${squid_version}" >&2; exit 1 ;; \
+    esac; \
     # Squid overrides via conf.d
     mkdir -p /etc/squid/conf.d; \
     # The Debian fragment contains APT-specific refresh patterns after our
