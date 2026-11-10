@@ -41,7 +41,7 @@ spec:
             name: controller-envoy
       containers:
         - name: controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.16.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/controller:0.16.3
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true
@@ -99,7 +99,7 @@ spec:
               mountPath: /app/resources/log4j2.xml
               subPath: log4j2.xml
         - name: rethinkdb-ast-service
-          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/rethinkdb-ast-service:0.2.3
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true

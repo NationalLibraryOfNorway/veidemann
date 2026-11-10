@@ -72,7 +72,7 @@ spec:
             - name: browser-storage
               mountPath: /browser-storage
         - name: generate-recorder-mitm-cert
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.9
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.10
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
@@ -93,7 +93,7 @@ spec:
               mountPath: /var/run/recorderproxy
       containers:
         - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.10.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.10.1
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
@@ -177,7 +177,7 @@ spec:
               subPath: tls.crt
               readOnly: true
         - name: recorderproxy
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.9
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.10
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
