@@ -1,5 +1,27 @@
 # Release helper scripts
 
+## Syncing the Kubernetes base
+
+`sync-k8s-base.sh` mirrors `deploy/k8s/base` into an existing base directory in
+a local deployment checkout. First review the recursive diff and rsync preview:
+
+```bash
+./hack/sync-k8s-base.sh /path/to/deployment/base
+```
+
+The diff shows changes from the deployment base to the Veidemann base. If the
+deployment base contains changes worth keeping, manually backport them into
+`deploy/k8s/base` and run the preview again. Once the changes are ready, apply
+them with:
+
+```bash
+./hack/sync-k8s-base.sh --apply /path/to/deployment/base
+```
+
+Apply prints the current preview before syncing. It overwrites differing files
+and deletes files and directories that exist only in the deployment base. The
+script does not perform backports or commit either checkout.
+
 ## Updating Go build tools
 
 `update-go-tools.sh` updates tools declared in `tools/go.mod`. With no tool
