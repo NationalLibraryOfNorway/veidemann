@@ -170,13 +170,19 @@ tools used elsewhere in the repository rather than producing a release.
 
 For each module, it determines:
 
-- The latest commit that touched the module directory
+- The latest commit that touched the module directory or its tracked shared inputs
 - The most recent tag matching `<module>-v<major>.<minor>.<patch>`
 - The proposed next version tag when the module is not already current
 - The subject and date of the latest module commit
 
-Tags are created on the latest commit that changed the module, which may be an earlier commit than `HEAD`.
-A module is current when its latest version tag points to that commit. Current
+For `rethinkdbadapter`, `frontier`, and `controller`, changes to `commons/`,
+`java-api/`, `proto/`, and `gradle/libs.versions.toml` also count when selecting
+a commit, checking whether a module is current, and filtering with
+`--changed-since`. Changes to `rethinkdbadapter/` also count for `frontier` and
+`controller`, which depend on it.
+
+Tags are created on the latest commit that changed these paths, which may be an earlier commit than `HEAD`.
+A module is current when its tracked paths match its latest version tag. Current
 modules remain in the report with `-` as their proposed version and are skipped
 when creating tags.
 
@@ -390,8 +396,7 @@ The script creates the next patch tag locally and pushes it to `origin`.
 
 ### 9. Tag modules at an explicit commit
 
-Use `--commit` when a release-relevant change is outside the module directory,
-such as a dependency update in `gradle/libs.versions.toml`:
+Use `--commit` to select a particular repository snapshot, for example:
 
 ```bash
 ./module-tags.sh --tag --commit HEAD controller frontier
@@ -400,8 +405,8 @@ such as a dependency update in `gradle/libs.versions.toml`:
 The ref must resolve to a commit reachable from `HEAD`, contain each selected
 module, and not predate its previous tag. Explicit module names are required so
 the same override is not accidentally applied to every module. Without
-`--commit`, each tag continues to target the latest commit that changed its
-module directory.
+`--commit`, each tag targets the latest commit that changed its module directory
+or tracked shared inputs.
 
 ### 10. Create and push multiple tags one-by-one
 

@@ -186,12 +186,10 @@ module_tag_commit() {
 }
 
 latest_module_commit() {
-    local module_path="$1"
-
     git log \
         -1 \
         --format='%H' \
-        -- "$module_path"
+        -- "$@"
 }
 
 latest_module_commit_date() {
@@ -214,9 +212,9 @@ latest_module_commit_subject() {
 
 module_changed_since() {
     local ref="$1"
-    local module_path="$2"
+    shift
 
-    ! git diff --quiet "$ref"...HEAD -- "$module_path"
+    ! git diff --quiet "$ref"...HEAD -- "$@"
 }
 
 discover_modules() {
@@ -404,6 +402,7 @@ main() {
     local proposed_tag
     local proposed_tag_display
     local is_current
+    local -a module_paths
     local -a created_tags=()
 
     printf '%-28s %-12s %-10s %-16s %-16s %s\n' \
@@ -429,9 +428,21 @@ main() {
 
         validate_module "$module"
         module_path="${MODULE_ROOT%/}/$module"
+        module_paths=("$module_path")
+        # Root Java components share libraries, generated API sources and catalog.
+        if [[ "$(cd "$MODULE_ROOT" && pwd -P)" == "$(pwd -P)" ]]; then
+            case "$module" in
+                rethinkdbadapter|frontier|controller)
+                    module_paths+=("gradle/libs.versions.toml" "commons" "java-api" "proto")
+                    ;;
+            esac
+            case "$module" in
+                frontier|controller) module_paths+=("rethinkdbadapter") ;;
+            esac
+        fi
 
         if [[ -n "$CHANGED_SINCE" ]] &&
-            ! module_changed_since "$CHANGED_SINCE" "$module_path"; then
+            ! module_changed_since "$CHANGED_SINCE" "${module_paths[@]}"; then
             continue
         fi
 
@@ -440,7 +451,7 @@ main() {
             git cat-file -e "${commit}:${module_path#./}" 2>/dev/null ||
                 die "Module path '$module_path' does not exist at --commit $COMMIT_REF"
         else
-            commit="$(latest_module_commit "$module_path")"
+            commit="$(latest_module_commit "${module_paths[@]}")"
         fi
 
         # The directory may exist locally without ever having been committed.
@@ -473,7 +484,7 @@ main() {
                 if [[ "$previous_tag_commit" == "$commit" ]]; then
                     is_current=true
                 fi
-            elif git diff --quiet "$previous_tag_commit" HEAD -- "$module_path"; then
+            elif git diff --quiet "$previous_tag_commit" HEAD -- "${module_paths[@]}"; then
                 # An explicit tag may point at a later commit that changed shared
                 # files but not this module directory.
                 is_current=true
