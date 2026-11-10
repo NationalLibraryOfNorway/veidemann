@@ -4,8 +4,8 @@ go 1.26.0
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.4
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6
-	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.9
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7
+	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10
 	github.com/chromedp/cdproto v0.159.2
 	github.com/chromedp/chromedp v0.23.0
 	github.com/gobwas/ws v1.4.0
@@ -73,6 +73,7 @@ require (
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
+	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.26.9 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect

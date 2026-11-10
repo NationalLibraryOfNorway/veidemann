@@ -10,10 +10,10 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.4 h1:VHBF5xtBHM3m34yPwDSkXEDxDBgfGGGdAy6ABWfAmlg=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.4/go.mod h1:wbROi5pxRz2zhGcABkZNjYJYqOLvXFKkdH7OA7ucPWw=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6 h1:sZq8zim9mCD88IPDdXsQmEC4J1Di/1jCTZlNR/aeTyw=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6/go.mod h1:FYoXByiPrMrvp7Css9gYWOJqGYFLFKjsLQmsZVJmtGE=
-github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.9 h1:ansNA18AuIl/fWHC40OkMQTaAopzKN+E+2MedDo705w=
-github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.9/go.mod h1:shFdCgPk8pzzucKSrglFekUXeHNjXPG+oNnLCALNZj8=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7 h1:wA7ZEfKIDEYSRK5ejXA1b5EDhjREOnMBuAGl2HsczW4=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7/go.mod h1:U5DcUReIYEnC0Qp9tX90T83NSJdCBTVwvhcwBaRV3uo=
+github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10 h1:KXOu1wf0b+XOV6KDk6nzFg7rAMT5kKsVyq+50deOoYg=
+github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10/go.mod h1:MepjbDXeSJ3M4uksOy1ZOxI0PftTs9OnVgNCInPU5EI=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bitly/go-hostpool v0.1.0 h1:XKmsF6k5el6xHG3WPJ8U0Ku/ye7njX7W81Ng7O2ioR0=
@@ -163,8 +163,8 @@ github.com/prometheus/common v0.72.0 h1:tAYsE+sPJxIncDAobm4H5aQjmox9ZxEIIqPbiffa
 github.com/prometheus/common v0.72.0/go.mod h1:77NWqAQ2tXT7BIK40qjJdw5Acrsrg1TlHAnsQi3i6mk=
 github.com/prometheus/procfs v0.22.0 h1:6q9+/JL9IKAPbCmBrv9n5O5Ty3NKnciV5X7YGw0oics=
 github.com/prometheus/procfs v0.22.0/go.mod h1:CvmFr/GVhIjIvWJZW3tgkODBQMRIf0EyWMQLHCHab58=
-github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
-github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
+github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
+github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
 github.com/sagikazarmark/locafero v0.12.0 h1:/NQhBAkUb4+fH1jivKHWusDYFjMOOKU88eegjfxfHb4=
 github.com/sagikazarmark/locafero v0.12.0/go.mod h1:sZh36u/YSZ918v0Io+U9ogLYQJ9tLLBmM4eneO6WwsI=
 github.com/shirou/gopsutil/v4 v4.26.9 h1:CaBo/hBFqvlJoLvAQEKdHdf5GD97/MN2ACfyv63+2Ig=

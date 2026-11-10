@@ -1,8 +1,8 @@
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.4 h1:VHBF5xtBHM3m34yPwDSkXEDxDBgfGGGdAy6ABWfAmlg=
 github.com/NationalLibraryOfNorway/veidemann/api v1.5.4/go.mod h1:wbROi5pxRz2zhGcABkZNjYJYqOLvXFKkdH7OA7ucPWw=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6 h1:sZq8zim9mCD88IPDdXsQmEC4J1Di/1jCTZlNR/aeTyw=
-github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.6/go.mod h1:FYoXByiPrMrvp7Css9gYWOJqGYFLFKjsLQmsZVJmtGE=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7 h1:wA7ZEfKIDEYSRK5ejXA1b5EDhjREOnMBuAGl2HsczW4=
+github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7/go.mod h1:U5DcUReIYEnC0Qp9tX90T83NSJdCBTVwvhcwBaRV3uo=
 github.com/RoaringBitmap/roaring v1.9.4 h1:yhEIoH4YezLYT04s1nHehNO64EKFTop/wBhxv2QzDdQ=
 github.com/RoaringBitmap/roaring v1.9.4/go.mod h1:6AXUsoIEzDTFFQCe1RbGA6uFONMhvejWj5rqITANK90=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -187,8 +187,8 @@ github.com/quic-go/quic-go v0.61.0 h1:ui88A53s8MSVYLC56en0KQ17HARk+9986Dn0SBfKNv
 github.com/quic-go/quic-go v0.61.0/go.mod h1:9So2anK4Tp22URSQq00k+Vo2PNkle96ycDPDHL4s9vs=
 github.com/redis/go-redis/v9 v9.22.0 h1:laDvpYXTJtZLloinw1fA5Kqd6HAEH2XKxOkG/PDq2F0=
 github.com/redis/go-redis/v9 v9.22.0/go.mod h1:y2g0Wj8rQvuK0ELM+oxSudcLtC09JScs98I/X9gRWY4=
-github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
-github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
+github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
+github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 h1:nn5Wsu0esKSJiIVhscUtVbo7ada43DJhG55ua/hjS5I=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
