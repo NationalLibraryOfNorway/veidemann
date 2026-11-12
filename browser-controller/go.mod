@@ -8,7 +8,7 @@ require (
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10
 	github.com/chromedp/cdproto v0.159.2
 	github.com/chromedp/chromedp v0.23.0
-	github.com/gobwas/ws v1.4.0
+	github.com/gobwas/ws v1.5.0
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
 	github.com/nlnwa/whatwg-url v0.6.2
@@ -49,7 +49,6 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
-	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/klauspost/compress v1.20.1 // indirect
