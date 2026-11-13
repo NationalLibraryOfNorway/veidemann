@@ -46,9 +46,6 @@ updates:
           - "github.com/spf13/pflag"
           - "github.com/spf13/cobra"
           - "github.com/spf13/viper"
-    ignore:
-      # chromedp is maintained as a patched subtree for browser-controller.
-      - dependency-name: "github.com/chromedp/chromedp"
     labels:
       - "dependencies"
     commit-message:
