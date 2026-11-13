@@ -42,7 +42,7 @@
     "@angular/platform-browser": "^22.2.5",
     "@angular/router": "^22.2.5",
     "@bufbuild/protobuf": "^2.16.0",
-    "@casl/ability": "^7.0.2",
+    "@casl/ability": "^7.1.2",
     "@casl/angular": "^10.0.3",
     "@connectrpc/connect": "^2.3.0",
     "@connectrpc/connect-web": "^2.3.0",
