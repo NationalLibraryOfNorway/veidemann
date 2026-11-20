@@ -2,6 +2,29 @@ package url
 
 import "testing"
 
+func TestNormalize(t *testing.T) {
+	tests := []struct {
+		name, input, want string
+	}{
+		{"IDN", "https://BÜCHER.example/", "https://xn--bcher-kva.example/"},
+		{"default HTTP port", "http://Example.COM:80", "http://example.com/"},
+		{"default HTTPS port", "https://Example.COM:443/a", "https://example.com/a"},
+		{"nondefault port", "https://example.com:8443/a", "https://example.com:8443/a"},
+		{"escaped path", "https://example.com/a%2Fb/%2520?q=a+b%2Bc", "https://example.com/a%2Fb/%2520?q=a+b%2Bc"},
+		{"dot segments", "https://example.com/a/../b", "https://example.com/b"},
+		{"invalid host fallback", "http://[invalid]/", "http://[invalid]/"},
+		{"invalid port fallback", "https://example.com:99999/", "https://example.com:99999/"},
+		{"relative fallback", "/relative/path", "/relative/path"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Normalize(tt.input); got != tt.want {
+				t.Fatalf("Normalize(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsBrowserLocal(t *testing.T) {
 	tests := []struct {
 		name string

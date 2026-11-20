@@ -19,7 +19,7 @@ package url
 import (
 	"strings"
 
-	"github.com/nlnwa/whatwg-url/url"
+	"github.com/nationallibraryofnorway/whatwg-url/url"
 )
 
 func Normalize(u string) string {
