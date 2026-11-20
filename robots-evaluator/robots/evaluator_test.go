@@ -437,3 +437,34 @@ func TestCacheKeySeparatesHostnameAndPort(t *testing.T) {
 		t.Fatalf("cache key = %q, want %q", key, want)
 	}
 }
+
+func TestRobotsLocation(t *testing.T) {
+	tests := []struct {
+		name, input, wantURL, wantKey string
+	}{
+		{"default HTTP port", "http://Example.COM:80/a?q=1#fragment", "http://example.com/robots.txt", "robots|collection-a|http|example.com|80"},
+		{"default HTTPS port", "https://example.com:443/a/b", "https://example.com/robots.txt", "robots|collection-a|https|example.com|443"},
+		{"implicit HTTPS port", "https://example.com/a", "https://example.com/robots.txt", "robots|collection-a|https|example.com|443"},
+		{"nondefault port", "https://example.com:8443/a", "https://example.com:8443/robots.txt", "robots|collection-a|https|example.com|8443"},
+		{"IPv6 default port", "http://[2001:0db8::1]:80/a", "http://[2001:db8::1]/robots.txt", "robots|collection-a|http|[2001:db8::1]|80"},
+		{"IPv6 nondefault port", "https://[2001:db8::1]:8443/a", "https://[2001:db8::1]:8443/robots.txt", "robots|collection-a|https|[2001:db8::1]|8443"},
+		{"IDN", "https://bücher.example/a", "https://xn--bcher-kva.example/robots.txt", "robots|collection-a|https|xn--bcher-kva.example|443"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := allowedRequest(tt.input, "collection-a", "execution-1", "job-1")
+			gotURL, gotKey, err := robotsLocation(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if gotURL != tt.wantURL || gotKey != tt.wantKey {
+				t.Fatalf("robotsLocation(%q) = (%q, %q), want (%q, %q)", tt.input, gotURL, gotKey, tt.wantURL, tt.wantKey)
+			}
+		})
+	}
+	for _, input := range []string{"http://[invalid]/", "https://example.com:99999/a"} {
+		if _, _, err := robotsLocation(allowedRequest(input, "collection-a", "execution-1", "job-1")); err == nil {
+			t.Errorf("robotsLocation(%q) succeeded, want an error", input)
+		}
+	}
+}
