@@ -17,7 +17,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/upload"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/minio/minio-go/v7"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/errgroup"

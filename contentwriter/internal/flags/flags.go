@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )

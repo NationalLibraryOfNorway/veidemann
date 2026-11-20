@@ -19,7 +19,7 @@ package flags
 import (
 	"time"
 
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 )
 
 type Mock struct {

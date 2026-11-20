@@ -29,7 +29,7 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/google/uuid"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -37,6 +37,20 @@ import (
 var Now = time.Now
 
 const warcFileScheme = "warcfile"
+
+// RecordOptions preserves contentwriter's digest and repair defaults with gowarc v3.
+func RecordOptions(overrides ...gowarc.WarcRecordOption) []gowarc.WarcRecordOption {
+	return append([]gowarc.WarcRecordOption{
+		gowarc.WithDefaultDigestAlgorithm("sha1"),
+		gowarc.WithDefaultDigestEncoding(gowarc.Base32),
+		gowarc.WithAddMissingRecordId(true),
+		gowarc.WithAddMissingContentLength(true),
+		gowarc.WithAddMissingDigest(true),
+		gowarc.WithFixContentLength(true),
+		gowarc.WithFixDigest(true),
+		gowarc.WithFixSyntaxErrors(true),
+	}, overrides...)
+}
 
 type warcWriter struct {
 	fileWriterOpts []gowarc.WarcFileWriterOption
@@ -90,7 +104,7 @@ func New(
 		gowarc.WithAddWarcConcurrentToHeader(true),
 		gowarc.WithFlush(opts.Flush),
 		gowarc.WithMaxConcurrentWriters(opts.PoolSize),
-		gowarc.WithRecordOptions(gowarc.WithVersion(ww.warcVersion)),
+		gowarc.WithRecordOptions(RecordOptions(gowarc.WithVersion(ww.warcVersion))...),
 		gowarc.WithAfterFileCreationHook(opts.AfterFileCreationHook),
 	}
 

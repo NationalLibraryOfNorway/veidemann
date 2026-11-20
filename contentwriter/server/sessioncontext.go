@@ -25,7 +25,8 @@ import (
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
-	"github.com/nlnwa/gowarc"
+	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 )
 
 type writeSessionContext struct {
@@ -41,7 +42,7 @@ type writeSessionContext struct {
 func newWriteSessionContext(configAdapter database.ConfigAdapter, recordOpts []gowarc.WarcRecordOption) *writeSessionContext {
 	return &writeSessionContext{
 		configAdapter:  configAdapter,
-		recordOpts:     recordOpts,
+		recordOpts:     writer.RecordOptions(recordOpts...),
 		records:        make(map[int32]gowarc.WarcRecord),
 		recordBuilders: make(map[int32]gowarc.WarcRecordBuilder),
 	}
@@ -126,12 +127,12 @@ func (s *writeSessionContext) validateSession(ctx context.Context) error {
 			rb.AddWarcHeader(gowarc.WarcConcurrentTo, "<urn:uuid:"+wct+">")
 		}
 
-		wr, val, err := rb.Build()
+		wr, validationErrors, err := rb.Build()
 		if err != nil {
 			return fmt.Errorf("failed to build record number %d: %w", k, err)
 		}
-		if !val.Valid() {
-			return fmt.Errorf("failed to validate record number %d: %w", k, val)
+		if err := errors.Join(validationErrors...); err != nil {
+			return fmt.Errorf("failed to validate record number %d: %w", k, err)
 		}
 		s.records[k] = wr
 	}

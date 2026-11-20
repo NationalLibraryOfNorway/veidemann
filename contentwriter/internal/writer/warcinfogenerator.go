@@ -21,7 +21,7 @@ import (
 	"os"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 )
 
 func (ww *warcWriter) warcInfoGenerator(recordBuilder gowarc.WarcRecordBuilder) error {

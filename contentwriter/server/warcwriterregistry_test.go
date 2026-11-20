@@ -23,7 +23,7 @@ import (
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 	"github.com/stretchr/testify/assert"
 )
 

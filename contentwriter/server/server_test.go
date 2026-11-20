@@ -32,7 +32,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/go-redis/redismock/v9"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

@@ -18,7 +18,7 @@ package writer
 
 import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 )
 
 func fromGowarcRecordType(recordType gowarc.RecordType) contentwriterV1.RecordType {

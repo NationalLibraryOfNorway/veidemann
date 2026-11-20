@@ -24,7 +24,7 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 )
 
 type WarcWriter interface {
