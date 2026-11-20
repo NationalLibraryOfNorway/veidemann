@@ -125,7 +125,7 @@ func TestScopeCheckerServer_ScopeCheck(t *testing.T) {
 				Error: &commonsV1.Error{
 					Code:   -7,
 					Msg:    "error parsing uri",
-					Detail: "Error: The host contains a forbidden domain code point: '\x00'. Url: 'http://%00foo.bar/aa bb/cc?jsessionid=1&foo#bar'",
+					Detail: "URL parse failure: the host contains a forbidden domain code point",
 				},
 			}},
 	}

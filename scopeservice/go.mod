@@ -1,10 +1,10 @@
 module github.com/NationalLibraryOfNorway/veidemann/scopeservice
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.5.4
-	github.com/nlnwa/whatwg-url v0.6.2
+	github.com/nationallibraryofnorway/whatwg-url v0.9.1
 	github.com/opentracing-contrib/go-grpc v0.1.4
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -15,6 +15,7 @@ require (
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
 	golang.org/x/net v0.62.0
 	golang.org/x/sync v0.25.0
+	golang.org/x/text v0.43.0
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 )
@@ -22,7 +23,6 @@ require (
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.25.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
@@ -40,6 +40,5 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
 )

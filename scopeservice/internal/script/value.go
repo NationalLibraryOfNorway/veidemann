@@ -5,7 +5,7 @@ import (
 
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
-	"github.com/nlnwa/whatwg-url/url"
+	"github.com/nationallibraryofnorway/whatwg-url/url"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )

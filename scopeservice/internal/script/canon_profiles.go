@@ -1,36 +1,24 @@
 package script
 
 import (
-	"github.com/nlnwa/whatwg-url/canonicalizer"
-	"github.com/nlnwa/whatwg-url/url"
+	"github.com/nationallibraryofnorway/whatwg-url/canonicalizer"
+	"github.com/nationallibraryofnorway/whatwg-url/url"
 )
 
 var ScopeCanonicalizationProfile url.Parser
 var CrawlCanonicalizationProfile url.Parser
 
 func InitializeCanonicalizationProfiles(includeFragment bool) {
-	opts := []url.ParserOption{
-		url.WithCollapseConsecutiveSlashes(),
-		url.WithSkipEqualsForEmptySearchParamsValue(),
-		canonicalizer.WithRemoveUserInfo(),
-		canonicalizer.WithRepeatedPercentDecoding(),
-		canonicalizer.WithSortQuery(canonicalizer.SortKeys),
-		canonicalizer.WithDefaultScheme("http"),
-	}
+	parser := url.NewParser(url.WithCollapseConsecutiveSlashes())
+	rules := []canonicalizer.Rule{canonicalizer.RemoveUserInfo}
 	if !includeFragment {
-		opts = append(opts, canonicalizer.WithRemoveFragment())
+		rules = append(rules, canonicalizer.RemoveFragment)
 	}
-	ScopeCanonicalizationProfile = canonicalizer.New(opts...)
-
-	opts = []url.ParserOption{
-		url.WithCollapseConsecutiveSlashes(),
-		url.WithSkipEqualsForEmptySearchParamsValue(),
-		canonicalizer.WithRemoveUserInfo(),
-		canonicalizer.WithSortQuery(canonicalizer.SortKeys),
-		canonicalizer.WithDefaultScheme("http"),
-	}
-	if !includeFragment {
-		opts = append(opts, canonicalizer.WithRemoveFragment())
-	}
-	CrawlCanonicalizationProfile = canonicalizer.New(opts...)
+	// Sort serialized query terms without form-decoding them, preserving literal
+	// '+' and empty terms. Retain the policy that "flag=" canonicalizes to "flag".
+	rules = append(rules, canonicalizer.SortQuery, canonicalizer.RemoveEmptyQueryEquals)
+	CrawlCanonicalizationProfile = canonicalizer.New(rules...).
+		WithParser(parser).WithDefaultScheme("http")
+	ScopeCanonicalizationProfile = canonicalizer.New(canonicalizer.RepeatedPercentDecoding()).
+		Then(rules...).WithParser(parser).WithDefaultScheme("http")
 }
