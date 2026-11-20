@@ -16,7 +16,6 @@ library](https://github.com/google/robotstxt).
 
 - Direct function-for-function conversion/port
 - Follows the original parser and matcher, with the Go extensions described below
-- All 100% of original test suite functionality
 - Minor language-specific cleanups
 - Added a helper to extract Sitemap URIs
 - Super simple API
@@ -44,13 +43,7 @@ Package grobotstxt aims to be a faithful conversion, from C++ to Go, of Google's
 
 #### For developers
 
-Get the package (only needed if not using modules):
-
-```bash
-go test ./grobotstxt/...
-```
-
-Use the package within your code (see examples below):
+Import the vendored package from Veidemann:
 
 ```go
 import "github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/grobotstxt"
@@ -131,7 +124,7 @@ Run `go test ./grobotstxt/...` from the `robots-evaluator` directory.
 For a full coverage report, try:
 
 ```bash
-go test -coverprofile=coverage.out && go tool cover -html=coverage.out
+go test ./grobotstxt -coverprofile=coverage.out && go tool cover -html=coverage.out
 ```
 
 ## Notes

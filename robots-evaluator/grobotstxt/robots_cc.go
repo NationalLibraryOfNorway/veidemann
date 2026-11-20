@@ -173,7 +173,7 @@ func escapePattern(path string) string {
 			out.WriteByte(path[i])
 		}
 	}
-	return string(out.Bytes())
+	return out.String()
 }
 
 const hexDigits = "0123456789ABCDEF"
@@ -282,7 +282,7 @@ func (p *Parser) parseAndEmitLine(lineNum int, line string, tooLong bool) {
 			if sep := strings.IndexAny(line, " \t"); sep >= 0 {
 				key = line[:sep]
 				value = strings.TrimLeft(line[sep:], " \t")
-				metadata.IsMissingColonSeparator = strings.IndexAny(value, " \t") < 0
+				metadata.IsMissingColonSeparator = !strings.ContainsAny(value, " \t")
 			}
 		}
 		key = strings.Trim(key, whitespace)
@@ -349,10 +349,7 @@ func (p *Parser) Parse() {
 	lastWasCarriageReturn := false
 	start := cur
 	end := cur
-	for {
-		if cur == length {
-			break
-		}
+	for cur < length {
 		b = p.robotsBody[cur]
 		cur++
 		if b != 0x0A && b != 0x0D { // Non-line-ending char case.

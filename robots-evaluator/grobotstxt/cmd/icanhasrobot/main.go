@@ -40,7 +40,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -48,7 +47,7 @@ import (
 )
 
 func loadFile(filename string) (string, error) {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +61,7 @@ func showHelp(argv []string) {
 		" is allowed or disallowed by the given robots.txt file.\n\n")
 	fmt.Fprint(os.Stderr, "Usage:\n"+
 		"  "+argv[0]+" <robots.txt filename> <user_agents> <URI>\n\n")
-	// fmt.Fprint(os.Stderr, "The URI must be %-encoded according to RFC3986.\n\n")
+	fmt.Fprint(os.Stderr, "The URI must be an absolute URL with a hierarchical path.\n\n")
 	fmt.Fprint(os.Stderr, "The user_agents may be a single UA or a comma-separated string.\n\n")
 	fmt.Fprint(os.Stderr, "Example:\n"+
 		"  "+argv[0]+" robots.txt FooBot http://example.com/foo\n")
@@ -105,9 +104,9 @@ func main() {
 		m += "DISALLOWED"
 	}
 	m += "\n"
-	fmt.Fprint(os.Stdout, m)
-	if len(robotsContent) == 0 {
-		fmt.Fprint(os.Stdout, "notice: robots file is empty so all user-agents are allowed\n")
+	_, _ = fmt.Fprint(os.Stdout, m)
+	if len(robotsContent) == 0 && allowed {
+		_, _ = fmt.Fprint(os.Stdout, "notice: robots file is empty so all user-agents are allowed\n")
 	}
 
 	if allowed {
