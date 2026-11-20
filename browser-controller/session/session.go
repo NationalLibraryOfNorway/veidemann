@@ -280,6 +280,11 @@ func (sess *Session) stopLoading() error {
 	return err
 }
 
+// RobotsUserAgent returns the configured crawler identifier used for robots evaluation.
+func (sess *Session) RobotsUserAgent() string {
+	return sess.browserConfig.GetUserAgent()
+}
+
 func (sess *Session) Context() context.Context {
 	return sess.ctx
 }

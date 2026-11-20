@@ -222,7 +222,7 @@ func (a *ApiServer) isAllowedByRobots(ctx context.Context, sess *session.Session
 		JobExecutionId: sess.RequestedUrl.JobExecutionId,
 		ExecutionId:    sess.RequestedUrl.ExecutionId,
 		Uri:            uri,
-		UserAgent:      sess.UserAgent,
+		UserAgent:      sess.RobotsUserAgent(),
 		Politeness:     sess.PolitenessConfig,
 		CollectionRef:  sess.CrawlConfig.CollectionRef,
 	})

@@ -194,7 +194,13 @@ func TestRegisterResourceAcceptsMatchingExecution(t *testing.T) {
 	active := serverSession(t, 1, "active")
 	request := &requests.Request{ID: "network-1", URL: "https://example.com/", ResourceType: "Other"}
 	active.ObserveRequest(*request)
-	server := NewApiServer(newMutableSessionLookup(active), &testutil.RobotsEvaluatorMock{}, nil)
+	active.UserAgent = "Mozilla/5.0 Chrome/test"
+	var sent *robotsevaluatorV1.IsAllowedRequest
+	robots := &testutil.RobotsEvaluatorMock{IsAllowedFunc: func(req *robotsevaluatorV1.IsAllowedRequest) bool {
+		sent = req
+		return true
+	}}
+	server := NewApiServer(newMutableSessionLookup(active), robots, nil)
 
 	reply, err := server.RegisterResource(context.Background(), &browsercontrollerV2.RegisterResourceRequest{
 		ProxyId:          int32(active.Id),
@@ -205,6 +211,9 @@ func TestRegisterResourceAcceptsMatchingExecution(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if sent == nil || sent.GetUserAgent() != "" {
+		t.Fatalf("expected empty configured robots identifier in request, got %v", sent)
 	}
 	if reply.GetRegistered() == nil {
 		t.Fatalf("reply = %v, want registered", reply)
