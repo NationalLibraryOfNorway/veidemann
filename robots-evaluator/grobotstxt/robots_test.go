@@ -25,6 +25,7 @@
 package grobotstxt_test
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/grobotstxt"
@@ -907,5 +908,61 @@ func expectEqual[T comparable](t *testing.T, want, got T) {
 	t.Helper()
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+type callbackPatterns struct {
+	*grobotstxt.RobotsMatcher
+	allow, disallow, unknown string
+}
+
+func (h *callbackPatterns) HandleAllow(_ int, s string)            { h.allow = s }
+func (h *callbackPatterns) HandleDisallow(_ int, s string)         { h.disallow = s }
+func (h *callbackPatterns) HandleUnknownAction(_ int, _, s string) { h.unknown = s }
+
+type strategyPatterns struct {
+	allow, disallow string
+}
+
+func (s *strategyPatterns) MatchAllow(_, pattern string) int {
+	s.allow = pattern
+	return -1
+}
+
+func (s *strategyPatterns) MatchDisallow(_, pattern string) int {
+	s.disallow = pattern
+	return -1
+}
+
+func TestRuleRepresentations(t *testing.T) {
+	const pattern = "/café/%63%2f"
+	const rules = "User-agent: *\nAllow: " + pattern + "\nDisallow: " + pattern + "\nOther: " + pattern
+	callbacks := &callbackPatterns{RobotsMatcher: grobotstxt.NewRobotsMatcher()}
+	grobotstxt.Parse(rules, callbacks)
+	const escaped = "/caf%C3%A9/%63%2F"
+	if callbacks.allow != escaped || callbacks.disallow != escaped || callbacks.unknown != escaped {
+		t.Fatalf("public callbacks: allow %q, disallow %q, unknown %q; want %q", callbacks.allow, callbacks.disallow, callbacks.unknown, escaped)
+	}
+
+	m := grobotstxt.NewRobotsMatcher()
+	strategy := &strategyPatterns{}
+	m.MatchStrategy = strategy
+	m.AgentAllowed(rules, "Bot", "https://example.org/")
+	const normalized = "/caf%C3%A9/c%2F"
+	if strategy.allow != normalized || strategy.disallow != normalized {
+		t.Fatalf("strategy: allow %q, disallow %q; want %q", strategy.allow, strategy.disallow, normalized)
+	}
+}
+
+func TestSitemapsOnly(t *testing.T) {
+	const first = "https://example.org/café/%63.xml"
+	const second = "https://example.org/two.xml"
+	const rules = "Sitemap: " + first + " # comment\nUser-agent: Bot\nAllow: /é\nSite-map: " + second +
+		"\nOther: /%63\nDisallow: /%2f\n# Sitemap: ignored\nSitemap: " + first
+	if got := grobotstxt.Sitemaps(rules); !slices.Equal(got, []string{first, second, first}) {
+		t.Errorf("sitemaps = %q, want %q, %q, %q", got, first, second, first)
+	}
+	if got := grobotstxt.Sitemaps("User-agent: *\nDisallow: /"); got != nil {
+		t.Errorf("sitemaps = %q, want nil", got)
 	}
 }

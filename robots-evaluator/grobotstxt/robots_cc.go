@@ -246,10 +246,19 @@ func startsWithIgnoreCase(text, prefix string) bool {
 	return true
 }
 
+type parserMode uint8
+
+const (
+	publicCallbacks parserMode = iota
+	matchRules
+	extractSitemaps
+)
+
 type Parser struct {
 	// Line :278
 	robotsBody string // TODO Should be []byte
 	handler    ParseHandler
+	mode       parserMode
 }
 
 func NewParser(robotsBody string, handler ParseHandler) *Parser {
@@ -257,6 +266,13 @@ func NewParser(robotsBody string, handler ParseHandler) *Parser {
 	p := Parser{
 		robotsBody: robotsBody,
 		handler:    handler,
+	}
+	// Only the built-in consumers can skip preparation of public callback values.
+	switch handler.(type) {
+	case *RobotsMatcher:
+		p.mode = matchRules
+	case *sitemapExtractor:
+		p.mode = extractSitemaps
 	}
 	return &p
 }
@@ -288,23 +304,42 @@ func (p *Parser) parseAndEmitLine(lineNum int, line string, tooLong bool) {
 			metadata.HasDirective = true
 			kind, typo := GetKeyType(key)
 			metadata.IsAcceptableTypo = typo
-			value = strings.Trim(value, whitespace)
-			switch kind {
-			case KeyUserAgent:
-				p.handler.HandleUserAgent(lineNum, value)
-			case KeySitemap:
-				p.handler.HandleSitemap(lineNum, value)
-			case KeyAllow:
-				p.handler.HandleAllow(lineNum, escapePattern(value))
-			case KeyDisallow:
-				p.handler.HandleDisallow(lineNum, escapePattern(value))
-			default:
-				p.handler.HandleUnknownAction(lineNum, key, escapePattern(value))
-			}
+			p.emitDirective(lineNum, kind, key, strings.Trim(value, whitespace))
 		}
 	}
 	if reporter, ok := p.handler.(LineMetadataReporter); ok {
 		reporter.ReportLineMetadata(lineNum, metadata)
+	}
+}
+
+func (p *Parser) emitDirective(lineNum int, kind KeyType, key, value string) {
+	switch p.mode {
+	case extractSitemaps:
+		if kind == KeySitemap {
+			p.handler.HandleSitemap(lineNum, value)
+		}
+		return
+	case matchRules:
+		if kind == KeyUnknown || kind == KeySitemap {
+			return
+		}
+	case publicCallbacks:
+		if kind == KeyAllow || kind == KeyDisallow || kind == KeyUnknown {
+			value = escapePattern(value)
+		}
+	}
+
+	switch kind {
+	case KeyUserAgent:
+		p.handler.HandleUserAgent(lineNum, value)
+	case KeySitemap:
+		p.handler.HandleSitemap(lineNum, value)
+	case KeyAllow:
+		p.handler.HandleAllow(lineNum, value)
+	case KeyDisallow:
+		p.handler.HandleDisallow(lineNum, value)
+	case KeyUnknown:
+		p.handler.HandleUnknownAction(lineNum, key, value)
 	}
 }
 
