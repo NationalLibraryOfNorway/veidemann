@@ -272,6 +272,28 @@ func TestProductTokensAndAliases(t *testing.T) {
 	}
 }
 
+func TestMatcherReuseAfterInvalidURL(t *testing.T) {
+	const uri = "https://example.org/book"
+	const rules = "User-agent: Bot\nDisallow: /book"
+	m := NewRobotsMatcher()
+	strategy := &LongestMatchStrategy{}
+	m.MatchStrategy = strategy
+	for _, invalid := range []string{"relative", "https://[invalid]/", "data:text/plain,book"} {
+		if allowed, err := m.AgentsAllowedWithError(rules, []string{"Bot"}, uri); allowed || err != nil || m.MatchingLine() != 2 {
+			t.Fatalf("valid match = (%t, %v), line %d", allowed, err, m.MatchingLine())
+		}
+		if allowed, err := m.AgentsAllowedWithError("", nil, invalid); allowed || err == nil {
+			t.Errorf("invalid %q = (%t, %v)", invalid, allowed, err)
+		}
+		if m.MatchingLine() != 0 || m.EverSeenSpecificAgent() || m.Disallowed() || m.DisallowedIgnoreGlobal() || m.MatchStrategy != strategy {
+			t.Fatalf("matcher retained a result or lost its strategy after %q", invalid)
+		}
+	}
+	if !m.AgentAllowed("", "Bot", uri) {
+		t.Error("expected valid URL to be allowed after invalid input")
+	}
+}
+
 func TestRobotsFileImplicitAllow(t *testing.T) {
 	m := NewRobotsMatcher()
 	const rules = "User-agent: Bot\nDisallow: /\nDisallow: /robots.txt"

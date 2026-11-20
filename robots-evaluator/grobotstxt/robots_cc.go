@@ -30,6 +30,7 @@
 package grobotstxt
 
 import (
+	"errors"
 	"strings"
 	"unicode"
 
@@ -481,9 +482,22 @@ func (m *RobotsMatcher) init(userAgents []string, path string) {
 // It parses an absolute hierarchical URL using WHATWG rules, and returns
 // false if the URL cannot be parsed or has an opaque path.
 func (m *RobotsMatcher) AgentsAllowed(robotsBody string, userAgents []string, uri string) bool {
+	allowed, _ := m.AgentsAllowedWithError(robotsBody, userAgents, uri)
+	return allowed
+}
+
+// AgentsAllowedWithError evaluates the same aliases as AgentsAllowed and returns
+// an error for an invalid or opaque URL. On error, no robots rule has matched.
+func (m *RobotsMatcher) AgentsAllowedWithError(robotsBody string, userAgents []string, uri string) (bool, error) {
 	u, err := url.Parse(uri)
-	if err != nil || u.OpaquePath() {
-		return false
+	if err == nil && u.OpaquePath() {
+		err = errors.New("URL has an opaque path")
+	}
+	if err != nil {
+		m.path = ""
+		m.userAgents = nil
+		m.HandleRobotsStart()
+		return false, err
 	}
 	path := u.Pathname()
 	if path == "" {
@@ -494,7 +508,7 @@ func (m *RobotsMatcher) AgentsAllowed(robotsBody string, userAgents []string, ur
 	if query == "" && strings.HasSuffix(u.Href(true), "?") {
 		query = "?"
 	}
-	return m.agentsAllowedOnPath(robotsBody, userAgents, path+query)
+	return m.agentsAllowedOnPath(robotsBody, userAgents, path+query), nil
 }
 
 // agentsAllowedOnPath applies Google's matcher to an already escaped path and query.

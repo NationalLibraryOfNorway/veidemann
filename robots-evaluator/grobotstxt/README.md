@@ -137,6 +137,8 @@ A query-free allow rule ending in an exact `index.htm` or `index.html` filename 
 allow the parent directory, including when the filename has a terminal `$` anchor.
 
 Both methods return false for unparseable URLs or opaque paths.
+`RobotsMatcher.AgentsAllowedWithError` distinguishes these input errors from
+robots denials. The CLI exits with 0 for allowed, 1 for denied, and 2 for input errors.
 
 The matcher uses the leading product token of each crawler identifier, so
 `FooBot/1.0` matches a `User-agent: FooBot` group.
