@@ -12,7 +12,7 @@ import (
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/cache"
-	"github.com/jimsmart/grobotstxt"
+	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/grobotstxt"
 	whatwgurl "github.com/nationallibraryofnorway/whatwg-url/url"
 	"golang.org/x/sync/singleflight"
 )

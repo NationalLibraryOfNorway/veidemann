@@ -24,16 +24,17 @@
 
 //
 
-// Modified for Veidemann to port upstream directive classification and line metadata.
+// Modified for Veidemann to port upstream line reporting and use WHATWG URL parsing.
 // Converted 2020-04-21, from https://github.com/google/robotstxt/blob/master/robots.cc
 
 package grobotstxt
 
 import (
 	"bytes"
-	"net/url"
 	"strings"
 	"unicode"
+
+	"github.com/nationallibraryofnorway/whatwg-url/url"
 )
 
 // AllowFrequentTypos enables the parsing of common typos in robots.txt, such as DISALOW.
@@ -105,75 +106,6 @@ func Matches(path, pattern string) bool {
 	}
 
 	return true
-}
-
-// getPathParamsQuery extracts path (with params) and query part from the given URI.
-// Removes scheme, authority, and fragment. Result always starts with "/".
-// Returns "/" if the URI doesn't have a path or is not valid.
-func getPathParamsQuery(uri string) string {
-	// Line :117
-
-	// path := ""
-
-	// Initial two slashes are ignored.
-	searchStart := 0
-	if len(uri) >= 2 && uri[0] == '/' && uri[1] == '/' {
-		searchStart = 2
-	}
-
-	earlyPath := findFirstOf(uri, "/?;", searchStart)
-	protocolEnd := find(uri, "://", searchStart)
-	if earlyPath != -1 && earlyPath < protocolEnd {
-		// If path, param or query starts before ://, :// doesn't indicate protocol.
-		protocolEnd = -1
-	}
-	if protocolEnd == -1 {
-		protocolEnd = searchStart
-	} else {
-		protocolEnd += 3
-	}
-
-	pathStart := findFirstOf(uri, "/?;", protocolEnd)
-	if pathStart != -1 {
-		hashPos := findByte(uri, '#', searchStart)
-		if hashPos != -1 && hashPos < pathStart {
-			return "/"
-		}
-		pathEnd := hashPos
-		if hashPos == -1 {
-			pathEnd = len(uri)
-		}
-		if uri[pathStart] != '/' {
-			return "/" + uri[pathStart:pathEnd]
-		}
-		return uri[pathStart:pathEnd]
-	}
-
-	return "/"
-}
-
-func findFirstOf(s, match string, i int) int {
-	j := strings.IndexAny(s[i:], match)
-	if j != -1 {
-		j += i
-	}
-	return j
-}
-
-func find(s, match string, i int) int {
-	j := strings.Index(s[i:], match)
-	if j != -1 {
-		j += i
-	}
-	return j
-}
-
-func findByte(s string, b byte, i int) int {
-	j := strings.IndexByte(s[i:], b)
-	if j != -1 {
-		j += i
-	}
-	return j
 }
 
 // escapePattern is used to canonicalize the allowed/disallowed path patterns.
@@ -518,29 +450,28 @@ func (m *RobotsMatcher) init(userAgents []string, path string) {
 	m.userAgents = userAgents
 }
 
-// AgentsAllowed parses the given robots.txt content, matching it against
-// the given userAgents and URI, and returns true if the given URI
-// is allowed to be fetched by any user agent in the list.
-//
-// AgentsAllowed will also return false if the given URI is invalid
-// (cannot successfully be parsed by url.Parse).
+// AgentsAllowed reports whether any of the given user agents may fetch uri.
+// It parses an absolute hierarchical URL using WHATWG rules, and returns
+// false if the URL cannot be parsed or has an opaque path.
 func (m *RobotsMatcher) AgentsAllowed(robotsBody string, userAgents []string, uri string) bool {
-	// Line :487
-	// The url is not normalized (escaped, percent encoded) here because the user
-	// is asked to provide it in escaped form already.
-
-	// Departing from Googlebot's behaviour,
-	// and making the API work as expected by Go coders,
-	// we normalise the URI here.
 	u, err := url.Parse(uri)
-	if err != nil {
-		// If the given URI doesn't parse,
-		// we say access is not allowed.
+	if err != nil || u.OpaquePath() {
 		return false
 	}
-	uri = u.String()
+	path := u.Pathname()
+	if path == "" {
+		path = "/"
+	}
+	query := u.Search()
+	// Search omits the separator for a present but empty query.
+	if query == "" && strings.HasSuffix(u.Href(true), "?") {
+		query = "?"
+	}
+	return m.agentsAllowedOnPath(robotsBody, userAgents, path+query)
+}
 
-	path := getPathParamsQuery(uri)
+// agentsAllowedOnPath applies Google's matcher to an already escaped path and query.
+func (m *RobotsMatcher) agentsAllowedOnPath(robotsBody string, userAgents []string, path string) bool {
 	m.init(userAgents, path)
 	Parse(robotsBody, m)
 	return !m.Disallowed()
@@ -551,7 +482,7 @@ func (m *RobotsMatcher) AgentsAllowed(robotsBody string, userAgents []string, ur
 // is allowed to be fetched by any user agent in the list.
 //
 // AgentsAllowed will also return false if the given URI is invalid
-// (cannot successfully be parsed by url.Parse).
+// or has an opaque path.
 func AgentsAllowed(robotsBody string, userAgents []string, uri string) bool {
 	return NewRobotsMatcher().AgentsAllowed(robotsBody, userAgents, uri)
 }
@@ -561,7 +492,7 @@ func AgentsAllowed(robotsBody string, userAgents []string, uri string) bool {
 // is allowed to be fetched by the given user agent.
 //
 // AgentAllowed will also return false if the given URI is invalid
-// (cannot successfully be parsed by url.Parse).
+// or has an opaque path.
 func (m *RobotsMatcher) AgentAllowed(robotsBody string, userAgent string, uri string) bool {
 	// Line :498
 	return m.AgentsAllowed(robotsBody, []string{userAgent}, uri)
@@ -572,7 +503,7 @@ func (m *RobotsMatcher) AgentAllowed(robotsBody string, userAgent string, uri st
 // is allowed to be fetched by the given user agent.
 //
 // AgentAllowed will also return false if the given URI is invalid
-// (cannot successfully be parsed by url.Parse).
+// or has an opaque path.
 func AgentAllowed(robotsBody string, userAgent string, uri string) bool {
 	return NewRobotsMatcher().AgentAllowed(robotsBody, userAgent, uri)
 }

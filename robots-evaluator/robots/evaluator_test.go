@@ -468,3 +468,33 @@ func TestRobotsLocation(t *testing.T) {
 		}
 	}
 }
+
+func TestPoliciesMatchBrowserNormalizedPath(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		policy configV1.PolitenessConfig_RobotsPolicy
+		status int
+	}{
+		{"fetched rules", configV1.PolitenessConfig_OBEY_ROBOTS, http.StatusOK},
+		{"custom rules", configV1.PolitenessConfig_CUSTOM_ROBOTS, 0},
+		{"custom fallback", configV1.PolitenessConfig_CUSTOM_IF_MISSING, http.StatusNotFound},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			origin := &testOrigin{status: tt.status, body: blockedRules}
+			server := httptest.NewServer(origin)
+			defer server.Close()
+
+			now := time.Now()
+			e := newTestEvaluator(newMemoryCache(), server.Client(), &now)
+			req := allowedRequest(server.URL+"/dir/../blocked", "collection-a", "execution-1", "job-1")
+			req.RobotsPolicy = tt.policy
+			req.CustomRobots = blockedRules
+			if allowed, err := e.IsAllowed(t.Context(), req); err != nil || allowed {
+				t.Fatalf("IsAllowed = (%t, %v), want (false, nil)", allowed, err)
+			}
+			if tt.status == 0 && len(origin.requestSnapshot()) != 0 {
+				t.Fatal("custom rules unexpectedly fetched robots.txt")
+			}
+		})
+	}
+}

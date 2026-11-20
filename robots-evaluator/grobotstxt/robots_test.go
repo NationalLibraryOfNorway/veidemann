@@ -51,17 +51,16 @@ func TestRobots(t *testing.T) {
 		const robotstxt = "user-agent: FooBot\n" +
 			"disallow: /\n"
 		// Empty robots.txt: everything allowed.
-		expectEqual(t, true, IsUserAgentAllowed("", "FooBot", ""))
+		expectEqual(t, true, IsUserAgentAllowed("", "FooBot", "https://example.com/"))
 
 		// Empty user-agent to be matched: everything allowed.
-		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "", ""))
+		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "", "https://example.com/"))
 
-		// Empty url: implicitly disallowed, see method comment for GetPathParamsQuery
-		// in robots.cc.
-		expectEqual(t, false, IsUserAgentAllowed(robotstxt, "FooBot", ""))
+		// A root path matches the disallow rule.
+		expectEqual(t, false, IsUserAgentAllowed(robotstxt, "FooBot", "https://example.com/"))
 
 		// All params empty: same as robots.txt empty, everything allowed.
-		expectEqual(t, true, IsUserAgentAllowed("", "", ""))
+		expectEqual(t, true, IsUserAgentAllowed("", "", "https://example.com/"))
 	})
 
 	// Rules are colon separated name-value pairs. The following names are

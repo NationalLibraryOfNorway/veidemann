@@ -47,29 +47,23 @@ Package grobotstxt aims to be a faithful conversion, from C++ to Go, of Google's
 Get the package (only needed if not using modules):
 
 ```bash
-go get github.com/jimsmart/grobotstxt
+go test ./grobotstxt/...
 ```
 
 Use the package within your code (see examples below):
 
 ```go
-import "github.com/jimsmart/grobotstxt"
+import "github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/grobotstxt"
 ```
 
 #### For webmasters
 
 Assumes Go is installed, and its environment is already set up.
 
-Fetch the package:
+From the `robots-evaluator` directory, build and install the standalone binary:
 
 ```bash
-go get github.com/jimsmart/grobotstxt
-```
-
-Build and install the standalone binary executable:
-
-```bash
-go install github.com/jimsmart/grobotstxt/...
+go install ./grobotstxt/cmd/icanhasrobot
 ```
 
 By default, the resulting binary executable will be `~/go/bin/icanhasrobot` (assuming no customisation has been made to `$GOPATH` or `$GOBIN`).
@@ -95,7 +89,7 @@ If `$GOBIN` is not included in your environment's `$PATH`, use the full path `~/
 #### `AgentAllowed`
 
 ```go
-import "github.com/jimsmart/grobotstxt"
+import "github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/grobotstxt"
 
 // Contents of robots.txt file.
 robotsTxt := `
@@ -132,7 +126,7 @@ GoDocs [https://godoc.org/github.com/jimsmart/grobotstxt](https://godoc.org/gith
 
 ## Testing
 
-To run the tests execute `go test` inside the project folder.
+Run `go test ./grobotstxt/...` from the `robots-evaluator` directory.
 
 For a full coverage report, try:
 
@@ -142,13 +136,10 @@ go test -coverprofile=coverage.out && go tool cover -html=coverage.out
 
 ## Notes
 
-The original library required that the URI passed to the
-`AgentAllowed` and `AgentsAllowed` functions, or to the URI parameter
-of the standalone binary tool, should follow the encoding/escaping format specified by RFC3986, because the library itself does not perform URI normalisation.
-
-In Go, with its native UTF-8 strings, this requirement is not in line with other commonly used APIs, and is therefore somewhat of a surprising/unexpected behaviour to Go developers.
-
-Because of this, the Go API presented here has been amended to automatically handle UTF-8 URIs, and performs any necessary normalisation internally.
+Google’s C++ matcher expects an already escaped URL. The Go methods
+`AgentAllowed` and `AgentsAllowed` accept absolute hierarchical URLs and
+apply WHATWG parsing before matching the serialized path and query. They
+omit the fragment and return false for unparseable URLs or opaque paths.
 
 The Go port also supports a wider range of user-agent token characters, the
 additional `diaslow` spelling, and a sitemap extraction helper. The parser
