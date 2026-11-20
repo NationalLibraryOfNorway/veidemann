@@ -14,11 +14,12 @@
 // limitations under the License.
 //
 // This file tests the robots.txt parsing and matching code found in robots.cc
-// against the current Robots Exclusion Protocol (REP) internet draft (I-D).
-// https://tools.ietf.org/html/draft-koster-rep
+// against the current Robots Exclusion Protocol (REP), RFC 9309.
+// https://www.rfc-editor.org/rfc/rfc9309.html
 
 //
 
+// Modified for Veidemann to use the standard Go testing package.
 // Converted 2020-04-21, from https://github.com/google/robotstxt/blob/master/robots_test.cc
 
 package grobotstxt

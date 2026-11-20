@@ -17,13 +17,14 @@
 // File: robots.cc
 // -----------------------------------------------------------------------------
 //
-// Implements expired internet draft
-//   http://www.robotstxt.org/norobots-rfc.txt
+// Implements the Robots Exclusion Protocol (RFC 9309)
+//   https://www.rfc-editor.org/rfc/rfc9309.html
 // with Google-specific optimizations detailed at
 //   https://developers.google.com/search/reference/robots_txt
 
 //
 
+// Modified for Veidemann to port upstream directive classification and line metadata.
 // Converted 2020-04-21, from https://github.com/google/robotstxt/blob/master/robots.cc
 
 package grobotstxt
@@ -262,118 +263,58 @@ func toUpper(c byte) byte {
 
 //
 
-// keyType denotes the type of key in a robots.txt key/value pair.
-type keyType int
+// KeyType identifies the kind of directive in a robots.txt line.
+type KeyType int
 
 const (
-	unknownKey keyType = iota // unknownKey for unrecognised keys.
-
-	// Generic highlevel fields.
-	userAgentKey // userAgentKey for "User-Agent:" keys.
-	sitemapKey   // sitemapKey for "Sitemap:" keys.
-
-	// Fields within a user-agent group/section.
-	allowKey    // allowKey for "Allow:" keys.
-	disallowKey // disallowKey for "Disallow:" keys.
+	KeyUserAgent KeyType = 0
+	KeySitemap   KeyType = 1
+	KeyAllow     KeyType = 2
+	KeyDisallow  KeyType = 3
+	KeyUnknown   KeyType = 128
 )
 
-//
-
-// A robots.txt has lines of key/value pairs. A ParsedRobotsKey represents
-// a key. This class can parse a text-representation (including common typos)
-// and represent them as an enumeration which allows for faster processing
-// afterwards.
-// For unparsable keys, the original string representation is kept.
-
-type parsedKey struct {
-	typ keyType
-	key string
-}
-
-// parseKey parses given key text, returning a suitably initialised parsedKey.
-func parseKey(key string) parsedKey {
-
-	// Line :659
-	k := parsedKey{}
-	if keyIsUserAgent(key) {
-		k.typ = userAgentKey
-	} else if keyIsAllow(key) {
-		k.typ = allowKey
-	} else if keyIsDisallow(key) {
-		k.typ = disallowKey
-	} else if keyIsSitemap(key) {
-		k.typ = sitemapKey
-	} else {
-		k.typ = unknownKey
-		k.key = key
-	}
-	return k
-}
-
-// Type returns the type of key.
-func (k parsedKey) Type() keyType {
-	return k.typ
-}
-
-// UnknownKey returns the text of the key for Unknown key types.
-// For all other key types it returns an empty string.
-func (k parsedKey) UnknownKey() string {
-	// Line :675
-	return k.key
-}
-
-func keyIsUserAgent(key string) bool {
-	// Line :680
-	return startsWithIgnoreCase(key, "user-agent") ||
-		(AllowFrequentTypos && (startsWithIgnoreCase(key, "useragent") ||
-			startsWithIgnoreCase(key, "user agent")))
-}
-
-func keyIsAllow(key string) bool {
-	// Line :687
-	return startsWithIgnoreCase(key, "allow")
-}
-
-func keyIsDisallow(key string) bool {
-	// Line :691
-	return startsWithIgnoreCase(key, "disallow") ||
-		(AllowFrequentTypos && (startsWithIgnoreCase(key, "dissallow") ||
-			startsWithIgnoreCase(key, "dissalow") ||
-			startsWithIgnoreCase(key, "disalow") ||
-			startsWithIgnoreCase(key, "diaslow") ||
-			startsWithIgnoreCase(key, "diasllow") ||
-			startsWithIgnoreCase(key, "disallaw")))
-}
-
-func keyIsSitemap(key string) bool {
-	// Line :701
-	return startsWithIgnoreCase(key, "sitemap") ||
-		startsWithIgnoreCase(key, "site-map")
-}
-
-func startsWithIgnoreCase(x, y string) bool {
-	return strings.HasPrefix(strings.ToLower(x), strings.ToLower(y))
-}
-
-//
-
-func emitKeyValueToHandler(line int, key parsedKey, value string, handler ParseHandler) {
-	// Line :262
-	switch key.Type() {
-	case userAgentKey:
-		handler.HandleUserAgent(line, value)
-	case allowKey:
-		handler.HandleAllow(line, value)
-	case disallowKey:
-		handler.HandleDisallow(line, value)
-	case sitemapKey:
-		handler.HandleSitemap(line, value)
-	case unknownKey:
-		handler.HandleUnknownAction(line, key.UnknownKey(), value)
+// GetKeyType classifies a directive key and reports whether it is an accepted typo.
+func GetKeyType(key string) (kind KeyType, typo bool) {
+	switch {
+	case startsWithIgnoreCase(key, "user-agent"):
+		return KeyUserAgent, false
+	case AllowFrequentTypos && (startsWithIgnoreCase(key, "useragent") ||
+		startsWithIgnoreCase(key, "user agent")):
+		return KeyUserAgent, true
+	case startsWithIgnoreCase(key, "allow"):
+		return KeyAllow, false
+	case startsWithIgnoreCase(key, "disallow"):
+		return KeyDisallow, false
+	case AllowFrequentTypos && (startsWithIgnoreCase(key, "dissallow") ||
+		startsWithIgnoreCase(key, "dissalow") || startsWithIgnoreCase(key, "disalow") ||
+		startsWithIgnoreCase(key, "diaslow") || startsWithIgnoreCase(key, "diasllow") ||
+		startsWithIgnoreCase(key, "disallaw")):
+		return KeyDisallow, true
+	case startsWithIgnoreCase(key, "sitemap"):
+		return KeySitemap, false
+	case AllowFrequentTypos && startsWithIgnoreCase(key, "site-map"):
+		return KeySitemap, true
+	default:
+		return KeyUnknown, false
 	}
 }
 
-//
+func startsWithIgnoreCase(text, prefix string) bool {
+	if len(text) < len(prefix) {
+		return false
+	}
+	for i := range len(prefix) {
+		c := text[i]
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		if c != prefix[i] {
+			return false
+		}
+	}
+	return true
+}
 
 type Parser struct {
 	// Line :278
@@ -390,80 +331,51 @@ func NewParser(robotsBody string, handler ParseHandler) *Parser {
 	return &p
 }
 
-func (p *Parser) needEscapeValueForKey(key parsedKey) bool {
-	// Line :300
-	switch key.Type() {
-	case userAgentKey, sitemapKey:
-		return false
-	default:
-		return true
-	}
-}
+func (p *Parser) parseAndEmitLine(lineNum int, line string, tooLong bool) {
+	const whitespace = " \t\n\r\v\f"
+	metadata := LineMetadata{IsLineTooLong: tooLong}
 
-// parseKeyAndValue attempts to parse a line of robots.txt into a key/value pair.
-//
-// On success, the parsed key and value, and true, are returned. If parsing is
-// unsuccessful, parseKeyAndValue returns two empty strings and false.
-func (p *Parser) parseKeyAndValue(line string) (string, string, bool) {
-	// Line :317
-	// Remove comments from the current robots.txt line.
-	comment := strings.IndexByte(line, '#')
-	if comment != -1 {
-		line = line[:comment]
-	}
-	line = strings.TrimSpace(line)
+	// The C++ parser treats the first NUL as the end of the line contents.
+	line, _, _ = strings.Cut(line, "\x00")
+	line, _, metadata.HasComment = strings.Cut(line, "#")
+	line = strings.Trim(line, whitespace)
 
-	// Rules must match the following pattern:
-	//   <key>[ \t]*:[ \t]*<value>
-	sep := strings.IndexByte(line, ':')
-	if sep == -1 {
-		// Google-specific optimization: some people forget the colon, so we need to
-		// accept whitespace in its stead.
-		white := " \t"
-		sep = strings.IndexAny(line, white)
-		if sep != -1 {
-			val := strings.TrimSpace(line[sep:])
-			if len(val) == 0 { // since we dropped trailing whitespace above.
-				panic("Syntax error") // TODO Cleanup panics.
+	if line == "" {
+		metadata.IsComment = metadata.HasComment
+		metadata.IsEmpty = !metadata.HasComment
+	} else {
+		key, value, hasColon := strings.Cut(line, ":")
+		if !hasColon {
+			// Google also accepts exactly two tokens separated by space or tab.
+			if sep := strings.IndexAny(line, " \t"); sep >= 0 {
+				key = line[:sep]
+				value = strings.TrimLeft(line[sep:], " \t")
+				metadata.IsMissingColonSeparator = strings.IndexAny(value, " \t") < 0
 			}
-			if strings.IndexAny(val, white) != -1 {
-				// We only accept whitespace as a separator if there are exactly two
-				// sequences of non-whitespace characters.  If we get here, there were
-				// more than 2 such sequences since we stripped trailing whitespace
-				// above.
-				return "", "", false
+		}
+		key = strings.Trim(key, whitespace)
+		if key != "" && (hasColon || metadata.IsMissingColonSeparator) {
+			metadata.HasDirective = true
+			kind, typo := GetKeyType(key)
+			metadata.IsAcceptableTypo = typo
+			value = strings.Trim(value, whitespace)
+			switch kind {
+			case KeyUserAgent:
+				p.handler.HandleUserAgent(lineNum, value)
+			case KeySitemap:
+				p.handler.HandleSitemap(lineNum, value)
+			case KeyAllow:
+				p.handler.HandleAllow(lineNum, escapePattern(value))
+			case KeyDisallow:
+				p.handler.HandleDisallow(lineNum, escapePattern(value))
+			default:
+				p.handler.HandleUnknownAction(lineNum, key, escapePattern(value))
 			}
 		}
 	}
-
-	if sep == -1 {
-		return "", "", false // Couldn't find a separator.
+	if reporter, ok := p.handler.(LineMetadataReporter); ok {
+		reporter.ReportLineMetadata(lineNum, metadata)
 	}
-
-	key := line[:sep]            // Key starts at beginning of line, and stops at the separator.
-	key = strings.TrimSpace(key) // Get rid of any trailing whitespace.
-
-	if len(key) == 0 {
-		return "", "", false
-	}
-
-	value := line[sep+1:]            // Value starts after the separator.
-	value = strings.TrimSpace(value) // Get rid of any leading whitespace.
-	return key, value, true
-}
-
-func (p *Parser) parseAndEmitLine(currentLine int, line string) {
-	// Line :362
-	stringKey, value, ok := p.parseKeyAndValue(line)
-	if !ok {
-		return
-	}
-
-	key := parseKey(stringKey)
-	if p.needEscapeValueForKey(key) {
-		value = escapePattern(value)
-	}
-	emitKeyValueToHandler(currentLine, key, value, p.handler)
 }
 
 // Parse body of this Parser's robots.txt and emit parse callbacks. This will accept
@@ -522,7 +434,7 @@ func (p *Parser) Parse() {
 			isCRLFContinuation := end == start && lastWasCarriageReturn && b == 0x0A
 			if !isCRLFContinuation {
 				lineNum++
-				p.parseAndEmitLine(lineNum, p.robotsBody[start:end])
+				p.parseAndEmitLine(lineNum, p.robotsBody[start:end], cur-start-1 > maxLineLen-1)
 			}
 			start = cur
 			end = cur
@@ -530,7 +442,7 @@ func (p *Parser) Parse() {
 		}
 	}
 	lineNum++
-	p.parseAndEmitLine(lineNum, p.robotsBody[start:end])
+	p.parseAndEmitLine(lineNum, p.robotsBody[start:end], cur-start > maxLineLen-1)
 	p.handler.HandleRobotsEnd()
 }
 

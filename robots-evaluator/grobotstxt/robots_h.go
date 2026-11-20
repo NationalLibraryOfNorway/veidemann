@@ -18,8 +18,8 @@
 // -----------------------------------------------------------------------------
 //
 // This file implements the standard defined by the Robots Exclusion Protocol
-// (REP) internet draft (I-D).
-//   https://tools.ietf.org/html/draft-koster-rep
+// (REP), RFC 9309.
+//   https://www.rfc-editor.org/rfc/rfc9309.html
 //
 // Google doesn't follow the standard strictly, because there are a lot of
 // non-conforming robots.txt files out there, and we err on the side of
@@ -34,6 +34,7 @@
 
 //
 
+// Modified for Veidemann to add upstream line metadata reporting.
 // Converted 2020-04-21, from https://github.com/google/robotstxt/blob/master/robots.h
 
 package grobotstxt
@@ -49,6 +50,23 @@ type ParseHandler interface {
 	HandleDisallow(lineNum int, value string)
 	HandleSitemap(lineNum int, value string)
 	HandleUnknownAction(lineNum int, action, value string)
+}
+
+// LineMetadata describes the contents of a robots.txt line as reported by Google’s parser.
+type LineMetadata struct {
+	IsEmpty                 bool
+	HasComment              bool
+	IsComment               bool
+	HasDirective            bool
+	IsAcceptableTypo        bool
+	IsLineTooLong           bool
+	IsMissingColonSeparator bool
+}
+
+// LineMetadataReporter is an optional interface for ParseHandlers. The parser
+// reports metadata after any directive callback for the same line.
+type LineMetadataReporter interface {
+	ReportLineMetadata(lineNum int, metadata LineMetadata)
 }
 
 var _ ParseHandler = &RobotsMatcher{}

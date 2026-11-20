@@ -1,5 +1,9 @@
 # grobotstxt
 
+Veidemann vendors Jim Smart’s Go port at [650362b](https://github.com/jimsmart/grobotstxt/tree/650362b29290553de0372559db871ca5c4147379).
+The directive classification and line-reporting updates follow Google’s
+[C++ implementation at 22b355f](https://github.com/google/robotstxt/tree/22b355ff855419e6a3ff8ff09c0ad7fdb17116f9).
+
 [![Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Build Status](https://github.com/jimsmart/grobotstxt/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/jimsmart/grobotstxt/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/jimsmart/grobotstxt/branch/master/graph/badge.svg)](https://codecov.io/gh/jimsmart/grobotstxt)
@@ -11,7 +15,7 @@ grobotstxt is a native Go port of [Google's robots.txt parser and matcher C++
 library](https://github.com/google/robotstxt).
 
 - Direct function-for-function conversion/port
-- Preserves all behaviour of original library
+- Follows the original parser and matcher, with the Go extensions described below
 - All 100% of original test suite functionality
 - Minor language-specific cleanups
 - Added a helper to extract Sitemap URIs
@@ -146,7 +150,10 @@ In Go, with its native UTF-8 strings, this requirement is not in line with other
 
 Because of this, the Go API presented here has been amended to automatically handle UTF-8 URIs, and performs any necessary normalisation internally.
 
-This is the only behavioural change between grobotstxt and the original C++ library.
+The Go port also supports a wider range of user-agent token characters, the
+additional `diaslow` spelling, and a sitemap extraction helper. The parser
+reports Google-style line metadata through the optional `LineMetadataReporter`
+interface.
 
 ## License
 

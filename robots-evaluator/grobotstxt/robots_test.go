@@ -14,11 +14,12 @@
 // limitations under the License.
 //
 // This file tests the robots.txt parsing and matching code found in robots.cc
-// against the current Robots Exclusion Protocol (REP) internet draft (I-D).
-// https://tools.ietf.org/html/draft-koster-rep
+// against the current Robots Exclusion Protocol (REP), RFC 9309.
+// https://www.rfc-editor.org/rfc/rfc9309.html
 
 //
 
+// Modified for Veidemann to use the standard Go testing package.
 // Converted 2020-04-21, from https://github.com/google/robotstxt/blob/master/robots_test.cc
 
 package grobotstxt_test
@@ -69,7 +70,7 @@ func TestRobots(t *testing.T) {
 	//     allow: <value>
 	//     disallow: <value>
 	// See REP I-D section "Protocol Definition".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.1
 	//
 	// Google specific: webmasters sometimes miss the colon separator, but it's
 	// obvious what they mean by "disallow /", so we assume the colon if it's
@@ -92,7 +93,7 @@ func TestRobots(t *testing.T) {
 	// by a another user-agent line. Rules for same user-agents are combined
 	// opaquely into one group. Rules outside groups are ignored.
 	// See REP I-D section "Protocol Definition".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.1
 	t.Run("ID_LineSyntax_Groups", func(t *testing.T) {
 		// Line :87
 		const robotstxt = "allow: /foo/bar/\n" +
@@ -134,7 +135,7 @@ func TestRobots(t *testing.T) {
 
 	// Group must not be closed by rules not explicitly defined in the REP I-D.
 	// See REP I-D section "Protocol Definition".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.1
 	t.Run("ID_LineSyntax_Groups_OtherRules", func(t *testing.T) {
 		{
 			const robotstxt = "User-agent: BarBot\n" +
@@ -183,7 +184,7 @@ func TestRobots(t *testing.T) {
 	})
 
 	// REP lines are case insensitive. See REP I-D section "Protocol Definition".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.1
 	t.Run("ID_REPLineNamesCaseInsensitive", func(t *testing.T) {
 		// Line :128
 		const robotstxt_upper = "USER-AGENT: FooBot\n" +
@@ -208,7 +209,7 @@ func TestRobots(t *testing.T) {
 
 	// A user-agent line is expected to contain only [a-zA-Z_-] characters and must
 	// not be empty. See REP I-D section "The user-agent line".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.1
 	t.Run("ID_VerifyValidUserAgentsToObey", func(t *testing.T) {
 		// Line :155
 		expectEqual(t, true, grobotstxt.IsValidUserAgentToObey("Foobot"))
@@ -236,7 +237,7 @@ func TestRobots(t *testing.T) {
 
 	// User-agent line values are case insensitive. See REP I-D section "The
 	// user-agent line".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.1
 	t.Run("ID_UserAgentValueCaseInsensitive", func(t *testing.T) {
 		// Line :174
 		const robotstxt_upper = "User-Agent: FOO BAR\n" +
@@ -270,7 +271,7 @@ func TestRobots(t *testing.T) {
 	// them. This is more restrictive than the I-D, since in case of the bad value
 	// "Googlebot Images" we'd still obey the rules with "Googlebot".
 	// Extends REP I-D section "The user-agent line"
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.1
 	t.Run("GoogleOnly_AcceptUserAgentUpToFirstSpace", func(t *testing.T) {
 		// Line :210
 		expectEqual(t, false, grobotstxt.IsValidUserAgentToObey("Foobot Bar"))
@@ -289,7 +290,7 @@ func TestRobots(t *testing.T) {
 	// user-agent line with a "*" value, if present. If no group satisfies either
 	// condition, or no groups are present at all, no rules apply.
 	// See REP I-D section "The user-agent line".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.1
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.1
 	t.Run("ID_GlobalGroups_Secondary", func(t *testing.T) {
 		// Line :229
 		const robotstxt_empty = ""
@@ -313,7 +314,7 @@ func TestRobots(t *testing.T) {
 
 	// Matching rules against URIs is case sensitive.
 	// See REP I-D section "The Allow and Disallow lines".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.2
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.2
 	t.Run("ID_AllowDisallow_Value_CaseSensitive", func(t *testing.T) {
 		// Line :254
 		const robotstxt_lowercase_url = "user-agent: FooBot\n" +
@@ -330,7 +331,7 @@ func TestRobots(t *testing.T) {
 	// match that has the most octets. In case of multiple rules with the same
 	// length, the least strict rule must be used.
 	// See REP I-D section "The Allow and Disallow lines".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.2
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.2
 	t.Run("ID_LongestMatch", func(t *testing.T) {
 		// Line :272
 
@@ -415,7 +416,7 @@ func TestRobots(t *testing.T) {
 	// coded character set, and those in the reserved range defined by RFC3986,
 	// MUST be percent-encoded as defined by RFC3986 prior to comparison.
 	// See REP I-D section "The Allow and Disallow lines".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.2
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.2
 	//
 	// NOTE: It's up to the caller to percent encode a URL before passing it to the
 	// parser. Percent encoding URIs in the rules is unnecessary.
@@ -476,7 +477,7 @@ func TestRobots(t *testing.T) {
 	// $ - end of pattern.
 	// * - any number of characters.
 	// See REP I-D section "Special Characters".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.3
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.3
 	t.Run("ID_SpecialCharacters", func(t *testing.T) {
 		// Line :429
 		func() {
@@ -828,7 +829,7 @@ func TestRobots(t *testing.T) {
 	// Google specific: the I-D allows any line that crawlers might need, such as
 	// sitemaps, which Google supports.
 	// See REP I-D section "Other records".
-	// https://tools.ietf.org/html/draft-koster-rep#section-2.2.4
+	// https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.4
 	t.Run("ID_NonStandardLineExample_Sitemap", func(t *testing.T) {
 		// Line :907
 		report := &robotsStatsReporter{}
