@@ -250,7 +250,7 @@ func robotsCacheSettingsFromViper() (time.Duration, time.Duration, error) {
 }
 
 func stopAfterFiveRedirects(_ *http.Request, via []*http.Request) error {
-	if len(via) >= 5 {
+	if len(via) > 5 {
 		return http.ErrUseLastResponse
 	}
 	return nil

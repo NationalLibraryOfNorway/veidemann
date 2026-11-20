@@ -90,6 +90,14 @@ The deprecated `minimum_robots_validity_duration_s` politeness field is
 accepted for wire compatibility but ignored. Freshness is controlled at the
 service level.
 
+## Redirects and rule matching
+
+The evaluator follows up to five redirects when fetching robots.txt, including
+redirects to another origin. It applies the resulting rules to the original
+origin. The exact normalized target `/robots.txt` is implicitly allowed.
+In rules, `%2A` matches a literal asterisk and `%24` matches a literal dollar
+sign, whether the URL contains the character itself or its percent escape.
+
 ## Build and test
 
 Run commands from this directory:

@@ -1,12 +1,16 @@
 package main
 
 import (
-	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/grobotstxt"
 	"github.com/spf13/viper"
 )
 
@@ -55,10 +59,44 @@ func TestRobotsCacheSettingsFromEnvironment(t *testing.T) {
 }
 
 func TestStopAfterFiveRedirects(t *testing.T) {
-	if err := stopAfterFiveRedirects(nil, make([]*http.Request, 4)); err != nil {
-		t.Fatalf("four redirects returned error: %v", err)
-	}
-	if err := stopAfterFiveRedirects(nil, make([]*http.Request, 5)); !errors.Is(err, http.ErrUseLastResponse) {
-		t.Fatalf("five redirects returned %v, want http.ErrUseLastResponse", err)
+	for _, hops := range []int{5, 6} {
+		t.Run(fmt.Sprint(hops), func(t *testing.T) {
+			var reached atomic.Bool
+			destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				reached.Store(true)
+				_, _ = io.WriteString(w, "User-agent: *\nDisallow: /archive")
+			}))
+			defer destination.Close()
+			var redirects atomic.Int32
+			origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				n := int(redirects.Add(1))
+				next := fmt.Sprintf("/hop/%d", n)
+				if n == hops {
+					next = destination.URL + "/rules"
+				}
+				http.Redirect(w, r, next, http.StatusFound)
+			}))
+			defer origin.Close()
+			client := origin.Client()
+			client.CheckRedirect = stopAfterFiveRedirects
+			resp, err := client.Get(origin.URL + "/robots.txt")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+			if hops == 6 {
+				if reached.Load() || resp.StatusCode != http.StatusFound || redirects.Load() != 6 {
+					t.Fatal("expected to stop before following the sixth redirect")
+				}
+				return
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reached.Load() || resp.StatusCode != http.StatusOK || grobotstxt.AgentAllowed(string(body), "Bot", origin.URL+"/archive") {
+				t.Fatal("expected rules reached after five redirects to deny /archive on the original origin")
+			}
+		})
 	}
 }
