@@ -30,7 +30,6 @@
 package grobotstxt
 
 import (
-	"bytes"
 	"strings"
 	"unicode"
 
@@ -64,136 +63,135 @@ type MatchStrategy interface {
 // Since both path and pattern are externally determined (by the webmaster),
 // we make sure to have acceptable worst-case performance.
 func Matches(path, pattern string) bool {
-	// Line :69
-	// This method originally belonged to abstract base class RobotsMatchStrategy.
-	pathlen := len(path)
-	pos := make([]int, pathlen+1)
-	var numpos int
-
-	// The pos[] array holds a sorted list of indexes of 'path', with length
-	// 'numpos'.  At the start and end of each iteration of the main loop below,
-	// the pos[] array will hold a list of the prefixes of the 'path' which can
-	// match the current prefix of 'pattern'. If this list is ever empty,
-	// return false. If we reach the end of 'pattern' with at least one element
-	// in pos[], return true.
-
-	pos[0] = 0
-	numpos = 1
-
-	for i := 0; i < len(pattern); i++ {
-		if pattern[i] == '$' && (i+1 == len(pattern)) {
-			return pos[numpos-1] == pathlen
-		}
-		if pattern[i] == '*' {
-			numpos = pathlen - pos[0] + 1
-			for j := 1; j < numpos; j++ {
-				pos[j] = pos[j-1] + 1
-			}
-		} else {
-			// Includes '$' when not at end of pattern.
-			newnumpos := 0
-			for j := 0; j < numpos; j++ {
-				if pos[j] < pathlen && path[pos[j]] == pattern[i] {
-					pos[newnumpos] = pos[j] + 1
-					newnumpos++
-				}
-			}
-			numpos = newnumpos
-			if numpos == 0 {
-				return false
-			}
-		}
-	}
-
-	return true
+	return matchPriority(path, pattern) >= 0
 }
 
-// escapePattern is used to canonicalize the allowed/disallowed path patterns.
-// UTF-8 multibyte sequences (and other out-of-range ASCII values) are percent-encoded,
-// and any existing percent-encoded values have their hex values normalised to uppercase.
-//
-// For example:
-//
-//	/SanJoséSellers ==> /Sanjos%C3%A9Sellers
-//	%aa ==> %AA
-//
-// If the given path pattern is already adequately escaped,
-// the original string is returned unchanged.
-func escapePattern(path string) string {
-	// Line :156
-
-	needCapitalise := false
-	numToEscape := 0
-
-	s := func(i int) byte {
-		if i < len(path) {
-			return path[i]
+// literalOctet reads one literal, treating the two escaped REP operators as data.
+func literalOctet(s string, i int) (byte, int) {
+	if s[i] == '%' && len(s)-i >= 3 && s[i+1] == '2' {
+		switch s[i+2] {
+		case 'a', 'A':
+			return '*', 3
+		case '4':
+			return '$', 3
 		}
-		return 0
 	}
+	return s[i], 1
+}
 
-	// First, scan the buffer to see if changes are needed. Most don't.
-	for i := 0; i < len(path); i++ {
-		// (a) % escape sequence.
-		if path[i] == '%' &&
-			isHexDigit(s(i+1)) && isHexDigit(s(i+2)) {
-			if isLower(s(i+1)) || isLower(s(i+2)) {
-				needCapitalise = true
+func matchPriority(path, pattern string) int {
+	pathlen := len(path)
+	// Sorted offsets reachable after consuming the current pattern prefix.
+	pos := make([]int, pathlen+1)
+	pos[0] = 0
+	numpos := 1
+
+	priority := 0
+	for i := 0; i < len(pattern); {
+		priority++
+		if pattern[i] == '$' && i+1 == len(pattern) {
+			if pos[numpos-1] == pathlen {
+				return priority
 			}
-		} else if path[i] >= 0x80 {
-			// (b) needs escaping.
-			numToEscape++
+			return -1
 		}
-		// (c) Already escaped and escape-characters normalized (eg. %2f -> %2F).
+		if pattern[i] == '*' {
+			// A wildcard may end at any subsequent literal boundary.
+			numpos = 1
+			for offset := pos[0]; offset < pathlen; {
+				_, width := literalOctet(path, offset)
+				offset += width
+				pos[numpos] = offset
+				numpos++
+			}
+			i++
+			continue
+		}
+		want, width := literalOctet(pattern, i)
+		i += width
+		n := 0
+		for _, offset := range pos[:numpos] {
+			if offset < pathlen {
+				got, consumed := literalOctet(path, offset)
+				if got == want {
+					pos[n] = offset + consumed
+					n++
+				}
+			}
+		}
+		if n == 0 {
+			return -1
+		}
+		numpos = n
 	}
-	// Return if no changes needed.
-	if numToEscape == 0 && !needCapitalise {
-		return path
-	}
+	return priority
+}
 
-	by := make([]byte, 0, numToEscape*2+len(path))
-	out := bytes.NewBuffer(by)
-	for i := 0; i < len(path); i++ {
-		// (a) Normalize %-escaped sequence (eg. %2f -> %2F).
-		if path[i] == '%' &&
-			isHexDigit(s(i+1)) && isHexDigit(s(i+2)) {
-			out.WriteByte('%')
-			i++
-			out.WriteByte(toUpper(path[i]))
-			i++
-			out.WriteByte(toUpper(path[i]))
-		} else if path[i] >= 0x80 {
-			// (b) %-escape octets whose highest bit is set. These are outside the
-			// ASCII range.
-			out.WriteByte('%')
-			out.WriteByte(hexDigits[(path[i]>>4)&0xf])
-			out.WriteByte(hexDigits[path[i]&0xf])
+// escapePattern prepares escaped directive values for ParseHandler callbacks.
+func escapePattern(pattern string) string {
+	return normalizeOctets(pattern, false)
+}
+
+// normalizeOctets escapes non-ASCII bytes and uppercases percent escapes.
+// For matching, it also decodes unreserved ASCII in a single pass (RFC 9309 §2.2.2).
+func normalizeOctets(s string, decodeUnreserved bool) string {
+	const hexDigits = "0123456789ABCDEF"
+	var out strings.Builder
+	start := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < 0x80 {
+			if c != '%' || i+2 >= len(s) {
+				continue
+			}
+			hi, lo := hexValue(s[i+1]), hexValue(s[i+2])
+			if hi < 0 || lo < 0 {
+				continue
+			}
+			c = byte(hi<<4 | lo)
+			decode := decodeUnreserved && isUnreserved(c)
+			if !decode && s[i+1] == hexDigits[hi] && s[i+2] == hexDigits[lo] {
+				i += 2
+				continue
+			}
+			out.WriteString(s[start:i])
+			i += 2
+			start = i + 1
+			if decode {
+				out.WriteByte(c)
+				continue
+			}
 		} else {
-			// (c) Normal character, no modification needed.
-			out.WriteByte(path[i])
+			out.WriteString(s[start:i])
+			start = i + 1
 		}
+		out.WriteByte('%')
+		out.WriteByte(hexDigits[c>>4])
+		out.WriteByte(hexDigits[c&15])
 	}
+	if start == 0 {
+		return s
+	}
+	out.WriteString(s[start:])
 	return out.String()
 }
 
-const hexDigits = "0123456789ABCDEF"
-
-func isHexDigit(c byte) bool {
-	// const hexDigits = "01234567890abcdefABCDEF"
-	return '0' <= c && c <= '9' ||
-		'a' <= c && c <= 'f' ||
-		'A' <= c && c <= 'F'
+func isUnreserved(c byte) bool {
+	return asciiIsAlpha(c) || asciiIsNumeric(c) || strings.IndexByte("-._~", c) >= 0
 }
 
-func isLower(c byte) bool {
-	return 'a' <= c && c <= 'z'
+func hexValue(c byte) int {
+	switch {
+	case '0' <= c && c <= '9':
+		return int(c - '0')
+	case 'a' <= c && c <= 'f':
+		return int(c-'a') + 10
+	case 'A' <= c && c <= 'F':
+		return int(c-'A') + 10
+	default:
+		return -1
+	}
 }
-
-func toUpper(c byte) byte {
-	return c & (0xFF - 0x20)
-}
-
-//
 
 // KeyType identifies the kind of directive in a robots.txt line.
 type KeyType int
@@ -385,19 +383,11 @@ var _ MatchStrategy = LongestMatchStrategy{}
 type LongestMatchStrategy struct{}
 
 func (s LongestMatchStrategy) MatchAllow(path, pattern string) int {
-	// Line :640
-	if Matches(path, pattern) {
-		return len(pattern)
-	}
-	return -1
+	return matchPriority(path, pattern)
 }
 
 func (s LongestMatchStrategy) MatchDisallow(path, pattern string) int {
-	// Line :645
-	if Matches(path, pattern) {
-		return len(pattern)
-	}
-	return -1
+	return matchPriority(path, pattern)
 }
 
 //
@@ -440,14 +430,19 @@ func NewRobotsMatcher() *RobotsMatcher {
 // path, params, and query (if any) of the url and must start with a '/'.
 func (m *RobotsMatcher) init(userAgents []string, path string) {
 	// Line :478
-	m.path = path
+	m.path = normalizeOctets(path, true)
 	if path[0] != '/' {
 		panic("Path must begin with '/'") // TODO Cleanup this panic.
 	}
-	m.userAgents = userAgents
+	m.userAgents = make([]string, 0, len(userAgents))
+	for _, name := range userAgents {
+		if token := m.extractUserAgent(name); token != "" {
+			m.userAgents = append(m.userAgents, token)
+		}
+	}
 }
 
-// AgentsAllowed reports whether any of the given user agents may fetch uri.
+// AgentsAllowed combines rules for the supplied aliases of one crawler.
 // It parses an absolute hierarchical URL using WHATWG rules, and returns
 // false if the URL cannot be parsed or has an opaque path.
 func (m *RobotsMatcher) AgentsAllowed(robotsBody string, userAgents []string, uri string) bool {
@@ -470,16 +465,16 @@ func (m *RobotsMatcher) AgentsAllowed(robotsBody string, userAgents []string, ur
 // agentsAllowedOnPath applies Google's matcher to an already escaped path and query.
 func (m *RobotsMatcher) agentsAllowedOnPath(robotsBody string, userAgents []string, path string) bool {
 	m.init(userAgents, path)
+	if m.path == "/robots.txt" {
+		m.HandleRobotsStart()
+		return true
+	}
 	Parse(robotsBody, m)
 	return !m.Disallowed()
 }
 
-// AgentsAllowed parses the given robots.txt content, matching it against
-// the given userAgents and URI, and returns true if the given URI
-// is allowed to be fetched by any user agent in the list.
-//
-// AgentsAllowed will also return false if the given URI is invalid
-// or has an opaque path.
+// AgentsAllowed reports whether the crawler identified by userAgents may fetch uri.
+// Rules for matching aliases are combined. Invalid and opaque URLs return false.
 func AgentsAllowed(robotsBody string, userAgents []string, uri string) bool {
 	return NewRobotsMatcher().AgentsAllowed(robotsBody, userAgents, uri)
 }
@@ -569,20 +564,6 @@ func (m *RobotsMatcher) HandleRobotsStart() {
 // essentially stopping at the first invalid character.
 // Example: 'Googlebot/2.1' becomes 'Googlebot'
 func (m *RobotsMatcher) extractUserAgent(userAgent string) string {
-	// Line :552
-	// Allowed characters in user-agent are [a-zA-Z_-].
-
-	// Bugfix:
-	//
-	// According to RFC 7231, the 'product'  part of the user-agent
-	// is defined as a 'token', which allows:
-	//
-	//  "!" / "#" / "$" / "%" / "&" / "'" / "*"
-	//  / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
-	//  / DIGIT / ALPHA
-	//
-	// See https://httpwg.org/specs/rfc7231.html#header.user-agent
-
 	i := 0
 	for ; i < len(userAgent); i++ {
 		c := userAgent[i]
@@ -606,13 +587,11 @@ func asciiIsNumeric(c byte) bool {
 }
 
 func asciiIsSpecial(c byte) bool {
-	allowed := []byte("~#$%'*+-.^_`|~")
-	return bytes.IndexByte(allowed, c) != -1
+	return strings.IndexByte("!#$%&'*+-.^_`|~", c) >= 0
 }
 
 // isValidUserAgentToObey verifies that the given user agent is valid to be matched against
-// robots.txt. Valid user agent strings only contain the characters
-// [a-zA-Z_-].
+// robots.txt. The Go port accepts HTTP product tokens.
 func (m *RobotsMatcher) isValidUserAgentToObey(userAgent string) bool {
 	// Line :562
 	return len(userAgent) > 0 && m.extractUserAgent(userAgent) == userAgent
@@ -661,7 +640,16 @@ func (m *RobotsMatcher) HandleAllow(lineNum int, value string) {
 		return
 	}
 	m.seenSeparator = true
+	value = normalizeOctets(value, true)
 	priority := m.MatchStrategy.MatchAllow(m.path, value)
+	if priority < 0 && !strings.Contains(value, "?") {
+		// An explicit index filename may also allow its parent directory.
+		slash := strings.LastIndexByte(value, '/')
+		filename := strings.TrimSuffix(value[slash+1:], "$")
+		if slash >= 0 && (filename == "index.htm" || filename == "index.html") {
+			priority = m.MatchStrategy.MatchAllow(m.path, value[:slash+1]+"$")
+		}
+	}
 	if priority >= 0 {
 		if m.seenSpecificAgent {
 			if m.allow.specific.priority < priority {
@@ -675,15 +663,6 @@ func (m *RobotsMatcher) HandleAllow(lineNum int, value string) {
 				m.allow.global.Set(priority, lineNum)
 			}
 		}
-	} else {
-		// Google-specific optimization: 'index.htm' and 'index.html' are normalized
-		// to '/'.
-		slashPos := strings.LastIndexByte(value, '/')
-
-		if slashPos != -1 && strings.HasPrefix(value[slashPos:], "/index.htm") {
-			newPattern := value[:slashPos+1] + "$"
-			m.HandleAllow(lineNum, newPattern)
-		}
 	}
 }
 
@@ -694,7 +673,7 @@ func (m *RobotsMatcher) HandleDisallow(lineNum int, value string) {
 		return
 	}
 	m.seenSeparator = true
-	priority := m.MatchStrategy.MatchDisallow(m.path, value)
+	priority := m.MatchStrategy.MatchDisallow(m.path, normalizeOctets(value, true))
 	if priority >= 0 {
 		if m.seenSpecificAgent {
 			if m.disallow.specific.priority < priority {

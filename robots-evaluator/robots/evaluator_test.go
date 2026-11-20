@@ -470,6 +470,7 @@ func TestRobotsLocation(t *testing.T) {
 }
 
 func TestPoliciesMatchBrowserNormalizedPath(t *testing.T) {
+	const rules = "User-agent: veidemann\nDisallow: /blocked\n"
 	for _, tt := range []struct {
 		name   string
 		policy configV1.PolitenessConfig_RobotsPolicy
@@ -480,15 +481,16 @@ func TestPoliciesMatchBrowserNormalizedPath(t *testing.T) {
 		{"custom fallback", configV1.PolitenessConfig_CUSTOM_IF_MISSING, http.StatusNotFound},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			origin := &testOrigin{status: tt.status, body: blockedRules}
+			origin := &testOrigin{status: tt.status, body: rules}
 			server := httptest.NewServer(origin)
 			defer server.Close()
 
 			now := time.Now()
 			e := newTestEvaluator(newMemoryCache(), server.Client(), &now)
-			req := allowedRequest(server.URL+"/dir/../blocked", "collection-a", "execution-1", "job-1")
+			req := allowedRequest(server.URL+"/dir/../%62locked", "collection-a", "execution-1", "job-1")
 			req.RobotsPolicy = tt.policy
-			req.CustomRobots = blockedRules
+			req.UserAgent = "veidemann/development"
+			req.CustomRobots = rules
 			if allowed, err := e.IsAllowed(t.Context(), req); err != nil || allowed {
 				t.Fatalf("IsAllowed = (%t, %v), want (false, nil)", allowed, err)
 			}

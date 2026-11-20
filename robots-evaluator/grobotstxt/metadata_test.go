@@ -68,3 +68,12 @@ func TestGetKeyType(t *testing.T) {
 		}
 	}
 }
+
+func TestEscapedDirectiveCallback(t *testing.T) {
+	r := &metadataRecorder{}
+	Parse("Disallow: /%63afé%20%2f", r)
+	want := []string{"start", "disallow 1 /%63af%C3%A9%20%2F", "line 1", "end"}
+	if !slices.Equal(r.events, want) {
+		t.Fatalf("events = %q, want %q", r.events, want)
+	}
+}

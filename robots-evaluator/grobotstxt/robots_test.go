@@ -156,10 +156,7 @@ func TestRobots(t *testing.T) {
 		}
 	})
 
-	// Test based on the documentation at
-	// https://developers.google.com/search/reference/robots_txt#order-of-precedence-for-user-agents
-	// "Only one group is valid for a particular crawler"
-	// "The group followed is group 1. Only the most specific group is followed, all others are ignored"
+	// Combine rules for matching aliases of a single crawler.
 	t.Run("ID_Multiple_Useragents", func(t *testing.T) {
 		const robotstxt = "user-agent: googlebot-news\n" +
 			"Disallow: /bar/\n" +
@@ -170,13 +167,12 @@ func TestRobots(t *testing.T) {
 			"user-agent: googlebot\n" +
 			"Disallow: /foo/\n"
 
-		// const url_foo = "http://foo.bar/foo/"
+		const url_foo = "http://foo.bar/foo/"
 		const url_bar = "http://foo.bar/bar/"
 		const url_baz = "http://foo.bar/baz/"
 		const url_qux = "http://foo.bar/qux/"
 
-		// the first test currently fails
-		// expectEqual(t, true, AllowedByRobots(robotstxt, "googlebot,googlebot-news", url_foo))
+		expectEqual(t, false, AllowedByRobots(robotstxt, "googlebot,googlebot-news", url_foo))
 		expectEqual(t, false, AllowedByRobots(robotstxt, "googlebot,googlebot-news", url_bar))
 		expectEqual(t, true, AllowedByRobots(robotstxt, "googlebot,googlebot-news", url_baz))
 		expectEqual(t, true, AllowedByRobots(robotstxt, "googlebot,googlebot-news", url_qux))
@@ -282,7 +278,7 @@ func TestRobots(t *testing.T) {
 		const url = "http://foo.bar/x/y"
 
 		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "Foo", url))
-		expectEqual(t, false, IsUserAgentAllowed(robotstxt, "Foo Bar", url))
+		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "Foo Bar", url))
 	})
 
 	// If no group matches the user-agent, crawlers must obey the first group with a
@@ -458,15 +454,13 @@ func TestRobots(t *testing.T) {
 		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "FooBot", "http://foo.bar/foo/bar/ツ"))
 	})
 
-	// Percent encoded unreserved US-ASCII: /foo/bar/%62%61%7A -> NULL
-	// This is illegal according to RFC3986 and while it may work here due to
-	// simple string matching, it should not be relied on.
+	// RFC 9309 matches unreserved ASCII in its literal and percent-encoded forms.
 	t.Run("handle a percent encoded unreserved US-ASCII", func(t *testing.T) {
 		// Line :410
 		const robotstxt = "User-agent: FooBot\n" +
 			"Disallow: /\n" +
 			"Allow: /foo/bar/%62%61%7A\n"
-		expectEqual(t, false, IsUserAgentAllowed(robotstxt, "FooBot", "http://foo.bar/foo/bar/baz"))
+		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "FooBot", "http://foo.bar/foo/bar/baz"))
 		expectEqual(t, true, IsUserAgentAllowed(robotstxt, "FooBot", "http://foo.bar/foo/bar/%62%61%7A"))
 	})
 
@@ -507,8 +501,7 @@ func TestRobots(t *testing.T) {
 		}()
 	})
 
-	// Google-specific: "index.html" (and only that) at the end of a pattern is
-	// equivalent to "/".
+	// An explicit index file may also allow its parent directory.
 	t.Run("GoogleOnly_IndexHTMLisDirectory", func(t *testing.T) {
 		// Line :473
 		const robotstxt = "User-Agent: *\n" +

@@ -25,6 +25,7 @@
 package grobotstxt
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -189,5 +190,127 @@ func TestWHATWGURLMatching(t *testing.T) {
 				t.Errorf("AgentAllowed(%q) = %t, want %t", tt.uri, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRuleOctetComparison(t *testing.T) {
+	for _, tt := range []struct {
+		pattern, path string
+		match         bool
+	}{
+		{"/catalog", "/%63atalog", true},
+		{"/%63atalog", "/catalog", true},
+		{"/%61%5a%30%2d%2e%5f%7e", "/aZ0-._~", true},
+		{"/a%2fb", "/a%2Fb", true},
+		{"/a%2Fb", "/a%2fb", true},
+		{"/a%2Fb", "/a/b", false},
+		{"/a%252Fb", "/a%2Fb", false},
+		{"/%2563atalog", "/%63atalog", false},
+		{"/café%20x%39", "/caf%c3%a9%20x9", true},
+		{"/x?q=%61+b", "/x?q=a+b", true},
+		{"/x?q=a+b", "/x?q=a%20b", false},
+		{"/x%3fy", "/x?y", false},
+		{"/x%2ay", "/xANYy", false},
+		{"/x%24", "/x", false},
+		{"/x%zz", "/x%zz", true},
+	} {
+		rules := "User-agent: *\nDisallow: " + tt.pattern + "$"
+		if got := AgentAllowed(rules, "Bot", "https://example.org"+tt.path); got == tt.match {
+			t.Errorf("Disallow %q on %q: allowed = %t, want %t", tt.pattern, tt.path, got, !tt.match)
+		}
+	}
+
+	const rules = "User-agent: *\nDisallow: /%63atalog\nAllow: /catalog"
+	m := NewRobotsMatcher()
+	if !m.AgentAllowed(rules, "Bot", "https://example.org/catalog") || m.MatchingLine() != 3 {
+		t.Errorf("equivalent patterns should select Allow on line 3, got line %d", m.MatchingLine())
+	}
+}
+
+func TestDirectoryIndexAllow(t *testing.T) {
+	for _, tt := range []struct {
+		suffix string
+		want   bool
+	}{
+		{"index.htm", true}, {"index.html", true}, {"index.htm$", true}, {"index.html$", true},
+		{"index.html.bak", false}, {"index.html*", false}, {"index.html?lang=en", false},
+		{"?next=/index.html", false}, {"index.html$$", false},
+	} {
+		rules := "User-agent: *\nDisallow: /docs/\nAllow: /docs/" + tt.suffix
+		if got := AgentAllowed(rules, "Bot", "https://example.org/docs/"); got != tt.want {
+			t.Errorf("Allow suffix %q: allowed = %t, want %t", tt.suffix, got, tt.want)
+		}
+	}
+	const rules = "User-agent: *\nDisallow: /docs/\nAllow: /docs/?next=/index.html"
+	if AgentAllowed(rules, "Bot", "https://example.org/docs/?next=/") {
+		t.Error("index filename inside the query must not grant a directory match")
+	}
+}
+
+func TestProductTokensAndAliases(t *testing.T) {
+	const uri = "https://example.org/book"
+	const rules = "User-agent: *\nAllow: /\nUser-agent: A&B\nDisallow: /book\nUser-agent: C!D\nAllow: /"
+	for _, tt := range []struct {
+		aliases []string
+		want    bool
+	}{
+		{[]string{"a&b/1.0"}, false},
+		{[]string{"A"}, true},
+		{[]string{"A&B/1", "C!D/2"}, false},
+		{[]string{"C!D/2", "A&B/1"}, false},
+	} {
+		original := slices.Clone(tt.aliases)
+		if got := AgentsAllowed(rules, tt.aliases, uri); got != tt.want || !slices.Equal(tt.aliases, original) {
+			t.Errorf("AgentsAllowed(%v) = %t, want %t; aliases after call = %v", original, got, tt.want, tt.aliases)
+		}
+	}
+	if AgentAllowed("User-agent: C!D\nDisallow: /", "C!D/1", uri) {
+		t.Error("missed exact product token containing !")
+	}
+	if AgentAllowed("User-agent: *\nDisallow: /\nUser-agent: \nAllow: /", "", uri) {
+		t.Error("empty identifier should use wildcard group")
+	}
+}
+
+func TestRobotsFileImplicitAllow(t *testing.T) {
+	m := NewRobotsMatcher()
+	const rules = "User-agent: Bot\nDisallow: /\nDisallow: /robots.txt"
+	for _, tc := range []struct {
+		path  string
+		allow bool
+	}{
+		{"/blocked", false}, {"/robots.txt", true}, {"/robots.txt#fragment", true},
+		{"/%72obots.txt", true}, {"/Robots.txt", false}, {"/sub/robots.txt", false},
+		{"/robots.txt/", false}, {"/robots.txt?x=1", false}, {"/robots.txt?", false},
+	} {
+		if got := m.AgentAllowed(rules, "Bot", "https://example.org"+tc.path); got != tc.allow {
+			t.Errorf("%s: allowed = %t", tc.path, got)
+		}
+		if tc.allow && (m.MatchingLine() != 0 || m.Disallowed() || m.EverSeenSpecificAgent() || m.DisallowedIgnoreGlobal()) {
+			t.Errorf("%s: stale match diagnostics", tc.path)
+		}
+	}
+}
+
+func TestLiteralRobotsOperators(t *testing.T) {
+	for _, tc := range []struct {
+		pattern, path string
+		match         bool
+	}{
+		{"/file-%2A.html$", "/file-*.html", true}, {"/file-%2a.html$", "/file-%2A.html", true},
+		{"/file-%2A.html$", "/file-any.html", false}, {"/foo-%24$", "/foo-$", true},
+		{"/foo-%24$", "/foo-%24", true}, {"/foo-%24$", "/foo-$more", false},
+		{"/*%2a$", "/abc*", true}, {"/*2A$", "/abc%2A", false},
+		{"/%2A$", "/%252A", false}, {"/%24$", "/%2524", false},
+		{"/a$b$", "/a%24b", true},
+	} {
+		got := AgentAllowed("User-agent: *\nDisallow: "+tc.pattern, "Bot", "https://example.org"+tc.path)
+		if got == tc.match {
+			t.Errorf("Disallow %q on %q: allowed = %t", tc.pattern, tc.path, got)
+		}
+	}
+	const rules = "User-agent: *\nDisallow: /%24x\nAllow: /$x"
+	if !AgentAllowed(rules, "Bot", "https://example.org/%24x") {
+		t.Error("equal literal specificity should select Allow")
 	}
 }

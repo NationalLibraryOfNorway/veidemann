@@ -68,7 +68,7 @@ $ icanhasrobot ~/local/path/to/robots.txt YourBot https://example.com/url
 user-agent 'YourBot' with URI 'https://example.com/url': ALLOWED
 ```
 
-Additionally, one can pass multiple user-agent names to the tool, using comma-separated values, e.g.
+Pass comma-separated aliases to combine the rules that apply to one crawler.
 
 ```bash
 $ icanhasrobot ~/local/path/to/robots.txt Googlebot,Googlebot-image https://example.com/url
@@ -131,9 +131,15 @@ go test ./grobotstxt -coverprofile=coverage.out && go tool cover -html=coverage.
 
 Google’s C++ matcher expects an already escaped URL. The Go methods
 `AgentAllowed` and `AgentsAllowed` accept absolute hierarchical URLs and
-apply WHATWG parsing before matching the serialized path and query. They
-omit the fragment and return false for unparseable URLs or opaque paths.
+apply WHATWG parsing before matching the serialized path and query. The matcher
+omits the fragment, decodes percent-encoded unreserved ASCII once, and normalizes the hex digits in remaining escapes on both sides of the comparison.
+A query-free allow rule ending in an exact `index.htm` or `index.html` filename can also
+allow the parent directory, including when the filename has a terminal `$` anchor.
 
+Both methods return false for unparseable URLs or opaque paths.
+
+The matcher uses the leading product token of each crawler identifier, so
+`FooBot/1.0` matches a `User-agent: FooBot` group.
 The Go port also supports a wider range of user-agent token characters, the
 additional `diaslow` spelling, and a sitemap extraction helper. The parser
 reports Google-style line metadata through the optional `LineMetadataReporter`
