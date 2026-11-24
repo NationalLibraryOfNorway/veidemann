@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/browser-controller
 go 1.27.0
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.4
+	github.com/NationalLibraryOfNorway/veidemann/api v1.6.0
 	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10
 	github.com/chromedp/cdproto v0.160.3

@@ -3,7 +3,7 @@ module github.com/NationalLibraryOfNorway/veidemann/scopeservice
 go 1.27.0
 
 require (
-	github.com/NationalLibraryOfNorway/veidemann/api v1.5.4
+	github.com/NationalLibraryOfNorway/veidemann/api v1.6.0
 	github.com/nationallibraryofnorway/whatwg-url v0.9.1
 	github.com/opentracing-contrib/go-grpc v0.1.4
 	github.com/opentracing/opentracing-go v1.2.0
