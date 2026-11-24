@@ -28,6 +28,7 @@ const (
 var errRobotsUnreachable = errors.New("robots.txt is unreachable")
 
 type Evaluator struct {
+	Recorder                 *Recorder
 	cache                    cache.Cachier
 	client                   *http.Client
 	cacheFreshness           time.Duration
@@ -156,7 +157,22 @@ func (e *Evaluator) fetchRobotsTxt(ctx context.Context, req *AllowedRequest) (ro
 		}
 
 		entry, _ := e.loadCacheEntry(ctx, cacheKey)
-		return e.refreshRobotsTxt(ctx, cacheKey, robotsURI, req, entry, now)
+		metadata := fetchMetadata{
+			collection: req.CollectionId,
+			execution:  req.ExecutionId,
+			job:        req.JobExecutionId,
+		}
+		if e.Recorder != nil && req.CollectionId != "" {
+			metadata.capture = &refreshCapture{started: time.Now()}
+		} else if req.CollectionId == "" {
+			slog.Info("Robots recording skipped", "reason", "missing collection ID", "uri", robotsURI)
+		}
+		fetchCtx := context.WithValue(ctx, fetchKey{}, metadata)
+		result, err := e.refreshRobotsTxt(fetchCtx, cacheKey, robotsURI, entry, now)
+		if metadata.capture != nil {
+			e.Recorder.record(ctx, metadata)
+		}
+		return result, err
 	})
 	if err != nil {
 		return robotsResult{}, err
@@ -232,7 +248,6 @@ func (e *Evaluator) refreshRobotsTxt(
 	ctx context.Context,
 	cacheKey string,
 	robotsURI string,
-	req *AllowedRequest,
 	stale *cacheEntry,
 	now time.Time,
 ) (robotsResult, error) {
@@ -243,15 +258,7 @@ func (e *Evaluator) refreshRobotsTxt(
 	}
 
 	robotsReq.Header.Set("Cache-Control", "no-cache, no-store")
-	if req.CollectionId != "" {
-		robotsReq.Header.Set(collectionID, req.CollectionId)
-	}
-	if req.ExecutionId != "" {
-		robotsReq.Header.Set(executionID, req.ExecutionId)
-	}
-	if req.JobExecutionId != "" {
-		robotsReq.Header.Set(jobExecutionID, req.JobExecutionId)
-	}
+	robotsReq.Header.Set("Accept-Encoding", "identity")
 
 	resp, err := e.client.Do(robotsReq)
 	if err != nil {

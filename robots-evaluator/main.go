@@ -18,7 +18,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -33,6 +32,9 @@ import (
 	"syscall"
 	"time"
 
+	writerV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	dnsV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/cache"
 	"github.com/NationalLibraryOfNorway/veidemann/robots-evaluator/robots"
@@ -40,6 +42,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -88,11 +91,16 @@ func toLogLevel(level string) slog.Level {
 func parseFlags() error {
 	flags := pflag.CommandLine
 
+	flags.String("dns-resolver-address", "dns-resolver:8053", "DNS resolver gRPC endpoint")
+	flags.String("content-writer-address", "contentwriter:8082", "ContentWriter gRPC endpoint")
+	flags.String("log-service-address", "log-service-writer:8080", "Log-service gRPC endpoint")
+	flags.String("cache-address", "cache-balancer:3128", "Explicit Squid endpoint")
 	flags.String("log-level", "info", "error, warn, info or debug")
 	flags.String("address", ":8090", "Address for the gRPC server")
 	flags.String("telemetry-address", ":9153", "Address for the telemetry server")
 	flags.StringSlice("olric-address", []string{"localhost:3320"}, "Olric address")
 	flags.String("olric-dmap", "robots-evaluator", "Olric DMap name")
+	flags.Duration("recording-timeout", 30*time.Second, "Maximum time for all recording writes in one refresh")
 	flags.Duration("robots-cache-freshness", defaultRobotsCacheFreshness,
 		"Maximum normal age of cached robots.txt rules")
 	flags.Duration("robots-unreachable-retry-interval", defaultRobotsUnreachableRetryInterval,
@@ -130,12 +138,21 @@ func run() error {
 		return err
 	}
 
+	recordingTimeout := viper.GetDuration("recording-timeout")
+	if recordingTimeout <= 0 {
+		return fmt.Errorf("recording-timeout must be positive")
+	}
 	initLogger(os.Stderr, level)
 
 	slog.Info(name, "version", version, "commit", commit, "date", date)
 
 	app := &App{
+		RecordingTimeout:               recordingTimeout,
 		Addr:                           addr,
+		DNSAddress:                     viper.GetString("dns-resolver-address"),
+		WriterAddress:                  viper.GetString("content-writer-address"),
+		LogAddress:                     viper.GetString("log-service-address"),
+		CacheAddress:                   viper.GetString("cache-address"),
 		TelemetryAddr:                  telemetryAddr,
 		OlricAddr:                      olricAddress,
 		OlricDmap:                      olricDmap,
@@ -150,6 +167,11 @@ func run() error {
 }
 
 type App struct {
+	RecordingTimeout               time.Duration
+	DNSAddress                     string
+	WriterAddress                  string
+	LogAddress                     string
+	CacheAddress                   string
 	Addr                           string
 	TelemetryAddr                  string
 	OlricAddr                      []string
@@ -172,6 +194,7 @@ func (app *App) Run(ctx context.Context) error {
 		Handler: mux,
 	}
 
+	defer telemetry.Close()
 	g.Go(func() error {
 		err := telemetry.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
@@ -184,26 +207,51 @@ func (app *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer app.cachier.Close(context.Background())
 
 	grpcServer := grpc.NewServer()
 
-	impl := &robots.EvaluatorServer{
-		Evaluator: robots.NewEvaluator(
-			app.cachier,
-			&http.Client{
-				Timeout: 10 * time.Second,
-				Transport: &http.Transport{
-					Proxy: http.ProxyFromEnvironment,
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
-				CheckRedirect: stopAfterFiveRedirects,
-			},
-			app.RobotsCacheFreshness,
-			app.RobotsUnreachableRetryInterval,
-		),
+	connect := func(address string) (*grpc.ClientConn, error) {
+		if address == "" {
+			return nil, fmt.Errorf("service endpoint is required")
+		}
+		return grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+	dnsConn, err := connect(app.DNSAddress)
+	if err != nil {
+		return err
+	}
+	defer dnsConn.Close()
+	writerConn, err := connect(app.WriterAddress)
+	if err != nil {
+		return err
+	}
+	defer writerConn.Close()
+	logConn, err := connect(app.LogAddress)
+	if err != nil {
+		return err
+	}
+	defer logConn.Close()
+	transport, err := robots.NewTransport(dnsV1.NewDnsResolverClient(dnsConn), app.CacheAddress)
+	if err != nil {
+		return err
+	}
+	evaluator := robots.NewEvaluator(
+		app.cachier,
+		&http.Client{
+			Timeout:       10 * time.Second,
+			Transport:     transport,
+			CheckRedirect: stopAfterFiveRedirects,
+		},
+		app.RobotsCacheFreshness,
+		app.RobotsUnreachableRetryInterval,
+	)
+	evaluator.Recorder = robots.NewRecorder(
+		writerV1.NewContentWriterClient(writerConn),
+		logV1.NewLogClient(logConn), app.RecordingTimeout,
+	)
+	impl := &robots.EvaluatorServer{Evaluator: evaluator}
+
 	robotsevaluatorV1.RegisterRobotsEvaluatorServer(grpcServer, impl)
 
 	listener, err := net.Listen("tcp", app.Addr)
@@ -211,17 +259,15 @@ func (app *App) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to listen on %s: %w", app.Addr, err)
 	}
 
+	app.ready.Store(true)
 	slog.Info("gRPC server listening", "address", app.Addr)
 
 	g.Go(func() error { return grpcServer.Serve(listener) })
 
 	<-ctx.Done()
 
-	grpcServer.GracefulStop()
 	app.ready.Store(false)
-
-	_ = listener.Close()
-	_ = app.cachier.Close(context.Background())
+	grpcServer.GracefulStop()
 	_ = telemetry.Shutdown(context.Background())
 
 	return g.Wait()
@@ -275,7 +321,6 @@ func (app *App) init(ctx context.Context) error {
 		return err
 	}
 	app.cachier = cachier
-	app.ready.Store(true)
 	return nil
 }
 

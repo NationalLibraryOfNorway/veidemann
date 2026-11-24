@@ -1,9 +1,9 @@
 # Veidemann robots evaluator
 
 The robots evaluator fetches, caches, parses, and evaluates `robots.txt` on
-behalf of Frontier and browser-controller. Responsibility is split between the
+behalf of Frontier and recorderproxy. Responsibility is split between the
 two callers: Frontier checks queued pages before starting a browser session,
-while browser-controller checks browser requests only for the `*_CLASSIC`
+while recorderproxy checks browser requests only for the `*_CLASSIC`
 policies.
 
 ## Robots policies
@@ -12,7 +12,7 @@ The table describes the current implementation. An unavailable `robots.txt` is
 a final 3xx or 4xx response. An unreachable `robots.txt` is a 5xx response,
 timeout, network error, or response-body error.
 
-| Value | Policy | Frontier check before browser start | Browser-controller check | Rules used | Site `robots.txt` unavailable or unreachable |
+| Value | Policy | Frontier check before browser start | Recorderproxy check | Rules used | Site `robots.txt` unavailable or unreachable |
 |---:|---|---|---|---|---|
 | 0 | `OBEY_ROBOTS` | Evaluates the queued page | None | Site `robots.txt` | Unavailable allows; unreachable uses stale rules or returns `Unavailable` if none exist |
 | 1 | `IGNORE_ROBOTS` | None | None | No robots rules | Not applicable |
@@ -22,12 +22,12 @@ timeout, network error, or response-body error.
 | 5 | `CUSTOM_IF_MISSING` | Evaluates the queued page | None | Site rules, stale site rules when unreachable, otherwise configured custom rules | Configured custom rules are used when no site rules are available |
 | 6 | `CUSTOM_IF_MISSING_CLASSIC` | Evaluates the queued page | Evaluates requests registered during the browser session | Site rules, stale site rules when unreachable, otherwise configured custom rules | Configured custom rules are used when no site rules are available |
 
-For the three `*_CLASSIC` policies, browser-controller translates the policy
+For the three `*_CLASSIC` policies, recorderproxy translates the policy
 to its corresponding non-classic policy before calling robots-evaluator. For
-all other policies, browser-controller performs no robots-evaluator RPC.
+all other policies, recorderproxy performs no robots-evaluator RPC.
 
 An internal robots-evaluator RPC failure remains fail-open in Frontier and
-browser-controller. An unreachable origin without cached or custom rules is
+recorderproxy. An unreachable origin without cached or custom rules is
 returned as gRPC `Unavailable`; it is not reported as a robots-rule denial.
 Frontier therefore allows the request and logs the evaluator failure instead
 of completing the seed with `PRECLUDED_BY_ROBOTS` (`-9998`).
@@ -83,8 +83,8 @@ Cache-Control: no-cache, no-store
 ```
 
 This makes Squid validate any previously stored response and prevents it from
-storing the request or new response. Squid remains in the request path for
-archiving but is not a second robots cache.
+storing the request or new response. Squid remains the explicit outbound proxy. ContentWriter and log-service receive
+recordings directly from robots-evaluator.
 
 The deprecated `minimum_robots_validity_duration_s` politeness field is
 accepted for wire compatibility but ignored. Freshness is controlled at the
@@ -105,3 +105,68 @@ Run commands from this directory:
 ```sh
 go test ./...
 ```
+
+## Direct HTTP recording
+
+A refresh carries collection, crawl execution and job execution identity in Go
+request context. Each target is resolved through DnsResolver with collection and
+execution attribution; DNS answers remain archived by that service. Negative DNS
+answers fail the fetch. The HTTP client connects through the explicit Squid
+endpoint, accepts existing upstream TLS certificates, requests identity encoding,
+and preserves the 10-second fetch timeout and five-hop redirect limit. Squid job
+partition headers are added only after capturing the request and Squid strips
+them before forwarding to origins. Environment proxy settings are ignored.
+
+Each completed GET exchange, including redirects back to the same URL and HTTP
+error responses, produces one ContentWriter stream containing a request/response
+pair. Sizes and SHA-1 digests cover the captured HTTP protocol headers and body.
+Only confirmed record metadata and WARC references are used for response crawl
+logs sent directly to log-service. Squid cache hits are filtered. Fresh Olric
+hits perform no HTTP recording; shared refreshes belong to the caller that starts
+the fetch. Requests without a collection continue evaluation and explicitly
+report that recording was skipped.
+
+Recording runs synchronously as part of a refresh: fetch and cache the rules,
+then write each completed request/response pair and its crawl log before replying.
+Storage latency provides backpressure to the refreshing caller. Subsequent cache
+hits use the cached result without waiting for recording or recording it again.
+Earlier caller cancellation or deadlines also stop recording.
+
+The evaluator gives all WARC and crawl-log writes for one refresh a shared
+30-second budget (`--recording-timeout` or `RECORDING_TIMEOUT`). If storage
+times out, it returns the computed decision. Frontier allows 60 seconds per
+evaluator call (`robotsEvaluatorTimeout` or `ROBOTS_EVALUATOR_TIMEOUT`) and
+allows the harvest on RPC failure. When tuning, leave room in the Frontier
+budget for fetching robots.txt, cache access and returning the decision.
+
+A storage or log failure is reported without replacing the robots decision or
+invalidating cached rules. Each exchange is limited to 4 MiB of archived headers
+and body. Oversized and incomplete exchanges are skipped; completed earlier
+redirects remain eligible for recording. One `Robots recording summary` reports
+identities, recorded/skipped counts, failure causes and duration.
+
+| Flag | Environment | Default |
+|---|---|---|
+| `--dns-resolver-address` | `DNS_RESOLVER_ADDRESS` | `dns-resolver:8053` |
+| `--content-writer-address` | `CONTENT_WRITER_ADDRESS` | `contentwriter:8082` |
+| `--log-service-address` | `LOG_SERVICE_ADDRESS` | `log-service-writer:8080` |
+| `--cache-address` | `CACHE_ADDRESS` | `cache-balancer:3128` |
+| `--recording-timeout` | `RECORDING_TIMEOUT` | `30s` |
+
+Shutdown uses gRPC `GracefulStop`, which waits for active requests, including
+their recording. Robots fetching and recording work with browser-controller stopped.
+
+Build from the repository root:
+
+```sh
+docker build -t robots-recording:test ./robots-evaluator
+```
+
+Run `go test -race ./...` from this module. Deterministic HTTP/HTTPS origins and
+gRPC fixtures cover recording bytes/digests/references, cache behavior, DNS and
+persistence failures, caller cancellation, storage backpressure and concurrent refreshes.
+See [the coordinated cutover](../deploy/k8s/base/harvester/README.md).
+
+Unread redirect bodies are not drained for recording: closing them retains the
+HTTP client's redirect behavior and reports an incomplete exchange. Completed
+redirects are retained if a later DNS lookup or HTTP transfer fails.

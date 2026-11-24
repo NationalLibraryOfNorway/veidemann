@@ -6,9 +6,19 @@ on:
       - 'main'
     paths:
       - 'robots-evaluator/**'
+      - 'api/**'
+      - 'deploy/k8s/base/robots/**'
+      - 'deploy/k8s/base/harvester/**'
+      - 'skaffold.yaml'
+      - '.github/workflows/robots-evaluator-ci.yaml'
   pull_request:
     paths:
       - 'robots-evaluator/**'
+      - 'api/**'
+      - 'deploy/k8s/base/robots/**'
+      - 'deploy/k8s/base/harvester/**'
+      - 'skaffold.yaml'
+      - '.github/workflows/robots-evaluator-ci.yaml'
   workflow_dispatch:
 
 jobs:
@@ -16,3 +26,22 @@ jobs:
     uses: ./.github/workflows/golang-ci.yaml
     with:
       working-directory: robots-evaluator
+
+  recording:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: robots-evaluator/go.sum
+      - name: Recording race checks
+        working-directory: robots-evaluator
+        run: go test -race ./... -count=1 -timeout=90s
+      - name: Build coordinated robots image
+        run: docker build -t robots-recording:test ./robots-evaluator
+      - uses: imranismail/setup-kustomize@v2
+      - name: Render affected deployments
+        run: |
+          kustomize build deploy/k8s/base/robots > /tmp/robots.yaml
+          kustomize build deploy/k8s/base/harvester > /tmp/harvester.yaml

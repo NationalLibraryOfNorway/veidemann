@@ -120,7 +120,7 @@ func allowedRequest(uri, collection, execution, job string) *AllowedRequest {
 	}
 }
 
-func TestCollectionScopedCacheAndRequestHeaders(t *testing.T) {
+func TestCollectionScopedCacheAndNoMetadataHeaders(t *testing.T) {
 	origin := &testOrigin{status: http.StatusOK, body: blockedRules}
 	server := httptest.NewServer(origin)
 	defer server.Close()
@@ -153,8 +153,8 @@ func TestCollectionScopedCacheAndRequestHeaders(t *testing.T) {
 	}
 
 	wantRequests := []originRequest{
-		{cacheControl: "no-cache, no-store", collection: "collection-a", execution: "execution-a1", jobExecution: "job-a1"},
-		{cacheControl: "no-cache, no-store", collection: "collection-b", execution: "execution-b1", jobExecution: "job-b1"},
+		{cacheControl: "no-cache, no-store"},
+		{cacheControl: "no-cache, no-store"},
 	}
 	for i, want := range wantRequests {
 		if requests[i] != want {
