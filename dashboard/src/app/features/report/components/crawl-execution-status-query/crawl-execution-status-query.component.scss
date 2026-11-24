@@ -13,3 +13,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.has-error-filter[aria-pressed='false'] {
+  color: var(--mat-sys-on-surface-variant);
+}

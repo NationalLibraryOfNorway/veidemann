@@ -13,19 +13,9 @@
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field appearance="outline" hidden>
-    <mat-label i18n="@@crawlExecutionReportFilterJobExecutionIdLabel">
-      JobExecution ID
-    </mat-label>
-    <input matInput formControlName="jobExecutionId">
-  </mat-form-field>
+  <input type="hidden" formControlName="jobExecutionId">
 
-  <mat-form-field appearance="outline" hidden>
-    <mat-label i18n="@@crawlExecutionReportFilterSeedIdLabel">
-      Seed ID
-    </mat-label>
-    <input matInput formControlName="seedId">
-  </mat-form-field>
+  <input type="hidden" formControlName="seedId">
 
   <mat-form-field appearance="outline">
     <mat-label i18n="@@crawlExecutionReportFilterStartDateRangeLabel">Crawl start date</mat-label>

@@ -186,7 +186,7 @@ describe('LabelMultiComponent', () => {
     expect(commonLabels.parentElement).toBe(valueRow);
     expect(editor.parentElement).toBe(valueRow);
     expect(getComputedStyle(valueRow).display).toBe('grid');
-    expect(getComputedStyle(valueRow).gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+    expect(getComputedStyle(valueRow).gridTemplateColumns).toBe('repeat(2, minmax(0px, 1fr))');
     expect(editor).not.toBeNull();
     expect(getComputedStyle(editor).display).toBe('block');
     expect(editor.classList.contains('flex-fill')).toBe(false);

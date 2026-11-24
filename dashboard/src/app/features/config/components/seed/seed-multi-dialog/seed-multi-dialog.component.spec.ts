@@ -89,7 +89,7 @@ describe('SeedMultiDialogComponent', () => {
     expect(toggle.getBoundingClientRect().right).toBeCloseTo(headingRow.getBoundingClientRect().right, 0);
     expect(toggle.querySelector('.mat-pseudo-checkbox')).toBeNull();
     expect(getComputedStyle(valueRow).display).toBe('grid');
-    expect(getComputedStyle(valueRow).gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+    expect(getComputedStyle(valueRow).gridTemplateColumns).toBe('repeat(2, minmax(0px, 1fr))');
     expect(commonField.parentElement?.classList.contains('common-values')).toBe(true);
     expect(updateField.parentElement?.classList.contains('editor')).toBe(true);
     expect(component.updateJobRefListId.disabled).toBe(true);

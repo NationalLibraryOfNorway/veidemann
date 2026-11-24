@@ -315,6 +315,7 @@ describe('ConfigListComponent', () => {
       deactivated.querySelector('mat-icon') as HTMLElement
     ) - horizontalCenter(active.querySelector('mat-icon') as HTMLElement));
     expect(orderToDeactivated).toBeCloseTo(deactivatedToActive, 1);
+    fixture.nativeElement.style.setProperty('--mat-sys-primary', 'rebeccapurple');
     const inactiveColor = getComputedStyle(active).color;
 
     active.click();
@@ -1372,8 +1373,8 @@ describe('ConfigListComponent', () => {
       (fixture.nativeElement.querySelectorAll('[aria-label="List mode"] button')[1] as HTMLElement).click();
       fixture.detectChanges();
       const paginator = fixture.nativeElement.querySelector('mat-paginator') as HTMLElement;
-      // jsdom does not resolve var(), so only the reference to the host's inset is checked.
-      expect(getComputedStyle(paginator).paddingInlineEnd).toContain('--config-list-end-inset');
+      fixture.nativeElement.style.setProperty('--config-list-end-inset', '88px');
+      expect(getComputedStyle(paginator).paddingInlineEnd).toBe('88px');
     });
 
     it('switches between endless scroll and pages and remembers the choice', () => {

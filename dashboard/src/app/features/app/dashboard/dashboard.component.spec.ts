@@ -151,7 +151,7 @@ describe('DashboardComponent', () => {
     expect(getComputedStyle(page).padding).toBe('0px');
     expect(getComputedStyle(heroHeader).paddingInline).toBe('8px');
     expect(getComputedStyle(heroHeader).gap).toBe('8px');
-    expect(getComputedStyle(heroHeader).marginBottom).toBe('0');
+    expect(getComputedStyle(heroHeader).marginBottom).toBe('0px');
     expect(getComputedStyle(heroHeader.querySelector('.destination-hero-card') as HTMLElement).minHeight)
       .toBe('320px');
   });

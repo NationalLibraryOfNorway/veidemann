@@ -71,7 +71,7 @@ describe('ConfigNavListComponent', () => {
     expect(getComputedStyle(page).padding).toBe('0px');
     expect(getComputedStyle(hero).paddingInline).toBe('8px');
     expect(getComputedStyle(hero).gap).toBe('8px');
-    expect(getComputedStyle(hero).marginBottom).toBe('0');
+    expect(getComputedStyle(hero).marginBottom).toBe('0px');
     expect(getComputedStyle(introCard).minHeight).toBe('320px');
     expect(getComputedStyle(fixture.nativeElement.querySelector('.destination-groups')).paddingBottom)
       .toBe('64px');

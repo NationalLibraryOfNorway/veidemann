@@ -115,9 +115,7 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     const chips = [...fixture.nativeElement.querySelectorAll('.report-active-filter-chips mat-chip')] as HTMLElement[];
 
     expect(directInputs).toHaveLength(2);
-    expect(directInputs.every(input => (input.closest('mat-form-field') as HTMLElement).hidden)).toBe(true);
-    expect(directInputs.every(input => getComputedStyle(input.closest('mat-form-field') as HTMLElement).display === 'none'))
-      .toBe(true);
+    expect(directInputs.every(input => input.type === 'hidden')).toBe(true);
     expect(chips.map(chip => chip.textContent.trim())).toEqual([
       expect.stringContaining('Daily crawl'),
       expect.stringContaining('Example seed'),
@@ -155,6 +153,8 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     let emitted: Partial<CrawlExecutionStatusQuery> | undefined;
     fixture.componentInstance.queryChange.subscribe(query => emitted = query);
     const hasError = fixture.nativeElement.querySelector('.has-error-filter') as HTMLButtonElement;
+    fixture.nativeElement.style.setProperty('--mat-sys-primary', 'rebeccapurple');
+    fixture.nativeElement.style.setProperty('--mat-sys-on-surface-variant', 'dimgray');
     const inactiveColor = getComputedStyle(hasError).color;
 
     hasError.click();
@@ -212,7 +212,7 @@ describe('CrawlExecutionStatusQueryComponent', () => {
     expect(await range.getLabel()).toBe('Crawl start date');
     expect(await startInput.getPlaceholder()).toBe('From');
     expect(await endInput.getPlaceholder()).toBe('To');
-    expect(fixture.nativeElement.querySelectorAll('mat-form-field')).toHaveLength(4);
+    expect(fixture.nativeElement.querySelectorAll('mat-form-field')).toHaveLength(2);
     expect(fixture.nativeElement.querySelector('mat-timepicker')).toBeNull();
     expect(fixture.nativeElement.querySelector('mat-timepicker-toggle')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Both dates are inclusive');

@@ -36,7 +36,7 @@ describe('PageLogComponent', () => {
     expect(fixture.nativeElement.querySelector('.report-filter-toolbar')).toBeNull();
     const executionQuery = fixture.nativeElement.querySelector('app-page-log-query') as HTMLElement;
     expect(executionQuery).not.toBeNull();
-    expect((executionQuery.querySelector('mat-form-field') as HTMLElement).hidden).toBe(true);
+    expect(executionQuery.querySelector('input[type="hidden"][formControlName="executionId"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-log-list-shortcuts')).toBeNull();
     expect(fixture.nativeElement.querySelector('app-detail-overflow')).toBeNull();
   });

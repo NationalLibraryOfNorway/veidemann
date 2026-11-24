@@ -38,8 +38,6 @@ describe('CrawlLogQueryComponent', () => {
 
     expect(component.form.contains('executionId')).toBe(true);
     expect(component.form.contains('jobExecutionId')).toBe(false);
-    const executionField = executionInput.closest('mat-form-field') as HTMLElement;
-    expect(executionField.hidden).toBe(true);
-    expect(getComputedStyle(executionField).display).toBe('none');
+    expect(executionInput.getAttribute('type')).toBe('hidden');
   });
 });

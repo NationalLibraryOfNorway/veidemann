@@ -315,14 +315,10 @@ describe('ConfigShortcutHelpersComponent', () => {
     expect(fixture.nativeElement.querySelector('.navigate-icon')).toBeNull();
     expect(getComputedStyle(status).gridColumnStart).toBe('3');
 
-    const errorContainerRef = document.createElement('div');
-    errorContainerRef.style.backgroundColor = 'var(--mat-sys-error-container)';
-    errorContainerRef.style.color = 'var(--mat-sys-on-error-container)';
-    document.body.appendChild(errorContainerRef);
-    expect(getComputedStyle(status).color).toBe(getComputedStyle(errorContainerRef).color);
-    expect(getComputedStyle(status).backgroundColor).toBe(getComputedStyle(errorContainerRef).backgroundColor);
-    expect(getComputedStyle(status).color).not.toBe(getComputedStyle(rows[1].querySelector('small')).color);
-    errorContainerRef.remove();
+    fixture.nativeElement.style.setProperty('--mat-sys-error-container', 'pink');
+    fixture.nativeElement.style.setProperty('--mat-sys-on-error-container', 'maroon');
+    expect(getComputedStyle(status).color).toBe('rgb(128, 0, 0)');
+    expect(getComputedStyle(status).backgroundColor).toBe('rgb(255, 192, 203)');
     expect(getComputedStyle(rows[0].querySelector('.relationship-content')).borderRadius).toBe('0px');
     expect(getComputedStyle(rows[0]).borderTopStyle).toBe('none');
     expect(getComputedStyle(rows[0]).borderBottomStyle).toBe('none');

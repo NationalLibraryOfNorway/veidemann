@@ -1,7 +1,5 @@
 import { ChangeDetectionStrategy,Component } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { QueryComponent } from '../../../../shared/components';
 import { PageLogQuery } from '../../services';
 
@@ -12,8 +10,6 @@ import { PageLogQuery } from '../../services';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatFormFieldModule,
-    MatInputModule,
     ReactiveFormsModule,
   ]
 })
