@@ -15,7 +15,7 @@ RUN sed -i "s/version: ''/version: '${VERSION}'/" src/environments/*.ts \
     && npm run build
 
 
-FROM nginx/nginx-unprivileged:1.30.8-alpine-slim@sha256:04c98c78c1de60ddeada00d7d2207dcd146ecd07b61b9941c9a5799cfb258d28
+FROM nginx/nginx-unprivileged:1.31.9-alpine-slim@sha256:75e85a09b0f25bd46d49a9fd85589ffa70b0459c8ed5ee0dc6596fd642e1f829
 LABEL maintainer="nettarkivet@nb.no"
 
 # The pinned base ships zlib 1.3.2-r1, affected by CVE-2026-4738.
