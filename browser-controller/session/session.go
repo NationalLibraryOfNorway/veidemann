@@ -43,7 +43,6 @@ import (
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/cdproto/serviceworker"
 	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
@@ -335,7 +334,6 @@ func (sess *Session) startBrowserSession(ctx context.Context) (context.Context, 
 		chromedp.Emulate(deviceInfo),
 		chromedp.Func(prepareRemotePage),
 		cdpAction(network.SetCookies, network.SetCookiesParams{Cookies: sess.getCookieParams(sess.RequestedUrl)}),
-		cdpAction(runtime.Enable, cdp.Empty{}),
 	); err != nil {
 		return nil, cleanup, err
 	}

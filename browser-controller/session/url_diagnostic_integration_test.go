@@ -36,7 +36,6 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/device"
 )
@@ -308,7 +307,6 @@ func runURLDiagnosticMode(t *testing.T, parent context.Context, host string, por
 	err = chromedp.Do(browserCtx,
 		cdpAction(network.Enable, network.EnableParams{}),
 		cdpAction(page.Enable, page.EnableParams{}),
-		cdpAction(runtime.Enable, cdp.Empty{}),
 		cdpAction(network.SetCacheDisabled, network.SetCacheDisabledParams{CacheDisabled: true}),
 		chromedp.Emulate(device.Info{
 			Name:      "Veidemann URL diagnostic",

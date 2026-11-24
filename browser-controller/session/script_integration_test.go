@@ -26,9 +26,7 @@ import (
 	"time"
 
 	testcontainersupport "github.com/NationalLibraryOfNorway/veidemann/browser-controller/internal/testcontainers"
-	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -163,7 +161,6 @@ func newScriptExecutionTestContext(t *testing.T) (context.Context, func()) {
 
 	if err := chromedp.Do(cdpCtx,
 		cdpAction(page.Enable, page.EnableParams{}),
-		cdpAction(runtime.Enable, cdp.Empty{}),
 		chromedp.Navigate("data:text/html,<html><body>script test</body></html>"),
 	); err != nil {
 		cdpCancel()
