@@ -93,7 +93,7 @@ spec:
               mountPath: /var/run/recorderproxy
         - name: browser
           restartPolicy: Always
-          image: ghcr.io/browserless/chromium:v2.61.0
+          image: ghcr.io/browserless/chromium:v2.64.3
           securityContext:
             readOnlyRootFilesystem: true
           resources:
