@@ -38,7 +38,19 @@ public class Settings extends CommonSettings {
 
     private String workDir;
 
+    private Duration robotsEvaluatorTimeout;
     private String robotsEvaluatorHost;
+
+    public Duration getRobotsEvaluatorTimeout() {
+        return robotsEvaluatorTimeout;
+    }
+
+    public void setRobotsEvaluatorTimeout(Duration timeout) {
+        if (timeout.isNegative() || timeout.isZero()) {
+            throw new IllegalArgumentException("robotsEvaluatorTimeout must be positive");
+        }
+        robotsEvaluatorTimeout = timeout;
+    }
 
     private int robotsEvaluatorPort;
 

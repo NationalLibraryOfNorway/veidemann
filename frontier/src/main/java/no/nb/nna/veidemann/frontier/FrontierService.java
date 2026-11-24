@@ -135,7 +135,7 @@ public class FrontierService implements AutoCloseable {
 
         robotsServiceClient = new RobotsServiceClient(
                 settings.getRobotsEvaluatorHost(),
-                settings.getRobotsEvaluatorPort());
+                settings.getRobotsEvaluatorPort(), settings.getRobotsEvaluatorTimeout());
         dnsServiceClient = new DnsServiceClient(
                 settings.getDnsResolverHost(),
                 settings.getDnsResolverPort());

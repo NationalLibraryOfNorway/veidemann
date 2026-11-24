@@ -135,6 +135,7 @@ public class AbstractIntegrationTest {
         tracer = new MockTracer();
 
         settings = new Settings();
+        settings.setRobotsEvaluatorTimeout(Duration.ofSeconds(60));
         settings.setDnsResolverHost(AbstractIntegrationTest.getStringProperty("dnsresolver.host", "localhost"));
         settings.setDnsResolverPort(AbstractIntegrationTest.getIntProperty("dnsresolver.port", 9500));
         settings.setRobotsEvaluatorHost(AbstractIntegrationTest.getStringProperty("robotsevaluator.host", "localhost"));
@@ -169,7 +170,7 @@ public class AbstractIntegrationTest {
         logServiceMock = new LogServiceMock(settings.getLogServicePort());
         logServiceMock.start();
         robotsServiceClient = new RobotsServiceClient(settings.getRobotsEvaluatorHost(),
-                settings.getRobotsEvaluatorPort());
+                settings.getRobotsEvaluatorPort(), settings.getRobotsEvaluatorTimeout());
         dnsServiceClient = new DnsServiceClient(settings.getDnsResolverHost(), settings.getDnsResolverPort());
         scopeServiceClient = new ScopeServiceClient(settings.getScopeserviceHost(), settings.getScopeservicePort());
         outOfScopeHandlerClient = new OutOfScopeHandlerClient(settings.getOutOfScopeHandlerHost(),

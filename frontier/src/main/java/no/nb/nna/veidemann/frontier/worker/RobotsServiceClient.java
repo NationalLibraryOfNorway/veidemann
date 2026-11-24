@@ -35,6 +35,7 @@ import no.nb.nna.veidemann.commons.client.GrpcUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,15 +44,17 @@ import java.util.concurrent.TimeUnit;
 public class RobotsServiceClient implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(RobotsServiceClient.class);
 
+    private final Duration timeout;
     private final ManagedChannel channel;
     private final RobotsEvaluatorGrpc.RobotsEvaluatorFutureStub futureStub;
 
-    public RobotsServiceClient(final String host, final int port) {
-        this(ManagedChannelBuilder.forAddress(host, port).usePlaintext());
+    public RobotsServiceClient(final String host, final int port, Duration timeout) {
+        this(ManagedChannelBuilder.forAddress(host, port).usePlaintext(), timeout);
         LOG.info("Robots service client pointing to " + host + ":" + port);
     }
 
-    public RobotsServiceClient(ManagedChannelBuilder<?> channelBuilder) {
+    public RobotsServiceClient(ManagedChannelBuilder<?> channelBuilder, Duration timeout) {
+        this.timeout = timeout;
         LOG.info("Setting up Robots service client");
         TracingClientInterceptor tracingInterceptor = TracingClientInterceptor.newBuilder().withTracer(GlobalTracer.get()).build();
         channel = channelBuilder.intercept(tracingInterceptor).build();
@@ -68,7 +71,8 @@ public class RobotsServiceClient implements AutoCloseable {
                 .setCollectionRef(collectionRef)
                 .build();
 
-        ListenableFuture<IsAllowedReply> reply = GrpcUtil.forkedCall(() -> futureStub.isAllowed(request));
+        ListenableFuture<IsAllowedReply> reply = GrpcUtil.forkedCall(() ->
+                futureStub.withDeadlineAfter(timeout.toNanos(), TimeUnit.NANOSECONDS).isAllowed(request));
 
         reply = Futures.catchingAsync(reply, Exception.class, e -> {
             if (e instanceof StatusRuntimeException) {
