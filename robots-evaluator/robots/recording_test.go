@@ -25,7 +25,7 @@ import (
 	dnsV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/google/uuid"
-	"github.com/nlnwa/gowarc"
+	"github.com/nationallibraryofnorway/gowarc/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -34,10 +34,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
-
-// Gowarc 1.6 initializes a global UUID pool on each builder construction.
-// Serialize that fixture-only initialization just as a single WARC writer does.
-var warcFixtureMu sync.Mutex
 
 type storedPair struct {
 	warc            []byte
@@ -49,6 +45,7 @@ type recordingServices struct {
 	dnsV1.UnimplementedDnsResolverServer
 	writerV1.UnimplementedContentWriterServer
 	logV1.UnimplementedLogServer
+	warcMu                                                  sync.Mutex
 	mu                                                      sync.Mutex
 	dnsRequests                                             []*dnsV1.ResolveRequest
 	pairs                                                   []storedPair
@@ -105,8 +102,8 @@ func (s *recordingServices) Write(stream writerV1.ContentWriter_WriteServer) err
 	if s.writerError || (s.failPhase == "writer" && strings.HasSuffix(pair.meta.TargetUri, "/fail")) {
 		return status.Error(codes.Unavailable, "storage down")
 	}
-	warcFixtureMu.Lock()
-	defer warcFixtureMu.Unlock()
+	s.warcMu.Lock()
+	defer s.warcMu.Unlock()
 	reply := &writerV1.WriteReply{Meta: &writerV1.WriteResponseMeta{RecordMeta: map[int32]*writerV1.WriteResponseMeta_RecordMeta{}}}
 	for i := int32(0); i <= 1; i++ {
 		m := pair.meta.RecordMeta[i]
@@ -133,7 +130,7 @@ func (s *recordingServices) Write(stream writerV1.ContentWriter_WriteServer) err
 			return errors.Join(err, rb.Close())
 		}
 		record, validation, err := rb.Build()
-		if err != nil || !validation.Valid() {
+		if err != nil || len(validation) != 0 {
 			if record != nil {
 				_ = record.Close()
 			} else {
@@ -249,10 +246,11 @@ func TestRecordingHTTPAndHTTPS(t *testing.T) {
 			}
 			defer func() { _ = reader.Close() }()
 			for i := 0; i < 2; i++ {
-				record, _, validation, err := reader.Next()
-				if err != nil || !validation.Valid() {
-					t.Fatalf("stored WARC: %v %v", err, validation)
+				entry, err := reader.Next()
+				if err != nil || len(entry.Validation) != 0 {
+					t.Fatalf("stored WARC: %v %v", err, entry.Validation)
 				}
+				record := entry.WarcRecord
 				typ := gowarc.Request
 				if i == 1 {
 					typ = gowarc.Response
