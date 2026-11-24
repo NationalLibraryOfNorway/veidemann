@@ -22,6 +22,33 @@ Apply prints the current preview before syncing. It overwrites differing files
 and deletes files and directories that exist only in the deployment base. The
 script does not perform backports or commit either checkout.
 
+## Upgrading Go and Java dependencies
+
+`update-dependencies.sh` runs `go get -t -u ./...` and `go mod tidy` in
+every tracked Go module, including nested modules and modules with tool
+dependencies. Each module is updated independently of any active Go workspace.
+For Java, it runs `./gradlew versionCatalogUpdate` to update stable library
+and plugin versions in `gradle/libs.versions.toml`. Changes are left unstaged.
+
+```bash
+./hack/update-dependencies.sh --dry-run
+./hack/update-dependencies.sh
+./hack/update-dependencies.sh --go-only --patch --sync
+./hack/update-dependencies.sh --java-only
+```
+
+Go upgrades allow minor and patch updates by default. With `--patch`, Go
+selects patch updates. The Java phase uses the catalog's stable-release policy.
+The script attempts both phases and exits nonzero if either fails.
+
+`--sync` runs `go work sync` after all upgrades succeed. It uses a temporary
+workspace containing all tracked modules and removes the workspace files on
+exit. This can raise a dependency to a higher version selected by another
+module, even when the initial upgrade used `--patch`.
+
+See the [Gradle dependency guide](../gradle/README.md) for Java validation
+and Gradle wrapper upgrades.
+
 ## Updating Go build tools
 
 `update-go-tools.sh` updates tools declared in `tools/go.mod`. With no tool
