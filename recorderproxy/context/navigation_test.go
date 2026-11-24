@@ -1,10 +1,11 @@
 package context
 
 import (
-	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"net/http/httptest"
 	"testing"
+
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 )
 
 func TestDocumentNavigationMarker(t *testing.T) {
