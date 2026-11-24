@@ -17,6 +17,7 @@
 package errors
 
 import (
+	stderrors "errors"
 	"fmt"
 
 	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
@@ -48,7 +49,8 @@ func (fe *fetchError) CommonsError() *commonsV1.Error {
 }
 
 func CommonsError(err error) *commonsV1.Error {
-	if fe, ok := err.(*fetchError); ok {
+	var fe FetchError
+	if stderrors.As(err, &fe) {
 		return fe.CommonsError()
 	} else {
 		return &commonsV1.Error{

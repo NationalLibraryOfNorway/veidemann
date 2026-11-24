@@ -76,7 +76,7 @@ func NewRethinkDbConnection(opts Options) *RethinkDbConnection {
 		waitTimeout:  60 * time.Second,
 		queryTimeout: opts.QueryTimeout,
 		batchSize:    200,
-		logger:       slog.Default().With("service", "rethinkdb"),
+		logger:       slog.Default().With("component", "browser-controller", "service", "rethinkdb"),
 	}
 }
 

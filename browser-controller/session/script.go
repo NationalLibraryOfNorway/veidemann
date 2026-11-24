@@ -120,33 +120,6 @@ func (sess *Session) loadScripts(ctx context.Context) (*sessionScripts, error) {
 	return bs, nil
 }
 
-func (sess *Session) GetReplacementScript(uri string) *configV1.BrowserScript {
-	log := sess.logger
-
-	replacements := sess.scripts.Get(configV1.BrowserScript_REPLACEMENT)
-	if len(replacements) == 0 {
-		return nil
-	}
-	normalizedUri := url.Normalize(uri)
-	longestMatch := 0
-	var currentBestMatch *configV1.BrowserScript
-	for _, bc := range replacements {
-		for _, urlRegexp := range bc.GetBrowserScript().UrlRegexp {
-			if re, err := regexp.Compile(urlRegexp); err == nil {
-				re.Longest()
-				l := len(re.FindString(normalizedUri))
-				if l > 0 && l > longestMatch {
-					longestMatch = l
-					currentBestMatch = bc.GetBrowserScript()
-				}
-			} else {
-				log.Warn("Could not match url for replacement script", "error", err)
-			}
-		}
-	}
-	return currentBestMatch
-}
-
 func buildNewDocumentScriptSource(functionDeclaration string, arguments json.RawMessage) string {
 	args := string(arguments)
 	if len(args) == 0 {
@@ -168,8 +141,8 @@ func (sess *Session) registerNewDocumentScripts(ctx context.Context) error {
 			return fmt.Errorf("failed to register init script %s (%s): %w", configObject.GetMeta().GetName(), configObject.GetId(), err)
 		}
 
-		sess.logger.Debug("Registered script",
-			"scriptType", configV1.BrowserScript_ON_NEW_DOCUMENT.String(),
+		sess.logger.Log(ctx, LevelTrace, "Script registered",
+			"scriptPhase", configV1.BrowserScript_ON_NEW_DOCUMENT.String(),
 			"scriptName", configObject.GetMeta().GetName(),
 			"scriptId", configObject.GetId())
 	}
@@ -183,17 +156,17 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 	defer span.Finish()
 	span.SetTag("scriptType", scriptType)
 
-	log := sess.logger.With("scriptType", scriptType)
+	log := sess.logger.With("scriptPhase", scriptType.String())
 
 	// wait is executed depending on value returned from script (WaitForData)
 	wait := func() {
 		waitStart := time.Now()
 		waitErr := sess.waitForNetworkIdle(ctx, durationFromMilliseconds(sess.browserConfig.MaxInactivityTimeMs))
 		if waitErr != nil {
-			log.Debug("Timed out while waiting for network activity to settle", "error", waitErr)
+			log.Log(context.Background(), LevelTrace, "Timed out while waiting for network activity to settle", "error", waitErr)
 			return
 		}
-		log.Debug("Waited for network activity to settle", "duration", time.Since(waitStart))
+		log.Log(context.Background(), LevelTrace, "Waited for network activity to settle", "durationMs", time.Since(waitStart).Milliseconds())
 	}
 
 	if scriptType != configV1.BrowserScript_ON_LOAD {
@@ -224,11 +197,12 @@ func (sess *Session) executeScripts(ctx context.Context, scriptType configV1.Bro
 			"scriptId", id,
 			"scriptEci", int64(eci),
 		)
+		log.Info("Script started")
 		res, err := callScript(ctx, eci, configObject.GetBrowserScript().GetScript(), arguments)
 		if err != nil {
-			log.Warn("Script execution failed", "duration", time.Since(scriptStart), "outcome", "failure", "error", err)
+			log.Warn("Script finished", "durationMs", time.Since(scriptStart).Milliseconds(), "outcome", "failure", "error", err)
 		} else {
-			log.Debug("Script execution completed", "duration", time.Since(scriptStart), "outcome", "success")
+			log.Info("Script finished", "durationMs", time.Since(scriptStart).Milliseconds(), "outcome", "success")
 		}
 
 		return res, err

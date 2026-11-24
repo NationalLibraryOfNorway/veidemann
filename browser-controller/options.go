@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,14 +11,17 @@ import (
 
 func parseFlags() (Options, error) {
 	flags := pflag.CommandLine
+	flags.Int("recorder-control-port", 7780, "Recorder harvest control port")
+	flags.Duration("capture-timeout", 30*time.Second, "Maximum time for required capture artifacts")
+	flags.Duration("persistence-timeout", 30*time.Second, "Maximum time to persist the screenshot")
 
 	flags.BoolP("help", "h", false, "Usage instructions")
-	flags.String("interface", "", "interface the browser controller api listens to. No value means all interfaces.")
-	flags.Int("port", 8080, "port the browser controller api listens to.")
 
-	flags.Int("proxy-count", 2, "max number of simultaneous sessions. Must match RecorderProxy's proxy-count setting.")
+	flags.Int("proxy-count", 1, "max number of simultaneous sessions. Must match RecorderProxy's proxy-count setting.")
 	flags.Duration("fetch-timeout", 5*time.Minute, "Timeout for fetching a page in the browser")
 	flags.Duration("report-timeout", 1*time.Minute, "Timeout for reporting fetch result to Frontier")
+	flags.Duration("media-settle-timeout", 5*time.Second, "Shared media settling allowance after initial page load; zero disables media waiting")
+	flags.Duration("completion-drain-timeout", 45*time.Second, "Maximum time to retrieve finalized recorder results")
 
 	flags.String("browser-host", "localhost", "Browser host")
 	flags.Int("browser-port", 3000, "Browser port")
@@ -31,12 +35,6 @@ func parseFlags() (Options, error) {
 
 	flags.String("frontier-host", "veidemann-frontier", "Frontier host")
 	flags.Int("frontier-port", 7700, "Frontier port")
-
-	flags.String("log-service-host", "veidemann-log-service", "Log service host")
-	flags.Int("log-service-port", 8080, "Log service port")
-
-	flags.String("robots-evaluator-host", "veidemann-robotsevaluator-service", "Robots evaluator host")
-	flags.Int("robots-evaluator-port", 7053, "Robots evaluator port")
 
 	flags.String("db-host", "rethinkdb-proxy", "DB host")
 	flags.Int("db-port", 28015, "DB port")
@@ -73,16 +71,29 @@ type Options struct {
 	v *viper.Viper
 }
 
+func (o Options) MediaSettleTimeout() time.Duration { return o.v.GetDuration("media-settle-timeout") }
+func (o Options) CompletionDrainTimeout() time.Duration {
+	return o.v.GetDuration("completion-drain-timeout")
+}
+
+func (o Options) ValidateCompletionTimeouts() error {
+	if o.ProxyCount() <= 0 {
+		return fmt.Errorf("proxy-count must be positive")
+	}
+	if o.MediaSettleTimeout() < 0 {
+		return fmt.Errorf("media-settle-timeout must be nonnegative")
+	}
+	if o.CaptureTimeout() <= 0 || o.PersistenceTimeout() <= 0 {
+		return fmt.Errorf("capture-timeout and persistence-timeout must be positive")
+	}
+	if o.CompletionDrainTimeout() <= 5*time.Second {
+		return fmt.Errorf("completion-drain-timeout must exceed 5s")
+	}
+	return nil
+}
+
 func (o Options) Help() bool {
 	return o.v.GetBool("help")
-}
-
-func (o Options) Interface() string {
-	return o.v.GetString("interface")
-}
-
-func (o Options) Port() int {
-	return o.v.GetInt("port")
 }
 
 func (o Options) ProxyCount() int {
@@ -95,6 +106,14 @@ func (o Options) FetchTimeout() time.Duration {
 
 func (o Options) ReportTimeout() time.Duration {
 	return o.v.GetDuration("report-timeout")
+}
+
+func (o Options) CaptureTimeout() time.Duration {
+	return o.v.GetDuration("capture-timeout")
+}
+
+func (o Options) PersistenceTimeout() time.Duration {
+	return o.v.GetDuration("persistence-timeout")
 }
 
 func (o Options) BrowserHost() string {
@@ -111,6 +130,10 @@ func (o Options) ProxyHost() string {
 
 func (o Options) ProxyPort() int {
 	return o.v.GetInt("proxy-port")
+}
+
+func (o Options) RecorderControlPort() int {
+	return o.v.GetInt("recorder-control-port")
 }
 
 func (o Options) RecorderCertFile() string {
@@ -131,22 +154,6 @@ func (o Options) FrontierHost() string {
 
 func (o Options) FrontierPort() int {
 	return o.v.GetInt("frontier-port")
-}
-
-func (o Options) LogServiceHost() string {
-	return o.v.GetString("log-service-host")
-}
-
-func (o Options) LogServicePort() int {
-	return o.v.GetInt("log-service-port")
-}
-
-func (o Options) RobotsEvaluatorHost() string {
-	return o.v.GetString("robots-evaluator-host")
-}
-
-func (o Options) RobotsEvaluatorPort() int {
-	return o.v.GetInt("robots-evaluator-port")
 }
 
 func (o Options) DBHost() string {

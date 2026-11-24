@@ -18,149 +18,97 @@ package session
 
 import (
 	"context"
-	"slices"
 	"sync"
+
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/page"
 )
 
-// frameLoadTracker tracks the one-shot initial page-load phase.
-//
-// Starts are accepted until Wait observes that no frames are loading, the
-// context expires, or Cancel is called. The first of those outcomes is
-// terminal; later frame events are ignored.
-type frameLoadTracker struct {
-	mu sync.Mutex
-
-	loading  map[string]struct{}
-	waiting  bool
-	finished bool
-	result   error
-	done     chan struct{}
+// pageLoadSignal remembers an early load event until Navigate returns its loader.
+// Only the root document's initial load gates ON_LOAD scripts. Committed identity
+// is kept separately from the Navigate reply used to establish that load gate.
+type pageLoadSignal struct {
+	mu              sync.Mutex
+	frame           cdp.FrameID
+	committedURL    string
+	committedFrame  cdp.FrameID
+	committedLoader cdp.LoaderID
+	loader, loaded  cdp.LoaderID
+	done            chan struct{}
+	signaled        bool
 }
 
-func newFrameLoadTracker() *frameLoadTracker {
-	return &frameLoadTracker{
-		loading: make(map[string]struct{}),
-		done:    make(chan struct{}),
+func newPageLoadSignal() *pageLoadSignal { return &pageLoadSignal{done: make(chan struct{})} }
+
+func (s *pageLoadSignal) start(frame cdp.FrameID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.frame = frame
+}
+
+func (s *pageLoadSignal) selectNavigation(frame cdp.FrameID, loader cdp.LoaderID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.frame = frame
+	// A committed navigation may already have redirected again before the
+	// Navigate reply arrives. The ordered frame event owns the current loader.
+	if s.loader == "" {
+		s.loader = loader
+	}
+	s.signal()
+}
+
+func (s *pageLoadSignal) navigated(frame *cdp.Frame) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if frame.ParentID == "" && frame.ID == s.frame {
+		s.committedURL = frame.URL
+		s.committedFrame = frame.ID
+		s.committedLoader = frame.LoaderID
+		s.loader = frame.LoaderID
+		s.signal()
 	}
 }
 
-func (t *frameLoadTracker) Start(frameID string) bool {
-	if frameID == "" {
-		return false
+// documentURL only associates capture with an observed root document commit.
+// Same-document navigation events must never update this network identity.
+func (s *pageLoadSignal) documentURL(frame *cdp.Frame) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if frame.ID == "" || frame.ID != s.committedFrame || frame.LoaderID == "" || frame.LoaderID != s.committedLoader || s.committedURL == "" {
+		return "", false
 	}
-
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.finished {
-		return false
-	}
-	if _, ok := t.loading[frameID]; ok {
-		return false
-	}
-
-	t.loading[frameID] = struct{}{}
-	return true
+	return s.committedURL, true
 }
 
-func (t *frameLoadTracker) Finish(frameID string) bool {
-	if frameID == "" {
-		return false
+func (s *pageLoadSignal) observe(event *page.EventLifecycleEvent) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if event.FrameID != s.frame || event.Name != "load" {
+		return
 	}
-
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.finished {
-		return false
-	}
-	if _, ok := t.loading[frameID]; !ok {
-		return false
-	}
-
-	delete(t.loading, frameID)
-	if t.waiting && len(t.loading) == 0 {
-		_ = t.finishLocked(nil)
-	}
-	return true
+	s.loaded = event.LoaderID
+	s.signal()
 }
 
-func (t *frameLoadTracker) Wait(ctx context.Context) error {
-	if ctx == nil {
-		ctx = context.Background()
+func (s *pageLoadSignal) signal() {
+	if !s.signaled && s.loader != "" && s.loaded == s.loader {
+		s.signaled = true
+		close(s.done)
 	}
+}
 
-	t.mu.Lock()
-	if t.finished {
-		result := t.result
-		t.mu.Unlock()
-		return result
-	}
-	if err := ctx.Err(); err != nil {
-		result := t.finishLocked(err)
-		t.mu.Unlock()
-		return result
-	}
-
-	t.waiting = true
-	if len(t.loading) == 0 {
-		result := t.finishLocked(nil)
-		t.mu.Unlock()
-		return result
-	}
-	done := t.done
-	t.mu.Unlock()
-
+func (sess *Session) waitForPageLoad(ctx context.Context) error {
 	select {
-	case <-done:
-		return t.resultValue()
 	case <-ctx.Done():
-		return t.finish(ctx.Err())
-	}
-}
-
-func (t *frameLoadTracker) Cancel(err error) {
-	if err == nil {
-		err = context.Canceled
-	}
-	_ = t.finish(err)
-}
-
-func (t *frameLoadTracker) Snapshot() []string {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if len(t.loading) == 0 {
+		return ctx.Err()
+	case <-sess.pageLoad.done:
 		return nil
 	}
-
-	snapshot := make([]string, 0, len(t.loading))
-	for frameID := range t.loading {
-		snapshot = append(snapshot, frameID)
-	}
-	slices.Sort(snapshot)
-	return snapshot
 }
 
-func (t *frameLoadTracker) finish(result error) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.finishLocked(result)
-}
-
-func (t *frameLoadTracker) finishLocked(result error) error {
-	if t.finished {
-		return t.result
-	}
-
-	t.finished = true
-	t.result = result
-	close(t.done)
-	return result
-}
-
-func (t *frameLoadTracker) resultValue() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.result
+func (s *pageLoadSignal) isRoot(frame cdp.FrameID) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return frame != "" && frame == s.frame
 }

@@ -27,45 +27,50 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
 	"math/big"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
-	robotsevaluatorV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
+	bcerrors "github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
 	testcontainersupport "github.com/NationalLibraryOfNorway/veidemann/browser-controller/internal/testcontainers"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/testutil"
+	"github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/logservice"
 	logServiceTestUtil "github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/testutil"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
-	proxyServiceConnections "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	proxyTestUtil "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 var (
-	// sessions is a registry of sessions
-	sessions *session.Registry
+	sessionOptions []session.Option
 
 	// localhost is the ip address of the host machine
 	localhost = func() string {
@@ -75,16 +80,17 @@ var (
 
 	fixtureSiteHTTPBaseURL  string
 	fixtureSiteHTTPSBaseURL string
+	recordedPages           *fixtureLogWriter
 
 	// provider is a flag to select container provider
-	provider = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
+	provider                = flag.String("provider", "docker", "container provider, \"docker\" or \"podman\".")
+	supplementalHarvestURLs = flag.String("harvest-urls", "", "Comma-separated URLs for supplementary live browser/recorder harvests")
 )
 
 const (
-	logServicePort        = 5002
-	browserControllerPort = 7777
-	proxyPort             = 6666
-	maxSessions           = 2
+	logServicePort = 5002
+	proxyPort      = 6666
+	maxSessions    = 2
 )
 
 func TestMain(m *testing.M) {
@@ -117,6 +123,9 @@ func TestMain(m *testing.M) {
 	// setup screenshot writer mock
 	screenShotWriter := &testutil.ScreenshotWriterMock{
 		WriteFunc: func(data []byte, metadata screenshotwriter.Metadata) error {
+			if strings.Contains(metadata.CrawlLog.GetRequestedUri(), "fail-screenshot") {
+				return fmt.Errorf("injected screenshot storage failure")
+			}
 			b := bytes.NewBuffer(data)
 			f, err := os.Create("screenshot.png")
 			if err != nil {
@@ -140,12 +149,11 @@ func TestMain(m *testing.M) {
 	logServiceMock := logServiceTestUtil.NewLogServiceMock(logServicePort)
 
 	// setup writer client
-	logWriter := logwriter.New(
-		serviceconnections.WithPort(logServicePort),
-	)
-	if err := logWriter.Connect(); err != nil {
+	logServiceConn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", logServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
 		panic(err)
 	}
+	logWriter := &logservice.LogWriter{LogClient: logV1.NewLogClient(logServiceConn)}
 
 	// Share one recorder identity with all proxy instances and scope Chromium's
 	// certificate exception to the public key they actually serve.
@@ -159,9 +167,14 @@ func TestMain(m *testing.M) {
 	}
 	recorderSPKI := sha256.Sum256(recorderIdentity.Certificate().RawSubjectPublicKeyInfo)
 
+	controlConn, err := grpc.NewClient("localhost:7780", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		panic(err)
+	}
+	defer controlConn.Close()
 	// setup sessions
-	sessions = session.NewRegistry(
-		maxSessions,
+	recordedPages = &fixtureLogWriter{Writer: logWriter}
+	sessionOptions = []session.Option{
 		session.WithBrowserHost(browserHost),
 		session.WithBrowserPort(browserPort),
 		session.WithProxyHost(localhost),
@@ -169,54 +182,30 @@ func TestMain(m *testing.M) {
 		session.WithRecorderCertificateSPKI(base64.StdEncoding.EncodeToString(recorderSPKI[:])),
 		session.WithConfigAdapter(dbAdapter),
 		session.WithScreenshotWriter(screenShotWriter),
-		session.WithLogWriter(logWriter),
-	)
+		session.WithRecorder(recorderV1.NewRecorderControlClient(controlConn)),
+	}
 
-	// setup robots evaluator mock
-	robotsEvaluator := &testutil.RobotsEvaluatorMock{IsAllowedFunc: func(_ *robotsevaluatorV1.IsAllowedRequest) bool {
-		return true
-	}}
+	// Browser harvests use only recorder-owned control. No callback server.
+	grpcServices := proxyTestUtil.NewGrpcServiceMock()
+	recorderProxy1 := localRecorderProxy(1, grpcServices, "", recorderIdentity)
+	recorderProxy2 := localRecorderProxy(2, grpcServices, "", recorderIdentity)
 
-	// setup browsercontroller server
-	browsercontrollerAdress := fmt.Sprintf(":%d", browserControllerPort)
-	listener, err := net.Listen("tcp", browsercontrollerAdress)
+	controlListener, err := net.Listen("tcp", ":7780")
 	if err != nil {
 		panic(err)
 	}
-	grpcServer := grpc.NewServer()
-	apiServer := NewApiServer(sessions, robotsEvaluator, logWriter)
-	browsercontrollerV2.RegisterBrowserControllerServer(grpcServer, apiServer)
-
-	go func() {
-		err := grpcServer.Serve(listener)
-		if err != nil {
-			if !errors.Is(err, grpc.ErrServerStopped) {
-				panic(err)
-			}
-		}
-	}()
-
-	// setup recorder proxy
-	opt := proxyTestUtil.WithExternalBrowserController(
-		proxyServiceConnections.NewConnectionOptions("BrowserController",
-			proxyServiceConnections.WithPort(fmt.Sprintf("%d", browserControllerPort)),
-		),
-	)
-	grpcServices := proxyTestUtil.NewGrpcServiceMock(opt)
-	recorderProxy0 := localRecorderProxy(0, grpcServices.ClientConn, "", recorderIdentity)
-	recorderProxy1 := localRecorderProxy(1, grpcServices.ClientConn, "", recorderIdentity)
-	recorderProxy2 := localRecorderProxy(2, grpcServices.ClientConn, "", recorderIdentity)
-
+	controlServer := grpc.NewServer()
+	recorderV1.RegisterRecorderControlServer(controlServer, recorderproxy.NewControl(recordedPages, recorderProxy1, recorderProxy2))
+	go controlServer.Serve(controlListener)
+	defer controlServer.Stop()
 	// Run the tests
 	code := m.Run()
 
 	// Clean up
-	sessions.Close()
-	grpcServer.GracefulStop()
 	grpcServices.Close()
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
 	var shutdownWg sync.WaitGroup
-	for _, proxy := range []*recorderproxy.RecorderProxy{recorderProxy0, recorderProxy1, recorderProxy2} {
+	for _, proxy := range []*recorderproxy.RecorderProxy{recorderProxy1, recorderProxy2} {
 		shutdownWg.Add(1)
 		go func() {
 			defer shutdownWg.Done()
@@ -227,7 +216,7 @@ func TestMain(m *testing.M) {
 	cancelShutdown()
 	_ = screenShotWriter.Close()
 	_ = dbMock.Close()
-	_ = logWriter.Close()
+	_ = logServiceConn.Close()
 	logServiceMock.Close()
 	cancelBrowser()
 
@@ -248,20 +237,39 @@ func TestSession_Fetch(t *testing.T) {
 		}},
 	}
 
-	tests := []struct {
+	t.Run("large-capture-replay", func(t *testing.T) { testLargeCaptureWorker(t, conf) })
+
+	type harvestScenario struct {
 		name             string
 		baseURL          string
 		path             string
 		expectedOutlinks []string
 		createScreenshot bool
-		expectedUriCount int32
+		expectedResource string
+		expectedStatus   int32
 		maxDuration      time.Duration
 		skipReason       string
-	}{
+		browserConfig    string
+		failureCode      int32
+	}
+	tests := []harvestScenario{
+		{name: "cutoff-success", baseURL: fixtureSiteHTTPBaseURL, path: "/slow-image.html", browserConfig: "browserConfigCutoff", createScreenshot: true, expectedResource: "/slow-image.png", expectedStatus: -5011, maxDuration: 10 * time.Second},
+		{name: "cutoff-no-main", baseURL: fixtureSiteHTTPBaseURL, path: "/never-main", browserConfig: "browserConfigCutoff", failureCode: -5004, maxDuration: 10 * time.Second},
+		{name: "required-screenshot-failure", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html?fail-screenshot", createScreenshot: true, failureCode: -5, maxDuration: 12 * time.Second},
+		{name: "required-outlinks-failure", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", browserConfig: "browserConfigBadScript", failureCode: -5, maxDuration: 12 * time.Second},
+		{name: "crawl-log-persistence-failure", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html?fail-crawl-log", failureCode: -5, maxDuration: 12 * time.Second},
+		{name: "page-log-persistence-failure", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html?fail-page-log", failureCode: -5, maxDuration: 12 * time.Second},
 		{name: "http-static-outlink", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}},
+		{name: "client-redirect", baseURL: fixtureSiteHTTPBaseURL, path: "/redirect.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}, maxDuration: 12 * time.Second},
+		{name: "http-fragment", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html#section", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}},
 		{name: "https-static-outlink", baseURL: fixtureSiteHTTPSBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPSBaseURL + "/linked.html"}},
 		{name: "http-screenshot", baseURL: fixtureSiteHTTPBaseURL, path: "/index.html", expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/linked.html"}, createScreenshot: true, maxDuration: 20 * time.Second},
-		{name: "http-eventsource-cutoff", baseURL: fixtureSiteHTTPBaseURL, path: "/eventsource.html", expectedUriCount: 1, maxDuration: 20 * time.Second},
+		{name: "http-eventsource-cutoff", baseURL: fixtureSiteHTTPBaseURL, path: "/eventsource.html", expectedResource: "/events", expectedStatus: -5011, maxDuration: 20 * time.Second},
+		{name: "finite-media", baseURL: fixtureSiteHTTPBaseURL, path: "/finite-media.html", expectedResource: "/finite.wav", maxDuration: 20 * time.Second},
+		{name: "range-media", baseURL: fixtureSiteHTTPBaseURL, path: "/range-media.html", expectedResource: "/finite.wav?range", expectedStatus: 206, maxDuration: 20 * time.Second},
+		{name: "media-cancellation-reload", baseURL: fixtureSiteHTTPBaseURL, path: "/reloading-media.html", expectedResource: "/slow-media.wav", expectedStatus: -5011, createScreenshot: true, maxDuration: 20 * time.Second},
+		{name: "iframe-slow-resource", baseURL: fixtureSiteHTTPBaseURL, path: "/iframe.html", expectedResource: "/slow-image.png", expectedStatus: 200, maxDuration: 30 * time.Second},
+		{name: "slow-image-progress", baseURL: fixtureSiteHTTPBaseURL, path: "/slow-image.html", expectedResource: "/slow-image.png", expectedStatus: 200, maxDuration: 30 * time.Second},
 		{
 			name:             "http-worker-outlink",
 			baseURL:          fixtureSiteHTTPBaseURL,
@@ -269,8 +277,16 @@ func TestSession_Fetch(t *testing.T) {
 			expectedOutlinks: []string{fixtureSiteHTTPBaseURL + "/worker-hit.html"},
 		},
 	}
-	for _, tt := range tests {
-		ctx := context.Background()
+	for i, rawURL := range strings.Split(*supplementalHarvestURLs, ",") {
+		if rawURL = strings.TrimSpace(rawURL); rawURL == "" {
+			continue
+		}
+		tests = append(tests, harvestScenario{
+			name: fmt.Sprintf("live-%d", i+1), baseURL: rawURL,
+			browserConfig: "browserConfig1", createScreenshot: true, maxDuration: 120 * time.Second,
+		})
+	}
+	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.skipReason != "" {
 				t.Skip(tt.skipReason)
@@ -281,15 +297,15 @@ func TestSession_Fetch(t *testing.T) {
 
 			qUri := &frontierV1.QueuedUri{Uri: tt.baseURL + tt.path, DiscoveryPath: "L", JobExecutionId: "jid", ExecutionId: "eid"}
 
-			s, err := sessions.GetNextAvailable(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer sessions.Release(s)
+			s := session.New(1+i%maxSessions, sessionOptions...)
 
 			t.Logf("Acquired session: %v", s.Id)
 
 			// Fetch page
+			conf.GetCrawlConfig().BrowserConfigRef.Id = "browserConfig1"
+			if tt.browserConfig != "" {
+				conf.GetCrawlConfig().BrowserConfigRef.Id = tt.browserConfig
+			}
 			conf.GetCrawlConfig().GetExtra().CreateScreenshot = tt.createScreenshot
 			phs := &frontierV1.PageHarvestSpec{
 				QueuedUri:    qUri,
@@ -303,14 +319,43 @@ func TestSession_Fetch(t *testing.T) {
 			result, err := s.Fetch(context.Background(), phs)
 			fetchDuration := time.Since(fetchStart)
 			t.Log("Session.Fetch returned")
+			if tt.failureCode != 0 {
+				if tt.name == "required-screenshot-failure" && recordedPages.latest(qUri.Uri) == nil {
+					t.Fatal("screenshot failure lost page log")
+				}
+				if err == nil || bcerrors.CommonsError(err).Code != tt.failureCode {
+					t.Fatalf("error=%v want code=%d", err, tt.failureCode)
+				}
+				if tt.maxDuration > 0 && fetchDuration > tt.maxDuration {
+					t.Fatalf("unbounded failed fetch: %v", fetchDuration)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
+			if page := recordedPages.latest(qUri.Uri); page != nil && !strings.HasPrefix(tt.name, "live-") {
+				for _, resource := range page.Resource {
+					if !strings.HasPrefix(resource.Uri, fixtureSiteHTTPBaseURL) && !strings.HasPrefix(resource.Uri, fixtureSiteHTTPSBaseURL) {
+						t.Fatalf("browser background traffic contaminated attempt: %s", resource.Uri)
+					}
+				}
+			}
+			if strings.HasPrefix(tt.name, "live-") {
+				pageLog := recordedPages.latest(qUri.Uri)
+				if pageLog == nil || pageLog.GetWarcId() == "" {
+					t.Fatal("missing live main recording/page log")
+				}
+				if len(result.Outlinks) == 0 {
+					t.Fatal("live harvest extracted no links")
+				}
+				image, e := os.ReadFile("screenshot.png")
+				if e != nil || len(image) == 0 {
+					t.Fatalf("missing live screenshot: %v", e)
+				}
+			}
 			if result.UriCount == 0 {
 				t.Fatalf("expected at least one resource for %s", qUri.Uri)
-			}
-			if tt.expectedUriCount != 0 && result.UriCount != tt.expectedUriCount {
-				t.Fatalf("resource count = %d, want %d", result.UriCount, tt.expectedUriCount)
 			}
 			if tt.maxDuration > 0 && fetchDuration > tt.maxDuration {
 				t.Fatalf("fetch duration = %v, want at most %v", fetchDuration, tt.maxDuration)
@@ -318,6 +363,35 @@ func TestSession_Fetch(t *testing.T) {
 			for _, want := range tt.expectedOutlinks {
 				if !hasOutlink(result.Outlinks, want) {
 					t.Fatalf("missing outlink %q, got %v", want, outlinkStrings(result.Outlinks))
+				}
+			}
+			if tt.expectedResource != "" {
+				pageLog := recordedPages.latest(qUri.Uri)
+				if pageLog == nil {
+					t.Fatal("missing recorded page log")
+				}
+				found := false
+				for _, resource := range pageLog.GetResource() {
+					if !strings.HasPrefix(resource.GetUri(), tt.baseURL+tt.expectedResource) {
+						continue
+					}
+					status := resource.GetStatusCode()
+					if tt.expectedStatus != 0 && status != tt.expectedStatus {
+						continue
+					}
+					if tt.expectedStatus == 0 && status != 200 && status != 206 {
+						continue
+					}
+					if status > 0 && resource.GetWarcId() == "" {
+						t.Fatal("successful media/image has no archival result")
+					}
+					if status == -5011 && resource.GetWarcId() != "" {
+						t.Fatal("cancellation claims an archival result")
+					}
+					found = true
+				}
+				if !found {
+					t.Fatalf("no recorded outcome for %s with status %d: %v", tt.expectedResource, tt.expectedStatus, pageLog.GetResource())
 				}
 			}
 			t.Logf("Resource count: %v, outlinks: %v, Time: %v\n", result.UriCount, outlinkStrings(result.Outlinks), result.PageFetchTimeMs)
@@ -355,19 +429,22 @@ func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create fixture certificate: %w", err)
 	}
+	if err := writeMediaFixtures(certDir); err != nil {
+		return nil, err
+	}
 
 	providerType, skipReaper := containerProvider()
 	fixtureContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ProviderType: providerType,
 		ContainerRequest: testcontainers.ContainerRequest{
-			SkipReaper:   skipReaper,
-			Image:        "nginx:1.27-alpine",
-			ExposedPorts: []string{"80/tcp", "443/tcp"},
+			SkipReaper:     skipReaper,
+			FromDockerfile: testcontainers.FromDockerfile{Context: root},
+			ExposedPorts:   []string{"8080/tcp", "8443/tcp"},
 			WaitingFor: wait.ForAll(
-				wait.ForListeningPort("80/tcp"),
-				wait.ForListeningPort("443/tcp"),
+				wait.ForListeningPort("8080/tcp"),
+				wait.ForListeningPort("8443/tcp"),
 			),
-			Files: fixtureSiteFiles(root, certPath, keyPath),
+			Files: fixtureSiteFiles(certPath, keyPath),
 		},
 		Started: true,
 	})
@@ -375,19 +452,19 @@ func setupFixtureSite(ctx context.Context) (*fixtureSite, error) {
 		return nil, err
 	}
 
-	httpPort, err := fixtureContainer.MappedPort(ctx, "80/tcp")
+	httpPort, err := fixtureContainer.MappedPort(ctx, "8080/tcp")
 	if err != nil {
 		_ = fixtureContainer.Terminate(ctx)
 		return nil, err
 	}
-	httpsPort, err := fixtureContainer.MappedPort(ctx, "443/tcp")
+	httpsPort, err := fixtureContainer.MappedPort(ctx, "8443/tcp")
 	if err != nil {
 		_ = fixtureContainer.Terminate(ctx)
 		return nil, err
 	}
 
 	return &fixtureSite{
-		httpBaseURL:  fmt.Sprintf("http://localhost:%d", httpPort.Num()),
+		httpBaseURL:  fmt.Sprintf("http://%s:%d", localhost, httpPort.Num()),
 		httpsBaseURL: fmt.Sprintf("https://localhost:%d", httpsPort.Num()),
 		ctx:          ctx,
 		ctr:          fixtureContainer,
@@ -399,48 +476,117 @@ func fixtureSiteRoot() (string, error) {
 	if !ok {
 		return "", fmt.Errorf("failed resolving server test path")
 	}
-	return filepath.Join(filepath.Dir(currentFile), "testdata", "site"), nil
+	return filepath.Join(filepath.Dir(currentFile), "testdata"), nil
 }
 
-func fixtureSiteFiles(root, certPath, keyPath string) []testcontainers.ContainerFile {
-	var result []testcontainers.ContainerFile
-	result = append(result,
-		testcontainers.ContainerFile{
-			HostFilePath:      filepath.Join(root, "..", "default.conf"),
-			ContainerFilePath: "/etc/nginx/conf.d/default.conf",
-			FileMode:          0o644,
-		},
-		testcontainers.ContainerFile{
+func fixtureSiteFiles(certPath, keyPath string) []testcontainers.ContainerFile {
+	result := []testcontainers.ContainerFile{
+		{
 			HostFilePath:      certPath,
 			ContainerFilePath: "/etc/nginx/certs/localhost.crt",
 			FileMode:          0o644,
 		},
-		testcontainers.ContainerFile{
+		{
 			HostFilePath:      keyPath,
 			ContainerFilePath: "/etc/nginx/certs/localhost.key",
-			FileMode:          0o600,
+			FileMode:          0o444, // The image user reads this root-owned, per-test key.
 		},
-	)
-
-	files := []string{
-		"events.txt",
-		"eventsource.html",
-		"index.html",
-		"linked.html",
-		"worker.html",
-		"worker.js",
-		"worker-data.json",
-		"worker-hit.html",
 	}
-
-	for _, fileName := range files {
+	for _, fileName := range []string{"events.txt", "finite.wav", "slow-image.png"} {
 		result = append(result, testcontainers.ContainerFile{
-			HostFilePath:      filepath.Join(root, fileName),
+			HostFilePath:      filepath.Join(filepath.Dir(certPath), fileName),
 			ContainerFilePath: filepath.Join("/usr/share/nginx/html", fileName),
 			FileMode:          0o644,
 		})
 	}
 	return result
+}
+
+// Generate small, valid PCM media and an incompressible image locally. These
+// exercise CDP Media/Image classification without external downloads or codecs.
+func writeMediaFixtures(dir string) error {
+	// Enough regular SSE data to keep the recorder's downstream writes active
+	// until browser closure, without letting EOF finish the request first.
+	events := append([]byte("data: connected\n\n"), bytes.Repeat([]byte(": streaming padding keeps the response open\n"), 4096)...)
+	if err := os.WriteFile(filepath.Join(dir, "events.txt"), events, 0o644); err != nil {
+		return err
+	}
+	const dataSize = 32000 // two seconds of mono 16-bit PCM at 8 kHz
+	wav := make([]byte, 44+dataSize)
+	copy(wav, "RIFF")
+	binary.LittleEndian.PutUint32(wav[4:], uint32(len(wav)-8))
+	copy(wav[8:], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(wav[16:], 16)
+	binary.LittleEndian.PutUint16(wav[20:], 1)
+	binary.LittleEndian.PutUint16(wav[22:], 1)
+	binary.LittleEndian.PutUint32(wav[24:], 8000)
+	binary.LittleEndian.PutUint32(wav[28:], 16000)
+	binary.LittleEndian.PutUint16(wav[32:], 2)
+	binary.LittleEndian.PutUint16(wav[34:], 16)
+	copy(wav[36:], "data")
+	binary.LittleEndian.PutUint32(wav[40:], dataSize)
+	if err := os.WriteFile(filepath.Join(dir, "finite.wav"), wav, 0o644); err != nil {
+		return err
+	}
+	img := image.NewRGBA(image.Rect(0, 0, 80, 80))
+	seed := uint32(1)
+	for y := 0; y < 80; y++ {
+		for x := 0; x < 80; x++ {
+			seed = seed*1664525 + 1013904223
+			img.SetRGBA(x, y, color.RGBA{uint8(seed >> 24), uint8(seed >> 16), uint8(seed >> 8), 255})
+		}
+	}
+	f, err := os.Create(filepath.Join(dir, "slow-image.png"))
+	if err != nil {
+		return err
+	}
+	encodeErr := png.Encode(f, img)
+	closeErr := f.Close()
+	return errors.Join(encodeErr, closeErr)
+}
+
+type fixtureLogWriter struct {
+	Writer *logservice.LogWriter
+	mu     sync.Mutex
+	pages  []*logV1.PageLog
+	crawls []*logV1.CrawlLog
+}
+
+func (w *fixtureLogWriter) WritePageLog(ctx context.Context, page *logV1.PageLog) error {
+	if strings.Contains(page.Uri, "fail-page-log") {
+		return fmt.Errorf("injected page-log persistence failure")
+	}
+	if err := w.Writer.WritePageLog(ctx, page); err != nil {
+		return err
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.pages = append(w.pages, proto.Clone(page).(*logV1.PageLog))
+	return nil
+}
+
+func (w *fixtureLogWriter) WriteCrawlLog(ctx context.Context, cl *logV1.CrawlLog) error {
+	if strings.Contains(cl.RequestedUri, "fail-crawl-log") {
+		return fmt.Errorf("injected crawl-log persistence failure")
+	}
+	if err := w.Writer.WriteCrawlLog(ctx, cl); err != nil {
+		return err
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.crawls = append(w.crawls, proto.Clone(cl).(*logV1.CrawlLog))
+	return nil
+}
+
+func (w *fixtureLogWriter) latest(uri string) *logV1.PageLog {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for i := len(w.pages) - 1; i >= 0; i-- {
+		if w.pages[i].GetUri() == uri {
+			return proto.Clone(w.pages[i]).(*logV1.PageLog)
+		}
+	}
+	return nil
 }
 
 func containerProvider() (testcontainers.ProviderType, bool) {
@@ -469,6 +615,17 @@ func outlinkStrings(outlinks []*frontierV1.QueuedUri) []string {
 
 func setupDbMock() *database.MockConnection {
 	dbConn := database.NewMockConnection()
+	for _, id := range []string{"browserConfigCutoff", "browserConfigBadScript"} {
+		timeout := 60000
+		script := "script1"
+		if id == "browserConfigCutoff" {
+			timeout = 1500
+		} else {
+			script = "bad-script"
+		}
+		dbConn.GetMock().On(r.Table("config").Get(id)).Return(map[string]any{"id": id, "kind": "browserConfig", "browserConfig": map[string]any{"windowWidth": 1400, "windowHeight": 1280, "maxInactivityTimeMs": 1000, "pageLoadTimeoutMs": timeout, "scriptRef": []map[string]any{{"kind": "browserScript", "id": script}}}}, nil)
+	}
+	dbConn.GetMock().On(r.Table("config").Get("bad-script")).Return(map[string]any{"id": "bad-script", "kind": "browserScript", "browserScript": map[string]any{"browserScriptType": "EXTRACT_OUTLINKS", "script": "throw new Error('injected required artifact failure')"}}, nil)
 	dbConn.GetMock().On(r.Table("config").Get("browserConfig1")).Return(
 		map[string]any{
 			"id":   "browserConfig1",
@@ -550,8 +707,8 @@ func setupDbMock() *database.MockConnection {
 }
 
 // localRecorderProxy creates a new recorderproxy which uses internal transport
-func localRecorderProxy(id int, conn *proxyServiceConnections.Connections, nextProxyAddr string, identity *mitmcert.Identity) *recorderproxy.RecorderProxy {
-	proxy := recorderproxy.NewRecorderProxy(id, conn, nextProxyAddr, recorderproxy.WithMITMIdentity(identity))
+func localRecorderProxy(id int, services *proxyTestUtil.GrpcServiceMock, nextProxyAddr string, identity *mitmcert.Identity) *recorderproxy.RecorderProxy {
+	proxy := recorderproxy.NewRecorderProxy(id, services.ContentWriterClient, services.DnsResolverClient, nextProxyAddr, recorderproxy.WithMITMIdentity(identity))
 
 	ln, err := proxy.Listen("", proxyPort)
 	if err != nil {

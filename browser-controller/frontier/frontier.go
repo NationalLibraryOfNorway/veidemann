@@ -26,7 +26,6 @@ import (
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -43,28 +42,18 @@ type RenderResult struct {
 // type FetchFunc func(context.Context, *frontierV1.QueuedUri, *configV1.ConfigObject) (*RenderResult, error)
 
 type Frontier interface {
-	serviceconnections.Connection
 	GetNextPage(context.Context) (*frontierV1.PageHarvestSpec, error)
 	PageCompleted(context.Context, *frontierV1.PageHarvestSpec, *RenderResult, error) error
 }
 
 type frontier struct {
-	*serviceconnections.ClientConn
 	frontierV1.FrontierClient
 }
 
-func New(opts ...serviceconnections.ConnectionOption) Frontier {
+// New wraps a Frontier client whose connection is owned by the caller.
+func New(client frontierV1.FrontierClient) Frontier {
 	return &frontier{
-		ClientConn: serviceconnections.NewClientConn("Frontier", opts...),
-	}
-}
-
-func (f *frontier) Connect() error {
-	if err := f.ClientConn.Connect(); err != nil {
-		return err
-	} else {
-		f.FrontierClient = frontierV1.NewFrontierClient(f.Connection())
-		return nil
+		FrontierClient: client,
 	}
 }
 

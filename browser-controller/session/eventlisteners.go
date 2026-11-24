@@ -18,16 +18,15 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/url"
-	"github.com/chromedp/cdproto/cdp"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
+	"github.com/chromedp/cdproto"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
 )
@@ -36,22 +35,22 @@ func (sess *Session) initListeners(ctx context.Context) error {
 	if err := chromedp.Do(ctx); err != nil {
 		return err
 	}
+	ctx = context.WithValue(ctx, harvestLogContextKey{}, sess.logger)
 	currentTargetID := target.ID(targetIDFromContext(ctx))
-	sess.rootTargetID = currentTargetID
-	if currentTargetID != "" {
-		sess.markTargetInitialized(currentTargetID)
-	}
 
 	listenerID := sess.listenerSeq.Add(1)
-	sess.loggerOrDefault().Debug("Registering target listener",
+	sess.logger.Log(context.Background(), LevelTrace, "Registering target listener",
 		"listenerId", listenerID,
 		"targetId", currentTargetID)
-	return listenTarget(ctx, sess.listenFunc(ctx, listenerID))
+	return listenHarvestTarget(ctx, sess.listenFunc(ctx, listenerID))
 }
 
 func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev any) {
 	return func(ev any) {
 		switch ev := ev.(type) {
+
+		case *fetch.EventRequestPaused:
+			go sess.continueDocumentRequest(ctx, ev)
 
 		case *network.EventRequestWillBeSent:
 			sess.onNetworkEventRequestWillBeSent(ctx, ev, listenerID)
@@ -62,20 +61,16 @@ func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev a
 		case *network.EventDataReceived:
 			sess.onNetworkEventDataReceived(ctx, ev, listenerID)
 
+		case *network.EventResponseReceived:
+			sess.onNetworkEventResponseReceived(ctx, ev, listenerID)
+
 		case *network.EventLoadingFailed:
 			sess.onNetworkEventLoadingFailed(ctx, ev, listenerID)
 
-		case *page.EventFrameStartedLoading:
-			sess.onPageEventFrameStartedLoading(ctx, ev, listenerID)
-
-		case *page.EventFrameStoppedLoading:
-			sess.onPageEventFrameStoppedLoading(ctx, ev, listenerID)
-
-		case *page.EventFrameSubtreeWillBeDetached:
-			sess.onPageEventFrameSubtreeWillBeDetached(ctx, ev, listenerID)
-
-		case *page.EventFrameDetached:
-			sess.onPageEventFrameDetached(ctx, ev, listenerID)
+		case *page.EventLifecycleEvent:
+			sess.pageLoad.observe(ev)
+		case *page.EventFrameNavigated:
+			sess.pageLoad.navigated(ev.Frame)
 
 		case *page.EventFileChooserOpened:
 			sess.onPageEventFileChooserOpened(ctx, ev, listenerID)
@@ -83,154 +78,47 @@ func (sess *Session) listenFunc(ctx context.Context, listenerID int64) func(ev a
 		case *page.EventJavascriptDialogOpening:
 			go sess.onPageEventJavascriptDialogOpening(ctx, ev, listenerID)
 
-		case *target.EventTargetCreated:
-			sess.onTargetEventTargetCreated(ctx, ev, listenerID)
+		case *target.EventAttachedToTarget:
+			sess.onTargetAttached(ctx, ev, listenerID)
 
-		case *fetch.EventRequestPaused:
-			go sess.onFetchEventRequestPaused(ctx, ev, listenerID)
+		case *target.EventDetachedFromTarget:
+			sess.detachChild(ev.SessionID)
+
 		}
 	}
 }
 
-func (sess *Session) onNetworkEventRequestWillBeSent(_ context.Context, ev *network.EventRequestWillBeSent, listenerID int64) {
-	id := logicalIDFromNetworkWillBeSent(ev)
-	loggedURL, urlLength := requests.BoundedURLForLog(ev.Request.URL)
-	documentURL, documentURLLength := requests.BoundedURLForLog(ev.DocumentURL)
-	redirectURL, redirectURLLength := requests.BoundedURLForLog(redirectFromURL(ev))
-
-	log := sess.loggerOrDefault().With(
-		"id", id,
-		"listenerID", listenerID,
-		"resourceType", ev.Type.String(),
-		"frameID", string(ev.FrameID),
-		"initiator", ev.Initiator.Type.String(),
-		"loaderID", string(ev.LoaderID),
-		"documentURL", documentURL,
-		"documentURLLength", documentURLLength,
-		"redirectFromURL", redirectURL,
-		"redirectFromURLLength", redirectURLLength,
-		"url", loggedURL,
-		"urlLength", urlLength,
-		"method", ev.Request.Method,
-	)
-
-	if id == "" {
-		log.Warn("Network event has no id")
-		return
+// CDP request IDs are only unique within their target session.
+func observedRequestID(ctx context.Context, id network.RequestID) network.RequestID {
+	if session := sessionIDFromContext(ctx); session != "" {
+		return network.RequestID(string(session) + ":" + string(id))
 	}
-
-	if !sess.acceptingRequests() {
-		return
-	}
-	if url.IsBrowserLocal(ev.Request.URL) {
-		log.Debug("Ignoring browser-local network request")
-		return
-	}
-
-	observation := sess.ObserveRequest(requestFromNetworkWillBeSent(ev))
-	if observation.Added {
-		sess.networkTracker.noteRequestStart(ev)
-	}
+	return id
 }
 
-func (sess *Session) onNetworkEventLoadingFinished(_ context.Context, ev *network.EventLoadingFinished, listenerID int64) {
-	sess.networkTracker.noteRequestDone(ev.RequestID)
-
-	id := string(ev.RequestID)
-
-	_ = sess.markRequestComplete(id)
+func (sess *Session) onNetworkEventRequestWillBeSent(ctx context.Context, ev *network.EventRequestWillBeSent, _ int64) {
+	sess.networkTracker.noteObservedRequestStart(ev.Type, ev.Request.URL, ev.FrameID != "" || ev.LoaderID != "", observedRequestID(ctx, ev.RequestID))
+	sess.observeRequest(ctx, ev)
 }
-
-func (sess *Session) onNetworkEventDataReceived(_ context.Context, ev *network.EventDataReceived, _ int64) {
-	sess.networkTracker.noteRequestData(ev.RequestID)
+func (sess *Session) onNetworkEventLoadingFinished(ctx context.Context, ev *network.EventLoadingFinished, _ int64) {
+	sess.networkTracker.noteRequestDone(observedRequestID(ctx, ev.RequestID))
+	sess.observeRequestEnd(ctx, ev.RequestID, "", false)
 }
-
-func (sess *Session) onNetworkEventLoadingFailed(_ context.Context, ev *network.EventLoadingFailed, listenerID int64) {
-	sess.networkTracker.noteRequestDone(ev.RequestID)
-
-	log := sess.loggerOrDefault().With(
-		"listenerId", listenerID,
-		"requestID", ev.RequestID,
-		"type", ev.Type,
-		"errorText", ev.ErrorText,
-		"blockedReason", ev.BlockedReason,
-		"canceled", ev.Canceled,
-	)
-
-	id := string(ev.RequestID)
-
-	// TODO should it be completed when failed ?
-	result := sess.markRequestComplete(id)
-	resourceType := ev.Type.String()
-	if result.Found {
-		loggedURL, urlLength := requests.BoundedURLForLog(result.Request.URL)
-		log = log.With("url", loggedURL, "urlLength", urlLength)
-		resourceType = result.Request.ResourceType
-	}
-	log.Log(context.Background(), resourceFailureLogLevel(resourceType), "Loading failed")
+func (sess *Session) onNetworkEventDataReceived(ctx context.Context, ev *network.EventDataReceived, _ int64) {
+	sess.networkTracker.noteRequestData(observedRequestID(ctx, ev.RequestID))
+	sess.observeData(ctx, ev.RequestID)
 }
-
-func (sess *Session) onPageEventFrameStartedLoading(ctx context.Context, ev *page.EventFrameStartedLoading, listenerID int64) {
-	if !sess.shouldTrackFrameLifecycle(ctx) {
-		return
-	}
-	tracked := sess.frameLoads.Start(string(ev.FrameID))
-	sess.loggerOrDefault().Debug("Tracked frame started loading",
-		"listenerId", listenerID,
-		"targetId", targetIDFromContext(ctx),
-		"frameId", string(ev.FrameID),
-		"tracked", tracked)
+func (sess *Session) onNetworkEventResponseReceived(ctx context.Context, ev *network.EventResponseReceived, _ int64) {
+	sess.networkTracker.noteRequestData(observedRequestID(ctx, ev.RequestID))
+	sess.observeResponse(ctx, ev)
 }
-
-func (sess *Session) onPageEventFrameStoppedLoading(ctx context.Context, ev *page.EventFrameStoppedLoading, listenerID int64) {
-	if !sess.shouldTrackFrameLifecycle(ctx) {
-		return
-	}
-	tracked := sess.frameLoads.Finish(string(ev.FrameID))
-	message := "Tracked frame stopped loading"
-	if !tracked {
-		message = "Tracked frame stopped loading without prior start"
-	}
-	sess.loggerOrDefault().Debug(message,
-		"listenerId", listenerID,
-		"targetId", targetIDFromContext(ctx),
-		"frameId", string(ev.FrameID),
-		"tracked", tracked)
-}
-
-func (sess *Session) onPageEventFrameDetached(ctx context.Context, ev *page.EventFrameDetached, listenerID int64) {
-	log := sess.loggerOrDefault().With("listenerID", listenerID)
-
-	log.Debug("Frame detached", "frameId", string(ev.FrameID))
-	if !sess.shouldTrackFrameLifecycle(ctx) {
-		return
-	}
-	tracked := sess.frameLoads.Finish(string(ev.FrameID))
-	log.Debug("Tracked frame detached",
-		"listenerId", listenerID,
-		"targetId", targetIDFromContext(ctx),
-		"frameId", string(ev.FrameID),
-		"reason", string(ev.Reason),
-		"tracked", tracked)
-}
-
-func (sess *Session) onPageEventFrameSubtreeWillBeDetached(ctx context.Context, ev *page.EventFrameSubtreeWillBeDetached, listenerID int64) {
-	log := sess.loggerOrDefault().With("listenerID", listenerID)
-
-	log.Debug("Frame subtree will be detached", "frameId", string(ev.FrameID))
-	if !sess.shouldTrackFrameLifecycle(ctx) {
-		return
-	}
-	tracked := sess.frameLoads.Finish(string(ev.FrameID))
-	log.Debug("Tracked frame subtree will be detached",
-		"listenerId", listenerID,
-		"targetId", targetIDFromContext(ctx),
-		"frameId", string(ev.FrameID),
-		"tracked", tracked)
+func (sess *Session) onNetworkEventLoadingFailed(ctx context.Context, ev *network.EventLoadingFailed, _ int64) {
+	sess.networkTracker.noteRequestDone(observedRequestID(ctx, ev.RequestID))
+	sess.observeRequestEnd(ctx, ev.RequestID, ev.ErrorText, ev.Canceled)
 }
 
 func (sess *Session) onPageEventFileChooserOpened(_ context.Context, ev *page.EventFileChooserOpened, listenerID int64) {
-	sess.loggerOrDefault().Warn("File chooser opened",
+	sess.logger.Warn("File chooser opened",
 		"listenerId", listenerID,
 		"backendNodeId", ev.BackendNodeID,
 		"frameId", ev.FrameID,
@@ -238,204 +126,15 @@ func (sess *Session) onPageEventFileChooserOpened(_ context.Context, ev *page.Ev
 }
 
 func (sess *Session) onPageEventJavascriptDialogOpening(ctx context.Context, ev *page.EventJavascriptDialogOpening, listenerID int64) {
-	log := sess.loggerOrDefault().With(
+	log := sess.logger.With(
 		"listenerID", listenerID,
 		"url", ev.URL,
 	)
-	log.Debug("Javascript dialog opening", "message", ev.Message)
+	log.Log(context.Background(), LevelTrace, "Javascript dialog opening", "message", ev.Message)
 	accept := ev.Type == "alert"
-	if _, err := chromedp.Call(ctx, page.HandleJavaScriptDialog, page.HandleJavaScriptDialogParams{Accept: accept}); err != nil {
+	if _, err := callTarget(ctx, page.HandleJavaScriptDialog, page.HandleJavaScriptDialogParams{Accept: accept}); err != nil {
 		log.Error("Failed to handle JavaScript dialog", "error", err)
 	}
-}
-
-func (sess *Session) onTargetEventTargetCreated(ctx context.Context, ev *target.EventTargetCreated, listenerID int64) {
-	log := sess.loggerOrDefault().With("listenerID", listenerID)
-
-	log.Debug("Target created",
-		"targetId", ev.TargetInfo.TargetID.String(),
-		"openerId", ev.TargetInfo.OpenerID.String(),
-		"browserContextId", string(ev.TargetInfo.BrowserContextID),
-		"targetType", ev.TargetInfo.Type,
-		"title", ev.TargetInfo.Title,
-		"url", ev.TargetInfo.URL,
-		"attached", ev.TargetInfo.Attached)
-
-	if c := chromedp.FromContext(ctx); c != nil && c.Target != nil && ev.TargetInfo.TargetID == c.Target.TargetID {
-		log.Debug("Skipping current target initialization", "targetId", ev.TargetInfo.TargetID.String(), "targetType", ev.TargetInfo.Type)
-		return
-	}
-	if !sess.markTargetInitialized(ev.TargetInfo.TargetID) {
-		log.Debug("Skipping duplicate target initialization", "targetId", ev.TargetInfo.TargetID.String(), "targetType", ev.TargetInfo.Type)
-		return
-	}
-	if ev.TargetInfo.Type == "worker" {
-		err := sess.signalCompletionActivity()
-		if err != nil {
-			log.Error("Failed to notify session of new target", "error", err)
-		}
-		return
-	}
-	if !shouldInitChildTarget(ev.TargetInfo.Type) {
-		log.Debug("Ignoring unsupported child target type", "targetId", ev.TargetInfo.TargetID.String(), "targetType", ev.TargetInfo.Type)
-		return
-	}
-
-	sess.initChildTarget(ctx, ev.TargetInfo.TargetID, ev.TargetInfo.Type)
-	err := sess.signalCompletionActivity()
-	if err != nil {
-		log.Error("Failed to notify session of new target", "error", err)
-	}
-}
-
-func (sess *Session) onFetchEventRequestPaused(ctx context.Context, ev *fetch.EventRequestPaused, listenerID int64) {
-	if !sess.acceptingRequests() {
-		sess.quiescePausedRequest(ctx, ev)
-		return
-	}
-
-	id := logicalIDFromFetchPaused(ev)
-	loggedURL, urlLength := requests.BoundedURLForLog(ev.Request.URL)
-
-	log := sess.loggerOrDefault().With(
-		"listenerID", listenerID,
-		"id", id,
-		"fetchRequestID", ev.RequestID,
-		"networkID", ev.NetworkID,
-		"targetID", targetIDFromContext(ctx),
-		"url", loggedURL,
-		"urlLength", urlLength,
-		"method", ev.Request.Method,
-		"resourceType", ev.ResourceType.String(),
-	)
-
-	isResponseStage := ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != ""
-	if isResponseStage {
-		if err := sess.continuePausedRequest(ctx, ev, ""); err != nil {
-			log.Warn("Failed to continue paused request",
-				"statusCode", ev.ResponseStatusCode,
-				"errorReason", ev.ResponseErrorReason,
-				"error", err)
-		}
-		return
-	}
-
-	sess.networkTracker.noteObservedRequestStart(
-		ev.ResourceType,
-		ev.Request.URL,
-		ev.FrameID != "",
-		ev.NetworkID,
-	)
-
-	browserLocal := url.IsBrowserLocal(ev.Request.URL)
-	var observation requests.ObservationResult
-	observed := false
-	if !browserLocal {
-		observation = sess.ObserveRequest(requestFromFetchPaused(ev))
-		observed = true
-	}
-
-	canonicalID := ""
-	if observed {
-		canonicalID = observation.Request.ID
-	}
-	if err := sess.continuePausedRequest(ctx, ev, canonicalID); err != nil {
-		rolledBack := sess.rollbackPausedRequest(canonicalID, observation.Added)
-		log.Warn("Rolled back paused request after continue failure",
-			"rolledBack", rolledBack,
-			"added", observation.Added,
-			"error", err)
-
-		sess.networkTracker.noteRequestDone(ev.NetworkID)
-
-		if rolledBack && isInvalidInterceptionIDError(err) {
-			log.Debug("Ignored continue failure for rolled-back paused request", "error", err)
-		}
-
-		return
-	}
-	if browserLocal {
-		log.Debug("Continued browser-local request without registering it")
-		return
-	}
-
-	if observed {
-		if observation.Request.BlocksPageCompletion() {
-			if err := sess.signalCompletionActivity(); err != nil {
-				log.Error("Failed to notify session after request continuation",
-					"id", observation.Request.ID,
-					"fetchRequestID", observation.Request.FetchRequestID,
-					"networkID", observation.Request.NetworkID,
-					"error", err)
-			}
-		}
-		return
-	}
-
-	if err := sess.signalCompletionActivity(); err != nil {
-		log.Error("Failed to notify session after request continuation",
-			"error", err)
-	}
-}
-
-func (sess *Session) continuePausedRequest(
-	ctx context.Context,
-	ev *fetch.EventRequestPaused,
-	canonicalID string,
-) error {
-	_, err := chromedp.Call(ctx, fetch.ContinueRequest, fetch.ContinueRequestParams{
-		RequestID: ev.RequestID,
-		URL:       ev.Request.URL,
-		Method:    ev.Request.Method,
-		Headers:   buildFetchHeaders(ev, canonicalID),
-	})
-	return err
-}
-
-func buildFetchHeaders(ev *fetch.EventRequestPaused, canonicalID string) []*fetch.HeaderEntry {
-	headerCount := len(ev.Request.Headers)
-
-	if canonicalID != "" {
-		headerCount++
-	}
-
-	headers := make([]*fetch.HeaderEntry, 0, headerCount)
-
-	for k, v := range ev.Request.Headers {
-		if strings.EqualFold(k, "veidemann_reqid") {
-			continue
-		}
-
-		headers = append(headers, &fetch.HeaderEntry{
-			Name:  k,
-			Value: interfaceToString(v),
-		})
-	}
-
-	if canonicalID != "" {
-		headers = append(headers, &fetch.HeaderEntry{
-			Name:  "veidemann_reqid",
-			Value: canonicalID,
-		})
-	}
-
-	return headers
-}
-
-func (sess *Session) quiescePausedRequest(ctx context.Context, ev *fetch.EventRequestPaused) {
-	if err := sess.finalizePausedRequest(ctx, ev); err != nil {
-		sess.loggerOrDefault().Debug("Failed to quiesce paused request",
-			"error", err,
-			"targetID", targetIDFromContext(ctx))
-	}
-}
-
-func (sess *Session) shouldTrackFrameLifecycle(ctx context.Context) bool {
-	return sess.shouldTrackFrameLifecycleTarget(target.ID(targetIDFromContext(ctx)))
-}
-
-func (sess *Session) shouldTrackFrameLifecycleTarget(targetID target.ID) bool {
-	return targetID != "" && targetID == sess.rootTargetID
 }
 
 func targetIDFromContext(ctx context.Context) string {
@@ -445,158 +144,49 @@ func targetIDFromContext(ctx context.Context) string {
 	return ""
 }
 
-func (sess *Session) markTargetInitialized(targetID target.ID) bool {
-	sess.initializedTargetsMu.Lock()
-	defer sess.initializedTargetsMu.Unlock()
-
-	if sess.initializedTargets == nil {
-		sess.initializedTargets = make(map[target.ID]struct{})
-	}
-	if _, ok := sess.initializedTargets[targetID]; ok {
-		return false
-	}
-
-	sess.initializedTargets[targetID] = struct{}{}
-	return true
+func harvestAutoAttach() target.SetAutoAttachParams {
+	// Configure the attempt token before a new target can issue requests.
+	return target.SetAutoAttachParams{AutoAttach: true, WaitForDebuggerOnStart: true, Flatten: new(true), Filter: target.Filter{
+		{Type: "iframe"}, {Type: "page"}, {Type: "worker"}, {Type: "shared_worker"}, {Type: "service_worker"}, {Exclude: true},
+	}}
 }
 
-func (sess *Session) childTargetActions(targetType string) []chromedp.Action[chromedp.Void] {
-	actions := []chromedp.Action[chromedp.Void]{
-		cdpAction(fetch.Enable, fetch.EnableParams{}),
-		cdpAction(runtime.Enable, cdp.Empty{}),
-		cdpAction(target.SetAutoAttach, target.SetAutoAttachParams{AutoAttach: true, WaitForDebuggerOnStart: false, Flatten: new(true)}),
-		cdpAction(runtime.RunIfWaitingForDebugger, cdp.Empty{}),
+// configureHarvestTarget gives root and child targets the same attempt identity.
+// Child targets remain paused until this succeeds.
+func (sess *Session) configureHarvestTarget(ctx context.Context) error {
+	return chromedp.Do(ctx,
 		cdpAction(network.Enable, network.EnableParams{}),
 		cdpAction(network.SetCacheDisabled, network.SetCacheDisabledParams{CacheDisabled: true}),
-		cdpAction(network.SetCookies, network.SetCookiesParams{Cookies: sess.getCookieParams(sess.RequestedUrl)}),
-	}
-
-	if targetType != "shared_worker" && targetType != "service_worker" {
-		actions = append(actions,
-			cdpAction(page.Enable, page.EnableParams{}),
-		)
-	}
-
-	return actions
+		cdpAction(network.SetExtraHTTPHeaders, network.SetExtraHTTPHeadersParams{Headers: network.Headers{constants.HeaderAttemptId: sess.attemptID}}),
+		cdpAction(target.SetAutoAttach, harvestAutoAttach()),
+	)
 }
 
-func shouldInitChildTarget(targetType string) bool {
-	switch targetType {
-	case "iframe":
-		return true
-	default:
-		return false
-	}
-}
-
-func (sess *Session) initChildTarget(ctx context.Context, targetID target.ID, targetType string) {
-	newCtx, _ := chromedp.NewContext(ctx, chromedp.WithTargetID(targetID))
-	go func() {
-		<-ctx.Done()
-		_ = chromedp.Cancel(newCtx)
-	}()
-
-	actions := sess.childTargetActions(targetType)
-	go func() {
-		listenerID := sess.listenerSeq.Add(1)
-		sess.loggerOrDefault().Debug("Registering child target listener", "listenerId", listenerID, "targetId", targetID.String(), "targetType", targetType)
-		if err := listenTarget(newCtx, sess.listenFunc(newCtx, listenerID)); err != nil {
-			sess.loggerOrDefault().Error("Failed listening to new target", "targetType", targetType, "error", err)
-			return
+// No request registry is needed: the frame identity travels with the HTTP request.
+func (sess *Session) documentRequestHeaders(ev *fetch.EventRequestPaused) []*fetch.HeaderEntry {
+	headers := make([]*fetch.HeaderEntry, 0, len(ev.Request.Headers)+1)
+	for name, value := range ev.Request.Headers {
+		if !strings.EqualFold(name, constants.HeaderMainDocument) {
+			headers = append(headers, &fetch.HeaderEntry{Name: name, Value: fmt.Sprint(value)})
 		}
-
-		if err := chromedp.Do(newCtx, actions...); err != nil {
-			sess.loggerOrDefault().Error("Failed initializing new target", "targetType", targetType, "error", err)
-		}
-	}()
+	}
+	if ev.ResourceType == network.ResourceTypeDocument && sess.pageLoad.isRoot(ev.FrameID) {
+		headers = append(headers, &fetch.HeaderEntry{Name: constants.HeaderMainDocument, Value: sess.attemptID})
+	}
+	return headers
 }
 
-func (sess *Session) finalizePausedRequest(ctx context.Context, ev *fetch.EventRequestPaused) error {
-	if ev.ResponseStatusCode != 0 || ev.ResponseErrorReason != "" {
-		_, err := chromedp.Call(ctx, fetch.ContinueRequest, fetch.ContinueRequestParams{RequestID: ev.RequestID})
-		return err
+func (sess *Session) continueDocumentRequest(ctx context.Context, ev *fetch.EventRequestPaused) {
+	_, err := callTarget(ctx, fetch.ContinueRequest, fetch.ContinueRequestParams{
+		RequestID: ev.RequestID, Headers: sess.documentRequestHeaders(ev),
+	})
+	if err == nil || ctx.Err() != nil || expiredInterception(err) {
+		return
 	}
-	_, err := chromedp.Call(ctx, fetch.FailRequest, fetch.FailRequestParams{RequestID: ev.RequestID, ErrorReason: network.ErrorReasonAborted})
-	return err
+	sess.browserCancel(fmt.Errorf("continue document request: %w", err))
 }
 
-func isInvalidInterceptionIDError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "Invalid InterceptionId")
-}
-
-func (sess *Session) rollbackPausedRequest(id string, added bool) bool {
-	if !added || id == "" {
-		return false
-	}
-
-	result := sess.removeRequest(id)
-	if !result.Found {
-		return false
-	}
-
-	if result.Request.BlocksPageCompletion() {
-		_ = sess.signalCompletionActivity()
-	}
-
-	return true
-}
-
-func interfaceToString(i any) string {
-	if i == nil {
-		return ""
-	}
-	return fmt.Sprintf("%v", i)
-}
-
-func logicalIDFromFetchPaused(ev *fetch.EventRequestPaused) string {
-	id := string(ev.NetworkID)
-	if id == "" {
-		id = string(ev.RequestID)
-	}
-	return id
-}
-
-func requestFromFetchPaused(ev *fetch.EventRequestPaused) requests.Request {
-	id := logicalIDFromFetchPaused(ev)
-
-	return requests.Request{
-		ID:             id,
-		FetchRequestID: string(ev.RequestID),
-		NetworkID:      string(ev.NetworkID),
-		URL:            ev.Request.URL,
-		Method:         ev.Request.Method,
-		ResourceType:   string(ev.ResourceType),
-	}
-}
-
-func logicalIDFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) string {
-	return string(ev.RequestID)
-}
-
-func requestFromNetworkWillBeSent(ev *network.EventRequestWillBeSent) requests.Request {
-	id := logicalIDFromNetworkWillBeSent(ev)
-
-	req := requests.Request{
-		ID:           id,
-		NetworkID:    id,
-		URL:          url.Normalize(ev.Request.URL),
-		Method:       ev.Request.Method,
-		ResourceType: ev.Type.String(),
-		Initiator:    ev.Initiator.Type.String(),
-		Referrer:     interfaceToString(ev.Request.Headers["Referer"]),
-	}
-
-	if redirectUrl := redirectFromURL(ev); redirectUrl != "" {
-		req.Redirected = true
-		req.RedirectFromURL = redirectUrl
-	}
-
-	return req
-}
-
-func redirectFromURL(ev *network.EventRequestWillBeSent) string {
-	if ev == nil || ev.RedirectResponse == nil {
-		return ""
-	}
-	return ev.RedirectResponse.URL
+func expiredInterception(err error) bool {
+	var protocolError *cdproto.Error
+	return errors.As(err, &protocolError) && protocolError.Code == -32602 && strings.Contains(protocolError.Message, "Invalid InterceptionId")
 }

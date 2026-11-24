@@ -17,12 +17,21 @@
 package session
 
 import (
+	"time"
+
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
 )
 
-// Option configures session Registry.
+func WithMediaSettleTimeout(timeout time.Duration) Option {
+	return newFuncOption(func(s *Session) { s.mediaSettleTimeout = timeout })
+}
+
+func WithCompletionDrainTimeout(timeout time.Duration) Option {
+	return newFuncOption(func(s *Session) { s.completionDrainTimeout = timeout })
+}
+
+// Option configures a browser session.
 type Option interface {
 	apply(*Session)
 }
@@ -82,11 +91,5 @@ func WithConfigAdapter(configAdapter database.ConfigAdapter) Option {
 func WithScreenshotWriter(sw screenshotwriter.ScreenshotWriter) Option {
 	return newFuncOption(func(s *Session) {
 		s.screenShotWriter = sw
-	})
-}
-
-func WithLogWriter(lc logwriter.LogWriter) Option {
-	return newFuncOption(func(s *Session) {
-		s.logWriter = lc
 	})
 }

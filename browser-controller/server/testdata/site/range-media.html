@@ -1,0 +1,9 @@
+<!doctype html>
+<html><head><title>Media ranges</title></head><body>
+<audio muted autoplay preload="auto" src="/finite.wav"></audio>
+<script>
+// Also make a deterministic partial transfer. Browser media range counts vary.
+fetch('/finite.wav?range', {headers: {Range: 'bytes=512-1023'}})
+  .then(response => response.arrayBuffer());
+</script>
+</body></html>

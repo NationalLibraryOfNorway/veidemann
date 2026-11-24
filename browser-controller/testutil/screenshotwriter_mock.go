@@ -24,20 +24,11 @@ import (
 
 // ScreenshotWriterMock is a helper structure for mocking screenshotwriter.ScreenshotWriter
 type ScreenshotWriterMock struct {
-	// optional function to call at connect time
-	ConnectFunc func() error
-	// optional function to call when RobotsEvaluator is closing
+	// optional function to call when cleaning up mock artifacts
 	CloseFunc func() error
 	// optional function to call when Write is called on ScreenshotWriter. Write will always return nil if this
 	// is not set
 	WriteFunc func(data []byte, metadata screenshotwriter.Metadata) error
-}
-
-func (s *ScreenshotWriterMock) Connect() error {
-	if s.ConnectFunc != nil {
-		return s.ConnectFunc()
-	}
-	return nil
 }
 
 func (s *ScreenshotWriterMock) Close() error {

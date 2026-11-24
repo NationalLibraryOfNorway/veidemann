@@ -5,21 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/requests"
 )
 
-func resourceFailureLogLevel(resourceType string) slog.Level {
-	req := requests.Request{GotNew: true, ResourceType: resourceType}
-	if req.BlocksPageCompletion() {
-		return slog.LevelWarn
-	}
-	return slog.LevelDebug
-}
+const LevelTrace = slog.Level(-8)
 
 func chromedpMessageLogLevel(message string) slog.Level {
 	if strings.Contains(message, "unhandled node event *dom.EventAdoptedStyleSheetsModified") {
-		return slog.LevelDebug
+		return LevelTrace
 	}
 	return slog.LevelWarn
 }

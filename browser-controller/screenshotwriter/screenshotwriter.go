@@ -20,12 +20,10 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
-	"log/slog"
 
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 )
 
 type Metadata struct {
@@ -36,12 +34,10 @@ type Metadata struct {
 }
 
 type ScreenshotWriter interface {
-	serviceconnections.Connection
 	Write(context.Context, []byte, Metadata) error
 }
 
 type screenshotWriter struct {
-	*serviceconnections.ClientConn
 	contentwriterV1.ContentWriterClient
 }
 
@@ -49,18 +45,10 @@ func screenshotTargetURI(requestedURI string) string {
 	return "screenshot:" + requestedURI
 }
 
-func New(opts ...serviceconnections.ConnectionOption) ScreenshotWriter {
+// New wraps a ContentWriter client whose connection is owned by the caller.
+func New(client contentwriterV1.ContentWriterClient) ScreenshotWriter {
 	return &screenshotWriter{
-		ClientConn: serviceconnections.NewClientConn("ContentWriter", opts...),
-	}
-}
-
-func (s *screenshotWriter) Connect() error {
-	if err := s.ClientConn.Connect(); err != nil {
-		return err
-	} else {
-		s.ContentWriterClient = contentwriterV1.NewContentWriterClient(s.Connection())
-		return nil
+		ContentWriterClient: client,
 	}
 }
 
@@ -122,7 +110,6 @@ func (s *screenshotWriter) Write(ctx context.Context, data []byte, metadata Meta
 
 	ip := metadata.CrawlLog.IpAddress
 	if ip == "" {
-		slog.Warn("Missing IP address for screenshot, using 127.0.0.1")
 		ip = "127.0.0.1"
 	}
 
@@ -140,14 +127,8 @@ func (s *screenshotWriter) Write(ctx context.Context, data []byte, metadata Meta
 	if err = stream.Send(&contentwriterV1.WriteRequest{Value: meta}); err != nil {
 		return err
 	}
-	if response, err := stream.CloseAndRecv(); err != nil {
+	if _, err := stream.CloseAndRecv(); err != nil {
 		return err
-	} else {
-		slog.Info("Screenshot written",
-			"url", metadata.CrawlLog.GetRequestedUri(),
-			"width", metadata.BrowserConfig.GetWindowWidth(),
-			"height", metadata.BrowserConfig.GetWindowHeight(),
-			"records", len(response.GetMeta().GetRecordMeta()))
 	}
 	return nil
 }

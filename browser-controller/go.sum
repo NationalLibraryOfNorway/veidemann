@@ -12,8 +12,8 @@ github.com/NationalLibraryOfNorway/veidemann/api v1.6.0 h1:PC2eWt3b423/KZa7BT27y
 github.com/NationalLibraryOfNorway/veidemann/api v1.6.0/go.mod h1:wbROi5pxRz2zhGcABkZNjYJYqOLvXFKkdH7OA7ucPWw=
 github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.8 h1:VtqecYTUVQl+NxnfWalnXdWsVwTaK9SH2MbzKtdBr7k=
 github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.8/go.mod h1:bFPoLT/LCVQIW5CymEdrLpYuWcVLe1h31dLCrbGquQk=
-github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10 h1:KXOu1wf0b+XOV6KDk6nzFg7rAMT5kKsVyq+50deOoYg=
-github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10/go.mod h1:MepjbDXeSJ3M4uksOy1ZOxI0PftTs9OnVgNCInPU5EI=
+github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.10.0 h1:rsLpc9JKRDq61GdDPM5lilrjNXdI+uZJW3jiabNNpXw=
+github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.10.0/go.mod h1:pVLuxR03cWAagDM+kFNl8c/g7ENtm/VFucmRD2wVgt4=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bitly/go-hostpool v0.1.0 h1:XKmsF6k5el6xHG3WPJ8U0Ku/ye7njX7W81Ng7O2ioR0=
@@ -68,8 +68,6 @@ github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre
 github.com/go-ole/go-ole v1.2.6/go.mod h1:pprOEPIfldk/42T2oK7lQ4v4JSDwmV0As9GaiUsvbm0=
 github.com/go-ole/go-ole v1.3.0 h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=
 github.com/go-ole/go-ole v1.3.0/go.mod h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78=
-github.com/go-test/deep v1.1.1 h1:0r/53hagsehfO4bzD2Pgr/+RgHqhmf+k1Bpse2cTu1U=
-github.com/go-test/deep v1.1.1/go.mod h1:5C2ZWiW0ErCdrYzpqxLbTX7MG14M9iiw8DgHncVwcsE=
 github.com/go-viper/mapstructure/v2 v2.5.0 h1:vM5IJoUAy3d7zRSVtIwQgBj7BiWtMPfmPEgAXnvj1Ro=
 github.com/go-viper/mapstructure/v2 v2.5.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/gobwas/httphead v0.1.0 h1:exrUm0f4YX0L7EBwZHuCF4GDp8aJfVeBrlLQrs6NqWU=

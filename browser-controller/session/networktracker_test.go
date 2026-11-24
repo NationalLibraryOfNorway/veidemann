@@ -79,7 +79,7 @@ func TestShouldTrackNetworkRequest(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := shouldTrackNetworkRequest(tc.ev); got != tc.want {
+			if got := shouldTrackObservedRequest(tc.ev.Type, tc.ev.Request.URL, tc.ev.FrameID != "" || tc.ev.LoaderID != ""); got != tc.want {
 				t.Fatalf("shouldTrackNetworkRequest() = %v, want %v", got, tc.want)
 			}
 		})
@@ -110,7 +110,7 @@ func TestShouldTrackObservedRequest(t *testing.T) {
 
 func TestNetworkActivityTrackerWaitForIdleReturnsAfterQuietPeriod(t *testing.T) {
 	tracker := newNetworkActivityTracker()
-	tracker.noteRequestStart(&network.EventRequestWillBeSent{
+	noteRequestStart(tracker, &network.EventRequestWillBeSent{
 		RequestID: network.RequestID("req-1"),
 		Type:      network.ResourceTypeImage,
 		FrameID:   cdp.FrameID("frame-1"),
@@ -137,7 +137,7 @@ func TestNetworkActivityTrackerWaitForIdleReturnsAfterQuietPeriod(t *testing.T) 
 
 func TestNetworkActivityTrackerWaitForIdleExtendsOnDataReceived(t *testing.T) {
 	tracker := newNetworkActivityTracker()
-	tracker.noteRequestStart(&network.EventRequestWillBeSent{
+	noteRequestStart(tracker, &network.EventRequestWillBeSent{
 		RequestID: network.RequestID("req-1"),
 		Type:      network.ResourceTypeImage,
 		FrameID:   cdp.FrameID("frame-1"),
@@ -203,7 +203,7 @@ func TestNetworkActivityTrackerWaitForIdleExtendsOnObservedRequestWithoutID(t *t
 
 func TestNetworkActivityTrackerWaitForIdleReturnsContextDeadline(t *testing.T) {
 	tracker := newNetworkActivityTracker()
-	tracker.noteRequestStart(&network.EventRequestWillBeSent{
+	noteRequestStart(tracker, &network.EventRequestWillBeSent{
 		RequestID: network.RequestID("req-1"),
 		Type:      network.ResourceTypeImage,
 		FrameID:   cdp.FrameID("frame-1"),
@@ -233,4 +233,8 @@ func TestNetworkActivityTrackerWaitForIdleReturnsContextDeadline(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("waitForIdle() error = %v, want %v", err, context.DeadlineExceeded)
 	}
+}
+
+func noteRequestStart(tracker *networkActivityTracker, ev *network.EventRequestWillBeSent) {
+	tracker.noteObservedRequestStart(ev.Type, ev.Request.URL, ev.FrameID != "" || ev.LoaderID != "", ev.RequestID)
 }

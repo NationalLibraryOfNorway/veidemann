@@ -10,7 +10,7 @@ import (
 
 func TestCompileBrowserWebsocketEndpointScopesRecorderCertificateTrust(t *testing.T) {
 	const spki = "recorder-public-key-hash"
-	sess := newSession(3,
+	sess := New(3,
 		WithBrowserHost("browser"),
 		WithBrowserPort(3000),
 		WithProxyHost("recorder"),

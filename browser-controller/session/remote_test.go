@@ -132,14 +132,11 @@ func testRemoteBrowserEventOrderAndShutdown(t *testing.T, detach bool) {
 		t.Fatalf("browser endpoint changed: %q", got)
 	}
 
-	sess := &Session{networkTracker: newNetworkActivityTracker(), frameLoads: newFrameLoadTracker()}
-	sess.startAcceptingRequests()
+	sess := newDefaultSession()
 	if err := sess.initListeners(browserCtx); err != nil {
 		t.Fatal(err)
 	}
-	if sess.rootTargetID != "root" {
-		t.Fatalf("root target = %q", sess.rootTargetID)
-	}
+
 	var delivered, canceled atomic.Int32
 	if err := listenTarget(browserCtx, func(ev any) {
 		if _, ok := ev.(*network.EventLoadingFinished); ok {
@@ -179,13 +176,13 @@ func testRemoteBrowserEventOrderAndShutdown(t *testing.T, detach bool) {
 	if got := canceled.Load(); got != 0 {
 		t.Fatalf("canceled listener received %d events", got)
 	}
-	request, found := sess.RequestSnapshot("req")
-	if !found || !request.GotComplete {
-		t.Fatalf("request events were reordered: request=%+v, found=%v", request, found)
+	sess.networkTracker.mu.Lock()
+	pending := len(sess.networkTracker.inflight)
+	sess.networkTracker.mu.Unlock()
+	if pending != 0 {
+		t.Fatal("browser terminal event not observed")
 	}
-	if active := sess.frameLoads.Snapshot(); len(active) != 0 {
-		t.Fatalf("frame events were reordered: active=%v", active)
-	}
+
 	if err := chromedp.Cancel(browserCtx); err != nil {
 		t.Fatal(err)
 	}

@@ -18,24 +18,18 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log/slog"
-	"sync"
+	"slices"
 	"time"
 
 	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/metrics"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-type SessionRegister interface {
-	GetNextAvailable(ctx context.Context) (*session.Session, error)
-	Release(*session.Session)
-}
 
 type Frontier interface {
 	GetNextPage(context.Context) (*frontierV1.PageHarvestSpec, error)
@@ -43,94 +37,68 @@ type Frontier interface {
 }
 
 type BrowserController struct {
-	sessions      SessionRegister
-	frontier      Frontier
-	fetchTimeout  time.Duration
-	reportTimeout time.Duration
+	tokens                      []string
+	options                     []session.Option
+	frontier                    Frontier
+	fetchTimeout, reportTimeout time.Duration
 }
 
-func New(session SessionRegister, frontier Frontier, fetchTimeout, reportTimeout time.Duration) BrowserController {
-	return BrowserController{
-		sessions:      session,
-		frontier:      frontier,
-		fetchTimeout:  fetchTimeout,
-		reportTimeout: reportTimeout,
-	}
+func New(tokens []string, frontier Frontier, fetchTimeout, reportTimeout time.Duration, options ...session.Option) BrowserController {
+	return BrowserController{tokens: tokens, options: options, frontier: frontier, fetchTimeout: fetchTimeout, reportTimeout: reportTimeout}
 }
 
+// Each worker exclusively owns its recorder slot. There is no session registry:
+// callback lookup and cross-session completion no longer exist.
 func (bc BrowserController) Run(ctx context.Context) error {
-	var wg sync.WaitGroup
+	workers, ctx := errgroup.WithContext(ctx)
+	metrics.BrowserSessions.Set(float64(len(bc.tokens)))
+	for slot := 1; slot <= len(bc.tokens); slot++ {
+		workers.Go(func() error { return bc.runWorker(ctx, slot) })
+	}
+	return workers.Wait()
+}
 
-	defer func() {
-		slog.Info("Waiting for active browser sessions to complete")
-		wg.Wait()
-		slog.Info("All active browser sessions completed")
-	}()
-
-	backoffTimer := time.NewTimer(0)
-	backoffTimer.Stop()
-
+func (bc BrowserController) runWorker(ctx context.Context, slot int) error {
+	token := bc.tokens[slot-1]
+	options := slices.Clip(bc.options)
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-
-		sess, err := bc.sessions.GetNextAvailable(ctx)
-		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				return err
-			}
-			return fmt.Errorf("failed to get next session: %w", err)
-		}
-
 		phs, err := bc.frontier.GetNextPage(ctx)
-		if err != nil {
-			bc.sessions.Release(sess)
-
-			if errors.Is(err, context.Canceled) {
-				return err
+		if status.Code(err) == codes.NotFound {
+			timer := time.NewTimer(10 * time.Second)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
 			}
-
-			if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
-				d := 10 * time.Second
-				slog.Debug("Next page not found, backing off", "durationMs", d.Milliseconds())
-
-				backoffTimer.Reset(d)
-
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-backoffTimer.C:
-					continue
-				}
-			}
-
-			return fmt.Errorf("failed to get next page: %w", err)
+			continue
 		}
-
-		wg.Go(func() {
-			defer bc.sessions.Release(sess)
-
-			bc.RunFetch(ctx, sess, phs)
-		})
+		if err != nil {
+			return fmt.Errorf("get next page: %w", err)
+		}
+		sess := session.New(slot, append(options, session.WithAdmissionToken(token))...)
+		bc.RunFetch(ctx, sess, phs)
+		token = sess.NextToken()
+		if !sess.Reusable() {
+			return fmt.Errorf("slot %d could not be isolated; restart required", slot)
+		}
 	}
 }
 
 func (bc BrowserController) RunFetch(ctx context.Context, sess *session.Session, phs *frontierV1.PageHarvestSpec) {
 	metrics.ActiveBrowserSessions.Inc()
 	defer metrics.ActiveBrowserSessions.Dec()
-
+	// Let already-started harvests finalize and report when another worker stops.
 	ctx = context.WithoutCancel(ctx)
-
 	fetchCtx, cancelFetch := context.WithTimeout(ctx, bc.fetchTimeout)
 	defer cancelFetch()
-
 	result, fetchErr := sess.Fetch(fetchCtx, phs)
-
 	reportCtx, cancelReport := context.WithTimeout(ctx, bc.reportTimeout)
 	defer cancelReport()
-
 	if err := bc.frontier.PageCompleted(reportCtx, phs, result, fetchErr); err != nil {
-		slog.Error("failed to report page completed", "error", err)
+		sess.Logger().Error("Harvest report failed", "phase", "frontier_report", "error", err)
 	}
 }

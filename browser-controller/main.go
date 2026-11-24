@@ -31,20 +31,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	browserControllerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/controller"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/database"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/frontier"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/logwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/robotsevaluator"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/screenshotwriter"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/server"
-	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
@@ -53,6 +52,7 @@ import (
 	"github.com/uber/jaeger-client-go/config"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -65,12 +65,13 @@ var (
 const readyPath = "/readyz"
 
 func main() {
+	initLogger(os.Stdout, "INFO", false)
 	err := run()
 	if err != nil {
-		slog.Error("Bye", "error", err)
+		serviceLogger().Error("Service failed", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Goodbye!")
+	serviceLogger().Info("Service stopped")
 }
 
 func run() error {
@@ -83,6 +84,9 @@ func run() error {
 		pflag.Usage()
 		return nil
 	}
+	if err := opts.ValidateCompletionTimeouts(); err != nil {
+		return err
+	}
 
 	// init logger
 	initLogger(
@@ -91,7 +95,13 @@ func run() error {
 		opts.LogMethod(),
 	)
 
-	slog.Info(name, "version", version, "commit", commit, "date", date)
+	fields := []any{}
+	for _, field := range []struct{ key, value string }{{"version", version}, {"commit", commit}, {"date", date}} {
+		if field.value != "" {
+			fields = append(fields, field.key, field.value)
+		}
+	}
+	serviceLogger().Info("Service starting", fields...)
 
 	recorderCertificateSPKI := ""
 	if opts.ProxyHost() != "" {
@@ -106,53 +116,38 @@ func run() error {
 		defer func() { _ = closer.Close() }()
 	}
 
-	screenshotWriter := screenshotwriter.New(
-		serviceconnections.WithHost(opts.ContentWriterHost()),
-		serviceconnections.WithPort(opts.ContentWriterPort()),
-	)
-	err = screenshotWriter.Connect()
+	contentWriterAddr := net.JoinHostPort(opts.ContentWriterHost(), strconv.Itoa(opts.ContentWriterPort()))
+	contentWriterConn, err := grpc.NewClient(contentWriterAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("failed to connect to content writer: %w", err)
+		return fmt.Errorf("failed to connect to content writer at %s: %w", contentWriterAddr, err)
 	}
-	defer func() { _ = screenshotWriter.Close() }()
+	defer closeGRPCConnection("ContentWriter", contentWriterConn)
+	screenshotWriter := screenshotwriter.New(contentwriterV1.NewContentWriterClient(contentWriterConn))
 
 	tracer := opentracing.GlobalTracer()
-	frontier := frontier.New(
-		serviceconnections.WithHost(opts.FrontierHost()),
-		serviceconnections.WithPort(opts.FrontierPort()),
-		serviceconnections.WithDialOptions(
-			grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)),
-		),
+	frontierAddr := net.JoinHostPort(opts.FrontierHost(), strconv.Itoa(opts.FrontierPort()))
+	frontierConn, err := grpc.NewClient(
+		frontierAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)),
 	)
-	err = frontier.Connect()
 	if err != nil {
-		return fmt.Errorf("failed to connect to frontier: %w", err)
+		return fmt.Errorf("failed to connect to frontier at %s: %w", frontierAddr, err)
 	}
-	defer func() { _ = frontier.Close() }()
+	defer closeGRPCConnection("Frontier", frontierConn)
+	frontierClient := frontier.New(frontierV1.NewFrontierClient(frontierConn))
 
-	robotsEvaluator := robotsevaluator.New(
-		serviceconnections.WithHost(opts.RobotsEvaluatorHost()),
-		serviceconnections.WithPort(opts.RobotsEvaluatorPort()),
-	)
-	err = robotsEvaluator.Connect()
+	recorderAddr := net.JoinHostPort(opts.ProxyHost(), strconv.Itoa(opts.RecorderControlPort()))
+	recorderConn, err := grpc.NewClient(recorderAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("failed to connect to robots evaluator: %w", err)
+		return fmt.Errorf("failed to connect to recorder control at %s: %w", recorderAddr, err)
 	}
-	defer func() { _ = robotsEvaluator.Close() }()
-
-	logWriter := logwriter.New(
-		serviceconnections.WithHost(opts.LogServiceHost()),
-		serviceconnections.WithPort(opts.LogServicePort()),
-	)
-	err = logWriter.Connect()
-	if err != nil {
-		return fmt.Errorf("failed to connect to log service: %w", err)
-	}
-	defer func() { _ = logWriter.Close() }()
+	defer closeGRPCConnection("RecorderControl", recorderConn)
+	recorder := recorderV1.NewRecorderControlClient(recorderConn)
 
 	db := database.NewRethinkDbConnection(
 		database.Options{
-			Address:            fmt.Sprintf("%s:%d", opts.DBHost(), opts.DBPort()),
+			Address:            net.JoinHostPort(opts.DBHost(), strconv.Itoa(opts.DBPort())),
 			Username:           opts.DBUser(),
 			Password:           opts.DBPassword(),
 			Database:           opts.DBName(),
@@ -172,6 +167,10 @@ func run() error {
 
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	tokens, err := controller.RecoverSlots(rootCtx, recorder, opts.ProxyCount(), opts.CompletionDrainTimeout())
+	if err != nil {
+		return err
+	}
 
 	g, ctx := errgroup.WithContext(rootCtx)
 
@@ -189,9 +188,10 @@ func run() error {
 	})
 	mux.Handle(opts.MetricsPath(), promhttp.Handler())
 
-	sessions := session.NewRegistry(
-		opts.ProxyCount(),
-		session.WithLogWriter(logWriter),
+	sessionOptions := []session.Option{
+		session.WithRecorder(recorder),
+		session.WithCaptureTimeout(opts.CaptureTimeout()),
+		session.WithPersistenceTimeout(opts.PersistenceTimeout()),
 		session.WithScreenshotWriter(screenshotWriter),
 		session.WithBrowserHost(opts.BrowserHost()),
 		session.WithBrowserPort(opts.BrowserPort()),
@@ -199,20 +199,21 @@ func run() error {
 		session.WithProxyPort(opts.ProxyPort()),
 		session.WithRecorderCertificateSPKI(recorderCertificateSPKI),
 		session.WithConfigAdapter(configAdapter),
-	)
-	defer sessions.Close()
+		session.WithMediaSettleTimeout(opts.MediaSettleTimeout()),
+		session.WithCompletionDrainTimeout(opts.CompletionDrainTimeout()),
+	}
 
-	telemetryAddr := fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort())
+	telemetryAddr := net.JoinHostPort(opts.MetricsInterface(), strconv.Itoa(opts.MetricsPort()))
 	telemetryListener, err := net.Listen("tcp", telemetryAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on telemetry address %s: %w", telemetryAddr, err)
 	}
 	defer func() { _ = telemetryListener.Close() }()
 
-	slog.Info("Telemetry server listening", "address", telemetryAddr)
+	serviceLogger().Log(ctx, session.LevelTrace, "Listener ready", "phase", "telemetry", "address", telemetryAddr)
 
 	telemetryServer := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", opts.MetricsInterface(), opts.MetricsPort()),
+		Addr:    telemetryAddr,
 		Handler: mux,
 		BaseContext: func(net.Listener) context.Context {
 			return ctx
@@ -228,32 +229,12 @@ func run() error {
 		return err
 	})
 
-	grpcAddr := fmt.Sprintf("%s:%d", opts.Interface(), opts.Port())
-	listener, err := net.Listen("tcp", grpcAddr)
-	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", grpcAddr, err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	slog.Info("gRPC server listening", "address", grpcAddr)
-
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(server.RecoveryUnaryInterceptor))
-	serverImpl := server.NewApiServer(sessions, robotsEvaluator, logWriter)
-	browserControllerV2.RegisterBrowserControllerServer(grpcServer, serverImpl)
-
-	// Start gRPC server
-	g.Go(func() error {
-		err := grpcServer.Serve(listener)
-		if errors.Is(err, grpc.ErrServerStopped) {
-			return nil
-		}
-		return err
-	})
-
-	mainLoop := controller.New(sessions, frontier, opts.FetchTimeout(), opts.ReportTimeout())
+	mainLoop := controller.New(tokens, frontierClient, opts.FetchTimeout(), opts.ReportTimeout(), sessionOptions...)
+	mainLoopDone := make(chan struct{})
 
 	// Browser controller main loop
 	g.Go(func() error {
+		defer close(mainLoopDone)
 		err := mainLoop.Run(ctx)
 
 		if errors.Is(err, context.Canceled) {
@@ -264,14 +245,16 @@ func run() error {
 	})
 
 	ready.Store(true)
-	slog.Info("Server ready")
+	serviceLogger().Info("Service ready", "telemetryAddress", telemetryAddr, "slots", opts.ProxyCount())
 
 	<-ctx.Done()
 
 	ready.Store(false)
-	slog.Info("Server shutting down")
+	serviceLogger().Info("Service stopping")
 
-	grpcServer.GracefulStop()
+	// Run stops scheduling and joins its active fetches. Their recorder RPCs
+	// must remain available through browser shutdown and completion draining.
+	<-mainLoopDone
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -279,6 +262,12 @@ func run() error {
 	_ = telemetryServer.Shutdown(shutdownCtx)
 
 	return g.Wait()
+}
+
+func closeGRPCConnection(service string, conn *grpc.ClientConn) {
+	if err := conn.Close(); err != nil {
+		serviceLogger().Error("Failed to close gRPC connection", "service", service, "error", err)
+	}
 }
 
 func loadRecorderCertificateSPKI(path string, now time.Time) (string, error) {
@@ -326,6 +315,12 @@ func initLogger(w io.Writer, level string, source bool) {
 	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
 		AddSource: source,
 		Level:     levelVar,
+		ReplaceAttr: func(_ []string, attr slog.Attr) slog.Attr {
+			if attr.Key == slog.LevelKey && attr.Value.Any() == session.LevelTrace {
+				return slog.String(slog.LevelKey, "TRACE")
+			}
+			return attr
+		},
 	})
 
 	logger := slog.New(handler)
@@ -338,6 +333,8 @@ func initLogger(w io.Writer, level string, source bool) {
 
 func toLogLevel(level string) slog.Level {
 	switch strings.ToLower(level) {
+	case "trace":
+		return session.LevelTrace
 	case "debug":
 		return slog.LevelDebug
 	case "info":
@@ -369,3 +366,5 @@ func initTracer(service string) io.Closer {
 
 	return closer
 }
+
+func serviceLogger() *slog.Logger { return slog.Default().With("component", name) }

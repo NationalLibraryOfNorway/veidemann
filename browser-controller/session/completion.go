@@ -24,56 +24,63 @@ import (
 
 var errCompletionIdleTimeout = errors.New("completion activity idle timeout")
 
-// signalCompletionActivity records that completion state may have changed.
-// The signal is level-triggered: one pending wake-up is enough because the
-// waiter always rechecks authoritative network and request state.
-func signalCompletionActivity(activity chan<- struct{}) {
-	if activity == nil {
-		return
-	}
-
-	select {
-	case activity <- struct{}{}:
-	default:
-	}
+// readinessSnapshot contains authoritative timestamps. Coalesced notifications
+// cannot extend either the quiet window or the media allowance on their own.
+type readinessSnapshot struct {
+	requiredLast, mediaLast, mediaDeadline time.Time
+	requiredPending                        int
 }
 
-func waitForCompletionActivity(ctx context.Context, activity <-chan struct{}, maxIdleTime time.Duration) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	idleTimer := time.NewTimer(maxIdleTime)
-	defer idleTimer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-activity:
-		return nil
-	case <-idleTimer.C:
-		return errCompletionIdleTimeout
-	}
-}
-
-func waitForSettled(
-	ctx context.Context,
-	maxIdleTime time.Duration,
-	activity <-chan struct{},
-	waitForNetworkIdle func(context.Context) error,
-	requestsComplete func() bool,
-) error {
-	// ctx is the sole overall deadline. maxIdleTime only bounds how long an
-	// incomplete request set may remain unchanged between state checks.
+func waitForReadiness(
+	ctx context.Context, quiet, additionalGrace time.Duration,
+	networkUpdates <-chan struct{}, waitPending bool, snapshot func() readinessSnapshot,
+) (string, error) {
+	start := time.Now()
 	for {
-		if err := waitForNetworkIdle(ctx); err != nil {
-			return err
+		if err := ctx.Err(); err != nil {
+			if errors.Is(err, context.Canceled) {
+				return "canceled", err
+			}
+			return "deadline", err
 		}
-		if requestsComplete() {
-			return nil
+		state := snapshot()
+		pending := waitPending && state.requiredPending != 0
+		now := time.Now()
+		requiredSince := state.requiredLast
+		if requiredSince.Before(start) {
+			requiredSince = start
 		}
-		if err := waitForCompletionActivity(ctx, activity, maxIdleTime); err != nil {
-			return err
+		quietSince := requiredSince
+		mediaRelevant := !state.mediaDeadline.IsZero() && now.Before(state.mediaDeadline)
+		if mediaRelevant && state.mediaLast.After(quietSince) {
+			quietSince = state.mediaLast
+		}
+		quietDeadline := quietSince.Add(quiet)
+		if !pending && !now.Before(quietDeadline) {
+			reason := "quiet"
+			if !state.mediaDeadline.IsZero() && !mediaRelevant && state.mediaLast.After(requiredSince) {
+				reason = "media_allowance_elapsed"
+			}
+			return reason, nil
+		}
+		next := quietDeadline
+		if pending {
+			stallDeadline := requiredSince.Add(quiet + additionalGrace)
+			if !now.Before(stallDeadline) {
+				return "required_request_stalled", errCompletionIdleTimeout
+			}
+			next = stallDeadline
+		}
+		if mediaRelevant && state.mediaDeadline.Before(next) {
+			next = state.mediaDeadline
+		}
+		timer := time.NewTimer(time.Until(next))
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+		case <-networkUpdates:
+			timer.Stop()
+		case <-timer.C:
 		}
 	}
 }

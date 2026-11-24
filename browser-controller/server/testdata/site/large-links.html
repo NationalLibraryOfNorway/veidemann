@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Large outlink capture</title>
+<link rel="icon" href="data:,">
+<body>
+<script>
+document.cookie = "capture=large; path=/";
+const fragment = document.createDocumentFragment();
+for (let i = 0; i < 4096; i++) {
+    const link = document.createElement("a");
+    link.href = "/candidate/" + i + "/" + "a".repeat(1024);
+    fragment.append(link);
+}
+document.body.append(fragment);
+</script>

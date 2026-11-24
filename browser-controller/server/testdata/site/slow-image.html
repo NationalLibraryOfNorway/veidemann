@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><title>Slow required image</title></head><body>
+<script>
+// Start after initial frame loading so readiness must track ongoing image data.
+window.addEventListener('load', () => {
+  const image = new Image();
+  image.src = '/slow-image.png';
+  document.body.appendChild(image);
+});
+</script>
+</body></html>

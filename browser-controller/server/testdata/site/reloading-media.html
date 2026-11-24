@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><title>Repeated media cancellations</title></head><body>
+<audio id="media" muted loop preload="auto"></audio>
+<script>
+window.addEventListener('load', () => {
+  const media = document.getElementById('media');
+  let retry = 0;
+  function reload() {
+    media.src = '/slow-media.wav?retry=' + retry++;
+    media.load();
+    media.play().catch(() => {});
+  }
+  reload();
+  setInterval(reload, 800);
+});
+</script>
+</body></html>
