@@ -57,7 +57,7 @@ func startRethinkPeer(t *testing.T, handle func(net.Conn, uint64, p.Query_QueryT
 			workers.Add(1)
 			go func() {
 				defer workers.Done()
-				defer peer.Close()
+				defer func() { _ = peer.Close() }()
 				// A deadline also bounds fixture failures during connection setup.
 				_ = peer.SetDeadline(time.Now().Add(5 * time.Second))
 				var header [12]byte
