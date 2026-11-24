@@ -1,0 +1,94 @@
+package recorderproxy
+
+import (
+	"net/http"
+	"testing"
+	"time"
+
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+)
+
+func TestReviewHistoryURLRetainsMainDocument(t *testing.T) {
+	for _, captured := range []string{"https://example.com/index.html", "https://example.com/new-route"} {
+		t.Run(captured, func(t *testing.T) {
+			c, p := testControl()
+			spec := beginSpec("review-attempt-00000001")
+			spec.RequestedUri = "https://example.com/index.html"
+			if _, err := c.BeginHarvest(t.Context(), spec); err != nil {
+				t.Fatal(err)
+			}
+			rc := &rpcontext.RecordContext{MainDocument: true}
+			p.attempt.admit(rc, func() {})
+			rc.Complete(&logV1.CrawlLog{RequestedUri: spec.RequestedUri, WarcId: "recorded-main", StatusCode: 200}, false, nil)
+			// The corrected caller sends the committed URL despite changed history.
+			// An unmatched current URL must still be rejected, never fall back.
+			reply, err := c.FinishPage(t.Context(), &recorderV1.FinishHarvestHeader{ProxyId: 1, AttemptId: spec.AttemptId, PageUri: &captured}, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if captured == spec.RequestedUri {
+				if reply.GetMain().GetWarcId() != "recorded-main" {
+					t.Fatalf("lost recording: %v", reply)
+				}
+			} else if reply.Main != nil {
+				t.Fatalf("unmatched URL selected older success: %v", reply)
+			}
+		})
+	}
+}
+
+func TestReviewOriginSubresourceFailureDoesNotFailCapturedPage(t *testing.T) {
+	c, p := testControl()
+	spec := beginSpec("review-attempt-00000001")
+	if _, err := c.BeginHarvest(t.Context(), spec); err != nil {
+		t.Fatal(err)
+	}
+	main := &rpcontext.RecordContext{MainDocument: true}
+	child := rpcontext.NewRecordContext()
+	childRequest, _ := http.NewRequestWithContext(rpcontext.RecordProxyDataAware(t.Context()), http.MethodGet, "https://dead.example/image.png", nil)
+	p.attempt.admit(main, func() {})
+	p.attempt.admit(child, func() { child.Init(1, nil, childRequest, childRequest.URL) })
+	main.Complete(&logV1.CrawlLog{RequestedUri: spec.RequestedUri, WarcId: "recorded-main", StatusCode: 200}, false, nil)
+	_ = child.SendFetchError(rperrors.Error(rperrors.ConnectFailed, "CONNECT_FAILED", "connection refused"))
+	reply, err := c.FinishPage(t.Context(), &recorderV1.FinishHarvestHeader{ProxyId: 1, AttemptId: spec.AttemptId, PageUri: &spec.RequestedUri}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reply.Failure != nil {
+		t.Fatalf("recorded main failed because of ordinary origin subresource failure: %v", reply)
+	}
+}
+
+func TestReviewControllerRestartCannotRecoverPoisonedSlot(t *testing.T) {
+	c, p := testControl()
+	p.finalizationTimeout = 5 * time.Millisecond
+	spec := beginSpec("review-old-attempt-00001")
+	begun, err := c.BeginHarvest(t.Context(), spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := p.attempt
+	rc := &rpcontext.RecordContext{}
+	old.admit(rc, func() { old.lifecycle.addRecord(rc) })
+	reply, err := c.FinishPage(t.Context(), &recorderV1.FinishHarvestHeader{ProxyId: 1, AttemptId: spec.AttemptId}, nil)
+	if err != nil || reply.Reusable {
+		t.Fatalf("expected timeout with reusable=false: %v %v", reply, err)
+	}
+	// The late terminal work drains completely; the recorder sidecar stays up.
+	rc.Complete(&logV1.CrawlLog{RequestedUri: spec.RequestedUri, StatusCode: 200, WarcId: "late"}, false, nil)
+	rc.CloseFunc()
+	if err := old.lifecycle.wait(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	// A fresh browser-controller process generates a new attempt UUID.
+	// Its ordinary container restart does not recreate RecorderProxy.
+	// Late drainage alone restores availability; no recovery repairs a cached flag.
+	fresh := beginSpec("review-new-attempt-00002")
+	fresh.AdmissionToken = begun.NextToken
+	if _, err := c.BeginHarvest(t.Context(), fresh); err != nil {
+		t.Fatalf("fresh controller still cannot use fully drained slot: %v", err)
+	}
+}

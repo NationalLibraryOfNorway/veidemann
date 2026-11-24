@@ -1,0 +1,106 @@
+//go:build integration
+
+package server
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	frontierV1 "github.com/NationalLibraryOfNorway/veidemann/api/frontier/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/browser-controller/session"
+)
+
+func TestReviewBrowserCases(t *testing.T) {
+	for _, scenario := range []string{"history", "http-iframe-main", "fragment", "redirect-chain", "failed-subresource"} {
+		t.Run(scenario, func(t *testing.T) {
+			deadListener, err := net.Listen("tcp", "0.0.0.0:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, deadPort, _ := net.SplitHostPort(deadListener.Addr().String())
+			_ = deadListener.Close()
+			var mu sync.Mutex
+			var headers []http.Header
+			origin := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				headers = append(headers, r.Header.Clone())
+				mu.Unlock()
+				w.Header().Set("Content-Type", "text/html")
+				switch scenario {
+				case "history":
+					fmt.Fprint(w, `<html><script>history.replaceState({}, '', '/new-route');</script><a href="/link">Link</a></html>`)
+				case "http-iframe-main":
+					if !strings.Contains(r.Header.Get("Cookie"), "child=yes") {
+						w.Header().Set("Set-Cookie", "child=yes; Path=/")
+						fmt.Fprint(w, `<html><iframe src="/index.html"></iframe><a href="/link">Link</a></html>`)
+					} else {
+						fmt.Fprint(w, `<html>Child</html>`)
+					}
+				case "failed-subresource":
+					fmt.Fprintf(w, `<html><img src="http://%s:%s/dead.png"><a href="/link">Link</a></html>`, localhost, deadPort)
+				case "redirect-chain":
+					if r.URL.Path == "/index.html" {
+						http.Redirect(w, r, "/middle", 302)
+						return
+					}
+					if r.URL.Path == "/middle" {
+						http.Redirect(w, r, "/final", 302)
+						return
+					}
+					fmt.Fprint(w, `<html><a href="/link">Link</a></html>`)
+				default:
+					fmt.Fprint(w, `<html><a href="/link">Link</a></html>`)
+				}
+			}))
+			_ = origin.Listener.Close()
+			origin.Listener, _ = net.Listen("tcp", "0.0.0.0:0")
+			origin.Start()
+			defer origin.Close()
+			_, originPort, _ := net.SplitHostPort(origin.Listener.Addr().String())
+			base := fmt.Sprintf("http://%s:%s", localhost, originPort)
+			requested := base + "/index.html"
+			if scenario == "fragment" {
+				requested += "#section"
+			}
+			conf := &configV1.ConfigObject{Spec: &configV1.ConfigObject_CrawlConfig{CrawlConfig: &configV1.CrawlConfig{
+				BrowserConfigRef: &configV1.ConfigRef{Id: "browserConfig1"}, PolitenessRef: &configV1.ConfigRef{Id: "politenessConfig1"}, CollectionRef: &configV1.ConfigRef{Id: "collectionConfig1"}, Extra: &configV1.ExtraConfig{},
+			}}}
+			sess := session.New(1, sessionOptions...)
+			result, err := sess.Fetch(context.Background(), &frontierV1.PageHarvestSpec{QueuedUri: &frontierV1.QueuedUri{Uri: requested, DiscoveryPath: "L", ExecutionId: "eid", JobExecutionId: "jid"}, CrawlConfig: conf})
+			mu.Lock()
+			defer mu.Unlock()
+			for i, h := range headers {
+				t.Logf("request %d fetch-dest=%q upgrade=%q accept=%q", i, h.Get("Sec-Fetch-Dest"), h.Get("Upgrade-Insecure-Requests"), h.Get("Accept"))
+			}
+			if err != nil {
+				t.Fatalf("browser fetch failed: %v", err)
+			}
+			pl := recordedPages.latest(requested)
+			if pl == nil {
+				t.Fatal("missing page log")
+			}
+			t.Logf("page log: %v", pl)
+			switch scenario {
+			case "http-iframe-main":
+				if pl.WarcId != pl.Resource[0].WarcId {
+					t.Fatalf("main WARC %s came from child; root WARC was %s", pl.WarcId, pl.Resource[0].WarcId)
+				}
+			case "fragment":
+				if pl.Resource[0].DiscoveryPath != "L" {
+					t.Fatalf("fragment treated as redirect: %s", pl.Resource[0].DiscoveryPath)
+				}
+			case "redirect-chain":
+				if len(result.Outlinks) == 0 || result.Outlinks[0].DiscoveryPath != "LRRL" {
+					t.Fatalf("redirect-chain outlink path = %v, want LRRL", result.Outlinks)
+				}
+			}
+		})
+	}
+}

@@ -1,0 +1,25 @@
+package context
+
+import (
+	stdcontext "context"
+	"net/http"
+	"net/url"
+	"testing"
+
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
+)
+
+func TestReviewFragmentIsNotRedirect(t *testing.T) {
+	uri, _ := url.Parse("https://example.com/index.html")
+	req, _ := http.NewRequestWithContext(RecordProxyDataAware(stdcontext.Background()), "GET", uri.String(), nil)
+	req.Header.Set(constants.HeaderMainDocument, "fragment-attempt")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	rc := NewRecordContext()
+	rc.Harvest = &recorderV1.BeginHarvestRequest{AttemptId: "fragment-attempt", RequestedUri: uri.String() + "#section", DiscoveryPath: "L"}
+	rc.Init(1, nil, req, uri)
+	defer rc.SaveCrawlLog()
+	if got := rc.CrawlLogSnapshot().DiscoveryPath; got != "L" {
+		t.Fatalf("initial document discovery path = %q, want L (fragment is not a redirect)", got)
+	}
+}
