@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.6.0
-	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.7
+	github.com/NationalLibraryOfNorway/veidemann/log-service v0.8.8
 	github.com/NationalLibraryOfNorway/veidemann/recorderproxy v0.9.10
 	github.com/chromedp/cdproto v0.160.3
 	github.com/chromedp/chromedp v0.23.0
