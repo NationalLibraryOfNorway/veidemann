@@ -7,8 +7,12 @@ metadata:
     app.kubernetes.io/component: cache
 spec:
   serviceName: cache
-  replicas: 1
+  replicas: 2
   podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  # Allow the balancer's discovery and throttled reconfigure to settle.
+  minReadySeconds: 45
   volumeClaimTemplates:
     - metadata:
         name: cache
@@ -33,11 +37,12 @@ spec:
         config.linkerd.io/proxy-ephemeral-storage-request: "64Mi"
         config.linkerd.io/proxy-ephemeral-storage-limit: "256Mi"
     spec:
+      terminationGracePeriodSeconds: 90
       securityContext:
         fsGroup: 13
       initContainers:
         - name: init-cache-config
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.11.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.0
           securityContext:
             readOnlyRootFilesystem: true
           resources:
@@ -57,7 +62,7 @@ spec:
               mountPath: /generated-config
       containers:
         - name: cache
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.11.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.0
           securityContext:
             readOnlyRootFilesystem: true
           resources:
@@ -69,6 +74,27 @@ spec:
             - name: http
               containerPort: 3128
               protocol: TCP
+          # Check Squid inside the container, bypassing any Linkerd listener.
+          startupProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  test -s /run/squid/confighandler.ready && : > /dev/tcp/127.0.0.1/3128
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  test -s /run/squid/confighandler.ready && : > /dev/tcp/127.0.0.1/3128
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 1
           env:
             - name: DNS_SERVERS
               value: dns-resolver
@@ -82,7 +108,12 @@ spec:
             - name: cache-tmp
               mountPath: /tmp
             - name: cache-certificate
-              mountPath: "/ca-certificates"
+              mountPath: /ca-certificates/tls.crt
+              subPath: tls.crt
+              readOnly: true
+            - name: cache-certificate
+              mountPath: /ca-certificates/tls.key
+              subPath: tls.key
               readOnly: true
         - name: cache-exporter
           image: docker.io/boynux/squid-exporter:v1.13.0

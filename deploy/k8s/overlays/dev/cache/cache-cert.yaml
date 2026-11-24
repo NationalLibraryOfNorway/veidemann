@@ -12,6 +12,8 @@ metadata:
   name: cache-ca
 spec:
   isCA: true
+  duration: 43800h # Five years
+  renewBefore: 2160h # 90 days for an operator to roll the parents
   commonName: harvester
   secretName: cache
   subject:
@@ -20,6 +22,7 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
+    rotationPolicy: Always
   issuerRef:
     name: cache
     kind: Issuer
