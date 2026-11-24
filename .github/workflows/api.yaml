@@ -57,7 +57,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: api/go.mod
+          go-version-file: tools/go.mod
           cache-dependency-path: |
             api/go.sum
             tools/go.sum
