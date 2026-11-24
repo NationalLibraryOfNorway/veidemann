@@ -56,7 +56,7 @@ func TestDocumentContinuationFailure(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				defer conn.Close()
+				defer func() { _ = conn.Close() }()
 				for {
 					data, _, err := wsutil.ReadClientData(conn)
 					if err != nil {

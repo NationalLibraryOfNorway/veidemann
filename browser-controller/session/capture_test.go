@@ -31,7 +31,7 @@ func TestCaptureBundleConsistencyAndRequiredOperations(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				defer conn.Close()
+				defer func() { _ = conn.Close() }()
 				generation := 1
 				committedGeneration := 0
 				for {
@@ -63,7 +63,7 @@ func TestCaptureBundleConsistencyAndRequiredOperations(t *testing.T) {
 							loader = "1"
 						}
 
-						if scenario != "missing-commit" && committedGeneration != generation && !(scenario == "history-changes-once" && committedGeneration != 0) {
+						if scenario != "missing-commit" && committedGeneration != generation && (scenario != "history-changes-once" || committedGeneration == 0) {
 							committedGeneration = generation
 							sess.pageLoad.navigated(&cdp.Frame{ID: "main", LoaderID: cdp.LoaderID(fmt.Sprint(generation)), URL: fmt.Sprintf("https://example.com/loaded-%d", generation)})
 						}

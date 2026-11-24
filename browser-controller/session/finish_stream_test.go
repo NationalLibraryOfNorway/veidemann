@@ -5,6 +5,7 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -74,12 +75,18 @@ func TestLargeCaptureReplaysFinishAndReportsOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go proxy.Serve(listener)
-	defer proxy.Shutdown(ctx)
+	go func() {
+		if err := proxy.Serve(listener); err != nil && !errors.Is(err, net.ErrClosed) {
+			t.Errorf("serve recorder proxy: %v", err)
+		}
+	}()
+	defer func() { _ = proxy.Shutdown(ctx) }()
 	proxyURL, _ := url.Parse("http://" + listener.Addr().String())
 	transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 	defer transport.CloseIdleConnections()
-	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "page") }))
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "page")
+	}))
 	defer origin.Close()
 	var finishes atomic.Int32
 	server := grpc.NewServer(grpc.StreamInterceptor(func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
@@ -92,13 +99,17 @@ func TestLargeCaptureReplaysFinishAndReportsOnce(t *testing.T) {
 	recorderV1.RegisterRecorderControlServer(server, recorderproxy.NewControl(services, proxy))
 	frontierV1.RegisterFrontierServer(server, reports)
 	wire := bufconn.Listen(1 << 20)
-	go server.Serve(wire)
+	go func() {
+		if err := server.Serve(wire); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+			t.Errorf("serve gRPC: %v", err)
+		}
+	}()
 	defer server.Stop()
 	conn, err := grpc.NewClient("passthrough:///harvest", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return wire.DialContext(ctx) }))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	client := recorderV1.NewRecorderControlClient(conn)
 	reporter := frontier.New(frontierV1.NewFrontierClient(conn))
 	recovery, err := client.RecoverSlot(ctx, &recorderV1.RecoverSlotRequest{ProxyId: 1})
@@ -123,7 +134,7 @@ func TestLargeCaptureReplaysFinishAndReportsOnce(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, err = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil || resp.StatusCode != 200 {
 			t.Fatalf("fetch: %d %v", resp.StatusCode, err)
 		}

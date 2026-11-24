@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -38,13 +39,17 @@ func TestStartupRecoveryAfterClientReconnect(t *testing.T) {
 			services := testutil.NewGrpcServiceMock()
 			defer services.Close()
 			proxy := recorderproxy.NewRecorderProxy(1, services.ContentWriterClient, services.DnsResolverClient, "", recorderproxy.WithFinalizationTimeout(50*time.Millisecond))
-			defer proxy.Shutdown(ctx)
+			defer func() { _ = proxy.Shutdown(ctx) }()
 			defer unblock()
 			control := recorderproxy.NewControl(logs, proxy, recorderproxy.NewRecorderProxy(2, nil, nil, ""))
 			listener := bufconn.Listen(1024 * 1024)
 			server := grpc.NewServer()
 			recorderV1.RegisterRecorderControlServer(server, control)
-			go server.Serve(listener)
+			go func() {
+				if err := server.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+					t.Errorf("serve gRPC: %v", err)
+				}
+			}()
 			defer server.Stop()
 			connect := func() (*grpc.ClientConn, recorderV1.RecorderControlClient) {
 				t.Helper()
@@ -52,7 +57,7 @@ func TestStartupRecoveryAfterClientReconnect(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				t.Cleanup(func() { conn.Close() })
+				t.Cleanup(func() { _ = conn.Close() })
 				return conn, recorderV1.NewRecorderControlClient(conn)
 			}
 			oldConn, old := connect()
@@ -72,7 +77,7 @@ func TestStartupRecoveryAfterClientReconnect(t *testing.T) {
 			begin(old, 2, "orphaned-attempt-0002")
 			finish := &recorderV1.FinishHarvestHeader{ProxyId: 1, AttemptId: oldID}
 			var published *recorderV1.FinishHarvestReply
-			var fetched chan error
+			var fetched chan struct{}
 			if timedOut {
 				origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "recorded") }))
 				defer origin.Close()
@@ -80,20 +85,24 @@ func TestStartupRecoveryAfterClientReconnect(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				go proxy.Serve(ln)
+				go func() {
+					if err := proxy.Serve(ln); err != nil && !errors.Is(err, net.ErrClosed) {
+						t.Errorf("serve recorder proxy: %v", err)
+					}
+				}()
 				proxyURL, _ := url.Parse("http://" + ln.Addr().String())
 				transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 				defer transport.CloseIdleConnections()
-				fetched = make(chan error, 1)
+				fetched = make(chan struct{})
 				go func() {
+					defer close(fetched)
 					req, _ := http.NewRequestWithContext(ctx, http.MethodGet, origin.URL, nil)
 					req.Header.Set(constants.HeaderAttemptId, oldID)
 					resp, err := (&http.Client{Transport: transport}).Do(req)
 					if err == nil {
-						_, err = io.Copy(io.Discard, resp.Body)
-						resp.Body.Close()
+						_, _ = io.Copy(io.Discard, resp.Body)
+						_ = resp.Body.Close()
 					}
-					fetched <- err
 				}()
 				select {
 				case <-logs.entered:

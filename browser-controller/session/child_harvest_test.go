@@ -71,10 +71,12 @@ func TestChildSetupFailureFinalizesHarvest(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				defer conn.Close()
+				defer func() { _ = conn.Close() }()
 				emit := func(method, session string, params any) {
 					raw, _ := json.Marshal(map[string]any{"method": method, "sessionId": session, "params": params})
-					wsutil.WriteServerText(conn, raw)
+					if err := wsutil.WriteServerText(conn, raw); err != nil {
+						t.Errorf("send %s event: %v", method, err)
+					}
 				}
 				attach := func() {
 					emit("Target.attachedToTarget", "root-session", map[string]any{"sessionId": "child-session", "targetInfo": map[string]any{"targetId": "child-target", "type": "iframe"}, "waitingForDebugger": true})
@@ -162,30 +164,31 @@ func TestChildSetupFailureFinalizesHarvest(t *testing.T) {
 				}}
 			}
 			if scenario == "finalization-failure" {
-				client.recorderReply.err = errors.New("injected recorder finalization failure")
-				client.recorderReply.reply = nil
+				client.err = errors.New("injected recorder finalization failure")
+				client.reply = nil
 			}
 			result, err := sess.Fetch(fetchCtx, &frontierV1.PageHarvestSpec{QueuedUri: &frontierV1.QueuedUri{Uri: "https://example.com/"}, CrawlConfig: &configV1.ConfigObject{Spec: &configV1.ConfigObject_CrawlConfig{CrawlConfig: &configV1.CrawlConfig{BrowserConfigRef: &configV1.ConfigRef{Id: "browser"}, PolitenessRef: &configV1.ConfigRef{Id: "politeness"}, Extra: &configV1.ExtraConfig{CreateScreenshot: scenario == "screenshot-failure"}}}}})
 			if client.begins != 1 || client.request == nil {
 				t.Fatal("recorder was not finalized")
 			}
-			if scenario == "lost-begin" {
+			switch scenario {
+			case "lost-begin":
 				if err == nil || client.recoveries != 1 || sess.NextToken() != "recovered-token" || client.request.PageUri != nil {
 					t.Fatal("ambiguous Begin failed recovery", err)
 				}
-			} else if scenario == "detachment" {
+			case "detachment":
 				if err != nil || result == nil || client.request.PageUri == nil {
 					t.Fatalf("detachment failed page: %v", err)
 				}
-			} else if scenario == "cancelled" {
+			case "cancelled":
 				if !errors.Is(err, context.Canceled) {
 					t.Fatal(err)
 				}
-			} else if scenario == "screenshot-failure" || scenario == "finalization-failure" {
+			case "screenshot-failure", "finalization-failure":
 				if err == nil || !strings.Contains(err.Error(), "injected") {
 					t.Fatal(err)
 				}
-			} else {
+			default:
 				for _, detail := range []string{"child-target", "child-session", "iframe", "Network.enable", "original child setup error"} {
 					if err == nil || !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing %s: %v", detail, err)

@@ -87,7 +87,11 @@ func childHarness(t *testing.T) (*Session, context.Context, *mockWire, *eventTra
 			}
 		}
 	}()
-	t.Cleanup(func() { sess.stopChildren(); cancel(nil); wire.Close() })
+	t.Cleanup(func() {
+		_ = sess.stopChildren()
+		cancel(nil)
+		_ = wire.Close()
+	})
 	return sess, root, wire, transport
 }
 func attached(id target.SessionID, kind string) *target.EventAttachedToTarget {
@@ -209,7 +213,7 @@ func TestChildLifecycleFailuresAndCancellation(t *testing.T) {
 					case "command-error":
 						wire.incoming <- cdproto.Message{ID: cmd.ID, Error: &cdproto.Error{Code: -32000, Message: "original failure"}}
 					case "connection-loss":
-						wire.Close()
+						_ = wire.Close()
 					case "detach":
 						sess.detachChild("child")
 					case "cancel":
@@ -244,7 +248,7 @@ func TestChildLifecycleFailuresAndCancellation(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				sess.stopChildren()
+				_ = sess.stopChildren()
 				transport.mu.Lock()
 				pending := len(transport.pending)
 				transport.mu.Unlock()
@@ -317,7 +321,7 @@ func TestSessionTransportConcurrentRepliesAndOrderedEvents(t *testing.T) {
 	if reply.ID != 40 || reply.SessionID != "" || !reflect.DeepEqual(order, []network.RequestID{"one", "two", "three"}) {
 		t.Fatalf("reply=%v order=%v", reply, order)
 	}
-	wire.Close()
+	_ = wire.Close()
 }
 
 type blockedWire struct {
@@ -348,7 +352,7 @@ func TestChildTransportCancellationWhileSocketWriteBlocks(t *testing.T) {
 		if pending != 0 {
 			t.Fatal("canceled write retained reply route")
 		}
-		transport.Close()
+		_ = transport.Close()
 		close(wire.release)
 		synctest.Wait()
 	})
