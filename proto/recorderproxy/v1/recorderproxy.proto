@@ -1,0 +1,65 @@
+syntax = "proto3";
+package veidemann.api.recorderproxy.v1;
+
+import "commons/v1/resources.proto";
+import "config/v1/resources.proto";
+import "log/v1/resources.proto";
+
+option go_package = "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1";
+
+// RecorderControl owns attempt admission and recording completion.
+service RecorderControl {
+  // Exclusive controller startup: close an orphaned attempt and await drainage
+  // before taking new work. Never call while this slot has a live owner.
+  rpc RecoverSlot(RecoverSlotRequest) returns (RecoverSlotReply) {}
+  rpc BeginHarvest(BeginHarvestRequest) returns (BeginHarvestReply) {}
+  rpc FinishHarvest(stream FinishHarvestRequest) returns (FinishHarvestReply) {}
+}
+
+message RecoverSlotRequest { int32 proxy_id = 1; }
+message RecoverSlotReply { string next_token = 1; }
+
+message BeginHarvestRequest {
+  int32 proxy_id = 1;
+  // Caller-generated UUID, never reused, including retries of the same URI.
+  // HTTP/HTTPS requests must carry this as X-Veidemann-Attempt-Id.
+  string attempt_id = 2;
+  string crawl_execution_id = 3;
+  string job_execution_id = 4;
+  veidemann.api.config.v1.ConfigRef collection_ref = 5;
+  veidemann.api.config.v1.ConfigObject politeness = 6;
+  string user_agent = 7;
+  // Recorder clamps this to its configured maximum. Independent of RPC lifetime.
+  int64 finalization_timeout_ms = 8;
+  string requested_uri = 9;
+  string discovery_path = 10;
+  string referrer = 11;
+  string admission_token = 12;
+}
+message BeginHarvestReply {
+  string attempt_id = 1;
+  string next_token = 2;
+}
+
+message FinishHarvestHeader {
+  int32 proxy_id = 1;
+  string attempt_id = 2;
+  optional string page_uri = 3;
+}
+
+message FinishHarvestRequest {
+  oneof value {
+    FinishHarvestHeader header = 1;
+    string outlink = 2;
+  }
+}
+message FinishHarvestReply {
+  // The latest matching main navigation, including a cached or failed outcome.
+  veidemann.api.log.v1.CrawlLog main = 1;
+  bool main_cached = 2;
+  int32 uri_count = 3;
+  int64 bytes_downloaded = 4;
+  veidemann.api.commons.v1.Error failure = 5;
+  // False means handlers did not drain; this slot must not be reused.
+  bool reusable = 6;
+}
