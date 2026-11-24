@@ -14,10 +14,11 @@ spec:
         app.kubernetes.io/name: robots
       annotations:
         linkerd.io/inject: enabled
+        config.linkerd.io/skip-outbound-ports: "3128"
     spec:
       containers:
         - name: robots
-          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.12.8
+          image: ghcr.io/nationallibraryofnorway/veidemann/robots-evaluator:0.13.0
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
@@ -33,12 +34,14 @@ spec:
               value: "24h"
             - name: ROBOTS_UNREACHABLE_RETRY_INTERVAL
               value: "1h"
-            - name: HTTP_PROXY
-              value: http://harvester:8080
-            - name: HTTPS_PROXY
-              value: http://harvester:8080
-            - name: NO_PROXY
-              value: "127.0.0.1,localhost,olric-client"
+            - name: DNS_RESOLVER_ADDRESS
+              value: dns-resolver:8053
+            - name: CONTENT_WRITER_ADDRESS
+              value: contentwriter:8082
+            - name: LOG_SERVICE_ADDRESS
+              value: log-service-writer:8080
+            - name: CACHE_ADDRESS
+              value: cache-balancer:3128
           readinessProbe:
             httpGet:
               path: "/readyz"

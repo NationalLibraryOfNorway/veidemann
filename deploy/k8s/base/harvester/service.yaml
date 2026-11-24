@@ -6,15 +6,9 @@ metadata:
     app.kubernetes.io/name: harvester
     app.kubernetes.io/component: harvester
     metrics: prometheus
-  annotations:
-    config.linkerd.io/opaque-ports: "8080"
 spec:
   type: ClusterIP
   ports:
-    - name: proxy
-      port: 8080
-      protocol: TCP
-      targetPort: proxy
     - name: http-metrics
       port: 9301
       protocol: TCP

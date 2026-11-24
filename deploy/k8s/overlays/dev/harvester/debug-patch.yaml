@@ -6,6 +6,18 @@ metadata:
 spec:
   template:
     spec:
+      # Strategic merge otherwise moves the patched sidecar before the init
+      # container that generates its MITM certificate.
+      initContainers:
+        - name: init-browser-storage
+        - name: generate-recorder-mitm-cert
+        - name: browser
+        - name: recorderproxy
+          env:
+            - name: LOG_LEVEL
+              value: DEBUG
+            - name: LOG_FORMATTER
+              value: json
       containers:
         - name: browser-controller
           env:

@@ -46,7 +46,7 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 1Mi
-      terminationGracePeriodSeconds: 45
+      terminationGracePeriodSeconds: 600
       initContainers:
         - name: init-browser-storage
           image: busybox:1.36
@@ -72,7 +72,7 @@ spec:
             - name: browser-storage
               mountPath: /browser-storage
         - name: generate-recorder-mitm-cert
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.10
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.10.0
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
@@ -91,148 +91,8 @@ spec:
           volumeMounts:
             - name: recorder-mitm
               mountPath: /var/run/recorderproxy
-      containers:
-        - name: browser-controller
-          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.10.1
-          securityContext:
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 65532
-            runAsGroup: 65532
-          resources:
-            requests:
-              ephemeral-storage: 64Mi
-            limits:
-              ephemeral-storage: 256Mi
-          ports:
-            - containerPort: 9999
-              protocol: TCP
-            - name: http-metrics
-              containerPort: 9301
-              protocol: TCP
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /readyz
-              port: http-metrics
-              scheme: HTTP
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            successThreshold: 1
-            timeoutSeconds: 1
-          envFrom:
-            - secretRef:
-                name: rethinkdb-env
-                optional: false
-          env:
-            - name: PORT
-              value: "9999"
-            - name: DB_HOST
-              value: "rethinkdb-client"
-            - name: DB_PORT
-              value: "28015"
-            - name: DB_NAME
-              value: "veidemann"
-            - name: BROWSER_HOST
-              value: localhost
-            - name: BROWSER_PORT
-              value: "3000"
-            - name: PROXY_COUNT
-              value: "2"
-            - name: PROXY_HOST
-              value: localhost
-            - name: PROXY_PORT
-              value: "9900"
-            - name: RECORDER_CERT_FILE
-              value: /var/run/recorderproxy/tls.crt
-            - name: FRONTIER_HOST
-              value: frontier
-            - name: FRONTIER_PORT
-              value: "7700"
-            - name: CONTENT_WRITER_HOST
-              value: "contentwriter"
-            - name: CONTENT_WRITER_PORT
-              value: "8082"
-            - name: ROBOTS_EVALUATOR_HOST
-              value: "robotsevaluator-service"
-            - name: ROBOTS_EVALUATOR_PORT
-              value: "7053"
-            - name: LOG_SERVICE_HOST
-              value: "log-service-writer"
-            - name: LOG_SERVICE_PORT
-              value: "8080"
-            - name: METRICS_PORT
-              value: "9301"
-            - name: JAEGER_SERVICE_NAME
-              value: browser-controller
-            - name: JAEGER_SAMPLER_TYPE
-              value: remote
-            - name: JAEGER_SAMPLER_PARAM
-              value: "0.1"
-            - name: LOG_LEVEL
-              value: INFO
-          volumeMounts:
-            - name: recorder-mitm
-              mountPath: /var/run/recorderproxy/tls.crt
-              subPath: tls.crt
-              readOnly: true
-        - name: recorderproxy
-          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.9.10
-          securityContext:
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 65532
-            runAsGroup: 65532
-          resources:
-            requests:
-              ephemeral-storage: 64Mi
-            limits:
-              ephemeral-storage: 256Mi
-          ports:
-            - containerPort: 9900
-              name: proxy
-              protocol: TCP
-            - containerPort: 9302
-              name: rp-metrics
-              protocol: TCP
-          env:
-            - name: PORT
-              value: "9900"
-            - name: BROWSER_CONTROLLER_HOST
-              value: localhost
-            - name: BROWSER_CONTROLLER_PORT
-              value: "9999"
-            - name: PROXY_COUNT
-              value: "2"
-            - name: DNS_RESOLVER_HOST
-              value: "dns-resolver"
-            - name: DNS_RESOLVER_PORT
-              value: "8053"
-            - name: CONTENT_WRITER_HOST
-              value: "contentwriter"
-            - name: CONTENT_WRITER_PORT
-              value: "8082"
-            - name: CACHE_HOST
-              value: "cache-balancer"
-            - name: CACHE_PORT
-              value: "3128"
-            - name: METRICS_PORT
-              value: "9302"
-            - name: PROFILING_ENABLED
-              value: "false"
-            - name: MITM_CERT_FILE
-              value: /var/run/recorderproxy/tls.crt
-            - name: MITM_KEY_FILE
-              value: /var/run/recorderproxy/tls.key
-            - name: JAEGER_SERVICE_NAME
-              value: harvester-proxy
-            - name: LOG_LEVEL
-              value: WARN
-          volumeMounts:
-            - name: recorder-mitm
-              mountPath: /var/run/recorderproxy
-              readOnly: true
         - name: browser
+          restartPolicy: Always
           image: ghcr.io/browserless/chromium:v2.61.0
           securityContext:
             readOnlyRootFilesystem: true
@@ -284,3 +144,154 @@ spec:
               subPath: home
             - mountPath: /dev/shm
               name: dshm
+        - name: recorderproxy
+          restartPolicy: Always
+          image: ghcr.io/nationallibraryofnorway/veidemann/recorderproxy:0.10.0
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+          resources:
+            requests:
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
+          ports:
+            - containerPort: 9900
+              name: proxy
+              protocol: TCP
+            - containerPort: 7780
+              name: rp-control
+              protocol: TCP
+            - containerPort: 9302
+              name: rp-metrics
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "9900"
+            - name: ROBOTS_EVALUATOR_HOST
+              value: "robots"
+            - name: ROBOTS_EVALUATOR_PORT
+              value: "7053"
+            - name: CONTROL_PORT
+              value: "7780"
+            - name: LOG_SERVICE_HOST
+              value: "log-service-writer"
+            - name: LOG_SERVICE_PORT
+              value: "8080"
+            - name: FINALIZATION_TIMEOUT
+              value: "30s"
+            - name: PROXY_COUNT
+              value: "1"
+            - name: DNS_RESOLVER_HOST
+              value: "dns-resolver"
+            - name: DNS_RESOLVER_PORT
+              value: "8053"
+            - name: CONTENT_WRITER_HOST
+              value: "contentwriter"
+            - name: CONTENT_WRITER_PORT
+              value: "8082"
+            - name: CACHE_HOST
+              value: "cache-balancer"
+            - name: CACHE_PORT
+              value: "3128"
+            - name: METRICS_PORT
+              value: "9302"
+            - name: PROFILING_ENABLED
+              value: "false"
+            - name: MITM_CERT_FILE
+              value: /var/run/recorderproxy/tls.crt
+            - name: MITM_KEY_FILE
+              value: /var/run/recorderproxy/tls.key
+            - name: JAEGER_SERVICE_NAME
+              value: harvester-proxy
+            - name: LOG_LEVEL
+              value: INFO
+            - name: LOG_FORMATTER
+              value: json
+          volumeMounts:
+            - name: recorder-mitm
+              mountPath: /var/run/recorderproxy
+              readOnly: true
+      containers:
+        - name: browser-controller
+          image: ghcr.io/nationallibraryofnorway/veidemann/browser-controller:0.11.0
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+          resources:
+            requests:
+              ephemeral-storage: 64Mi
+            limits:
+              ephemeral-storage: 256Mi
+          ports:
+            - name: http-metrics
+              containerPort: 9301
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /readyz
+              port: http-metrics
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+          envFrom:
+            - secretRef:
+                name: rethinkdb-env
+                optional: false
+          env:
+            - name: DB_HOST
+              value: "rethinkdb-client"
+            - name: DB_PORT
+              value: "28015"
+            - name: DB_NAME
+              value: "veidemann"
+            - name: BROWSER_HOST
+              value: localhost
+            - name: BROWSER_PORT
+              value: "3000"
+            - name: PROXY_COUNT
+              value: "1"
+            - name: PROXY_HOST
+              value: localhost
+            - name: PROXY_PORT
+              value: "9900"
+            - name: RECORDER_CONTROL_PORT
+              value: "7780"
+            - name: CAPTURE_TIMEOUT
+              value: "30s"
+            - name: PERSISTENCE_TIMEOUT
+              value: "30s"
+            - name: COMPLETION_DRAIN_TIMEOUT
+              value: "45s"
+            - name: RECORDER_CERT_FILE
+              value: /var/run/recorderproxy/tls.crt
+            - name: FRONTIER_HOST
+              value: frontier
+            - name: FRONTIER_PORT
+              value: "7700"
+            - name: CONTENT_WRITER_HOST
+              value: "contentwriter"
+            - name: CONTENT_WRITER_PORT
+              value: "8082"
+            - name: METRICS_PORT
+              value: "9301"
+            - name: JAEGER_SERVICE_NAME
+              value: browser-controller
+            - name: JAEGER_SAMPLER_TYPE
+              value: remote
+            - name: JAEGER_SAMPLER_PARAM
+              value: "0.1"
+            - name: LOG_LEVEL
+              value: INFO
+          volumeMounts:
+            - name: recorder-mitm
+              mountPath: /var/run/recorderproxy/tls.crt
+              subPath: tls.crt
+              readOnly: true
