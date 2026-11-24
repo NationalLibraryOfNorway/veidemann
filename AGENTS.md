@@ -15,6 +15,15 @@ Veidemann is a multi-language monorepo. The repository contains:
 
 Treat the repository as a collection of independent build units. Do not assume one top-level build command covers every Go module or frontend workflow.
 
+## Refactoring stance
+
+- Treat this codebase as pre-stable and aggressively refactorable.
+- Backwards compatibility is not a goal unless the user explicitly says it is.
+- Prefer deleting obsolete code, collapsing old abstractions, renaming misleading APIs,
+  and breaking internal interfaces when that produces a cleaner design.
+- Do not preserve legacy paths out of caution alone.
+- If an old path is redundant, remove it instead of designing around it.
+
 ## Tooling
 
 Read [docs/agents/tools.md](docs/agents/tools.md) before running repository
