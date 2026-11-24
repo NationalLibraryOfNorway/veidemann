@@ -194,7 +194,7 @@ func (app *App) Run(ctx context.Context) error {
 		Handler: mux,
 	}
 
-	defer telemetry.Close()
+	defer func() { _ = telemetry.Close() }()
 	g.Go(func() error {
 		err := telemetry.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
@@ -207,7 +207,7 @@ func (app *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer app.cachier.Close(context.Background())
+	defer func() { _ = app.cachier.Close(context.Background()) }()
 
 	grpcServer := grpc.NewServer()
 
@@ -221,17 +221,17 @@ func (app *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer dnsConn.Close()
+	defer func() { _ = dnsConn.Close() }()
 	writerConn, err := connect(app.WriterAddress)
 	if err != nil {
 		return err
 	}
-	defer writerConn.Close()
+	defer func() { _ = writerConn.Close() }()
 	logConn, err := connect(app.LogAddress)
 	if err != nil {
 		return err
 	}
-	defer logConn.Close()
+	defer func() { _ = logConn.Close() }()
 	transport, err := robots.NewTransport(dnsV1.NewDnsResolverClient(dnsConn), app.CacheAddress)
 	if err != nil {
 		return err

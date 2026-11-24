@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -125,17 +126,24 @@ func (s *recordingServices) Write(stream writerV1.ContentWriter_WriteServer) err
 		rb.AddWarcHeaderInt64(gowarc.ContentLength, m.Size)
 		rb.AddWarcHeader(gowarc.WarcBlockDigest, m.BlockDigest)
 		rb.AddWarcHeader(gowarc.WarcPayloadDigest, m.PayloadDigest)
-		rb.Write(pair.headers[i])
-		rb.Write(pair.bodies[i])
+		if _, err := rb.Write(pair.headers[i]); err != nil {
+			return errors.Join(err, rb.Close())
+		}
+		if _, err := rb.Write(pair.bodies[i]); err != nil {
+			return errors.Join(err, rb.Close())
+		}
 		record, validation, err := rb.Build()
 		if err != nil || !validation.Valid() {
+			if record != nil {
+				_ = record.Close()
+			} else {
+				_ = rb.Close()
+			}
 			return status.Errorf(codes.InvalidArgument, "WARC validation: %v %v", err, validation)
 		}
 		var serialized bytes.Buffer
 		_, _, err = gowarc.NewMarshaler().Marshal(&serialized, record, 0)
-		record.Close()
-		rb.Close()
-		if err != nil {
+		if err := errors.Join(err, record.Close()); err != nil {
 			return err
 		}
 		offset := len(pair.warc)
@@ -183,12 +191,17 @@ func recordingFixture(t *testing.T, s *recordingServices, secure bool, handler h
 	dnsV1.RegisterDnsResolverServer(server, s)
 	writerV1.RegisterContentWriterServer(server, s)
 	logV1.RegisterLogServer(server, s)
-	go server.Serve(listener)
+	go func() {
+		if err := server.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+			t.Errorf("serve gRPC: %v", err)
+		}
+	}()
+	t.Cleanup(server.Stop)
 	cc, err := grpc.NewClient("passthrough:///recording", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }))
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { cc.Close(); server.Stop(); listener.Close() })
+	t.Cleanup(func() { _ = cc.Close() })
 	origin := httptest.NewUnstartedServer(handler)
 	if secure {
 		origin.StartTLS()
@@ -217,7 +230,7 @@ func TestRecordingHTTPAndHTTPS(t *testing.T) {
 					t.Error(req.Header)
 				}
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-				io.WriteString(w, blockedRules)
+				_, _ = io.WriteString(w, blockedRules)
 			}))
 			req := allowedRequest(uri+"/blocked", "collection", "execution", "job")
 			for i := 0; i < 2; i++ {
@@ -234,7 +247,7 @@ func TestRecordingHTTPAndHTTPS(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer reader.Close()
+			defer func() { _ = reader.Close() }()
 			for i := 0; i < 2; i++ {
 				record, _, validation, err := reader.Next()
 				if err != nil || !validation.Valid() {
@@ -259,7 +272,9 @@ func TestRecordingHTTPAndHTTPS(t *testing.T) {
 				if i == 1 && strings.TrimSuffix(strings.TrimPrefix(record.RecordId(), "<urn:uuid:"), ">") != s.logs[0].WarcId {
 					t.Fatal("log reference does not match WARC")
 				}
-				record.Close()
+				if err := record.Close(); err != nil {
+					t.Fatal(err)
+				}
 			}
 			cl := s.logs[0]
 			if string(pair.bodies[1]) != blockedRules || !bytes.HasPrefix(pair.headers[0], []byte("GET /robots.txt HTTP/1.1\r\n")) || bytes.Contains(pair.headers[0], []byte("veidemann_")) {
@@ -278,7 +293,9 @@ func TestRecordingBestEffortDoesNotAllowDisallowedURI(t *testing.T) {
 	for _, failure := range []string{"writer", "invalid-reply", "logs"} {
 		t.Run(failure, func(t *testing.T) {
 			s := &recordingServices{writerError: failure == "writer", invalidReply: failure == "invalid-reply", logError: failure == "logs"}
-			e, uri := recordingFixture(t, s, false, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, blockedRules) }))
+			e, uri := recordingFixture(t, s, false, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = io.WriteString(w, blockedRules)
+			}))
 			req := allowedRequest(uri+"/blocked", "collection", "execution", "job")
 			allowed, err := e.IsAllowed(t.Context(), req)
 			if err != nil || allowed {
@@ -304,14 +321,14 @@ func TestRecordingRedirectsAndIncompleteTransfers(t *testing.T) {
 				if scenario == "repeated-url" && count < 3 {
 					w.Header().Set("Location", "/robots.txt")
 					w.WriteHeader(302)
-					io.WriteString(w, strings.Repeat("redirect", 100))
+					_, _ = io.WriteString(w, strings.Repeat("redirect", 100))
 					return
 				}
 				if scenario == "unread-redirect" && req.URL.Path == "/robots.txt" {
 					w.Header().Set("Location", "/final")
 					w.Header().Set("Content-Length", "1000000")
 					w.WriteHeader(302)
-					io.WriteString(w, "unfinished redirect")
+					_, _ = io.WriteString(w, "unfinished redirect")
 					w.(http.Flusher).Flush()
 					<-req.Context().Done()
 					return
@@ -322,30 +339,30 @@ func TestRecordingRedirectsAndIncompleteTransfers(t *testing.T) {
 					s.mu.Unlock()
 					w.Header().Set("Location", "http://missing.example/robots.txt")
 					w.WriteHeader(302)
-					io.WriteString(w, "redirect")
+					_, _ = io.WriteString(w, "redirect")
 					return
 				}
 				if scenario == "truncated" {
 					w.Header().Set("Content-Length", "999")
-					io.WriteString(w, "short")
+					_, _ = io.WriteString(w, "short")
 					return
 				}
 				if scenario == "oversized-headers" {
 					w.Header().Set("X-Oversized", strings.Repeat("x", maxExchangeBytes))
 				}
 				if scenario == "oversized" {
-					io.WriteString(w, blockedRules+"#"+strings.Repeat("a", maxExchangeBytes))
+					_, _ = io.WriteString(w, blockedRules+"#"+strings.Repeat("a", maxExchangeBytes))
 					return
 				}
 				if scenario == "http-error" {
 					w.WriteHeader(404)
-					io.WriteString(w, "missing")
+					_, _ = io.WriteString(w, "missing")
 					return
 				}
 				if scenario == "cache-hit" {
 					w.Header().Set("X-Cache", "HIT from veidemann_cache")
 				}
-				io.WriteString(w, blockedRules)
+				_, _ = io.WriteString(w, blockedRules)
 			}))
 			req := allowedRequest(uri+"/blocked", "collection", "execution", "job")
 			if scenario == "unscoped" {
@@ -409,7 +426,7 @@ func TestRecordingWaitsForStorageWhileCacheRemainsUsable(t *testing.T) {
 				s.logStarted, s.releaseLog = started, release
 			}
 			e, uri := recordingFixture(t, s, false, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				io.WriteString(w, blockedRules)
+				_, _ = io.WriteString(w, blockedRules)
 			}))
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
@@ -462,7 +479,7 @@ func TestRecordingUsesCallerCancellation(t *testing.T) {
 				s.logStarted = started
 			}
 			e, uri := recordingFixture(t, s, false, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				io.WriteString(w, blockedRules)
+				_, _ = io.WriteString(w, blockedRules)
 			}))
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
@@ -501,7 +518,7 @@ func TestRecordingConcurrentCollectionRefreshes(t *testing.T) {
 	e, uri := recordingFixture(t, s, false, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		arrived <- struct{}{}
 		<-release
-		io.WriteString(w, blockedRules)
+		_, _ = io.WriteString(w, blockedRules)
 	}))
 	var wg sync.WaitGroup
 	for _, c := range []string{"a", "b", "c", "d", "e", "f"} {
@@ -540,7 +557,7 @@ func TestExplicitSquidTransport(t *testing.T) {
 				if req.Header.Get("Accept-Encoding") != "identity" {
 					t.Error("identity encoding lost")
 				}
-				io.WriteString(w, blockedRules)
+				_, _ = io.WriteString(w, blockedRules)
 			}))
 			old := e.client.Transport.(*Transport)
 			// A small Squid protocol fixture strips internal headers and, for HTTPS,
@@ -574,10 +591,19 @@ func TestExplicitSquidTransport(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer conn.Close()
-					conn.SetDeadline(time.Now().Add(2 * time.Second))
-					rw.WriteString("HTTP/1.1 200 Connection established\r\n\r\n")
-					rw.Flush()
+					defer func() { _ = conn.Close() }()
+					if err := conn.SetDeadline(time.Now().Add(2 * time.Second)); err != nil {
+						t.Error(err)
+						return
+					}
+					if _, err := rw.WriteString("HTTP/1.1 200 Connection established\r\n\r\n"); err != nil {
+						t.Error(err)
+						return
+					}
+					if err := rw.Flush(); err != nil {
+						t.Error(err)
+						return
+					}
 					secureConn := tls.Server(conn, &tls.Config{Certificates: []tls.Certificate{pair}})
 					if err := secureConn.Handshake(); err != nil {
 						t.Error(err)
@@ -593,7 +619,7 @@ func TestExplicitSquidTransport(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer resp.Body.Close()
+					defer func() { _ = resp.Body.Close() }()
 					_ = resp.Write(secureConn)
 					return
 				}
@@ -602,12 +628,14 @@ func TestExplicitSquidTransport(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				defer resp.Body.Close()
+				defer func() { _ = resp.Body.Close() }()
 				for key, values := range resp.Header {
 					w.Header()[key] = values
 				}
 				w.WriteHeader(resp.StatusCode)
-				io.Copy(w, resp.Body)
+				if _, err := io.Copy(w, resp.Body); err != nil {
+					t.Error(err)
+				}
 			}))
 			defer proxy.Close()
 			t.Setenv("HTTP_PROXY", "http://127.0.0.1:1")
@@ -653,7 +681,7 @@ func TestSharedRefreshUsesFetchingCallerMetadata(t *testing.T) {
 	e, uri := recordingFixture(t, s, false, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		close(arrived)
 		<-release
-		io.WriteString(w, blockedRules)
+		_, _ = io.WriteString(w, blockedRules)
 	}))
 	firstDone := make(chan struct{})
 	secondDone := make(chan struct{})
@@ -693,7 +721,7 @@ func TestArchivePersistsConfirmedResultsAfterOtherFailures(t *testing.T) {
 					w.Header().Set("Location", "/final")
 					w.WriteHeader(302)
 				default:
-					io.WriteString(w, blockedRules)
+					_, _ = io.WriteString(w, blockedRules)
 				}
 			}))
 			allowed, err := e.IsAllowed(t.Context(), allowedRequest(uri+"/blocked", "collection", "execution", "job"))
@@ -733,11 +761,11 @@ func TestRedirectRecordingSharesDeadlineAndPreservesDecision(t *testing.T) {
 			e, uri := recordingFixture(t, services, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case "/robots.txt":
-					http.Redirect(w, r, "/second", 302)
+					http.Redirect(w, r, "/second", http.StatusFound)
 				case "/second":
-					http.Redirect(w, r, "/rules", 302)
+					http.Redirect(w, r, "/rules", http.StatusFound)
 				default:
-					io.WriteString(w, blockedRules)
+					_, _ = io.WriteString(w, blockedRules)
 				}
 			}))
 			writer := &recordingDeadlineWriter{ContentWriterClient: e.Recorder.writer}
