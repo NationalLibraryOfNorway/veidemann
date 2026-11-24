@@ -4,6 +4,10 @@ updates:
     directory: "/dashboard"
     schedule:
       interval: "weekly"
+    ignore:
+      # Revisit when @angular/compiler-cli widens its TypeScript peer range.
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
     labels:
       - "dependencies"
     commit-message:
