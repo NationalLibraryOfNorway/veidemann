@@ -34,7 +34,7 @@ RUN set -eux; \
       *) echo "Expected squid-openssl ${SQUID_MAJOR_VERSION}.x, got ${squid_version}" >&2; exit 1 ;; \
     esac; \
     # Squid overrides via conf.d
-    mkdir -p /etc/squid/conf.d; \
+    mkdir -p /etc/squid/conf.d /ca-certificates; \
     # The Debian fragment contains APT-specific refresh patterns after our
     # catch-all pattern. They are unreachable and use ages Squid must clamp.
     rm -f /etc/squid/conf.d/debian.conf; \

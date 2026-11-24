@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
-	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -22,8 +19,6 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/cache/helpers/discovery"
 	"github.com/NationalLibraryOfNorway/veidemann/cache/helpers/iputil"
 )
-
-var errSigningCAChanged = errors.New("TLS signing CA changed; restart required to rebuild generated certificates")
 
 func main() {
 	var (
@@ -88,6 +83,14 @@ func main() {
 }
 
 func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf time.Duration, readyFile string) error {
+	// The parent CA is fixed for this process. Rotation is applied by replacing
+	// the pod, so validate once before rendering or signalling readiness.
+	if !r.balancer {
+		if err := validateTLSFiles(r.tlsCertFile, r.tlsKeyFile, r.now()); err != nil {
+			return fmt.Errorf("validate parent TLS material: %w", err)
+		}
+	}
+
 	changed, err := r.rewriteConfig()
 	if err != nil {
 		return fmt.Errorf("initial rewrite failed: %w", err)
@@ -121,17 +124,11 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 			return ctx.Err()
 
 		case <-t.C:
-			previousTLSFingerprint := r.lastTLSFingerprint
 			changed, err := r.rewriteConfig()
 			if err != nil {
 				log.Error("Rewrite failed", "error", err)
 				continue
 			}
-			if previousTLSFingerprint != "" &&
-				r.lastTLSFingerprint != previousTLSFingerprint {
-				return errSigningCAChanged
-			}
-
 			if changed {
 				pendingReconfigure = true
 			}
@@ -173,18 +170,17 @@ func run(ctx context.Context, log *slog.Logger, r *rewriter, interval, minReconf
 }
 
 type rewriter struct {
-	lastParents        string
-	lastDnsServers     string
-	lastTLSFingerprint string
-	discovery          *discovery.Discovery
-	getParentsFunc     func() (string, error)
-	balancer           bool
-	templatePath       string
-	configPath         string
-	tlsCertFile        string
-	tlsKeyFile         string
-	runner             squidRunner
-	now                func() time.Time
+	lastParents    string
+	lastDnsServers string
+	discovery      *discovery.Discovery
+	getParentsFunc func() (string, error)
+	balancer       bool
+	templatePath   string
+	configPath     string
+	tlsCertFile    string
+	tlsKeyFile     string
+	runner         squidRunner
+	now            func() time.Time
 }
 
 func (r *rewriter) rewriteConfig() (bool, error) {
@@ -205,22 +201,8 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 		parents = p
 	}
 
-	tlsFingerprint := ""
-	if !r.balancer {
-		var err error
-		tlsFingerprint, err = validateTLSFiles(
-			r.tlsCertFile,
-			r.tlsKeyFile,
-			r.now(),
-		)
-		if err != nil {
-			return false, fmt.Errorf("validate parent TLS material: %w", err)
-		}
-	}
-
 	if parents == r.lastParents &&
-		dnsServers == r.lastDnsServers &&
-		tlsFingerprint == r.lastTLSFingerprint {
+		dnsServers == r.lastDnsServers {
 		return false, nil
 	}
 
@@ -296,7 +278,6 @@ func (r *rewriter) rewriteConfig() (bool, error) {
 
 	r.lastParents = parents
 	r.lastDnsServers = dnsServers
-	r.lastTLSFingerprint = tlsFingerprint
 	return true, nil
 }
 
@@ -375,31 +356,24 @@ func reconfigureSquid() (string, error) {
 	return "", err
 }
 
-func validateTLSFiles(certFile, keyFile string, now time.Time) (string, error) {
+func validateTLSFiles(certFile, keyFile string, now time.Time) error {
 	certPEM, err := os.ReadFile(certFile)
 	if err != nil {
-		return "", fmt.Errorf("read certificate (%s): %w", certFile, err)
+		return fmt.Errorf("read certificate (%s): %w", certFile, err)
 	}
 	if len(certPEM) == 0 {
-		return "", fmt.Errorf("certificate (%s) is empty", certFile)
+		return fmt.Errorf("certificate (%s) is empty", certFile)
 	}
 
 	keyPEM, err := os.ReadFile(keyFile)
 	if err != nil {
-		return "", fmt.Errorf("read private key (%s): %w", keyFile, err)
+		return fmt.Errorf("read private key (%s): %w", keyFile, err)
 	}
 	if len(keyPEM) == 0 {
-		return "", fmt.Errorf("private key (%s) is empty", keyFile)
+		return fmt.Errorf("private key (%s) is empty", keyFile)
 	}
 
-	if err := validateTLSMaterial(certPEM, keyPEM, now); err != nil {
-		return "", err
-	}
-
-	certFingerprint := sha256.Sum256(certPEM)
-	keyFingerprint := sha256.Sum256(keyPEM)
-	return hex.EncodeToString(certFingerprint[:]) + ":" +
-		hex.EncodeToString(keyFingerprint[:]), nil
+	return validateTLSMaterial(certPEM, keyPEM, now)
 }
 
 func validateTLSMaterial(certPEM, keyPEM []byte, now time.Time) error {

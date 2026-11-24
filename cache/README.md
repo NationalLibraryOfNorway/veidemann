@@ -94,12 +94,21 @@ signing. The entrypoint initializes the generated-certificate database and
 stores the CA fingerprint alongside it. If the fingerprint differs at the next
 startup, the database is rebuilt before Squid starts.
 
-At runtime, `confighandler` fingerprints the mounted CA files every five
-seconds. A valid CA rotation causes the helper and container to exit so
-Kubernetes restarts the parent; startup then rebuilds the generated-certificate
-database. Transiently incomplete or invalid Secret updates are retried without
-disturbing the running Squid process. Child/balancer pods neither mount the CA
-nor initialize generated-certificate state.
+Parents mount `tls.crt` and `tls.key` individually using Secret `subPath`
+mounts. Kubernetes does not propagate Secret updates into these mounts, so
+renewal leaves running parents on their existing CA. Replace the parent pods
+with a manual StatefulSet rollout to adopt the renewed CA and rebuild the
+generated-certificate database. The helper validates TLS material once at
+startup; its periodic loop only tracks DNS and parent discovery. It neither
+monitors CA changes nor requests restarts. Child/balancer pods neither mount
+the CA nor initialize generated-certificate state.
+
+The dev Certificate requests a five-year lifetime (`duration: 43800h`) and
+renewal 90 days before expiry (`renewBefore: 2160h`), with explicit
+`privateKey.rotationPolicy: Always`. Apply the same settings to production's
+`cache-ca` Certificate. Cert-manager still renews the Secret automatically;
+an operator must roll the parents before their mounted CA expires. A fresh
+Secret does not imply that the running parents use its certificate.
 
 ## Why run more than one child?
 
@@ -125,9 +134,10 @@ There are important limits:
 - Multiple children do not protect a single parent from failure or provide
   more parent storage. Scale both tiers when both front-end availability and
   cache capacity are required.
-- The current manifests do not define explicit Squid readiness or liveness
-  probes. Kubernetes detects a process/container exit, but not every possible
-  hung or degraded Squid state.
+- Parent startup and readiness probes require the helper's ready file and a
+  connection to Squid's loopback port 3128, bypassing any Linkerd listener.
+  They do not test origin connectivity or TLS generation. Children have no
+  explicit Squid probes, and neither role has a liveness probe.
 
 Running more than one parent has a different benefit: it increases aggregate
 memory, disk capacity, and origin-fetch throughput. CARP keeps an object on one
@@ -154,6 +164,15 @@ The rendered dev overlay currently contains:
 - A `100 MiB` AUFS object cache on a `250 MiB` persistent PVC mounted at
   `/var/spool`, leaving room for the certificate database and metadata.
 - A Squid exporter on port `9301` in both tiers.
+
+The shared base defaults to two parents; dev explicitly overrides this to one.
+Production needs at least two healthy parents for a rolling CA change. Dev's
+single parent pauses harvesting when replaced. The base uses `OrderedReady`
+and `RollingUpdate`, with 45 seconds of continuous readiness before proceeding
+to the next parent so balancer discovery and its throttled reconfigure can
+settle. Startup allows five minutes to open Squid's port, readiness checks every
+five seconds, and the 90-second termination grace period exceeds Squid's
+30-second shutdown wait. Individual connections may still be interrupted.
 
 The base StatefulSet defines a `cache` volume claim template with a `1 GiB`
 default and no explicit storage class. Dev overrides its capacity to `250 MiB`
@@ -258,9 +277,9 @@ custom logfile daemon are used.
 ## Helpers
 
 - `confighandler` renders the role configuration, validates changes, discovers
-  parent endpoints in child mode, validates parent CA material, triggers safe
-  Squid reconfiguration for ordinary changes, and requests a container restart
-  when the signing CA rotates.
+  parent endpoints in child mode, validates parent CA material at startup, and
+  triggers Squid reconfiguration for DNS and parent changes. CA adoption is
+  owned by the manual pod rollout.
 - `storeid` combines the crawl job identifier and request URL into a stable
   Store-ID so crawl requests for the same job and URL share a cache key.
 
@@ -271,11 +290,235 @@ cd cache/helpers
 go test ./...
 ```
 
-## Certificate rollout
+## Manual certificate rollout
 
-Apply the `cache-ca` Certificate and wait for its `cache` Secret to be Ready
-before rolling out the parent StatefulSet. Allow the ordered
-rollout to replace and verify one parent at a time. Validate HTTPS MISS/HIT
-behavior and confirm the generated peer certificate matches the requested
-origin. The obsolete `cache-server` Certificate and `cache-server-tls` Secret
-are not used by this configuration and may be removed after rollback.
+Use Bash with `kubectl`, `cmctl`, `jq`, `yq` v4, and OpenSSL on the operator's
+machine. Check the intended cluster and namespace before running these
+commands. The following examples use dev's namespace; production must use its
+own namespace and deployment overlay.
+
+```bash
+set -euo pipefail
+CACHE_NAMESPACE=default
+CACHE_OVERLAY=deploy/k8s/overlays/dev/cache
+CACHE_CA_SOURCE=cache-0
+CACHE_CA_BACKUP="cache-ca-backup-$(date -u +%Y%m%d-%H%M%S)"
+kubectl config current-context
+kubectl -n "$CACHE_NAMESPACE" get statefulset/cache
+kubectl -n "$CACHE_NAMESPACE" get pods \
+  -l app.kubernetes.io/name=cache,app.kubernetes.io/component=cache
+```
+
+### Initial migration
+
+From the repository root, build the updated cache image locally with:
+
+```bash
+docker build -t ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.0 cache
+```
+
+The manifests select `0.12.0` for both roles and their config-copy init
+containers. Make that image available to the target cluster before applying
+the manifests. Publish it through the existing `cache-v0.12.0` release workflow
+when shipping the release; editing manifests does not publish the image.
+
+Apply the updated workloads first, leaving the deployed Certificate and
+Issuer specifications untouched. Do not apply the full overlay yet: changing
+the Certificate's duration can trigger reissuance while old pods still have
+live Secret mounts.
+
+```bash
+kustomize build "$CACHE_OVERLAY" \
+  | yq 'select(.kind != "Certificate" and .kind != "Issuer")' \
+  | kubectl -n "$CACHE_NAMESPACE" apply -f -
+kubectl -n "$CACHE_NAMESPACE" rollout status statefulset/cache --timeout=15m
+kubectl -n "$CACHE_NAMESPACE" rollout status deployment/cache --timeout=15m
+```
+
+Confirm all parents use the individual `subPath` mounts and run successful
+HTTP/HTTPS harvests. Production must have at least two ready parents and no
+rollout in progress. For a dev rehearsal, temporarily scale the parent
+StatefulSet to two replicas after applying the overlay. Applying the dev
+overlay again resets it to one.
+
+Preserve the currently mounted CA using the backup step below. Only after
+the workloads are stable, apply the new certificate policy:
+
+```bash
+kustomize build "$CACHE_OVERLAY" \
+  | yq 'select(.kind == "Certificate" or .kind == "Issuer")' \
+  | kubectl -n "$CACHE_NAMESPACE" apply -f -
+```
+
+Wait for completed issuance and validate the Secret as described below, then
+roll the parents. The same staged order applies to production overlays.
+
+### Preserve the current CA
+
+Before requesting renewal, record the parents' Ready conditions, container
+restart counts, mounted certificate fingerprints, and expiry dates. Require
+at least two ready parents in production and successful HTTPS harvesting. Pick
+a healthy parent with the previous valid CA as `CACHE_CA_SOURCE`; do not run
+another rollout while taking the backup.
+
+Back up the mounted pair rather than the managed Secret: cert-manager might
+already have renewed the Secret. These commands keep the private key out of
+terminal output and create an immutable Secret without cert-manager ownership.
+
+```bash
+(
+  umask 077
+  CACHE_CA_TMP=$(mktemp -d)
+  trap 'rm -rf "$CACHE_CA_TMP"' EXIT
+  kubectl -n "$CACHE_NAMESPACE" exec "$CACHE_CA_SOURCE" -c cache -- \
+    cat /ca-certificates/tls.crt > "$CACHE_CA_TMP/tls.crt"
+  kubectl -n "$CACHE_NAMESPACE" exec "$CACHE_CA_SOURCE" -c cache -- \
+    cat /ca-certificates/tls.key > "$CACHE_CA_TMP/tls.key"
+  openssl x509 -in "$CACHE_CA_TMP/tls.crt" -checkend 0 -noout
+  kubectl -n "$CACHE_NAMESPACE" create secret tls "$CACHE_CA_BACKUP" \
+    --cert="$CACHE_CA_TMP/tls.crt" --key="$CACHE_CA_TMP/tls.key" \
+    --dry-run=client -o json \
+    | jq '.immutable = true' \
+    | kubectl -n "$CACHE_NAMESPACE" create -f -
+)
+```
+
+### Issue and verify
+
+Inspect the managed Secret's public certificate and the Certificate's status:
+
+```bash
+cache_secret_certificate() {
+  kubectl -n "$CACHE_NAMESPACE" get secret cache \
+    -o jsonpath='{.data.tls\.crt}' | base64 --decode
+}
+cache_secret_certificate | openssl x509 -noout -dates -fingerprint -sha256
+kubectl -n "$CACHE_NAMESPACE" get certificate cache-ca \
+  -o jsonpath='{.status.revision}{"\n"}{.status.conditions}{"\n"}'
+```
+
+If automatic renewal or the initial duration change has already produced a
+new valid certificate, skip the renewal request. Otherwise record the current
+Secret fingerprint and Certificate revision, then request renewal:
+
+```bash
+cmctl renew -n "$CACHE_NAMESPACE" cache-ca
+```
+
+Repeat the inspection commands until the revision has advanced, the Secret's
+certificate fingerprint has changed, and `Ready=True` describes the completed
+issuance. `Ready=True` alone may still refer to the previous issuance. If
+renewal does not complete, diagnose `kubectl describe certificate cache-ca`
+and its CertificateRequests; keep the existing parents serving and do not
+restart them onto unverified material.
+
+Before rollout, validate the actual new pair and CA properties locally:
+
+```bash
+(
+  umask 077
+  CACHE_CA_TMP=$(mktemp -d)
+  trap 'rm -rf "$CACHE_CA_TMP"' EXIT
+  # One API read captures a consistent certificate/key pair.
+  kubectl -n "$CACHE_NAMESPACE" get secret cache -o json > "$CACHE_CA_TMP/secret.json"
+  jq -r '.data["tls.crt"]' "$CACHE_CA_TMP/secret.json" \
+    | base64 --decode > "$CACHE_CA_TMP/tls.crt"
+  jq -r '.data["tls.key"]' "$CACHE_CA_TMP/secret.json" \
+    | base64 --decode > "$CACHE_CA_TMP/tls.key"
+  openssl x509 -in "$CACHE_CA_TMP/tls.crt" -noout -dates -fingerprint -sha256
+  openssl verify -CAfile "$CACHE_CA_TMP/tls.crt" "$CACHE_CA_TMP/tls.crt"
+  openssl x509 -in "$CACHE_CA_TMP/tls.crt" -noout \
+    -ext basicConstraints,keyUsage
+  openssl x509 -in "$CACHE_CA_TMP/tls.crt" -pubkey -noout \
+    > "$CACHE_CA_TMP/cert.pub"
+  openssl pkey -in "$CACHE_CA_TMP/tls.key" -pubout \
+    > "$CACHE_CA_TMP/key.pub"
+  cmp "$CACHE_CA_TMP/cert.pub" "$CACHE_CA_TMP/key.pub"
+)
+```
+
+Require currently valid dates, `CA:TRUE`, certificate-signing permission, and
+matching public keys. The parent helper independently enforces these checks
+at startup before signalling readiness.
+
+### Roll and verify the parents
+
+Record the target Secret fingerprint, then trigger one ordered rollout:
+
+```bash
+kubectl -n "$CACHE_NAMESPACE" rollout restart statefulset/cache
+kubectl -n "$CACHE_NAMESPACE" rollout status statefulset/cache --timeout=15m
+```
+
+Monitor parent readiness, restart counts, and harvesting during the rollout.
+Kubernetes replaces the highest ordinal first and waits for the replacement
+to remain ready for 45 seconds before replacing the next parent. A replacement
+that fails startup or readiness halts further progression. Do not delete all
+parents or initiate repeated restarts to work around a stalled rollout.
+
+Inspect the CA actually mounted in every parent:
+
+```bash
+for CACHE_POD in $(kubectl -n "$CACHE_NAMESPACE" get pods \
+  -l app.kubernetes.io/name=cache,app.kubernetes.io/component=cache \
+  -o jsonpath='{.items[*].metadata.name}'); do
+  printf '%s\n' "$CACHE_POD"
+  kubectl -n "$CACHE_NAMESPACE" exec "$CACHE_POD" -c cache -- \
+    cat /ca-certificates/tls.crt \
+    | openssl x509 -noout -dates -fingerprint -sha256
+done
+```
+
+Require every fingerprint to match the target, stable readiness, successful
+HTTPS harvesting, and expected MISS/HIT behavior. Confirm startup logs show
+the generated-certificate database rebuilt when the CA changed. Pod replacement
+preserves the object-cache PVC; it only invalidates the generated TLS database.
+
+### Rollback
+
+If a replacement fails, retain the healthy parents and inspect its logs and
+events. If the new CA is the cause, verify the backup remains valid and point
+the StatefulSet's certificate volume at it. This changes the pod template and
+initiates an ordered rollback without modifying the cert-manager-managed Secret.
+
+```bash
+jq -n --arg secret "$CACHE_CA_BACKUP" \
+  '{spec: {template: {spec: {volumes: [
+    {name: "cache-certificate", secret: {secretName: $secret}}
+  ]}}}}' \
+  | kubectl -n "$CACHE_NAMESPACE" patch statefulset/cache \
+      --type=strategic --patch-file=/dev/stdin
+```
+
+An OrderedReady StatefulSet can remain stuck waiting for its already-created
+bad pod after reverting the template. Identify that failed replacement, then
+delete only it so Kubernetes recreates it using the rollback template:
+
+```bash
+# Set this to the failed replacement after inspecting its status and logs.
+FAILED_CACHE_POD=cache-1
+kubectl -n "$CACHE_NAMESPACE" delete pod "$FAILED_CACHE_POD"
+kubectl -n "$CACHE_NAMESPACE" rollout status statefulset/cache --timeout=15m
+```
+
+Verify mounted fingerprints and HTTPS harvesting again. While using the backup,
+prevent GitOps or another overlay apply from restoring `secretName: cache`
+prematurely. Once the managed Secret has been corrected and verified, restore
+the normal volume reference through the deployment overlay and monitor that
+ordered rollout. Retain the backup until recovery is verified, then remove it
+according to the deployment's Secret retention policy.
+
+### Rehearsal and ongoing checks
+
+Render the base and dev overlay before deployment. Rehearse with two parents:
+renewal alone must not change pod UIDs, restart counts, or mounted fingerprints;
+manual rollout must adopt the new fingerprint one parent at a time while
+harvesting continues. Exercise a failed replacement and the rollback procedure.
+Check HTTP/HTTPS MISS/HIT behavior, TLS generation, and PVC reuse. Live-cluster
+validation cannot be inferred from a successful Kustomize render.
+
+At least annually, inspect every parent's mounted certificate using the commands
+above and rehearse rotation well before expiry. After any automatic Secret
+renewal, complete the manual rollout within the old CA's remaining lifetime.
+The helper no longer polls certificate validity at runtime; startup validation
+and a TCP readiness probe do not monitor the active CA's future expiry.

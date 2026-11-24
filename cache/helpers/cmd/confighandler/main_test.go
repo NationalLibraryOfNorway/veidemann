@@ -88,16 +88,12 @@ func TestValidateTLSFilesAcceptsValidPair(t *testing.T) {
 	certPEM, keyPEM := validCertificate(t)
 	certFile, keyFile := writePair(t, t.TempDir(), certPEM, keyPEM)
 
-	fingerprint, err := validateTLSFiles(certFile, keyFile, now)
-	if err != nil {
+	if err := validateTLSFiles(certFile, keyFile, now); err != nil {
 		t.Fatalf("validateTLSFiles() error = %v", err)
-	}
-	if len(strings.Split(fingerprint, ":")) != 2 {
-		t.Fatalf("fingerprint = %q, want certificate:key SHA-256 values", fingerprint)
 	}
 }
 
-func TestValidateTLSFilesRejectsInvalidMaterial(t *testing.T) {
+func TestRunRejectsInvalidTLSBeforeRenderingOrReadiness(t *testing.T) {
 	now := time.Now()
 	validCert, validKey := validCertificate(t)
 	_, otherKey := validCertificate(t)
@@ -161,9 +157,24 @@ func TestValidateTLSFilesRejectsInvalidMaterial(t *testing.T) {
 				}
 			}
 
-			_, err := validateTLSFiles(certFile, keyFile, now)
+			runner := &fakeSquidRunner{}
+			r, _ := newTestRewriter(t, runner)
+			r.tlsCertFile, r.tlsKeyFile = certFile, keyFile
+			r.now = func() time.Time { return now }
+			readyFile := filepath.Join(dir, "ready")
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err := run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), r, 5*time.Millisecond, 0, readyFile)
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Fatalf("validateTLSFiles() error = %v, want containing %q", err, tt.want)
+				t.Fatalf("run() error = %v, want containing %q", err, tt.want)
+			}
+			for _, path := range []string{r.configPath, readyFile} {
+				if _, err := os.Stat(path); !os.IsNotExist(err) {
+					t.Fatalf("invalid CA produced %s: stat error = %v", path, err)
+				}
+			}
+			if calls, _ := runner.counts(); calls != 0 {
+				t.Fatalf("Squid validation calls = %d, want 0", calls)
 			}
 		})
 	}
@@ -230,7 +241,7 @@ func newTestRewriter(t *testing.T, runner squidRunner) (*rewriter, string) {
 	}, dir
 }
 
-func TestBalancerRewriteDoesNotReadTLSFiles(t *testing.T) {
+func TestBalancerRunDoesNotReadTLSFiles(t *testing.T) {
 	t.Setenv("DNS_SERVERS", "192.0.2.53")
 	dir := t.TempDir()
 	templatePath := filepath.Join(dir, "squid-balancer.conf.template")
@@ -251,16 +262,18 @@ func TestBalancerRewriteDoesNotReadTLSFiles(t *testing.T) {
 		now:    time.Now,
 	}
 
-	changed, err := r.rewriteConfig()
-	if err != nil {
-		t.Fatalf("rewriteConfig() error = %v", err)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	readyFile := filepath.Join(dir, "ready")
+	if err := run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), r, 5*time.Millisecond, 0, readyFile); !errors.Is(err, context.Canceled) {
+		t.Fatalf("run() error = %v, want context canceled", err)
 	}
-	if !changed {
-		t.Fatal("rewriteConfig() changed = false, want true")
+	if _, err := os.Stat(readyFile); err != nil {
+		t.Fatalf("balancer did not become ready: %v", err)
 	}
 }
 
-func TestParentRewriteTracksTLSFingerprintAndDNS(t *testing.T) {
+func TestParentRewriteTracksDNSOnly(t *testing.T) {
 	runner := &fakeSquidRunner{}
 	r, dir := newTestRewriter(t, runner)
 
@@ -276,8 +289,8 @@ func TestParentRewriteTracksTLSFingerprintAndDNS(t *testing.T) {
 	certPEM, keyPEM := validCertificate(t)
 	writePair(t, dir, certPEM, keyPEM)
 	changed, err = r.rewriteConfig()
-	if err != nil || !changed {
-		t.Fatalf("TLS rewriteConfig() = %v, %v; want true, nil", changed, err)
+	if err != nil || changed {
+		t.Fatalf("TLS rewriteConfig() = %v, %v; want false, nil", changed, err)
 	}
 
 	t.Setenv("DNS_SERVERS", "192.0.2.54")
@@ -287,8 +300,8 @@ func TestParentRewriteTracksTLSFingerprintAndDNS(t *testing.T) {
 	}
 
 	validateCalls, _ := runner.counts()
-	if validateCalls != 3 {
-		t.Fatalf("validate calls = %d, want 3", validateCalls)
+	if validateCalls != 2 {
+		t.Fatalf("validate calls = %d, want 2", validateCalls)
 	}
 }
 
@@ -338,54 +351,79 @@ func TestRewriteRetriesSquidValidationFailure(t *testing.T) {
 	runner := &fakeSquidRunner{
 		validateErrors: []error{nil, errors.New("parse failed")},
 	}
-	r, dir := newTestRewriter(t, runner)
+	r, _ := newTestRewriter(t, runner)
 	if changed, err := r.rewriteConfig(); err != nil || !changed {
 		t.Fatalf("initial rewriteConfig() = %v, %v; want true, nil", changed, err)
 	}
-	acceptedFingerprint := r.lastTLSFingerprint
+	acceptedDNS := r.lastDnsServers
+	acceptedConfig, err := os.ReadFile(r.configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	certPEM, keyPEM := validCertificate(t)
-	writePair(t, dir, certPEM, keyPEM)
+	t.Setenv("DNS_SERVERS", "192.0.2.54")
 	if changed, err := r.rewriteConfig(); err == nil || changed {
 		t.Fatalf("failed rewriteConfig() = %v, %v; want false, error", changed, err)
 	}
-	if r.lastTLSFingerprint != acceptedFingerprint {
-		t.Fatal("failed Squid validation accepted the new TLS fingerprint")
+	if r.lastDnsServers != acceptedDNS {
+		t.Fatal("failed Squid validation accepted the new DNS configuration")
+	}
+	restoredConfig, err := os.ReadFile(r.configPath)
+	if err != nil || string(restoredConfig) != string(acceptedConfig) {
+		t.Fatalf("failed Squid validation did not restore the previous config: %v", err)
 	}
 
 	if changed, err := r.rewriteConfig(); err != nil || !changed {
 		t.Fatalf("retried rewriteConfig() = %v, %v; want true, nil", changed, err)
 	}
-	if r.lastTLSFingerprint == acceptedFingerprint {
-		t.Fatal("successful retry did not accept the new TLS fingerprint")
+	if r.lastDnsServers == acceptedDNS {
+		t.Fatal("successful retry did not accept the new DNS configuration")
 	}
 }
 
-func TestRunRestartsForChangedTLSFingerprint(t *testing.T) {
+func TestRunDoesNotMonitorTLSAfterStartup(t *testing.T) {
 	runner := &fakeSquidRunner{reconfigureCallCh: make(chan time.Time, 4)}
 	r, dir := newTestRewriter(t, runner)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	done := make(chan error, 1)
+	readyFile := filepath.Join(dir, "ready")
 	go func() {
-		done <- run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), r, 5*time.Millisecond, 30*time.Millisecond, "")
+		done <- run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), r, 5*time.Millisecond, 0, readyFile)
 	}()
 
-	waitForValidation(t, runner, 1)
+	waitForReadyFile(t, readyFile)
 	certPEM, keyPEM := validCertificate(t)
 	writePair(t, dir, certPEM, keyPEM)
 
 	select {
 	case err := <-done:
-		if !errors.Is(err, errSigningCAChanged) {
-			t.Fatalf("run() error = %v, want errSigningCAChanged", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for signing CA restart")
+		t.Fatalf("changed CA stopped the helper: %v", err)
+	case <-time.After(30 * time.Millisecond):
 	}
-	_, reconfigureCalls := runner.counts()
-	if reconfigureCalls != 0 {
-		t.Fatalf("reconfigure calls = %d, want 0", reconfigureCalls)
+	if err := os.WriteFile(r.tlsCertFile, []byte("invalid"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(r.tlsKeyFile); err != nil {
+		t.Fatal(err)
+	}
+	// Drive the periodic loop with an ordinary change. Its successful
+	// reconfigure proves it no longer reads or validates TLS material.
+	t.Setenv("DNS_SERVERS", "192.0.2.54")
+	select {
+	case err := <-done:
+		t.Fatalf("invalid runtime CA stopped the helper: %v", err)
+	case <-runner.reconfigureCallCh:
+	case <-time.After(time.Second):
+		t.Fatal("DNS reconfiguration was blocked by runtime TLS material")
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("run() error = %v, want context canceled", err)
+	}
+	validateCalls, reconfigureCalls := runner.counts()
+	if validateCalls != 2 || reconfigureCalls != 1 {
+		t.Fatalf("validate/reconfigure calls = %d/%d, want 2/1", validateCalls, reconfigureCalls)
 	}
 }
 
@@ -418,42 +456,6 @@ func TestRunRetriesFailedReconfiguration(t *testing.T) {
 	if reconfigureCalls != 2 {
 		t.Fatalf("reconfigure calls = %d, want 2", reconfigureCalls)
 	}
-}
-
-func TestRunRetriesInvalidChangedTLSMaterial(t *testing.T) {
-	runner := &fakeSquidRunner{reconfigureCallCh: make(chan time.Time, 4)}
-	r, dir := newTestRewriter(t, runner)
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() {
-		done <- run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), r, 5*time.Millisecond, 0, "")
-	}()
-
-	waitForValidation(t, runner, 1)
-	if err := os.WriteFile(filepath.Join(dir, "tls.crt"), []byte("invalid"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	time.Sleep(30 * time.Millisecond)
-	_, reconfigureCalls := runner.counts()
-	if reconfigureCalls != 0 {
-		t.Fatalf("reconfigure calls with invalid certificate = %d, want 0", reconfigureCalls)
-	}
-
-	certPEM, keyPEM := validCertificate(t)
-	writePair(t, dir, certPEM, keyPEM)
-	select {
-	case err := <-done:
-		if !errors.Is(err, errSigningCAChanged) {
-			t.Fatalf("run() error = %v, want errSigningCAChanged", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for signing CA restart")
-	}
-	_, reconfigureCalls = runner.counts()
-	if reconfigureCalls != 0 {
-		t.Fatalf("reconfigure calls = %d, want 0", reconfigureCalls)
-	}
-	cancel()
 }
 
 func TestRoleTemplatesHaveExpectedTLSDependencies(t *testing.T) {
@@ -525,4 +527,16 @@ func waitForValidation(t *testing.T, runner *fakeSquidRunner, want int) {
 		time.Sleep(time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for %d validation calls", want)
+}
+
+func waitForReadyFile(t *testing.T, path string) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(path); err == nil {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for ready file %s", path)
 }
