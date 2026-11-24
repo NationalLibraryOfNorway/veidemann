@@ -55,7 +55,7 @@ type retryAction int
 const (
 	doNotRetry retryAction = iota
 	waitForReads
-	reconnect
+	retryRead
 )
 
 // NewRethinkDbConnection creates a new RethinkDbConnection object
@@ -87,15 +87,14 @@ func (c *RethinkDbConnection) loggerOrDefault() *slog.Logger {
 	return c.logger
 }
 
-// Connect establishes connections
+// Connect establishes the session during startup, before serving requests.
 func (c *RethinkDbConnection) Connect() error {
 	log := c.loggerOrDefault()
-	var err error
-	// Set up database RethinkDbConnection
-	c.session, err = r.Connect(c.connectOpts)
+	session, err := r.Connect(c.connectOpts)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RethinkDB at %s: %w", c.connectOpts.Address, err)
 	}
+	c.session = session
 	log.Info("Connected to RethinkDB", "address", c.connectOpts.Address)
 	return nil
 }
@@ -104,6 +103,9 @@ func (c *RethinkDbConnection) Connect() error {
 func (c *RethinkDbConnection) Close() error {
 	log := c.loggerOrDefault()
 	log.Info("Closing connection to RethinkDB")
+	if c.session == nil {
+		return nil
+	}
 	return c.session.(*r.Session).Close()
 }
 
@@ -185,18 +187,13 @@ retryLoop:
 					"max_attempts", maxAttempts,
 				)
 			}
-		case reconnect:
-			log.Warn("Reconnecting to database before retrying",
+		case retryRead:
+			// The driver replaces bad pooled connections. Recreating the session
+			// here abandons its host pool and background workers.
+			log.Warn("Retrying read using existing database session",
 				"attempt", attempts,
 				"max_attempts", maxAttempts,
 			)
-			if connectErr := c.Connect(); connectErr != nil {
-				log.Warn("Failed to reconnect database; retrying query",
-					"error", connectErr,
-					"attempt", attempts,
-					"max_attempts", maxAttempts,
-				)
-			}
 		}
 	}
 	return nil, fmt.Errorf("failed to %s after %d of %d attempts: %w", name, attempts, maxAttempts, err)
@@ -207,7 +204,7 @@ func retryActionFor(err error) retryAction {
 	case errors.Is(err, r.ErrQueryTimeout):
 		return waitForReads
 	case errors.Is(err, r.ErrConnectionClosed):
-		return reconnect
+		return retryRead
 	case isPrimaryReplicaUnavailable(err):
 		return waitForReads
 	default:

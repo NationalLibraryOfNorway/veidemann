@@ -157,7 +157,7 @@ func TestRetryActionFor(t *testing.T) {
 		want retryAction
 	}{
 		{name: "query timeout", err: fmt.Errorf("wrapped: %w", r.ErrQueryTimeout), want: waitForReads},
-		{name: "closed connection", err: fmt.Errorf("wrapped: %w", r.ErrConnectionClosed), want: reconnect},
+		{name: "closed connection", err: fmt.Errorf("wrapped: %w", r.ErrConnectionClosed), want: retryRead},
 		{name: "primary replica unavailable", err: opFailedTestError(primaryReplicaUnavailableMessage), want: waitForReads},
 		{name: "case insensitive message", err: opFailedTestError("rethinkdb: PRIMARY REPLICA unavailable"), want: waitForReads},
 		{name: "untyped primary message", err: errors.New(primaryReplicaUnavailableMessage), want: doNotRetry},
@@ -205,4 +205,39 @@ func TestWaitHonorsCanceledContext(t *testing.T) {
 	}
 	mock.AssertNumberOfExecutions(t, waitQuery, 1)
 	mock.AssertExpectations(t)
+}
+
+func TestExecWithRetryBoundsClosedConnectionRetries(t *testing.T) {
+	for _, maxRetries := range []int{-1, 0, 5} {
+		t.Run(fmt.Sprint(maxRetries), func(t *testing.T) {
+			conn, session := newRetryTestConnection(maxRetries)
+			attempts := 0
+			_, err := conn.execWithRetry(context.Background(), "test-query", func(context.Context) (*r.Cursor, error) {
+				attempts++
+				if conn.session != session {
+					t.Fatal("retry replaced the database session")
+				}
+				return nil, r.ErrConnectionClosed
+			})
+			wantAttempts := max(1, maxRetries+1)
+			if !errors.Is(err, r.ErrConnectionClosed) || attempts != wantAttempts {
+				t.Fatalf("execWithRetry() = %v after %d attempts, want closed connection after %d", err, attempts, wantAttempts)
+			}
+		})
+	}
+}
+
+func TestExecWithRetryStopsClosedConnectionRetriesOnCancellation(t *testing.T) {
+	conn, _ := newRetryTestConnection(5)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	attempts := 0
+	_, err := conn.execWithRetry(ctx, "test-query", func(context.Context) (*r.Cursor, error) {
+		attempts++
+		cancel()
+		return nil, r.ErrConnectionClosed
+	})
+	if !errors.Is(err, context.Canceled) || attempts != 1 {
+		t.Fatalf("execWithRetry() = %v after %d attempts, want cancellation after 1", err, attempts)
+	}
 }
