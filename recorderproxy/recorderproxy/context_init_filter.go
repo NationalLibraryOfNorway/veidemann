@@ -24,15 +24,18 @@ import (
 	"strings"
 	"time"
 
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	robotsV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 )
 
-// contextInitFilter initializes the context with sessions to external services.
+// contextInitFilter initializes request state with the ContentWriter client.
 type contextInitFilter struct {
-	conn                *serviceconnections.Connections
+	robots              robotsV1.RobotsEvaluatorClient
+	contentWriterClient contentwriterV1.ContentWriterClient
 	proxyId             int32
 	finalizationTimeout time.Duration
 	lifecycle           *lifecycleTracker
@@ -123,24 +126,25 @@ func (f *contextInitFilter) applyConnect(cs *proxy.State, req *http.Request, nex
 	rpcontext.SetPort(ctx, port)
 	rpcontext.SetUri(ctx, uri)
 
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:ctx")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "connection_setup")
 
-	if err := rpcontext.RegisterConnectRequest(ctx, f.conn, f.proxyId, req, uri); err != nil {
-		if context.Cause(ctx) != nil {
-			return nil, cs, nil
+	if a := requestAttempt(cs); a != nil {
+		a.mu.Lock()
+		closed := a.closing
+		a.mu.Unlock()
+		if closed {
+			return Deny(cs, req, http.StatusForbidden, "Harvest closed")
 		}
-		if rperrors.IsBrowserControllerCancel(err) {
-			l.WithError(err).Info("CONNECT denied by browser controller")
-			return Deny(cs, req, http.StatusForbidden, "Cancelled by browser controller")
-		}
-
-		l.WithError(err).Warn("Failed to register CONNECT request")
-		return nil, cs, err
+		rpcontext.SetCrawlExecutionId(ctx, a.spec.CrawlExecutionId)
+		rpcontext.SetJobExecutionId(ctx, a.spec.JobExecutionId)
+		rpcontext.SetCollectionRef(ctx, a.spec.CollectionRef)
+	} else {
+		return Deny(cs, req, http.StatusForbidden, "Active harvest required")
 	}
 
 	req = req.WithContext(ctx)
 
-	l.Debug("Context initialized")
+	l.Trace("Context initialized")
 
 	return next(cs, req)
 }
@@ -162,8 +166,6 @@ func (f *contextInitFilter) apply(cs *proxy.State, req *http.Request, next proxy
 		rpcontext.SetPort(requestCtx, req.URL.Port())
 	}
 
-	l := rpcontext.LogWithContextAndRequest(requestCtx, req, "FLT:ctx")
-
 	baseURI := requestBaseURI(requestCtx, cs, req)
 	var uri *url.URL
 	if baseURI != nil {
@@ -178,30 +180,41 @@ func (f *contextInitFilter) apply(cs *proxy.State, req *http.Request, next proxy
 
 	req = req.WithContext(requestCtx)
 
+	binding := requestAttemptConnection(cs)
+	if binding == nil {
+		return Deny(cs, req, http.StatusForbidden, "Active harvest required")
+	}
+	a := binding.attempt
+	// Connections pin an attempt at accept, but a surviving old browser may
+	// reconnect after recovery. Reject it before admission, policy, or storage.
+	attemptID := req.Header.Get(constants.HeaderAttemptId)
+	req.Header.Del(constants.HeaderAttemptId)
+	if attemptID != a.spec.AttemptId {
+		return Deny(cs, req, http.StatusForbidden, "Harvest identity mismatch")
+	}
+	// Pre-request CONNECT/TLS errors from an unverified browser cannot poison
+	// the current attempt. Once identified, connection failures belong to it.
+	binding.verified.Store(true)
 	rc := rpcontext.NewRecordContext(f.finalizationTimeout)
-	f.lifecycle.addRecord(rc)
-	rpcontext.SetRecordContext(requestCtx, rc)
-	rc.Init(f.proxyId, f.conn, req, uri)
-
-	if e := rc.RegisterNewRequest(requestCtx); e != nil {
-		if context.Cause(requestCtx) != nil {
-			cancelErr := rperrors.Error(
-				rperrors.CanceledByBrowser,
-				"CANCELED_BY_BROWSER",
-				"Veidemann recorder proxy lost connection to client",
-			)
-			_ = rc.SendRequestError(requestCtx, cancelErr)
-			return nil, cs, nil
-		}
-		if rperrors.IsBrowserControllerCancel(e) {
-			l.WithError(e).Info("Request denied by browser controller")
-			return Deny(cs, req, http.StatusForbidden, "Cancelled by browser controller")
-		}
-		return handleRequestError(cs, req, e)
+	initialize := func() {
+		f.lifecycle.addRecord(rc)
+		a.lifecycle.addRecord(rc)
+		rpcontext.SetRecordContext(requestCtx, rc)
+		rc.Init(f.proxyId, f.contentWriterClient, req, uri)
+	}
+	if !a.admit(rc, initialize) {
+		return Deny(cs, req, http.StatusForbidden, "Harvest closed")
+	}
+	if !a.allowed(requestCtx, f.robots, uri.String()) {
+		rc.PrecludedByRobots = true
+		return handleRequestError(cs, req, rperrors.Error(rperrors.PrecludedByRobots, "PRECLUDED_BY_ROBOTS", "Robots.txt rules precluded fetch"))
 	}
 
 	req = req.WithContext(requestCtx)
 	resp, nextCS, err = next(cs, req)
+	if err == nil && resp != nil && rc.ObserveResponse != nil {
+		rc.ObserveResponse(resp)
+	}
 
 	if preserveSessionMetadata {
 		rpcontext.CopySessionMetadata(connectionCtx, requestCtx)
@@ -228,4 +241,23 @@ func connectAuthority(req *http.Request) (host string, port string, hostPort str
 	}
 
 	return hostPort, "443", net.JoinHostPort(hostPort, "443")
+}
+
+func requestAttempt(cs *proxy.State) *harvestAttempt {
+	if binding := requestAttemptConnection(cs); binding != nil {
+		return binding.attempt
+	}
+	return nil
+}
+
+func requestAttemptConnection(cs *proxy.State) *attemptConnection {
+	if cs == nil {
+		return nil
+	}
+	ctx := proxyContextFromConn(cs.Downstream())
+	if ctx == nil {
+		return nil
+	}
+	binding, _ := ctx.Value(attemptKey{}).(*attemptConnection)
+	return binding
 }

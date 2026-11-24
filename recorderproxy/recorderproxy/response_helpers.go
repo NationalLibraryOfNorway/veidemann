@@ -17,9 +17,13 @@ func handleRequestError(
 	req *http.Request,
 	reqErr error,
 ) (*http.Response, *proxy.State, error) {
+	return handleResourceError(cs, req, reqErr, false)
+}
+
+func handleResourceError(cs *proxy.State, req *http.Request, reqErr error, fetchFailure bool) (*http.Response, *proxy.State, error) {
 	ctx := filterContext(cs, req)
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "REQH")
-	l.WithError(reqErr).Debug("handling request error")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "request")
+	l.WithError(reqErr).Trace("handling request error")
 
 	rc := rpcontext.GetRecordContext(ctx)
 	if rc == nil {
@@ -27,7 +31,12 @@ func handleRequestError(
 		return denyResponse(cs, req, reqErr)
 	}
 
-	e := rc.SendRequestError(ctx, reqErr)
+	var e error
+	if fetchFailure {
+		e = rc.SendFetchError(reqErr)
+	} else {
+		e = rc.SendRequestError(ctx, reqErr)
+	}
 
 	resp, nextCS := errorResponse(cs, req, e)
 	if resp != nil {

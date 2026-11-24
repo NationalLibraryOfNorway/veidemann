@@ -16,18 +16,22 @@ func parseFlags() (Options, error) {
 	flags := pflag.CommandLine
 
 	flags.String("interface", "", "interface this proxy listens to. No value means all interfaces.")
+	flags.String("control-interface", "127.0.0.1", "Recorder control listen interface")
+	flags.String("control-port", "7780", "Recorder harvest control gRPC port")
+	flags.String("robots-evaluator-host", "localhost", "Robots evaluator host")
+	flags.String("robots-evaluator-port", "7771", "Robots evaluator port")
 	flags.Int("port", 8080, "first proxy listen port")
-	flags.Int("proxy-count", 10, "number of proxies to start")
+	flags.Int("proxy-count", 1, "number of proxies to start")
 	flags.String("content-writer-host", "localhost", "Content writer host")
 	flags.String("content-writer-port", "7777", "Content writer port")
+	flags.String("log-service-host", "veidemann-log-service", "Log service host")
+	flags.String("log-service-port", "8080", "Log service port")
 	flags.String("dns-resolver-host", "localhost", "DNS resolver host")
 	flags.String("dns-resolver-port", "7778", "DNS resolver port")
-	flags.String("browser-controller-host", "localhost", "Browser controller host")
-	flags.String("browser-controller-port", "7779", "Browser controller port")
 	flags.Duration("timeout", 10*time.Minute, "Timeout used for connecting to GRPC services")
 	flags.String("mitm-cert-file", "", "Path to the fixed MITM server certificate")
 	flags.String("mitm-key-file", "", "Path to the fixed MITM private key")
-	flags.Duration("finalization-timeout", 30*time.Second, "Maximum time for ContentWriter terminal operations")
+	flags.Duration("finalization-timeout", 30*time.Second, "Maximum time for attempt and ContentWriter finalization")
 	flags.Duration("idle-timeout", 2*time.Minute, "Maximum time to wait for downstream request headers; non-positive values disable it")
 	flags.String("cache-host", "", "Cache host")
 	flags.String("cache-port", "", "Cache port")
@@ -38,7 +42,7 @@ func parseFlags() (Options, error) {
 	flags.String("profiling-interface", "127.0.0.1", "interface for exposing the pprof HTTP server")
 	flags.Int("profiling-port", 6060, "port for exposing the pprof HTTP server")
 	flags.String("log-level", "info", "log level, available levels are panic, fatal, error, warn, info, debug and trace")
-	flags.String("log-formatter", "text", "log formatter, available values are text, logfmt and json")
+	flags.String("log-formatter", "json", "log formatter, available values are text, logfmt and json")
 	flags.Bool("log-method", false, "log method name")
 
 	pflag.Parse()
@@ -62,6 +66,14 @@ func (o Options) Interface() string {
 
 func (o Options) Port() int {
 	return o.v.GetInt("port")
+}
+
+func (o Options) ControlInterface() string {
+	return o.v.GetString("control-interface")
+}
+
+func (o Options) ControlPort() string {
+	return o.v.GetString("control-port")
 }
 
 func (o Options) ProxyCount() int {
@@ -124,12 +136,20 @@ func (o Options) DnsResolverPort() string {
 	return o.v.GetString("dns-resolver-port")
 }
 
-func (o Options) BrowserControllerHost() string {
-	return o.v.GetString("browser-controller-host")
+func (o Options) RobotsEvaluatorHost() string {
+	return o.v.GetString("robots-evaluator-host")
 }
 
-func (o Options) BrowserControllerPort() string {
-	return o.v.GetString("browser-controller-port")
+func (o Options) RobotsEvaluatorPort() string {
+	return o.v.GetString("robots-evaluator-port")
+}
+
+func (o Options) LogServiceHost() string {
+	return o.v.GetString("log-service-host")
+}
+
+func (o Options) LogServicePort() string {
+	return o.v.GetString("log-service-port")
 }
 
 func (o Options) ConnectTimeout() time.Duration {

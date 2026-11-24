@@ -45,6 +45,14 @@ func TestClassifyFailure(t *testing.T) {
 			phase:   proxy.PhaseConnectDial,
 		},
 		{
+			name:    "cancelled round trip",
+			err:     proxy.NewPhaseError(proxy.PhaseHTTPRoundTrip, context.Canceled),
+			code:    rperrors.CanceledByBrowser,
+			message: "CANCELED_BY_BROWSER",
+			detail:  "Veidemann recorder proxy lost connection to client",
+			phase:   proxy.PhaseHTTPRoundTrip,
+		},
+		{
 			name:    "round trip EOF",
 			err:     proxy.NewPhaseError(proxy.PhaseHTTPRoundTrip, stderrors.New("EOF")),
 			code:    rperrors.EmptyResponse,

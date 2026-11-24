@@ -21,12 +21,13 @@ import (
 	"net/http"
 	"net/http/httptrace"
 
+	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 )
 
 func DecorateRequest(roundTripper http.RoundTripper, req *http.Request) (http.RoundTripper, *http.Request) {
 	t := &transport{wrapped: roundTripper}
-	t.log = logger.StandardLogger().WithComponent("CLIENT")
+	t.log = rpcontext.LogWithContext(req.Context(), "http_client")
 
 	trace := &httptrace.ClientTrace{
 		DNSStart:          t.DNSStart,
@@ -59,42 +60,29 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func (t *transport) GetConn(hostPort string) {
-	t.log.Tracef("get conn: %+v", hostPort)
+	t.log.WithField("destination", hostPort).Trace("HTTP connection requested")
 }
-
-// GotConn prints whether the connection has been used previously
-// for the current request.
 func (t *transport) GotConn(info httptrace.GotConnInfo) {
-	t.log.Tracef("got connection for %v. Is resued? %v", t.current.URL, info.Reused)
+	t.log.WithField("reused", info.Reused).Trace("HTTP connection acquired")
 }
-
 func (t *transport) DNSStart(info httptrace.DNSStartInfo) {
-	t.log.Debugf("DNS start: %+v\n", info.Host)
+	t.log.WithField("host", info.Host).Trace("DNS lookup started")
 }
-
 func (t *transport) DNSDone(info httptrace.DNSDoneInfo) {
-	t.log.Debugf("DNS done: %+v\n", info)
+	t.log.WithFields(logger.Fields{"coalesced": info.Coalesced}).WithError(info.Err).Trace("DNS lookup finished")
 }
-
 func (t *transport) PutIdleConn(err error) {
-	t.log.Debugf("** Connection PutIdleCon for %v? %v\n", t.current.URL, err)
+	t.log.WithError(err).Trace("HTTP connection released")
 }
-
 func (t *transport) ConnectStart(network, addr string) {
-	t.log.Debugf("Connecting to %v %v\n", network, addr)
+	t.log.WithFields(logger.Fields{"network": network, "destination": addr}).Trace("TCP connection started")
 }
-
 func (t *transport) ConnectDone(network, addr string, err error) {
-	t.log.Debugf("Connected to %v %v %v\n", network, addr, err)
+	t.log.WithFields(logger.Fields{"network": network, "destination": addr}).WithError(err).Trace("TCP connection finished")
 }
-
 func (t *transport) TLSHandshakeStart() {
-	t.log.Debugf("TLS Handshake start")
+	t.log.Trace("TLS handshake started")
 }
-
 func (t *transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
-	t.log.Debugf("TLS Handshake done: %v %v %v\n", state.ServerName, state.HandshakeComplete, err)
-	for _, c := range state.PeerCertificates {
-		t.log.Debugf("TLS peer cert: %v\n", c.Issuer)
-	}
+	t.log.WithFields(logger.Fields{"serverName": state.ServerName, "handshakeComplete": state.HandshakeComplete}).WithError(err).Trace("TLS handshake finished")
 }

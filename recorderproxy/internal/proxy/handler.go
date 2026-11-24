@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, input io.Reader, downstream net.Co
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = fmt.Errorf("recovered from panic handling connection: %v", recovered)
-			logger.LogWithComponent("PROXY").WithError(err).Error("Recovered from panic handling connection")
+			logger.LogWithPhase("connection").WithError(err).Error("Recovered from panic handling connection")
 		}
 		_ = downstream.Close()
 	}()
@@ -324,6 +324,8 @@ func (h *Handler) proceedWithConnect(ctx context.Context, upstreamAddr string, u
 		}
 	}
 	if upstream != nil {
+		stopCancel := context.AfterFunc(ctx, func() { _ = upstream.Close() })
+		defer stopCancel()
 		defer upstream.Close()
 	}
 

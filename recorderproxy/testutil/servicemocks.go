@@ -28,15 +28,13 @@ import (
 	"sync"
 	"time"
 
-	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
-	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -47,23 +45,22 @@ const bufSize = 1024 * 1024
  * Server mocks
  */
 type GrpcServiceMock struct {
+	LogWriterMock
 	dnsresolverV1.UnimplementedDnsResolverServer
 	contentwriterV1.UnimplementedContentWriterServer
-	browsercontrollerV2.UnimplementedBrowserControllerServer
 
-	dnsOpts                *serviceconnections.ConnectionOptions
-	contentWriterOpts      *serviceconnections.ConnectionOptions
-	browserControllerOpts  *serviceconnections.ConnectionOptions
+	dnsResolverConn        *grpc.ClientConn
+	contentWriterConn      *grpc.ClientConn
 	lis                    *bufconn.Listener
 	mu                     sync.Mutex
 	Requests               Requests
-	contextDialer          grpc.DialOption
 	Server                 *grpc.Server
-	ClientConn             *serviceconnections.Connections
+	ContentWriterClient    contentwriterV1.ContentWriterClient
+	DnsResolverClient      dnsresolverV1.DnsResolverClient
 	ContentWriterWriteFunc func(contentwriterV1.ContentWriter_WriteServer) error
 }
 
-// ConnectionOption configures how we parse a URL.
+// MockOption configures service clients or mock behavior.
 type MockOption interface {
 	apply(*GrpcServiceMock)
 }
@@ -84,21 +81,17 @@ func newFuncMockOption(f func(*GrpcServiceMock)) *funcMockOption {
 	}
 }
 
-func WithExternalBrowserController(option *serviceconnections.ConnectionOptions) MockOption {
+// WithExternalContentWriter injects a client whose connection the caller owns.
+func WithExternalContentWriter(client contentwriterV1.ContentWriterClient) MockOption {
 	return newFuncMockOption(func(c *GrpcServiceMock) {
-		c.browserControllerOpts = option
+		c.ContentWriterClient = client
 	})
 }
 
-func WithExternalContentWriter(option *serviceconnections.ConnectionOptions) MockOption {
+// WithExternalDns injects a client whose connection the caller owns.
+func WithExternalDns(client dnsresolverV1.DnsResolverClient) MockOption {
 	return newFuncMockOption(func(c *GrpcServiceMock) {
-		c.contentWriterOpts = option
-	})
-}
-
-func WithExternalDns(option *serviceconnections.ConnectionOptions) MockOption {
-	return newFuncMockOption(func(c *GrpcServiceMock) {
-		c.dnsOpts = option
+		c.DnsResolverClient = client
 	})
 }
 
@@ -109,14 +102,8 @@ func WithContentWriterWriteFunc(writeFunc func(contentwriterV1.ContentWriter_Wri
 }
 
 type Requests struct {
-	BrowserControllerRequests []*BrowserControllerRequest
-	DnsResolverRequests       []*dnsresolverV1.ResolveRequest
-	ContentWriterRequests     []*contentwriterV1.WriteRequest
-}
-
-type BrowserControllerRequest struct {
-	RegisterResource *browsercontrollerV2.RegisterResourceRequest
-	CompleteResource *browsercontrollerV2.CompleteResourceRequest
+	DnsResolverRequests   []*dnsresolverV1.ResolveRequest
+	ContentWriterRequests []*contentwriterV1.WriteRequest
 }
 
 func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
@@ -128,61 +115,61 @@ func NewGrpcServiceMock(opts ...MockOption) *GrpcServiceMock {
 		opt.apply(m)
 	}
 
-	m.contextDialer = grpc.WithContextDialer(m.bufDialer)
-
 	m.Server = grpc.NewServer()
 
-	if m.dnsOpts == nil {
+	if m.DnsResolverClient == nil {
 		dnsresolverV1.RegisterDnsResolverServer(m.Server, m)
 	}
-	if m.contentWriterOpts == nil {
+	if m.ContentWriterClient == nil {
 		contentwriterV1.RegisterContentWriterServer(m.Server, m)
 	}
-	if m.browserControllerOpts == nil {
-		browsercontrollerV2.RegisterBrowserControllerServer(m.Server, m)
-	}
+
 	go func() {
 		if err := m.Server.Serve(m.lis); err != nil {
-			logger.LogWithComponent("MOCK:grpc").Fatalf("Server exited with error: %v", err)
+			logger.LogWithPhase("MOCK:grpc").Fatalf("Server exited with error: %v", err)
 		}
 	}()
 
 	dialOption := grpc.WithContextDialer(m.bufDialer)
 
-	if m.contentWriterOpts == nil {
-		m.contentWriterOpts = serviceconnections.NewConnectionOptions(
-			"ContentWriter",
-			serviceconnections.WithHost("passthrough://bufnet"),
-			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("ContentWriter", logger.DebugLevel)),
+	var err error
+	if m.ContentWriterClient == nil {
+		m.contentWriterConn, err = grpc.NewClient(
+			"passthrough:///bufnet",
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			dialOption,
+			tracing.NewStatsHandler("ContentWriter", logger.DebugLevel),
 		)
+		if err != nil {
+			m.Close()
+			logger.LogWithPhase("MOCK:grpc").Panicf("Could not create ContentWriter client: %v", err)
+		}
+		m.ContentWriterClient = contentwriterV1.NewContentWriterClient(m.contentWriterConn)
 	}
-	if m.dnsOpts == nil {
-		m.dnsOpts = serviceconnections.NewConnectionOptions(
-			"DnsService",
-			serviceconnections.WithHost("passthrough://bufnet"),
-			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("DnsService", logger.DebugLevel)),
+	if m.DnsResolverClient == nil {
+		m.dnsResolverConn, err = grpc.NewClient(
+			"passthrough:///bufnet",
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			dialOption,
+			tracing.NewStatsHandler("DnsService", logger.DebugLevel),
 		)
-	}
-	if m.browserControllerOpts == nil {
-		m.browserControllerOpts = serviceconnections.NewConnectionOptions(
-			"BrowserController",
-			serviceconnections.WithHost("passthrough://bufnet"),
-			serviceconnections.WithDialOptions(dialOption, tracing.NewStatsHandler("BrowserController", logger.DebugLevel)),
-		)
-	}
-
-	m.ClientConn = serviceconnections.NewConnections(m.contentWriterOpts, m.dnsOpts, m.browserControllerOpts)
-
-	err := m.ClientConn.Connect()
-	if err != nil {
-		logger.LogWithComponent("MOCK:grpc").Panicf("Could not connect to services: %v", err)
+		if err != nil {
+			m.Close()
+			logger.LogWithPhase("MOCK:grpc").Panicf("Could not create DNS resolver client: %v", err)
+		}
+		m.DnsResolverClient = dnsresolverV1.NewDnsResolverClient(m.dnsResolverConn)
 	}
 
 	return m
 }
 
 func (s *GrpcServiceMock) Close() {
-	s.ClientConn.Close()
+	if s.contentWriterConn != nil {
+		_ = s.contentWriterConn.Close()
+	}
+	if s.dnsResolverConn != nil {
+		_ = s.dnsResolverConn.Close()
+	}
 	s.Server.GracefulStop()
 	s.lis.Close()
 }
@@ -193,12 +180,11 @@ func (s *GrpcServiceMock) Clear() {
 	s.Requests = Requests{}
 }
 
-func (s *GrpcServiceMock) WaitForRequestCounts(dns, browserController, contentWriter int, timeout time.Duration) bool {
+func (s *GrpcServiceMock) WaitForRequestCounts(dns, contentWriter int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for {
 		s.mu.Lock()
 		ready := len(s.Requests.DnsResolverRequests) >= dns &&
-			len(s.Requests.BrowserControllerRequests) >= browserController &&
 			len(s.Requests.ContentWriterRequests) >= contentWriter
 		s.mu.Unlock()
 		if ready {
@@ -215,34 +201,8 @@ func (s *GrpcServiceMock) bufDialer(context.Context, string) (net.Conn, error) {
 	return s.lis.Dial()
 }
 
-func (s *GrpcServiceMock) addBcRequest(r *BrowserControllerRequest) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	switch {
-	case r.RegisterResource != nil:
-		logger.LogWithComponent("MOCK:BrowserController").Print("Register resource: ", r.RegisterResource)
-	case r.CompleteResource != nil:
-		logger.LogWithComponent("MOCK:BrowserController").Print("Complete resource: ", r.CompleteResource)
-	default:
-		panic("BUG: Invalid request")
-	}
-
-	s.Requests.BrowserControllerRequests = append(s.Requests.BrowserControllerRequests, r)
-}
-
-func (s *GrpcServiceMock) addBcRegisterRequest(r *browsercontrollerV2.RegisterResourceRequest) {
-	s.addBcRequest(&BrowserControllerRequest{RegisterResource: r})
-}
-
-func (s *GrpcServiceMock) addBcCompleteRequest(r *browsercontrollerV2.CompleteResourceRequest) {
-	s.addBcRequest(&BrowserControllerRequest{CompleteResource: r})
-}
-
 func (s *GrpcServiceMock) addDnsRequest(r *dnsresolverV1.ResolveRequest) {
 	s.mu.Lock()
-
-	logger.LogWithComponent("MOCK:DNSResolver").Print("Resolve ", r)
 
 	s.Requests.DnsResolverRequests = append(s.Requests.DnsResolverRequests, r)
 	s.mu.Unlock()
@@ -250,16 +210,6 @@ func (s *GrpcServiceMock) addDnsRequest(r *dnsresolverV1.ResolveRequest) {
 
 func (s *GrpcServiceMock) addCwRequest(r *contentwriterV1.WriteRequest) {
 	s.mu.Lock()
-
-	switch v := r.Value.(type) {
-	case *contentwriterV1.WriteRequest_Payload:
-		logger.LogWithComponent("MOCK:ContentWriter").
-			Printf("Write: payload:<record_num:%d data:\"%s... (%d bytes)\" >\n",
-				v.Payload.RecordNum, v.Payload.Data[0:5], len(v.Payload.Data))
-
-	default:
-		logger.LogWithComponent("MOCK:ContentWriter").Print("Write: ", r)
-	}
 
 	s.Requests.ContentWriterRequests = append(s.Requests.ContentWriterRequests, r)
 	s.mu.Unlock()
@@ -297,6 +247,7 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 	gotMeta := false
 	gotCancel := false
 	blockDigest := make(map[int32]hash.Hash)
+	payloadDigest := make(map[int32]hash.Hash)
 
 	for {
 		request, err := server.Recv()
@@ -320,11 +271,13 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 		case *contentwriterV1.WriteRequest_ProtocolHeader:
 			size[v.ProtocolHeader.RecordNum] = int64(len(v.ProtocolHeader.Data))
 			blockDigest[v.ProtocolHeader.RecordNum] = sha1.New()
+			payloadDigest[v.ProtocolHeader.RecordNum] = sha1.New()
 			blockDigest[v.ProtocolHeader.RecordNum].Write(v.ProtocolHeader.Data)
 			data[v.ProtocolHeader.RecordNum] = v.ProtocolHeader.Data
 		case *contentwriterV1.WriteRequest_Payload:
 			size[v.Payload.RecordNum] += int64(len(v.Payload.Data))
 			blockDigest[v.Payload.RecordNum].Write(v.Payload.Data)
+			payloadDigest[v.Payload.RecordNum].Write(v.Payload.Data)
 			data[v.Payload.RecordNum] = append(data[v.Payload.RecordNum], v.Payload.Data...)
 		case *contentwriterV1.WriteRequest_Meta:
 			gotMeta = true
@@ -351,8 +304,8 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 					RecordNum:           i,
 					CollectionFinalName: "collection_0",
 					StorageRef:          "storageRef_" + idxString,
-					WarcId:              "warcid_" + idxString,
-					PayloadDigest:       v2.PayloadDigest,
+					WarcId:              "warcid_" + idxString + "_" + fmt.Sprintf("%x", payloadDigest[v2.RecordNum].Sum(nil)),
+					PayloadDigest:       fmt.Sprintf("sha1:%x", payloadDigest[v2.RecordNum].Sum(nil)),
 					BlockDigest:         v2.BlockDigest,
 				}
 
@@ -369,63 +322,4 @@ func (s *GrpcServiceMock) Write(server contentwriterV1.ContentWriter_WriteServer
 			panic(fmt.Sprintf("UNKNOWN REQ type %T\n", v))
 		}
 	}
-}
-
-func browserControllerRegistered(request *browsercontrollerV2.RegisterResourceRequest) *browsercontrollerV2.ResourceRegistered {
-	registered := &browsercontrollerV2.ResourceRegistered{
-		CrawlExecutionId: request.CrawlExecutionId,
-		JobExecutionId:   request.JobExecutionId,
-		CollectionRef:    request.CollectionRef,
-	}
-	if registered.CrawlExecutionId == "" {
-		registered.CrawlExecutionId = "eid"
-	}
-	if registered.JobExecutionId == "" {
-		registered.JobExecutionId = "jid"
-	}
-	if registered.CollectionRef == nil {
-		registered.CollectionRef = &configV1.ConfigRef{
-			Kind: configV1.Kind_collection,
-			Id:   "col1",
-		}
-	}
-	return registered
-}
-
-// RegisterResource implements part of the browser controller server API
-func (s *GrpcServiceMock) RegisterResource(ctx context.Context, in *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
-	s.addBcRegisterRequest(in)
-
-	trimmedURI := strings.TrimSuffix(in.Uri, "/")
-	switch {
-	case strings.HasSuffix(trimmedURI, "blocked"):
-		return &browsercontrollerV2.RegisterResourceReply{
-			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Blocked by robots.txt"},
-		}, nil
-	case strings.HasSuffix(trimmedURI, "cancel"):
-		return &browsercontrollerV2.RegisterResourceReply{
-			Result: &browsercontrollerV2.RegisterResourceReply_Cancel{Cancel: "Cancelled by browser controller"},
-		}, nil
-	default:
-		return &browsercontrollerV2.RegisterResourceReply{
-			Result: &browsercontrollerV2.RegisterResourceReply_Registered{
-				Registered: browserControllerRegistered(in),
-			},
-		}, nil
-	}
-}
-
-// CompleteResource implements part of the browser controller server API
-func (s *GrpcServiceMock) CompleteResource(ctx context.Context, in *browsercontrollerV2.CompleteResourceRequest) (*browsercontrollerV2.CompleteResourceReply, error) {
-	s.addBcCompleteRequest(in)
-
-	requestedURI := ""
-	if in.GetCrawlLog() != nil {
-		requestedURI = strings.TrimSuffix(in.GetCrawlLog().GetRequestedUri(), "/")
-	}
-	if strings.HasSuffix(requestedURI, "bccerr") {
-		return nil, fmt.Errorf("browser controller error")
-	}
-
-	return &browsercontrollerV2.CompleteResourceReply{}, nil
 }

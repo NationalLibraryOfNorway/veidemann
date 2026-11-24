@@ -20,17 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	browsercontrollerV2 "github.com/NationalLibraryOfNorway/veidemann/api/browsercontroller/v2"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -65,46 +61,6 @@ func (rc *RecordContext) HasCrawlLog() bool {
 	return rc.CrawlLog != nil
 }
 
-func registerResource(ctx context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.RegisterResourceRequest) (*browsercontrollerV2.RegisterResourceReply, error) {
-	rpcCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	reply, err := conn.BrowserControllerClient().RegisterResource(rpcCtx, request)
-	if err != nil {
-		return nil, rperrors.WrapInternalError(err, rperrors.RuntimeException, "Error register with browser controller", err.Error())
-	}
-	return reply, nil
-}
-
-func completeResource(_ context.Context, conn *serviceconnections.Connections, request *browsercontrollerV2.CompleteResourceRequest) error {
-	rpcCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	_, err := conn.BrowserControllerClient().CompleteResource(rpcCtx, request)
-	if err != nil {
-		return rperrors.WrapInternalError(err, rperrors.RuntimeException, "error sending crawl log to browser controller", err.Error())
-	}
-	return nil
-}
-
-func applyRegisteredState(ctx context.Context, registered *browsercontrollerV2.ResourceRegistered) {
-	if registered == nil {
-		return
-	}
-
-	SetJobExecutionId(ctx, registered.JobExecutionId)
-	SetCrawlExecutionId(ctx, registered.CrawlExecutionId)
-	SetCollectionRef(ctx, registered.CollectionRef)
-}
-
-func (rc *RecordContext) shouldBypassBrowserControllerRegister() bool {
-	return rc.ProxyId == 0 && rc.HasExplicitHarvestHeaders
-}
-
-func (rc *RecordContext) shouldSkipBrowserControllerComplete(cl *logV1.CrawlLog) bool {
-	return rc.ProxyId != 0 && rc.RequestId == "" && cl != nil && cl.StatusCode == int32(rperrors.CanceledByBrowser)
-}
-
 func (rc *RecordContext) finalizeCrawlLog(cl *logV1.CrawlLog) error {
 	_, err := rc.coordinateTerminal(terminalRequest{crawlLog: cl})
 	return err
@@ -114,6 +70,7 @@ type terminalRequest struct {
 	crawlLog       *logV1.CrawlLog
 	originalErr    error
 	cancelMessage  string
+	fetchFailure   bool
 	sendMeta       bool
 	responseRecNum int32
 	responseSize   int64
@@ -164,20 +121,18 @@ func (rc *RecordContext) coordinateTerminal(terminal terminalRequest) (bool, err
 	} else if terminal.cancelMessage != "" {
 		_, err := rc.terminateContentWriter(false, terminal.cancelMessage)
 		if err != nil {
-			LogWithContext(rc.ctx, "PROXY:CWC").WithError(err).Warn("ContentWriter cancellation failed")
-			if terminal.originalErr == nil {
-				terminalErr = rperrors.WrapInternalError(
-					err,
-					rperrors.RuntimeException,
-					"Error canceling content writer",
-					err.Error(),
-				)
-			}
+			LogWithContext(rc.ctx, "content_writer").WithError(err).Warn("ContentWriter cancellation failed")
+			terminalErr = rperrors.WrapInternalError(
+				err,
+				rperrors.RuntimeException,
+				"Error canceling content writer",
+				err.Error(),
+			)
 		}
 	}
 
 	authoritativeErr := terminal.originalErr
-	if authoritativeErr == nil {
+	if authoritativeErr == nil || (terminalErr != nil && rperrors.Code(authoritativeErr) == rperrors.CanceledByBrowser) {
 		authoritativeErr = terminalErr
 	}
 	if authoritativeErr != nil {
@@ -189,21 +144,16 @@ func (rc *RecordContext) coordinateTerminal(terminal terminalRequest) (bool, err
 
 	cl.FetchTimeMs = time.Since(rc.FetchTimesTamp).Nanoseconds() / 1000000
 	cl.IpAddress = rc.IpAddress
-	if !rc.shouldSkipBrowserControllerComplete(cl) {
-		request := &browsercontrollerV2.CompleteResourceRequest{
-			ProxyId:   rc.ProxyId,
-			RequestId: rc.RequestId,
-			CrawlLog:  cl,
-			Cached:    rc.FoundInCache,
+	if rc.Complete != nil {
+		attemptFailure := cl.Error
+		if terminal.fetchFailure && !rc.MainDocument {
+			attemptFailure = nil
 		}
-
-		if err := completeResource(rc.ctx, rc.conn, request); err != nil {
-			if terminalErr == nil {
-				terminalErr = err
-			} else {
-				LogWithContext(rc.ctx, "PROXY:BCC").WithError(err).Warn("BrowserController completion failed after terminal error")
-			}
+		// A resource fetch failure must not hide a separate recording failure.
+		if terminalErr != nil {
+			attemptFailure = rperrors.AsCommonsError(terminalErr)
 		}
+		rc.Complete(cl, rc.FoundInCache, attemptFailure)
 	}
 
 	if terminal.originalErr != nil {
@@ -219,6 +169,9 @@ func applyContentWriterReply(cl *logV1.CrawlLog, reply *contentwriterV1.WriteRep
 	meta, ok := reply.GetMeta().RecordMeta[recNum]
 	if !ok || meta == nil {
 		return fmt.Errorf("content writer reply missing record metadata for record %d", recNum)
+	}
+	if meta.WarcId == "" {
+		return fmt.Errorf("content writer did not confirm a WARC reference for record %d", recNum)
 	}
 
 	cl.CollectionFinalName = meta.CollectionFinalName
@@ -237,7 +190,7 @@ func (rc *RecordContext) SaveCrawlLog() error {
 }
 
 // FinalizeStoredResponse terminates ContentWriter, validates its reply, and
-// completes BrowserController as one idempotent operation.
+// completes the harvest ledger as one idempotent operation.
 func (rc *RecordContext) FinalizeStoredResponse(recNum int32, size int64, blockDigest string) error {
 	_, err := rc.coordinateTerminal(terminalRequest{
 		crawlLog:       rc.CrawlLogSnapshot(),
@@ -250,7 +203,7 @@ func (rc *RecordContext) FinalizeStoredResponse(recNum int32, size int64, blockD
 }
 
 // FinalizeCachedResponse cancels the unused writer stream before completing
-// BrowserController.
+// the harvest ledger.
 func (rc *RecordContext) FinalizeCachedResponse(cancelMessage string) error {
 	_, err := rc.coordinateTerminal(terminalRequest{
 		crawlLog:      rc.CrawlLogSnapshot(),
@@ -271,8 +224,23 @@ func (rc *RecordContext) finalizeError(originalErr error, cancelMessage string) 
 	return err
 }
 
+// SendFetchError is only for failures known to come from fetching the resource.
+// A subresource failure stays in its crawl log; recording failures remain fatal.
+func (rc *RecordContext) SendFetchError(fetchErr error) error {
+	_, err := rc.coordinateTerminal(terminalRequest{
+		crawlLog:      rc.CrawlLogSnapshot(),
+		originalErr:   fetchErr,
+		cancelMessage: rperrors.Detail(fetchErr),
+		fetchFailure:  true,
+	})
+	if errors.Is(err, AlreadyCompleted) {
+		return fetchErr
+	}
+	return err
+}
+
 func (rc *RecordContext) SendRequestError(ctx context.Context, reqErr error) error {
-	l := LogWithContext(rc.ctx, "PROXY:BCC")
+	l := LogWithContext(rc.ctx, "PROXY:terminal")
 
 	if reqErr == nil {
 		l.Panic("BUG: SendRequestError with nil error")
@@ -282,86 +250,11 @@ func (rc *RecordContext) SendRequestError(ctx context.Context, reqErr error) err
 }
 
 func (rc *RecordContext) SendResponseError(ctx context.Context, respErr error) error {
-	l := LogWithContext(rc.ctx, "PROXY:BCC")
+	l := LogWithContext(rc.ctx, "PROXY:terminal")
 
 	if respErr == nil {
 		l.Panic("BUG: SendResponseError with nil error")
 	}
 
 	return rc.finalizeError(respErr, rperrors.Detail(respErr))
-}
-
-func (rc *RecordContext) RegisterNewRequest(ctx context.Context) error {
-	l := LogWithContext(rc.ctx, "PROXY:BCC")
-
-	if rc.shouldBypassBrowserControllerRegister() {
-		rc.ReplacementScript = nil
-		return nil
-	}
-
-	request := &browsercontrollerV2.RegisterResourceRequest{
-		ProxyId:          rc.ProxyId,
-		Method:           rc.Method,
-		Uri:              rc.Uri.String(),
-		RequestId:        rc.RequestId,
-		CrawlExecutionId: rc.CrawlExecutionId,
-		JobExecutionId:   rc.JobExecutionId,
-		CollectionRef:    rc.CollectionRef,
-	}
-
-	reply, err := registerResource(rc.ctx, rc.conn, request)
-	if err != nil {
-		l.WithError(err).Info("Error register with browser controller")
-		return err
-	}
-
-	switch result := reply.Result.(type) {
-	case *browsercontrollerV2.RegisterResourceReply_Cancel:
-		if result.Cancel == "Blocked by robots.txt" {
-			rc.PrecludedByRobots = true
-			return rperrors.Error(rperrors.PrecludedByRobots, "PRECLUDED_BY_ROBOTS", "Robots.txt rules precluded fetch")
-		}
-		return rperrors.Error(rperrors.CanceledByBrowser, "CANCELED_BY_BROWSER", result.Cancel)
-	case *browsercontrollerV2.RegisterResourceReply_Registered:
-		applyRegisteredState(rc.ctx, result.Registered)
-		rc.ReplacementScript = nil
-		rc.CrawlExecutionId = result.Registered.CrawlExecutionId
-		rc.JobExecutionId = result.Registered.JobExecutionId
-		rc.CollectionRef = result.Registered.CollectionRef
-		rc.UpdateCrawlLog(func(cl *logV1.CrawlLog) {
-			cl.JobExecutionId = rc.JobExecutionId
-			cl.ExecutionId = rc.CrawlExecutionId
-		})
-		return nil
-	default:
-		return rperrors.Error(rperrors.RuntimeException, "INVALID_BROWSER_CONTROLLER_REPLY", "Browser controller returned an invalid register reply")
-	}
-}
-
-func RegisterConnectRequest(ctx context.Context, conn *serviceconnections.Connections, proxyId int32, req *http.Request, uri *url.URL) error {
-	l := LogWithContext(ctx, "PROXY:BCC")
-
-	resolveIdsFromHttpHeader(ctx, req)
-
-	reply, err := registerResource(ctx, conn, &browsercontrollerV2.RegisterResourceRequest{
-		ProxyId:   proxyId,
-		Method:    http.MethodConnect,
-		Uri:       uri.String(),
-		RequestId: GetRequestId(ctx),
-	})
-	if err != nil {
-		l.WithError(err).Warn("Error registering CONNECT request with browser controller")
-		return err
-	}
-
-	switch result := reply.Result.(type) {
-	case *browsercontrollerV2.RegisterResourceReply_Registered:
-		applyRegisteredState(ctx, result.Registered)
-
-	case *browsercontrollerV2.RegisterResourceReply_Cancel:
-		l.Infof("CONNECT request canceled by browser controller: %s", result.Cancel)
-		return &rperrors.BrowserControllerCancelError{Reason: result.Cancel}
-	}
-
-	return nil
 }

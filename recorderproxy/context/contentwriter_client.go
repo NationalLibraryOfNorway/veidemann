@@ -27,6 +27,7 @@ import (
 
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 )
 
 type CwcSession struct {
@@ -84,15 +85,14 @@ func (cwc *CwcSession) noteProtocolHeaderAttempt(recNum int32, header []byte) ([
 }
 
 func (rc *RecordContext) logConcurrentSend(sendType string, recNum int32, payloadSize int, seq uint64, inFlight int32) {
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
+	l := LogWithContext(rc.ctx, "content_writer")
 	uri := ""
 	if rc.Uri != nil {
 		uri = rc.Uri.String()
 	}
 
-	l.WithField("requestId", rc.RequestId).
-		WithField("session", rc.Session()).
-		WithField("uri", uri).
+	l.WithField("recorderRequestId", rc.Session()).
+		WithField("url", logger.DiagnosticURL(uri)).
 		WithField("sendType", sendType).
 		WithField("recordNum", recNum).
 		WithField("payloadSize", payloadSize).
@@ -102,15 +102,14 @@ func (rc *RecordContext) logConcurrentSend(sendType string, recNum int32, payloa
 }
 
 func (rc *RecordContext) logDuplicateProtocolHeader(recNum int32, seq uint64, header, previous []byte) {
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
+	l := LogWithContext(rc.ctx, "content_writer")
 	uri := ""
 	if rc.Uri != nil {
 		uri = rc.Uri.String()
 	}
 
-	l.WithField("requestId", rc.RequestId).
-		WithField("session", rc.Session()).
-		WithField("uri", uri).
+	l.WithField("recorderRequestId", rc.Session()).
+		WithField("url", logger.DiagnosticURL(uri)).
 		WithField("recordNum", recNum).
 		WithField("seq", seq).
 		WithField("sameBytes", bytes.Equal(previous, header)).
@@ -154,7 +153,7 @@ func (rc *RecordContext) getCwcSession() (*CwcSession, error) {
 }
 
 func (rc *RecordContext) getCwcSessionForTerminal(terminal bool) (*CwcSession, error) {
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
+	l := LogWithContext(rc.ctx, "content_writer")
 
 	for {
 		rc.mutex.Lock()
@@ -206,7 +205,7 @@ func (rc *RecordContext) getCwcSessionForTerminal(terminal bool) (*CwcSession, e
 
 func (rc *RecordContext) openCwcSession() (*CwcSession, error) {
 	cwcCtx, cancel := context.WithCancel(context.Background())
-	cwc, err := rc.conn.ContentWriterClient().Write(cwcCtx)
+	cwc, err := rc.contentWriterClient.Write(cwcCtx)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -228,7 +227,7 @@ func (rc *RecordContext) CancelContentWriter(msg string) error {
 }
 
 func (rc *RecordContext) SendProtocolHeader(recNum int32, p []byte) error {
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
+	l := LogWithContext(rc.ctx, "content_writer")
 
 	cwc, err := rc.getCwcSession()
 	if err != nil {
@@ -253,13 +252,13 @@ func (rc *RecordContext) SendProtocolHeader(recNum int32, p []byte) error {
 
 	err = rc.sendWriteRequest(cwc, "protocolHeader", recNum, p, protocolHeaderRequest)
 	if err != nil {
-		l.WithError(err).Info("Error sending ContentWriter protocol header")
+		l.WithError(err).Trace("Error sending ContentWriter protocol header")
 	}
 	return err
 }
 
 func (rc *RecordContext) SendPayload(recNum int32, p []byte) error {
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
+	l := LogWithContext(rc.ctx, "content_writer")
 
 	cwc, err := rc.getCwcSession()
 	if err != nil {
@@ -284,7 +283,7 @@ func (rc *RecordContext) SendPayload(recNum int32, p []byte) error {
 
 	err = rc.sendWriteRequest(cwc, "payload", recNum, p, payloadRequest)
 	if err != nil {
-		l.WithError(err).Info("Error sending ContentWriter payload")
+		l.WithError(err).Trace("Error sending ContentWriter payload")
 	}
 	return err
 }
@@ -294,7 +293,7 @@ func (rc *RecordContext) SendMeta() (reply *contentwriterV1.WriteReply, err erro
 }
 
 func (rc *RecordContext) terminateContentWriter(sendMeta bool, cancelMessage string) (*contentwriterV1.WriteReply, error) {
-	l := LogWithContext(rc.ctx, "PROXY:CWC")
+	l := LogWithContext(rc.ctx, "content_writer")
 
 	var cwc *CwcSession
 	var err error
@@ -353,14 +352,14 @@ func (rc *RecordContext) terminateContentWriter(sendMeta bool, cancelMessage str
 
 	if sendErr := rc.sendWriteRequest(cwc, map[bool]string{true: "meta", false: "cancel"}[sendMeta], -1, nil, terminalRequest); sendErr != nil {
 		err = sendErr
-		l.WithError(sendErr).Info("Error sending terminal ContentWriter request")
+		l.WithError(sendErr).Trace("Error sending terminal ContentWriter request")
 	}
 
 	cwc.sendMu.Lock()
 	reply, closeErr := cwc.CloseAndRecv()
 	cwc.sendMu.Unlock()
 	if closeErr != nil {
-		l.WithError(closeErr).Info("Error closing ContentWriter stream")
+		l.WithError(closeErr).Trace("Error closing ContentWriter stream")
 		if err == nil {
 			err = closeErr
 		}

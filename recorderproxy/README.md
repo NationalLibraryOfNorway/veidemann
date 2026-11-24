@@ -15,8 +15,10 @@ The internal engine is part of recorderproxy's behavior surface and must be trea
 
 ## Main Pieces
 
+- `main.go`, `options.go`: configure and own all outbound gRPC connections, then inject generated ContentWriter, DNS resolver, and robots evaluator clients and the shared log-service writer into the recorder. Connections close after proxy shutdown has drained terminal work.
 - `recorderproxy/recorderproxy.go`: assembles the filter chain, configures MITM, accepts downstream connections, and seeds each connection with a base recorderproxy context.
-- `recorderproxy/context_init_filter.go`: creates request-scoped state, derives the effective target URI, and registers requests with BrowserController. CONNECT is handled here before any tunneled HTTP request exists.
+- `recorderproxy/context_init_filter.go`: creates request-scoped state, derives the effective target URI, and admits transfers into the recorder attempt. CONNECT is handled here before any tunneled HTTP request exists.
+- `recorderproxy/discovery.go`: infers immutable discovery paths from attempt-local redirect and referrer evidence. See the [ancestry rules and fallbacks](../proto/recorderproxy/v1/README.md#discovery-ancestry).
 - `recorderproxy/dns_lookup_filter.go`: resolves the target host once host and port are known.
 - `recorderproxy/recorder_filter.go`: wraps request and response bodies so they stream through ContentWriter while crawl-log state is built up.
 - `recorderproxy/error_handler_filter.go`: normalizes transport and proxy-layer failures into recorderproxy error codes and short-circuit responses.
@@ -61,7 +63,7 @@ Filter chain
 	+--> ContextInitFilter
 	|      - create request-scoped RecordContext
 	|      - derive target URI
-	|      - register request with BrowserController
+	|      - admit transfer into the recorder attempt
 	|
 	+--> DnsLookupFilter
 	|      - resolve host -> IP through DnsResolver
@@ -72,7 +74,7 @@ Filter chain
 	|      - round-trip upstream
 	|      - wrap response body
 	|      - stream response prolog/body/meta to ContentWriter
-	|      - save CrawlLog through BrowserController
+	|      - retain terminal CrawlLog in attempt ledger
 	|
 	v
 Origin server
@@ -90,7 +92,7 @@ Browser/client
 	v
 RecorderProxy
 	|
-	|  ContextInitFilter registers CONNECT with BrowserController
+	|  ContextInitFilter reads the connection-pinned attempt
 	|  internal proxy engine immediately returns CONNECT 200
 	|  internal proxy engine establishes upstream TCP and MITMs TLS locally
 	v
@@ -108,7 +110,7 @@ The CONNECT request itself is not the recorded fetch. It is the setup step that 
 
 The immediate CONNECT 200 is intentional. Chromium must be allowed to start its side of TLS even when upstream setup will fail. The internal engine is the sole owner of this acknowledgement; recorder filters must not send a second CONNECT response.
 
-If upstream TCP dialing, upstream-proxy CONNECT, or upstream TLS fails, recorderproxy preserves the original phased failure while allowing the downstream TLS handshake to complete. The inner HTTPS request then enters the same filter chain with a failed transport. This creates the normal request-scoped record, terminates BrowserController and ContentWriter consistently, and returns a canonical HTTPS error response such as 503 to Chromium.
+If upstream TCP dialing, upstream-proxy CONNECT, or upstream TLS fails, recorderproxy preserves the original phased failure while allowing the downstream TLS handshake to complete. The inner HTTPS request then enters the same filter chain with a failed transport. This creates the normal request-scoped record, completes the ledger and ContentWriter consistently, and returns a canonical HTTPS error response such as 503 to Chromium.
 
 For failures that occur before an upstream connection exists, the engine completes downstream TLS when possible and passes the original phased failure into the tunneled HTTP transport. Upstream TLS failures use the same request path and reuse the successfully established downstream TLS connection.
 
@@ -116,7 +118,7 @@ If no downstream TLS connection or inner HTTP request exists, recorderproxy logs
 
 ## Runtime Flow With Squid
 
-Recorderproxy still owns request state, DNS bookkeeping, ContentWriter streaming, cancellation behavior, and BrowserController interaction. Squid only becomes the upstream transport hop.
+Recorderproxy still owns request state, DNS bookkeeping, ContentWriter streaming, cancellation behavior, and attempt lifecycle. Squid only becomes the upstream transport hop.
 
 ```text
 Browser/client
@@ -177,9 +179,14 @@ In practice, `internal/proxy` is part of recorderproxy's core logic, not a gener
 
 Operational errors carry an explicit `proxy.ErrorPhase` and retain their original cause. Recorder-specific classification happens once in `recorderproxy/errors.go`, producing a canonical code, message, detail, phase, and connection/resource scope.
 
-With a request-scoped `RecordContext`, the terminal path completes BrowserController at most once, terminates ContentWriter at most once, and returns a canonical HTTP response when the protocol still permits it. Without a `RecordContext`, the proxy logs and closes rather than inventing a resource result.
+With a request-scoped `RecordContext`, the terminal path completes the transfer ledger at most once, terminates ContentWriter at most once, and returns a canonical HTTP response when the protocol still permits it. Without a `RecordContext`, the proxy logs and closes rather than inventing a resource result.
 
-BrowserController remains the correlation partner, not the source of recorder errors. Chromium's inner request ID is registered normally, and recorderproxy's later `CompleteResource` supplies the authoritative crawl log even if Chromium reports `Network.loadingFailed` first.
+Recorderproxy writes every terminal crawl log directly to log-service, including
+failures without WARC references. On clean upload EOF, FinishHarvest drains transfer work,
+assembles and persists the page log using browser-supplied capture URI/outlinks,
+and returns the selected main result, totals, failure, and slot reusability.
+BrowserController handles screenshots and Frontier reporting. Configure the
+recorder's `LOG_SERVICE_HOST` and `LOG_SERVICE_PORT` (default 8080).
 
 ## Runtime Metrics And Profiling
 
@@ -274,3 +281,55 @@ go test ./... -count=1
 ```
 
 The integration tests use local TCP listeners and in-memory gRPC service mocks. See `AGENTS.md` for the module map, invariants, and focused validation guidance.
+
+## Harvest attempts
+
+Harvest slots now use [RecorderControl](../proto/recorderproxy/v1/README.md), on
+`CONTROL_PORT` (default 7780). Begin supplies crawl metadata and politeness before
+navigation. Recorder-owned admission, transfer IDs and terminal results replace
+BrowserController registration/completion callbacks.
+`ROBOTS_EVALUATOR_HOST`/`ROBOTS_EVALUATOR_PORT` now configure this process, with the
+same classic-policy mapping and allow-on-evaluator-error behavior. Every accepted
+connection must be pinned to an active attempt. Finish cancels remaining transfers and drains
+within `FINALIZATION_TIMEOUT` (default 30 seconds), independently of its RPC caller.
+
+`PROXY_COUNT` is the harvest capacity (default 1), with slots `1..N` listening on
+`PORT + slot - 1`. There is no always-open listener and no browser callback
+connection. Crawl metadata comes exclusively from BeginHarvest; crawler identity
+headers cannot override it. BrowserController's legacy protobuf definitions are
+kept for compatibility and are unserved.
+
+## Harvest diagnostics
+
+JSON is the executable's default log format. Harvester deployments use INFO;
+the development overlay enables DEBUG. INFO reports `Recording started`,
+`Recording finalization started`, and one `Recording finished`, with
+accepted/finished transfers, archived resource/byte totals, resource
+failures/cancellations, page-log persistence status, and slot reusability.
+`durationMs` covers the recorder's full harvest lifecycle;
+`finalizationDurationMs` covers only finalization. A successful recording summary
+can still contain failed subresources or have no page capture because browser
+capture failed. The controller's `Harvest finished` reports the overall result.
+
+DEBUG emits one `Resource recording finished` per admitted transfer after
+ContentWriter termination and crawl-log persistence. Outcomes include `recorded`,
+`cached`, `canceled`, `failed`, and `persistence_failed`. `warcId` is present when
+confirmed; `crawlLogPersisted` states whether the crawl log was stored.
+`fetchDurationMs` retains the resource fetch measurement. `httpStatus` contains
+only HTTP status codes; recorder errors use `errorCode`. An archived HTTP 404
+can be `recorded`; a persistence failure is a different outcome. Successful HTTP
+headers alone do not establish that recording succeeded. Finalization failure is
+ERROR, with its original cause. Lifecycle and terminal messages remain idempotent
+when control calls are repeated.
+
+TRACE adds admission, cache hits, DNS, CONNECT exchanges, connection open/close,
+and body handling. `component` always identifies the service; `phase` describes
+the operation. No level emits per-chunk messages or dumps payloads or headers.
+
+Use `harvestId`, `slot`, and the requested `pageUrl` to correlate with the
+browser-controller. The log's harvest ID is the existing protocol's `AttemptId`;
+no retry is implied. Resource messages include `url`, `method`, and
+`recorderRequestId`, independently of browser/CDP identifiers. Diagnostic URLs
+are bounded to 512 bytes and embedded data is omitted. See
+[reading harvest logs](../browser-controller/README.md#reading-harvest-logs) for
+field meanings and Kubernetes/`jq` commands.

@@ -214,19 +214,3 @@ func AsCommonsError(err error) *commonsV1.Error {
 		Detail: Detail(err),
 	}
 }
-
-type BrowserControllerCancelError struct {
-	Reason string
-}
-
-func (e *BrowserControllerCancelError) Error() string {
-	if e.Reason == "" {
-		return "cancelled by browser controller"
-	}
-	return "cancelled by browser controller: " + e.Reason
-}
-
-func IsBrowserControllerCancel(err error) bool {
-	var e *BrowserControllerCancelError
-	return stderrors.As(err, &e)
-}

@@ -24,8 +24,8 @@ import (
 )
 
 func handleSquidErrorString(squidErr string) (err error) {
-	l := logger.LogWithComponent("SQUID")
-	l.Debugf("Handle Squid error response: %v", squidErr)
+	l := logger.LogWithPhase("upstream_proxy")
+	l.Tracef("Handle Squid error response: %v", squidErr)
 	switch {
 	case strings.HasPrefix(squidErr, "ERR_CONNECT_FAIL"):
 		tokens := strings.SplitN(squidErr, " ", 2)

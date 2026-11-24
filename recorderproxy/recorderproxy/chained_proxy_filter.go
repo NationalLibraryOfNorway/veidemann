@@ -31,7 +31,7 @@ type chainedProxyFilter struct {
 
 func (f *chainedProxyFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:chain")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "upstream_proxy")
 
 	if req.Method == http.MethodConnect {
 		resp, nextCS, err = next(cs, req)

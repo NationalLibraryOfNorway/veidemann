@@ -28,12 +28,8 @@ func (r responseRecorder) Wrap(resp *http.Response) (*http.Response, error) {
 		panic(http.ErrAbortHandler)
 	}
 
-	if shouldSkipResponseRecording(r.rc) {
-		return resp, nil
-	}
-
 	if isFromCache(resp) {
-		rpcontext.LogWithRecordContext(r.rc, "FLT:rec").Info("Loaded from cache")
+		rpcontext.LogWithRecordContext(r.rc, "recording").Trace("Loaded from cache")
 		r.rc.FoundInCache = true
 	}
 
@@ -70,11 +66,6 @@ func (r responseRecorder) Wrap(resp *http.Response) (*http.Response, error) {
 	// WIN: one body wrapper, one lifecycle owner, one stream.
 	resp.Body = body
 	return resp, nil
-}
-
-func shouldSkipResponseRecording(rc *rpcontext.RecordContext) bool {
-	return rc.Error != nil &&
-		strings.HasPrefix(rc.Error.Error(), "unknown error from browser controller")
 }
 
 func responseProlog(resp *http.Response) ([]byte, error) {

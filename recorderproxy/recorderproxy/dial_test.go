@@ -68,7 +68,7 @@ func TestSendConnectToNextProxyCancellationClosesConnection(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- (&RecorderProxy{}).sendConnectToNextProxy(ctx, client, logger.LogWithComponent("TEST"))
+		done <- (&RecorderProxy{}).sendConnectToNextProxy(ctx, client, logger.LogWithPhase("TEST"))
 	}()
 	if err := <-requestRead; err != nil {
 		t.Fatal(err)

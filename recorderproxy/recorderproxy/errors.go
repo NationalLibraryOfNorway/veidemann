@@ -29,6 +29,30 @@ type RecorderFailure struct {
 	Cause   error
 }
 
+// completedResourceError reaches the response writer only after terminal work
+// has completed. The connection handler must not turn it into another failure.
+type completedResourceError struct{ error }
+
+func (e *completedResourceError) Unwrap() error { return e.error }
+
+// isFetchFailure requires a known fetch boundary. Typed recorder/service errors
+// remain fatal even when a transport wraps them in an HTTP round-trip error.
+func isFetchFailure(err error) bool {
+	phase := proxy.Phase(err)
+	var typed *rperrors.ProxyError
+	if errors.As(err, &typed) {
+		// These are the origin failures recognized by the existing Squid parser.
+		return phase == proxy.PhaseUpstreamProxyConnect &&
+			(typed.Code() == rperrors.ConnectFailed || typed.Code() == rperrors.EmptyResponse)
+	}
+	switch phase {
+	case proxy.PhaseHTTPRoundTrip, proxy.PhaseConnectDial, proxy.PhaseUpstreamTLS:
+		return true
+	default:
+		return false
+	}
+}
+
 func (f RecorderFailure) Error() string {
 	return f.asError().Error()
 }
@@ -60,6 +84,10 @@ func classifyFailure(err error, scope FailureScope) RecorderFailure {
 	switch {
 	case err == nil:
 		detail = "unknown error"
+
+	case errors.Is(err, context.Canceled):
+		code = rperrors.CanceledByBrowser
+		detail = "Veidemann recorder proxy lost connection to client"
 
 	case errors.Is(err, context.DeadlineExceeded), isNetTimeout(err), containsAny(detail,
 		"i/o timeout", "timeout awaiting response", "context deadline exceeded"):

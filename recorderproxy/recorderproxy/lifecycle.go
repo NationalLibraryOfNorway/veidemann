@@ -57,9 +57,13 @@ func (l *lifecycleTracker) addRecord(rc *rpcontext.RecordContext) {
 	l.notifyLocked()
 	l.mu.Unlock()
 
+	previousClose := rc.CloseFunc
 	var once sync.Once
 	rc.CloseFunc = func() {
 		once.Do(func() {
+			if previousClose != nil {
+				previousClose()
+			}
 			l.mu.Lock()
 			delete(l.records, rc)
 			l.notifyLocked()
@@ -78,6 +82,13 @@ func (l *lifecycleTracker) closeAndSnapshotConnections() []*wrappedConnection {
 	}
 	l.notifyLocked()
 	return connections
+}
+
+// drained requires closed admission as well as an empty tracker.
+func (l *lifecycleTracker) drained() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.closed && len(l.conns) == 0 && len(l.records) == 0
 }
 
 func (l *lifecycleTracker) wait(ctx context.Context) error {

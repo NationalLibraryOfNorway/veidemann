@@ -22,17 +22,19 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 )
 
-func get(url string, client *http.Client, timeout time.Duration) (int, []byte, error) {
-	log := logger.LogWithComponent("CLIENT")
+func get(ctx context.Context, url, attemptID string, client *http.Client, timeout time.Duration) (int, []byte, error) {
+	log := logger.LogWithPhase("http_client")
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return 0, nil, err
 	}
+	req.Header.Set(constants.HeaderAttemptId, attemptID)
 
 	if timeout > 0 {
 		ctx, cancel := context.WithTimeout(req.Context(), timeout)
@@ -41,7 +43,9 @@ func get(url string, client *http.Client, timeout time.Duration) (int, []byte, e
 	}
 
 	if logger.IsLevelEnabled(logger.DebugLevel) {
-		client.Transport, req = recorderproxy.DecorateRequest(client.Transport, req)
+		tr, r := recorderproxy.DecorateRequest(client.Transport, req)
+		client = &http.Client{Transport: tr}
+		req = r
 	}
 
 	log.Infof("submitting request: %v %v %v", req.Method, req.URL, req.Proto)

@@ -80,9 +80,7 @@ func WrapResponseBody(
 		blockDigest:   sha1.New(),
 	}
 
-	b.log = rpcontext.
-		LogWithRecordContext(rc, "BODY:resp").
-		WithField("url", rc.Uri.String())
+	b.log = rpcontext.LogWithRecordContext(rc, "response_body")
 
 	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
 		RecordNum:         b.recNum,
@@ -138,17 +136,25 @@ func (b *wrappedResponseBody) Read(p []byte) (int, error) {
 	// WIN: single path. The bytes read from upstream are the same bytes sent to
 	// the client and the same bytes recorded. No replacement-body fork.
 	n, readErr := r.Read(p)
-	b.logRead(n, readErr)
 
 	if n > 0 {
 		if err := b.recordPayload(p[:n]); err != nil {
+			_ = b.recordContext.SendResponseError(b.ctx, errors.WrapInternalError(err, errors.RuntimeException, "Error recording response payload", err.Error()))
+			err = &completedResourceError{err}
 			b.setFailed(err)
 			return n, err
 		}
 	}
 
+	if readErr != nil && readErr != io.EOF && b.ctx.Err() == nil {
+		failure := classifyFailure(readErr, FailureScopeResource)
+		_ = b.recordContext.SendFetchError(failure.asError())
+		readErr = &completedResourceError{readErr}
+		b.setFailed(readErr)
+	}
 	if readErr == io.EOF {
 		if err := b.finishRecord(); err != nil {
+			err = &completedResourceError{err}
 			b.setFailed(err)
 			return n, err
 		}
@@ -197,9 +203,9 @@ func (b *wrappedResponseBody) Close() error {
 	}
 
 	if err != nil {
-		b.log.WithError(err).Debug("Close body")
+		b.log.WithError(err).Trace("Response body closed")
 	} else {
-		b.log.Debug("Close body")
+		b.log.Trace("Response body closed")
 	}
 
 	return err
@@ -222,15 +228,6 @@ func (b *wrappedResponseBody) closeState() (io.Closer, bool) {
 	}
 
 	return b.ReadCloser, prematureClose
-}
-
-func (b *wrappedResponseBody) logRead(n int, err error) {
-	if err != nil && err != io.EOF {
-		b.log.WithError(err).Warnf("Inner read %d", n)
-		return
-	}
-
-	b.log.Tracef("Inner read %d", n)
 }
 
 func (b *wrappedResponseBody) recordPayload(data []byte) error {
@@ -325,7 +322,7 @@ func finishStoredResponseRecord(
 	blockDigest string,
 ) error {
 	if err := rc.FinalizeStoredResponse(recNum, size, blockDigest); err != nil {
-		rpcontext.LogWithRecordContext(rc, "BODY:resp").
+		rpcontext.LogWithRecordContext(rc, "response_body").
 			WithError(err).
 			Error("Error saving crawllog")
 		return err

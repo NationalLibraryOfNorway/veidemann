@@ -10,14 +10,19 @@ import (
 	"testing"
 	"time"
 
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
 )
 
+var completions []*logV1.CrawlLog
+
 func initializedRecordContext(t *testing.T, services *testutil.GrpcServiceMock, timeout time.Duration) *rpcontext.RecordContext {
 	t.Helper()
+	completions = nil
 	uri, err := url.Parse("https://example.com/resource")
 	if err != nil {
 		t.Fatal(err)
@@ -26,7 +31,9 @@ func initializedRecordContext(t *testing.T, services *testutil.GrpcServiceMock, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	rc := rpcontext.NewRecordContext(timeout).Init(1, services.ClientConn, req, uri)
+	rc := rpcontext.NewRecordContext(timeout)
+	rc.Complete = func(cl *logV1.CrawlLog, cached bool, _ *commonsV1.Error) { completions = append(completions, cl) }
+	rc.Init(1, services.ContentWriterClient, req, uri)
 	rc.Meta = &contentwriterV1.WriteRequest_Meta{Meta: &contentwriterV1.WriteRequestMeta{
 		RecordMeta: map[int32]*contentwriterV1.WriteRequestMeta_RecordMeta{},
 	}}
@@ -63,8 +70,8 @@ func TestFinalizeStoredResponseTimesOutAndClosesSession(t *testing.T) {
 	if got := rpcontext.OpenSessions(); got != baseline {
 		t.Fatalf("OpenSessions() = %d, want %d", got, baseline)
 	}
-	if got := len(services.Requests.BrowserControllerRequests); got != 1 {
-		t.Fatalf("BrowserController completion count = %d, want 1", got)
+	if got := len(completions); got != 1 {
+		t.Fatalf("Ledger completion count = %d, want 1", got)
 	}
 }
 
@@ -102,7 +109,6 @@ func TestTerminalCoordinatorCompletesAtMostOnce(t *testing.T) {
 	services := testutil.NewGrpcServiceMock()
 	defer services.Close()
 	rc := initializedRecordContext(t, services, time.Second)
-	rc.RequestId = "request-1"
 
 	errOne := rperrors.Error(rperrors.ConnectFailed, "CONNECT_FAILED", "first")
 	errTwo := rperrors.Error(rperrors.CanceledByBrowser, "CANCELED_BY_BROWSER", "second")
@@ -115,7 +121,35 @@ func TestTerminalCoordinatorCompletesAtMostOnce(t *testing.T) {
 		}(terminalErr)
 	}
 	wg.Wait()
-	if got := len(services.Requests.BrowserControllerRequests); got != 1 {
-		t.Fatalf("BrowserController completion count = %d, want 1", got)
+	if got := len(completions); got != 1 {
+		t.Fatalf("Ledger completion count = %d, want 1", got)
+	}
+}
+
+func TestFinalizationRejectsUnconfirmedWARC(t *testing.T) {
+	services := testutil.NewGrpcServiceMock(testutil.WithContentWriterWriteFunc(
+		func(stream contentwriterV1.ContentWriter_WriteServer) error {
+			for {
+				_, err := stream.Recv()
+				if err == io.EOF {
+					return stream.SendAndClose(&contentwriterV1.WriteReply{Meta: &contentwriterV1.WriteResponseMeta{RecordMeta: map[int32]*contentwriterV1.WriteResponseMeta_RecordMeta{1: {}}}})
+				}
+				if err != nil {
+					return err
+				}
+			}
+		},
+	))
+	defer services.Close()
+	rc := initializedRecordContext(t, services, time.Second)
+	if err := rc.FinalizeStoredResponse(1, 0, "sha1:empty"); rperrors.Code(err) != rperrors.RuntimeException {
+		t.Fatal(err)
+	}
+	if len(completions) != 1 {
+		t.Fatal("missing terminal outcome")
+	}
+	cl := completions[0]
+	if cl.WarcId != "" || cl.GetError().GetCode() != -5 {
+		t.Fatal(cl)
 	}
 }

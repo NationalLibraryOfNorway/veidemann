@@ -21,20 +21,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
+	robotsV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
-
-	"net"
-	"net/http"
-	"time"
 )
 
 const (
@@ -47,6 +48,7 @@ const (
 )
 
 type recorderProxyOptions struct {
+	robots              robotsV1.RobotsEvaluatorClient
 	mitmIdentity        *mitmcert.Identity
 	finalizationTimeout time.Duration
 	idleTimeout         time.Duration
@@ -54,6 +56,10 @@ type recorderProxyOptions struct {
 
 // Option configures a RecorderProxy.
 type Option func(*recorderProxyOptions)
+
+func WithRobotsEvaluator(client robotsV1.RobotsEvaluatorClient) Option {
+	return func(o *recorderProxyOptions) { o.robots = client }
+}
 
 func WithMITMIdentity(identity *mitmcert.Identity) Option {
 	return func(opts *recorderProxyOptions) { opts.mitmIdentity = identity }
@@ -88,9 +94,11 @@ func inMemoryMITMIdentity() (*mitmcert.Identity, error) {
 }
 
 type RecorderProxy struct {
-	handler *proxy.Handler
-	id      int32
-	conn    *serviceconnections.Connections
+	attempt             *harvestAttempt
+	nextToken           string
+	finalizationTimeout time.Duration
+	handler             *proxy.Handler
+	id                  int32
 	// ConnectionTimeout is retained for source compatibility.
 	//
 	// Deprecated: this field has no effect. Use WithIdleTimeout instead.
@@ -102,7 +110,8 @@ type RecorderProxy struct {
 	lifecycle         *lifecycleTracker
 }
 
-func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAddr string, options ...Option) *RecorderProxy {
+// NewRecorderProxy uses service clients whose connections are owned by the caller.
+func NewRecorderProxy(id int, contentWriter contentwriterV1.ContentWriterClient, dnsResolver dnsresolverV1.DnsResolverClient, nextProxyAddr string, options ...Option) *RecorderProxy {
 	opts := recorderProxyOptions{
 		finalizationTimeout: defaultFinalizationTimeout,
 		idleTimeout:         defaultIdleTimeout,
@@ -122,10 +131,10 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 	}
 
 	r := &RecorderProxy{
-		id:        int32(id),
-		conn:      conn,
-		nextProxy: nextProxyAddr,
-		lifecycle: newLifecycleTracker(),
+		id:                  int32(id),
+		finalizationTimeout: opts.finalizationTimeout,
+		nextProxy:           nextProxyAddr,
+		lifecycle:           newLifecycleTracker(),
 	}
 
 	filterChain := proxy.Join(
@@ -133,7 +142,8 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 
 		// Initializes request and connection metadata.
 		&contextInitFilter{
-			conn:                conn,
+			contentWriterClient: contentWriter,
+			robots:              opts.robots,
 			proxyId:             int32(id),
 			finalizationTimeout: opts.finalizationTimeout,
 			lifecycle:           r.lifecycle,
@@ -143,7 +153,7 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 		&errorHandlerFilter{},
 
 		&dnsLookupFilter{
-			dnsResolverClient: conn.DnsResolverClient(),
+			dnsResolverClient: dnsResolver,
 		},
 
 		&recorderFilter{},
@@ -160,15 +170,28 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 		IdleTimeout:   opts.idleTimeout,
 		OnIdleTimeout: idleConnectionTimeouts.Inc,
 		OnError: func(cs *proxy.State, req *http.Request, phase proxy.ErrorPhase, err error) *http.Response {
+			var completed *completedResourceError
+			if phase == proxy.PhaseResponseWrite && errors.As(err, &completed) {
+				return nil
+			}
 			phasedErr := err
+			log := logger.Log
 			if proxy.Phase(phasedErr) == "" {
 				phasedErr = proxy.NewPhaseError(phase, err)
 			}
+			if cs != nil {
+				if ctx := proxyContextFromConn(cs.Downstream()); ctx != nil {
+					log = rpcontext.HarvestLogger(ctx)
+					if binding, _ := ctx.Value(attemptKey{}).(*attemptConnection); binding != nil && binding.verified.Load() {
+						binding.attempt.connectionFailure(phasedErr)
+					}
+				}
+			}
 			failure := classifyFailure(phasedErr, FailureScopeConnection)
-			logger.LogWithComponent("PROXY").
+			log.
 				WithField("phase", failure.Phase).
 				WithField("scope", failure.Scope).
-				WithField("code", failure.Code).
+				WithField("errorCode", failure.Code).
 				WithError(err).
 				Error("Connection failure outside a recordable HTTP request")
 			if phase != proxy.PhaseFilter && phase != proxy.PhaseReadRequest {
@@ -188,7 +211,7 @@ func NewRecorderProxy(id int, conn *serviceconnections.Connections, nextProxyAdd
 }
 
 func (proxy *RecorderProxy) Listen(host string, port int) (net.Listener, error) {
-	portStr := strconv.Itoa(port + int(proxy.id))
+	portStr := strconv.Itoa(port + int(proxy.id) - 1)
 	addr := net.JoinHostPort(host, portStr)
 	return net.Listen("tcp", addr)
 }
@@ -213,11 +236,28 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 		}
 
 		connectionCtx, cancel := context.WithCancel(context.Background())
+		proxy.mu.Lock()
+		a := proxy.attempt
+		if a == nil {
+			proxy.mu.Unlock()
+			cancel()
+			_ = conn.Close()
+			continue
+		}
+		connectionCtx = context.WithValue(connectionCtx, attemptKey{}, &attemptConnection{attempt: a})
+		connectionCtx = rpcontext.WithHarvestLogger(connectionCtx, harvestLog(a.spec))
 		ctx := rpcontext.RecordProxyDataAware(connectionCtx)
 
-		wrappedConn := WrapConn(conn, "down", false)
+		wrappedConn := wrapConn(conn, "browser_connection", harvestLog(a.spec))
 		wrappedConn.baseCtx, wrappedConn.cancelFunc = ctx, cancel
+		if !a.lifecycle.addConnection(wrappedConn) {
+			proxy.mu.Unlock()
+			_ = wrappedConn.Close()
+			continue
+		}
+		proxy.mu.Unlock()
 		if !proxy.lifecycle.addConnection(wrappedConn) {
+			a.lifecycle.removeConnection(wrappedConn)
 			_ = wrappedConn.Close()
 			continue
 		}
@@ -226,10 +266,13 @@ func (proxy *RecorderProxy) Serve(ln net.Listener) error {
 		go func() {
 			defer activeConnections.Dec()
 			defer proxy.lifecycle.removeConnection(wrappedConn)
+			if a != nil {
+				defer a.lifecycle.removeConnection(wrappedConn)
+			}
 			defer cancel()
 			err := proxy.handler.Handle(ctx, wrappedConn, wrappedConn)
 			if err != nil && !isExpectedDisconnect(err) {
-				logger.LogWithComponent("PROXY").WithError(err).Error("Error handling request")
+				harvestLog(a.spec).WithField("phase", "connection").WithError(err).Error("Connection failed")
 			}
 		}()
 	}
@@ -268,11 +311,10 @@ func (proxy *RecorderProxy) isShuttingDown() bool {
 
 type wrappedConnection struct {
 	net.Conn
-	t          string
 	closed     atomic.Int32
 	baseCtx    context.Context
 	cancelFunc func()
-	dirOut     bool
+	log        *logger.Logger
 }
 
 func (conn *wrappedConnection) ProxyContext() context.Context {
@@ -289,12 +331,7 @@ func (conn *wrappedConnection) Close() (err error) {
 		return nil
 	}
 
-	l := logger.LogWithComponent("CONN:" + conn.t)
-	if conn.dirOut {
-		l.Debugf("Close connection %v -> %v\n", conn.LocalAddr(), conn.RemoteAddr())
-	} else {
-		l.Debugf("Close connection %v -> %v\n", conn.RemoteAddr(), conn.LocalAddr())
-	}
+	conn.log.Trace("Connection closed")
 
 	if conn.cancelFunc != nil {
 		conn.cancelFunc()
@@ -308,15 +345,6 @@ func (conn *wrappedConnection) Read(b []byte) (n int, err error) {
 	if isExpectedDisconnect(err) && conn.cancelFunc != nil {
 		conn.cancelFunc()
 	}
-	l := logger.LogWithComponent("CONN:" + conn.t)
-	if err != nil {
-		l = l.WithError(err)
-	}
-	if logger.IsLevelEnabled(logger.TraceLevel) {
-		l.Tracef("read:\n%s\n", logger.FormatPayload(b, n, 10, 20))
-	} else {
-		l.WithField("bytes", n).Debug("Connection read")
-	}
 	return
 }
 
@@ -324,15 +352,6 @@ func (conn *wrappedConnection) Write(b []byte) (n int, err error) {
 	n, err = conn.Conn.Write(b)
 	if isExpectedDisconnect(err) && conn.cancelFunc != nil {
 		conn.cancelFunc()
-	}
-	l := logger.LogWithComponent("CONN:" + conn.t)
-	if err != nil {
-		l = l.WithError(err)
-	}
-	if logger.IsLevelEnabled(logger.TraceLevel) {
-		l.Tracef("write:\n%s\n", logger.FormatPayload(b, n, 10, 20))
-	} else {
-		l.WithField("bytes", n).Debug("Connection write")
 	}
 	return
 }
@@ -353,12 +372,12 @@ func isExpectedDisconnect(err error) bool {
 		strings.Contains(text, "connection reset by peer")
 }
 
-func WrapConn(conn net.Conn, label string, dirOut bool) *wrappedConnection {
-	l := logger.LogWithComponent("CONN:" + label)
-	if dirOut {
-		l.Debugf("New connection %v -> %v\n", conn.LocalAddr(), conn.RemoteAddr())
-	} else {
-		l.Debugf("New connection %v -> %v\n", conn.RemoteAddr(), conn.LocalAddr())
-	}
-	return &wrappedConnection{Conn: conn, t: label, dirOut: dirOut}
+func WrapConn(conn net.Conn, label string, _ bool) *wrappedConnection {
+	return wrapConn(conn, label, logger.Log)
+}
+
+func wrapConn(conn net.Conn, phase string, log *logger.Logger) *wrappedConnection {
+	l := log.WithFields(logger.Fields{"phase": phase, "localAddress": conn.LocalAddr().String(), "remoteAddress": conn.RemoteAddr().String()})
+	l.Trace("Connection opened")
+	return &wrappedConnection{Conn: conn, log: l}
 }

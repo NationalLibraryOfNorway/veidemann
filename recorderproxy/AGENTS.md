@@ -8,10 +8,10 @@ These instructions apply to the `recorderproxy` Go module. They supplement the r
 
 Recorderproxy is the crawler's HTTP/HTTPS interception proxy. Chromium sends its traffic here. For each recordable inner HTTP request, recorderproxy:
 
-1. correlates the request with BrowserController;
+1. admits the transfer into the recorder-owned harvest attempt;
 2. resolves and records the target address through DnsResolver;
 3. streams request and response records to ContentWriter;
-4. sends one authoritative `CrawlLog` to BrowserController; and
+4. persists one authoritative terminal `CrawlLog` to log-service and retains its page resource outcome; and
 5. returns the origin response, or a canonical proxy error response, to Chromium.
 
 Recorderproxy owns the crawl result. BrowserController may observe Chromium network events such as `Network.loadingFailed`, but it does not derive the recorder error or manufacture the crawl log from those events.
@@ -42,13 +42,12 @@ Do not reorder filters as cleanup without proving HTTP, HTTPS, error, cancellati
 
 ## Directory Map
 
-- `main.go`, `options.go`: process startup, flags/environment, gRPC connections, and the pool of listeners. Proxy `i` listens on base port plus `i`.
+- `main.go`, `options.go`: process startup, flags/environment, gRPC connections, and the pool of listeners. Slot `i` (1..N) listens on base port plus `i` minus one.
 - `recorderproxy/`: recorder-specific filters, dialing, request/response recording, error classification, and listener lifecycle.
 - `internal/proxy/`: purpose-built request loop, minimal filter chain, CONNECT acknowledgement, fixed-certificate MITM, tunneled HTTP recursion, networking adapters, and phase-aware errors.
 - `mitmcert/`: generation, loading, and validation for the immutable interception identity shared by listeners.
-- `context/`: connection/request state plus BrowserController and ContentWriter client lifecycles. This package is recorderproxy state, not ordinary immutable Go context values.
+- `context/`: connection/request state plus ContentWriter and harvest terminal lifecycles. This package is recorderproxy state, not ordinary immutable Go context values.
 - `errors/`: canonical recorder error codes and `ProxyError` constructors.
-- `serviceconnections/`: long-lived gRPC connections to BrowserController, DnsResolver, and ContentWriter.
 - `constants/`: crawler headers and record content-type constants.
 - `testutil/`: in-memory gRPC mocks, origin servers, and the secondary proxy used by integration tests.
 - `proxyutil/`: small proxy client utility, separate from the runtime proxy implementation.
@@ -56,7 +55,7 @@ Do not reorder filters as cleanup without proving HTTP, HTTPS, error, cancellati
 
 ## HTTP Request Flow
 
-For plain HTTP, Chromium sends an absolute-form proxy request. `ContextInitFilter` creates a request-scoped `RecordContext` and registers it with BrowserController. DNS resolution, request recording, the round trip, response recording, ContentWriter finalization, and BrowserController completion then happen through the normal filter chain.
+For plain HTTP, Chromium sends an absolute-form proxy request. `ContextInitFilter` admits a request-scoped `RecordContext` before policy checks. DNS resolution, request recording, the round trip, response recording, ContentWriter finalization, and ledger completion then happen through the normal filter chain. Browser events are not recording prerequisites. See [the attempt contract](../proto/recorderproxy/v1/README.md).
 
 Record numbers are stable protocol:
 
@@ -71,7 +70,7 @@ CONNECT is setup, not the recorded HTTPS resource.
 
 The intended flow is:
 
-1. `ContextInitFilter` registers the browser's CONNECT with BrowserController and stores connection metadata.
+1. `ContextInitFilter` reads the attempt pinned to the accepted connection and stores crawl metadata.
 2. With `WaitForUpstream: false`, the internal engine returns CONNECT 200 immediately. This prevents Chromium from blocking on upstream setup. The engine is the sole owner of this acknowledgement.
 3. The engine dials the origin or next proxy and performs local MITM.
 4. The decrypted inner request, such as `GET /`, re-enters the normal filter chain and gets its own `RecordContext`.
@@ -95,7 +94,7 @@ The current model is deliberate:
 - For an upstream TLS failure, MITM returns the failure together with the usable downstream TLS connection.
 - MITM completes the downstream/browser TLS handshake when possible.
 - Once the inner HTTPS request is available, the engine sends it through the normal filter chain with a deterministic failed transport carrying the original phased error.
-- The normal request path then registers the resource, starts/terminates ContentWriter consistently, completes BrowserController once, and returns a TLS-wrapped canonical error response to Chromium.
+- The normal request path then admits the transfer, starts/terminates ContentWriter consistently, completes the attempt ledger once, and returns a TLS-wrapped canonical error response to Chromium.
 
 If downstream TLS or inner-request parsing fails before a `RecordContext` exists, log the phased connection failure and close. Do not invent a crawl resource.
 
@@ -118,12 +117,12 @@ Classification belongs in `recorderproxy/errors.go`. Prefer typed errors and `er
 
 There are two terminal policies:
 
-- With a `RecordContext`, complete BrowserController at most once, terminate ContentWriter at most once, and return the canonical HTTP response when legal.
-- Without a `RecordContext`, log and close; do not send `CompleteResource` for a request that was never established.
+- With a `RecordContext`, complete the attempt ledger at most once, terminate ContentWriter at most once, and return the canonical HTTP response when legal.
+- Without a `RecordContext`, preserve unexpected failures in the attempt summary, log and close; do not send `CompleteResource` for a request that was never established.
 
 `handleRequestError` implements the request-scoped terminal path. `RecordContext.finalizeCrawlLog` and the ContentWriter session contain the idempotency guards. Avoid adding parallel completion paths.
 
-## Context And Correlation
+## Context And Attempt Ownership
 
 Connections are repeatedly wrapped by proxy, TLS, and MITM code. `filter_context.go` walks wrappers to recover the base proxy context. The `context` package stores mutable state behind a state handle so request state survives those wrappers.
 
@@ -133,19 +132,26 @@ Keep these scopes distinct:
 - request metadata and `RecordContext`, which must be fresh per inner HTTP request.
 
 Parsed requests inherit the accepted connection's cancellation. Terminal
-BrowserController completion and ContentWriter shutdown deliberately use their
+ledger completion and ContentWriter shutdown deliberately use their
 own bounded contexts so they can finish after browser cancellation. Shutdown
-ownership is per `RecorderProxy`; the process-wide open-session count is a
+ownership is per attempt and `RecorderProxy`; the process-wide open-session count is a
 metric, not a synchronization primitive.
 
-Crawler headers include the Chromium request ID, crawl execution ID, job execution ID, and collection ID. `RecordContext.Init` captures them and removes them before forwarding upstream. The request ID is how BrowserController correlates recorderproxy's later `CompleteResource` with Chromium's request.
+Crawler headers are stripped before forwarding. Harvest metadata comes exclusively from BeginHarvest. Each admitted transfer receives its own sequence number, including repeated-URL redirects. Connections and handlers must drain before reusing a slot; never look up a new attempt by slot inside an old handler.
 
 Do not restore a context-based error side channel. Transport errors travel as errors with phases; context is for request/session metadata.
 
 ## External Services
 
-- BrowserController: `RegisterResource` decides whether a request proceeds and provides crawl metadata; `CompleteResource` receives the authoritative crawl log.
+`main.go` owns setup and shutdown of the gRPC connections to ContentWriter,
+DnsResolver, RobotsEvaluator, and log-service. Pass generated service clients
+into the recorder and request state; those consumers do not own the connections.
+Use the typed accessors in `options.go` for all startup configuration.
+
+- BrowserController: calls recorder-owned BeginHarvest/FinishHarvest for browser attempts. Registration/completion callback definitions remain unserved.
+- RobotsEvaluator: evaluates the attempt policy before transfers proceed. Preserve classic-policy conversion and allow-on-evaluator-error behavior.
 - DnsResolver: resolves the target and records the IP associated with the crawl result.
+- Log-service: receives terminal crawl logs, including failures without WARC IDs, and page logs assembled on FinishHarvest stream completion.
 - ContentWriter: receives one client-streamed record consisting of protocol headers, payload chunks, and final metadata, or one terminal cancel.
 
 No protobuf or service API change should be needed for ordinary recorderproxy error handling.
@@ -192,7 +198,7 @@ Important coverage lives in:
 
 - `internal/proxy/`: phase/cause preservation, identity sharing, request-loop, and networking behavior.
 - `recorderproxy/errors_test.go`: canonical classification.
-- `recorderproxy/recorderproxy_test.go`: HTTP/HTTPS behavior plus BrowserController, DnsResolver, and ContentWriter interactions.
+- `recorderproxy/recorderproxy_test.go`: HTTP/HTTPS behavior plus harvest ledger, DnsResolver, and ContentWriter interactions.
 - `recorderproxy/dial_test.go`: dial timeout behavior.
 
 When changing CONNECT or terminal handling, verify at least:
@@ -202,7 +208,7 @@ When changing CONNECT or terminal handling, verify at least:
 - upstream TLS failure;
 - chained-proxy CONNECT failure if touched;
 - client cancellation/response streaming failure;
-- exactly one BrowserController completion and one ContentWriter terminal action; and
+- exactly one ledger completion and one ContentWriter terminal action; and
 - no plaintext response after CONNECT 200.
 
 The large integration test intentionally checks full RPC sequences. A changed expected sequence should be justified by the lifecycle, not merely updated to match output.

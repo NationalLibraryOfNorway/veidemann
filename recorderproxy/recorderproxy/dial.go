@@ -33,8 +33,8 @@ import (
 )
 
 func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, addr string) (net.Conn, error) {
-	log := rpcontext.LogWithContext(ctx, "Dialer")
-	log.Debugf("dial upstream %v, is connect request: %v", addr, isConnect)
+	log := rpcontext.LogWithContext(ctx, "upstream_connect")
+	log.WithFields(logger.Fields{"destination": addr, "tunnel": isConnect}).Trace("Upstream connection started")
 
 	dialAddr := addr
 	if proxy.nextProxy != "" {
@@ -53,15 +53,15 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 	if err != nil {
 		if cause := context.Cause(dialCtx); cause != nil {
 			if stderrors.Is(cause, context.Canceled) {
-				log.WithError(cause).Debug("Upstream dial canceled")
+				log.WithError(cause).Trace("Upstream dial canceled")
 			} else {
 				log.WithError(cause).Errorf("Failed to dial %v", dialAddr)
 			}
-			return nil, cause
+			return nil, proxy.dialFailure(cause)
 		}
 		if proxy.nextProxy != "" {
 			log.Errorf("could not dial next proxy at %v: %v", proxy.nextProxy, err)
-			return nil, err
+			return nil, proxy.dialFailure(err)
 		}
 
 		log.Errorf("Failed to dial %v: %v", addr, err)
@@ -69,8 +69,8 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 		return nil, err
 	}
 
-	if logger.IsLevelEnabled(logger.DebugLevel) {
-		conn = WrapConn(conn, "up", true)
+	if logger.IsLevelEnabled(logger.TraceLevel) {
+		conn = wrapConn(conn, "upstream_connection", rpcontext.HarvestLogger(ctx))
 	}
 
 	if isConnect && proxy.nextProxy != "" {
@@ -81,6 +81,15 @@ func (proxy *RecorderProxy) Dial(ctx context.Context, isConnect bool, network, a
 	}
 
 	return conn, nil
+}
+
+func (proxy *RecorderProxy) dialFailure(err error) error {
+	if proxy.nextProxy != "" {
+		// Failure to reach the configured proxy is a service failure, not an
+		// origin outcome. Keep that distinction through transport wrapping.
+		return classifyFailure(err, FailureScopeConnection).asError()
+	}
+	return err
 }
 
 func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net.Conn, log *logger.Logger) (err error) {
@@ -102,7 +111,7 @@ func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net
 	uri := rpcontext.GetUri(wrappedCtx)
 
 	req := NewConnectReq(uri.Host)
-	log.Debugf("sending CONNECT for host %v to upstream proxy", req.URL)
+	log.WithField("destination", uri.Host).Trace("HTTPS tunnel requested")
 
 	if err := req.Write(conn); err != nil {
 		if context.Cause(ctx) == nil {
@@ -122,7 +131,7 @@ func (proxy *RecorderProxy) sendConnectToNextProxy(ctx context.Context, conn net
 		_ = resp.Body.Close()
 	}()
 
-	log.Debugf("response status from CONNECT request to upstream proxy was: %v", resp.Status)
+	log.WithFields(logger.Fields{"destination": uri.Host, "httpStatus": resp.StatusCode}).Trace("HTTPS tunnel response received")
 
 	squidErr := resp.Header.Get("X-Squid-Error")
 	if squidErr != "" {

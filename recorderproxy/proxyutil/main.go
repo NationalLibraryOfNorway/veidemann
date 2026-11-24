@@ -25,17 +25,14 @@ import (
 	"os/signal"
 	"time"
 
+	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/testutil"
+	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-)
-
-var (
-	acceptAllCerts = &tls.Config{InsecureSkipVerify: true}
-	recorderProxy  *recorderproxy.RecorderProxy
-	client         *http.Client
 )
 
 func main() {
@@ -55,7 +52,7 @@ func main() {
 
 	err := logger.InitLog(viper.GetString("log-level"), viper.GetString("log-formatter"), viper.GetBool("log-method"))
 	if err != nil {
-		logger.LogWithComponent("INIT").Errorf("Could not init logger: %s", err)
+		logger.LogWithPhase("INIT").Errorf("Could not init logger: %s", err)
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -69,37 +66,65 @@ func main() {
 	defer cancel()
 
 	grpcServices := testutil.NewGrpcServiceMock()
+	defer grpcServices.Close()
 
-	if flag.NArg() == 0 {
-		recorderProxy, _ = newProxy(grpcServices)
-		defer recorderProxy.Shutdown(ctx)
-	} else {
-		for _, url := range flag.Args() {
-			getWithProxy(ctx, url, grpcServices)
-		}
+	p, client := newProxy(grpcServices)
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+		defer cancel()
+		_ = p.Shutdown(shutdownCtx)
+	}()
+	control := recorderproxy.NewControl(grpcServices, p)
+	recovered, err := control.RecoverSlot(ctx, &recorderV1.RecoverSlotRequest{ProxyId: 1})
+	if err != nil {
+		panic(err)
 	}
-
-	if viper.GetBool("keep-running") {
-		<-ctx.Done()
+	token := recovered.NextToken
+	urls := flag.Args()
+	if len(urls) == 0 || viper.GetBool("keep-running") {
+		urls = append(urls, "")
+	}
+	for _, uri := range urls {
+		if ctx.Err() != nil {
+			break
+		}
+		id := uuid.NewString()
+		begin, err := control.BeginHarvest(ctx, &recorderV1.BeginHarvestRequest{
+			AdmissionToken: token, ProxyId: 1, AttemptId: id, RequestedUri: uri, CrawlExecutionId: "proxyutil",
+			CollectionRef: &configV1.ConfigRef{Kind: configV1.Kind_collection, Id: "proxyutil"},
+		})
+		if err != nil {
+			panic(err)
+		}
+		token = begin.NextToken
+		if uri != "" {
+			getWithProxy(ctx, uri, id, client)
+		} else if viper.GetBool("keep-running") {
+			logger.LogWithPhase("HARVEST").Infof("Listening for requests with X-Veidemann-Attempt-Id: %s", id)
+			<-ctx.Done()
+		}
+		finishCtx, cancelFinish := context.WithTimeout(context.WithoutCancel(ctx), 35*time.Second)
+		reply, err := control.FinishPage(finishCtx, &recorderV1.FinishHarvestHeader{ProxyId: 1, AttemptId: id}, nil)
+		cancelFinish()
+		if err != nil || !reply.GetReusable() {
+			logger.LogWithPhase("HARVEST").WithError(err).Errorf("Finish harvest: %v", reply)
+			return
+		}
+		logger.LogWithPhase("HARVEST").Info(reply)
 	}
 }
 
-func getWithProxy(ctx context.Context, url string, grpcServices *testutil.GrpcServiceMock) {
-	recorderProxy, client = newProxy(grpcServices)
-	defer recorderProxy.Shutdown(ctx)
+func getWithProxy(ctx context.Context, uri, id string, client *http.Client) {
+	statusCode, got, err := get(ctx, uri, id, client, 5000*time.Second)
 
-	clientTimeout := 5000 * time.Second
-
-	statusCode, got, err := get(url, client, clientTimeout)
-
-	logger.LogWithComponent("CLIENT").Infof("Status: %v", statusCode)
+	logger.LogWithPhase("http_client").Infof("Status: %v", statusCode)
 
 	if len(got) > 0 {
-		logger.LogWithComponent("CLIENT").Printf("Content: %s... (%d bytes)\n\n", got[0:10], len(got))
+		logger.LogWithPhase("http_client").Printf("Content: %s... (%d bytes)\n\n", got[:min(10, len(got))], len(got))
 	}
 
 	if err != nil {
-		logger.LogWithComponent("CLIENT").WithError(err).Error("Invalid request")
+		logger.LogWithPhase("http_client").WithError(err).Error("Invalid request")
 	}
 }
 
@@ -107,7 +132,7 @@ func newProxy(mock *testutil.GrpcServiceMock) (*recorderproxy.RecorderProxy, *ht
 	host := viper.GetString("interface")
 	port := viper.GetInt("port")
 	nextProxy := viper.GetString("proxy")
-	p := recorderproxy.NewRecorderProxy(0, mock.ClientConn, nextProxy)
+	p := recorderproxy.NewRecorderProxy(1, mock.ContentWriterClient, mock.DnsResolverClient, nextProxy)
 
 	ln, err := p.Listen(host, port)
 	if err != nil {
@@ -116,12 +141,12 @@ func newProxy(mock *testutil.GrpcServiceMock) (*recorderproxy.RecorderProxy, *ht
 	go func() {
 		err := p.Serve(ln)
 		if err != nil {
-			logger.LogWithComponent("PROXY").WithError(err).Error("Error starting recorder proxy")
+			logger.LogWithPhase("connection").WithError(err).Error("Error starting recorder proxy")
 		}
 	}()
 
 	proxyUrl, _ := url.Parse("http://" + ln.Addr().String())
-	tr := &http.Transport{TLSClientConfig: acceptAllCerts, Proxy: http.ProxyURL(proxyUrl), DisableKeepAlives: false}
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, Proxy: http.ProxyURL(proxyUrl), DisableKeepAlives: false}
 	client := &http.Client{Transport: tr}
 
 	return p, client

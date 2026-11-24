@@ -33,7 +33,6 @@ const (
 	ctxKeyHost               = ctxKey("host")
 	ctxKeyPort               = ctxKey("port")
 	ctxKeyUrl                = ctxKey("url")
-	ctxKeyRequestId          = ctxKey("reqid")
 	ctxKeyCrawlExecutionId   = ctxKey("eid")
 	ctxKeyJobExecutionId     = ctxKey("jid")
 	ctxKeyCollectionRef      = ctxKey("cid")
@@ -128,7 +127,6 @@ func ResetRequestState(ctx context.Context, preserveSessionMetadata bool) {
 	defer h.mu.Unlock()
 
 	delete(h.values, ctxKeyRCTX)
-	delete(h.values, ctxKeyRequestId)
 	delete(h.values, ctxKeyIp)
 
 	if !preserveSessionMetadata {
@@ -158,10 +156,6 @@ func SetUri(ctx context.Context, uri *url.URL) {
 
 func SetRecordContext(ctx context.Context, rc *RecordContext) {
 	setValue(ctx, ctxKeyRCTX, rc)
-}
-
-func SetRequestId(ctx context.Context, reqid string) {
-	setValue(ctx, ctxKeyRequestId, reqid)
 }
 
 func SetCrawlExecutionId(ctx context.Context, eid string) {
@@ -197,11 +191,6 @@ func GetUri(ctx context.Context) (uri *url.URL) {
 
 func GetRecordContext(ctx context.Context) (recordContext *RecordContext) {
 	recordContext, _ = getValue(ctx, ctxKeyRCTX).(*RecordContext)
-	return
-}
-
-func GetRequestId(ctx context.Context) (reqid string) {
-	reqid, _ = getValue(ctx, ctxKeyRequestId).(string)
 	return
 }
 

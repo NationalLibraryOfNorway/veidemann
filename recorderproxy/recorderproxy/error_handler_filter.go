@@ -28,16 +28,16 @@ type errorHandlerFilter struct{}
 
 func (f *errorHandlerFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:err")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "request")
 
 	resp, nextCS, err = next(cs, req)
 
 	if err != nil {
-		l.WithError(err).Debug("Handle roundtrip error")
+		l.WithError(err).Trace("Handle roundtrip error")
 
 		failure := classifyFailure(err, FailureScopeResource)
-		l.WithField("phase", failure.Phase).Debug("Classified request failure")
-		return handleRequestError(cs, req, failure.asError())
+		l.WithField("errorPhase", failure.Phase).Trace("Classified request failure")
+		return handleResourceError(cs, req, failure.asError(), isFetchFailure(err))
 	}
 
 	if resp != nil {
@@ -46,7 +46,7 @@ func (f *errorHandlerFilter) Apply(cs *proxy.State, req *http.Request, next prox
 			squidFailure := handleSquidErrorString(squidErr)
 			if squidFailure != nil {
 				failure := classifyFailure(squidFailure, FailureScopeResource)
-				return handleRequestError(cs, req, failure.asError())
+				return handleResourceError(cs, req, failure.asError(), isFetchFailure(proxy.NewPhaseError(proxy.PhaseUpstreamProxyConnect, squidFailure)))
 			}
 		}
 	}

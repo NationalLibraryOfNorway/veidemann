@@ -107,7 +107,7 @@ func TestResetRequestStateClearsRequestScopedValues(t *testing.T) {
 	SetHost(ctx, "example.com")
 	SetPort(ctx, "443")
 	SetUri(ctx, uri)
-	SetRequestId(ctx, "req-1")
+
 	SetIp(ctx, "127.0.0.1")
 	SetCrawlExecutionId(ctx, "ceid")
 	SetJobExecutionId(ctx, "jeid")
@@ -124,9 +124,6 @@ func TestResetRequestStateClearsRequestScopedValues(t *testing.T) {
 	}
 	if got := GetUri(ctx); got != nil {
 		t.Fatalf("GetUri() = %v, want nil", got)
-	}
-	if got := GetRequestId(ctx); got != "" {
-		t.Fatalf("GetRequestId() = %q, want empty", got)
 	}
 	if got := GetIp(ctx); got != "" {
 		t.Fatalf("GetIp() = %q, want empty", got)
@@ -150,7 +147,7 @@ func TestResetRequestStatePreservesSessionMetadata(t *testing.T) {
 	SetHost(ctx, "example.com")
 	SetPort(ctx, "443")
 	SetUri(ctx, uri)
-	SetRequestId(ctx, "req-1")
+
 	SetCrawlExecutionId(ctx, "ceid")
 	SetJobExecutionId(ctx, "jeid")
 	SetCollectionRef(ctx, collectionRef)
@@ -165,9 +162,6 @@ func TestResetRequestStatePreservesSessionMetadata(t *testing.T) {
 	}
 	if got := GetUri(ctx); got == nil || got.String() != uri.String() {
 		t.Fatalf("GetUri() = %v, want %v", got, uri)
-	}
-	if got := GetRequestId(ctx); got != "" {
-		t.Fatalf("GetRequestId() = %q, want empty", got)
 	}
 	if got := GetCrawlExecutionId(ctx); got != "ceid" {
 		t.Fatalf("GetCrawlExecutionId() = %q, want ceid", got)
@@ -192,7 +186,7 @@ func TestNewRequestContextPreservesSessionMetadataWithoutSharingRequestState(t *
 	SetCrawlExecutionId(parent, "ceid")
 	SetJobExecutionId(parent, "jeid")
 	SetCollectionRef(parent, collectionRef)
-	SetRequestId(parent, "req-parent")
+
 	SetIp(parent, "127.0.0.1")
 	SetRecordContext(parent, parentRecordContext)
 
@@ -216,9 +210,6 @@ func TestNewRequestContextPreservesSessionMetadataWithoutSharingRequestState(t *
 	if got := GetCollectionRef(child); got == nil || got.Id != "col1" {
 		t.Fatalf("GetCollectionRef() = %v, want col1", got)
 	}
-	if got := GetRequestId(child); got != "" {
-		t.Fatalf("GetRequestId() = %q, want empty", got)
-	}
 	if got := GetIp(child); got != "" {
 		t.Fatalf("GetIp() = %q, want empty", got)
 	}
@@ -228,14 +219,11 @@ func TestNewRequestContextPreservesSessionMetadataWithoutSharingRequestState(t *
 
 	childRecordContext := &RecordContext{}
 	SetHost(child, "other.example.com")
-	SetRequestId(child, "req-child")
+
 	SetRecordContext(child, childRecordContext)
 
 	if got := GetHost(parent); got != "example.com" {
 		t.Fatalf("GetHost() on parent = %q, want example.com", got)
-	}
-	if got := GetRequestId(parent); got != "req-parent" {
-		t.Fatalf("GetRequestId() on parent = %q, want req-parent", got)
 	}
 	if got := GetRecordContext(parent); got != parentRecordContext {
 		t.Fatalf("GetRecordContext() on parent = %v, want %v", got, parentRecordContext)

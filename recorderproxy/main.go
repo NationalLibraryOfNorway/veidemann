@@ -10,15 +10,23 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
+	dnsresolverV1 "github.com/NationalLibraryOfNorway/veidemann/api/dnsresolver/v1"
+	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
+	robotsV1 "github.com/NationalLibraryOfNorway/veidemann/api/robotsevaluator/v1"
+	"github.com/NationalLibraryOfNorway/veidemann/log-service/pkg/logservice"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/mitmcert"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/recorderproxy"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"github.com/spf13/pflag"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -31,10 +39,10 @@ var (
 func main() {
 	err := run()
 	if err != nil {
-		slog.Error("Bye", "error", err)
+		serviceLogger().Error("Service failed", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Goodbye!")
+	serviceLogger().Info("Service stopped")
 }
 
 func run() error {
@@ -58,43 +66,52 @@ func run() error {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
-	slog.Info(name, "version", version, "commit", commit, "date", date)
+	fields := []any{}
+	for _, field := range []struct{ key, value string }{{"version", version}, {"commit", commit}, {"date", date}} {
+		if field.value != "" {
+			fields = append(fields, field.key, field.value)
+		}
+	}
+	serviceLogger().Info("Service starting", fields...)
 
 	mitmIdentity, err := mitmcert.LoadIdentity(opts.MITMCertFile(), opts.MITMKeyFile())
 	if err != nil {
 		return fmt.Errorf("failed to load MITM identity: %w", err)
 	}
 
-	contentWriterOpts := serviceconnections.NewConnectionOptions(
-		"ContentWriter",
-		serviceconnections.WithHost(opts.ContentWriterHost()),
-		serviceconnections.WithPort(opts.ContentWriterPort()),
-	)
-	dnsOpts := serviceconnections.NewConnectionOptions(
-		"DnsService",
-		serviceconnections.WithHost(opts.DnsResolverHost()),
-		serviceconnections.WithPort(opts.DnsResolverPort()),
-	)
-	browserControllerOpts := serviceconnections.NewConnectionOptions(
-		"BrowserController",
-		serviceconnections.WithHost(opts.BrowserControllerHost()),
-		serviceconnections.WithPort(opts.BrowserControllerPort()),
-	)
-
-	conn := serviceconnections.NewConnections(contentWriterOpts, dnsOpts, browserControllerOpts)
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			slog.Error("Error closing gRPC connections", "error", err)
-		}
-	}()
-
-	err = conn.Connect()
+	contentWriterAddr := net.JoinHostPort(opts.ContentWriterHost(), opts.ContentWriterPort())
+	contentWriterConn, err := grpc.NewClient(contentWriterAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("failed to connect to services: %w", err)
+		return fmt.Errorf("failed to connect to content writer at %s: %w", contentWriterAddr, err)
 	}
+	defer closeGRPCConnection("ContentWriter", contentWriterConn)
+	contentWriter := contentwriterV1.NewContentWriterClient(contentWriterConn)
 
-	slog.Info("Using cache", "address", cacheAddr)
+	dnsResolverAddr := net.JoinHostPort(opts.DnsResolverHost(), opts.DnsResolverPort())
+	dnsResolverConn, err := grpc.NewClient(dnsResolverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to DNS resolver at %s: %w", dnsResolverAddr, err)
+	}
+	defer closeGRPCConnection("DnsResolver", dnsResolverConn)
+	dnsResolver := dnsresolverV1.NewDnsResolverClient(dnsResolverConn)
+
+	robotsEvaluatorAddr := net.JoinHostPort(opts.RobotsEvaluatorHost(), opts.RobotsEvaluatorPort())
+	robotsEvaluatorConn, err := grpc.NewClient(robotsEvaluatorAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to robots evaluator at %s: %w", robotsEvaluatorAddr, err)
+	}
+	defer closeGRPCConnection("RobotsEvaluator", robotsEvaluatorConn)
+	robotsEvaluator := robotsV1.NewRobotsEvaluatorClient(robotsEvaluatorConn)
+
+	logServiceAddr := net.JoinHostPort(opts.LogServiceHost(), opts.LogServicePort())
+	logServiceConn, err := grpc.NewClient(logServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to log service at %s: %w", logServiceAddr, err)
+	}
+	defer closeGRPCConnection("LogService", logServiceConn)
+	logs := &logservice.LogWriter{LogClient: logV1.NewLogClient(logServiceConn)}
+
+	serviceLogger().Log(context.Background(), logger.TraceLevel, "Cache configured", "cacheAddress", cacheAddr)
 
 	metricsAddr := net.JoinHostPort(opts.MetricsInterface(), strconv.Itoa(opts.MetricsPort()))
 	metricsListener, err := net.Listen("tcp", metricsAddr)
@@ -123,13 +140,19 @@ func run() error {
 	proxyCount := opts.ProxyCount()
 
 	var startedProxies []*recorderproxy.RecorderProxy
+	var proxyAddresses []string
 
-	for i := range proxyCount {
+	if proxyCount <= 0 {
+		return fmt.Errorf("proxy-count must be positive")
+	}
+	for i := 1; i <= proxyCount; i++ {
 		r := recorderproxy.NewRecorderProxy(
 			i,
-			conn,
+			contentWriter,
+			dnsResolver,
 			cacheAddr,
 			recorderproxy.WithMITMIdentity(mitmIdentity),
+			recorderproxy.WithRobotsEvaluator(robotsEvaluator),
 			recorderproxy.WithFinalizationTimeout(opts.FinalizationTimeout()),
 			recorderproxy.WithIdleTimeout(opts.IdleTimeout()),
 		)
@@ -139,24 +162,37 @@ func run() error {
 			return fmt.Errorf("failed to listen (proxy %v): %w", i, err)
 		}
 
-		slog.Info("Proxy is listening ...", "id", i, "address", ln.Addr())
+		proxyAddresses = append(proxyAddresses, ln.Addr().String())
 
 		go func() {
 			err := r.Serve(ln)
 			if err != nil {
-				slog.Error("Recorder proxy stopped", "id", i, "error", err)
+				serviceLogger().Error("Recorder proxy stopped", "slot", i, "error", err)
 			}
 		}()
 
 		startedProxies = append(startedProxies, r)
 	}
 
+	controlAddr := net.JoinHostPort(opts.ControlInterface(), opts.ControlPort())
+	controlListener, err := net.Listen("tcp", controlAddr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on recorder control address %s: %w", controlAddr, err)
+	}
+	controlServer := grpc.NewServer()
+	recorderV1.RegisterRecorderControlServer(controlServer, recorderproxy.NewControl(logs, startedProxies...))
+	defer controlServer.Stop()
+	go func() {
+		if err := controlServer.Serve(controlListener); err != nil {
+			serviceLogger().Error("Recorder control stopped", "error", err)
+		}
+	}()
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	slog.Info("Server ready", "proxies", proxyCount)
+	serviceLogger().Info("Service ready", "slots", proxyCount, "proxyAddresses", proxyAddresses, "controlAddress", controlListener.Addr().String(), "metricsAddress", metricsListener.Addr().String(), "cacheAddress", cacheAddr)
 	<-ctx.Done()
-	slog.Info("Server shutting down")
+	serviceLogger().Info("Service stopping")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), opts.FinalizationTimeout()+5*time.Second)
 	defer shutdownCancel()
@@ -166,6 +202,12 @@ func run() error {
 	return nil
 }
 
+func closeGRPCConnection(service string, conn *grpc.ClientConn) {
+	if err := conn.Close(); err != nil {
+		serviceLogger().Error("Failed to close gRPC connection", "service", service, "error", err)
+	}
+}
+
 func shutdownRecorderProxies(ctx context.Context, proxies []*recorderproxy.RecorderProxy) {
 	var wg sync.WaitGroup
 	for i, proxy := range proxies {
@@ -173,7 +215,7 @@ func shutdownRecorderProxies(ctx context.Context, proxies []*recorderproxy.Recor
 		go func() {
 			defer wg.Done()
 			if err := proxy.Shutdown(ctx); err != nil {
-				slog.Error("Error closing recorder proxy", "error", err, "id", i)
+				serviceLogger().Error("Error closing recorder proxy", "error", err, "slot", i+1)
 			}
 		}()
 	}
@@ -188,9 +230,9 @@ func cacheAddress(host, port string) (string, error) {
 }
 
 func serveHTTP(name string, server *http.Server, listener net.Listener) {
-	slog.Info(name+" server listening", "address", listener.Addr())
+	serviceLogger().Log(context.Background(), logger.TraceLevel, "Listener ready", "phase", strings.ToLower(name), "address", listener.Addr().String())
 	if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error(name+" server stopped", "error", err)
+		serviceLogger().Error(name+" server stopped", "error", err)
 	}
 }
 
@@ -199,6 +241,8 @@ func shutdownHTTPServer(server *http.Server) {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("Failed to shut down HTTP server", "address", server.Addr, "error", err)
+		serviceLogger().Error("Failed to shut down HTTP server", "address", server.Addr, "error", err)
 	}
 }
+
+func serviceLogger() *slog.Logger { return slog.Default().With("component", name) }

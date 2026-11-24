@@ -24,13 +24,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	commonsV1 "github.com/NationalLibraryOfNorway/veidemann/api/commons/v1"
 	configV1 "github.com/NationalLibraryOfNorway/veidemann/api/config/v1"
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
+	recorderV1 "github.com/NationalLibraryOfNorway/veidemann/api/recorderproxy/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
-	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/serviceconnections"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -46,44 +47,50 @@ func OpenSessions() int64 {
 }
 
 type RecordContext struct {
-	Error error
+	MainDocument bool
+	Harvest      *recorderV1.BeginHarvestRequest
+	// Complete persists the resource outcome; attemptFailure can differ from its logged error.
+	Complete func(crawlLog *logV1.CrawlLog, cached bool, attemptFailure *commonsV1.Error)
+	// ResolveDiscovery runs during Init, before terminal processing can start.
+	// The owning attempt serializes initialization with admission.
+	ResolveDiscovery func(*http.Request, *url.URL, bool) string
+	// ObserveResponse records ancestry evidence before headers reach the browser.
+	ObserveResponse func(*http.Response)
 
 	CloseFunc func()
 
 	// Will connect a request to a response
 	session int64
 
-	conn                      *serviceconnections.Connections
-	ctx                       context.Context
-	cwc                       *CwcSession
-	Method                    string
-	Uri                       *url.URL
-	RequestId                 string
-	CrawlExecutionId          string
-	JobExecutionId            string
-	CollectionRef             *configV1.ConfigRef
-	IpAddress                 string
-	FetchTimesTamp            time.Time
-	Meta                      *contentwriterV1.WriteRequest_Meta
-	CrawlLog                  *logV1.CrawlLog
-	ReplacementScript         *configV1.BrowserScript
-	closed                    bool
-	FoundInCache              bool
-	PrecludedByRobots         bool
-	HasExplicitHarvestHeaders bool
-	done                      bool
-	mutex                     sync.Mutex
-	crawlLogMutex             sync.RWMutex
-	terminalDone              chan struct{}
-	terminalErr               error
-	finalizationTimeout       time.Duration
-	lifecycleCancel           context.CancelFunc
-	cwcCreating               bool
-	cwcReady                  chan struct{}
-	cwcErr                    error
-	InitDone                  bool
-	ProxyId                   int32
-	log                       *logger.Logger
+	contentWriterClient contentwriterV1.ContentWriterClient
+	ctx                 context.Context
+	cwc                 *CwcSession
+	Method              string
+	Uri                 *url.URL
+	ResourceType        string
+	CrawlExecutionId    string
+	JobExecutionId      string
+	CollectionRef       *configV1.ConfigRef
+	IpAddress           string
+	FetchTimesTamp      time.Time
+	Meta                *contentwriterV1.WriteRequest_Meta
+	CrawlLog            *logV1.CrawlLog
+	closed              bool
+	FoundInCache        bool
+	PrecludedByRobots   bool
+	done                bool
+	mutex               sync.Mutex
+	crawlLogMutex       sync.RWMutex
+	terminalDone        chan struct{}
+	terminalErr         error
+	finalizationTimeout time.Duration
+	lifecycleCancel     context.CancelFunc
+	cwcCreating         bool
+	cwcReady            chan struct{}
+	cwcErr              error
+	InitDone            bool
+	ProxyId             int32
+	log                 *logger.Logger
 }
 
 // NewRecordContext creates a new RecordContext
@@ -93,7 +100,7 @@ func NewRecordContext(finalizationTimeout ...time.Duration) *RecordContext {
 		timeout = finalizationTimeout[0]
 	}
 	rc := &RecordContext{
-		session:             atomic.AddInt64(&sess, 1),
+
 		terminalDone:        make(chan struct{}),
 		finalizationTimeout: timeout,
 	}
@@ -101,24 +108,31 @@ func NewRecordContext(finalizationTimeout ...time.Duration) *RecordContext {
 	return rc
 }
 
-func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connections, req *http.Request, uri *url.URL) *RecordContext {
-	rc.conn = conn
+func (rc *RecordContext) Init(proxyId int32, contentWriter contentwriterV1.ContentWriterClient, req *http.Request, uri *url.URL) *RecordContext {
+	rc.session = atomic.AddInt64(&sess, 1)
+	rc.contentWriterClient = contentWriter
 	rc.ctx = req.Context()
 	lifecycleCtx, lifecycleCancel := context.WithCancel(context.Background())
 	rc.lifecycleCancel = lifecycleCancel
 	rc.ProxyId = proxyId
 	rc.Method = req.Method
+	marker := req.Header.Get(constants.HeaderMainDocument)
+	rc.MainDocument = marker != "" && marker == rc.Harvest.GetAttemptId()
+	req.Header.Del(constants.HeaderMainDocument)
+	rc.ResourceType = resourceType(req.Header.Get("Sec-Fetch-Dest"))
 	rc.Uri = uri
-	rc.HasExplicitHarvestHeaders = req.Header.Get(constants.HeaderCrawlExecutionId) != "" ||
-		req.Header.Get(constants.HeaderJobExecutionId) != "" ||
-		req.Header.Get(constants.HeaderCollectionId) != ""
-
-	resolveIdsFromHttpHeader(rc.ctx, req)
-	rc.RequestId = GetRequestId(rc.ctx)
 	rc.CrawlExecutionId = GetCrawlExecutionId(rc.ctx)
 	rc.JobExecutionId = GetJobExecutionId(rc.ctx)
 	rc.CollectionRef = GetCollectionRef(rc.ctx)
 	rc.IpAddress = GetIp(rc.ctx)
+	if rc.Harvest != nil {
+		rc.CrawlExecutionId = rc.Harvest.CrawlExecutionId
+		rc.JobExecutionId = rc.Harvest.JobExecutionId
+		rc.CollectionRef = rc.Harvest.CollectionRef
+		SetCrawlExecutionId(rc.ctx, rc.CrawlExecutionId)
+		SetJobExecutionId(rc.ctx, rc.JobExecutionId)
+		SetCollectionRef(rc.ctx, rc.CollectionRef)
+	}
 
 	req.Header.Del(constants.HeaderRequestId)
 	req.Header.Del(constants.HeaderCrawlExecutionId)
@@ -132,20 +146,37 @@ func (rc *RecordContext) Init(proxyId int32, conn *serviceconnections.Connection
 		ExecutionId:    rc.CrawlExecutionId,
 		FetchTimeStamp: timestamppb.New(rc.FetchTimesTamp),
 		RequestedUri:   uri.String(),
+		Referrer:       req.Referer(),
 		Method:         rc.Method,
 		IpAddress:      rc.IpAddress,
 	}
 
+	if rc.Harvest != nil {
+		rc.CrawlLog.DiscoveryPath = rc.Harvest.DiscoveryPath
+		if !rc.MainDocument {
+			switch req.Header.Get("Sec-Fetch-Dest") {
+			case "empty":
+				rc.CrawlLog.DiscoveryPath += "X"
+			default:
+				rc.CrawlLog.DiscoveryPath += "E"
+			}
+		}
+	}
+	if rc.ResolveDiscovery != nil {
+		rc.CrawlLog.DiscoveryPath = rc.ResolveDiscovery(req, uri, rc.MainDocument)
+	}
 	rc.InitDone = true
 
 	rc.log = logger.Log.WithFields(logger.Fields{
-		"component": "PROXY",
-		"method":    req.Method,
-		"url":       uri.String(),
-		"session":   rc.Session(),
+		"harvestId":         rc.Harvest.GetAttemptId(),
+		"slot":              rc.Harvest.GetProxyId(),
+		"pageUrl":           logger.DiagnosticURL(rc.Harvest.GetRequestedUri()),
+		"method":            req.Method,
+		"url":               logger.DiagnosticURL(uri.String()),
+		"recorderRequestId": rc.Session(),
 	})
 
-	rc.log.Infof("New session")
+	rc.log.Trace("Recorder request admitted")
 
 	go func() {
 		select {
@@ -190,7 +221,7 @@ func (rc *RecordContext) closeSession() {
 }
 
 func LogWithRecordContext(rc *RecordContext, componentName string) *logger.Logger {
-	return rc.log.WithField("component", componentName)
+	return rc.log.WithField("phase", componentName)
 }
 
 func LogWithContext(ctx context.Context, componentName string) *logger.Logger {
@@ -199,9 +230,9 @@ func LogWithContext(ctx context.Context, componentName string) *logger.Logger {
 	if rc != nil {
 		l = rc.log
 	} else {
-		l = logger.Log
+		l = HarvestLogger(ctx)
 	}
-	l = l.WithField("component", componentName)
+	l = l.WithField("phase", componentName)
 	return l
 }
 
@@ -212,28 +243,48 @@ func LogWithContextAndRequest(ctx context.Context, req *http.Request, componentN
 	if rc != nil {
 		l = rc.log
 	} else {
-		l = logger.Log.WithFields(logger.Fields{
+		l = HarvestLogger(ctx).WithFields(logger.Fields{
 			"method": req.Method,
-			"url":    req.URL.String(),
+			"url":    logger.DiagnosticURL(req.URL.String()),
 		})
 	}
-	l = l.WithField("component", componentName)
+	l = l.WithField("phase", componentName)
 	return l
 }
 
-func resolveIdsFromHttpHeader(ctx context.Context, req *http.Request) {
-	jid := req.Header.Get(constants.HeaderJobExecutionId)
-	eid := req.Header.Get(constants.HeaderCrawlExecutionId)
-	reqid := req.Header.Get(constants.HeaderRequestId)
-	SetJobExecutionId(ctx, jid)
-	SetCrawlExecutionId(ctx, eid)
-	SetRequestId(ctx, reqid)
+type harvestLogKey struct{}
 
-	if req.Header.Get(constants.HeaderCollectionId) != "" {
-		cid := req.Header.Get(constants.HeaderCollectionId)
-		SetCollectionRef(ctx, &configV1.ConfigRef{
-			Kind: configV1.Kind_collection,
-			Id:   cid,
-		})
+// WithHarvestLogger pins diagnostic correlation to the accepted connection.
+func WithHarvestLogger(ctx context.Context, log *logger.Logger) context.Context {
+	return context.WithValue(ctx, harvestLogKey{}, log)
+}
+
+// HarvestLogger returns the diagnostic context pinned to the connection.
+func HarvestLogger(ctx context.Context) *logger.Logger {
+	if log, ok := ctx.Value(harvestLogKey{}).(*logger.Logger); ok {
+		return log
+	}
+	return logger.Log
+}
+
+// HTTP fetch metadata supplies coarse page-log labels without CDP correlation.
+func resourceType(destination string) string {
+	switch destination {
+	case "document", "frame", "iframe":
+		return "Document"
+	case "script", "worker", "sharedworker", "serviceworker":
+		return "Script"
+	case "style":
+		return "Stylesheet"
+	case "image":
+		return "Image"
+	case "font":
+		return "Font"
+	case "audio", "video", "track":
+		return "Media"
+	case "manifest":
+		return "Manifest"
+	default:
+		return ""
 	}
 }

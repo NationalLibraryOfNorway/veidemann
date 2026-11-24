@@ -26,6 +26,7 @@ import (
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	proxy "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/internal/proxy"
+	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 	"google.golang.org/grpc/status"
 )
 
@@ -35,7 +36,7 @@ type dnsLookupFilter struct {
 
 func (f *dnsLookupFilter) Apply(cs *proxy.State, req *http.Request, next proxy.Next) (resp *http.Response, nextCS *proxy.State, err error) {
 	ctx := filterContext(cs, req)
-	l := rpcontext.LogWithContextAndRequest(ctx, req, "FLT:dns")
+	l := rpcontext.LogWithContextAndRequest(ctx, req, "dns")
 
 	ip := rpcontext.GetIp(ctx)
 	host := rpcontext.GetHost(ctx)
@@ -44,7 +45,7 @@ func (f *dnsLookupFilter) Apply(cs *proxy.State, req *http.Request, next proxy.N
 		if e := f.resolve(ctx, host, port); e != nil {
 			return handleRequestError(cs, req, e)
 		}
-		l.Debugf("resolved '%v' to '%v'", host, rpcontext.GetIp(ctx))
+		l.WithFields(logger.Fields{"host": host, "ipAddress": rpcontext.GetIp(ctx)}).Trace("DNS resolved")
 	}
 	resp, nextCS, err = next(cs, req)
 	return

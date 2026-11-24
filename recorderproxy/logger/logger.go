@@ -22,6 +22,7 @@ import (
 	stdLog "log"
 	"log/slog"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -50,7 +51,7 @@ var (
 
 func init() {
 	currentLevel.Set(InfoLevel)
-	handler, err := newHandler(FORMATTER_TEXT, false)
+	handler, err := newHandler(FORMATTER_JSON, false)
 	if err != nil {
 		panic(err)
 	}
@@ -142,12 +143,17 @@ func levelName(level slog.Level) string {
 
 func setDefaultLogger(handler slog.Handler) {
 	logger := slog.New(handler)
-	Log = &Logger{logger: logger}
+	Log = New(logger)
 	slog.SetDefault(logger)
 
 	stdLogger := slog.NewLogLogger(handler, InfoLevel)
 	stdLog.SetFlags(0)
 	stdLog.SetOutput(stdLogger.Writer())
+}
+
+// New wraps a structured logger, allowing callers to retain their handler and context.
+func New(log *slog.Logger) *Logger {
+	return &Logger{logger: log.With("component", "recorderproxy")}
 }
 
 type Logger struct {
@@ -167,8 +173,22 @@ func (l *Logger) WithField(key string, value interface{}) *Logger {
 
 func (l *Logger) WithFields(fields Fields) *Logger {
 	args := make([]any, 0, len(fields)*2)
-	for key, value := range fields {
-		args = append(args, key, value)
+	for _, key := range []string{"component", "harvestId", "slot", "pageUrl"} {
+		if value, ok := fields[key]; ok {
+			args = append(args, key, value)
+		}
+	}
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		switch key {
+		case "component", "harvestId", "slot", "pageUrl":
+			continue
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		args = append(args, key, fields[key])
 	}
 	return &Logger{logger: l.base().With(args...)}
 }
@@ -180,8 +200,8 @@ func (l *Logger) WithError(err error) *Logger {
 	return l.WithField("error", err)
 }
 
-func (l *Logger) WithComponent(comp string) *Logger {
-	return l.WithField("component", comp)
+func (l *Logger) WithPhase(phase string) *Logger {
+	return l.WithField("phase", phase)
 }
 
 func (l *Logger) log(level Level, msg string) {
@@ -295,6 +315,6 @@ func (l *Logger) Panicf(format string, args ...interface{}) {
 	panic(msg)
 }
 
-func LogWithComponent(comp string) *Logger {
-	return Log.WithField("component", comp)
+func LogWithPhase(phase string) *Logger {
+	return Log.WithPhase(phase)
 }

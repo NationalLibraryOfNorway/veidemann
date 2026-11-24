@@ -29,6 +29,7 @@ import (
 	logV1 "github.com/NationalLibraryOfNorway/veidemann/api/log/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/constants"
 	rpcontext "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/context"
+	rperrors "github.com/NationalLibraryOfNorway/veidemann/recorderproxy/errors"
 	"github.com/NationalLibraryOfNorway/veidemann/recorderproxy/logger"
 )
 
@@ -76,9 +77,7 @@ func WrapRequestBody(
 		blockDigest:   sha1.New(),
 	}
 
-	b.log = rpcontext.
-		LogWithRecordContext(rc, "BODY:req").
-		WithField("url", rc.Uri.String())
+	b.log = rpcontext.LogWithRecordContext(rc, "request_body")
 
 	b.recordMeta = &contentwriterV1.WriteRequestMeta_RecordMeta{
 		RecordNum:         b.recNum,
@@ -128,11 +127,12 @@ func (b *wrappedRequestBody) Read(p []byte) (int, error) {
 	}
 
 	n, readErr := r.Read(p)
-	b.logRead(n, readErr)
 
 	if n > 0 {
 		if err := b.recordPayload(p[:n]); err != nil {
+			err = rperrors.WrapInternalError(err, rperrors.RuntimeException, "Error recording request payload", err.Error())
 			b.setFailed(err)
+			_ = b.recordContext.SendRequestError(b.ctx, err)
 			return n, err
 		}
 	}
@@ -172,9 +172,9 @@ func (b *wrappedRequestBody) Close() error {
 	}
 
 	if err != nil {
-		b.log.WithError(err).Debug("Close body")
+		b.log.WithError(err).Trace("Request body closed")
 	} else {
-		b.log.Debug("Close body")
+		b.log.Trace("Request body closed")
 	}
 
 	return err
@@ -190,15 +190,6 @@ func (b *wrappedRequestBody) closeState() io.Closer {
 
 	b.closed = true
 	return b.ReadCloser
-}
-
-func (b *wrappedRequestBody) logRead(n int, err error) {
-	if err != nil && err != io.EOF {
-		b.log.WithError(err).Warnf("Inner read %d", n)
-		return
-	}
-
-	b.log.Tracef("Inner read %d", n)
 }
 
 func (b *wrappedRequestBody) recordPayload(data []byte) error {

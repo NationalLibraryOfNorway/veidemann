@@ -18,7 +18,13 @@ package constants
 
 // Http headers
 const (
-	HeaderAcceptEncoding   = "Accept-Encoding"
+	HeaderAcceptEncoding = "Accept-Encoding"
+	// HeaderAttemptId fences traffic from an old browser after slot recovery.
+	// It is stripped before recording or forwarding a request.
+	HeaderAttemptId = "X-Veidemann-Attempt-Id"
+	// HeaderMainDocument carries the attempt UUID only on root document requests.
+	// It is stripped before recording or forwarding a request.
+	HeaderMainDocument     = "X-Veidemann-Main-Document"
 	HeaderRequestId        = "veidemann_reqid"
 	HeaderCrawlExecutionId = "veidemann_eid"
 	HeaderJobExecutionId   = "veidemann_jeid"
