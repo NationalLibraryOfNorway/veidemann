@@ -43,6 +43,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  go:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: api
+
   ci:
     runs-on: ubuntu-latest
 

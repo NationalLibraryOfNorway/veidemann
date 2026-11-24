@@ -18,7 +18,9 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "stable"
-          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
+          cache-dependency-path: |
+            ${{ inputs.working-directory }}/go.mod
+            ${{ inputs.working-directory }}/go.sum
 
       - name: Run Tests
         working-directory: ${{ inputs.working-directory }}
@@ -33,10 +35,12 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "stable"
-          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
+          cache-dependency-path: |
+            ${{ inputs.working-directory }}/go.mod
+            ${{ inputs.working-directory }}/go.sum
 
       - name: Run Linter
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@v9.3.0
         with:
           version: latest
           working-directory: ${{ inputs.working-directory }}

@@ -16,3 +16,8 @@ jobs:
     uses: ./.github/workflows/golang-ci.yaml
     with:
       working-directory: rethinkdb/probe
+
+  startup:
+    uses: ./.github/workflows/golang-ci.yaml
+    with:
+      working-directory: rethinkdb/startup
