@@ -42,7 +42,7 @@ spec:
         fsGroup: 13
       initContainers:
         - name: init-cache-config
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.1
           securityContext:
             readOnlyRootFilesystem: true
           resources:
@@ -62,7 +62,7 @@ spec:
               mountPath: /generated-config
       containers:
         - name: cache
-          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/cache:0.12.1
           securityContext:
             readOnlyRootFilesystem: true
           resources:

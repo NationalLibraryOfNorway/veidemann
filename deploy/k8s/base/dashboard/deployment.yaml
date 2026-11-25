@@ -34,7 +34,7 @@ spec:
                 path: config.json
       containers:
         - name: dashboard
-          image: ghcr.io/nationallibraryofnorway/veidemann/dashboard:0.31.2
+          image: ghcr.io/nationallibraryofnorway/veidemann/dashboard:0.32.0
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
