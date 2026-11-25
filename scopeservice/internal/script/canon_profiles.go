@@ -18,7 +18,7 @@ func InitializeCanonicalizationProfiles(includeFragment bool) {
 	// '+' and empty terms. Retain the policy that "flag=" canonicalizes to "flag".
 	rules = append(rules, canonicalizer.SortQuery, canonicalizer.RemoveEmptyQueryEquals)
 	CrawlCanonicalizationProfile = canonicalizer.New(rules...).
-		WithParser(parser).WithDefaultScheme("http")
+		WithParser(parser).WithDefaultScheme("https")
 	ScopeCanonicalizationProfile = canonicalizer.New(canonicalizer.RepeatedPercentDecoding()).
-		Then(rules...).WithParser(parser).WithDefaultScheme("http")
+		Then(rules...).WithParser(parser).WithDefaultScheme("https")
 }

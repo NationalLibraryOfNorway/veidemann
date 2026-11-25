@@ -28,9 +28,12 @@ Only one leading `www` or numbered-`www` label is treated as an alias. The match
 {{< /funcdef >}}
 
 {{< funcdef def="isUrl(url)" >}}
-Space separated string with urls
+Matches the candidate's full canonical URL against a space-separated list of URLs.
+An entry without a scheme defaults to HTTPS, so `example.com/private` matches `https://example.com/private`.
+Use `http://` explicitly to match an HTTP URL. List both URLs to match both schemes.
+
 ```
-isUrl("http://example.com")
+isUrl("http://example.com/private https://example.com/private")
 ```
 {{< /funcdef >}}
 

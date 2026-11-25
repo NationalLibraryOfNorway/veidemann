@@ -14,7 +14,19 @@ func TestCanonicalizationProfiles(t *testing.T) {
 	}{
 		{
 			name:  "default scheme and slash collapsing",
-			input: "Example.COM/a//b", scope: "http://example.com/a/b", crawl: "http://example.com/a/b",
+			input: "Example.COM/a//b", scope: "https://example.com/a/b", crawl: "https://example.com/a/b",
+		},
+		{
+			name:  "default scheme for bare host",
+			input: "example.com", scope: "https://example.com/", crawl: "https://example.com/",
+		},
+		{
+			name:  "default scheme for protocol-relative URL",
+			input: "//example.com/path", scope: "https://example.com/path", crawl: "https://example.com/path",
+		},
+		{
+			name:  "explicit HTTP and default port",
+			input: "http://example.com:80/path", scope: "http://example.com/path", crawl: "http://example.com/path",
 		},
 		{
 			name:  "credentials fragment and default port",

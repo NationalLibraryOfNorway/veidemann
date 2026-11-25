@@ -76,7 +76,7 @@ func Test_matchCanonicalURL(t *testing.T) {
 	InitializeCanonicalizationProfiles(false)
 
 	matched, err := matchCanonicalURL(
-		"http://foo.bar/aa/bb/cc?a=c&a=b&foo&jsessionid=1",
+		"https://foo.bar/aa/bb/cc?a=c&a=b&foo&jsessionid=1",
 		"foo.bar/aa/ff/../bb/cc?foo&a=c&jsessionid=1&a=b",
 	)
 	if err != nil {
