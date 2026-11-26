@@ -31,7 +31,7 @@ spec:
             claimName: warcs
       containers:
         - name: contentwriter
-          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.7.0
+          image: ghcr.io/nationallibraryofnorway/veidemann/contentwriter:0.7.1
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
