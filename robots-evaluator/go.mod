@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/NationalLibraryOfNorway/veidemann/api v1.6.0
 	github.com/google/uuid v1.6.0
-	github.com/nationallibraryofnorway/gowarc/v3 v3.2.0
+	github.com/nationallibraryofnorway/gowarc/v4 v4.0.1
 	github.com/nationallibraryofnorway/whatwg-url v0.9.1
 	github.com/olric-data/olric v0.7.4
 	github.com/spf13/pflag v1.1.0
