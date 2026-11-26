@@ -573,7 +573,7 @@ func TestChunkedCaptureDigestsAndRevisits(t *testing.T) {
 			require.Equal(t, header+body, string(data))
 			require.Equal(t, fmt.Sprintf("sha1:%X", sha1.Sum(data)), m.BlockDigest)
 		}
-		rec.WarcRecord.Close()
-		f.Close()
+		require.NoError(t, rec.WarcRecord.Close())
+		require.NoError(t, f.Close())
 	}
 }
