@@ -18,6 +18,7 @@ package writer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -29,7 +30,7 @@ import (
 	contentwriterV1 "github.com/NationalLibraryOfNorway/veidemann/api/contentwriter/v1"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/database"
 	"github.com/google/uuid"
-	"github.com/nationallibraryofnorway/gowarc/v3"
+	"github.com/nationallibraryofnorway/gowarc/v4"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -38,7 +39,7 @@ var Now = time.Now
 
 const warcFileScheme = "warcfile"
 
-// RecordOptions preserves contentwriter's digest and repair defaults with gowarc v3.
+// RecordOptions preserves contentwriter's digest and repair defaults for gowarc.
 func RecordOptions(overrides ...gowarc.WarcRecordOption) []gowarc.WarcRecordOption {
 	return append([]gowarc.WarcRecordOption{
 		gowarc.WithDefaultDigestAlgorithm("sha1"),
@@ -170,6 +171,10 @@ func (ww *warcWriter) Write(meta *contentwriterV1.WriteRequestMeta, record ...go
 			continue
 		}
 		revisitRecord, err := ww.toRevisitRecord(int32(i), r, meta, crawledContent)
+		if errors.Is(err, gowarc.ErrRevisitHasTrailers) {
+			// Keep the full response and the existing deduplication target.
+			continue
+		}
 		if err != nil {
 			slog.Error("Could not create revisit record", "error", err)
 			record[i], revisitKeys[i] = r, digest

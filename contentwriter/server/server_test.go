@@ -18,11 +18,16 @@ package server
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/base32"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,8 +37,9 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/flags"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/go-redis/redismock/v9"
-	"github.com/nationallibraryofnorway/gowarc/v3"
+	"github.com/nationallibraryofnorway/gowarc/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -479,5 +485,95 @@ func dirHasFilesMatching(t *testing.T, dir string, pattern string, count int) bo
 			f += "\n  " + ff
 		}
 		return assert.Fail(t, "Wrong number of files in '"+dir+"'", "Expected %d files to match %s, but found %d\nFiles in dir:%s", count, pattern, found, f)
+	}
+}
+
+type captureIndex map[string]*contentwriterV1.CrawledContent
+
+func (idx captureIndex) HasCrawledContent(_ context.Context, collection, digest string) (*contentwriterV1.CrawledContent, error) {
+	return idx[collection+digest], nil
+}
+func (idx captureIndex) WriteCrawledContent(_ context.Context, collection string, content *contentwriterV1.CrawledContent, _ time.Time) error {
+	idx[collection+content.Digest] = content
+	return nil
+}
+
+func TestChunkedCaptureDigestsAndRevisits(t *testing.T) {
+	dir := t.TempDir()
+	service := newServerAndClient(flags.NewMock(dir, 1))
+	defer service.close()
+	service.registry.contentAdapter = captureIndex{}
+	const header = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTrailer: X-Origin\r\n\r\n"
+	entityHash := sha1.Sum([]byte("abc"))
+	digest := "sha1:" + base32.StdEncoding.EncodeToString(entityHash[:])
+	var original string
+	for _, tc := range []struct {
+		trailer, supplied string
+		invalid           bool
+	}{
+		{"X-Origin: first\r\n", "", false},
+		{"X-Origin: second\r\n", digest, false},
+		{"", digest, false},
+		{"X-Origin: invalid\r\n", "", true},
+	} {
+		body := "3\r\nabc\r\n0\r\n" + tc.trailer + "\r\n"
+		stream, err := service.client.Write(t.Context())
+		require.NoError(t, err)
+		for _, template := range writeReq1 {
+			msg := proto.CloneOf(template)
+			if h := msg.GetProtocolHeader(); h != nil && h.RecordNum == 1 {
+				h.Data = []byte(header)
+			}
+			if p := msg.GetPayload(); p != nil {
+				p.Data = []byte(body)
+			}
+			if m := msg.GetMeta(); m != nil {
+				meta := m.RecordMeta[1]
+				meta.Size = int64(len(header) + len(body))
+				meta.BlockDigest = fmt.Sprintf("sha1:%X", sha1.Sum([]byte(header+body)))
+				meta.PayloadDigest = tc.supplied
+				if tc.invalid {
+					meta.PayloadDigest = fmt.Sprintf("sha1:%X", sha1.Sum([]byte(body)))
+				}
+			}
+			require.NoError(t, stream.Send(msg))
+		}
+		reply, err := stream.CloseAndRecv()
+		if tc.invalid {
+			require.ErrorContains(t, err, "digest")
+			continue
+		}
+		require.NoError(t, err)
+		m := reply.Meta.RecordMeta[1]
+		require.Equal(t, digest, m.PayloadDigest)
+		ref := strings.Split(m.StorageRef, ":")
+		require.Len(t, ref, 3)
+		offset, err := strconv.ParseInt(ref[2], 10, 64)
+		require.NoError(t, err)
+		f, err := gowarc.NewWarcFileReader(filepath.Join(dir, ref[1]+".open"), offset)
+		require.NoError(t, err)
+		rec, err := f.Next()
+		require.NoError(t, err)
+		require.Equal(t, digest, rec.WarcRecord.WarcHeader().Get(gowarc.WarcPayloadDigest))
+		if tc.trailer == "" {
+			require.Equal(t, gowarc.Revisit, rec.WarcRecord.Type())
+			require.Equal(t, "<urn:uuid:"+original+">", m.RevisitReferenceId)
+		} else {
+			require.Equal(t, gowarc.Response, rec.WarcRecord.Type())
+			require.Equal(t, contentwriterV1.RecordType_RESPONSE, m.Type)
+			require.Empty(t, m.RevisitReferenceId)
+			require.NotEqual(t, original, m.WarcId)
+			if original == "" {
+				original = m.WarcId
+			}
+			raw, err := rec.WarcRecord.Block().RawBytes()
+			require.NoError(t, err)
+			data, err := io.ReadAll(raw)
+			require.NoError(t, err)
+			require.Equal(t, header+body, string(data))
+			require.Equal(t, fmt.Sprintf("sha1:%X", sha1.Sum(data)), m.BlockDigest)
+		}
+		rec.WarcRecord.Close()
+		f.Close()
 	}
 }

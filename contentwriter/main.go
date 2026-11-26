@@ -16,7 +16,7 @@ import (
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/upload"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/internal/writer"
 	"github.com/NationalLibraryOfNorway/veidemann/contentwriter/server"
-	"github.com/nationallibraryofnorway/gowarc/v3"
+	"github.com/nationallibraryofnorway/gowarc/v4"
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/redis/go-redis/v9"

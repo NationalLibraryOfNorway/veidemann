@@ -71,8 +71,8 @@ github.com/minio/minio-go/v7 v7.4.1 h1:PtU/zIOfQRWZ+QydXAZysc+xZYHdG+BBR4Z6TUvy7
 github.com/minio/minio-go/v7 v7.4.1/go.mod h1:nQnQi7zTfXR4lREtYXZQWqo5aw0Rqv+ZqCGrTORygRk=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/nationallibraryofnorway/gowarc/v3 v3.2.0 h1:gzG7mzszF8a4M/FsNvdeea6KPJf6Emeb5RvTUUkFLBQ=
-github.com/nationallibraryofnorway/gowarc/v3 v3.2.0/go.mod h1:hGUY+omqacEf/q685oZYxTb5ZwBAjJSAWNwzC++4geo=
+github.com/nationallibraryofnorway/gowarc/v4 v4.0.1 h1:B9p6C1PoT8EFiONpoa4PVBlClOE32o9ipx/1s3wE3/k=
+github.com/nationallibraryofnorway/gowarc/v4 v4.0.1/go.mod h1:HgfF45Xz9dUUi6FQ5h1rzVHgIjbx5kQ6tHah77rFhsk=
 github.com/nationallibraryofnorway/whatwg-url v0.9.1 h1:kGyhz2uSi70VS1JxgSZwZjpmrV8bM5PercNlxhMlls8=
 github.com/nationallibraryofnorway/whatwg-url v0.9.1/go.mod h1:3KSm5/kiby6KExnnCXZ1Vmdwc+pLZokAdtJavchDKwg=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=

@@ -7,7 +7,7 @@ require (
 	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.4.1
-	github.com/nationallibraryofnorway/gowarc/v3 v3.2.0
+	github.com/nationallibraryofnorway/gowarc/v4 v4.0.1
 	github.com/opentracing-contrib/go-grpc v0.1.4
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.25.0
